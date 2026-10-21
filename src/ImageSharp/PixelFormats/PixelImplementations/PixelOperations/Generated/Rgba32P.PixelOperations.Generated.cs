@@ -18,7 +18,7 @@ public partial struct Rgba32P
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Rgba32P>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgba32P>
     {
         /// <inheritdoc />
         public override void FromRgba32P(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Rgba32P> destination)

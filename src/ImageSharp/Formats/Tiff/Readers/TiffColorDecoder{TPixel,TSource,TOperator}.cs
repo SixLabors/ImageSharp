@@ -40,7 +40,7 @@ internal sealed class TiffColorDecoder<TPixel, TSource, TOperator> : TiffBaseCol
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         InlineArray16<Vector4> vectorBuffer = default;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
         int offset = 0;
 
         for (int y = top; y < top + height; y++)
@@ -50,7 +50,7 @@ internal sealed class TiffColorDecoder<TPixel, TSource, TOperator> : TiffBaseCol
             for (int x = 0; x < width; x += vectors.Length)
             {
                 int count = Math.Min(vectors.Length, width - x);
-                Span<Vector4> block = vectors[..count];
+                Span<Vector4> block = this.GetColorBlock(vectors, x, count);
 
                 // The source defines byte stride; a complete pixel block is passed to the
                 // register traversal, then PixelOperations applies the target's own format rules.
@@ -64,22 +64,12 @@ internal sealed class TiffColorDecoder<TPixel, TSource, TOperator> : TiffBaseCol
                     this.colorOperator,
                     default);
 
-                // The operator has scaled the samples; its alpha representation selects the matching pixel packer.
-                switch (this.colorOperator.AlphaRepresentation)
-                {
-                    case PixelAlphaRepresentation.Associated:
-                        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                        break;
-                    case PixelAlphaRepresentation.Unassociated:
-                        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                        break;
-                    default:
-                        PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                        break;
-                }
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), this.colorOperator.AlphaRepresentation);
 
                 offset += count * this.source.BytesPerPixel;
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, this.colorOperator.AlphaRepresentation);
         }
     }
 }

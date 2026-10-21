@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -106,7 +105,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToVector4());
+        => PixelOperations.ClampToPixelRange(this.ToVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,15 +125,13 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToUnassociatedVector4());
+        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
     {
-        return new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
+        return PixelFormats.PixelOperations.Associate(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -153,17 +150,12 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaVector FromUnassociatedScaledVector4(Vector4 source)
-        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(source));
+        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaVector FromAssociatedScaledVector4(Vector4 source)
-    {
-        // Recover straight RGB using the supplied alpha, then bound opacity. Zero alpha retains stored RGB.
-        source = new Vector4Converters.UnassociateOperator(
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
-        return FromUnassociatedVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

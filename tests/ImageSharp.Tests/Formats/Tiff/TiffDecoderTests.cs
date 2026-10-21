@@ -506,6 +506,26 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     /// <summary>
+    /// Checks that an eight-bit destination is packed after ICC conversion of the native sixteen-bit samples.
+    /// </summary>
+    /// <param name="provider">The real sixteen-bit RGB TIFF with an embedded profile.</param>
+    [Theory]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.RgbaVector)]
+    public void Decode_IccProfile_PacksDestinationAfterConversion(TestImageProvider<RgbaVector> provider)
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<RgbaVector> precise = provider.GetImage(TiffDecoder.Instance, options);
+
+        // Keep the decoded component precision through ICC, then apply the existing final byte conversion once.
+        using Image<Rgba32> expected = precise.CloneAs<Rgba32>();
+        TestImageProvider<Rgba32> byteProvider = TestImageProvider<Rgba32>.File(provider.SourceFileOrDescription);
+        byteProvider.Configuration = provider.Configuration;
+        using Image<Rgba32> actual = byteProvider.GetImage(TiffDecoder.Instance, options);
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
     /// Verifies conversion of the reporter's CMYK profile using its relative-colorimetric intent.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type.</typeparam>

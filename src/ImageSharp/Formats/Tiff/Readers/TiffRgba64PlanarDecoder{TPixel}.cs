@@ -41,7 +41,7 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
         InlineArray32<Rgba64> sampleBuffer = default;
         InlineArray32<Vector4> vectorBuffer = default;
         Span<Rgba64> samples = sampleBuffer;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
         ReadOnlySpan<byte> red = data[0].GetSpan();
         ReadOnlySpan<byte> green = data[1].GetSpan();
         ReadOnlySpan<byte> blue = data[2].GetSpan();
@@ -50,6 +50,7 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
         TiffRgba64Store store = default;
         TiffRgba64PlanarOperator colorOperator = default;
         int rowOffset = 0;
+        PixelAlphaRepresentation alphaRepresentation = this.associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated;
 
         for (int y = top; y < top + height; y++)
         {
@@ -75,10 +76,10 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
                         colorOperator,
                         store);
 
-                    Span<Vector4> vectorBlock = vectors[..count];
+                    Span<Vector4> vectorBlock = this.GetColorBlock(vectors, x, count);
                     PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, sampleBlock, vectorBlock);
 
-                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count));
+                    this.StoreColorVectors(this.configuration, vectorBlock, pixelRow.Slice(x, count), alphaRepresentation);
                 }
                 else
                 {
@@ -92,9 +93,14 @@ internal sealed class TiffRgba64PlanarDecoder<TPixel> : TiffBasePlanarColorDecod
                         source,
                         store);
 
-                    PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, sampleBlock, pixelRow.Slice(x, count));
+                    if (!this.TryStoreColorPixels(this.configuration, (ReadOnlySpan<Rgba64>)sampleBlock, vectors, x))
+                    {
+                        PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, sampleBlock, pixelRow.Slice(x, count));
+                    }
                 }
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, alphaRepresentation);
 
             rowOffset += width * sizeof(ushort);
         }

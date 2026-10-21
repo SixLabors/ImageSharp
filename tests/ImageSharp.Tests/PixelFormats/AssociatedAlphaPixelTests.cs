@@ -119,6 +119,20 @@ public class Abgr32PTests : AssociatedAlphaPixelTests<Abgr32P>
 /// </summary>
 public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(uint.MaxValue)]
+    [InlineData(0xA17E_80FDU)]
+    public void Constructor_FromPackedValue(uint packed)
+    {
+        NormalizedByte4P pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void PackedValueMatchesNormalizedByte4ForAssociatedVector()
     {
@@ -171,7 +185,7 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
     {
         // Values immediately below, at, and above each vector width force every hardware regime through its vector body and scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<NormalizedByte4P> operations = (AssociatedAlphaPixelOperations<NormalizedByte4P>)PixelOperations<NormalizedByte4P>.Instance;
+        PixelOperations<NormalizedByte4P> operations = PixelOperations<NormalizedByte4P>.Instance;
 
         foreach (int length in lengths)
         {
@@ -189,7 +203,12 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 
             for (int i = 0; i < length; i++)
             {
-                pixels[i].PackedValue = (uint)((byte)(i * 37 + 128) | ((byte)(i * 73 + 64) << 8) | ((byte)(i * 109 + 192) << 16) | ((byte)(i * 151 + 128) << 24));
+                pixels[i].PackedValue = (uint)(
+                    (byte)(i * 37 + 128) |
+                    ((byte)(i * 73 + 64) << 8) |
+                    ((byte)(i * 109 + 192) << 16) |
+                    ((byte)(i * 151 + 128) << 24));
+
                 expectedNative[i] = pixels[i].ToVector4();
                 expectedAssociatedNative[i] = pixels[i].ToAssociatedVector4();
                 expectedAssociatedScaled[i] = pixels[i].ToAssociatedScaledVector4();
@@ -199,7 +218,8 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 
             if (length > 0)
             {
-                // PackedValue permits every signed byte pattern. Explicit -128 components ensure bulk sign extension matches scalar decoding even though the packer emits no -128 values.
+                // PackedValue accepts every signed-byte pattern. Explicit -128 components check sign extension,
+                // although packing never writes -128.
                 pixels[0].PackedValue = 0x80808080;
                 expectedNative[0] = pixels[0].ToVector4();
                 expectedAssociatedNative[0] = pixels[0].ToAssociatedVector4();
@@ -295,6 +315,20 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 /// </summary>
 public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        HalfVector4P pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     /// <inheritdoc />
     protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
 
@@ -416,7 +450,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
                 ushort expectedBits = (ushort)(expected[i].PackedValue >> shift);
                 ushort actualBits = (ushort)(actual[i].PackedValue >> shift);
 
-                // Association performs floating-point arithmetic before packing. IEEE 754 requires a NaN result but does not specify which operand's payload survives that arithmetic.
+                // Association applies floating-point arithmetic before packing. IEEE 754 permits different NaN payloads after that arithmetic.
                 if (Half.IsNaN(BitConverter.UInt16BitsToHalf(expectedBits)))
                 {
                     Assert.True(Half.IsNaN(BitConverter.UInt16BitsToHalf(actualBits)), $"Pixel {i}, component {component} should be NaN.");
@@ -433,7 +467,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
     {
         // Values immediately below, at, and above each vector width force every hardware regime through its vector body and scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<HalfVector4P> operations = (AssociatedAlphaPixelOperations<HalfVector4P>)PixelOperations<HalfVector4P>.Instance;
+        PixelOperations<HalfVector4P> operations = PixelOperations<HalfVector4P>.Instance;
 
         foreach (int length in lengths)
         {
@@ -711,7 +745,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         // Prefixes straddle every vector width; the final length also preserves exhaustive byte-component coverage and adds a scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259, byte.MaxValue * 4 + 5];
         TPixel[] source = new TPixel[lengths[^1]];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         for (int component = 0; component <= byte.MaxValue; component++)
         {
@@ -752,7 +786,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         // Values immediately below, at, and above each vector width force every hardware regime through its vector body and scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
         Vector4[] source = new Vector4[lengths[^1]];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -789,7 +823,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         foreach (int length in lengths)
         {
@@ -809,7 +843,8 @@ public class AssociatedAlphaPackedPixelConversionTests
 
             if (length > 0)
             {
-                // A zero-alpha pixel with stored RGB verifies the converter's defined zero-divisor behavior outside the lossless straight-color round-trip domain.
+                // Stored RGB at zero alpha checks the defined zero-divisor behavior.
+                // Such samples cannot preserve straight RGB through a round trip.
                 pixels[0] = createPixel(37, 73, 109, 0);
                 expectedNative[0] = pixels[0].ToUnassociatedVector4();
                 expectedScaled[0] = pixels[0].ToUnassociatedScaledVector4();
@@ -827,7 +862,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         foreach (int length in lengths)
         {
@@ -947,9 +982,16 @@ public class AssociatedToUnassociatedPackedPixelConversionTests
                 source[index] = new Rgba32((byte)unassociated, 0, 0, (byte)alpha);
                 expected[index++] = new HalfVector4P { PackedValue = associatedBits | (zeroComponentBits << 16) | (zeroComponentBits << 32) | alphaPacked };
                 source[index] = new Rgba32(0, (byte)unassociated, 0, (byte)alpha);
-                expected[index++] = new HalfVector4P { PackedValue = zeroComponentBits | ((ulong)associatedBits << 16) | (zeroComponentBits << 32) | alphaPacked };
+                expected[index++] = new HalfVector4P
+                {
+                    PackedValue = zeroComponentBits | ((ulong)associatedBits << 16) | (zeroComponentBits << 32) | alphaPacked
+                };
+
                 source[index] = new Rgba32(0, 0, (byte)unassociated, (byte)alpha);
-                expected[index++] = new HalfVector4P { PackedValue = zeroComponentBits | (zeroComponentBits << 16) | ((ulong)associatedBits << 32) | alphaPacked };
+                expected[index++] = new HalfVector4P
+                {
+                    PackedValue = zeroComponentBits | (zeroComponentBits << 16) | ((ulong)associatedBits << 32) | alphaPacked
+                };
             }
         }
 

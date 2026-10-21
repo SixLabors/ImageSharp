@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 
@@ -71,7 +70,7 @@ public static class CompandingUtilities
 
             // These tables serve SDR colors. Bound each sample before interpolation so invalid samples
             // cannot create NaNs between table entries, including at an exact endpoint.
-            result[i] = Compand((float)d, default(Vector4Converters.IdentityOperator), PixelColorRange.Sdr);
+            result[i] = Compand((float)d, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Sdr);
         }
 
         return result;
@@ -98,6 +97,8 @@ public static class CompandingUtilities
 
         // The curve can overflow even when its input is bounded. Limit its result before any caller consumes it.
         // Bounds are selected once per span; alpha is restored after clamping the independent component lanes.
+        // The operator evaluates every register lane. The mask restores the original alpha bits even if its curve result is invalid.
+        // Full-register counts prevent overreads; each narrower loop starts at the unprocessed color boundary.
         BoundedOperator<TOperator> bounded = new(operation, colorRange);
 
         if (Vector512.IsHardwareAccelerated)

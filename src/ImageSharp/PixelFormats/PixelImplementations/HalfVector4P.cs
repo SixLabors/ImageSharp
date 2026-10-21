@@ -4,8 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
@@ -35,6 +33,19 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     /// </summary>
     /// <param name="vector">The vector containing the associated component values.</param>
     public HalfVector4P(Vector4 vector) => this.PackedValue = Pack(vector);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HalfVector4P"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Half-precision X, Y, Z, and alpha bit patterns occupy consecutive 16-bit fields, from least to most significant.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// RGB codes are already associated with alpha. This constructor applies no alpha conversion.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public HalfVector4P(ulong packed)
+        : this() => this.PackedValue = packed;
 
     /// <inheritdoc />
     public ulong PackedValue { get; set; }
@@ -83,16 +94,19 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => new Vector4Converters.UnassociateOperator(
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
+    {
+        Vector4 source = this.ToVector4();
+        PixelOperations.UnPremultiply(ref source);
+
+        return source;
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
     {
-        return new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
+        // Storage already contains associated RGB. Color output only applies normalized component bounds.
+        return PixelOperations.ClampToPixelRange(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -138,7 +152,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     {
         // Association uses the alpha that half-precision stores so the color components
         // retain their straight values when the supplied alpha rounds on packing.
-        source.W = HalfTypeHelper.Unpack(HalfTypeHelper.Pack(source.W));
+        source.W = (float)(Half)source.W;
         Numerics.Premultiply(ref source);
         return new HalfVector4P(source);
     }
@@ -153,9 +167,11 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     public static HalfVector4P FromUnassociatedScaledVector4(Vector4 source)
     {
         // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
-        source = new Vector4Converters.AssociateOperator<Vector4Converters.HalfAlphaOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
+        source = PixelOperations.ClampToPixelRange(source);
+
+        // Half storage rounds opacity before RGB multiplication. Keep this precision rule in the pixel packer.
+        source.W = (float)(Half)source.W;
+        Numerics.Premultiply(ref source);
 
         return FromAssociatedVector4(source);
     }
@@ -164,9 +180,8 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector4P FromAssociatedScaledVector4(Vector4 source)
     {
-        source = new Vector4Converters.ReassociateOperator<Vector4Converters.HalfAlphaOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
+        // RGB is already associated. Bound the supplied components; native packing rounds them independently.
+        source = PixelOperations.ClampToPixelRange(source);
 
         return FromAssociatedVector4(source);
     }

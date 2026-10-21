@@ -33,6 +33,18 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     /// <param name="vector">The vector containing the component values.</param>
     public Rg32(Vector2 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rg32"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Unsigned red and green codes occupy bits 0-15 and 16-31, respectively.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rg32(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
 
@@ -124,11 +136,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rg32 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -136,12 +144,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rg32 FromAssociatedVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static Rg32 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

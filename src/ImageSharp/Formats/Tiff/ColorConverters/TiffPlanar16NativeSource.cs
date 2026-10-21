@@ -77,6 +77,8 @@ internal readonly struct TiffPlanar16NativeSource : ITiffColorSource<ushort>
         out Vector128<ushort> c2,
         out Vector128<ushort> c3)
     {
+        // Each register holds 8 samples from one plane. Equal lane indices refer to the same pixel across all planes.
+        // The optional fourth plane stays zero when absent; the following operator supplies the required alpha.
         c0 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0)), (nuint)index);
         c1 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source1)), (nuint)index);
         c2 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source2)), (nuint)index);
@@ -104,6 +106,8 @@ internal readonly struct TiffPlanar16NativeSource : ITiffColorSource<ushort>
         out Vector256<ushort> c2,
         out Vector256<ushort> c3)
     {
+        // Each register holds 16 samples from one plane. Equal lane indices refer to the same pixel across all planes.
+        // The optional fourth plane stays zero when absent; the following operator supplies the required alpha.
         c0 = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0)), (nuint)index);
         c1 = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source1)), (nuint)index);
         c2 = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source2)), (nuint)index);
@@ -132,6 +136,8 @@ internal readonly struct TiffPlanar16NativeSource : ITiffColorSource<ushort>
         out Vector512<ushort> c2,
         out Vector512<ushort> c3)
     {
+        // Each register holds 32 samples from one plane. Equal lane indices refer to the same pixel across all planes.
+        // The optional fourth plane stays zero when absent; the following operator supplies the required alpha.
         c0 = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0)), (nuint)index);
         c1 = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source1)), (nuint)index);
         c2 = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source2)), (nuint)index);

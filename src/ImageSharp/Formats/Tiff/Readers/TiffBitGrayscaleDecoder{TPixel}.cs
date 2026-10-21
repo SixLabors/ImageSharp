@@ -45,7 +45,7 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         InlineArray16<Vector4> vectorBuffer = default;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
         InlineArray16<float> codeBuffer = default;
         Span<float> codes = codeBuffer;
         int rowByteCount = ((width * this.bitsPerSample) + 7) / 8;
@@ -104,10 +104,11 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
 
                     // Extraction yields sixteen independent codes. Normalize and interleave them through the same
                     // wide operator traversal used for other TIFF samples, rather than four 128-bit color conversions.
+                    Span<Vector4> block = this.GetColorBlock(vectors, x, 16);
                     TiffOperatedColorConverter<TiffGrayFloat32Source, TiffGrayBitOperator, TiffVector4Store, float, Vector4>.Convert(
-                        MemoryMarshal.AsBytes(codes), [], [], [], vectors, new(!BitConverter.IsLittleEndian), this.colorOperator, default);
+                        MemoryMarshal.AsBytes(codes), [], [], [], block, new(!BitConverter.IsLittleEndian), this.colorOperator, default);
 
-                    PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, 16));
+                    this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, 16), PixelAlphaRepresentation.None);
                 }
             }
 
@@ -115,10 +116,10 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
             // this path handles only the zero to fifteen pixels left after complete sixteen-pixel groups.
             BitReader bitReader = new(row.Slice((x * this.bitsPerSample) / 8));
 
-            for (; x < width; x += vectors.Length)
+            for (; x < width; x += codes.Length)
             {
-                int count = Math.Min(vectors.Length, width - x);
-                Span<Vector4> block = vectors[..count];
+                int count = Math.Min(codes.Length, width - x);
+                Span<Vector4> block = this.GetColorBlock(vectors, x, count);
 
                 for (int sampleIndex = 0; sampleIndex < count; sampleIndex++)
                 {
@@ -131,8 +132,10 @@ internal sealed class TiffBitGrayscaleDecoder<TPixel> : TiffBaseColorDecoder<TPi
                 TiffOperatedColorConverter<TiffGrayFloat32Source, TiffGrayBitOperator, TiffVector4Store, float, Vector4>.Convert(
                     MemoryMarshal.AsBytes(codes[..count]), [], [], [], block, new(!BitConverter.IsLittleEndian), this.colorOperator, default);
 
-                PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), PixelAlphaRepresentation.None);
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.None);
 
             rowOffset += rowByteCount;
         }

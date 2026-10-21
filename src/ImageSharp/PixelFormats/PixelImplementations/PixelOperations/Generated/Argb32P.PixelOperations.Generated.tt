@@ -11,7 +11,7 @@ public partial struct Argb32P
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Argb32P>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Argb32P>
     {
         <# GenerateAllAssociatedConversionMethods("Argb32P"); #>
     }

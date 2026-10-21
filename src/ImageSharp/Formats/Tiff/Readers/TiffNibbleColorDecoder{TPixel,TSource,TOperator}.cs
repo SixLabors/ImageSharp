@@ -40,7 +40,7 @@ internal sealed class TiffNibbleColorDecoder<TPixel, TSource, TOperator> : TiffB
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         InlineArray16<Vector4> vectorBuffer = default;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
         int rowByteCount = ((width * this.source.BitsPerPixel) + 7) / 8;
         int rowOffset = 0;
 
@@ -52,7 +52,7 @@ internal sealed class TiffNibbleColorDecoder<TPixel, TSource, TOperator> : TiffB
             for (int x = 0; x < width; x += vectors.Length)
             {
                 int count = Math.Min(vectors.Length, width - x);
-                Span<Vector4> block = vectors[..count];
+                Span<Vector4> block = this.GetColorBlock(vectors, x, count);
 
                 // Sixteen pixels fill one Vector512 register per component. The shared traversal also handles
                 // Vector256, Vector128, and scalar tails. RGB444 blocks start on a byte boundary because x is even.
@@ -66,20 +66,10 @@ internal sealed class TiffNibbleColorDecoder<TPixel, TSource, TOperator> : TiffB
                     this.colorOperator,
                     default);
 
-                // The operator has scaled the samples; its alpha representation selects the matching pixel packer.
-                switch (this.colorOperator.AlphaRepresentation)
-                {
-                    case PixelAlphaRepresentation.Associated:
-                        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                        break;
-                    case PixelAlphaRepresentation.Unassociated:
-                        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                        break;
-                    default:
-                        PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                        break;
-                }
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), this.colorOperator.AlphaRepresentation);
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, this.colorOperator.AlphaRepresentation);
 
             // RGB444 rows with odd width end in a padding nibble; the next row starts at the next byte.
             rowOffset += rowByteCount;

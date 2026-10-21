@@ -261,6 +261,8 @@ internal static partial class IccColorConverter
             GetCell(y, this.maximum.Y, this.lastCells[1], this.strides[1], out Vector128<int> iy, out Vector128<float> fy);
             GetCell(z, this.maximum.Z, this.lastCells[2], this.strides[2], out Vector128<int> iz, out Vector128<float> fz);
             GetCell(w, this.maximum.W, this.lastCells[3], this.strides[3], out Vector128<int> iw, out Vector128<float> fw);
+
+            // Each offset counts complete nodes, not bytes or components. Summing the axis strides selects each lane's lower corner.
             Vector128<int> offset = ix + iy + iz + iw;
             x = Vector128<float>.Zero;
             y = Vector128<float>.Zero;
@@ -407,6 +409,8 @@ internal static partial class IccColorConverter
         {
             // Inline the four node reads so interpolation can retain their component vectors and weights in registers.
             // All weights are nonnegative. Normalize once after the complete node interpolation.
+            // Sorted fractions satisfy first >= second >= third. The four weights are 1-first, first-second, second-third and third.
+            // They are nonnegative and sum to one. The selected vertices follow the corresponding axis order through the cell.
             Vector128<float> weight = Vector128<float>.One - first;
             reader.Read(index, out x, out y, out z, out w);
             x *= weight;
@@ -456,6 +460,8 @@ internal static partial class IccColorConverter
             GetCell(y, this.maximum.Y, this.lastCells[1], this.strides[1], out Vector256<int> iy, out Vector256<float> fy);
             GetCell(z, this.maximum.Z, this.lastCells[2], this.strides[2], out Vector256<int> iz, out Vector256<float> fz);
             GetCell(w, this.maximum.W, this.lastCells[3], this.strides[3], out Vector256<int> iw, out Vector256<float> fw);
+
+            // Each offset counts complete nodes, not bytes or components. Summing the axis strides selects each lane's lower corner.
             Vector256<int> offset = ix + iy + iz + iw;
             x = Vector256<float>.Zero;
             y = Vector256<float>.Zero;
@@ -602,6 +608,8 @@ internal static partial class IccColorConverter
         {
             // Inline the four node reads so interpolation can retain their component vectors and weights in registers.
             // All weights are nonnegative. Normalize once after the complete node interpolation.
+            // Sorted fractions satisfy first >= second >= third. The four weights are 1-first, first-second, second-third and third.
+            // They are nonnegative and sum to one. The selected vertices follow the corresponding axis order through the cell.
             Vector256<float> weight = Vector256<float>.One - first;
             reader.Read(index, out x, out y, out z, out w);
             x *= weight;
@@ -651,6 +659,8 @@ internal static partial class IccColorConverter
             GetCell(y, this.maximum.Y, this.lastCells[1], this.strides[1], out Vector512<int> iy, out Vector512<float> fy);
             GetCell(z, this.maximum.Z, this.lastCells[2], this.strides[2], out Vector512<int> iz, out Vector512<float> fz);
             GetCell(w, this.maximum.W, this.lastCells[3], this.strides[3], out Vector512<int> iw, out Vector512<float> fw);
+
+            // Each offset counts complete nodes, not bytes or components. Summing the axis strides selects each lane's lower corner.
             Vector512<int> offset = ix + iy + iz + iw;
             x = Vector512<float>.Zero;
             y = Vector512<float>.Zero;
@@ -797,6 +807,8 @@ internal static partial class IccColorConverter
         {
             // Inline the four node reads so interpolation can retain their component vectors and weights in registers.
             // All weights are nonnegative. Normalize once after the complete node interpolation.
+            // Sorted fractions satisfy first >= second >= third. The four weights are 1-first, first-second, second-third and third.
+            // They are nonnegative and sum to one. The selected vertices follow the corresponding axis order through the cell.
             Vector512<float> weight = Vector512<float>.One - first;
             reader.Read(index, out x, out y, out z, out w);
             x *= weight;
@@ -851,6 +863,9 @@ internal static partial class IccColorConverter
             // Clamping and byte-sized grid dimensions bound positions to [0,254].
             // Native conversion is safe here and avoids the general conversion's saturation and NaN fixups.
             Vector128<int> index = Vector128.Min(Vector128.ConvertToInt32Native(position), Vector128.Create(lastCell));
+
+            // At input one, the lower index stays in the last cell and the fraction becomes one, selecting its upper node.
+            // A constant axis has zero position and stride, so both corners address the same node.
             fraction = position - Vector128.ConvertToSingle(index);
             offset = index * Vector128.Create(stride);
         }
@@ -915,6 +930,9 @@ internal static partial class IccColorConverter
             // Clamping and byte-sized grid dimensions bound positions to [0,254].
             // Native conversion is safe here and avoids the general conversion's saturation and NaN fixups.
             Vector256<int> index = Vector256.Min(Vector256.ConvertToInt32Native(position), Vector256.Create(lastCell));
+
+            // At input one, the lower index stays in the last cell and the fraction becomes one, selecting its upper node.
+            // A constant axis has zero position and stride, so both corners address the same node.
             fraction = position - Vector256.ConvertToSingle(index);
             offset = index * Vector256.Create(stride);
         }
@@ -979,6 +997,9 @@ internal static partial class IccColorConverter
             // Clamping and byte-sized grid dimensions bound positions to [0,254].
             // Native conversion is safe here and avoids the general conversion's saturation and NaN fixups.
             Vector512<int> index = Vector512.Min(Vector512.ConvertToInt32Native(position), Vector512.Create(lastCell));
+
+            // At input one, the lower index stays in the last cell and the fraction becomes one, selecting its upper node.
+            // A constant axis has zero position and stride, so both corners address the same node.
             fraction = position - Vector512.ConvertToSingle(index);
             offset = index * Vector512.Create(stride);
         }

@@ -39,6 +39,18 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// <param name="vector">The vector containing the component values.</param>
     public NormalizedByte2(Vector2 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Two's-complement X and Y codes occupy bits 0-7 and 8-15, respectively.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public NormalizedByte2(ushort packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ushort PackedValue { get; set; }
 
@@ -136,11 +148,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static NormalizedByte2 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

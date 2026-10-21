@@ -17,7 +17,7 @@ public partial struct Rgba64
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgba64>
+    internal partial class PixelOperations : Rgba64CompatiblePixelOperations<Rgba64>
     {
         /// <inheritdoc />
         public override void FromRgba64(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Rgba64> destination)
@@ -36,31 +36,6 @@ public partial struct Rgba64
 
             source.CopyTo(destination.Slice(0, source.Length));
         }
-
-        /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
-        {
-            this.ToUnassociatedVector4(configuration, source, destination);
-
-            // Normalize before association, matching the single-pixel API's floating-point rounding.
-            Numerics.Premultiply(destination[..source.Length]);
-        }
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToArgb32(

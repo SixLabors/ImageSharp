@@ -111,6 +111,94 @@ public partial class PixelOperationsTests
         Assert.Equal(original, source);
     }
 
+    /// <summary>
+    /// Checks RGB48 and RGBA64 packing, rounding, and destination bounds with every SIMD width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void Unsigned16VectorPackingMatchesSinglePixels() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertUnsigned16VectorPacking,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks both layouts that share unsigned 16-bit RGB packing.
+    /// </summary>
+    private static void AssertUnsigned16VectorPacking()
+    {
+        AssertUnsigned16PixelPacking<Rgb48>();
+        AssertUnsigned16PixelPacking<Rgba64>();
+    }
+
+    /// <summary>
+    /// Checks every quantization midpoint and the inputs that require finite bounds or alpha conversion.
+    /// </summary>
+    /// <typeparam name="TPixel">The unsigned 16-bit RGB or RGBA format.</typeparam>
+    private static void AssertUnsigned16PixelPacking<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Vector4[] boundaries =
+        [
+            new(float.NaN, float.NegativeInfinity, float.PositiveInfinity, float.NaN),
+            new(-1F, 2F, -0F, float.PositiveInfinity),
+            new(0.25F, 0.5F, 0.75F, 0F),
+            new(0.25F, 0.5F, 0.75F, float.Epsilon),
+            new(0.25F, 0.5F, 0.75F, -1F),
+            new(0.25F, 0.5F, 0.75F, 2F),
+            Vector4.Zero,
+            Vector4.One
+        ];
+
+        // Counts surround the two-, four-, and eight-pixel packing groups. The largest count also has a scalar remainder.
+        int fullRangeCount = ushort.MaxValue + 1 + (2 * boundaries.Length) + 1;
+
+        foreach (int count in new[] { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 33, 257, fullRangeCount })
+        {
+            Vector4[] source = new Vector4[count];
+            TPixel sentinel = TPixel.FromRgba32(new Rgba32(13, 27, 39, 51));
+            TPixel[] straight = Enumerable.Repeat(sentinel, count + 1).ToArray();
+            TPixel[] associated = straight.ToArray();
+
+            for (int i = 0; i < count; i++)
+            {
+                // Adjacent float values straddle each ushort rounding midpoint. Distinct channels also expose layout mistakes.
+                float midpoint = (i - boundaries.Length + 0.5F) / ushort.MaxValue;
+                source[i] = new Vector4(MathF.BitDecrement(midpoint), midpoint, MathF.BitIncrement(midpoint), (i % 17) / 16F);
+
+                // Repeat special values at the end too, so long inputs test them after full vector groups.
+                if (i < boundaries.Length || i >= count - boundaries.Length)
+                {
+                    source[i] = boundaries[i % boundaries.Length];
+                }
+
+                straight[i] = TPixel.FromUnassociatedScaledVector4(source[i]);
+                associated[i] = TPixel.FromAssociatedScaledVector4(source[i]);
+            }
+
+            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+            AssertUnsigned16Packing(source, straight, (s, d) => operations.FromUnassociatedVector4Destructive(Configuration.Default, s, d));
+            AssertUnsigned16Packing(source, straight, (s, d) => operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, s, d));
+            AssertUnsigned16Packing(source, associated, (s, d) => operations.FromAssociatedVector4Destructive(Configuration.Default, s, d));
+            AssertUnsigned16Packing(source, associated, (s, d) => operations.FromAssociatedScaledVector4Destructive(Configuration.Default, s, d));
+        }
+    }
+
+    /// <summary>
+    /// Checks one destructive entry point with its own input copy and an untouched destination sentinel.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed pixel format.</typeparam>
+    /// <param name="source">The input vectors.</param>
+    /// <param name="expected">The expected pixels and the final sentinel.</param>
+    /// <param name="convert">The bulk entry point.</param>
+    private static void AssertUnsigned16Packing<TPixel>(Vector4[] source, TPixel[] expected, Action<Vector4[], TPixel[]> convert)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        TPixel[] actual = Enumerable.Repeat(expected[^1], expected.Length).ToArray();
+
+        // The API permits input mutation. A separate copy prevents one entry point from changing the next one's inputs.
+        convert(source.ToArray(), actual);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Theory]
     [WithBlankImages(1, 1, PixelTypes.All)]
     public void GetGlobalInstance<T>(TestImageProvider<T> _)

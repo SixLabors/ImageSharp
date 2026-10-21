@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
@@ -35,6 +36,7 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         int offset = 0;
         InlineArray16<Rgb48> sourceBuffer = default;
         Span<Rgb48> sourceBlock = sourceBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, []);
 
         for (int y = top; y < top + height; y++)
         {
@@ -54,7 +56,10 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                         bigEndian: true,
                         invert: false);
 
-                    PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, samples, pixelRow.Slice(x, count));
+                    if (!this.TryStoreColorPixels(this.configuration, (ReadOnlySpan<Rgb48>)samples, vectors, x))
+                    {
+                        PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, samples, pixelRow.Slice(x, count));
+                    }
                 }
 
                 offset += width * 6;
@@ -62,14 +67,17 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             else
             {
                 int byteCount = pixelRow.Length * 6;
-                PixelOperations<TPixel>.Instance.FromRgb48Bytes(
-                    this.configuration,
-                    data.Slice(offset, byteCount),
-                    pixelRow,
-                    pixelRow.Length);
+                ReadOnlySpan<Rgb48> samples = MemoryMarshal.Cast<byte, Rgb48>(data.Slice(offset, byteCount));
+
+                if (!this.TryStoreColorPixels(this.configuration, samples, vectors, 0))
+                {
+                    PixelOperations<TPixel>.Instance.FromRgb48Bytes(this.configuration, data.Slice(offset, byteCount), pixelRow, pixelRow.Length);
+                }
 
                 offset += byteCount;
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.None);
         }
     }
 }

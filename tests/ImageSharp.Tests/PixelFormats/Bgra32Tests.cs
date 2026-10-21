@@ -11,6 +11,44 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 public class Bgra32Tests
 {
     /// <summary>
+    /// Verifies that packed construction retains the stored bits and BGRA byte order.
+    /// </summary>
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(uint.MaxValue)]
+    [InlineData(0xA1B2_C3D4U)]
+    public void Constructor_FromPackedValue(uint packed)
+    {
+        Bgra32 pixel = new(packed);
+        byte[] bytes = BitConverter.GetBytes(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+        Assert.Equal(bytes[0], pixel.B);
+        Assert.Equal(bytes[1], pixel.G);
+        Assert.Equal(bytes[2], pixel.R);
+        Assert.Equal(bytes[3], pixel.A);
+    }
+
+    /// <summary>
+    /// Verifies normalized component and vector constructors, including bounds and implicit opaque alpha.
+    /// </summary>
+    [Theory]
+    [InlineData(1F, 0.1F, 0.133F, 0.5F, 255, 26, 34, 128)]
+    [InlineData(-1F, 2F, float.NaN, float.PositiveInfinity, 0, 255, 0, 255)]
+    public void Constructor_FromNormalizedComponents(float r, float g, float b, float a, byte expectedR, byte expectedG, byte expectedB, byte expectedA)
+    {
+        Bgra32 expected = new(expectedR, expectedG, expectedB, expectedA);
+
+        Assert.Equal(expected, new Bgra32(r, g, b, a));
+        Assert.Equal(expected, new Bgra32(new Vector4(r, g, b, a)));
+
+        expected.A = byte.MaxValue;
+
+        Assert.Equal(expected, new Bgra32(r, g, b));
+        Assert.Equal(expected, new Bgra32(new Vector3(r, g, b)));
+    }
+
+    /// <summary>
     /// Tests the equality operators for equality.
     /// </summary>
     [Fact]

@@ -17,7 +17,7 @@ public partial struct Bgra32
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Bgra32>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Bgra32>
     {
         /// <inheritdoc />
         public override void FromBgra32(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Bgra32> destination)
@@ -35,82 +35,6 @@ public partial struct Bgra32
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             source.CopyTo(destination.Slice(0, source.Length));
-        }
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destination)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-            destination = destination[..sourceVectors.Length];
-            PackFromVector4(sourceVectors, destination);
-        }
-
-        /// <inheritdoc />
-        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destination)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-            Numerics.UnPremultiply(sourceVectors);
-            PackFromVector4(sourceVectors, destination[..sourceVectors.Length]);
-        }
-
-        /// <inheritdoc />
-        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgra32> destination)
-            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToUnassociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToAssociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
-
-        /// <summary>
-        /// Converts normalized vector components to saturated bytes and shuffles them into the pixel channel order.
-        /// </summary>
-        /// <param name="sourceVectors">The source vectors.</param>
-        /// <param name="destination">The destination pixels.</param>
-        private static void PackFromVector4(Span<Vector4> sourceVectors, Span<Bgra32> destination)
-        {
-            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
-
-            // Clamp at byte packing: NaN becomes zero, and infinities become the corresponding byte endpoints.
-            // The shared SIMD conversion writes RGBA bytes. Shuffle them in place to avoid a temporary pixel row.
-            SimdUtils.NormalizedFloatToByteSaturate(
-                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                destinationBytes);
-
-            PixelConverter.FromRgba32.ToBgra32(destinationBytes, destinationBytes);
         }
 
         /// <inheritdoc />

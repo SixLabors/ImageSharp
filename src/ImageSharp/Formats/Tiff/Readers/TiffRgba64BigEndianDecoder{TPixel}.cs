@@ -39,11 +39,12 @@ internal sealed class TiffRgba64BigEndianDecoder<TPixel> : TiffBaseColorDecoder<
         InlineArray32<Rgba64> sampleBuffer = default;
         InlineArray32<Vector4> vectorBuffer = default;
         Span<Rgba64> samples = sampleBuffer;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
         TiffPacked16NativeSource source = new(BitConverter.IsLittleEndian);
         TiffRgba64AssociatedOperator colorOperator = default;
         TiffPackedRgba64Store store = default;
         int rowBytes = width * 8;
+        PixelAlphaRepresentation alphaRepresentation = this.associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated;
 
         for (int y = top; y < top + height; y++)
         {
@@ -69,9 +70,9 @@ internal sealed class TiffRgba64BigEndianDecoder<TPixel> : TiffBaseColorDecoder<
                         colorOperator,
                         store);
 
-                    Span<Vector4> vectorBlock = vectors[..count];
+                    Span<Vector4> vectorBlock = this.GetColorBlock(vectors, x, count);
                     PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, sampleBlock, vectorBlock);
-                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorBlock, pixelRow.Slice(x, count));
+                    this.StoreColorVectors(this.configuration, vectorBlock, pixelRow.Slice(x, count), alphaRepresentation);
                 }
                 else
                 {
@@ -82,9 +83,14 @@ internal sealed class TiffRgba64BigEndianDecoder<TPixel> : TiffBaseColorDecoder<
                         bigEndian: true,
                         invert: false);
 
-                    PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, sampleBlock, pixelRow.Slice(x, count));
+                    if (!this.TryStoreColorPixels(this.configuration, (ReadOnlySpan<Rgba64>)sampleBlock, vectors, x))
+                    {
+                        PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, sampleBlock, pixelRow.Slice(x, count));
+                    }
                 }
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, alphaRepresentation);
         }
     }
 }

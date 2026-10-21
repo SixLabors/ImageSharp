@@ -68,18 +68,17 @@ public class FloatingPointPixelPreservationTests
     {
         Vector4 source = new(2F, -1F, .5F, 2F);
         Vector4 expected = new(2F, -1F, .5F, 1F);
-        Vector4 expectedAssociated = new(1F, -.5F, .25F, 1F);
 
         Assert.Equal(expected, HalfVector4.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
         Assert.Equal(expected, RgbaHalf.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
         Assert.Equal(expected, RgbaVector.FromUnassociatedScaledVector4(source).ToUnassociatedScaledVector4());
-        Assert.Equal(expectedAssociated, HalfVector4P.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
-        Assert.Equal(expectedAssociated, RgbaHalfP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
-        Assert.Equal(expectedAssociated, RgbaVectorP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(expected, HalfVector4P.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(expected, RgbaHalfP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
+        Assert.Equal(expected, RgbaVectorP.FromAssociatedScaledVector4(source).ToAssociatedScaledVector4());
     }
 
     /// <summary>
-    /// Associated color input uses a finite alpha divisor before applying destination opacity limits.
+    /// Associated color input uses a finite alpha divisor and bounds RGB after division.
     /// </summary>
     [Fact]
     public void AssociatedColorInputMakesAlphaFiniteBeforeDivision()
@@ -88,22 +87,93 @@ public class FloatingPointPixelPreservationTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks straight floating-point destinations and associated floating-point and byte destinations.
+    /// Checks destinations that require division to restore straight RGB or pack associated bytes.
     /// </summary>
     private static void AssertAssociatedColorInputMakesAlphaFiniteBeforeDivision()
     {
+        AssertFiniteAssociatedAlpha<HalfSingle>();
+        AssertFiniteAssociatedAlpha<HalfVector2>();
         AssertFiniteAssociatedAlpha<HalfVector4>();
         AssertFiniteAssociatedAlpha<RgbaHalf>();
         AssertFiniteAssociatedAlpha<RgbaVector>();
-        AssertFiniteAssociatedAlpha<HalfVector4P>();
-        AssertFiniteAssociatedAlpha<RgbaHalfP>();
-        AssertFiniteAssociatedAlpha<RgbaVectorP>();
 
         AssertFiniteAssociatedAlpha<Rgba32P>();
         AssertFiniteAssociatedAlpha<Bgra32P>();
         AssertFiniteAssociatedAlpha<Argb32P>();
         AssertFiniteAssociatedAlpha<Abgr32P>();
         AssertFiniteAssociatedAlpha<NormalizedByte4P>();
+
+        AssertHalfAssociatedInputKeepsRgb<HalfVector4P>();
+        AssertHalfAssociatedInputKeepsRgb<RgbaHalfP>();
+
+        // A finite divisor does not ensure a finite quotient: 1 / float.Epsilon overflows.
+        // Check the common pixel operation before packing, then the bulk conversion with mixed pixels and a scalar tail.
+        Vector4[] inputs =
+        [
+            new(1F, -1F, -0F, float.Epsilon),
+            new(65504F, -65504F, -0F, .5F),
+            new(1F, -1F, -0F, 0F),
+            new(2F, -1F, -0F, .5F)
+        ];
+
+        Vector4[] expected =
+        [
+            new(65504F, -65504F, -0F, float.Epsilon),
+            new(65504F, -65504F, -0F, .5F),
+            new(1F, -1F, -0F, 0F),
+            new(4F, -2F, -0F, .5F)
+        ];
+
+        Vector4[] source = new Vector4[65];
+        RgbaVector[] actual = new RgbaVector[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = inputs[i % inputs.Length];
+            Vector4 result = source[i];
+            PixelOperations<RgbaVector>.UnPremultiply(ref result);
+            Assert.Equal(expected[i % expected.Length], result);
+            Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(result.Z));
+        }
+
+        PixelOperations<RgbaVector>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, actual);
+
+        for (int i = 0; i < actual.Length; i++)
+        {
+            Vector4 result = actual[i].ToVector4();
+            Assert.Equal(expected[i % expected.Length], result);
+            Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(result.Z));
+        }
+    }
+
+    /// <summary>
+    /// Checks that half packing rounds alpha without rescaling already-associated RGB.
+    /// </summary>
+    /// <typeparam name="TPixel">The associated half-precision destination.</typeparam>
+    private static void AssertHalfAssociatedInputKeepsRgb<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Half's smallest positive alpha is 2^-24. Values below its midpoint round to zero.
+        // The next float above that midpoint rounds upward. Neither case changes the supplied associated RGB.
+        float minimumAlpha = 1F / (1 << 24);
+        Vector4[] inputs = [new(1F, 1F, 1F, float.Epsilon), new(1F, 1F, 1F, MathF.BitIncrement(minimumAlpha / 2F)), new(1F, 1F, 1F, 0F)];
+        Vector4[] expected = [new(1F, 1F, 1F, 0F), new(1F, 1F, 1F, minimumAlpha), new(1F, 1F, 1F, 0F)];
+        Vector4[] source = new Vector4[65];
+        TPixel[] actual = new TPixel[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = inputs[i % inputs.Length];
+            Assert.Equal(expected[i % expected.Length], TPixel.FromAssociatedScaledVector4(source[i]).ToVector4());
+        }
+
+        // Mixed SIMD groups and the scalar tail must retain RGB, including when stored alpha rounds to zero.
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, actual);
+
+        for (int i = 0; i < actual.Length; i++)
+        {
+            Assert.Equal(expected[i % expected.Length], actual[i].ToVector4());
+        }
     }
 
     /// <summary>
@@ -775,17 +845,7 @@ public class FloatingPointPixelPreservationTests
             expected[i] = TPixel.FromAssociatedVector4(source[i]);
             Vector4 color = source[i];
 
-            // Make alpha finite before recovering straight RGB. Keep positive finite values above one for division;
-            // using one or infinity as the divisor would change the color. Stored opacity is bounded separately below.
-            float alpha = float.IsNaN(color.W) ? 0F : Math.Clamp(color.W, 0F, float.MaxValue);
-            if (alpha > 1F)
-            {
-                color.X /= alpha;
-                color.Y /= alpha;
-                color.Z /= alpha;
-            }
-
-            color.W = float.IsNaN(color.W) ? 0F : Math.Clamp(color.W, 0F, 1F);
+            // Input and destination both use associated RGB. Only component bounds and storage rounding apply.
             expectedColor[i] = TPixel.FromAssociatedVector4(GetExpectedColorInput(color));
             Assert.Equal(expectedColor[i], TPixel.FromAssociatedScaledVector4(source[i]));
         }
@@ -898,14 +958,6 @@ public class FloatingPointPixelPreservationTests
                 {
                     // Recover straight RGB before bounding it. Zero alpha retains stored RGB; positive infinity uses a finite divisor.
                     float alpha = float.IsNaN(stored.W) ? 0F : Math.Clamp(stored.W, 0F, float.MaxValue);
-                    if (alpha > 1F)
-                    {
-                        // Associated output must retain the straight color when stored opacity decreases to one.
-                        associated.X /= alpha;
-                        associated.Y /= alpha;
-                        associated.Z /= alpha;
-                    }
-
                     if (alpha != 0F)
                     {
                         stored.X /= alpha;

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -25,6 +27,7 @@ internal class BlackIsZero8TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     {
         // BlackIsZero byte samples already match L8. Pass each row directly to the bulk pixel API without staging or inversion.
         int offset = 0;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, []);
 
         for (int y = top; y < top + height; y++)
         {
@@ -32,7 +35,14 @@ internal class BlackIsZero8TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             int byteCount = pixelRow.Length;
 
             // left and top position this region in the destination; its encoded samples remain contiguous from data[0].
-            PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, data.Slice(offset, byteCount), pixelRow, pixelRow.Length);
+            ReadOnlySpan<L8> samples = MemoryMarshal.Cast<byte, L8>(data.Slice(offset, byteCount));
+
+            if (!this.TryStoreColorPixels(this.configuration, samples, vectors, 0))
+            {
+                PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, data.Slice(offset, byteCount), pixelRow, pixelRow.Length);
+            }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.None);
 
             offset += byteCount;
         }

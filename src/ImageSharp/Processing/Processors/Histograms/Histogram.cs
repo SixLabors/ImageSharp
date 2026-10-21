@@ -79,7 +79,7 @@ internal static partial class Histogram
     /// <typeparam name="TOperation">The constrained consumer calculation.</typeparam>
     /// <param name="configuration">The configured allocator, pixel operations and parallel execution settings.</param>
     /// <param name="source">The frame to process.</param>
-    /// <param name="bounds">The requested output region.</param>
+    /// <param name="bounds">The requested output region. Sliding windows and tiles retain their full-image sampling positions.</param>
     /// <param name="levels">The bounded measurement resolution.</param>
     /// <param name="weights">The RGB measurement coefficients.</param>
     /// <param name="clipHistogram">Whether to cap and redistribute histogram counts.</param>
@@ -108,6 +108,7 @@ internal static partial class Histogram
             RunSlidingWindow<TPixel, TBin, TData, TOperation>(
                 configuration,
                 source.PixelBuffer,
+                interest,
                 mapping,
                 weights,
                 clipHistogram,
@@ -123,6 +124,7 @@ internal static partial class Histogram
             RunTiles<TPixel, TBin, TData, TOperation>(
                 configuration,
                 source.PixelBuffer,
+                interest,
                 mapping,
                 weights,
                 clipHistogram,

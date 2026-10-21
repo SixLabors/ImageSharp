@@ -53,10 +53,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
         Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
         RowOperation operation = new(interest.X, source.PixelBuffer, this.Configuration, this.modifiers, this.rowDelegate);
 
-        ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-            this.Configuration,
-            interest,
-            in operation);
+        ParallelRowIterator.IterateRows<RowOperation, Vector4>(this.Configuration, interest, in operation);
     }
 
     /// <summary>
@@ -134,7 +131,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
                 {
                     PixelOperations<TPixel>.Instance.ToUnassociatedVector4(this.configuration, rowSpan, span);
 
-                    // Native vectors can contain negative components or integer-range codes. The unclipped overload preserves that range.
+                    // Use analytic conversion for native vectors. The shared compander applies its extended RGB result bounds.
                     SRgbCompanding.Expand(span);
                 }
 
@@ -193,7 +190,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
                 }
                 else
                 {
-                    // Match native-vector expansion with unclipped compression before the pixel format packs its components.
+                    // Match native-vector expansion with analytic compression and the shared extended RGB result bounds.
                     SRgbCompanding.Compress(span);
                     PixelOperations<TPixel>.Instance.FromUnassociatedVector4Destructive(this.configuration, span, rowSpan);
                 }

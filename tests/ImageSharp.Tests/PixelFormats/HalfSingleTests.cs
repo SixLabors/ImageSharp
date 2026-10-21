@@ -11,6 +11,37 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class HalfSingleTests
 {
+    /// <summary>
+    /// Verifies that packed construction preserves finite values, signed zero, infinity, and NaN bits.
+    /// </summary>
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData((ushort)0x8000)]
+    [InlineData((ushort)0x3C00)]
+    [InlineData((ushort)0x7C00)]
+    [InlineData((ushort)0x7E01)]
+    [InlineData(ushort.MaxValue)]
+    public void Constructor_FromPackedValue(ushort packed)
+    {
+        HalfSingle pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
+    /// <summary>
+    /// Verifies that an integer constant selects packed construction while a float selects numeric conversion.
+    /// </summary>
+    [Fact]
+    public void Constructors_DistinguishPackedBitsFromNumericValue()
+    {
+        // The integer argument stores bit pattern 1. The float argument stores the half-precision encoding of numeric 1.
+        HalfSingle packed = new(1);
+        HalfSingle numeric = new(1F);
+
+        Assert.Equal((ushort)0x0001, packed.PackedValue);
+        Assert.Equal((ushort)0x3C00, numeric.PackedValue);
+    }
+
     [Fact]
     public void HalfSingle_PackedValue()
     {

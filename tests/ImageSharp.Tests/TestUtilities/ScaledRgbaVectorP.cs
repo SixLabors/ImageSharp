@@ -165,7 +165,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     /// <summary>
     /// Provides representation-aware bulk operations for the floating-point test pixel.
     /// </summary>
-    private sealed class ScaledPixelOperations : AssociatedAlphaPixelOperations<ScaledRgbaVectorP>
+    private sealed class ScaledPixelOperations : PixelOperations<ScaledRgbaVectorP>
     {
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)

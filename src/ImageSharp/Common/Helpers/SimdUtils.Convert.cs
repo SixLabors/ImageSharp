@@ -29,11 +29,7 @@ internal static partial class SimdUtils
             // narrowing therefore retains all value bits. Only the lower half contains converted samples.
             for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
             {
-                Vector512<float> scaled = ColorNumerics.ClampToFinite(Vector512.LoadUnsafe(ref input, (uint)i), Vector512<float>.Zero, Vector512.Create(1F))
-                    * Vector512.Create((float)ushort.MaxValue);
-
-                Vector512<uint> codes = Vector512_.ConvertToInt32RoundToEven(scaled).AsUInt32();
-                Vector512.Narrow(codes, Vector512<uint>.Zero).GetLower().StoreUnsafe(ref output, (uint)i);
+                NormalizedFloatToUInt16Saturate(Vector512.LoadUnsafe(ref input, (uint)i)).StoreUnsafe(ref output, (uint)i);
             }
         }
 
@@ -45,11 +41,7 @@ internal static partial class SimdUtils
             // narrowing therefore retains all value bits. Only the lower half contains converted samples.
             for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
             {
-                Vector256<float> scaled = ColorNumerics.ClampToFinite(Vector256.LoadUnsafe(ref input, (uint)i), Vector256<float>.Zero, Vector256.Create(1F))
-                    * Vector256.Create((float)ushort.MaxValue);
-
-                Vector256<uint> codes = Vector256_.ConvertToInt32RoundToEven(scaled).AsUInt32();
-                Vector256.Narrow(codes, Vector256<uint>.Zero).GetLower().StoreUnsafe(ref output, (uint)i);
+                NormalizedFloatToUInt16Saturate(Vector256.LoadUnsafe(ref input, (uint)i)).StoreUnsafe(ref output, (uint)i);
             }
         }
 
@@ -61,11 +53,7 @@ internal static partial class SimdUtils
             // narrowing therefore retains all value bits. Only the lower half contains converted samples.
             for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
             {
-                Vector128<float> scaled = ColorNumerics.ClampToFinite(Vector128.LoadUnsafe(ref input, (uint)i), Vector128<float>.Zero, Vector128.Create(1F))
-                    * Vector128.Create((float)ushort.MaxValue);
-
-                Vector128<uint> codes = Vector128_.ConvertToInt32RoundToEven(scaled).AsUInt32();
-                Vector128.Narrow(codes, Vector128<uint>.Zero).GetLower().StoreUnsafe(ref output, (uint)i);
+                NormalizedFloatToUInt16Saturate(Vector128.LoadUnsafe(ref input, (uint)i)).StoreUnsafe(ref output, (uint)i);
             }
         }
 
@@ -73,6 +61,57 @@ internal static partial class SimdUtils
         {
             Unsafe.Add(ref output, (uint)i) = (ushort)MathF.Round(ColorNumerics.ClampToFinite(Unsafe.Add(ref input, (uint)i), 0F, 1F) * ushort.MaxValue);
         }
+    }
+
+    /// <summary>
+    /// Packs 4 normalized components into unsigned 16-bit codes with saturation and midpoint-to-even rounding.
+    /// </summary>
+    /// <param name="source">The independent normalized components.</param>
+    /// <returns>The packed codes in source order, with one word per input lane.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector64<ushort> NormalizedFloatToUInt16Saturate(Vector128<float> source)
+    {
+        // Bound before multiplication, matching the scalar pixel API. NaN becomes zero and infinities select their bounds.
+        Vector128<float> scaled = ColorNumerics.ClampToFinite(source, Vector128<float>.Zero, Vector128<float>.One)
+            * Vector128.Create((float)ushort.MaxValue);
+
+        // All rounded codes fit in ushort. Narrowing preserves their bits and order; only the lower half is output.
+        Vector128<uint> codes = Vector128_.ConvertToInt32RoundToEven(scaled).AsUInt32();
+        return Vector128.Narrow(codes, Vector128<uint>.Zero).GetLower();
+    }
+
+    /// <summary>
+    /// Packs 8 normalized components into unsigned 16-bit codes with saturation and midpoint-to-even rounding.
+    /// </summary>
+    /// <param name="source">The independent normalized components.</param>
+    /// <returns>The packed codes in source order, with one word per input lane.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<ushort> NormalizedFloatToUInt16Saturate(Vector256<float> source)
+    {
+        // Bound before multiplication, matching the scalar pixel API. NaN becomes zero and infinities select their bounds.
+        Vector256<float> scaled = ColorNumerics.ClampToFinite(source, Vector256<float>.Zero, Vector256<float>.One)
+            * Vector256.Create((float)ushort.MaxValue);
+
+        // All rounded codes fit in ushort. Narrowing preserves their bits and order; only the lower half is output.
+        Vector256<uint> codes = Vector256_.ConvertToInt32RoundToEven(scaled).AsUInt32();
+        return Vector256.Narrow(codes, Vector256<uint>.Zero).GetLower();
+    }
+
+    /// <summary>
+    /// Packs 16 normalized components into unsigned 16-bit codes with saturation and midpoint-to-even rounding.
+    /// </summary>
+    /// <param name="source">The independent normalized components.</param>
+    /// <returns>The packed codes in source order, with one word per input lane.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<ushort> NormalizedFloatToUInt16Saturate(Vector512<float> source)
+    {
+        // Bound before multiplication, matching the scalar pixel API. NaN becomes zero and infinities select their bounds.
+        Vector512<float> scaled = ColorNumerics.ClampToFinite(source, Vector512<float>.Zero, Vector512<float>.One)
+            * Vector512.Create((float)ushort.MaxValue);
+
+        // All rounded codes fit in ushort. Narrowing preserves their bits and order; only the lower half is output.
+        Vector512<uint> codes = Vector512_.ConvertToInt32RoundToEven(scaled).AsUInt32();
+        return Vector512.Narrow(codes, Vector512<uint>.Zero).GetLower();
     }
 
     /// <summary>

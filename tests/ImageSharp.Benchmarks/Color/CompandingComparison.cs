@@ -15,6 +15,10 @@ namespace SixLabors.ImageSharp.Benchmarks;
 [Config(typeof(Config.Short))]
 public abstract class CompandingComparison
 {
+    // Match the direct-formula accuracy bound documented and checked by CompandingTests.
+    // Table interpolation and scalar/SIMD agreement have separate, tighter checks in that test suite.
+    private const float DirectApproximationTolerance = 5E-4F;
+
     private Vector4[] source;
     private Vector4[] destination;
 
@@ -70,10 +74,10 @@ public abstract class CompandingComparison
                 : new Vector4(ExpandComponent(input.X), ExpandComponent(input.Y), ExpandComponent(input.Z), input.W);
             Vector4 actual = this.destination[i];
 
-            // Retain the ICC tests' one-millionth relative limit, with an absolute floor near zero.
-            // This setup check rejects an inaccurate candidate before BenchmarkDotNet measures it.
+            // Apply the established direct-formula bound relative to max(1, abs(expected)).
+            // The absolute floor near zero also covers negative and small HDR inputs.
             Vector4 error = Vector4.Abs(actual - expected);
-            Vector4 limit = Vector4.Max(Vector4.Abs(expected), Vector4.One) * 0.000001F;
+            Vector4 limit = Vector4.Max(Vector4.Abs(expected), Vector4.One) * DirectApproximationTolerance;
             if (error.X > limit.X || error.Y > limit.Y || error.Z > limit.Z || actual.W != input.W)
             {
                 throw new InvalidOperationException($"SIMD companding differs at color {i}: expected {expected}, actual {actual}.");

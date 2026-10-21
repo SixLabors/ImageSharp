@@ -78,6 +78,8 @@ internal static partial class IccColorConverter
             {
                 this.curves.Convert(ref x, ref y, ref z, ref w);
                 this.matrix.Convert(ref x, ref y, ref z);
+
+                // PCS XYZ stores a different numeric scale from linear XYZ. Apply its encoding only after the matrix.
                 x *= Vector128.Create(PcsXyzEncodeScale);
                 y *= Vector128.Create(PcsXyzEncodeScale);
                 z *= Vector128.Create(PcsXyzEncodeScale);
@@ -86,6 +88,8 @@ internal static partial class IccColorConverter
             else
             {
                 this.matrix.Convert(ref x, ref y, ref z);
+
+                // Undo PCS scaling before the inverse channel curves. The linear matrix and uniform XYZ scale commute.
                 x *= Vector128.Create(PcsXyzDecodeScale);
                 y *= Vector128.Create(PcsXyzDecodeScale);
                 z *= Vector128.Create(PcsXyzDecodeScale);
@@ -103,6 +107,8 @@ internal static partial class IccColorConverter
             {
                 this.curves.Convert(ref x, ref y, ref z, ref w);
                 this.matrix.Convert(ref x, ref y, ref z);
+
+                // PCS XYZ stores a different numeric scale from linear XYZ. Apply its encoding only after the matrix.
                 x *= Vector256.Create(PcsXyzEncodeScale);
                 y *= Vector256.Create(PcsXyzEncodeScale);
                 z *= Vector256.Create(PcsXyzEncodeScale);
@@ -111,6 +117,8 @@ internal static partial class IccColorConverter
             else
             {
                 this.matrix.Convert(ref x, ref y, ref z);
+
+                // Undo PCS scaling before the inverse channel curves. The linear matrix and uniform XYZ scale commute.
                 x *= Vector256.Create(PcsXyzDecodeScale);
                 y *= Vector256.Create(PcsXyzDecodeScale);
                 z *= Vector256.Create(PcsXyzDecodeScale);
@@ -128,6 +136,8 @@ internal static partial class IccColorConverter
             {
                 this.curves.Convert(ref x, ref y, ref z, ref w);
                 this.matrix.Convert(ref x, ref y, ref z);
+
+                // PCS XYZ stores a different numeric scale from linear XYZ. Apply its encoding only after the matrix.
                 x *= Vector512.Create(PcsXyzEncodeScale);
                 y *= Vector512.Create(PcsXyzEncodeScale);
                 z *= Vector512.Create(PcsXyzEncodeScale);
@@ -136,6 +146,8 @@ internal static partial class IccColorConverter
             else
             {
                 this.matrix.Convert(ref x, ref y, ref z);
+
+                // Undo PCS scaling before the inverse channel curves. The linear matrix and uniform XYZ scale commute.
                 x *= Vector512.Create(PcsXyzDecodeScale);
                 y *= Vector512.Create(PcsXyzDecodeScale);
                 z *= Vector512.Create(PcsXyzDecodeScale);

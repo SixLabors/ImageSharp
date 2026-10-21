@@ -40,19 +40,9 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Bgr24"
             ];
 
-    // Associated layouts can share byte shuffles, but must not use the straight-alpha conversion methods.
+    // These layouts store associated bytes. Channel shuffles retain those bytes; straight-alpha conversions change their meaning.
     private static readonly string[] AssociatedOptimizedPixelTypes =
         ["Rgba32P", "Argb32P", "Abgr32P", "Bgra32P"];
-
-    // Types with Rgba32-combatable to/from Vector4 conversion
-    private static readonly string[] Rgba32CompatibleTypes =
-        [
-            "Argb32",
-        "Abgr32",
-        "Bgra32",
-        "Rgb24",
-        "Bgr24"
-            ];
 
     void GenerateGenericConverterMethods(string pixelType)
     {
@@ -170,147 +160,6 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
             // The shuffle moves complete associated channel bytes; it does not change RGB values or alpha.
 <#+ } #>
             PixelConverter.From<#=otherConverterType#>.To<#=thisConverterType#>(sourceBytes, destinationBytes);
-        }
-<#+
-    }
-
-    void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType, bool hasAlpha)
-    {
-        if (hasAlpha)
-        {
-            GenerateRgba32Compatible32BitVector4ConversionMethods(pixelType);
-            return;
-        }
-#>
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => Vector4Converters.RgbaCompatible.FromUnassociatedVector4(configuration, this, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => Vector4Converters.RgbaCompatible.FromAssociatedVector4(configuration, this, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToUnassociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToAssociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
-<#+
-    }
-
-    void GenerateRgba32Compatible32BitVector4ConversionMethods(string pixelType)
-    {
-#>
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-            destination = destination[..sourceVectors.Length];
-            PackFromVector4(sourceVectors, destination);
-        }
-
-        /// <inheritdoc />
-        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-            Numerics.UnPremultiply(sourceVectors);
-            PackFromVector4(sourceVectors, destination[..sourceVectors.Length]);
-        }
-
-        /// <inheritdoc />
-        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToUnassociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToAssociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
-
-        /// <summary>
-        /// Converts normalized vector components to saturated bytes and shuffles them into the pixel channel order.
-        /// </summary>
-        /// <param name="sourceVectors">The source vectors.</param>
-        /// <param name="destination">The destination pixels.</param>
-        private static void PackFromVector4(Span<Vector4> sourceVectors, Span<<#=pixelType#>> destination)
-        {
-            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(destination);
-
-            // Clamp at byte packing: NaN becomes zero, and infinities become the corresponding byte endpoints.
-            // The shared SIMD conversion writes RGBA bytes. Shuffle them in place to avoid a temporary pixel row.
-            SimdUtils.NormalizedFloatToByteSaturate(
-                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                destinationBytes);
-
-            PixelConverter.FromRgba32.To<#=pixelType#>(destinationBytes, destinationBytes);
         }
 <#+
     }
@@ -456,14 +305,9 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
     {
         GenerateDefaultSelfConversionMethods(pixelType);
 
-        if (pixelType == "Rgba64" || pixelType == "Rgb48" || pixelType == "L16" || pixelType == "La32")
+        if (pixelType == "L16" || pixelType == "La32")
         {
             GenerateUnsigned16Vector4ConversionMethods(pixelType);
-        }
-
-        if (Rgba32CompatibleTypes.Contains(pixelType))
-        {
-            GenerateRgba32CompatibleVector4ConversionMethods(pixelType, pixelType.EndsWith("32"));
         }
 
         var matching32BitTypes = OptimizedPixelTypes.Contains(pixelType) ?

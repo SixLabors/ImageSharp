@@ -18,7 +18,7 @@ public partial struct RgbaVector
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<RgbaVector>
+    internal partial class PixelOperations : RgbaVectorPixelOperations<RgbaVector>
     {
 
         /// <inheritdoc />

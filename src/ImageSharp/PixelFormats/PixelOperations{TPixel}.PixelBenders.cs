@@ -29,6 +29,12 @@ public partial class PixelOperations<TPixel>
     /// <returns>A <see cref="PixelBlender{TPixel}"/>.</returns>
     public virtual PixelBlender<TPixel> GetPixelBlender(PixelColorBlendingMode colorMode, PixelAlphaCompositionMode alphaMode)
     {
+        // Associated storage needs a blender that reads and writes associated components throughout composition.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            return AssociatedAlphaPixelBlenders<TPixel>.GetPixelBlender(colorMode, alphaMode);
+        }
+
         switch (alphaMode)
         {
             case PixelAlphaCompositionMode.Clear:

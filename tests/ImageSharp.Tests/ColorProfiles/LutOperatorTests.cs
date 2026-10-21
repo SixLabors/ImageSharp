@@ -54,7 +54,7 @@ public class LutOperatorTests
     }
 
     /// <summary>
-    /// Checks the final sample when its index cannot be represented exactly as a float.
+    /// Checks exact logical endpoints and their zero sign when float coordinates round large table indices.
     /// </summary>
     [Fact]
     public void ForwardLookup_LongTable_ReturnsLastSample() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -62,32 +62,60 @@ public class LutOperatorTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks scalar and SIMD endpoint reads beyond the float's consecutive-integer range.
+    /// Checks scalar and SIMD logical endpoints beyond the float's consecutive-integer range and positive-zero output.
     /// </summary>
     private static void CheckLongTableEndpoint()
     {
-        // Binary32 represents every integer through 2^24. This table's last index is 2^24 + 3,
-        // which rounds up to the array length. The lookup must still read its actual last sample.
+        // Single-precision floats represent every integer through 2^24. Logical last indices 2^24 + 1 and 2^24 + 3 round down and up.
+        // Reuse one array to check both directions, including logical samples followed by physical padding.
         float[] table = new float[(1 << 24) + 4];
-        table[^1] = 0.75F;
-        LutOperator calculator = new(table, inverse: false);
+        ReadOnlySpan<int> sampleCounts = [(1 << 24) + 2, table.Length];
 
-        Assert.Equal(0.75F, calculator.Convert(1F));
+        foreach (int sampleCount in sampleCounts)
+        {
+            table[sampleCount - 1] = 0.75F;
+            LutOperator calculator = new(table, inverse: false, sampleCount);
 
-        // Direct operator calls obey the same hardware-width selection as the shared converter.
+            Assert.Equal(0.75F, calculator.Convert(1F));
+
+            // Direct operator calls obey the same hardware-width selection as the shared converter.
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Assert.Equal(Vector128.Create(0.75F), calculator.Convert(Vector128<float>.One));
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                Assert.Equal(Vector256.Create(0.75F), calculator.Convert(Vector256<float>.One));
+            }
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                Assert.Equal(Vector512.Create(0.75F), calculator.Convert(Vector512<float>.One));
+            }
+
+            table[sampleCount - 1] = 0F;
+        }
+
+        // Interpolation adds a zero term at the endpoint. A negative-zero final sample therefore produces positive zero.
+        // Compare the stored bits because numeric equality does not distinguish the two zero signs.
+        LutOperator zeroEndpoint = new([0F, -0F], inverse: false);
+
+        Assert.Equal(0, BitConverter.SingleToInt32Bits(zeroEndpoint.Convert(1F)));
+
         if (Vector128.IsHardwareAccelerated)
         {
-            Assert.Equal(Vector128.Create(0.75F), calculator.Convert(Vector128<float>.One));
+            Assert.Equal(Vector128<int>.Zero, zeroEndpoint.Convert(Vector128<float>.One).AsInt32());
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
-            Assert.Equal(Vector256.Create(0.75F), calculator.Convert(Vector256<float>.One));
+            Assert.Equal(Vector256<int>.Zero, zeroEndpoint.Convert(Vector256<float>.One).AsInt32());
         }
 
         if (Vector512.IsHardwareAccelerated)
         {
-            Assert.Equal(Vector512.Create(0.75F), calculator.Convert(Vector512<float>.One));
+            Assert.Equal(Vector512<int>.Zero, zeroEndpoint.Convert(Vector512<float>.One).AsInt32());
         }
     }
 
@@ -116,6 +144,13 @@ public class LutOperatorTests
         Assert.Equal(expected, calculator.Convert(input));
     }
 
+    /// <summary>
+    /// Checks sampled-curve conversion against the established forward and inverse results.
+    /// </summary>
+    /// <param name="lut">The sampled curve.</param>
+    /// <param name="inverted">Whether to find the curve input from its output.</param>
+    /// <param name="input">The value to convert.</param>
+    /// <param name="expected">The established interpolated result.</param>
     [Theory]
     [MemberData(nameof(IccConversionDataLut.LutConversionTestData), MemberType = typeof(IccConversionDataLut))]
     internal void LutOperator_WithLut_ReturnsResult(float[] lut, bool inverted, float input, float expected)
@@ -124,9 +159,10 @@ public class LutOperatorTests
 
         float result = calculator.Convert(input);
 
-        Assert.Equal(expected, result, 4f);
+        // Four decimal places allow single-precision interpolation rounding.
+        Assert.Equal(expected, result, precision: 4);
 
         // The shared unary contract follows the configured direction, including inverse lookup.
-        Assert.Equal(expected, calculator.Invoke(input), 4f);
+        Assert.Equal(expected, calculator.Invoke(input), precision: 4);
     }
 }

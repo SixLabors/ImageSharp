@@ -36,11 +36,12 @@ internal sealed class TiffRgba32PackedDecoder<TPixel> : TiffBaseColorDecoder<TPi
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         InlineArray16<Vector4> vectorBuffer = default;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
         TiffRgba32PackedSource source = new(this.reverseEndianness);
         TiffRgba32PackedOperator colorOperator = new(this.associated);
         TiffPackedVector4Store store = default;
         int offset = 0;
+        PixelAlphaRepresentation alphaRepresentation = this.associated ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated;
 
         for (int y = top; y < top + height; y++)
         {
@@ -49,7 +50,7 @@ internal sealed class TiffRgba32PackedDecoder<TPixel> : TiffBaseColorDecoder<TPi
             for (int x = 0; x < width; x += vectors.Length)
             {
                 int count = Math.Min(vectors.Length, width - x);
-                Span<Vector4> block = vectors[..count];
+                Span<Vector4> block = this.GetColorBlock(vectors, x, count);
 
                 // Convert up to sixteen pixels together so PixelOperations can pack them in bulk.
                 // Slice the source to complete pixels so its final 32-bit read stays in this row.
@@ -63,18 +64,12 @@ internal sealed class TiffRgba32PackedDecoder<TPixel> : TiffBaseColorDecoder<TPi
                     colorOperator,
                     store);
 
-                // The operator preserves stored alpha association, so select the matching destination packer.
-                if (this.associated)
-                {
-                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                }
-                else
-                {
-                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                }
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), alphaRepresentation);
 
                 offset += count * 16;
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, alphaRepresentation);
         }
     }
 }

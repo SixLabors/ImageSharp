@@ -17,7 +17,7 @@ public partial struct Bgr24
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Bgr24>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Bgr24>
     {
         /// <inheritdoc />
         public override void FromBgr24(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Bgr24> destination)
@@ -37,54 +37,6 @@ public partial struct Bgr24
             source.CopyTo(destination.Slice(0, source.Length));
         }
 
-        /// <inheritdoc />
-        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
-            => Vector4Converters.RgbaCompatible.FromUnassociatedVector4(configuration, this, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
-            => Vector4Converters.RgbaCompatible.FromAssociatedVector4(configuration, this, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
-            => this.FromVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<Bgr24> destination)
-            => this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
-
-        /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToUnassociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
-            => Vector4Converters.RgbaCompatible.ToAssociatedVector4(configuration, this, source, destination);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
-            => this.ToVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Vector4> destination)
-            => this.ToAssociatedVector4(configuration, source, destination);
-    
         /// <inheritdoc />
         public override void ToRgba32(
             Configuration configuration,

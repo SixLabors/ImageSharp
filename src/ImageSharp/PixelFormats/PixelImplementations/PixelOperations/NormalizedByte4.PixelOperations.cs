@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -25,6 +24,7 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
+            // The layouts contain the same signed byte codes. This overload only unpacks storage; it does not apply alpha conversion.
             NormalizedByte4P.PixelOperations.ToVector4(MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source), destination[..source.Length], false);
         }
 
@@ -40,7 +40,7 @@ public partial struct NormalizedByte4
             // happens in [0, 1] before the result is mapped back to the signed-native [-1, 1] coordinate system.
             NormalizedByte4P.PixelOperations.ToVector4(MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source), destination, true);
             Numerics.Premultiply(destination);
-            Vector4Converters.MultiplyThenAdd(destination, NativeScale, -Vector4.One);
+            PixelFormats.PixelOperations.MultiplyThenAdd(destination, NativeScale, -Vector4.One);
         }
 
         /// <inheritdoc />
@@ -70,6 +70,8 @@ public partial struct NormalizedByte4
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             destination = destination[..source.Length];
+
+            // Share the signed-byte packer because association is already resolved by this entry point.
             NormalizedByte4P.PixelOperations.Pack(source, MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination), false);
         }
 
@@ -79,12 +81,9 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-
-            // Convert all native components together so alpha and RGB enter unassociation in the same normalized coordinate system.
-            Vector4Converters.AddThenDivide(source, Vector4.One, NativeScale);
-            Numerics.UnPremultiply(source);
-            NormalizedByte4P.PixelOperations.Pack(source, MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination), true);
+            // Native RGB and alpha use the same affine encoding. Decode them before the shared alpha conversion.
+            PixelFormats.PixelOperations.AddThenDivide(source, Vector4.One, NativeScale);
+            this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
         }
 
         /// <inheritdoc />
@@ -107,7 +106,7 @@ public partial struct NormalizedByte4
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             destination = destination[..source.Length];
-            Numerics.UnPremultiply(source);
+            PixelFormats.PixelOperations.UnPremultiplyForPacking(source);
             NormalizedByte4P.PixelOperations.Pack(source, MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination), true);
         }
     }

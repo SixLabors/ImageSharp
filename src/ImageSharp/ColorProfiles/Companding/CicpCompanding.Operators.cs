@@ -1626,6 +1626,9 @@ internal static partial class CicpCompanding
         public static Vector128<float> Expand(Vector128<float> value)
         {
             Vector128<float> zero = Vector128.Create(0F);
+
+            // PQ defines this signal over [0,1]. These bounds belong to the curve, independent of the caller's pixel storage range.
+            // Evaluate both powers per component; the numerator floor supplies the zero-light portion of the inverse curve.
             Vector128<float> nonlinearPower = Vector128_.Pow(Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F)), 1F / PqM);
             Vector128<float> numerator = Vector128.Max(Vector128.Subtract(nonlinearPower, Vector128.Create(PqC1)), zero);
             Vector128<float> denominator = Vector128.Subtract(Vector128.Create(PqC2), Vector128.Multiply(Vector128.Create(PqC3), nonlinearPower));
@@ -1641,6 +1644,9 @@ internal static partial class CicpCompanding
         public static Vector256<float> Expand(Vector256<float> value)
         {
             Vector256<float> zero = Vector256.Create(0F);
+
+            // PQ defines this signal over [0,1]. These bounds belong to the curve, independent of the caller's pixel storage range.
+            // Evaluate both powers per component; the numerator floor supplies the zero-light portion of the inverse curve.
             Vector256<float> nonlinearPower = Vector256_.Pow(Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F)), 1F / PqM);
             Vector256<float> numerator = Vector256.Max(Vector256.Subtract(nonlinearPower, Vector256.Create(PqC1)), zero);
             Vector256<float> denominator = Vector256.Subtract(Vector256.Create(PqC2), Vector256.Multiply(Vector256.Create(PqC3), nonlinearPower));
@@ -1656,6 +1662,9 @@ internal static partial class CicpCompanding
         public static Vector512<float> Expand(Vector512<float> value)
         {
             Vector512<float> zero = Vector512.Create(0F);
+
+            // PQ defines this signal over [0,1]. These bounds belong to the curve, independent of the caller's pixel storage range.
+            // Evaluate both powers per component; the numerator floor supplies the zero-light portion of the inverse curve.
             Vector512<float> nonlinearPower = Vector512_.Pow(Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F)), 1F / PqM);
             Vector512<float> numerator = Vector512.Max(Vector512.Subtract(nonlinearPower, Vector512.Create(PqC1)), zero);
             Vector512<float> denominator = Vector512.Subtract(Vector512.Create(PqC2), Vector512.Multiply(Vector512.Create(PqC3), nonlinearPower));
@@ -1687,6 +1696,8 @@ internal static partial class CicpCompanding
         public static Vector128<float> Compress(Vector128<float> value)
         {
             Vector128<float> zero = Vector128.Create(0F);
+
+            // Reverse the two inverse-PQ powers around the rational term. The final mask makes nonpositive input return exact zero.
             Vector128<float> linearPower = Vector128_.Pow(Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F)), PqN);
             Vector128<float> numerator = Vector128.Add(Vector128.Create(PqC1), Vector128.Multiply(Vector128.Create(PqC2), linearPower));
             Vector128<float> denominator = Vector128.Add(Vector128.Create(1F), Vector128.Multiply(Vector128.Create(PqC3), linearPower));
@@ -1702,6 +1713,8 @@ internal static partial class CicpCompanding
         public static Vector256<float> Compress(Vector256<float> value)
         {
             Vector256<float> zero = Vector256.Create(0F);
+
+            // Reverse the two inverse-PQ powers around the rational term. The final mask makes nonpositive input return exact zero.
             Vector256<float> linearPower = Vector256_.Pow(Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F)), PqN);
             Vector256<float> numerator = Vector256.Add(Vector256.Create(PqC1), Vector256.Multiply(Vector256.Create(PqC2), linearPower));
             Vector256<float> denominator = Vector256.Add(Vector256.Create(1F), Vector256.Multiply(Vector256.Create(PqC3), linearPower));
@@ -1717,6 +1730,8 @@ internal static partial class CicpCompanding
         public static Vector512<float> Compress(Vector512<float> value)
         {
             Vector512<float> zero = Vector512.Create(0F);
+
+            // Reverse the two inverse-PQ powers around the rational term. The final mask makes nonpositive input return exact zero.
             Vector512<float> linearPower = Vector512_.Pow(Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F)), PqN);
             Vector512<float> numerator = Vector512.Add(Vector512.Create(PqC1), Vector512.Multiply(Vector512.Create(PqC2), linearPower));
             Vector512<float> denominator = Vector512.Add(Vector512.Create(1F), Vector512.Multiply(Vector512.Create(PqC3), linearPower));

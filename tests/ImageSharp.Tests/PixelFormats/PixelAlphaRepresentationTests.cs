@@ -62,7 +62,8 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             }
             else
             {
-                // Reversing association can introduce one final float rounding step, but this still rejects an unassociated no-op by several orders of magnitude.
+                // Reversing association can introduce one final float rounding step.
+                // This bound still rejects an unassociated result by several orders of magnitude.
                 AlphaRepresentationTestAssertions.EqualWithinOneUlp(expectedAssociatedScaled, actualAssociatedScaled);
             }
 
@@ -78,14 +79,53 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
         }
     }
 
+    /// <summary>
+    /// High-alpha input follows the destination's alpha representation and component bounds.
+    /// </summary>
     [Fact]
-    public void ScalarScaledConversionsClampHighAlphaConsistently()
+    public void ScaledConversionsClampHighAlphaConsistently()
     {
         Vector4 unassociated = new(.8F, .4F, .2F, 1.5F);
-        Vector4 associated = Associate(unassociated);
+        Vector4[] inputs =
+        [
+            Associate(unassociated),
+            new(float.MaxValue, float.MaxValue / 2F, 0F, float.MaxValue),
+            new(float.MaxValue, float.MaxValue / 2F, 0F, float.PositiveInfinity)
+        ];
 
-        // Both entry points describe the same logical color, so clamping opacity at the storage boundary must not change RGB differently between them.
-        Assert.Equal(TPixel.FromUnassociatedScaledVector4(unassociated), TPixel.FromAssociatedScaledVector4(associated));
+        TPixel[] expected =
+        [
+            TPixel.FromUnassociatedScaledVector4(unassociated),
+            TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F)),
+            TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F))
+        ];
+
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        if (pixelInfo.ColorRange == PixelColorRange.Extended && pixelInfo.AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            // Associated floating-point destinations bound each component without undoing association.
+            // Native packing supplies only the destination's storage rounding for these explicit bounded values.
+            expected[0] = TPixel.FromAssociatedVector4(new Vector4(inputs[0].X, inputs[0].Y, inputs[0].Z, 1F));
+            expected[1] = TPixel.FromAssociatedVector4(new Vector4(65504F, 65504F, 0F, 1F));
+            expected[2] = expected[1];
+        }
+
+        Vector4[] source = new Vector4[65];
+        TPixel[] destination = new TPixel[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = inputs[i % inputs.Length];
+            Assert.Equal(expected[i % expected.Length], TPixel.FromAssociatedScaledVector4(source[i]));
+        }
+
+        // Mixed SIMD groups and a scalar tail must follow the same destination rules as the single-pixel API.
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination);
+
+        for (int i = 0; i < destination.Length; i++)
+        {
+            Assert.Equal(expected[i % expected.Length], destination[i]);
+        }
     }
 
     [Fact]
@@ -383,37 +423,59 @@ public class RgbaCompatiblePixelOperationsTests
         AssertBulkConversionsMatchScalarForPixel<Rgb24>();
     }
 
+    /// <summary>
+    /// Checks normalized RGB-byte conversion, alpha restoration and destination bounds around each bulk threshold.
+    /// </summary>
+    /// <typeparam name="TPixel">The RGB-byte pixel format.</typeparam>
     private static void AssertBulkConversionsMatchScalarForPixel<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        const int length = 259;
-        Vector4 sourceVector = new(.5F, .25F, .125F, 1F);
-        TPixel expectedPixel = TPixel.FromUnassociatedScaledVector4(sourceVector);
-        TPixel[] pixels = new TPixel[length];
-        Array.Fill(pixels, expectedPixel);
+        // The shared RGB-byte converter selects its bulk path at 128, 256 or 512 pixels.
+        // Check either side of every threshold, including tails after the first optimized block.
+        foreach (int length in new[] { 127, 128, 129, 255, 256, 257, 511, 512, 513 })
+        {
+            Vector4 sourceVector = new(.5F, .25F, .125F, 1F);
+            TPixel expectedPixel = TPixel.FromUnassociatedScaledVector4(sourceVector);
+            TPixel[] pixels = new TPixel[length];
+            Array.Fill(pixels, expectedPixel);
 
-        Vector4 expectedVector = expectedPixel.ToUnassociatedScaledVector4();
-        Vector4 vectorSentinel = new(.125F, .5F, .75F, 1F);
-        Vector4[] vectors = new Vector4[length + 3];
-        vectors.AsSpan(length).Fill(vectorSentinel);
+            Vector4 expectedVector = expectedPixel.ToUnassociatedScaledVector4();
+            Vector4 vectorSentinel = new(.125F, .5F, .75F, 1F);
+            Vector4[] vectors = new Vector4[length + 3];
+            vectors.AsSpan(length).Fill(vectorSentinel);
 
-        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(Configuration.Default, pixels, vectors);
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(Configuration.Default, pixels, vectors);
 
-        Assert.All(vectors[..length], vector => Assert.Equal(expectedVector, vector));
-        Assert.All(vectors[length..], vector => Assert.Equal(vectorSentinel, vector));
+            Assert.All(vectors[..length], vector => Assert.Equal(expectedVector, vector));
+            Assert.All(vectors[length..], vector => Assert.Equal(vectorSentinel, vector));
 
-        Vector4[] source = new Vector4[length];
-        source.AsSpan().Fill(sourceVector);
+            Vector4[] source = new Vector4[length];
+            source.AsSpan().Fill(sourceVector);
 
-        TPixel pixelSentinel = TPixel.FromUnassociatedScaledVector4(vectorSentinel);
-        TPixel[] destination = new TPixel[length + 3];
-        destination.AsSpan(length).Fill(pixelSentinel);
+            TPixel pixelSentinel = TPixel.FromUnassociatedScaledVector4(vectorSentinel);
+            TPixel[] destination = new TPixel[length + 3];
+            destination.AsSpan(length).Fill(pixelSentinel);
 
-        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination);
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination);
 
-        // A 259-pixel source crosses the 128- and 256-bit optimized thresholds while leaving spare destination capacity to detect writes beyond the source length.
-        Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));
-        Assert.All(destination[length..], pixel => Assert.Equal(pixelSentinel, pixel));
+            Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));
+            Assert.All(destination[length..], pixel => Assert.Equal(pixelSentinel, pixel));
+
+            // Associated input must use a finite alpha divisor in both the short scalar path and the optimized byte path.
+            // These inputs describe straight RGB (1, 0.5, 0), independently of the stored opacity limit.
+            expectedPixel = TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F));
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                source[i] = new Vector4(float.MaxValue, float.MaxValue / 2F, 0F, i % 2 == 0 ? float.PositiveInfinity : float.MaxValue);
+                Assert.Equal(expectedPixel, TPixel.FromAssociatedVector4(source[i]));
+            }
+
+            PixelOperations<TPixel>.Instance.FromAssociatedVector4Destructive(Configuration.Default, source, destination);
+
+            Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));
+            Assert.All(destination[length..], pixel => Assert.Equal(pixelSentinel, pixel));
+        }
     }
 }
 
@@ -431,7 +493,7 @@ public class AffineNativeAlphaRepresentationTests
 
     [Fact]
     public void Short4NativeConversionsUseScaledAlpha()
-        => AssertNativeConversions<Short4>(static vector => (vector * ushort.MaxValue) - new Vector4(32768F));
+        => AssertNativeConversions<Short4>(static vector => Vector4.MultiplyAddEstimate(vector, new Vector4(ushort.MaxValue), new Vector4(-32768F)));
 
     [Fact]
     public void NormalizedByte4NativeConversionsUseScaledAlpha()
@@ -480,9 +542,19 @@ public class AffineNativeAlphaRepresentationTests
         Vector4 unassociatedScaled = pixel.ToUnassociatedScaledVector4();
         Vector4 associatedScaled = Associate(unassociatedScaled);
 
-        // Native alpha can be signed or use an integer component range, so multiplying native RGB by native W would not represent opacity.
-        AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(unassociatedScaled), pixel.ToUnassociatedVector4());
-        AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(associatedScaled), pixel.ToAssociatedVector4());
+        // The matching native representation reads storage directly. Do not reconstruct it by reversing a rounded scaled value.
+        // In particular, fused Short4 scaling can expose a small division error near native zero that separate arithmetic cancels.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            Assert.Equal(pixel.ToVector4(), pixel.ToAssociatedVector4());
+            AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(unassociatedScaled), pixel.ToUnassociatedVector4());
+        }
+        else
+        {
+            Assert.Equal(pixel.ToVector4(), pixel.ToUnassociatedVector4());
+            AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(associatedScaled), pixel.ToAssociatedVector4());
+        }
+
         Assert.Equal(pixel, TPixel.FromUnassociatedVector4(encodeNative(unassociatedScaled)));
         Assert.Equal(pixel, TPixel.FromAssociatedVector4(encodeNative(associatedScaled)));
     }

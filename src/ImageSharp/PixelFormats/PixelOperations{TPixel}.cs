@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
@@ -14,9 +15,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Provides bulk conversion operations for pixel buffers of type <typeparamref name="TPixel"/>.
 /// </summary>
 /// <remarks>
-/// The default conversion behavior is suitable for pixel formats that store unassociated alpha.
-/// Pixel formats that store associated alpha should derive their operations from
-/// <see cref="AssociatedAlphaPixelOperations{TPixel}"/>.
+/// Default bulk conversions follow the scalar pixel API. Native vector methods select the format's declared alpha representation.
+/// Storage-family implementations override these defaults to share optimized packing and SIMD traversal.
 /// Bulk vector conversions follow the corresponding <see cref="IPixel{TSelf}"/> scalar conversion rules.
 /// Integer destinations clamp components and map NaN to the lower endpoint of their numeric range.
 /// Floating-point color conversions bound RGB to [-65504,65504] and alpha to [0,1]. Native vector conversions retain IEEE special values.
@@ -35,6 +35,47 @@ public partial class PixelOperations<TPixel>
     public static PixelOperations<TPixel> Instance => LazyInstance.Value;
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
+#pragma warning disable CA1000 // Scalar conversions share the public generic owner with bulk conversions.
+    /// <summary>
+    /// Bounds normalized floating-point RGB to [-65504,65504] and alpha to [0,1] before pixel storage.
+    /// </summary>
+    /// <param name="source">The color in normalized component units.</param>
+    /// <returns>The bounded color. NaN maps to the lower bound; infinities map to the corresponding bounds.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ClampToPixelRange(Vector4 source) => PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
+
+    /// <summary>
+    /// Restores straight RGB and bounds normalized color components before destination packing.
+    /// </summary>
+    /// <param name="source">The associated color in normalized component units.</param>
+    /// <remarks>
+    /// NaN and negative alpha become zero; positive infinity becomes <see cref="float.MaxValue"/>.
+    /// The divisor retains positive finite alpha, including values above one. Zero alpha retains stored RGB.
+    /// After division, RGB is bounded to [-65504,65504] and alpha to [0,1]. This also bounds overflow from tiny positive alpha.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UnPremultiply(ref Vector4 source) => source = PixelFormats.PixelOperations.UnPremultiply(source.AsVector128()).AsVector4();
+
+    /// <summary>
+    /// Converts associated normalized input through the destination's straight-color pixel conversion.
+    /// </summary>
+    /// <param name="source">The associated color in normalized component units.</param>
+    /// <returns>The pixel after alpha restoration and destination packing.</returns>
+    /// <remarks>
+    /// This default is for destinations that store straight RGB or have no alpha channel.
+    /// Associated destinations retain their own storage conversion to preserve associated RGB and alpha rounding.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TPixel FromAssociatedScaledVector4(Vector4 source)
+    {
+        // Destination packing applies its own bounds after division. Clamping to floating-point bounds here
+        // would add work before SDR packing and could change grayscale calculations before luminance is known.
+        source = PixelFormats.PixelOperations.UnPremultiplyForPacking(source.AsVector128()).AsVector4();
+
+        return TPixel.FromUnassociatedScaledVector4(source);
+    }
+#pragma warning restore CA1000 // Do not declare static members on generic types
+
     /// <summary>
     /// Converts pixels to vectors in the pixel format's native numeric range with unassociated alpha.
     /// </summary>
@@ -46,7 +87,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeToUnassociatedVector4<TPixel>(source, destination);
+        ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+        ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = sourceStart.ToUnassociatedVector4();
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -60,7 +111,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeToAssociatedVector4<TPixel>(source, destination);
+        ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+        ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = sourceStart.ToAssociatedVector4();
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -74,7 +135,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeToUnassociatedScaledVector4<TPixel>(source, destination);
+        ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+        ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = sourceStart.ToUnassociatedScaledVector4();
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -88,7 +159,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeToAssociatedScaledVector4<TPixel>(source, destination);
+        ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+        ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = sourceStart.ToAssociatedScaledVector4();
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -102,7 +183,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeFromUnassociatedVector4<TPixel>(source, destination);
+        ref Vector4 sourceStart = ref MemoryMarshal.GetReference(source);
+        ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = TPixel.FromUnassociatedVector4(sourceStart);
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -116,7 +207,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeFromAssociatedVector4<TPixel>(source, destination);
+        ref Vector4 sourceStart = ref MemoryMarshal.GetReference(source);
+        ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = TPixel.FromAssociatedVector4(sourceStart);
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -130,7 +231,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeFromUnassociatedScaledVector4<TPixel>(source, destination);
+        ref Vector4 sourceStart = ref MemoryMarshal.GetReference(source);
+        ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = TPixel.FromUnassociatedScaledVector4(sourceStart);
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -144,7 +255,17 @@ public partial class PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.UnsafeFromAssociatedScaledVector4<TPixel>(source, destination);
+        ref Vector4 sourceStart = ref MemoryMarshal.GetReference(source);
+        ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = TPixel.FromAssociatedScaledVector4(sourceStart);
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
     }
 
     /// <summary>
@@ -154,7 +275,17 @@ public partial class PixelOperations<TPixel>
     /// <param name="source">The source pixels.</param>
     /// <param name="destination">The destination vectors.</param>
     public virtual void ToVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
-        => this.ToUnassociatedVector4(configuration, source, destination);
+    {
+        // The native API uses the format's stored alpha representation. Explicit APIs select their representation directly.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.ToAssociatedVector4(configuration, source, destination);
+        }
+        else
+        {
+            this.ToUnassociatedVector4(configuration, source, destination);
+        }
+    }
 
     /// <summary>
     /// Converts pixels to scaled vectors with their native alpha representation.
@@ -163,7 +294,17 @@ public partial class PixelOperations<TPixel>
     /// <param name="source">The source pixels.</param>
     /// <param name="destination">The destination vectors.</param>
     public virtual void ToScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
-        => this.ToUnassociatedScaledVector4(configuration, source, destination);
+    {
+        // The native API uses the format's stored alpha representation. Explicit APIs select their representation directly.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.ToAssociatedScaledVector4(configuration, source, destination);
+        }
+        else
+        {
+            this.ToUnassociatedScaledVector4(configuration, source, destination);
+        }
+    }
 
     /// <summary>
     /// Converts vectors in the native numeric range and with the pixel format's native alpha representation to pixels.
@@ -173,7 +314,17 @@ public partial class PixelOperations<TPixel>
     /// <param name="source">The source vectors.</param>
     /// <param name="destination">The destination pixels.</param>
     public virtual void FromVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
-        => this.FromUnassociatedVector4Destructive(configuration, source, destination);
+    {
+        // The native API uses the format's stored alpha representation. Explicit APIs select their representation directly.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.FromAssociatedVector4Destructive(configuration, source, destination);
+        }
+        else
+        {
+            this.FromUnassociatedVector4Destructive(configuration, source, destination);
+        }
+    }
 
     /// <summary>
     /// Converts scaled vectors with the pixel format's native alpha representation to pixels. The source contents may be modified.
@@ -182,7 +333,17 @@ public partial class PixelOperations<TPixel>
     /// <param name="source">The source vectors.</param>
     /// <param name="destination">The destination pixels.</param>
     public virtual void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
-        => this.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
+    {
+        // The native API uses the format's stored alpha representation. Explicit APIs select their representation directly.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
+        }
+        else
+        {
+            this.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
+        }
+    }
 
     /// <summary>
     /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.
@@ -411,7 +572,8 @@ public partial class PixelOperations<TPixel>
 
         if (typeof(TPixel) == typeof(TPixelTo))
         {
-            // An identical destination stores the same representation, including associated alpha, so copying preserves every packed component without a lossy representation round trip.
+            // Identical formats have the same component layout and alpha representation.
+            // Copy their storage directly to retain every packed component without a vector conversion.
             MemoryMarshal.Cast<TPixel, TPixelTo>(source).CopyTo(destination);
             return;
         }
@@ -484,8 +646,19 @@ public partial class PixelOperations<TPixel>
         }
     }
 
+    /// <summary>
+    /// Checks that the RGB planes have equal lengths and can hold every source pixel.
+    /// </summary>
+    /// <param name="redChannel">The red destination plane.</param>
+    /// <param name="greenChannel">The green destination plane.</param>
+    /// <param name="blueChannel">The blue destination plane.</param>
+    /// <param name="source">The source pixels.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void GuardUnpackIntoRgbPlanes(ReadOnlySpan<float> redChannel, Span<float> greenChannel, Span<float> blueChannel, ReadOnlySpan<TPixel> source)
+    internal static void GuardUnpackIntoRgbPlanes(
+        ReadOnlySpan<float> redChannel,
+        Span<float> greenChannel,
+        Span<float> blueChannel,
+        ReadOnlySpan<TPixel> source)
     {
         Guard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
         Guard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
@@ -498,5 +671,57 @@ public partial class PixelOperations<TPixel>
         Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
         Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
         Guard.IsTrue(destination.Length >= count, nameof(destination), "'destination' span should not be shorter than the source channels!");
+    }
+
+    /// <summary>
+    /// Converts associated source pixels to an unassociated destination format.
+    /// </summary>
+    /// <typeparam name="TPixelTo">The destination pixel format.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination pixels.</param>
+    private void ConvertToUnassociated<TPixelTo>(
+        Configuration configuration,
+        ReadOnlySpan<TPixel> source,
+        Span<TPixelTo> destination)
+        where TPixelTo : unmanaged, IPixel<TPixelTo>
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        if (source.IsEmpty)
+        {
+            return;
+        }
+
+        int sliceLength = Math.Min(source.Length, 1024);
+        int numberOfSlices = source.Length / sliceLength;
+
+        using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
+        Span<Vector4> vectorSpan = tempVectors.GetSpan()[..sliceLength];
+        PixelOperations<TPixelTo> destinationOperations = PixelOperations<TPixelTo>.Instance;
+
+        // Generated destination conversions can route back through this source operation, so read through the source hook directly.
+        // The destination then applies its own alpha rules when it packs the straight vectors.
+        for (int i = 0; i < numberOfSlices; i++)
+        {
+            int start = i * sliceLength;
+            ReadOnlySpan<TPixel> sourceSlice = source.Slice(start, sliceLength);
+            Span<TPixelTo> destinationSlice = destination.Slice(start, sliceLength);
+            this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
+            destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);
+        }
+
+        int endOfCompleteSlices = numberOfSlices * sliceLength;
+        int remainder = source.Length - endOfCompleteSlices;
+
+        if (remainder > 0)
+        {
+            ReadOnlySpan<TPixel> sourceSlice = source[endOfCompleteSlices..];
+            Span<TPixelTo> destinationSlice = destination.Slice(endOfCompleteSlices, remainder);
+            vectorSpan = vectorSpan[..remainder];
+            this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
+            destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);
+        }
     }
 }

@@ -11,7 +11,8 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Tiff.Writers;
 
 /// <summary>
-/// Writes interleaved 32-bit floating-point grayscale, RGB, or RGBA samples without clipping extended values.
+/// Writes interleaved 32-bit floating-point grayscale, RGB, or RGBA samples.
+/// Color conversion retains values outside [0,1] within the shared normalized range [-65504,65504].
 /// </summary>
 /// <typeparam name="TPixel">The source pixel format.</typeparam>
 internal sealed class TiffFloatWriter<TPixel> : TiffCompositeColorWriter<TPixel>

@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Numerics.Tensors;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -31,6 +33,7 @@ internal class WhiteIsZero8TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         InlineArray64<byte> byteBuffer = default;
         Span<byte> inverted = byteBuffer;
         int offset = 0;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, []);
 
         for (int y = top; y < top + height; y++)
         {
@@ -45,9 +48,17 @@ internal class WhiteIsZero8TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 TensorPrimitives.OnesComplement<byte>(data.Slice(offset, count), inverted[..count]);
 
                 // The bulk pixel API owns destination packing and alpha. Only the initialized prefix reaches that API.
-                PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, inverted[..count], pixelRow.Slice(x, count), count);
+                ReadOnlySpan<L8> samples = MemoryMarshal.Cast<byte, L8>(inverted[..count]);
+
+                if (!this.TryStoreColorPixels(this.configuration, samples, vectors, x))
+                {
+                    PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, inverted[..count], pixelRow.Slice(x, count), count);
+                }
+
                 offset += count;
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.None);
         }
     }
 }

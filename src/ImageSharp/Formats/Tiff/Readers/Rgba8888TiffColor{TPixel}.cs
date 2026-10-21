@@ -35,7 +35,9 @@ internal class Rgba8888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         int offset = 0;
         bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
 
-        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? this.GetVectorBuffer(this.memoryAllocator, width) : [];
+        Span<Vector4> vectorsSpan = hasAssociatedAlpha || this.HasColorConverter ? this.GetVectorBuffer(this.memoryAllocator, width) : [];
+        PixelAlphaRepresentation alphaRepresentation = hasAssociatedAlpha ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated;
+
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
@@ -47,16 +49,19 @@ internal class Rgba8888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 // channels; asking that unassociated storage type to associate them would multiply RGB a second time.
                 ReadOnlySpan<Rgba32> associatedSamples = MemoryMarshal.Cast<byte, Rgba32>(data.Slice(offset, byteCount));
                 PixelOperations<Rgba32>.Instance.ToUnassociatedScaledVector4(this.configuration, associatedSamples, vectorsSpan);
-                PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectorsSpan, pixelRow);
+                this.StoreColorVectors(this.configuration, vectorsSpan, pixelRow, alphaRepresentation);
             }
             else
             {
-                PixelOperations<TPixel>.Instance.FromRgba32Bytes(
-                    this.configuration,
-                    data.Slice(offset, byteCount),
-                    pixelRow,
-                    pixelRow.Length);
+                ReadOnlySpan<Rgba32> samples = MemoryMarshal.Cast<byte, Rgba32>(data.Slice(offset, byteCount));
+
+                if (!this.TryStoreColorPixels(this.configuration, samples, vectorsSpan, 0))
+                {
+                    PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, data.Slice(offset, byteCount), pixelRow, pixelRow.Length);
+                }
             }
+
+            this.CompleteColorRow(this.configuration, vectorsSpan, pixelRow, alphaRepresentation);
 
             offset += byteCount;
         }

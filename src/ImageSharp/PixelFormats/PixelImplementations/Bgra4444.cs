@@ -33,6 +33,18 @@ public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
     /// <param name="vector">The vector containing the components for the packed vector.</param>
     public Bgra4444(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra4444"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Bits 0-3 store blue, bits 4-7 store green, bits 8-11 store red, and bits 12-15 store alpha.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra4444(ushort packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ushort PackedValue { get; set; }
 
@@ -133,10 +145,7 @@ public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgra4444 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

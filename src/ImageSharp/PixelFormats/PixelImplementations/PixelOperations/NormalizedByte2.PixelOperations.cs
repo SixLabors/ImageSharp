@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -46,7 +45,7 @@ public partial struct NormalizedByte2
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             // Only X and Y use affine native coordinates. Preserve W as normalized alpha for the scaled unassociation step.
-            Vector4Converters.AddThenDivide(source, NativeOffset, NativeDivisor);
+            PixelFormats.PixelOperations.AddThenDivide(source, NativeOffset, NativeDivisor);
             this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
         }
     }

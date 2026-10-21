@@ -110,4 +110,22 @@ internal static partial class TensorPrimitives_
             Unsafe.Add(ref first, (uint)i) = operation.Invoke(Unsafe.Add(ref first, (uint)i));
         }
     }
+
+    /// <summary>
+    /// Retains each independent component without arithmetic.
+    /// </summary>
+    public readonly struct IdentityOperator : IUnaryOperator
+    {
+        /// <inheritdoc />
+        public float Invoke(float value) => value;
+
+        /// <inheritdoc />
+        public Vector128<float> Invoke(Vector128<float> value) => value;
+
+        /// <inheritdoc />
+        public Vector256<float> Invoke(Vector256<float> value) => value;
+
+        /// <inheritdoc />
+        public Vector512<float> Invoke(Vector512<float> value) => value;
+    }
 }

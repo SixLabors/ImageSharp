@@ -53,16 +53,20 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     {
         BitReader bitReader = new(data);
         InlineArray16<Vector4> vectorBuffer = default;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
 
-        bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
+        PixelAlphaRepresentation alphaRepresentation = this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData
+            ? PixelAlphaRepresentation.Associated
+            : PixelAlphaRepresentation.Unassociated;
+
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+
             for (int x = 0; x < pixelRow.Length; x += vectors.Length)
             {
                 int count = Math.Min(vectors.Length, pixelRow.Length - x);
-                Span<Vector4> block = vectors[..count];
+                Span<Vector4> block = this.GetColorBlock(vectors, x, count);
 
                 // The bit reader owns packed sample boundaries; alpha interpretation
                 // remains with the destination pixel operation for the whole block.
@@ -76,15 +80,10 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                if (hasAssociatedAlpha)
-                {
-                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                }
-                else
-                {
-                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                }
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), alphaRepresentation);
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, alphaRepresentation);
 
             bitReader.NextRow();
         }

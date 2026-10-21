@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -30,6 +29,18 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// </summary>
     /// <param name="vector">A vector containing the initial values for the components.</param>
     public HalfVector2(Vector2 vector) => this.PackedValue = Pack(vector.X, vector.Y);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HalfVector2"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Half-precision X and Y bit patterns occupy bits 0-15 and 16-31, respectively.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public HalfVector2(uint packed)
+        : this() => this.PackedValue = packed;
 
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
@@ -78,7 +89,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToVector4());
+        => PixelOperations.ClampToPixelRange(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -102,12 +113,12 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToUnassociatedVector4());
+        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToAssociatedVector4());
+        => PixelOperations.ClampToPixelRange(this.ToAssociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -120,15 +131,12 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector2 FromUnassociatedScaledVector4(Vector4 source)
-        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(source));
+        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector2 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromUnassociatedScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

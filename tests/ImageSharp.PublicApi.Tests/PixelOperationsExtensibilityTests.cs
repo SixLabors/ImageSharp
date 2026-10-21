@@ -25,10 +25,10 @@ public class PixelOperationsExtensibilityTests
     }
 
     /// <summary>
-    /// Verifies that an external <see cref="AssociatedAlphaPixelOperations{TPixel}"/> subclass can override and invoke every representation-aware hook.
+    /// Verifies that an external <see cref="PixelOperations{TPixel}"/> subclass can override and invoke every representation-aware hook.
     /// </summary>
     [Fact]
-    public void AssociatedAlphaPixelOperationsExposesAllRepresentationHooksToExternalSubclasses()
+    public void AssociatedPixelOperationsExposesAllRepresentationHooksToExternalSubclasses()
     {
         ExternalRgba32PPixelOperations operations = new();
 
@@ -143,9 +143,9 @@ public class PixelOperationsExtensibilityTests
     }
 
     /// <summary>
-    /// Exercises the representation-aware hooks inherited through <see cref="AssociatedAlphaPixelOperations{TPixel}"/>.
+    /// Exercises the representation-aware hooks inherited through <see cref="PixelOperations{TPixel}"/>.
     /// </summary>
-    private sealed class ExternalRgba32PPixelOperations : AssociatedAlphaPixelOperations<Rgba32P>
+    private sealed class ExternalRgba32PPixelOperations : PixelOperations<Rgba32P>
     {
         /// <summary>
         /// Gets the hooks invoked through this external subclass.

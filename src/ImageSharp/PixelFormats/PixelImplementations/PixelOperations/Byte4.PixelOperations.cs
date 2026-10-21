@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -30,7 +29,7 @@ public partial struct Byte4
             // Byte4 and Rgba32 have the same packed layout. Reusing the optimized Rgba32 unpacker avoids four scalar byte
             // extractions per pixel; the affine transform then restores Byte4's native [0, 255] vector range.
             PixelOperations<Rgba32>.Instance.ToUnassociatedScaledVector4(configuration, MemoryMarshal.Cast<Byte4, Rgba32>(source), destination);
-            Vector4Converters.MultiplyThenAdd(destination, NativeMaximum, Vector4.Zero);
+            PixelFormats.PixelOperations.MultiplyThenAdd(destination, NativeMaximum, Vector4.Zero);
         }
 
         /// <inheritdoc />
@@ -43,7 +42,7 @@ public partial struct Byte4
 
             // Association is performed in normalized color space before mapping all four components back to Byte4's native range.
             PixelOperations<Rgba32>.Instance.ToAssociatedScaledVector4(configuration, MemoryMarshal.Cast<Byte4, Rgba32>(source), destination);
-            Vector4Converters.MultiplyThenAdd(destination, NativeMaximum, Vector4.Zero);
+            PixelFormats.PixelOperations.MultiplyThenAdd(destination, NativeMaximum, Vector4.Zero);
         }
 
         /// <inheritdoc />
@@ -71,7 +70,7 @@ public partial struct Byte4
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             destination = destination[..source.Length];
-            Vector4Converters.AddThenDivide(source, Vector4.Zero, NativeMaximum);
+            PixelFormats.PixelOperations.AddThenDivide(source, Vector4.Zero, NativeMaximum);
             PixelOperations<Rgba32>.Instance.FromUnassociatedScaledVector4Destructive(configuration, source, MemoryMarshal.Cast<Byte4, Rgba32>(destination));
         }
 
@@ -84,7 +83,7 @@ public partial struct Byte4
             destination = destination[..source.Length];
 
             // Native alpha is normalized with RGB so the Rgba32 bulk path can unassociate in a single, consistent coordinate space.
-            Vector4Converters.AddThenDivide(source, Vector4.Zero, NativeMaximum);
+            PixelFormats.PixelOperations.AddThenDivide(source, Vector4.Zero, NativeMaximum);
             PixelOperations<Rgba32>.Instance.FromAssociatedScaledVector4Destructive(configuration, source, MemoryMarshal.Cast<Byte4, Rgba32>(destination));
         }
 

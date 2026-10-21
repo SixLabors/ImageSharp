@@ -251,6 +251,9 @@ internal abstract partial class HeifColorConverterBase
             in HeifColorConversionParameters parameters)
         {
             bool isHlg = parameters.TransferCharacteristics == CicpTransferCharacteristics.AribStdB67;
+
+            // Registers are component planes: lane n in I, Ct and Cp describes the same pixel.
+            // PQ and HLG use different opponent matrices. Select coefficients for the signaled curve before restoring LMS.
             Vector128<float> ctContribution = Vector128.Create(isHlg ? HlgCtToL : PqCtToL) * ct;
             Vector128<float> cpContribution = Vector128.Create(isHlg ? HlgCpToL : PqCpToL) * cp;
             Vector128<float> nonlinearL = intensity + ctContribution + cpContribution;
@@ -260,6 +263,7 @@ internal abstract partial class HeifColorConverterBase
                 cp,
                 Vector128.MultiplyAddEstimate(Vector128.Create(isHlg ? HlgCtToS : PqCtToS), ct, intensity));
 
+            // LMS-to-RGB coefficients act on linear light. Remove the transfer curve before that matrix.
             Vector128<float> linearL = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector128<float> linearM = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector128<float> linearS = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -278,6 +282,7 @@ internal abstract partial class HeifColorConverterBase
                 linearS,
                 Vector128.MultiplyAddEstimate(Vector128.Create(MToBlue), linearM, Vector128.Create(LToBlue) * linearL));
 
+            // The output planes contain nonlinear R, G and B. Reuse input registers after consuming all matrix terms.
             intensity = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearRed);
             ct = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cp = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearBlue);
@@ -292,6 +297,9 @@ internal abstract partial class HeifColorConverterBase
             in HeifColorConversionParameters parameters)
         {
             bool isHlg = parameters.TransferCharacteristics == CicpTransferCharacteristics.AribStdB67;
+
+            // Registers are component planes: lane n in I, Ct and Cp describes the same pixel.
+            // PQ and HLG use different opponent matrices. Select coefficients for the signaled curve before restoring LMS.
             Vector256<float> ctContribution = Vector256.Create(isHlg ? HlgCtToL : PqCtToL) * ct;
             Vector256<float> cpContribution = Vector256.Create(isHlg ? HlgCpToL : PqCpToL) * cp;
             Vector256<float> nonlinearL = intensity + ctContribution + cpContribution;
@@ -301,6 +309,7 @@ internal abstract partial class HeifColorConverterBase
                 cp,
                 Vector256.MultiplyAddEstimate(Vector256.Create(isHlg ? HlgCtToS : PqCtToS), ct, intensity));
 
+            // LMS-to-RGB coefficients act on linear light. Remove the transfer curve before that matrix.
             Vector256<float> linearL = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector256<float> linearM = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector256<float> linearS = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -319,6 +328,7 @@ internal abstract partial class HeifColorConverterBase
                 linearS,
                 Vector256.MultiplyAddEstimate(Vector256.Create(MToBlue), linearM, Vector256.Create(LToBlue) * linearL));
 
+            // The output planes contain nonlinear R, G and B. Reuse input registers after consuming all matrix terms.
             intensity = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearRed);
             ct = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cp = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearBlue);
@@ -333,6 +343,9 @@ internal abstract partial class HeifColorConverterBase
             in HeifColorConversionParameters parameters)
         {
             bool isHlg = parameters.TransferCharacteristics == CicpTransferCharacteristics.AribStdB67;
+
+            // Registers are component planes: lane n in I, Ct and Cp describes the same pixel.
+            // PQ and HLG use different opponent matrices. Select coefficients for the signaled curve before restoring LMS.
             Vector512<float> ctContribution = Vector512.Create(isHlg ? HlgCtToL : PqCtToL) * ct;
             Vector512<float> cpContribution = Vector512.Create(isHlg ? HlgCpToL : PqCpToL) * cp;
             Vector512<float> nonlinearL = intensity + ctContribution + cpContribution;
@@ -342,6 +355,7 @@ internal abstract partial class HeifColorConverterBase
                 cp,
                 Vector512.MultiplyAddEstimate(Vector512.Create(isHlg ? HlgCtToS : PqCtToS), ct, intensity));
 
+            // LMS-to-RGB coefficients act on linear light. Remove the transfer curve before that matrix.
             Vector512<float> linearL = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector512<float> linearM = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector512<float> linearS = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -360,6 +374,7 @@ internal abstract partial class HeifColorConverterBase
                 linearS,
                 Vector512.MultiplyAddEstimate(Vector512.Create(MToBlue), linearM, Vector512.Create(LToBlue) * linearL));
 
+            // The output planes contain nonlinear R, G and B. Reuse input registers after consuming all matrix terms.
             intensity = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearRed);
             ct = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cp = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearBlue);
@@ -415,6 +430,7 @@ internal abstract partial class HeifColorConverterBase
             out Vector128<float> ct,
             out Vector128<float> cp)
         {
+            // Remove the RGB transfer curve before the RGB-to-LMS matrix. The opponent matrix then uses nonlinear LMS.
             Vector128<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, red);
             Vector128<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, green);
             Vector128<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, blue);
@@ -433,6 +449,7 @@ internal abstract partial class HeifColorConverterBase
                 linearRed,
                 Vector128.MultiplyAddEstimate(Vector128.Create(GreenToS), linearGreen, Vector128.Create(BlueToS) * linearBlue));
 
+            // Apply the signaled curve independently to L, M and S before forming intensity, Ct and Cp.
             Vector128<float> nonlinearL = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector128<float> nonlinearM = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector128<float> nonlinearS = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -466,6 +483,7 @@ internal abstract partial class HeifColorConverterBase
             out Vector256<float> ct,
             out Vector256<float> cp)
         {
+            // Remove the RGB transfer curve before the RGB-to-LMS matrix. The opponent matrix then uses nonlinear LMS.
             Vector256<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, red);
             Vector256<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, green);
             Vector256<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, blue);
@@ -484,6 +502,7 @@ internal abstract partial class HeifColorConverterBase
                 linearRed,
                 Vector256.MultiplyAddEstimate(Vector256.Create(GreenToS), linearGreen, Vector256.Create(BlueToS) * linearBlue));
 
+            // Apply the signaled curve independently to L, M and S before forming intensity, Ct and Cp.
             Vector256<float> nonlinearL = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector256<float> nonlinearM = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector256<float> nonlinearS = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -517,6 +536,7 @@ internal abstract partial class HeifColorConverterBase
             out Vector512<float> ct,
             out Vector512<float> cp)
         {
+            // Remove the RGB transfer curve before the RGB-to-LMS matrix. The opponent matrix then uses nonlinear LMS.
             Vector512<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, red);
             Vector512<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, green);
             Vector512<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, blue);
@@ -535,6 +555,7 @@ internal abstract partial class HeifColorConverterBase
                 linearRed,
                 Vector512.MultiplyAddEstimate(Vector512.Create(GreenToS), linearGreen, Vector512.Create(BlueToS) * linearBlue));
 
+            // Apply the signaled curve independently to L, M and S before forming intensity, Ct and Cp.
             Vector512<float> nonlinearL = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector512<float> nonlinearM = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector512<float> nonlinearS = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearS);

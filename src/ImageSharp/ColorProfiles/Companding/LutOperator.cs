@@ -110,10 +110,21 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
             return 0F + ColorNumerics.ClampToFinite(value, 0F, 1F);
         }
 
-        float position = ColorNumerics.ClampToFinite(value, 0F, 1F) * this.scale;
+        float bounded = ColorNumerics.ClampToFinite(value, 0F, 1F);
+
+        if (bounded == 1F)
+        {
+            // Input one selects the final logical sample, not any padding that follows it.
+            // Return its integer-indexed value directly because large indices can round when converted to float.
+            // Adding zero retains interpolation's positive-zero result for a negative-zero sample.
+            return 0F + this.table[this.scale];
+        }
+
+        float position = bounded * this.scale;
         int index = Math.Min((int)position, this.table.Length - 1);
         float lower = this.table[index];
         float upper = index < this.table.Length - 1 ? this.table[index + 1] : 1F;
+
         return lower + ((upper - lower) * (position - index));
     }
 
@@ -166,8 +177,16 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
 
             // Sampled ICC tables fit in the profile payload. Clamping above leaves finite positions
             // inside that table, so integer conversion needs no NaN or overflow saturation.
-            // Above 2^24 entries, float rounding can put the endpoint one index beyond the table.
+            // A last index above 2^24 may round when converted to float: 16,777,217 becomes 16,777,216.
             Vector128<int> index = Vector128.Min(Vector128.ConvertToInt32Native(position), last);
+
+            // Input one selects the final logical sample, not any padding that follows it.
+            // Its integer index can differ from the rounded float position. Select the exact endpoint per lane.
+            // Converting that endpoint back to float gives the same position, so its interpolation fraction is zero.
+            index = Vector128.ConditionalSelect(Vector128.Equals(bounded, Vector128<float>.One).AsInt32(), Vector128.Create(this.scale), index);
+
+            // Gather integer words and reinterpret their float bits; no numeric integer conversion occurs.
+            // The fraction position-index weights adjacent samples. Limit the second read for lanes at the final physical sample.
             Vector128<float> lower = Vector128_.Gather((int*)table, index).AsSingle();
             Vector128<float> upper = Vector128_.Gather((int*)table, Vector128.Min(index + Vector128<int>.One, last)).AsSingle();
             upper = Vector128.ConditionalSelect(Vector128.LessThan(index, last).AsSingle(), upper, Vector128<float>.One);
@@ -207,6 +226,8 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
             Vector128<int> advance = Vector128.LessThan(sample, value).AsInt32() & active;
             low = Vector128.ConditionalSelect(advance, middle + Vector128<int>.One, low);
             high = Vector128.ConditionalSelect(active & ~advance, middle - Vector128<int>.One, high);
+
+            // Mark an exact match complete with low = 0 and high = -1. Other lanes continue searching their own intervals.
             low = Vector128.ConditionalSelect(equal, Vector128<int>.Zero, low);
             high = Vector128.ConditionalSelect(equal, Vector128.Create(-1), high);
         }
@@ -272,8 +293,16 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
 
             // Sampled ICC tables fit in the profile payload. Clamping above leaves finite positions
             // inside that table, so integer conversion needs no NaN or overflow saturation.
-            // Above 2^24 entries, float rounding can put the endpoint one index beyond the table.
+            // A last index above 2^24 may round when converted to float: 16,777,217 becomes 16,777,216.
             Vector256<int> index = Vector256.Min(Vector256.ConvertToInt32Native(position), last);
+
+            // Input one selects the final logical sample, not any padding that follows it.
+            // Its integer index can differ from the rounded float position. Select the exact endpoint per lane.
+            // Converting that endpoint back to float gives the same position, so its interpolation fraction is zero.
+            index = Vector256.ConditionalSelect(Vector256.Equals(bounded, Vector256<float>.One).AsInt32(), Vector256.Create(this.scale), index);
+
+            // Gather integer words and reinterpret their float bits; no numeric integer conversion occurs.
+            // The fraction position-index weights adjacent samples. Limit the second read for lanes at the final physical sample.
             Vector256<float> lower = Vector256_.Gather((int*)table, index).AsSingle();
             Vector256<float> upper = Vector256_.Gather((int*)table, Vector256.Min(index + Vector256<int>.One, last)).AsSingle();
             upper = Vector256.ConditionalSelect(Vector256.LessThan(index, last).AsSingle(), upper, Vector256<float>.One);
@@ -313,6 +342,8 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
             Vector256<int> advance = Vector256.LessThan(sample, value).AsInt32() & active;
             low = Vector256.ConditionalSelect(advance, middle + Vector256<int>.One, low);
             high = Vector256.ConditionalSelect(active & ~advance, middle - Vector256<int>.One, high);
+
+            // Mark an exact match complete with low = 0 and high = -1. Other lanes continue searching their own intervals.
             low = Vector256.ConditionalSelect(equal, Vector256<int>.Zero, low);
             high = Vector256.ConditionalSelect(equal, Vector256.Create(-1), high);
         }
@@ -378,8 +409,16 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
 
             // Sampled ICC tables fit in the profile payload. Clamping above leaves finite positions
             // inside that table, so integer conversion needs no NaN or overflow saturation.
-            // Above 2^24 entries, float rounding can put the endpoint one index beyond the table.
+            // A last index above 2^24 may round when converted to float: 16,777,217 becomes 16,777,216.
             Vector512<int> index = Vector512.Min(Vector512.ConvertToInt32Native(position), last);
+
+            // Input one selects the final logical sample, not any padding that follows it.
+            // Its integer index can differ from the rounded float position. Select the exact endpoint per lane.
+            // Converting that endpoint back to float gives the same position, so its interpolation fraction is zero.
+            index = Vector512.ConditionalSelect(Vector512.Equals(bounded, Vector512<float>.One).AsInt32(), Vector512.Create(this.scale), index);
+
+            // Gather integer words and reinterpret their float bits; no numeric integer conversion occurs.
+            // The fraction position-index weights adjacent samples. Limit the second read for lanes at the final physical sample.
             Vector512<float> lower = Vector512_.Gather((int*)table, index).AsSingle();
             Vector512<float> upper = Vector512_.Gather((int*)table, Vector512.Min(index + Vector512<int>.One, last)).AsSingle();
             upper = Vector512.ConditionalSelect(Vector512.LessThan(index, last).AsSingle(), upper, Vector512<float>.One);
@@ -419,6 +458,8 @@ internal readonly struct LutOperator : TensorPrimitives_.IUnaryOperator
             Vector512<int> advance = Vector512.LessThan(sample, value).AsInt32() & active;
             low = Vector512.ConditionalSelect(advance, middle + Vector512<int>.One, low);
             high = Vector512.ConditionalSelect(active & ~advance, middle - Vector512<int>.One, high);
+
+            // Mark an exact match complete with low = 0 and high = -1. Other lanes continue searching their own intervals.
             low = Vector512.ConditionalSelect(equal, Vector512<int>.Zero, low);
             high = Vector512.ConditionalSelect(equal, Vector512.Create(-1), high);
         }

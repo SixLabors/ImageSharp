@@ -45,6 +45,18 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// <param name="vector">A vector containing the initial values for the components.</param>
     public Short4(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Short4"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Two's-complement X, Y, Z, and W codes occupy consecutive 16-bit fields, from least to most significant.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Short4(ulong packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ulong PackedValue { get; set; }
 
@@ -143,9 +155,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
         Vector4 vector = this.ToAssociatedScaledVector4();
 
         // Native components use the full asymmetric signed range, so scaled zero must map to -32768 rather than -32767.
-        vector *= Range;
-        vector += Min;
-        return vector;
+        return Vector4.MultiplyAddEstimate(vector, new Vector4(Range), Min);
     }
 
     /// <inheritdoc />
@@ -155,10 +165,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Short4 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

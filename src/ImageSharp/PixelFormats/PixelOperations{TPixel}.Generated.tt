@@ -23,7 +23,16 @@
     /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     public virtual void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+<# if (!pixelType.EndsWith("P")) { #>
+        // Associated storage converts through its explicit alpha API; straight storage keeps the direct scalar default.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.From(configuration, source, destination);
+
+            return;
+        }
+
+<# } #>        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         ref <#=pixelType#> sourceBase = ref MemoryMarshal.GetReference(source);
         ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -62,7 +71,16 @@
     /// <param name="destination">The destination span of <see cref="<#=pixelType#>"/> data.</param>
     public virtual void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<<#=pixelType#>> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+<# if (!pixelType.EndsWith("P")) { #>
+        // Associated storage converts through its explicit alpha API; straight storage keeps the direct scalar default.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.ConvertToUnassociated(configuration, source, destination);
+
+            return;
+        }
+
+<# } #>        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
         ref <#=pixelType#> destinationBase = ref MemoryMarshal.GetReference(destination);

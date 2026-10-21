@@ -26,6 +26,7 @@ internal static partial class Histogram
     /// <typeparam name="TOperation">The constrained calculation.</typeparam>
     /// <param name="configuration">The allocator, pixel conversion and memory budget configuration.</param>
     /// <param name="source">The pixels replaced by the completed result.</param>
+    /// <param name="bounds">The output rectangle. Sampling still uses the complete source image.</param>
     /// <param name="mapping">The shared measurement mapping.</param>
     /// <param name="weights">The RGB measurement coefficients.</param>
     /// <param name="clipHistogram">Whether queries cap and redistribute a copy of the counts.</param>
@@ -35,6 +36,7 @@ internal static partial class Histogram
     private static void RunSlidingWindow<TPixel, TBin, TData, TOperation>(
         Configuration configuration,
         Buffer2D<TPixel> source,
+        Rectangle bounds,
         HistogramIndexMapping mapping,
         Vector3 weights,
         bool clipHistogram,
@@ -48,13 +50,13 @@ internal static partial class Histogram
     {
         int cacheHeight = Math.Max(1, (windowWidth / 2) * 2);
         int cachePadding = Math.Max(0, windowWidth - 1);
-        long imageCacheBytes = (long)source.Width * cacheHeight * sizeof(int);
+        long imageCacheBytes = (long)bounds.Width * cacheHeight * sizeof(int);
         long stripEdgeBytes = (long)cachePadding * cacheHeight * sizeof(int);
         int cacheLimit = Math.Min(configuration.WorkingBufferSizeHintInBytes, configuration.MemoryAllocator.GetBufferCapacityInBytes());
 
         // Each strip caches its output columns and the extra columns needed by its sampling window.
         // Empty windows need no extra columns, but still need storage for output colors and query indices.
-        // The total cache stores the image columns once, plus these extra columns for each strip.
+        // The total cache stores the requested columns once, plus these extra columns for each strip.
         // Limit the combined cache size to cacheLimit by reducing the maximum number of parallel strips.
         // This limit covers cached bin indices. The output frame and histogram bins have separate storage.
         // An index cache cannot supply original RGB samples to custom bins, so those bins use streamed edges.
@@ -69,16 +71,32 @@ internal static partial class Histogram
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using Buffer2D<TPixel> target = allocator.Allocate2D<TPixel>(source.Width, source.Height);
         WindowConsumer<TPixel, TBin, TData, TOperation> traversal = new(
-            configuration, source, target, mapping, windowWidth, cachePadding, weights, cacheRows, clipHistogram, clipLimit, operation);
+            configuration, source, target, bounds, mapping, windowWidth, cachePadding, weights, cacheRows, clipHistogram, clipLimit, operation);
 
         // Transpose the scheduling rectangle so RowInterval partitions source columns. Each interval
         // reads unchanged source pixels and writes a disjoint strip of the single output buffer.
-        Rectangle columns = new(0, 0, source.Height, source.Width);
+        Rectangle columns = new(0, bounds.X, bounds.Height, bounds.Width);
 
         // The iterator chooses its batch count from the image area and these execution settings.
         ParallelExecutionSettings settings = new(maxDegreeOfParallelism, allocator);
         ParallelRowIterator.IterateRowIntervals(columns, in settings, in traversal);
-        Buffer2D<TPixel>.SwapOrCopyContent(source, target);
+
+        if (bounds == source.Bounds)
+        {
+            Buffer2D<TPixel>.SwapOrCopyContent(source, target);
+        }
+        else
+        {
+            // Every strip has finished reading the source. Copy only completed output pixels;
+            // the target has no initialized pixels outside bounds, and the source retains those pixels unchanged.
+            Buffer2DRegion<TPixel> output = target.GetRegion(bounds);
+            Buffer2DRegion<TPixel> destination = source.GetRegion(bounds);
+
+            for (int y = 0; y < bounds.Height; y++)
+            {
+                output.DangerousGetRowSpan(y).CopyTo(destination.DangerousGetRowSpan(y));
+            }
+        }
     }
 
     /// <summary>
@@ -90,6 +108,7 @@ internal static partial class Histogram
     /// <typeparam name="TOperation">The consumer's calculation.</typeparam>
     /// <param name="configuration">The allocator and pixel conversion configuration.</param>
     /// <param name="source">The source and destination pixels.</param>
+    /// <param name="bounds">The output rectangle. Tile positions and sample areas still use the complete source image.</param>
     /// <param name="mapping">The shared measurement mapping.</param>
     /// <param name="weights">The RGB measurement coefficients.</param>
     /// <param name="clipHistogram">Whether tile counts are capped before cumulative calculation.</param>
@@ -99,6 +118,7 @@ internal static partial class Histogram
     private static void RunTiles<TPixel, TBin, TData, TOperation>(
         Configuration configuration,
         Buffer2D<TPixel> source,
+        Rectangle bounds,
         HistogramIndexMapping mapping,
         Vector3 weights,
         bool clipHistogram,
@@ -163,13 +183,14 @@ internal static partial class Histogram
 
                 // This output band extends halfway into the bottom tile row. Its histogram was built
                 // before any of those pixels changed. The next unread tile row lies beyond this band.
-                int top = row == 0 ? 0 : (tileHeight / 2) + (row * tileHeight);
-                int bottom = row + 1 == tileCount ? source.Height : Math.Min(source.Height, (tileHeight / 2) + ((row + 1) * tileHeight));
+                int top = Math.Max(bounds.Y, row == 0 ? 0 : (tileHeight / 2) + (row * tileHeight));
+                int bottom = Math.Min(bounds.Bottom, row + 1 == tileCount ? source.Height : (tileHeight / 2) + ((row + 1) * tileHeight));
+
                 if (top < bottom)
                 {
-                    Rectangle band = new(0, top, source.Width, bottom - top);
+                    Rectangle band = new(bounds.X, top, bounds.Width, bottom - top);
                     TileConsumer<TPixel, TBin, TData, TOperation> traversal = new(
-                        configuration, source, tiles, mapping, weights, tileWidth, tileHeight, tileCount, row, topBank, bottomBank, operation);
+                        configuration, source, bounds, tiles, mapping, weights, tileWidth, tileHeight, tileCount, row, topBank, bottomBank, operation);
 
                     ParallelRowIterator.IterateRowIntervals<TileConsumer<TPixel, TBin, TData, TOperation>, Vector4>(configuration, band, in traversal);
                 }
@@ -258,6 +279,7 @@ internal static partial class Histogram
     /// <param name="configuration">The allocator and pixel conversion configuration.</param>
     /// <param name="source">The unchanged source until every strip is complete.</param>
     /// <param name="targetPixels">The shared output buffer. Each interval writes only its own columns.</param>
+    /// <param name="bounds">The output rectangle, independent of the full-image sampling bounds.</param>
     /// <param name="mapping">The shared measurement mapping.</param>
     /// <param name="windowWidth">The sample-window width.</param>
     /// <param name="cachePadding">The nonnegative number of extra cached columns required by the window edges.</param>
@@ -270,6 +292,7 @@ internal static partial class Histogram
         Configuration configuration,
         Buffer2D<TPixel> source,
         Buffer2D<TPixel> targetPixels,
+        Rectangle bounds,
         HistogramIndexMapping mapping,
         int windowWidth,
         int cachePadding,
@@ -337,7 +360,7 @@ internal static partial class Histogram
             // and index mapping as every row subsequently introduced at the bottom.
             for (int slot = 0; slot < windowHeight; slot++)
             {
-                this.MapSourceRow(source, slot - radius, cacheLeft, ref histogram);
+                this.MapSourceRow(source, bounds.Y + slot - radius, cacheLeft, ref histogram);
                 CacheMappedRow(mappedColumns, indices, slot);
                 UpdateRow(indices, 0, windowWidth, ref histogram, 1);
             }
@@ -346,7 +369,8 @@ internal static partial class Histogram
             Span<TData> results = resultStorage;
             PixelOperations<TPixel> pixels = PixelOperations<TPixel>.Instance;
             int firstSlot = 0;
-            for (int y = 0; y < source.Height; y++)
+
+            for (int y = bounds.Y; y < bounds.Bottom; y++)
             {
                 Span<TPixel> sourceRow = source.DangerousGetRowSpan(y).Slice(columns.Min, columnCount);
                 Span<TPixel> destinationRow = targetPixels.DangerousGetRowSpan(y).Slice(columns.Min, columnCount);
@@ -357,7 +381,8 @@ internal static partial class Histogram
 
                 // Alternate direction so the last window of this row becomes the first window of
                 // the next row after one vertical step. Counts never need a per-column rebuild.
-                bool moveRight = (y & 1) == 0;
+                // The initial window is at the strip's left edge, regardless of the rectangle's image row.
+                bool moveRight = ((y - bounds.Y) & 1) == 0;
                 int step = moveRight ? 1 : -1;
                 int firstX = moveRight ? 0 : columnCount - 1;
                 int endX = moveRight ? columnCount : -1;
@@ -402,7 +427,7 @@ internal static partial class Histogram
                 // The oldest cached row occupies firstSlot. Remove its samples before replacing it,
                 // then add the incoming row at the same horizontal position and advance the ring.
                 // An empty sample window has no row to replace.
-                if (y + 1 < source.Height && windowHeight > 0)
+                if (y + 1 < bounds.Bottom && windowHeight > 0)
                 {
                     int lastX = moveRight ? columnCount - 1 : 0;
                     UpdateCachedRow(mappedColumns, firstSlot, lastX, windowWidth, ref histogram);
@@ -436,7 +461,8 @@ internal static partial class Histogram
             // Neither the histogram nor its sample buffer is rebuilt when the window turns.
             // The first column can be odd when the iterator splits the image. Its initial window
             // must start at the same image edge as that column's subsequent traversal.
-            int firstRow = (columns.Min & 1) == 0 ? 0 : source.Height - 1;
+            int firstRow = (columns.Min & 1) == 0 ? bounds.Y : bounds.Bottom - 1;
+
             for (int y = firstRow - radius; y < firstRow + radius; y++)
             {
                 this.UpdateSourceRow(source, y, columns.Min - radius, ref histogram, 1);
@@ -452,8 +478,8 @@ internal static partial class Histogram
                 int buffered = 0;
                 bool moveDown = (x & 1) == 0;
                 int step = moveDown ? 1 : -1;
-                int firstY = moveDown ? 0 : source.Height - 1;
-                int endY = moveDown ? source.Height : -1;
+                int firstY = moveDown ? bounds.Y : bounds.Bottom - 1;
+                int endY = moveDown ? bounds.Bottom : bounds.Y - 1;
                 int departingOffset = moveDown ? -radius : radius - 1;
                 int enteringOffset = moveDown ? radius : -radius - 1;
 
@@ -493,7 +519,7 @@ internal static partial class Histogram
                 {
                     // Keep the last window's counts when turning into the next column. Only its two
                     // vertical edges change; the remaining samples stay counted.
-                    int lastY = moveDown ? source.Height - 1 : 0;
+                    int lastY = moveDown ? bounds.Bottom - 1 : bounds.Y;
                     this.UpdateSourceColumn(source, x - radius, lastY - radius, windowHeight, ref histogram, -1);
                     this.UpdateSourceColumn(source, x - radius + windowWidth, lastY - radius, windowHeight, ref histogram, 1);
                 }
@@ -562,18 +588,18 @@ internal static partial class Histogram
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetSourceRow(int y, int height)
         {
-            if (y < 0)
+            if ((uint)y < (uint)height)
             {
-                return -y;
+                return y;
             }
 
-            if (y >= height)
-            {
-                int distance = y - height;
-                return height - distance - 1;
-            }
+            // The top edge reflects without repeating its border pixel; the bottom edge repeats it.
+            // Together they repeat every 2*height-1 rows. Fold across as many image heights as needed
+            // when a wide image has a window taller than the image. Long arithmetic also covers height one safely.
+            long period = (2L * height) - 1;
+            long position = Math.Abs((long)y) % period;
 
-            return y;
+            return (int)(position < height ? position : period - position);
         }
 
         /// <summary>
@@ -670,6 +696,7 @@ internal static partial class Histogram
     /// <typeparam name="TOperation">The constrained calculation.</typeparam>
     /// <param name="configuration">The pixel conversion configuration.</param>
     /// <param name="source">The source and destination pixels.</param>
+    /// <param name="bounds">The output rectangle. Pixel coordinates remain relative to the full-image tile grid.</param>
     /// <param name="tiles">The two retained tile rows.</param>
     /// <param name="mapping">The measurement mapping.</param>
     /// <param name="weights">The measurement coefficients.</param>
@@ -683,6 +710,7 @@ internal static partial class Histogram
     private readonly struct TileConsumer<TPixel, TBin, TData, TOperation>(
         Configuration configuration,
         Buffer2D<TPixel> source,
+        Rectangle bounds,
         Histogram<TBin>[] tiles,
         HistogramIndexMapping mapping,
         Vector3 weights,
@@ -704,8 +732,8 @@ internal static partial class Histogram
         /// <inheritdoc />
         public void Invoke(in RowInterval rows, Span<Vector4> buffer)
         {
-            Span<Vector4> colors = buffer[..source.Width];
-            Span<int> indices = Histogram.GetIndices(buffer, source.Width);
+            Span<Vector4> colors = buffer[..bounds.Width];
+            Span<int> indices = Histogram.GetIndices(buffer, bounds.Width);
             PixelOperations<TPixel> pixels = PixelOperations<TPixel>.Instance;
             InlineArray16<TData> resultStorage = default;
             Span<TData> results = resultStorage;
@@ -716,23 +744,25 @@ internal static partial class Histogram
             // use one as the divisor so the weight is zero rather than NaN.
             int horizontalIntervals = Math.Max(1, tileWidth - 1);
             int verticalIntervals = Math.Max(1, tileHeight - 1);
+
             for (int y = rows.Min; y < rows.Max; y++)
             {
-                Span<TPixel> row = source.DangerousGetRowSpan(y);
+                Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.X, bounds.Width);
                 pixels.ToUnassociatedScaledVector4(configuration, row, colors);
                 mapping.Invoke(colors, weights, indices);
 
                 // Before the first tile center, repeat the first histogram. At the bottom edge both
                 // banks refer to the same tile row, so the vertical interpolation weight is also zero.
                 float ty = y < halfHeight || topBank == bottomBank ? 0F : (y - halfHeight - (tileY * tileHeight)) / (float)verticalIntervals;
-                int x = 0;
-                while (x < source.Width)
+                int x = bounds.X;
+
+                while (x < bounds.Right)
                 {
                     // This segment uses one fixed pair of tile columns. Borrow their four histogram
                     // spans once, then change only the interpolation weights while visiting its pixels.
                     int left = x < halfWidth ? 0 : Math.Min(tileCount - 1, (x - halfWidth) / tileWidth);
                     int right = x < halfWidth ? left : Math.Min(tileCount - 1, left + 1);
-                    int end = x < halfWidth ? halfWidth : Math.Min(source.Width, halfWidth + ((left + 1) * tileWidth));
+                    int end = Math.Min(bounds.Right, x < halfWidth ? halfWidth : halfWidth + ((left + 1) * tileWidth));
                     Histogram<TBin>.Query query = new(
                         tiles[(topBank * tileCount) + left].GetData(),
                         tiles[(topBank * tileCount) + right].GetData(),
@@ -744,10 +774,12 @@ internal static partial class Histogram
                     for (; x < end; x++)
                     {
                         query.HorizontalWeight = left == right ? 0F : (x - halfWidth - (left * tileWidth)) / (float)horizontalIntervals;
-                        results[buffered++] = operation.GetResult(ref query, colors[x], indices[x]);
+                        int offset = x - bounds.X;
+                        results[buffered++] = operation.GetResult(ref query, colors[offset], indices[offset]);
+
                         if (buffered == results.Length || x + 1 == end)
                         {
-                            Span<Vector4> block = colors.Slice(x - buffered + 1, buffered);
+                            Span<Vector4> block = colors.Slice(offset - buffered + 1, buffered);
                             ApplyConsumerPixels<TBin, TData, TOperation>(block, results[..buffered], block, in operation);
                             buffered = 0;
                         }

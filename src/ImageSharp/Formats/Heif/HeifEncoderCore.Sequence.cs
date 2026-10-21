@@ -191,7 +191,8 @@ internal sealed partial class HeifEncoderCore
             if (matrix is CicpMatrixCoefficients.ChromaDerivedNcl or CicpMatrixCoefficients.ChromaDerivedCl
                 or CicpMatrixCoefficients.ItuRBt2020_2_Cl or CicpMatrixCoefficients.ICtCp or CicpMatrixCoefficients.IptC2)
             {
-                // These matrices require primaries or transfer fields. Use the existing fixed matrix when ICC supplies those fields.
+                // These matrices require CICP primaries or transfer fields, which are unspecified when ICC describes the colors.
+                // Use BT.601 for both sample conversion and matrix signaling.
                 matrix = CicpMatrixCoefficients.ItuRBt601_7_525;
             }
 

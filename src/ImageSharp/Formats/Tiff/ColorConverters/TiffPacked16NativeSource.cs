@@ -72,6 +72,9 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
     {
         ref ushort first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0));
         nuint offset = (uint)index * 4;
+
+        // These four registers hold consecutive packed RGBA words, not separate component planes.
+        // Each register contains 2 pixels; the caller supplies a complete group of 8 pixels for all four loads.
         c0 = Vector128.LoadUnsafe(ref first, offset);
         c1 = Vector128.LoadUnsafe(ref first, offset + 8);
         c2 = Vector128.LoadUnsafe(ref first, offset + 16);
@@ -79,6 +82,7 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
 
         if (this.reverseEndianness)
         {
+            // Swap the two bytes within every word. Repeated 128-bit shuffle masks preserve component and pixel order.
             c0 = Vector128.ShuffleNative(c0.AsByte(), ReverseBytes).AsUInt16();
             c1 = Vector128.ShuffleNative(c1.AsByte(), ReverseBytes).AsUInt16();
             c2 = Vector128.ShuffleNative(c2.AsByte(), ReverseBytes).AsUInt16();
@@ -101,6 +105,9 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
     {
         ref ushort first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0));
         nuint offset = (uint)index * 4;
+
+        // These four registers hold consecutive packed RGBA words, not separate component planes.
+        // Each register contains 4 pixels; the caller supplies a complete group of 16 pixels for all four loads.
         c0 = Vector256.LoadUnsafe(ref first, offset);
         c1 = Vector256.LoadUnsafe(ref first, offset + 16);
         c2 = Vector256.LoadUnsafe(ref first, offset + 32);
@@ -108,6 +115,7 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
 
         if (this.reverseEndianness)
         {
+            // Swap the two bytes within every word. Repeated 128-bit shuffle masks preserve component and pixel order.
             Vector256<byte> mask = Vector256.Create(ReverseBytes, ReverseBytes);
             c0 = Vector256_.ShufflePerLane(c0.AsByte(), mask).AsUInt16();
             c1 = Vector256_.ShufflePerLane(c1.AsByte(), mask).AsUInt16();
@@ -131,6 +139,9 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
     {
         ref ushort first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ushort>(source0));
         nuint offset = (uint)index * 4;
+
+        // These four registers hold consecutive packed RGBA words, not separate component planes.
+        // Each register contains 8 pixels; the caller supplies a complete group of 32 pixels for all four loads.
         c0 = Vector512.LoadUnsafe(ref first, offset);
         c1 = Vector512.LoadUnsafe(ref first, offset + 32);
         c2 = Vector512.LoadUnsafe(ref first, offset + 64);
@@ -138,6 +149,7 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
 
         if (this.reverseEndianness)
         {
+            // Swap the two bytes within every word. Repeated 128-bit shuffle masks preserve component and pixel order.
             Vector512<byte> mask = IShuffle4.ExpandLaneMask(ReverseBytes);
             c0 = Vector512.ShuffleNative(c0.AsByte(), mask).AsUInt16();
             c1 = Vector512.ShuffleNative(c1.AsByte(), mask).AsUInt16();

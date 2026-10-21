@@ -215,6 +215,7 @@ internal abstract partial class HeifColorConverterBase
             ref Vector128<float> tritan,
             in HeifColorConversionParameters parameters)
         {
+            // One lane follows one pixel through both matrices. Reconstruct nonlinear LMS from the three opponent planes first.
             Vector128<float> nonlinearL = Vector128.MultiplyAddEstimate(
                 Vector128.Create(TritanToL),
                 tritan,
@@ -230,6 +231,7 @@ internal abstract partial class HeifColorConverterBase
                 tritan,
                 Vector128.MultiplyAddEstimate(Vector128.Create(ProtanToS), protan, intensity));
 
+            // Apply the RGB matrix in linear light, then restore the signaled transfer curve on the output primaries.
             Vector128<float> linearL = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector128<float> linearM = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector128<float> linearS = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -255,6 +257,7 @@ internal abstract partial class HeifColorConverterBase
             ref Vector256<float> tritan,
             in HeifColorConversionParameters parameters)
         {
+            // One lane follows one pixel through both matrices. Reconstruct nonlinear LMS from the three opponent planes first.
             Vector256<float> nonlinearL = Vector256.MultiplyAddEstimate(
                 Vector256.Create(TritanToL),
                 tritan,
@@ -270,6 +273,7 @@ internal abstract partial class HeifColorConverterBase
                 tritan,
                 Vector256.MultiplyAddEstimate(Vector256.Create(ProtanToS), protan, intensity));
 
+            // Apply the RGB matrix in linear light, then restore the signaled transfer curve on the output primaries.
             Vector256<float> linearL = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector256<float> linearM = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector256<float> linearS = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -295,6 +299,7 @@ internal abstract partial class HeifColorConverterBase
             ref Vector512<float> tritan,
             in HeifColorConversionParameters parameters)
         {
+            // One lane follows one pixel through both matrices. Reconstruct nonlinear LMS from the three opponent planes first.
             Vector512<float> nonlinearL = Vector512.MultiplyAddEstimate(
                 Vector512.Create(TritanToL),
                 tritan,
@@ -310,6 +315,7 @@ internal abstract partial class HeifColorConverterBase
                 tritan,
                 Vector512.MultiplyAddEstimate(Vector512.Create(ProtanToS), protan, intensity));
 
+            // Apply the RGB matrix in linear light, then restore the signaled transfer curve on the output primaries.
             Vector512<float> linearL = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearL);
             Vector512<float> linearM = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearM);
             Vector512<float> linearS = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearS);
@@ -371,6 +377,7 @@ internal abstract partial class HeifColorConverterBase
             out Vector128<float> protan,
             out Vector128<float> tritan)
         {
+            // Remove the RGB transfer curve before forming linear LMS for each pixel. The two matrices reverse the decoding order.
             Vector128<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, red);
             Vector128<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, green);
             Vector128<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, blue);
@@ -389,6 +396,7 @@ internal abstract partial class HeifColorConverterBase
                 linearBlue,
                 Vector128.MultiplyAddEstimate(Vector128.Create(GreenToS), linearGreen, Vector128.Create(RedToS) * linearRed));
 
+            // The intensity and opponent axes are combinations of nonlinear LMS, so apply the curve before their matrix.
             Vector128<float> nonlinearL = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector128<float> nonlinearM = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector128<float> nonlinearS = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -419,6 +427,7 @@ internal abstract partial class HeifColorConverterBase
             out Vector256<float> protan,
             out Vector256<float> tritan)
         {
+            // Remove the RGB transfer curve before forming linear LMS for each pixel. The two matrices reverse the decoding order.
             Vector256<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, red);
             Vector256<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, green);
             Vector256<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, blue);
@@ -437,6 +446,7 @@ internal abstract partial class HeifColorConverterBase
                 linearBlue,
                 Vector256.MultiplyAddEstimate(Vector256.Create(GreenToS), linearGreen, Vector256.Create(RedToS) * linearRed));
 
+            // The intensity and opponent axes are combinations of nonlinear LMS, so apply the curve before their matrix.
             Vector256<float> nonlinearL = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector256<float> nonlinearM = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector256<float> nonlinearS = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearS);
@@ -467,6 +477,7 @@ internal abstract partial class HeifColorConverterBase
             out Vector512<float> protan,
             out Vector512<float> tritan)
         {
+            // Remove the RGB transfer curve before forming linear LMS for each pixel. The two matrices reverse the decoding order.
             Vector512<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, red);
             Vector512<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, green);
             Vector512<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, blue);
@@ -485,6 +496,7 @@ internal abstract partial class HeifColorConverterBase
                 linearBlue,
                 Vector512.MultiplyAddEstimate(Vector512.Create(GreenToS), linearGreen, Vector512.Create(RedToS) * linearRed));
 
+            // The intensity and opponent axes are combinations of nonlinear LMS, so apply the curve before their matrix.
             Vector512<float> nonlinearL = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearL);
             Vector512<float> nonlinearM = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearM);
             Vector512<float> nonlinearS = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearS);

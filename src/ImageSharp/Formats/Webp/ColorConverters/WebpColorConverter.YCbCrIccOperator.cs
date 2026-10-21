@@ -46,7 +46,7 @@ internal abstract partial class WebpColorConverterBase
             Configuration configuration, ReadOnlySpan<byte> source, ColorProfileConverter converter, Span<Vector4> vectors, Span<Rgb> rgb)
         {
             // A YCbCr source profile consumes normalized Y, Cb, Cr codes directly. The two color structs each contain three floats.
-            // ICC reads the source into its connection-space buffer before writing RGB, so this scratch can be reused in place.
+            // Each block reads three source components before writing three RGB components, so both views can share this storage.
             Span<YCbCr> yCbCr = MemoryMarshal.Cast<Rgb, YCbCr>(rgb);
             SimdUtils.ByteToNormalizedFloat(source, MemoryMarshal.Cast<YCbCr, float>(yCbCr));
             converter.Convert<YCbCr, Rgb>(yCbCr, rgb);

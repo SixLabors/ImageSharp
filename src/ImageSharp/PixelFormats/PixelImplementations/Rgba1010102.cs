@@ -36,6 +36,18 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     /// <param name="vector">The vector containing the component values.</param>
     public Rgba1010102(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgba1010102"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Bits 0-9 store red, bits 10-19 store green, bits 20-29 store blue, and bits 30-31 store alpha.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgba1010102(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
 
@@ -131,10 +143,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba1010102 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

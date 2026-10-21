@@ -15,6 +15,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class RgbaHalfTests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        RgbaHalf pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     // Run the three alpha contracts at both vector ranges, including native-pair methods for each pixel format.
     private static readonly (bool Scaled, BulkAlphaMode AlphaMode)[] BulkConversionCases =
     [
@@ -328,6 +342,20 @@ public class RgbaHalfTests
 /// </summary>
 public class RgbaHalfPAssociatedAlphaTests : AssociatedAlphaPixelTests<RgbaHalfP>
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        RgbaHalfP pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     /// <inheritdoc />
     protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
 }

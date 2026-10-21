@@ -50,6 +50,18 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
         this.A = a;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="La16"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The bytes use luminance, alpha memory order. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public La16(ushort packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ushort PackedValue
     {
@@ -150,10 +162,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La16 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

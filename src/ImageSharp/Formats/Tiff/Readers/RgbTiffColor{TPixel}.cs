@@ -45,7 +45,7 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     {
         BitReader bitReader = new(data);
         InlineArray16<Vector4> vectorBuffer = default;
-        Span<Vector4> vectors = vectorBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, vectorBuffer);
 
         for (int y = top; y < top + height; y++)
         {
@@ -54,7 +54,7 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             for (int x = 0; x < pixelRow.Length; x += vectors.Length)
             {
                 int count = Math.Min(vectors.Length, pixelRow.Length - x);
-                Span<Vector4> block = vectors[..count];
+                Span<Vector4> block = this.GetColorBlock(vectors, x, count);
 
                 // The bit reader owns byte and row alignment; only sample extraction is
                 // scalar while destination color packing runs on the complete block.
@@ -67,8 +67,10 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                PixelOperations<TPixel>.Instance.FromScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), PixelAlphaRepresentation.None);
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.None);
 
             bitReader.NextRow();
         }

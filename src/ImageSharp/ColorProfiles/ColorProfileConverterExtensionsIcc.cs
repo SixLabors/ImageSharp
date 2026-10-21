@@ -28,7 +28,7 @@ internal static class ColorProfileConverterExtensionsIcc
     /// <exception cref="InvalidOperationException">
     /// Thrown if either the source or target ICC profile is missing from the converter options.
     /// </exception>
-    internal static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
+    public static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
     {
@@ -52,7 +52,8 @@ internal static class ColorProfileConverterExtensionsIcc
     /// Converts a span of color values from a source color profile to a destination color profile using ICC profiles.
     /// </summary>
     /// <remarks>
-    /// Both source and target ICC profiles must be set. The converter selects their transform tables and applies the PCS adjustments for the profile connection.
+    /// Both source and target ICC profiles must be set.
+    /// The converter selects their transform tables and applies the PCS adjustments for the profile connection.
     /// </remarks>
     /// <typeparam name="TFrom">The type representing the source color profile. Must implement <see cref="IColorProfile{TFrom}"/>.</typeparam>
     /// <typeparam name="TTo">The type representing the destination color profile. Must implement <see cref="IColorProfile{TTo}"/>.</typeparam>
@@ -68,7 +69,7 @@ internal static class ColorProfileConverterExtensionsIcc
     /// <exception cref="InvalidOperationException">
     /// Thrown if the source or target ICC profile is missing from the converter options.
     /// </exception>
-    internal static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
+    public static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
     {
@@ -141,7 +142,7 @@ internal static class ColorProfileConverterExtensionsIcc
         /// <param name="toPcs">Whether this transform converts device values to the PCS.</param>
         /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
         /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-        internal ConversionParams(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
+        public ConversionParams(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
         {
             this.profile = profile;
             this.Intent = renderingIntent;
@@ -153,30 +154,42 @@ internal static class ColorProfileConverterExtensionsIcc
         /// <summary>
         /// Gets the selected device-to-PCS or PCS-to-device transform.
         /// </summary>
-        internal IccConverterBase Converter { get; }
+        public IccConverterBase Converter { get; }
 
         /// <summary>
         /// Gets the profile header that defines the data and PCS encodings.
         /// </summary>
-        internal IccProfileHeader Header => this.profile.Header;
+        public IccProfileHeader Header => this.profile.Header;
 
         /// <summary>
         /// Gets the rendering intent selected for this profile connection.
         /// </summary>
-        internal IccRenderingIntent Intent { get; }
+        public IccRenderingIntent Intent { get; }
 
-        internal IccColorSpaceType PcsType => this.Header.ProfileConnectionSpace;
+        /// <summary>
+        /// Gets the profile connection space declared by the profile header.
+        /// </summary>
+        public IccColorSpaceType PcsType => this.Header.ProfileConnectionSpace;
 
-        internal IccVersion Version => this.Header.Version;
+        /// <summary>
+        /// Gets the ICC version declared by the profile header.
+        /// </summary>
+        public IccVersion Version => this.Header.Version;
 
         /// <summary>
         /// Gets a value indicating whether a v2 perceptual table uses the legacy black point. Curve-only profiles have no perceptual table;
         /// treating them as v2 tables can omit the source adjustment while still applying its inverse at the target.
         /// </summary>
-        internal bool HasV2PerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Version.Major == 2 && !this.Converter.IsTrc;
+        public bool HasV2PerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Version.Major == 2 && !this.Converter.IsTrc;
 
-        internal bool HasNoPerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Converter.IsTrc;
+        /// <summary>
+        /// Gets a value indicating whether perceptual intent uses channel curves without a perceptual lookup table.
+        /// </summary>
+        public bool HasNoPerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Converter.IsTrc;
 
-        internal bool Is16BitLutEntry => this.Converter.Is16BitLutEntry;
+        /// <summary>
+        /// Gets a value indicating whether the selected transform uses the legacy 16-bit LUT encoding.
+        /// </summary>
+        public bool Is16BitLutEntry => this.Converter.Is16BitLutEntry;
     }
 }

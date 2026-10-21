@@ -62,7 +62,9 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     /// <param name="height">The height of the image block.</param>
     public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        bool hasAssociatedAlpha = this.extraSampleType.HasValue && this.extraSampleType == TiffExtraSampleType.AssociatedAlphaData;
+        PixelAlphaRepresentation alphaRepresentation = this.extraSampleType == TiffExtraSampleType.AssociatedAlphaData
+            ? PixelAlphaRepresentation.Associated
+            : PixelAlphaRepresentation.Unassociated;
 
         if (this.bitsPerSampleR == 8 && this.bitsPerSampleG == 8 && this.bitsPerSampleB == 8 && this.bitsPerSampleA == 8)
         {
@@ -76,7 +78,7 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
             InlineArray64<Rgba32> packedBuffer = default;
             InlineArray64<Vector4> vectorBuffer = default;
             Span<Rgba32> packedBlock = packedBuffer;
-            Span<Vector4> vectorBlock = vectorBuffer;
+            Span<Vector4> vectorBlock = this.GetColorBuffer(this.configuration, width, vectorBuffer);
             TiffPlanar8NativeSource source = default;
             TiffRgba32Store store = default;
             int offset = 0;
@@ -84,10 +86,11 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-                for (int x = 0; x < width; x += vectorBlock.Length)
+
+                for (int x = 0; x < width; x += packedBlock.Length)
                 {
                     // Slice every plane and the output to the final group's actual pixel count.
-                    int count = Math.Min(width - x, vectorBlock.Length);
+                    int count = Math.Min(width - x, packedBlock.Length);
 
                     // SIMD interleaves R, G, B, and A into native RGBA bytes. PixelOperations then interprets
                     // the stored alpha association and packs the requested destination pixel type in bulk.
@@ -100,17 +103,12 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                         source,
                         store);
 
-                    Span<Vector4> vectors = vectorBlock[..count];
+                    Span<Vector4> vectors = this.GetColorBlock(vectorBlock, x, count);
                     PixelOperations<Rgba32>.Instance.ToUnassociatedScaledVector4(this.configuration, packedBlock[..count], vectors);
-                    if (hasAssociatedAlpha)
-                    {
-                        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count));
-                    }
-                    else
-                    {
-                        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectors, pixelRow.Slice(x, count));
-                    }
+                    this.StoreColorVectors(this.configuration, vectors, pixelRow.Slice(x, count), alphaRepresentation);
                 }
+
+                this.CompleteColorRow(this.configuration, vectorBlock, pixelRow, alphaRepresentation);
 
                 offset += width;
             }
@@ -123,14 +121,16 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
         BitReader bBitReader = new(data[2].GetSpan());
         BitReader aBitReader = new(data[3].GetSpan());
         InlineArray16<Vector4> rawBuffer = default;
-        Span<Vector4> raw = rawBuffer;
+        Span<Vector4> raw = this.GetColorBuffer(this.configuration, width, rawBuffer);
+
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+
             for (int x = 0; x < pixelRow.Length; x += raw.Length)
             {
                 int count = Math.Min(raw.Length, pixelRow.Length - x);
-                Span<Vector4> block = raw[..count];
+                Span<Vector4> block = this.GetColorBlock(raw, x, count);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -142,15 +142,10 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 }
 
                 this.colorOperator.Convert(block);
-                if (hasAssociatedAlpha)
-                {
-                    PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                }
-                else
-                {
-                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, block, pixelRow.Slice(x, count));
-                }
+                this.StoreColorVectors(this.configuration, block, pixelRow.Slice(x, count), alphaRepresentation);
             }
+
+            this.CompleteColorRow(this.configuration, raw, pixelRow, alphaRepresentation);
 
             rBitReader.NextRow();
             gBitReader.NextRow();

@@ -41,6 +41,18 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
         this.A = a;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="La32"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Luminance and alpha use consecutive 16-bit words in memory. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public La32(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue
     {
@@ -147,10 +159,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La32 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,18 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Helper methods for packing and unpacking floating point values
+/// Converts half-precision storage to and from single-precision components.
 /// </summary>
+/// <remarks>
+/// These methods apply the rounding and special-value rules of <see cref="Half"/>.
+/// Pixel operations apply component bounds and alpha conversion before or after these storage primitives.
+/// </remarks>
 internal static class HalfTypeHelper
 {
     // These constants mirror the half-precision conversion used by System.Half. Keeping the vector conversion
@@ -30,20 +32,20 @@ internal static class HalfTypeHelper
     private const float MaxHalfValueBelowInfinity = 65520F;
 
     /// <summary>
-    /// Packs a <see cref="float"/> into an <see cref="ushort"/>
+    /// Rounds a single-precision value to <see cref="Half"/> and returns its stored bits.
     /// </summary>
-    /// <param name="value">The float to pack</param>
-    /// <returns>The <see cref="ushort"/></returns>
+    /// <param name="value">The value to round.</param>
+    /// <returns>The half-precision bit pattern, including the sign and any infinity or NaN encoding.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort Pack(float value) => BitConverter.HalfToUInt16Bits((Half)value);
+    public static ushort Pack(float value) => BitConverter.HalfToUInt16Bits((Half)value);
 
     /// <summary>
-    /// Unpacks a <see cref="ushort"/> into a <see cref="float"/>.
+    /// Expands a half-precision bit pattern to its single-precision value.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The <see cref="float"/>.</returns>
+    /// <param name="value">The half-precision bit pattern.</param>
+    /// <returns>The expanded value, including signed zero, infinity or NaN.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static float Unpack(ushort value) => (float)BitConverter.UInt16BitsToHalf(value);
+    public static float Unpack(ushort value) => (float)BitConverter.UInt16BitsToHalf(value);
 
     /// <summary>
     /// Unpacks eight half-precision values into two vectors of single-precision values.
@@ -51,7 +53,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The packed half-precision values.</param>
     /// <returns>The unpacked lower and upper values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static (Vector128<float> Lower, Vector128<float> Upper) Unpack(Vector128<ushort> value)
+    public static (Vector128<float> Lower, Vector128<float> Upper) Unpack(Vector128<ushort> value)
     {
         (Vector128<uint> lower, Vector128<uint> upper) = Vector128.Widen(value);
         return (ConvertHalfBitsToSingle(lower), ConvertHalfBitsToSingle(upper));
@@ -63,7 +65,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The packed half-precision values.</param>
     /// <returns>The unpacked lower and upper values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static (Vector256<float> Lower, Vector256<float> Upper) Unpack(Vector256<ushort> value)
+    public static (Vector256<float> Lower, Vector256<float> Upper) Unpack(Vector256<ushort> value)
     {
         (Vector256<uint> lower, Vector256<uint> upper) = Vector256.Widen(value);
         return (ConvertHalfBitsToSingle(lower), ConvertHalfBitsToSingle(upper));
@@ -75,7 +77,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The packed half-precision values.</param>
     /// <returns>The unpacked lower and upper values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static (Vector512<float> Lower, Vector512<float> Upper) Unpack(Vector512<ushort> value)
+    public static (Vector512<float> Lower, Vector512<float> Upper) Unpack(Vector512<ushort> value)
     {
         (Vector512<uint> lower, Vector512<uint> upper) = Vector512.Widen(value);
         return (ConvertHalfBitsToSingle(lower), ConvertHalfBitsToSingle(upper));
@@ -88,7 +90,7 @@ internal static class HalfTypeHelper
     /// <param name="upper">The upper single-precision values.</param>
     /// <returns>The packed half-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector128<ushort> Pack(Vector128<float> lower, Vector128<float> upper)
+    public static Vector128<ushort> Pack(Vector128<float> lower, Vector128<float> upper)
         => Vector128.Narrow(ConvertSingleToHalfBits(lower), ConvertSingleToHalfBits(upper));
 
     /// <summary>
@@ -98,7 +100,7 @@ internal static class HalfTypeHelper
     /// <param name="upper">The upper single-precision values.</param>
     /// <returns>The packed half-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector256<ushort> Pack(Vector256<float> lower, Vector256<float> upper)
+    public static Vector256<ushort> Pack(Vector256<float> lower, Vector256<float> upper)
         => Vector256.Narrow(ConvertSingleToHalfBits(lower), ConvertSingleToHalfBits(upper));
 
     /// <summary>
@@ -108,27 +110,15 @@ internal static class HalfTypeHelper
     /// <param name="upper">The upper single-precision values.</param>
     /// <returns>The packed half-precision values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector512<ushort> Pack(Vector512<float> lower, Vector512<float> upper)
+    public static Vector512<ushort> Pack(Vector512<float> lower, Vector512<float> upper)
         => Vector512.Narrow(ConvertSingleToHalfBits(lower), ConvertSingleToHalfBits(upper));
 
     /// <summary>
-    /// Expands a span of half-precision components into single-precision components without changing their values.
+    /// Expands half storage into single-precision components without color or alpha conversion.
     /// </summary>
-    /// <param name="source">The packed half-precision components.</param>
-    /// <param name="destination">The expanded components.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Unpack(ReadOnlySpan<ushort> source, Span<float> destination)
-        => Unpack(source, destination, default(Vector4Converters.IdentityOperator));
-
-    /// <summary>
-    /// Expands half-precision components and applies the component operation before writing each result.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation. Identity retains native IEEE values; clamping enforces the color conversion range.</typeparam>
     /// <param name="source">The source components.</param>
-    /// <param name="destination">The destination components.</param>
-    /// <param name="operation">The scalar and SIMD component operation.</param>
-    public static void Unpack<TOperator>(ReadOnlySpan<ushort> source, Span<float> destination, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+    /// <param name="destination">Storage for at least the source component count.</param>
+    public static void Unpack(ReadOnlySpan<ushort> source, Span<float> destination)
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref float destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -139,60 +129,51 @@ internal static class HalfTypeHelper
         if (Vector512.IsHardwareAccelerated)
         {
             nuint vectorCount = source[i..].Vector512Count<ushort>();
+
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<ushort>.Count)
             {
                 (Vector512<float> lower, Vector512<float> upper) = Unpack(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512.StoreUnsafe(operation.Invoke(lower), ref destinationBase, (nuint)i);
-                Vector512.StoreUnsafe(operation.Invoke(upper), ref destinationBase, (nuint)(i + Vector512<float>.Count));
+                Vector512.StoreUnsafe(lower, ref destinationBase, (nuint)i);
+                Vector512.StoreUnsafe(upper, ref destinationBase, (nuint)(i + Vector512<float>.Count));
             }
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
             nuint vectorCount = source[i..].Vector256Count<ushort>();
+
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<ushort>.Count)
             {
                 (Vector256<float> lower, Vector256<float> upper) = Unpack(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256.StoreUnsafe(operation.Invoke(lower), ref destinationBase, (nuint)i);
-                Vector256.StoreUnsafe(operation.Invoke(upper), ref destinationBase, (nuint)(i + Vector256<float>.Count));
+                Vector256.StoreUnsafe(lower, ref destinationBase, (nuint)i);
+                Vector256.StoreUnsafe(upper, ref destinationBase, (nuint)(i + Vector256<float>.Count));
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
             nuint vectorCount = source[i..].Vector128Count<ushort>();
+
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<ushort>.Count)
             {
                 (Vector128<float> lower, Vector128<float> upper) = Unpack(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128.StoreUnsafe(operation.Invoke(lower), ref destinationBase, (nuint)i);
-                Vector128.StoreUnsafe(operation.Invoke(upper), ref destinationBase, (nuint)(i + Vector128<float>.Count));
+                Vector128.StoreUnsafe(lower, ref destinationBase, (nuint)i);
+                Vector128.StoreUnsafe(upper, ref destinationBase, (nuint)(i + Vector128<float>.Count));
             }
         }
 
         for (; i < source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, (uint)i) = operation.Invoke(Unpack(Unsafe.Add(ref sourceBase, (uint)i)));
+            Unsafe.Add(ref destinationBase, (uint)i) = Unpack(Unsafe.Add(ref sourceBase, (uint)i));
         }
     }
 
     /// <summary>
-    /// Narrows single-precision components into half-precision storage using the same rounding as <see cref="Half"/>.
+    /// Rounds single-precision components into half storage without color or alpha conversion.
     /// </summary>
-    /// <param name="source">The single-precision components.</param>
-    /// <param name="destination">The packed half-precision components.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Pack(ReadOnlySpan<float> source, Span<ushort> destination)
-        => Pack(source, destination, default(Vector4Converters.IdentityOperator));
-
-    /// <summary>
-    /// Applies the component operation before packing each result into half-precision storage.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation. Identity retains native IEEE values; clamping enforces the color conversion range.</typeparam>
     /// <param name="source">The source components.</param>
-    /// <param name="destination">The destination components.</param>
-    /// <param name="operation">The scalar and SIMD component operation.</param>
-    public static void Pack<TOperator>(ReadOnlySpan<float> source, Span<ushort> destination, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+    /// <param name="destination">Storage for at least the source component count.</param>
+    public static void Pack(ReadOnlySpan<float> source, Span<ushort> destination)
     {
         ref float sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -200,14 +181,16 @@ internal static class HalfTypeHelper
         int i = 0;
 
         // Each pack consumes two float registers and produces one ushort register.
-        // Components retain RGBA order; Pack rounds each value to binary16.
+        // Components retain their input order. This raw helper has no pixel layout or alpha rules.
+        // Pack rounds each value to half precision. Smaller loops consume the remainder without reading beyond the source.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint vectorCount = packedDestination[i..].Vector512Count<ushort>();
+
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<ushort>.Count)
             {
-                Vector512<float> lower = operation.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512<float> upper = operation.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count)));
+                Vector512<float> lower = Vector512.LoadUnsafe(ref sourceBase, (nuint)i);
+                Vector512<float> upper = Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count));
                 Vector512.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
             }
         }
@@ -215,10 +198,11 @@ internal static class HalfTypeHelper
         if (Vector256.IsHardwareAccelerated)
         {
             nuint vectorCount = packedDestination[i..].Vector256Count<ushort>();
+
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<ushort>.Count)
             {
-                Vector256<float> lower = operation.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256<float> upper = operation.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count)));
+                Vector256<float> lower = Vector256.LoadUnsafe(ref sourceBase, (nuint)i);
+                Vector256<float> upper = Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count));
                 Vector256.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
             }
         }
@@ -226,526 +210,20 @@ internal static class HalfTypeHelper
         if (Vector128.IsHardwareAccelerated)
         {
             nuint vectorCount = packedDestination[i..].Vector128Count<ushort>();
+
             for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<ushort>.Count)
             {
-                Vector128<float> lower = operation.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128<float> upper = operation.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count)));
+                Vector128<float> lower = Vector128.LoadUnsafe(ref sourceBase, (nuint)i);
+                Vector128<float> upper = Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count));
                 Vector128.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
             }
         }
 
         for (; i < source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, (uint)i) = Pack(operation.Invoke(Unsafe.Add(ref sourceBase, (uint)i)));
+            Unsafe.Add(ref destinationBase, (uint)i) = Pack(Unsafe.Add(ref sourceBase, (uint)i));
         }
     }
-
-    /// <summary>
-    /// Expands half-precision RGBA pixels and applies a pixel operation before storing each result.
-    /// </summary>
-    /// <typeparam name="TOperator">The RGBA operation, including color bounds and alpha conversion.</typeparam>
-    /// <param name="source">The packed components, grouped in fours.</param>
-    /// <param name="destination">The expanded pixels.</param>
-    /// <param name="operation">The scalar and SIMD pixel operation.</param>
-    public static void Unpack<TOperator>(ReadOnlySpan<ushort> source, Span<Vector4> destination, TOperator operation)
-        where TOperator : struct, Vector4Converters.IStatefulVector4Operator
-    {
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
-        ref float destinationBase = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
-        int i = 0;
-
-        // Widening retains component order across each register. Full registers use
-        // SIMD; the scalar tail handles any remaining components in that same order.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector512Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<ushort>.Count)
-            {
-                (Vector512<float> lower, Vector512<float> upper) = Unpack(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512.StoreUnsafe(operation.Invoke(lower), ref destinationBase, (nuint)i);
-                Vector512.StoreUnsafe(operation.Invoke(upper), ref destinationBase, (nuint)(i + Vector512<float>.Count));
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector256Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<ushort>.Count)
-            {
-                (Vector256<float> lower, Vector256<float> upper) = Unpack(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256.StoreUnsafe(operation.Invoke(lower), ref destinationBase, (nuint)i);
-                Vector256.StoreUnsafe(operation.Invoke(upper), ref destinationBase, (nuint)(i + Vector256<float>.Count));
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector128Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<ushort>.Count)
-            {
-                (Vector128<float> lower, Vector128<float> upper) = Unpack(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128.StoreUnsafe(operation.Invoke(lower), ref destinationBase, (nuint)i);
-                Vector128.StoreUnsafe(operation.Invoke(upper), ref destinationBase, (nuint)(i + Vector128<float>.Count));
-            }
-        }
-
-        // The source contains complete RGBA pixels. Finish one pixel at a time without assuming SIMD support.
-        for (; i < source.Length; i += 4)
-        {
-            Vector4 value = new(Unpack(source[i]), Unpack(source[i + 1]), Unpack(source[i + 2]), Unpack(source[i + 3]));
-            destination[i / 4] = operation.Invoke(value);
-        }
-    }
-
-    /// <summary>
-    /// Applies a pixel operation and packs its RGBA result into half-precision storage in one pass.
-    /// </summary>
-    /// <typeparam name="TOperator">The RGBA operation, including color bounds and alpha conversion.</typeparam>
-    /// <param name="source">The source pixels.</param>
-    /// <param name="destination">The packed components, grouped in fours.</param>
-    /// <param name="operation">The scalar and SIMD pixel operation.</param>
-    public static void Pack<TOperator>(ReadOnlySpan<Vector4> source, Span<ushort> destination, TOperator operation)
-        where TOperator : struct, Vector4Converters.IStatefulVector4Operator
-    {
-        ref float sourceBase = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(source));
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ReadOnlySpan<ushort> packedDestination = destination[..(source.Length * 4)];
-        int i = 0;
-
-        // Each narrowing operation consumes two float registers and writes one
-        // half register, preserving the original component order and bit pattern.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector512Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<ushort>.Count)
-            {
-                Vector512<float> lower = operation.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512<float> upper = operation.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count)));
-                Vector512.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector256Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<ushort>.Count)
-            {
-                Vector256<float> lower = operation.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256<float> upper = operation.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count)));
-                Vector256.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector128Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<ushort>.Count)
-            {
-                Vector128<float> lower = operation.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128<float> upper = operation.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count)));
-                Vector128.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
-            }
-        }
-
-        // The vector operation sees one complete RGBA pixel in the scalar remainder as well.
-        for (; i < source.Length * 4; i += 4)
-        {
-            Vector4 value = operation.Invoke(source[i / 4]);
-            destination[i] = Pack(value.X);
-            destination[i + 1] = Pack(value.Y);
-            destination[i + 2] = Pack(value.Z);
-            destination[i + 3] = Pack(value.W);
-        }
-    }
-
-    /// <summary>
-    /// Expands four-component half-precision pixels and associates their first three components with the fourth.
-    /// </summary>
-    /// <param name="source">The packed components, grouped in fours.</param>
-    /// <param name="destination">The expanded components.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UnpackAssociated(ReadOnlySpan<ushort> source, Span<float> destination)
-        => UnpackAssociated(source, destination, default(Vector4Converters.IdentityOperator));
-
-    /// <summary>
-    /// Expands half-precision components and applies the component operation before writing each result.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation. Identity retains native IEEE values; clamping enforces the color conversion range.</typeparam>
-    /// <param name="source">The source components.</param>
-    /// <param name="destination">The destination components.</param>
-    /// <param name="operation">The scalar and SIMD component operation.</param>
-    public static void UnpackAssociated<TOperator>(ReadOnlySpan<ushort> source, Span<float> destination, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
-        ref float destinationBase = ref MemoryMarshal.GetReference(destination);
-        int i = 0;
-
-        // A register contains complete four-component pixels. Replicate the fourth
-        // component within each pixel, multiply the first three, then restore the fourth.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector512Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<ushort>.Count)
-            {
-                (Vector512<float> lower, Vector512<float> upper) = Unpack(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512.StoreUnsafe(operation.Invoke(Associate(lower)), ref destinationBase, (nuint)i);
-                Vector512.StoreUnsafe(operation.Invoke(Associate(upper)), ref destinationBase, (nuint)(i + Vector512<float>.Count));
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector256Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<ushort>.Count)
-            {
-                (Vector256<float> lower, Vector256<float> upper) = Unpack(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256.StoreUnsafe(operation.Invoke(Associate(lower)), ref destinationBase, (nuint)i);
-                Vector256.StoreUnsafe(operation.Invoke(Associate(upper)), ref destinationBase, (nuint)(i + Vector256<float>.Count));
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector128Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<ushort>.Count)
-            {
-                (Vector128<float> lower, Vector128<float> upper) = Unpack(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128.StoreUnsafe(operation.Invoke(Associate(lower)), ref destinationBase, (nuint)i);
-                Vector128.StoreUnsafe(operation.Invoke(Associate(upper)), ref destinationBase, (nuint)(i + Vector128<float>.Count));
-            }
-        }
-
-        for (; i < source.Length; i += 4)
-        {
-            Vector4 vector = new(
-                Unpack(Unsafe.Add(ref sourceBase, (uint)i)),
-                Unpack(Unsafe.Add(ref sourceBase, (uint)(i + 1))),
-                Unpack(Unsafe.Add(ref sourceBase, (uint)(i + 2))),
-                Unpack(Unsafe.Add(ref sourceBase, (uint)(i + 3))));
-
-            Numerics.Premultiply(ref vector);
-            Unsafe.Add(ref destinationBase, (uint)i) = operation.Invoke(vector.X);
-            Unsafe.Add(ref destinationBase, (uint)(i + 1)) = operation.Invoke(vector.Y);
-            Unsafe.Add(ref destinationBase, (uint)(i + 2)) = operation.Invoke(vector.Z);
-            Unsafe.Add(ref destinationBase, (uint)(i + 3)) = operation.Invoke(vector.W);
-        }
-    }
-
-    /// <summary>
-    /// Unassociates four-component vectors and packs their native values into half-precision storage.
-    /// </summary>
-    /// <param name="source">The associated components, grouped in fours.</param>
-    /// <param name="destination">The packed components.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void PackFromAssociated(ReadOnlySpan<float> source, Span<ushort> destination)
-        => PackFromAssociated(source, destination, default(Vector4Converters.IdentityOperator));
-
-    /// <summary>
-    /// Applies the component operation before packing each result into half-precision storage.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation. Identity retains native IEEE values; clamping enforces the color conversion range.</typeparam>
-    /// <param name="source">The source components.</param>
-    /// <param name="destination">The destination components.</param>
-    /// <param name="operation">The scalar and SIMD component operation.</param>
-    public static void PackFromAssociated<TOperator>(ReadOnlySpan<float> source, Span<ushort> destination, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        ref float sourceBase = ref MemoryMarshal.GetReference(source);
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ReadOnlySpan<ushort> packedDestination = destination[..source.Length];
-        int i = 0;
-
-        // The fourth component is replicated before division. UnPremultiply restores
-        // that component and preserves the first three when it is zero.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector512Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<ushort>.Count)
-            {
-                Vector512<float> lower = Unassociate(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512<float> upper = Unassociate(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count)));
-                Vector512.StoreUnsafe(Pack(operation.Invoke(lower), operation.Invoke(upper)), ref destinationBase, (nuint)i);
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector256Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<ushort>.Count)
-            {
-                Vector256<float> lower = Unassociate(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256<float> upper = Unassociate(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count)));
-                Vector256.StoreUnsafe(Pack(operation.Invoke(lower), operation.Invoke(upper)), ref destinationBase, (nuint)i);
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector128Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<ushort>.Count)
-            {
-                Vector128<float> lower = Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128<float> upper = Unassociate(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count)));
-                Vector128.StoreUnsafe(Pack(operation.Invoke(lower), operation.Invoke(upper)), ref destinationBase, (nuint)i);
-            }
-        }
-
-        for (; i < source.Length; i += 4)
-        {
-            Vector4 vector = new(
-                Unsafe.Add(ref sourceBase, (uint)i),
-                Unsafe.Add(ref sourceBase, (uint)(i + 1)),
-                Unsafe.Add(ref sourceBase, (uint)(i + 2)),
-                Unsafe.Add(ref sourceBase, (uint)(i + 3)));
-
-            Numerics.UnPremultiply(ref vector);
-            Unsafe.Add(ref destinationBase, (uint)i) = Pack(operation.Invoke(vector.X));
-            Unsafe.Add(ref destinationBase, (uint)(i + 1)) = Pack(operation.Invoke(vector.Y));
-            Unsafe.Add(ref destinationBase, (uint)(i + 2)) = Pack(operation.Invoke(vector.Z));
-            Unsafe.Add(ref destinationBase, (uint)(i + 3)) = Pack(operation.Invoke(vector.W));
-        }
-    }
-
-    /// <summary>
-    /// Expands associated four-component half-precision pixels and unassociates their first three components.
-    /// </summary>
-    /// <param name="source">The packed components, grouped in fours.</param>
-    /// <param name="destination">The expanded components.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UnpackUnassociated(ReadOnlySpan<ushort> source, Span<float> destination)
-        => UnpackUnassociated(source, destination, default(Vector4Converters.IdentityOperator));
-
-    /// <summary>
-    /// Expands half-precision components and applies the component operation before writing each result.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation. Identity retains native IEEE values; clamping enforces the color conversion range.</typeparam>
-    /// <param name="source">The source components.</param>
-    /// <param name="destination">The destination components.</param>
-    /// <param name="operation">The scalar and SIMD component operation.</param>
-    public static void UnpackUnassociated<TOperator>(ReadOnlySpan<ushort> source, Span<float> destination, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
-        ref float destinationBase = ref MemoryMarshal.GetReference(destination);
-        int i = 0;
-
-        // Each widened register contains complete four-component pixels, so every
-        // alpha stays with its own color components during unassociation.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector512Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++)
-            {
-                (Vector512<float> lower, Vector512<float> upper) = Unpack(Vector512.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector512.StoreUnsafe(operation.Invoke(Unassociate(lower)), ref destinationBase, (nuint)i);
-                Vector512.StoreUnsafe(operation.Invoke(Unassociate(upper)), ref destinationBase, (nuint)(i + Vector512<float>.Count));
-                i += Vector512<ushort>.Count;
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector256Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++)
-            {
-                (Vector256<float> lower, Vector256<float> upper) = Unpack(Vector256.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector256.StoreUnsafe(operation.Invoke(Unassociate(lower)), ref destinationBase, (nuint)i);
-                Vector256.StoreUnsafe(operation.Invoke(Unassociate(upper)), ref destinationBase, (nuint)(i + Vector256<float>.Count));
-                i += Vector256<ushort>.Count;
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = source[i..].Vector128Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++)
-            {
-                (Vector128<float> lower, Vector128<float> upper) = Unpack(Vector128.LoadUnsafe(ref sourceBase, (nuint)i));
-                Vector128.StoreUnsafe(operation.Invoke(Unassociate(lower)), ref destinationBase, (nuint)i);
-                Vector128.StoreUnsafe(operation.Invoke(Unassociate(upper)), ref destinationBase, (nuint)(i + Vector128<float>.Count));
-                i += Vector128<ushort>.Count;
-            }
-        }
-
-        // The pixel operations own the four-component invariant. Only whole pixels
-        // reach this tail, including a single pixel after the 128-bit path.
-        for (; i < source.Length; i += 4)
-        {
-            Vector4 vector = new(
-                Unpack(Unsafe.Add(ref sourceBase, (uint)i)),
-                Unpack(Unsafe.Add(ref sourceBase, (uint)(i + 1))),
-                Unpack(Unsafe.Add(ref sourceBase, (uint)(i + 2))),
-                Unpack(Unsafe.Add(ref sourceBase, (uint)(i + 3))));
-
-            Numerics.UnPremultiply(ref vector);
-            Unsafe.Add(ref destinationBase, (uint)i) = operation.Invoke(vector.X);
-            Unsafe.Add(ref destinationBase, (uint)(i + 1)) = operation.Invoke(vector.Y);
-            Unsafe.Add(ref destinationBase, (uint)(i + 2)) = operation.Invoke(vector.Z);
-            Unsafe.Add(ref destinationBase, (uint)(i + 3)) = operation.Invoke(vector.W);
-        }
-    }
-
-    /// <summary>
-    /// Associates four-component vectors with their stored half-precision alpha and packs them.
-    /// </summary>
-    /// <param name="source">The unassociated components, grouped in fours.</param>
-    /// <param name="destination">The packed components.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void PackAssociated(ReadOnlySpan<float> source, Span<ushort> destination)
-        => PackAssociated(source, destination, default(Vector4Converters.IdentityOperator));
-
-    /// <summary>
-    /// Applies the component operation before packing each result into half-precision storage.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation. Identity retains native IEEE values; clamping enforces the color conversion range.</typeparam>
-    /// <param name="source">The source components.</param>
-    /// <param name="destination">The destination components.</param>
-    /// <param name="operation">The scalar and SIMD component operation.</param>
-    public static void PackAssociated<TOperator>(ReadOnlySpan<float> source, Span<ushort> destination, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        ref float sourceBase = ref MemoryMarshal.GetReference(source);
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-        ReadOnlySpan<ushort> packedDestination = destination[..source.Length];
-        int i = 0;
-
-        // Round alpha before multiplication so all SIMD widths associate color
-        // with the exact alpha that the destination will store.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector512Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++)
-            {
-                Vector512<float> lower = operation.Invoke(AssociateForStorage(Vector512.LoadUnsafe(ref sourceBase, (nuint)i), operation));
-                Vector512<float> upper = operation.Invoke(AssociateForStorage(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<float>.Count)), operation));
-                Vector512.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
-                i += Vector512<ushort>.Count;
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector256Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++)
-            {
-                Vector256<float> lower = operation.Invoke(AssociateForStorage(Vector256.LoadUnsafe(ref sourceBase, (nuint)i), operation));
-                Vector256<float> upper = operation.Invoke(AssociateForStorage(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<float>.Count)), operation));
-                Vector256.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
-                i += Vector256<ushort>.Count;
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint vectorCount = packedDestination[i..].Vector128Count<ushort>();
-            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++)
-            {
-                Vector128<float> lower = operation.Invoke(AssociateForStorage(Vector128.LoadUnsafe(ref sourceBase, (nuint)i), operation));
-                Vector128<float> upper = operation.Invoke(AssociateForStorage(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<float>.Count)), operation));
-                Vector128.StoreUnsafe(Pack(lower, upper), ref destinationBase, (nuint)i);
-                i += Vector128<ushort>.Count;
-            }
-        }
-
-        for (; i < source.Length; i += 4)
-        {
-            Vector4 vector = new(
-                Unsafe.Add(ref sourceBase, (uint)i),
-                Unsafe.Add(ref sourceBase, (uint)(i + 1)),
-                Unsafe.Add(ref sourceBase, (uint)(i + 2)),
-                Unsafe.Add(ref sourceBase, (uint)(i + 3)));
-
-            vector.W = Unpack(Pack(operation.Invoke(vector.W)));
-            Numerics.Premultiply(ref vector);
-            Unsafe.Add(ref destinationBase, (uint)i) = Pack(operation.Invoke(vector.X));
-            Unsafe.Add(ref destinationBase, (uint)(i + 1)) = Pack(operation.Invoke(vector.Y));
-            Unsafe.Add(ref destinationBase, (uint)(i + 2)) = Pack(operation.Invoke(vector.Z));
-            Unsafe.Add(ref destinationBase, (uint)(i + 3)) = Pack(operation.Invoke(vector.W));
-        }
-    }
-
-    /// <summary>
-    /// Associates complete four-component vectors while preserving their fourth component.
-    /// </summary>
-    /// <param name="source">The unassociated components.</param>
-    /// <returns>The associated components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<float> Associate(Vector128<float> source)
-    {
-        Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-        return Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), alpha, source * alpha);
-    }
-
-    /// <inheritdoc cref="Associate(Vector128{float})" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<float> Associate(Vector256<float> source)
-    {
-        Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-        return Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), alpha, source * alpha);
-    }
-
-    /// <inheritdoc cref="Associate(Vector128{float})" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<float> Associate(Vector512<float> source)
-    {
-        Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-        return Vector512.ConditionalSelect(alphaMask, alpha, source * alpha);
-    }
-
-    /// <summary>
-    /// Associates the first three components with alpha rounded to half-precision storage.
-    /// </summary>
-    /// <typeparam name="TOperator">The component operation applied before alpha is rounded.</typeparam>
-    /// <param name="source">The unassociated components.</param>
-    /// <param name="operation">The native or finite color operation.</param>
-    /// <returns>The associated components with their stored alpha.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<float> AssociateForStorage<TOperator>(Vector128<float> source, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        Vector128<float> alpha = RoundToHalf(operation.Invoke(Vector128_.ShuffleNative(source, 0b_11_11_11_11)));
-        return Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), alpha, source * alpha);
-    }
-
-    /// <inheritdoc cref="AssociateForStorage{TOperator}(Vector128{float}, TOperator)" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<float> AssociateForStorage<TOperator>(Vector256<float> source, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        Vector256<float> alpha = RoundToHalf(operation.Invoke(Vector256_.ShuffleNative(source, 0b_11_11_11_11)));
-        return Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), alpha, source * alpha);
-    }
-
-    /// <inheritdoc cref="AssociateForStorage{TOperator}(Vector128{float}, TOperator)" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<float> AssociateForStorage<TOperator>(Vector512<float> source, TOperator operation)
-        where TOperator : struct, TensorPrimitives_.IUnaryOperator
-    {
-        Vector512<float> alpha = RoundToHalf(operation.Invoke(Vector512_.ShuffleNative(source, 0b_11_11_11_11)));
-        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-        return Vector512.ConditionalSelect(alphaMask, alpha, source * alpha);
-    }
-
-    /// <summary>
-    /// Unassociates complete four-component vectors while preserving their fourth component.
-    /// </summary>
-    /// <param name="source">The associated components.</param>
-    /// <returns>The unassociated components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<float> Unassociate(Vector128<float> source)
-        => Numerics.UnPremultiply(source, Vector128_.ShuffleNative(source, 0b_11_11_11_11));
-
-    /// <inheritdoc cref="Unassociate(Vector128{float})" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<float> Unassociate(Vector256<float> source)
-        => Numerics.UnPremultiply(source, Vector256_.ShuffleNative(source, 0b_11_11_11_11));
-
-    /// <inheritdoc cref="Unassociate(Vector128{float})" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<float> Unassociate(Vector512<float> source)
-        => Numerics.UnPremultiply(source, Vector512_.ShuffleNative(source, 0b_11_11_11_11));
 
     /// <summary>
     /// Rounds single-precision values through half-precision without changing the vector width.
@@ -753,7 +231,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The single-precision values.</param>
     /// <returns>The values after half-precision quantization.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector128<float> RoundToHalf(Vector128<float> value)
+    public static Vector128<float> RoundToHalf(Vector128<float> value)
         => ConvertHalfBitsToSingle(ConvertSingleToHalfBits(value));
 
     /// <summary>
@@ -762,7 +240,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The single-precision values.</param>
     /// <returns>The values after half-precision quantization.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector256<float> RoundToHalf(Vector256<float> value)
+    public static Vector256<float> RoundToHalf(Vector256<float> value)
         => ConvertHalfBitsToSingle(ConvertSingleToHalfBits(value));
 
     /// <summary>
@@ -771,7 +249,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The single-precision values.</param>
     /// <returns>The values after half-precision quantization.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector512<float> RoundToHalf(Vector512<float> value)
+    public static Vector512<float> RoundToHalf(Vector512<float> value)
         => ConvertHalfBitsToSingle(ConvertSingleToHalfBits(value));
 
     /// <summary>
@@ -789,11 +267,15 @@ internal static class HalfTypeHelper
         Vector128<uint> maskedExponentLowerBound = subnormalMask & Vector128.Create(SingleExponentLowerBound);
         Vector128<uint> exponentOffset = Vector128.Create(SingleExponentOffset) | maskedExponentLowerBound;
 
-        // Half and float fraction fields differ by thirteen bits. Subnormals and special values
-        // need different exponent offsets before that shared field layout can be reinterpreted as float.
+        // Half precision has 10 fraction bits; single precision has 23. Shift by 13 to align those fields.
+        // Normal values need the exponent-bias difference. All-ones exponents need twice that offset for infinity and NaN.
+        // For subnormals, add a temporary normal exponent, then subtract its float value to restore the fraction magnitude.
         Vector128<uint> bits = Vector128.ShiftLeft(value, 13) & Vector128.Create(HalfToSingleBitsMask);
         exponentOffset = Vector128.ConditionalSelect(infinityOrNaNMask, Vector128.ShiftLeft(exponentOffset, 1), exponentOffset);
         bits += exponentOffset;
+
+        // The subtraction is zero for normal lanes. For subnormal lanes it removes the temporary exponent exactly.
+        // Restore the saved sign after subtraction, including negative zero.
         Vector128<uint> absoluteValue = (bits.AsSingle() - maskedExponentLowerBound.AsSingle()).AsUInt32();
         return (absoluteValue | sign).AsSingle();
     }
@@ -813,11 +295,15 @@ internal static class HalfTypeHelper
         Vector256<uint> maskedExponentLowerBound = subnormalMask & Vector256.Create(SingleExponentLowerBound);
         Vector256<uint> exponentOffset = Vector256.Create(SingleExponentOffset) | maskedExponentLowerBound;
 
-        // Half and float fraction fields differ by thirteen bits. Subnormals and special values
-        // need different exponent offsets before that shared field layout can be reinterpreted as float.
+        // Half precision has 10 fraction bits; single precision has 23. Shift by 13 to align those fields.
+        // Normal values need the exponent-bias difference. All-ones exponents need twice that offset for infinity and NaN.
+        // For subnormals, add a temporary normal exponent, then subtract its float value to restore the fraction magnitude.
         Vector256<uint> bits = Vector256.ShiftLeft(value, 13) & Vector256.Create(HalfToSingleBitsMask);
         exponentOffset = Vector256.ConditionalSelect(infinityOrNaNMask, Vector256.ShiftLeft(exponentOffset, 1), exponentOffset);
         bits += exponentOffset;
+
+        // The subtraction is zero for normal lanes. For subnormal lanes it removes the temporary exponent exactly.
+        // Restore the saved sign after subtraction, including negative zero.
         Vector256<uint> absoluteValue = (bits.AsSingle() - maskedExponentLowerBound.AsSingle()).AsUInt32();
         return (absoluteValue | sign).AsSingle();
     }
@@ -837,11 +323,15 @@ internal static class HalfTypeHelper
         Vector512<uint> maskedExponentLowerBound = subnormalMask & Vector512.Create(SingleExponentLowerBound);
         Vector512<uint> exponentOffset = Vector512.Create(SingleExponentOffset) | maskedExponentLowerBound;
 
-        // Half and float fraction fields differ by thirteen bits. Subnormals and special values
-        // need different exponent offsets before that shared field layout can be reinterpreted as float.
+        // Half precision has 10 fraction bits; single precision has 23. Shift by 13 to align those fields.
+        // Normal values need the exponent-bias difference. All-ones exponents need twice that offset for infinity and NaN.
+        // For subnormals, add a temporary normal exponent, then subtract its float value to restore the fraction magnitude.
         Vector512<uint> bits = Vector512.ShiftLeft(value, 13) & Vector512.Create(HalfToSingleBitsMask);
         exponentOffset = Vector512.ConditionalSelect(infinityOrNaNMask, Vector512.ShiftLeft(exponentOffset, 1), exponentOffset);
         bits += exponentOffset;
+
+        // The subtraction is zero for normal lanes. For subnormal lanes it removes the temporary exponent exactly.
+        // Restore the saved sign after subtraction, including negative zero.
         Vector512<uint> absoluteValue = (bits.AsSingle() - maskedExponentLowerBound.AsSingle()).AsUInt32();
         return (absoluteValue | sign).AsSingle();
     }
@@ -857,7 +347,11 @@ internal static class HalfTypeHelper
         Vector128<uint> bits = value.AsUInt32();
         Vector128<uint> sign = Vector128.ShiftRightLogical(bits & Vector128.Create(SingleSignMask), 16);
         Vector128<uint> realMask = Vector128.Equals(value, value).AsUInt32();
+
+        // Save the sign before absolute value. A self-comparison distinguishes NaN from all numeric values.
         value = Vector128.Abs(value);
+
+        // 65520 is the midpoint that rounds to half infinity. Limit larger magnitudes to this same overflow result.
         value = Vector128.Min(Vector128.Create(MaxHalfValueBelowInfinity), value);
         Vector128<uint> exponentOffset = Vector128.Max(value, Vector128.Create(SingleExponentLowerBound).AsSingle()).AsUInt32();
         exponentOffset &= Vector128.Create(SingleBiasedExponentMask);
@@ -888,7 +382,11 @@ internal static class HalfTypeHelper
         Vector256<uint> bits = value.AsUInt32();
         Vector256<uint> sign = Vector256.ShiftRightLogical(bits & Vector256.Create(SingleSignMask), 16);
         Vector256<uint> realMask = Vector256.Equals(value, value).AsUInt32();
+
+        // Save the sign before absolute value. A self-comparison distinguishes NaN from all numeric values.
         value = Vector256.Abs(value);
+
+        // 65520 is the midpoint that rounds to half infinity. Limit larger magnitudes to this same overflow result.
         value = Vector256.Min(Vector256.Create(MaxHalfValueBelowInfinity), value);
         Vector256<uint> exponentOffset = Vector256.Max(value, Vector256.Create(SingleExponentLowerBound).AsSingle()).AsUInt32();
         exponentOffset &= Vector256.Create(SingleBiasedExponentMask);
@@ -919,7 +417,11 @@ internal static class HalfTypeHelper
         Vector512<uint> bits = value.AsUInt32();
         Vector512<uint> sign = Vector512.ShiftRightLogical(bits & Vector512.Create(SingleSignMask), 16);
         Vector512<uint> realMask = Vector512.Equals(value, value).AsUInt32();
+
+        // Save the sign before absolute value. A self-comparison distinguishes NaN from all numeric values.
         value = Vector512.Abs(value);
+
+        // 65520 is the midpoint that rounds to half infinity. Limit larger magnitudes to this same overflow result.
         value = Vector512.Min(Vector512.Create(MaxHalfValueBelowInfinity), value);
         Vector512<uint> exponentOffset = Vector512.Max(value, Vector512.Create(SingleExponentLowerBound).AsSingle()).AsUInt32();
         exponentOffset &= Vector512.Create(SingleBiasedExponentMask);

@@ -38,6 +38,18 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// </param>
     public Byte4(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Byte4"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Unsigned X, Y, Z, and W codes occupy consecutive eight-bit fields, from least to most significant.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Byte4(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
 
@@ -129,7 +141,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
         Vector4 vector = this.ToAssociatedScaledVector4();
 
         // Native components use [0, 255], so association occurs in scaled [0, 1] space before mapping the result back.
-        return vector * MaxBytes;
+        return Vector4.MultiplyAddEstimate(vector, MaxBytes, Vector4.Zero);
     }
 
     /// <inheritdoc />
@@ -139,10 +151,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Byte4 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

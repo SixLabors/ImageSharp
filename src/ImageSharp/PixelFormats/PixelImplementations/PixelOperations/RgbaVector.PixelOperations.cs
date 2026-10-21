@@ -3,19 +3,18 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
-/// Provides optimized overrides for bulk operations.
+/// Selects the shared storage-family implementation.
 /// </content>
 public partial struct RgbaVector
 {
     /// <summary>
-    /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
+    /// Inherits the shared bulk conversions for this pixel's storage.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<RgbaVector>
+    internal partial class PixelOperations : RgbaVectorPixelOperations<RgbaVector>
     {
         /// <inheritdoc />
         public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<RgbaVector> destination)
@@ -29,128 +28,12 @@ public partial struct RgbaVector
                 // The single-pixel associated conversions normalize stored channels before unassociation.
                 // Use the same order to preserve their rounding, with both bulk operations writing only destination storage.
                 sourceOperations.ToAssociatedScaledVector4(configuration, source, vectors);
-                Vector4Converters.Apply(
-                    vectors[..source.Length],
-                    new Vector4Converters.UnassociateOperator(
-                        new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
+                PixelFormats.PixelOperations.UnPremultiply(vectors[..source.Length], vectors[..source.Length]);
             }
             else
             {
                 sourceOperations.ToUnassociatedScaledVector4(configuration, source, vectors);
             }
         }
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
-
-            CopyFromVector4(sourceVectors, destinationPixels);
-        }
-
-        /// <inheritdoc />
-        public override void FromScaledVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
-            => this.FromUnassociatedScaledVector4Destructive(configuration, sourceVectors, destinationPixels);
-
-        /// <inheritdoc />
-        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
-            => this.FromVector4Destructive(configuration, sourceVectors, destinationPixels);
-
-        /// <inheritdoc />
-        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
-
-            Numerics.UnPremultiply(sourceVectors);
-            CopyFromVector4(sourceVectors, destinationPixels);
-        }
-
-        /// <inheritdoc />
-        public override void FromUnassociatedScaledVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<RgbaVector> destinationPixels)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
-
-            // Apply alpha conversion and finite destination bounds while writing the final storage.
-            Vector4Converters.Apply(
-                sourceVectors,
-                MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels[..sourceVectors.Length]),
-                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
-        }
-
-        /// <inheritdoc />
-        public override void FromAssociatedScaledVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<RgbaVector> destinationPixels)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
-
-            // Apply alpha conversion and finite destination bounds while writing the final storage.
-            Vector4Converters.Apply(
-                sourceVectors,
-                MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels[..sourceVectors.Length]),
-                new Vector4Converters.UnassociateOperator(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
-
-            destinationVectors = destinationVectors[..sourcePixels.Length];
-            MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destinationVectors);
-        }
-
-        /// <inheritdoc />
-        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-            => this.ToUnassociatedScaledVector4(configuration, sourcePixels, destinationVectors);
-
-        /// <inheritdoc />
-        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-            => this.ToVector4(configuration, sourcePixels, destinationVectors);
-
-        /// <inheritdoc />
-        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-        {
-            this.ToVector4(configuration, sourcePixels, destinationVectors);
-            Numerics.Premultiply(destinationVectors[..sourcePixels.Length]);
-        }
-
-        /// <inheritdoc />
-        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
-
-            // Apply alpha conversion and finite destination bounds while writing the final storage.
-            Vector4Converters.Apply(
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels),
-                destinationVectors[..sourcePixels.Length],
-                new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue));
-        }
-
-        /// <inheritdoc />
-        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<RgbaVector> sourcePixels, Span<Vector4> destinationVectors)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
-
-            // Apply alpha conversion and finite destination bounds while writing the final storage.
-            Vector4Converters.Apply(
-                MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels),
-                destinationVectors[..sourcePixels.Length],
-                new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
-                    default,
-                    new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)));
-        }
-
-        /// <summary>
-        /// Copies the vector components into the corresponding pixel storage.
-        /// </summary>
-        /// <param name="sourceVectors">The source vectors.</param>
-        /// <param name="destinationPixels">The destination pixels.</param>
-        private static void CopyFromVector4(Span<Vector4> sourceVectors, Span<RgbaVector> destinationPixels)
-            => MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationPixels[..sourceVectors.Length]);
     }
 }

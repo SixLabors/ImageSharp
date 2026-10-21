@@ -10,7 +10,7 @@ public partial struct Rgb48
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgb48>
+    internal partial class PixelOperations : Rgba64CompatiblePixelOperations<Rgb48>
     {
         <# GenerateAllDefaultConversionMethods("Rgb48"); #>
     }

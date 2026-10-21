@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Readers;
@@ -386,9 +387,10 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                if (typeof(TPixel) == typeof(Rgb96))
+
+                if (typeof(TPixel) == typeof(Rgb96) && !IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out _))
                 {
-                    // Native uint pixels keep their low bits; the generic vector route converts to float.
+                    // Without ICC, native uint pixels keep every low bit. ICC instead needs a floating row before final packing.
                     return new Rgb323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
                 }
 
@@ -406,9 +408,11 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                if (typeof(TPixel) == typeof(Rgba128) && extraSampleType != TiffExtraSampleType.AssociatedAlphaData)
+
+                if (typeof(TPixel) == typeof(Rgba128) && extraSampleType != TiffExtraSampleType.AssociatedAlphaData
+                    && !IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out _))
                 {
-                    // Direct uint packing preserves all low bits in native Rgba128 pixels.
+                    // Without ICC, direct uint packing preserves all low bits. Profiled samples use the floating row below.
                     return new Rgba32323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
                 }
 
@@ -554,9 +558,10 @@ internal static class TiffColorDecoderFactory<TPixel>
 
             case TiffColorType.Rgb323232Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                if (typeof(TPixel) == typeof(Rgb96))
+
+                if (typeof(TPixel) == typeof(Rgb96) && !IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out _))
                 {
-                    // Direct integer packing preserves all 32 bits of each native destination channel.
+                    // Without ICC, direct integer packing preserves every bit. ICC uses the floating row before final packing.
                     return new Rgb32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
                 }
 
@@ -567,9 +572,11 @@ internal static class TiffColorDecoderFactory<TPixel>
 
             case TiffColorType.Rgba32323232Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                if (typeof(TPixel) == typeof(Rgba128) && extraSampleType != TiffExtraSampleType.AssociatedAlphaData)
+
+                if (typeof(TPixel) == typeof(Rgba128) && extraSampleType != TiffExtraSampleType.AssociatedAlphaData
+                    && !IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out _))
                 {
-                    // Direct uint packing preserves all low bits in native Rgba128 pixels.
+                    // Without ICC, direct uint packing preserves all low bits. Profiled samples use the floating row below.
                     return new Rgba32PlanarTiffColor<TPixel>(byteOrder == ByteOrder.BigEndian);
                 }
 

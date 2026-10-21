@@ -11,7 +11,7 @@ public partial struct Bgra32P
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : AssociatedAlphaPixelOperations<Bgra32P>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Bgra32P>
     {
         <# GenerateAllAssociatedConversionMethods("Bgra32P"); #>
     }

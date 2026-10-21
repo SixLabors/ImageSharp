@@ -160,11 +160,9 @@ internal static class TiffDecoderOptionsParser
 
         if (options.CompressionType is TiffDecoderCompressionType.Jpeg or TiffDecoderCompressionType.OldJpeg)
         {
-            // Supported gray, RGB, YCbCr and CMYK JPEG paths all emit interleaved Rgb24 decoded buffers.
-            // Select the RGB byte reader and size its decoded buffers for three eight-bit samples;
-            // options.PhotometricInterpretation and frame metadata retain the encoded samples for nested conversion.
-            // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
-            // so TIFF uses the expanded JPEG RGB buffer without another subsampling pass. See: https://github.com/SixLabors/ImageSharp/issues/2679
+            // Nested JPEG decoding writes TPixel directly and bypasses the raw TIFF sample readers.
+            // Keep these byte-layout fields for the TIFF strip setup. PhotometricInterpretation retains the encoded color model;
+            // the JPEG decoder handles its subsampling and final pixel conversion.
             options.ColorType = TiffColorType.Rgb888;
             options.BitsPerSample = new TiffBitsPerSample(8, 8, 8);
             options.BitsPerPixel = 24;

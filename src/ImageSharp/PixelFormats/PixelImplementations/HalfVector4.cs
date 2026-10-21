@@ -4,8 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
@@ -35,6 +33,18 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     /// </summary>
     /// <param name="vector">A vector containing the initial values for the components</param>
     public HalfVector4(Vector4 vector) => this.PackedValue = Pack(vector);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HalfVector4"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Half-precision X, Y, Z, and W bit patterns occupy consecutive 16-bit fields, from least to most significant.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public HalfVector4(ulong packed)
+        : this() => this.PackedValue = packed;
 
     /// <inheritdoc/>
     public ulong PackedValue { get; set; }
@@ -83,7 +93,7 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToVector4());
+        => PixelOperations.ClampToPixelRange(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,15 +117,13 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(this.ToUnassociatedVector4());
+        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
     {
-        return new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
+        return PixelFormats.PixelOperations.Associate(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -134,17 +142,12 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector4 FromUnassociatedScaledVector4(Vector4 source)
-        => FromUnassociatedVector4(new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue).Invoke(source));
+        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector4 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // Recover straight RGB using the supplied alpha, then bound opacity. Zero alpha retains stored RGB.
-        source = new Vector4Converters.UnassociateOperator(
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
-        return FromUnassociatedVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

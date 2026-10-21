@@ -148,6 +148,18 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Rgba64"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The 16-bit words use R, G, B, A memory order. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgba64(ulong packed)
+        : this() => this.PackedValue = packed;
+
+    /// <summary>
     /// Gets or sets the RGB components of this struct as <see cref="Rgb48"/>.
     /// </summary>
     public Rgb48 Rgb
@@ -257,10 +269,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba64 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

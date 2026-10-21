@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -97,9 +96,8 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     /// <inheritdoc />
     public readonly Vector4 ToAssociatedScaledVector4()
     {
-        return new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
+        // Storage already contains associated RGB. Color output only applies normalized component bounds.
+        return PixelOperations.ClampToPixelRange(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -107,8 +105,12 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
 
     /// <inheritdoc />
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => new Vector4Converters.UnassociateOperator(
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(this.ToVector4());
+    {
+        Vector4 source = this.ToVector4();
+        PixelOperations.UnPremultiply(ref source);
+
+        return source;
+    }
 
     /// <inheritdoc />
     public readonly Vector4 ToUnassociatedVector4()
@@ -138,9 +140,8 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     /// <inheritdoc />
     public static RgbaVectorP FromAssociatedScaledVector4(Vector4 source)
     {
-        source = new Vector4Converters.ReassociateOperator<Vector4Converters.IdentityOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
+        // RGB is already associated. Bound the supplied components; native packing rounds them independently.
+        source = PixelOperations.ClampToPixelRange(source);
 
         return FromAssociatedVector4(source);
     }
@@ -152,9 +153,7 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
     {
         // Bound RGB and opacity before multiplication so association cannot overflow finite RGB.
-        source = new Vector4Converters.AssociateOperator<Vector4Converters.IdentityOperator>(
-            default,
-            new Vector4Converters.ColorClampOperator(ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue)).Invoke(source);
+        source = PixelFormats.PixelOperations.Associate(source);
 
         return FromAssociatedVector4(source);
     }

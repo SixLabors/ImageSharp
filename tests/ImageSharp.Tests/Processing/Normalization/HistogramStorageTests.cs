@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -31,13 +32,15 @@ public class HistogramStorageTests(ITestOutputHelper output)
         provider);
 
     /// <summary>
-    /// Checks empty sample windows with cached and streamed traversal under each SIMD feature setting.
+    /// Checks empty and uniform sample windows with cached and streamed traversal under each SIMD feature setting.
     /// </summary>
-    /// <param name="provider">A small image whose default tile count produces a window width of zero or one.</param>
+    /// <param name="provider">A small image with an empty window or a uniform image whose window exceeds its height.</param>
     [Theory]
     [WithTestPatternImages(7, 3, PixelTypes.Rgba32)]
     [WithTestPatternImages(8, 3, PixelTypes.Rgba32)]
-    public void SmallSlidingWindows_PreserveEmptySampling(TestImageProvider<Rgba32> provider) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+    [WithSolidFilledImages(100, 1, nameof(Color.White), PixelTypes.Rgba32)]
+    [WithSolidFilledImages(100, 3, nameof(Color.White), PixelTypes.Rgba32)]
+    public void SmallSlidingWindows_ProduceBlackWithUnchangedAlpha(TestImageProvider<Rgba32> provider) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
         CheckSmallSlidingWindows,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
         provider);
@@ -109,7 +112,7 @@ public class HistogramStorageTests(ITestOutputHelper output)
     ];
 
     /// <summary>
-    /// Checks both buffer strategies against black RGB with unchanged alpha for the existing empty-window sampling rule.
+    /// Checks both buffer strategies against black RGB with unchanged alpha for empty or uniform sample distributions.
     /// </summary>
     /// <param name="serializedProvider">The provider passed through FeatureTestRunner.</param>
     private static void CheckSmallSlidingWindows(string serializedProvider)
@@ -119,7 +122,8 @@ public class HistogramStorageTests(ITestOutputHelper output)
         using Image<Rgba32> expected = source.Clone();
         expected.Mutate(x => x.Brightness(0F));
 
-        // Both widths produce zero sample rows. Their empty CDF produces zero RGB in bounded pixel storage.
+        // Empty windows have no counts. Uniform windows have no counts left after subtracting their first occupied count.
+        // Both CDFs produce zero RGB in bounded pixel storage. The wide uniform inputs also require repeated row reflection.
         // One byte forces streamed traversal; the normal working-buffer budget retains the complete index cache.
         foreach (int bufferSize in new[] { 1, source.Configuration.WorkingBufferSizeHintInBytes })
         {
@@ -169,6 +173,37 @@ public class HistogramStorageTests(ITestOutputHelper output)
             using Image<RgbaVector> serial = source.Clone();
             serial.Mutate(x => x.ApplyProcessor(processor));
 
+            if (processor is AdaptiveHistogramEqualizationProcessor or AdaptiveHistogramEqualizationSlidingWindowProcessor)
+            {
+                // Adaptive sampling retains the complete image grid. Only output writes are restricted to this odd-origin rectangle.
+                // Compose its expected pixels from full-image processing and unchanged source pixels; do not duplicate histogram calculations.
+                Rectangle bounds = new(3, 5, 121, 117);
+                using Image<RgbaVector> expected = source.Clone();
+                Buffer2DRegion<RgbaVector> processedRegion = serial.Frames.RootFrame.PixelBuffer.GetRegion(bounds);
+                Buffer2DRegion<RgbaVector> expectedRegion = expected.Frames.RootFrame.PixelBuffer.GetRegion(bounds);
+
+                for (int y = 0; y < bounds.Height; y++)
+                {
+                    processedRegion.DangerousGetRowSpan(y).CopyTo(expectedRegion.DangerousGetRowSpan(y));
+                }
+
+                ReadOnlySpan<int> bufferSizes = processor is AdaptiveHistogramEqualizationSlidingWindowProcessor
+                    ? [1, source.Configuration.WorkingBufferSizeHintInBytes]
+                    : [source.Configuration.WorkingBufferSizeHintInBytes];
+
+                foreach (int bufferSize in bufferSizes)
+                {
+                    Configuration rectangleConfiguration = provider.Configuration.Clone();
+                    rectangleConfiguration.WorkingBufferSizeHintInBytes = bufferSize;
+                    rectangleConfiguration.MaxDegreeOfParallelism = 4;
+                    using Image<RgbaVector> rectangle = source.Clone(rectangleConfiguration);
+                    rectangle.Mutate(x => x.ApplyProcessor(processor, bounds));
+
+                    // A complete-image comparison also checks every pixel immediately outside the requested rectangle.
+                    ImageComparer.Exact.VerifySimilarity(expected, rectangle);
+                }
+            }
+
             if (processor is AdaptiveHistogramEqualizationSlidingWindowProcessor)
             {
                 // This budget cannot hold the mapped-row cache. Streamed edges must produce
@@ -180,6 +215,7 @@ public class HistogramStorageTests(ITestOutputHelper output)
                 streamed.Mutate(x => x.ApplyProcessor(processor));
                 ImageComparer.Exact.VerifySimilarity(serial, streamed);
             }
+
             // A 129-pixel image gives uneven intervals. Sliding-window strips can start on odd
             // columns; both traversal directions must match the single-worker result exactly.
             Configuration parallelConfiguration = provider.Configuration.Clone();

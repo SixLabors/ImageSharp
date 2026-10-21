@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -157,7 +156,7 @@ public partial struct Bgra32P : IPixel<Bgra32P>, IPackedVector<uint>
 
     /// <inheritdoc />
     public readonly Rgba32 ToRgba32()
-        => Rgba32.FromScaledVector4(Vector4Converters.AssociatedRgbaCompatible.ToUnassociatedVector4(this.R, this.G, this.B, this.A));
+        => Rgba32.FromScaledVector4(PixelOperations.UnassociateBytes(this.R, this.G, this.B, this.A));
 
     /// <inheritdoc />
     public readonly Vector4 ToScaledVector4() => new Vector4(this.R, this.G, this.B, this.A) / byte.MaxValue;
@@ -167,7 +166,7 @@ public partial struct Bgra32P : IPixel<Bgra32P>, IPackedVector<uint>
     public readonly Vector4 ToUnassociatedScaledVector4()
     {
         // Divide the stored byte magnitudes before normalization so unassociation cannot move an exact byte conversion across its rounding midpoint.
-        return Vector4Converters.AssociatedRgbaCompatible.ToUnassociatedVector4(this.R, this.G, this.B, this.A);
+        return PixelOperations.UnassociateBytes(this.R, this.G, this.B, this.A);
     }
 
     /// <inheritdoc />
@@ -214,14 +213,28 @@ public partial struct Bgra32P : IPixel<Bgra32P>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgra32P FromUnassociatedScaledVector4(Vector4 source)
-        => Vector4Converters.AssociatedRgbaCompatible.FromUnassociatedVector4ToBgra32P(source);
+    {
+        source = PixelOperations.AssociateToByte(source);
+
+        return new Bgra32P(
+            PixelOperations.ConvertToByte(source.X),
+            PixelOperations.ConvertToByte(source.Y),
+            PixelOperations.ConvertToByte(source.Z),
+            PixelOperations.ConvertToByte(source.W));
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgra32P FromAssociatedScaledVector4(Vector4 source)
     {
         // Rescale associated RGB when alpha rounds to a different byte so the stored channels remain associated with the alpha actually written.
-        return Vector4Converters.AssociatedRgbaCompatible.FromAssociatedVector4ToBgra32P(source);
+        source = PixelOperations.ReassociateToByte(source);
+
+        return new Bgra32P(
+            PixelOperations.ConvertToByte(source.X),
+            PixelOperations.ConvertToByte(source.Y),
+            PixelOperations.ConvertToByte(source.Z),
+            PixelOperations.ConvertToByte(source.W));
     }
 
     /// <inheritdoc />

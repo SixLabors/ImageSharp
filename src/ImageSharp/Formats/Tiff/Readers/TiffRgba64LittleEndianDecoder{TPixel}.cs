@@ -33,13 +33,22 @@ internal sealed class TiffRgba64LittleEndianDecoder<TPixel> : TiffBaseColorDecod
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         int rowBytes = width * 8;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, []);
 
         if (!this.associated)
         {
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-                PixelOperations<TPixel>.Instance.FromRgba64Bytes(this.configuration, data.Slice((y - top) * rowBytes, rowBytes), pixelRow, width);
+                ReadOnlySpan<byte> row = data.Slice((y - top) * rowBytes, rowBytes);
+                ReadOnlySpan<Rgba64> samples = MemoryMarshal.Cast<byte, Rgba64>(row);
+
+                if (!this.TryStoreColorPixels(this.configuration, samples, vectors, 0))
+                {
+                    PixelOperations<TPixel>.Instance.FromRgba64Bytes(this.configuration, row, pixelRow, width);
+                }
+
+                this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.Unassociated);
             }
 
             return;
@@ -47,7 +56,7 @@ internal sealed class TiffRgba64LittleEndianDecoder<TPixel> : TiffBaseColorDecod
 
         // Native-order Rgba64 rows feed the associated pixel operation in one pass.
         // Zero-alpha RGB codes remain available to destination alpha conversion.
-        Span<Vector4> vectors = this.GetVectorBuffer(this.configuration.MemoryAllocator, width);
+        vectors = this.GetVectorBuffer(this.configuration.MemoryAllocator, width);
 
         for (int y = top; y < top + height; y++)
         {
@@ -55,7 +64,8 @@ internal sealed class TiffRgba64LittleEndianDecoder<TPixel> : TiffBaseColorDecod
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
             ReadOnlySpan<Rgba64> samples = MemoryMarshal.Cast<byte, Rgba64>(data.Slice(offset, rowBytes));
             PixelOperations<Rgba64>.Instance.ToUnassociatedScaledVector4(this.configuration, samples, vectors);
-            PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, vectors, pixelRow);
+            this.StoreColorVectors(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.Associated);
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.Associated);
         }
     }
 }

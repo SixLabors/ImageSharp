@@ -101,6 +101,8 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
             chromaB = (chromaB >> 8) | (chromaB << 8);
         }
 
+        // L uses unsigned codes over [0,65535] for [0,100]. Chroma uses signed words in units of 1/256.
+        // Widening after the signed reinterpretation preserves negative a and b. Each output lane retains its source pixel.
         c0 = Vector128.ConvertToSingle(Vector128.WidenLower(lightness.ToVector128())) * Vector128.Create(100F) * Vector128.Create(Inv65535);
         c1 = Vector128.ConvertToSingle(Vector128.WidenLower(chromaA.AsInt16().ToVector128())) * Vector128.Create(ChromaScale);
         c2 = Vector128.ConvertToSingle(Vector128.WidenLower(chromaB.AsInt16().ToVector128())) * Vector128.Create(ChromaScale);
@@ -143,6 +145,8 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
             chromaB = (chromaB >> 8) | (chromaB << 8);
         }
 
+        // L uses unsigned codes over [0,65535] for [0,100]. Chroma uses signed words in units of 1/256.
+        // Widening after the signed reinterpretation preserves negative a and b. Each output lane retains its source pixel.
         c0 = Vector256.ConvertToSingle(Vector256.WidenLower(lightness.ToVector256())) * Vector256.Create(100F) * Vector256.Create(Inv65535);
         c1 = Vector256.ConvertToSingle(Vector256.WidenLower(chromaA.AsInt16().ToVector256())) * Vector256.Create(ChromaScale);
         c2 = Vector256.ConvertToSingle(Vector256.WidenLower(chromaB.AsInt16().ToVector256())) * Vector256.Create(ChromaScale);
@@ -185,6 +189,8 @@ internal readonly struct TiffLab16Source : ITiffColorSource<float>
             chromaB = (chromaB >> 8) | (chromaB << 8);
         }
 
+        // L uses unsigned codes over [0,65535] for [0,100]. Chroma uses signed words in units of 1/256.
+        // Widening after the signed reinterpretation preserves negative a and b. Each output lane retains its source pixel.
         c0 = Vector512.ConvertToSingle(Vector512.WidenLower(lightness.ToVector512())) * Vector512.Create(100F) * Vector512.Create(Inv65535);
         c1 = Vector512.ConvertToSingle(Vector512.WidenLower(chromaA.AsInt16().ToVector512())) * Vector512.Create(ChromaScale);
         c2 = Vector512.ConvertToSingle(Vector512.WidenLower(chromaB.AsInt16().ToVector512())) * Vector512.Create(ChromaScale);

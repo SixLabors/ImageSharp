@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 
 /// <summary>
-/// Reads four consecutive packed RGBA32 word groups without a channel transpose.
+/// Reads interleaved RGBA samples with 32 bits per component without a channel transpose.
 /// </summary>
 internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
 {
@@ -72,6 +72,9 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         nuint offset = (uint)index * 4;
+
+        // Keep RGBA interleaved: each register contains 1 complete pixel, and four registers cover 4 pixels.
+        // The packed operator consumes this layout directly, so no transpose is needed.
         Vector128<uint> p0 = Vector128.LoadUnsafe(ref first, offset);
         Vector128<uint> p1 = Vector128.LoadUnsafe(ref first, offset + 4);
         Vector128<uint> p2 = Vector128.LoadUnsafe(ref first, offset + 8);
@@ -85,6 +88,7 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
             p3 = WZYXShuffle4.Invoke(p3.AsByte()).AsUInt32();
         }
 
+        // Reverse bytes before numeric conversion. Convert uint codes to float values; reinterpreting their bits would produce unrelated values.
         c0 = Vector128.ConvertToSingle(p0);
         c1 = Vector128.ConvertToSingle(p1);
         c2 = Vector128.ConvertToSingle(p2);
@@ -105,6 +109,9 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         nuint offset = (uint)index * 4;
+
+        // Keep RGBA interleaved: each register contains 2 complete pixels, and four registers cover 8 pixels.
+        // The packed operator consumes this layout directly, so no transpose is needed.
         Vector256<uint> p0 = Vector256.LoadUnsafe(ref first, offset);
         Vector256<uint> p1 = Vector256.LoadUnsafe(ref first, offset + 8);
         Vector256<uint> p2 = Vector256.LoadUnsafe(ref first, offset + 16);
@@ -118,6 +125,7 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
             p3 = WZYXShuffle4.Invoke(p3.AsByte()).AsUInt32();
         }
 
+        // Reverse bytes before numeric conversion. Convert uint codes to float values; reinterpreting their bits would produce unrelated values.
         c0 = Vector256.ConvertToSingle(p0);
         c1 = Vector256.ConvertToSingle(p1);
         c2 = Vector256.ConvertToSingle(p2);
@@ -138,6 +146,9 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
     {
         ref uint first = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, uint>(source0));
         nuint offset = (uint)index * 4;
+
+        // Keep RGBA interleaved: each register contains 4 complete pixels, and four registers cover 16 pixels.
+        // The packed operator consumes this layout directly, so no transpose is needed.
         Vector512<uint> p0 = Vector512.LoadUnsafe(ref first, offset);
         Vector512<uint> p1 = Vector512.LoadUnsafe(ref first, offset + 16);
         Vector512<uint> p2 = Vector512.LoadUnsafe(ref first, offset + 32);
@@ -151,6 +162,7 @@ internal readonly struct TiffRgba32PackedSource : ITiffColorSource<float>
             p3 = WZYXShuffle4.Invoke(p3.AsByte()).AsUInt32();
         }
 
+        // Reverse bytes before numeric conversion. Convert uint codes to float values; reinterpreting their bits would produce unrelated values.
         c0 = Vector512.ConvertToSingle(p0);
         c1 = Vector512.ConvertToSingle(p1);
         c2 = Vector512.ConvertToSingle(p2);

@@ -9,13 +9,25 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp;
 
 /// <summary>
-/// Represents a color value that is convertible to any <see cref="IPixel{TSelf}"/> type.
+/// Represents a pixel-format-agnostic color value.
 /// </summary>
 /// <remarks>
-/// The internal representation and layout of this structure is hidden by intention.
-/// It's not serializable, and it should not be considered as part of a contract.
-/// Unlike System.Drawing.Color, <see cref="Color"/> has to be converted to a specific pixel value
-/// to query the color components.
+/// <para>
+/// APIs use this type for color parameters, including brush and pen colors, background colors, and padding colors.
+/// The consuming operation converts the color to its destination pixel format.
+/// This allows the same color parameter to work with different image pixel formats.
+/// </para>
+/// <para>
+/// This type does not define a pixel storage format. Its internal representation and layout are not part of the public contract.
+/// Do not serialize or marshal this structure as pixel data.
+/// To query its components, first convert it to a specific pixel format with <see cref="ToPixel{TPixel}()"/>.
+/// </para>
+/// <para>
+/// Pixel-buffer interop and bulk pixel conversion operate on pixel types directly.
+/// <see cref="Image.WrapMemory{TPixel}(Memory{TPixel}, int, int)"/> wraps existing compatible pixel memory without copying the pixel data.
+/// <see cref="PixelOperations{TPixel}.From{TPixelFrom}(Configuration, ReadOnlySpan{TPixelFrom}, Span{TPixel})"/>
+/// converts pixel buffers between pixel formats without converting each pixel through <see cref="Color"/>.
+/// </para>
 /// </remarks>
 public readonly partial struct Color : IEquatable<Color>
 {

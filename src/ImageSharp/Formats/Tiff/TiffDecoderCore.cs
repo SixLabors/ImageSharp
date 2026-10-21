@@ -292,16 +292,6 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
         }
 
-        bool grayscaleOrRgb = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero
-            || this.ColorType is > TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar;
-
-        // JPEG, OldJPEG and WebP already apply ICC conversion.
-        // TIFF applies it here for its own grayscale and RGB decoding.
-        if (!this.UsesNestedDecoder && grayscaleOrRgb)
-        {
-            _ = TryConvertIccProfile(frame);
-        }
-
         return frame;
     }
 
@@ -867,9 +857,16 @@ internal class TiffDecoderCore : ImageDecoderCore
         }
     }
 
+    /// <summary>
+    /// Creates a packed-sample reader and configures its ICC conversion before any destination pixels are packed.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="metadata">The frame metadata with its source ICC profile.</param>
+    /// <returns>The reader owned by the current strip or tile traversal.</returns>
     private TiffBaseColorDecoder<TPixel> CreateChunkyColorDecoder<TPixel>(ImageFrameMetadata metadata)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        TiffColorDecoderFactory<TPixel>.Create(
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        TiffBaseColorDecoder<TPixel> decoder = TiffColorDecoderFactory<TPixel>.Create(
             metadata,
             this.configuration,
             this.memoryAllocator,
@@ -883,9 +880,21 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.CompressionType,
             this.byteOrder);
 
+        this.ConfigureColorConversion(decoder, metadata);
+
+        return decoder;
+    }
+
+    /// <summary>
+    /// Creates a planar-sample reader and configures its ICC conversion before any destination pixels are packed.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="metadata">The frame metadata with its source ICC profile.</param>
+    /// <returns>The reader owned by the current strip or tile traversal.</returns>
     private TiffBasePlanarColorDecoder<TPixel> CreatePlanarColorDecoder<TPixel>(ImageFrameMetadata metadata)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        TiffColorDecoderFactory<TPixel>.CreatePlanar(
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        TiffBasePlanarColorDecoder<TPixel> decoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
             metadata,
             this.configuration,
             this.memoryAllocator,
@@ -897,6 +906,29 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.YcbcrCoefficients,
             this.YcbcrSubSampling,
             this.byteOrder);
+
+        this.ConfigureColorConversion(decoder, metadata);
+
+        return decoder;
+    }
+
+    /// <summary>
+    /// Enables ICC conversion at the ordinary RGB or grayscale reader's floating row boundary.
+    /// </summary>
+    /// <param name="decoder">The reader that owns the reusable conversion rows.</param>
+    /// <param name="metadata">The frame metadata with its source ICC profile.</param>
+    private void ConfigureColorConversion(TiffBaseColorDecoder decoder, ImageFrameMetadata metadata)
+    {
+        bool grayscaleOrRgb = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero
+            || this.ColorType is > TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar;
+
+        // Palette, Lab, CMYK and YCbCr readers convert their native components themselves. Nested codecs also own ICC conversion.
+        // Ordinary RGB and grayscale readers must transform native samples before TPixel can discard precision or color channels.
+        if (!this.UsesNestedDecoder && grayscaleOrRgb)
+        {
+            decoder.ConfigureColorConversion(this.configuration, metadata.IccProfile);
+        }
+    }
 
     private TiffBaseDecompressor CreateDecompressor<TPixel>(
         int frameWidth,

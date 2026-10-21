@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Memory;
@@ -36,6 +37,7 @@ internal sealed class TiffRgb48PlanarDecoder<TPixel> : TiffBasePlanarColorDecode
         // Each plane has one ushort per pixel. Thirty-two pixels fill one 512-bit source register per plane.
         InlineArray32<Rgb48> sourceBuffer = default;
         Span<Rgb48> samples = sourceBuffer;
+        Span<Vector4> vectors = this.GetColorBuffer(this.configuration, width, []);
         ReadOnlySpan<byte> red = data[0].GetSpan();
         ReadOnlySpan<byte> green = data[1].GetSpan();
         ReadOnlySpan<byte> blue = data[2].GetSpan();
@@ -64,8 +66,13 @@ internal sealed class TiffRgb48PlanarDecoder<TPixel> : TiffBasePlanarColorDecode
                     source,
                     store);
 
-                PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, block, pixelRow.Slice(x, count));
+                if (!this.TryStoreColorPixels(this.configuration, (ReadOnlySpan<Rgb48>)block, vectors, x))
+                {
+                    PixelOperations<TPixel>.Instance.FromRgb48(this.configuration, block, pixelRow.Slice(x, count));
+                }
             }
+
+            this.CompleteColorRow(this.configuration, vectors, pixelRow, PixelAlphaRepresentation.None);
 
             rowOffset += width * 2;
         }

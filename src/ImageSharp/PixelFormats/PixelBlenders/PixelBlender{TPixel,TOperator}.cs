@@ -9,14 +9,18 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
 /// <summary>
-/// Applies a statically selected Porter-Duff equation across pixel-vector rows.
+/// Blends pixels using the selected color blending and alpha composition operator.
 /// </summary>
 /// <typeparam name="TPixel">The destination pixel format.</typeparam>
-/// <typeparam name="TOperator">The Porter-Duff equation.</typeparam>
+/// <typeparam name="TOperator">The color blending and alpha composition operator.</typeparam>
 internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
     where TOperator : struct, IPixelBlenderOperator
 {
+    // This type owns SIMD traversal and connects the operator to pixel conversion. The base class manages row buffers.
+    // The operator owns composition arithmetic and declares its required alpha representation.
+    // PixelOperations owns format-specific conversion and bulk optimizations. Pixel formats own rounding and storage layout.
+
     /// <summary>
     /// Initializes a new instance of the <see cref="PixelBlender{TPixel, TOperator}"/> class.
     /// </summary>
@@ -56,6 +60,8 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
         ReadOnlySpan<TPixelSource> source,
         Span<Vector4> destination)
     {
+        // The operator selects the required alpha representation. The input format's PixelOperations
+        // owns conversion and its bulk optimizations, including overrides for formats different from TPixel.
         if (TOperator.IsAssociatedAlpha)
         {
             PixelOperations<TPixelSource>.Instance.ToAssociatedScaledVector4(configuration, source, destination);
@@ -78,6 +84,8 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
         Span<Vector4> source,
         Span<TPixel> destination)
     {
+        // Destination PixelOperations owns conversion and alpha handling. The destination pixel format
+        // owns rounding and storage layout; the composition operator does not pack pixels.
         if (TOperator.IsAssociatedAlpha)
         {
             PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(configuration, source, destination);
@@ -192,7 +200,7 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     /// <inheritdoc />
     protected sealed override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
     {
-        // Each amount belongs to one pixel and must be repeated across that pixel's four RGBA lanes.
+        // Each amount belongs to one pixel and must be repeated across that pixel's four components.
         int scalarStart = 0;
 
         ref Vector4 destinationRef = ref MemoryMarshal.GetReference(destination);
@@ -583,18 +591,18 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     }
 
     /// <summary>
-    /// Repeats one RGBA pixel twice to fill a 256-bit register.
+    /// Repeats one pixel vector twice to fill a 256-bit register.
     /// </summary>
-    /// <param name="pixel">The pixel represented by ordered RGBA lanes.</param>
+    /// <param name="pixel">The pixel vector.</param>
     /// <returns>Two consecutive copies of the pixel.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<float> CreateVector256(Vector4 pixel)
         => Vector256.Create(pixel.X, pixel.Y, pixel.Z, pixel.W, pixel.X, pixel.Y, pixel.Z, pixel.W);
 
     /// <summary>
-    /// Repeats one RGBA pixel four times to fill a 512-bit register.
+    /// Repeats one pixel vector four times to fill a 512-bit register.
     /// </summary>
-    /// <param name="pixel">The pixel represented by ordered RGBA lanes.</param>
+    /// <param name="pixel">The pixel vector.</param>
     /// <returns>Four consecutive copies of the pixel.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<float> CreateVector512(Vector4 pixel)

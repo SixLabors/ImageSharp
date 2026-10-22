@@ -544,8 +544,8 @@ internal static class HeifPlanarColorConverter
                     componentLength += (this.chromaWidth * 2) + (this.reconstructCompleteRow ? this.bufferWidth : 0);
                 }
 
-                // ICC rows hold one RGBA vector per pixel and the packed RGB that the profile converts. Opaque eight-bit
-                // rows pack bytes into one float of storage per pixel. Other rows use one RGBA vector per pixel for
+                // ICC rows hold one pixel vector per pixel and the packed RGB that the profile converts. Opaque eight-bit
+                // rows pack bytes into one float of storage per pixel. Other rows use one pixel vector per pixel for
                 // reoriented output.
                 int packedRowCount = this.profileConverter is not null ? 7 : this.UsesBytePacking && this.alpha is null ? 1 : 4;
                 return componentLength + (this.width * packedRowCount);

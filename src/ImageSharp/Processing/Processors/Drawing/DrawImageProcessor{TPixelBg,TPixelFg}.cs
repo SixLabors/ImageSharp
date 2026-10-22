@@ -57,7 +57,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         this.ForegroundImage = foregroundImage;
         this.ForegroundRectangle = foregroundRectangle;
         this.Opacity = opacity;
-        this.Blender = PixelOperations<TPixelBg>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
+        this.Blender = PixelBlenders<TPixelBg>.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
         this.BackgroundLocation = backgroundLocation;
         this.ForegroundRepeatCount = foregroundRepeatCount;
     }

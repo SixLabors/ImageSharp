@@ -161,7 +161,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                 {
                     // TIFF's Clear option sets RGB to zero where input alpha is zero. JPEG stores no alpha.
                     // Use the row buffer so this operation does not change the source frame.
-                    // The RGB planes, straight RGBA vectors and packed Rgb24 bytes occupy separate slices of that buffer.
+                    // The RGB planes, straight pixel vectors and packed Rgb24 bytes occupy separate slices of that buffer.
                     Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(buffer.Slice(this.alignedPixelWidth * 3, this.alignedPixelWidth * 4));
                     Span<Rgb24> packed = MemoryMarshal.Cast<float, Rgb24>(buffer[(this.alignedPixelWidth * 7)..])[..sourceRow.Length];
                     PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, vectors);

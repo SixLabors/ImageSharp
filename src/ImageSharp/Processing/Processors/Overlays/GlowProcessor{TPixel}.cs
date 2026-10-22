@@ -31,7 +31,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
         : base(configuration, source, sourceRectangle)
     {
         this.definition = definition;
-        this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(definition.GraphicsOptions);
+        this.blender = PixelBlenders<TPixel>.GetPixelBlender(definition.GraphicsOptions);
     }
 
     /// <inheritdoc/>

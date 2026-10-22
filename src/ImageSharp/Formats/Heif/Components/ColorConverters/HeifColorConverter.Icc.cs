@@ -26,7 +26,7 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="alpha">The normalized alpha row, or an empty span for opaque pixels.</param>
     /// <param name="premultiplied">Whether the color components are associated with <paramref name="alpha"/>.</param>
     /// <param name="profileConverter">The converter from the embedded ICC profile to sRGB.</param>
-    /// <param name="vectors">The destination RGBA vectors.</param>
+    /// <param name="vectors">The destination pixel vectors.</param>
     /// <param name="rgbSpan">RGB storage of the same length as <paramref name="vectors"/> for the profile transform.</param>
     public abstract void ConvertToRgb(
         Span<float> component0,

@@ -334,7 +334,7 @@ public class PixelBlenderTests
     public void ReturnsCorrectBlender<TPixel>(TestPixel<TPixel> pixel, Type type, PixelColorBlendingMode mode)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(mode, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<TPixel> blender = PixelBlenders<TPixel>.GetPixelBlender(mode, PixelAlphaCompositionMode.SrcOver);
         Assert.IsType(type, blender);
     }
 
@@ -342,7 +342,7 @@ public class PixelBlenderTests
     [MemberData(nameof(BlenderModeMappings))]
     public void ReturnsCorrectBlenderForAllModeCombinations(PixelColorBlendingMode colorMode, PixelAlphaCompositionMode alphaMode, Type type)
     {
-        PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(colorMode, alphaMode);
+        PixelBlender<Rgba32> blender = PixelBlenders<Rgba32>.GetPixelBlender(colorMode, alphaMode);
         Assert.IsType(type, blender);
     }
 
@@ -372,8 +372,8 @@ public class PixelBlenderTests
     {
         Rgba32 background = new(220, 80, 40, 160);
         Rgba32 source = new(20, 180, 120, 96);
-        PixelBlender<Rgba32> straightBlender = PixelOperations<Rgba32>.Instance.GetPixelBlender(colorMode, PixelAlphaCompositionMode.SrcOver);
-        PixelBlender<Rgba32P> associatedBlender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(colorMode, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32> straightBlender = PixelBlenders<Rgba32>.GetPixelBlender(colorMode, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32P> associatedBlender = PixelBlenders<Rgba32P>.GetPixelBlender(colorMode, PixelAlphaCompositionMode.SrcOver);
 
         Rgba32 straightResult = straightBlender.Blend(background, source, .625F);
         Rgba32P expected = Rgba32P.FromRgba32(straightResult);
@@ -391,8 +391,8 @@ public class PixelBlenderTests
     {
         Rgba32 background = new(220, 80, 40, 160);
         Rgba32 source = new(20, 180, 120, 96);
-        PixelBlender<Rgba32> straightBlender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Plus);
-        PixelBlender<Rgba32P> associatedBlender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Plus);
+        PixelBlender<Rgba32> straightBlender = PixelBlenders<Rgba32>.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Plus);
+        PixelBlender<Rgba32P> associatedBlender = PixelBlenders<Rgba32P>.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Plus);
 
         Rgba32P expected = Rgba32P.FromRgba32(straightBlender.Blend(background, source, .625F));
         Rgba32P actual = associatedBlender.Blend(Rgba32P.FromRgba32(background), Rgba32P.FromRgba32(source), .625F);
@@ -413,7 +413,7 @@ public class PixelBlenderTests
     {
         Rgba32P background = Rgba32P.FromRgba32(new Rgba32(220, 80, 40, 160));
         Rgba32P source = Rgba32P.FromRgba32(new Rgba32(20, 180, 120, 96));
-        PixelBlender<Rgba32P> blender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(PixelColorBlendingMode.HardLight, PixelAlphaCompositionMode.DestAtop);
+        PixelBlender<Rgba32P> blender = PixelBlenders<Rgba32P>.GetPixelBlender(PixelColorBlendingMode.HardLight, PixelAlphaCompositionMode.DestAtop);
 
         Assert.Equal(new Rgba32P(30, 33, 16, 60), blender.Blend(background, source, .625F));
     }
@@ -432,7 +432,7 @@ public class PixelBlenderTests
 
     private static void RunAssociatedBlendWithCoverageAppliesCoverageToColorAndAlpha()
     {
-        PixelBlender<Rgba32P> blender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32P> blender = PixelBlenders<Rgba32P>.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
         Rgba32P source = Rgba32P.FromRgba32(new Rgba32(37, 211, 89, 173));
         Vector4 sourceScaled = source.ToScaledVector4();
 
@@ -470,8 +470,8 @@ public class PixelBlenderTests
 
     private static void RunBlendWithCoverageMatchesAcrossAlphaRepresentations()
     {
-        PixelBlender<Rgba32> straightBlender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-        PixelBlender<Rgba32P> associatedBlender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32> straightBlender = PixelBlenders<Rgba32>.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32P> associatedBlender = PixelBlenders<Rgba32P>.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
 
         Rgba32[] background =
         [
@@ -845,7 +845,7 @@ public class PixelBlenderTests
     [MemberData(nameof(ColorBlendingExpectedResults))]
     public void TestColorBlendingModes(Rgba32 backdrop, Rgba32 source, float opacity, PixelColorBlendingMode mode, Rgba32 expectedResult)
     {
-        PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(mode, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32> blender = PixelBlenders<Rgba32>.GetPixelBlender(mode, PixelAlphaCompositionMode.SrcOver);
         Rgba32 actualResult = blender.Blend(backdrop, source, opacity);
 
         // var str = actualResult.Rgba.ToString("X8"); // used to extract expectedResults
@@ -874,7 +874,7 @@ public class PixelBlenderTests
     [MemberData(nameof(AlphaCompositionExpectedResults))]
     public void TestAlphaCompositionModes(Rgba32 backdrop, Rgba32 source, float opacity, PixelAlphaCompositionMode mode, Rgba32 expectedResult)
     {
-        PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, mode);
+        PixelBlender<Rgba32> blender = PixelBlenders<Rgba32>.GetPixelBlender(PixelColorBlendingMode.Normal, mode);
 
         Rgba32 actualResult = blender.Blend(backdrop, source, opacity);
 
@@ -930,7 +930,7 @@ public class PixelBlenderTests
         {
             foreach (PixelColorBlendingMode colorMode in Enum.GetValues<PixelColorBlendingMode>())
             {
-                PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(colorMode, alphaMode);
+                PixelBlender<Rgba32> blender = PixelBlenders<Rgba32>.GetPixelBlender(colorMode, alphaMode);
                 ExerciseBlender(blender);
             }
         }
@@ -960,7 +960,7 @@ public class PixelBlenderTests
         {
             foreach (PixelColorBlendingMode colorMode in Enum.GetValues<PixelColorBlendingMode>())
             {
-                PixelBlender<Rgba32P> blender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(colorMode, alphaMode);
+                PixelBlender<Rgba32P> blender = PixelBlenders<Rgba32P>.GetPixelBlender(colorMode, alphaMode);
                 AssertAssociatedBlenderMatchesScalar(blender, background, source, colorMode, alphaMode);
             }
         }

@@ -157,6 +157,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>RgbaVector.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelBlenders{TPixel}.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PixelBlenders{TPixel}.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -262,6 +267,10 @@
     </None>
     <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
       <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders{TPixel}.Generated.tt">
+      <LastGenOutput>PixelBlenders{TPixel}.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">

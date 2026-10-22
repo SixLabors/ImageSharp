@@ -16,7 +16,6 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </summary>
 /// <remarks>
 /// Default bulk conversions follow the scalar pixel API. Native vector methods select the format's declared alpha representation.
-/// Storage-family implementations override these defaults to share optimized packing and SIMD traversal.
 /// Bulk vector conversions follow the corresponding <see cref="IPixel{TSelf}"/> scalar conversion rules.
 /// Integer destinations clamp components and map NaN to the lower endpoint of their numeric range.
 /// Floating-point color conversions bound RGB to [-65504,65504] and alpha to [0,1]. Native vector conversions retain IEEE special values.
@@ -26,6 +25,11 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public partial class PixelOperations<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
+    // PixelOperations owns pixel-format conversion rules and bulk optimizations, including those used by shared blenders.
+    // Storage-family overrides share optimized packing and SIMD traversal. Pixel formats own rounding and storage layout.
+    // PixelBlenders selects composition equations; PixelBlender applies them through these same conversion APIs.
+    // Keeping selection outside PixelOperations prevents pixel conversion from referencing unrelated blend equations.
+
     /// <summary>
     /// Gets the shared <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>.
     /// </summary>

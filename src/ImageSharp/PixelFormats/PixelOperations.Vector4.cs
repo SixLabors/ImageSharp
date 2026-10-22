@@ -195,7 +195,7 @@ internal static partial class PixelOperations
     /// <summary>
     /// Multiplies each RGBA component and adds its offset with the runtime multiply-add estimate.
     /// </summary>
-    /// <param name="vectors">The RGBA vectors to update in place.</param>
+    /// <param name="vectors">The pixel vectors to update in place.</param>
     /// <param name="multiplier">The component multipliers.</param>
     /// <param name="offset">The component offsets.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
@@ -261,7 +261,7 @@ internal static partial class PixelOperations
     /// <summary>
     /// Adds each component offset, then divides by its divisor.
     /// </summary>
-    /// <param name="vectors">The RGBA vectors to update in place.</param>
+    /// <param name="vectors">The pixel vectors to update in place.</param>
     /// <param name="offset">The component offsets.</param>
     /// <param name="divisor">The component divisors.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
@@ -327,7 +327,7 @@ internal static partial class PixelOperations
     /// <summary>
     /// Bounds normalized RGB and alpha while writing the destination.
     /// </summary>
-    /// <param name="source">The source RGBA vectors.</param>
+    /// <param name="source">The source pixel vectors.</param>
     /// <param name="destination">Caller-owned storage with at least the source length.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
     public static void ClampToPixelRange(ReadOnlySpan<Vector4> source, Span<Vector4> destination)
@@ -381,7 +381,7 @@ internal static partial class PixelOperations
     /// <summary>
     /// Bounds normalized components and associates RGB while writing the destination.
     /// </summary>
-    /// <param name="source">The source RGBA vectors.</param>
+    /// <param name="source">The source pixel vectors.</param>
     /// <param name="destination">Caller-owned storage with at least the source length.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
     public static void Associate(ReadOnlySpan<Vector4> source, Span<Vector4> destination)
@@ -435,7 +435,7 @@ internal static partial class PixelOperations
     /// <summary>
     /// Restores straight RGB and bounds the normalized result while writing the destination.
     /// </summary>
-    /// <param name="source">The source RGBA vectors.</param>
+    /// <param name="source">The source pixel vectors.</param>
     /// <param name="destination">Caller-owned storage with at least the source length.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
     public static void UnPremultiply(ReadOnlySpan<Vector4> source, Span<Vector4> destination)
@@ -489,7 +489,7 @@ internal static partial class PixelOperations
     /// <summary>
     /// Restores straight RGB before the destination packer applies its component bounds.
     /// </summary>
-    /// <param name="vectors">The RGBA vectors to update in place.</param>
+    /// <param name="vectors">The pixel vectors to update in place.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
     public static void UnPremultiplyForPacking(Span<Vector4> vectors)
     {

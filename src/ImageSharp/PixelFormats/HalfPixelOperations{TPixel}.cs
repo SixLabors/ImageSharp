@@ -222,7 +222,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
     }
 
     /// <summary>
-    /// Expands stored half-precision components to native RGBA vectors with the requested alpha representation.
+    /// Expands stored half-precision components to native pixel vectors with the requested alpha representation.
     /// </summary>
     /// <param name="source">The stored R, RG, or RGBA components.</param>
     /// <param name="destination">Caller-owned storage for four output components per pixel.</param>
@@ -237,7 +237,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
         => UnpackRgba(source, destination, sourceAlpha, destinationAlpha, false);
 
     /// <summary>
-    /// Expands stored half-precision components to normalized RGBA vectors with the requested alpha representation.
+    /// Expands stored half-precision components to normalized pixel vectors with the requested alpha representation.
     /// </summary>
     /// <param name="source">The stored R, RG, or RGBA components.</param>
     /// <param name="destination">Caller-owned destination storage.</param>
@@ -252,7 +252,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
         => UnpackRgba(source, MemoryMarshal.Cast<Vector4, float>(destination), sourceAlpha, destinationAlpha, true);
 
     /// <summary>
-    /// Expands stored half-precision pixels to RGBA vectors in one pass with no intermediate row.
+    /// Expands stored half-precision pixels to pixel vectors in one pass with no intermediate row.
     /// </summary>
     /// <param name="source">The stored R, RG, or RGBA components.</param>
     /// <param name="destination">Four output components per source pixel.</param>
@@ -356,7 +356,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
     }
 
     /// <summary>
-    /// Packs native RGBA vectors into half-precision pixel storage with the requested alpha representation.
+    /// Packs native pixel vectors into half-precision pixel storage with the requested alpha representation.
     /// </summary>
     /// <param name="source">The source components in RGBA order.</param>
     /// <param name="destination">Caller-owned R, RG, or RGBA storage.</param>
@@ -371,7 +371,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
         => PackRgba(source, destination, sourceAlpha, destinationAlpha, false);
 
     /// <summary>
-    /// Packs normalized RGBA vectors into half-precision pixel storage with the requested alpha representation.
+    /// Packs normalized pixel vectors into half-precision pixel storage with the requested alpha representation.
     /// </summary>
     /// <param name="source">The source components in RGBA order.</param>
     /// <param name="destination">Caller-owned R, RG, or RGBA storage.</param>

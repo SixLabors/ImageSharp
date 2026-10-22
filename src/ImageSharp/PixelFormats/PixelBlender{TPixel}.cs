@@ -8,12 +8,16 @@ using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Abstract base class for calling pixel composition functions
+/// Defines operations that blend pixels and pixel rows.
 /// </summary>
-/// <typeparam name="TPixel">The type of the pixel</typeparam>
+/// <typeparam name="TPixel">The destination pixel format.</typeparam>
 public abstract class PixelBlender<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
+    // PixelBlenders selects shared implementations of this type. This base class manages row buffers and composition calls.
+    // Shared implementations supply composition arithmetic and select the alpha representation required by each equation.
+    // PixelOperations owns pixel-buffer conversion, including format-specific overrides. Pixel formats own rounding and storage layout.
+
     /// <summary>
     /// Blend 2 pixels together.
     /// </summary>
@@ -718,7 +722,10 @@ public abstract class PixelBlender<TPixel>
         ReadOnlySpan<TPixelSource> source,
         Span<Vector4> destination)
         where TPixelSource : unmanaged, IPixel<TPixelSource>
-        => PixelOperations<TPixelSource>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
+    {
+        // The input format's PixelOperations owns conversion rules and bulk optimizations, including format-specific overrides.
+        PixelOperations<TPixelSource>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
+    }
 
     /// <summary>
     /// Converts a source pixel to the vector representation consumed by the blend functions.
@@ -738,7 +745,10 @@ public abstract class PixelBlender<TPixel>
         Configuration configuration,
         Span<Vector4> source,
         Span<TPixel> destination)
-        => PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
+    {
+        // Destination PixelOperations owns conversion and alpha handling. The pixel format owns rounding and storage layout.
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
+    }
 
     /// <summary>
     /// Blend 2 rows together.

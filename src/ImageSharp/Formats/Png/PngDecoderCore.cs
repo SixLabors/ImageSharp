@@ -1207,8 +1207,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (blend)
             {
-                PixelBlender<TPixel> blender =
-                    PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+                PixelBlender<TPixel> blender = PixelBlenders<TPixel>.NormalSrcOver;
+
                 blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
@@ -1329,8 +1329,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (blend)
             {
-                PixelBlender<TPixel> blender =
-                    PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+                PixelBlender<TPixel> blender = PixelBlenders<TPixel>.NormalSrcOver;
+
                 blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }

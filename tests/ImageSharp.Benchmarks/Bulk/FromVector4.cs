@@ -65,7 +65,7 @@ public abstract class FromVector4<TPixel>
 public class FromVector4Rgba32 : FromVector4<Rgba32>
 {
     /// <summary>
-    /// Measures the raw SIMD kernel that converts normalized RGBA vector components to bytes.
+    /// Measures the raw SIMD kernel that converts normalized pixel vector components to bytes.
     /// </summary>
     [Benchmark]
     public void UseHwIntrinsics()

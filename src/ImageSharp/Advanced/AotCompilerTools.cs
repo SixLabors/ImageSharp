@@ -176,8 +176,8 @@ internal static class AotCompilerTools
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         _ = operations.GetPixelTypeInfo();
-        _ = operations.GetPixelBlender(default);
-        _ = operations.GetPixelBlender(default, default);
+        _ = PixelBlenders<TPixel>.GetPixelBlender(default);
+        _ = PixelBlenders<TPixel>.GetPixelBlender(default, default);
         operations.FromVector4Destructive(default, default, default);
         operations.ToVector4(default, default, default);
         operations.FromScaledVector4Destructive(default, default, default);

@@ -4932,7 +4932,7 @@ internal static class AssociatedAlphaPixelBlenderOperators
 /// Provides associated-alpha pixel blenders for each color and alpha composition pair.
 /// </summary>
 /// <typeparam name="TPixel">The associated-alpha destination pixel format.</typeparam>
-internal static partial class AssociatedAlphaPixelBlenders<TPixel>
+internal static class AssociatedAlphaPixelBlenders<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>

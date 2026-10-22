@@ -84,7 +84,7 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
     }
 
     /// <summary>
-    /// Converts complete RGBA vectors to RGB or RGBA words in one pass without temporary storage.
+    /// Converts complete pixel vectors to RGB or RGBA words in one pass without temporary storage.
     /// </summary>
     /// <param name="source">The normalized input vectors.</param>
     /// <param name="destination">Storage for at least the source pixel count.</param>
@@ -189,7 +189,7 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
     }
 
     /// <summary>
-    /// Expands packed RGB words to RGBA vectors with opaque alpha.
+    /// Expands packed RGB words to pixel vectors with opaque alpha.
     /// </summary>
     /// <param name="configuration">The conversion configuration.</param>
     /// <param name="source">The RGB48-layout pixels.</param>
@@ -209,7 +209,7 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
             nuint groups = (source.Length - i).Vector512Count<float>();
             Vector512<float> maximum = Vector512.Create((float)ushort.MaxValue);
 
-            // Each register holds one component from 16 pixels. Divide before adding opaque alpha, then pack complete RGBA vectors.
+            // Each register holds one component from 16 pixels. Divide before adding opaque alpha, then pack complete pixel vectors.
             for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector256<ushort> r, out Vector256<ushort> g, out Vector256<ushort> b);
@@ -225,7 +225,7 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
             nuint groups = (source.Length - i).Vector256Count<float>();
             Vector256<float> maximum = Vector256.Create((float)ushort.MaxValue);
 
-            // Each register holds one component from 8 pixels. Divide before adding opaque alpha, then pack complete RGBA vectors.
+            // Each register holds one component from 8 pixels. Divide before adding opaque alpha, then pack complete pixel vectors.
             for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector128<ushort> r, out Vector128<ushort> g, out Vector128<ushort> b);
@@ -241,7 +241,7 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
             nuint groups = (source.Length - i).Vector128Count<float>();
             Vector128<float> maximum = Vector128.Create((float)ushort.MaxValue);
 
-            // Each register holds one component from 4 pixels. Divide before adding opaque alpha, then pack complete RGBA vectors.
+            // Each register holds one component from 4 pixels. Divide before adding opaque alpha, then pack complete pixel vectors.
             for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
             {
                 SimdUtils.Deinterleave3(packed, i, out Vector64<ushort> r, out Vector64<ushort> g, out Vector64<ushort> b);

@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 
 /// <summary>
-/// Interleaves four floating component lanes into scaled RGBA vectors.
+/// Interleaves four floating component lanes into scaled pixel vectors.
 /// </summary>
 internal readonly struct TiffVector4Store : ITiffColorStore<float, Vector4>
 {

@@ -10,9 +10,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 
 internal class TiffJpegCompressor : TiffBaseCompressor
 {
-    public TiffJpegCompressor(Stream output, MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
-        : base(output, memoryAllocator, width, bitsPerPixel, predictor)
+    /// <summary>
+    /// The configuration used to create the embedded JPEG image.
+    /// </summary>
+    private readonly Configuration configuration;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TiffJpegCompressor"/> class.
+    /// </summary>
+    /// <param name="output">The TIFF output stream.</param>
+    /// <param name="configuration">The configuration used by the TIFF encoder.</param>
+    /// <param name="width">The strip width in pixels.</param>
+    /// <param name="bitsPerPixel">The stored bits per pixel.</param>
+    /// <param name="predictor">The horizontal predictor.</param>
+    public TiffJpegCompressor(Stream output, Configuration configuration, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
+        : base(output, configuration.MemoryAllocator, width, bitsPerPixel, predictor)
     {
+        this.configuration = configuration;
     }
 
     /// <inheritdoc/>
@@ -30,7 +44,10 @@ internal class TiffJpegCompressor : TiffBaseCompressor
         int width = pixelCount / height;
 
         using MemoryStream memoryStream = new();
-        Image<Rgb24> image = Image.LoadPixelData<Rgb24>(rows, width, height);
+
+        // The embedded image uses the caller's allocator and must not initialize the default codec registry.
+        using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(this.configuration, rows, width, height);
+
         image.Save(memoryStream, new JpegEncoder()
         {
             ColorType = JpegColorType.Rgb

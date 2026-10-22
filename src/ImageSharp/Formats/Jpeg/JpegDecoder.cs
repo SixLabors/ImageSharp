@@ -25,7 +25,7 @@ public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        using JpegDecoderCore decoder = new(new JpegDecoderOptions { GeneralOptions = options });
+        using JpegDecoderCore decoder = new(new JpegDecoderOptions(options));
         return decoder.Identify(options.Configuration, stream, cancellationToken);
     }
 
@@ -52,5 +52,5 @@ public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
 
     /// <inheritdoc/>
     protected override JpegDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-        => new() { GeneralOptions = options };
+        => new(options);
 }

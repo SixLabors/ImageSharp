@@ -239,7 +239,7 @@ internal sealed class TiffEncoderCore
         using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
             compression,
             writer.BaseStream,
-            this.memoryAllocator,
+            this.configuration,
             width,
             colorWriter.BitsPerPixel,
             this.compressionLevel,

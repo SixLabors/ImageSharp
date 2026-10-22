@@ -78,11 +78,11 @@ public class AniDecoderTests
         BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(sequenceOffset + AniConstants.ChunkHeaderSize), uint.MaxValue);
 
         using MemoryStream strictStream = new(data, false);
-        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
 
         using MemoryStream ignoreStream = new(data, false);
-        DecoderOptions ignore = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
         using Image<Rgba32> image = AniDecoder.Instance.Decode<Rgba32>(ignore, ignoreStream);
 
         Assert.Equal(3, image.Frames.Count);
@@ -102,11 +102,11 @@ public class AniDecoderTests
         BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(iconTypeOffset), ushort.MaxValue);
 
         using MemoryStream strictStream = new(data, false);
-        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
 
         using MemoryStream ignoreStream = new(data, false);
-        DecoderOptions ignore = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
         using Image<Rgba32> image = AniDecoder.Instance.Decode<Rgba32>(ignore, ignoreStream);
 
         Assert.Equal(16, image.Frames.Count);
@@ -142,7 +142,7 @@ public class AniDecoderTests
         }
 
         using MemoryStream strictStream = new(data, false);
-        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
     }
 
@@ -172,7 +172,7 @@ public class AniDecoderTests
         Assert.Equal(4, image.Frames.Count);
 
         using MemoryStream strictStream = new(data, false);
-        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
     }
 
@@ -204,7 +204,7 @@ public class AniDecoderTests
         Assert.Equal(4, image.Frames.Count);
 
         using MemoryStream strictStream = new(data, false);
-        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
     }
 }

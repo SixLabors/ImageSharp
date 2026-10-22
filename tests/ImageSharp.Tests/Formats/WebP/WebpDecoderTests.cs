@@ -396,7 +396,7 @@ public class WebpDecoderTests
     public void Decode_AnimatedLossless_WithFrameDecodingModeFirst_OnlyDecodesOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -406,14 +406,13 @@ public class WebpDecoderTests
     public void Decode_AnimatedLossy_IgnoreBackgroundColor_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        WebpDecoderOptions options = new()
-        {
-            BackgroundColorHandling = BackgroundColorHandling.Ignore,
-            GeneralOptions = new DecoderOptions
+        WebpDecoderOptions options = new(new DecoderOptions(Configuration.Default)
             {
                 MaxFrames = 1
-            }
-        };
+            })
+{
+            BackgroundColorHandling = BackgroundColorHandling.Ignore
+};
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
@@ -446,7 +445,7 @@ public class WebpDecoderTests
     public void WebpDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };
@@ -520,7 +519,7 @@ public class WebpDecoderTests
         // Web
         using Image<TPixel> image = provider.GetImage(
             WebpDecoder.Instance,
-            new WebpDecoderOptions { BackgroundColorHandling = BackgroundColorHandling.Ignore });
+            new WebpDecoderOptions(new DecoderOptions(provider.Configuration)) { BackgroundColorHandling = BackgroundColorHandling.Ignore });
 
         // We can't use the reference decoder here.
         // It creates frames of different size without blending the frames.
@@ -645,7 +644,9 @@ public class WebpDecoderTests
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
     where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+        using Image<TPixel> image = provider.GetImage(
+            WebpDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);

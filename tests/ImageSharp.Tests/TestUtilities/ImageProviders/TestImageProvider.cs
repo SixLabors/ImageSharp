@@ -87,10 +87,10 @@ public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IX
     public abstract Image<TPixel> GetImage();
 
     public Image<TPixel> GetImage(IImageDecoder decoder)
-        => this.GetImage(decoder, new DecoderOptions());
+        => this.GetImage(decoder, new DecoderOptions(this.Configuration));
 
     public Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
-         => this.GetImageAsync(decoder, new DecoderOptions());
+         => this.GetImageAsync(decoder, new DecoderOptions(this.Configuration));
 
     public virtual Image<TPixel> GetImage(IImageDecoder decoder, DecoderOptions options)
         => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
@@ -99,11 +99,11 @@ public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IX
         => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
     public virtual Image<TPixel> GetImage<T>(ISpecializedImageDecoder<T> decoder, T options)
-        where T : class, ISpecializedDecoderOptions, new()
+        where T : class, ISpecializedDecoderOptions
         => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
 
     public virtual Task<Image<TPixel>> GetImageAsync<T>(ISpecializedImageDecoder<T> decoder, T options)
-        where T : class, ISpecializedDecoderOptions, new()
+        where T : class, ISpecializedDecoderOptions
         => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
     /// <summary>

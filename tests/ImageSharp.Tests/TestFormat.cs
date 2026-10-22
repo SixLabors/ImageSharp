@@ -213,7 +213,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         }
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-            => new() { GeneralOptions = options };
+            => new(options);
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
@@ -238,7 +238,17 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public class TestDecoderOptions : ISpecializedDecoderOptions
     {
-        public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestDecoderOptions"/> class.
+        /// </summary>
+        /// <param name="generalOptions">The general options supplied to the test decoder.</param>
+        public TestDecoderOptions(DecoderOptions generalOptions)
+        {
+            this.GeneralOptions = generalOptions;
+        }
+
+        /// <inheritdoc/>
+        public DecoderOptions GeneralOptions { get; }
     }
 
     public class TestEncoder : IImageEncoder

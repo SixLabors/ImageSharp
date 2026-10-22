@@ -496,7 +496,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+        using Image<TPixel> image = provider.GetImage(
+            TiffDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
 
@@ -513,7 +515,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Icc.PerceptualRgb16, PixelTypes.RgbaVector)]
     public void Decode_IccProfile_PacksDestinationAfterConversion(TestImageProvider<RgbaVector> provider)
     {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<RgbaVector> precise = provider.GetImage(TiffDecoder.Instance, options);
 
         // Keep the decoded component precision through ICC, then apply the existing final byte conversion once.
@@ -535,7 +537,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_CmykIcc_Issue3198<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         image.DebugSave(provider);
 
@@ -560,10 +562,10 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(TiffDecoder.Instance, preserveOptions);
 
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<TPixel> converted = provider.GetImage(TiffDecoder.Instance, convertOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
@@ -668,7 +670,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_YccK_ICC<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             ColorProfileHandling = ColorProfileHandling.Convert,
         };
@@ -954,7 +956,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -990,7 +992,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions decoderOptions = new()
+        DecoderOptions decoderOptions = new(Configuration.Default)
         {
             MaxFrames = 1
         };
@@ -1032,7 +1034,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_WebpIcc_ConvertsOnce<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
 
         // libtiff recompressed Perceptual_RGB8 losslessly, retaining its source RGB samples and IFD profile.
@@ -1067,7 +1069,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // Change only the layout tag from a real fixture to test rejection of the layout that libtiff's WebP codec excludes.
         tags.SetValue(ExifTag.PlanarConfiguration, (ushort)TiffPlanarConfiguration.Planar);
         TiffFrameMetadata metadata = TiffFrameMetadata.Parse(tags);
-        TiffDecoderCore decoder = new(new DecoderOptions());
+        TiffDecoderCore decoder = new(new DecoderOptions(Configuration.Default));
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => decoder.VerifyAndParse(tags, metadata));
         Assert.Equal("WebP compression is not supported with planar configuration", exception.Message);
@@ -1167,7 +1169,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };
@@ -1230,7 +1232,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Fact]
     public void Identify_MalformedIccProfile_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
 
         Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, data));
@@ -1242,7 +1244,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Fact]
     public void Decode_MalformedIccProfile_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
 
         Assert.Throws<InvalidIccProfileException>(() =>

@@ -64,10 +64,7 @@ public class LargeImageIntegrationTests
                 temp.Save(path, encoder);
             }
 
-            DecoderOptions options = new()
-            {
-                Configuration = configuration
-            };
+            DecoderOptions options = new(configuration);
 
             using Image<Rgba32> image = Image.Load<Rgba32>(options, path);
             File.Delete(path);

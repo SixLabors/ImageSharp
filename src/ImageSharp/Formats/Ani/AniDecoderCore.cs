@@ -700,9 +700,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         {
             AniFrameFormat.Ico => new IcoDecoderCore(options).Decode<TPixel>(options.Configuration, stream, cancellationToken),
             AniFrameFormat.Cur => new CurDecoderCore(options).Decode<TPixel>(options.Configuration, stream, cancellationToken),
-            AniFrameFormat.Bmp => new BmpDecoderCore(new BmpDecoderOptions
+            AniFrameFormat.Bmp => new BmpDecoderCore(new BmpDecoderOptions(options)
             {
-                GeneralOptions = options,
                 SkipFileHeader = true
             }).Decode<TPixel>(options.Configuration, stream, cancellationToken),
             _ => throw new InvalidImageContentException("The ANI file contains an unsupported frame format.")
@@ -721,9 +720,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         {
             AniFrameFormat.Ico => new IcoDecoderCore(options).Identify(options.Configuration, stream, cancellationToken),
             AniFrameFormat.Cur => new CurDecoderCore(options).Identify(options.Configuration, stream, cancellationToken),
-            AniFrameFormat.Bmp => new BmpDecoderCore(new BmpDecoderOptions
+            AniFrameFormat.Bmp => new BmpDecoderCore(new BmpDecoderOptions(options)
             {
-                GeneralOptions = options,
                 SkipFileHeader = true
             }).Identify(options.Configuration, stream, cancellationToken),
             _ => throw new InvalidImageContentException("The ANI file contains an unsupported frame format.")
@@ -793,9 +791,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     /// <returns>The embedded frame decoder options.</returns>
     private DecoderOptions CreateFrameDecoderOptions()
-        => new()
+        => new(this.Options.Configuration)
         {
-            Configuration = this.Options.Configuration,
             MaxFrames = this.Options.MaxFrames,
             SkipMetadata = this.Options.SkipMetadata,
             SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling,

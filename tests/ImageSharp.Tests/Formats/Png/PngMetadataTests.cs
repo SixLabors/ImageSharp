@@ -169,7 +169,7 @@ public class PngMetadataTests
     public void Decode_ReadsExifData<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             SkipMetadata = false
         };
@@ -205,7 +205,7 @@ public class PngMetadataTests
     public void Decode_IgnoresExifData_WhenIgnoreMetadataIsTrue<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             SkipMetadata = true
         };
@@ -217,7 +217,7 @@ public class PngMetadataTests
     [Fact]
     public void Decode_IgnoreMetadataIsFalse_TextChunkIsRead()
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             SkipMetadata = false
         };
@@ -236,7 +236,7 @@ public class PngMetadataTests
     [Fact]
     public void Decode_IgnoreMetadataIsTrue_TextChunksAreIgnored()
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             SkipMetadata = true
         };
@@ -290,7 +290,7 @@ public class PngMetadataTests
     {
         // This fixture declares 60,960 ICC bytes but contains 60,956; the last chad tag lacks four bytes.
         TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidIccProfileException>(() =>
         {

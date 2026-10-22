@@ -87,7 +87,9 @@ public class DecodeTiffIcc
     public Size ImageSharp()
     {
         using MemoryStream source = new(this.data);
-        using Image<Rgba32> image = Image.Load<Rgba32>(new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Preserve }, source);
+        using Image<Rgba32> image = Image.Load<Rgba32>(
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve },
+            source);
         return image.Size;
     }
 }

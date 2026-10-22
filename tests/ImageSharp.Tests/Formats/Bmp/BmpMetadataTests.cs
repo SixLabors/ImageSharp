@@ -54,7 +54,7 @@ public class BmpMetadataTests
     public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = skipMetadata };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
 
@@ -106,7 +106,7 @@ public class BmpMetadataTests
     public void Identify_MalformedIccProfile_ThrowsWithStrict(TestImageProvider<Rgba32> provider)
     {
         byte[] encoded = CreateBmpWithMalformedIccProfile(provider);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, encoded));
     }
 
@@ -119,7 +119,7 @@ public class BmpMetadataTests
     public void Decode_MalformedIccProfile_ThrowsWithStrict(TestImageProvider<Rgba32> provider)
     {
         byte[] encoded = CreateBmpWithMalformedIccProfile(provider);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidIccProfileException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);

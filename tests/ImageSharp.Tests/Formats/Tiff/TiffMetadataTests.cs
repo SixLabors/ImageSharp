@@ -324,7 +324,7 @@ public class TiffMetadataTests
     public void MetadataProfiles<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
       where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         TiffMetadata meta = image.Metadata.GetTiffMetadata();
         ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
@@ -456,7 +456,7 @@ public class TiffMetadataTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Load Tiff image
-        DecoderOptions options = new() { SkipMetadata = false };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = false };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
 
         ImageMetadata inputMetaData = image.Metadata;
@@ -521,7 +521,7 @@ public class TiffMetadataTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Load Tiff image
-        DecoderOptions options = new() { SkipMetadata = false };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = false };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
 
         ImageMetadata inputMetaData = image.Metadata;

@@ -44,8 +44,8 @@ public class GifDecoderTests
     private static void AssertExifToolIccPaletteAndRetention<TPixel>(byte[] source, bool skipMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
 
         ImageInfo preservedInfo = Image.Identify(preserveOptions, source);
         ImageInfo convertedInfo = Image.Identify(convertOptions, source);
@@ -195,7 +195,7 @@ public class GifDecoderTests
     public void GifDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 },
             MaxFrames = 1
@@ -260,7 +260,7 @@ public class GifDecoderTests
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -364,7 +364,7 @@ public class GifDecoderTests
     public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -376,7 +376,7 @@ public class GifDecoderTests
     public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -425,7 +425,7 @@ public class GifDecoderTests
     public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -437,7 +437,7 @@ public class GifDecoderTests
     public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -501,7 +501,7 @@ public class GifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(testFile.FullPath));
         Assert.Throws<InvalidImageContentException>(() => Image.Load(testFile.FullPath));
 
-        DecoderOptions options = new() { SkipMetadata = true };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = true };
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.FullPath));
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, testFile.FullPath));
     }
@@ -535,14 +535,14 @@ public class GifDecoderTests
     [Fact]
     public void Identify_MalformedApplicationExtension_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateGifWithMalformedApplicationExtension()));
     }
 
     [Fact]
     public void Decode_MalformedApplicationExtension_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateGifWithMalformedApplicationExtension());

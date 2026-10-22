@@ -117,7 +117,7 @@ public sealed class TestFile
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
     public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder)
-        => this.CreateRgba32Image(decoder, new DecoderOptions());
+        => this.CreateRgba32Image(decoder, new DecoderOptions(Configuration.Default));
 
     /// <summary>
     /// Creates a new <see cref="Rgba32"/> image.

@@ -77,7 +77,7 @@ public class EncodeTiffIcc
     {
         // Use each fixture's own profile. Float pixels retain the RGB16 fixture's precision before final sample packing.
         string testImage = this.Output == TiffOutput.JpegCmyk ? TestImages.Tiff.Icc.PerceptualCmyk : TestImages.Tiff.Icc.PerceptualRgb16;
-        DecoderOptions options = new() { ColorProfileHandling = handling };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = handling };
         this.image = Image.Load<RgbaVector>(options, Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, testImage));
 
         // Keep output settings identical within each WithIcc/WithoutIcc pair. JPEG owns its return transform inside the nested encoder.

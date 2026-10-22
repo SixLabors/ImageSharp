@@ -64,7 +64,7 @@ public partial class JpegDecoderTests
     [Fact]
     public void ParseStream_BasicPropertiesAreCorrect()
     {
-        JpegDecoderOptions options = new();
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default));
         Configuration configuration = options.GeneralOptions.Configuration;
         byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
         using MemoryStream ms = new(bytes);
@@ -115,7 +115,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
@@ -133,7 +133,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Resize_Bicubic<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 },
             Sampler = KnownResamplers.Bicubic
@@ -155,10 +155,9 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_IDCT_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
-        JpegDecoderOptions specializedOptions = new()
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
+        JpegDecoderOptions specializedOptions = new(options)
         {
-            GeneralOptions = options,
             ResizeMode = JpegDecoderResizeMode.IdctOnly
         };
 
@@ -179,10 +178,9 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_Scale_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
-        JpegDecoderOptions specializedOptions = new()
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
+        JpegDecoderOptions specializedOptions = new(options)
         {
-            GeneralOptions = options,
             ResizeMode = JpegDecoderResizeMode.ScaleOnly
         };
 
@@ -203,10 +201,9 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_Combined_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
-        JpegDecoderOptions specializedOptions = new()
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
+        JpegDecoderOptions specializedOptions = new(options)
         {
-            GeneralOptions = options,
             ResizeMode = JpegDecoderResizeMode.Combined
         };
 
@@ -369,10 +366,7 @@ public partial class JpegDecoderTests
     public void Decode_CMYK_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
@@ -387,10 +381,7 @@ public partial class JpegDecoderTests
     public void Decode_YCCK_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
@@ -413,10 +404,7 @@ public partial class JpegDecoderTests
     public void Decode_RGB_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
@@ -425,7 +413,7 @@ public partial class JpegDecoderTests
         // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
         image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
 
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(JpegDecoder.Instance, preserveOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
@@ -441,10 +429,7 @@ public partial class JpegDecoderTests
     public void Decode_RGB_ICC_Jpeg_Issue3064<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
@@ -461,10 +446,7 @@ public partial class JpegDecoderTests
     public void Decode_Grayscale_ICC_Jpeg_Issue3197<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
@@ -525,14 +507,14 @@ public partial class JpegDecoderTests
     [Fact]
     public void Identify_MalformedApp13Segment_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateJpegWithMalformedApp13Segment()));
     }
 
     [Fact]
     public void Decode_MalformedApp13Segment_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateJpegWithMalformedApp13Segment());

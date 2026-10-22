@@ -8,8 +8,20 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// </summary>
 public sealed class BmpDecoderOptions : ISpecializedDecoderOptions
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BmpDecoderOptions"/> class with the specified general options.
+    /// </summary>
+    /// <param name="generalOptions">The general options used to decode and identify images.</param>
+    /// <exception cref="ArgumentNullException">The general options are null.</exception>
+    public BmpDecoderOptions(DecoderOptions generalOptions)
+    {
+        Guard.NotNull(generalOptions, nameof(generalOptions));
+
+        this.GeneralOptions = generalOptions;
+    }
+
     /// <inheritdoc/>
-    public DecoderOptions GeneralOptions { get; init; } = new();
+    public DecoderOptions GeneralOptions { get; }
 
     /// <summary>
     /// Gets the value indicating how to deal with skipped pixels,

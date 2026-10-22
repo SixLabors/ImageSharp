@@ -282,7 +282,7 @@ public partial class JpegDecoderTests
     [InlineData(true)]
     public void IgnoreMetadata_ControlsWhetherMetadataIsParsed(bool ignoreMetadata)
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
 
         // Snake.jpg has both Exif and ICC profiles defined:
         TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);

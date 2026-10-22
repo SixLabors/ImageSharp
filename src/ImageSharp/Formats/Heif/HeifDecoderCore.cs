@@ -116,9 +116,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // finish; ImageDecoder then applies the caller's profile-retention policy.
         this.payloadOptions = options.TargetSize is null && options.ColorProfileHandling == ColorProfileHandling.Preserve
             ? options
-            : new DecoderOptions
+            : new DecoderOptions(options.Configuration)
             {
-                Configuration = options.Configuration,
                 Sampler = options.Sampler,
                 SkipMetadata = options.SkipMetadata,
                 MaxFrames = options.MaxFrames,

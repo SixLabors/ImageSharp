@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
@@ -37,7 +38,7 @@ public class SpectralToPixelConversionTests
         using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // Decoding
-        JpegDecoderOptions options = new();
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default));
         using SpectralConverter<TPixel> converter = new(Configuration.Default);
         using JpegDecoderCore decoder = new(options);
         HuffmanScanDecoder scanDecoder = new(bufferedStream, converter, cancellationToken: default);

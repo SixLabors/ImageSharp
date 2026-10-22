@@ -68,10 +68,10 @@ public partial class JpegDecoderTests
     public void Decode_YccK_PreserveMatchesConvert<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<TPixel> preserved = provider.GetImage(JpegDecoder.Instance, preserveOptions);
 
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<TPixel> converted = provider.GetImage(JpegDecoder.Instance, convertOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);

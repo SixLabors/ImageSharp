@@ -223,8 +223,8 @@ public partial class HeifEncoderTests
 
         // ROMM RGB changes the stored color samples. This also checks that each spatial layer receives the converter.
         Assert.NotEmpty(ImageComparer.Exact.CompareImages(unconvertedRaw, raw));
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
 
         using Image<RgbaVector> preserved = Image.Load<RgbaVector>(preserveOptions, file);
         using Image<RgbaVector> converted = Image.Load<RgbaVector>(convertOptions, file);

@@ -33,7 +33,7 @@ public class IcoDecoderTests
     public void DecodeAndIdentify_RetainResourceIccProfiles<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata, ColorProfileHandling profileHandling)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { Configuration = provider.Configuration, SkipMetadata = skipMetadata, ColorProfileHandling = profileHandling };
+        DecoderOptions options = new(provider.Configuration) { SkipMetadata = skipMetadata, ColorProfileHandling = profileHandling };
 
         // Read the ICO bytes to locate its embedded PNG and identify the complete icon.
         byte[] iconData = TestFile.Create(provider.SourceFileOrDescription).Bytes;
@@ -362,7 +362,7 @@ public class IcoDecoderTests
     [WithFile(MultiSizeF, PixelTypes.Rgba32)]
     public void MultiSize_CanDecodeSingleFrame(TestImageProvider<Rgba32> provider)
     {
-        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         Assert.Single(image.Frames);
     }
 
@@ -378,7 +378,7 @@ public class IcoDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 1 }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions(Configuration.Default) { MaxFrames = 1 }, stream);
 
         Assert.Single(imageInfo.FrameMetadataCollection);
     }
@@ -396,7 +396,7 @@ public class IcoDecoderTests
         using MemoryStream defaultStream = new(data, false);
         Assert.Throws<InvalidImageContentException>(() => IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream));
 
-        DecoderOptions ignore = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions ignore = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
         using MemoryStream decodeStream = new(data, false);
         using Image<Rgba32> image = IcoDecoder.Instance.Decode<Rgba32>(ignore, decodeStream);

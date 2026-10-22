@@ -43,7 +43,7 @@ public class EncodeJpegIcc
     /// <param name="handling">Whether to retain the original profile after conversion to sRGB.</param>
     private void Setup(ColorProfileHandling handling)
     {
-        DecoderOptions options = new() { ColorProfileHandling = handling };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = handling };
         this.image = Image.Load<Rgb24>(options, Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage));
 
         // Preserve and Convert decode the same pixels. Retain the source layout in both cases so the profile is the only encoder input that changes.

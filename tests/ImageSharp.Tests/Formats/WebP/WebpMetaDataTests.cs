@@ -52,7 +52,7 @@ public class WebpMetaDataTests
     public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLossyImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         if (ignoreMetadata)
         {
@@ -73,7 +73,7 @@ public class WebpMetaDataTests
     public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLosslessImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         if (ignoreMetadata)
         {
@@ -98,7 +98,7 @@ public class WebpMetaDataTests
     public void IgnoreMetadata_PreservesIccp<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
 
         Assert.NotNull(image.Metadata.IccProfile);
@@ -124,14 +124,14 @@ public class WebpMetaDataTests
     public void AnimatedIccp_PreservedThroughDecodeAndIdentify<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata, int maxFrames)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new()
+        DecoderOptions preserveOptions = new(Configuration.Default)
         {
             ColorProfileHandling = ColorProfileHandling.Preserve,
             SkipMetadata = skipMetadata,
             MaxFrames = (uint)maxFrames
         };
 
-        DecoderOptions convertOptions = new()
+        DecoderOptions convertOptions = new(Configuration.Default)
         {
             ColorProfileHandling = ColorProfileHandling.Convert,
             SkipMetadata = skipMetadata,
@@ -174,10 +174,9 @@ public class WebpMetaDataTests
     public void AnimatedIccp_IgnoreBackgroundColor<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        WebpDecoderOptions options = new()
+        WebpDecoderOptions options = new(new DecoderOptions(Configuration.Default) { MaxFrames = 1 })
         {
-            BackgroundColorHandling = BackgroundColorHandling.Ignore,
-            GeneralOptions = new DecoderOptions { MaxFrames = 1 }
+            BackgroundColorHandling = BackgroundColorHandling.Ignore
         };
 
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
@@ -194,7 +193,7 @@ public class WebpMetaDataTests
     public async Task IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = await provider.GetImageAsync(WebpDecoder.Instance, options);
         if (ignoreMetadata)
         {
@@ -323,7 +322,7 @@ public class WebpMetaDataTests
     [Fact]
     public void Identify_InvalidExifChunk_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
     }
@@ -331,7 +330,7 @@ public class WebpMetaDataTests
     [Fact]
     public void Decode_InvalidExifChunk_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
         Assert.Throws<InvalidImageContentException>(() =>
         {
@@ -352,7 +351,7 @@ public class WebpMetaDataTests
             "524946462200000057454250565038580A0000002000000000000000000049434350FEFFFFFF01020304");
         Encoding.ASCII.GetBytes(chunkType, payload.AsSpan(30, 4));
         BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(34), length);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
@@ -367,7 +366,7 @@ public class WebpMetaDataTests
         byte[] payload = Convert.FromHexString(
             "524946460000000057454250565038580A00000020000000010000010000494343500000004000000000");
         Encoding.ASCII.GetBytes(chunkType, payload.AsSpan(30, 4));
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
@@ -378,7 +377,7 @@ public class WebpMetaDataTests
     public void Decode_TruncatedTrailingMetadata_RespectsOptions(string chunkType, uint length, SegmentIntegrityHandling integrity, bool skipMetadata)
     {
         byte[] payload = CreateWebpWithMetadata(chunkType, length, false, false);
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         if (integrity is SegmentIntegrityHandling.Strict && !skipMetadata)
         {
@@ -412,7 +411,7 @@ public class WebpMetaDataTests
     public void Decode_InvalidIccPayload_RespectsOptionsAndReadsFollowingImage(SegmentIntegrityHandling integrity, bool skipMetadata, bool animated)
     {
         byte[] payload = CreateWebpWithMetadata("ICCP", 4, true, animated);
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         if (integrity is SegmentIntegrityHandling.Strict)
         {
@@ -438,7 +437,7 @@ public class WebpMetaDataTests
     public void Decode_TruncatedIccFraming_RemainsFatal(SegmentIntegrityHandling integrity, bool skipMetadata, bool animated)
     {
         byte[] payload = CreateWebpWithMetadata("ICCP", 0x40000000, true, animated);
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));

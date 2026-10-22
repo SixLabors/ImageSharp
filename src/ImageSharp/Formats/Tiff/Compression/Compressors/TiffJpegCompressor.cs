@@ -18,16 +18,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 internal class TiffJpegCompressor : TiffBaseCompressor
 {
     /// <summary>
+    /// The configuration shared by TIFF and its embedded JPEG images.
+    /// </summary>
+    private readonly Configuration configuration;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="TiffJpegCompressor"/> class.
     /// </summary>
     /// <param name="output">The output stream.</param>
-    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="configuration">The configuration used for allocation and JPEG conversion.</param>
     /// <param name="width">The strip width.</param>
     /// <param name="bitsPerPixel">The encoded pixel depth.</param>
     /// <param name="predictor">The sample predictor.</param>
-    public TiffJpegCompressor(Stream output, MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
-        : base(output, memoryAllocator, width, bitsPerPixel, predictor)
+    public TiffJpegCompressor(Stream output, Configuration configuration, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
+        : base(output, configuration.MemoryAllocator, width, bitsPerPixel, predictor)
     {
+        this.configuration = configuration;
     }
 
     /// <inheritdoc/>
@@ -42,7 +48,10 @@ internal class TiffJpegCompressor : TiffBaseCompressor
     public override void CompressStrip(Span<byte> rows, int height)
     {
         int width = rows.Length / (3 * height);
-        using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(rows, width, height);
+
+        // The explicit overload retains the caller's allocator and avoids registering unrelated codecs through Configuration.Default.
+        using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(this.configuration, rows, width, height);
+
         this.CompressStrip(image.Configuration, image.Frames.RootFrame.PixelBuffer.GetRegion(), null, JpegColorSpace.RGB, false, default);
     }
 

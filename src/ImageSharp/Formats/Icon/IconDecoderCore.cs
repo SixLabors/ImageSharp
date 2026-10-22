@@ -326,15 +326,11 @@ internal abstract class IconDecoderCore : ImageDecoderCore
     {
         if (isPng)
         {
-            return new PngDecoderCore(new PngDecoderOptions
-            {
-                GeneralOptions = this.Options
-            });
+            return new PngDecoderCore(new PngDecoderOptions(this.Options));
         }
 
-        return new BmpDecoderCore(new BmpDecoderOptions
+        return new BmpDecoderCore(new BmpDecoderOptions(this.Options)
         {
-            GeneralOptions = this.Options,
             ProcessedAlphaMask = true,
             SkipFileHeader = true,
             UseDoubleHeight = true

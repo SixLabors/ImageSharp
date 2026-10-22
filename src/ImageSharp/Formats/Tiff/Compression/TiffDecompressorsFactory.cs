@@ -68,12 +68,12 @@ internal static class TiffDecompressorsFactory
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new JpegTiffCompression(
-                    new() { GeneralOptions = options }, allocator, segmentWidth, bitsPerPixel, metadata, jpegTables, photometricInterpretation);
+                    new(options), allocator, segmentWidth, bitsPerPixel, metadata, jpegTables, photometricInterpretation);
 
             case TiffDecoderCompressionType.OldJpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new OldJpegTiffCompression(
-                    new() { GeneralOptions = options }, allocator, segmentWidth, bitsPerPixel, metadata, oldJpegStartOfImageMarker, photometricInterpretation);
+                    new(options), allocator, segmentWidth, bitsPerPixel, metadata, oldJpegStartOfImageMarker, photometricInterpretation);
 
             case TiffDecoderCompressionType.Webp:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

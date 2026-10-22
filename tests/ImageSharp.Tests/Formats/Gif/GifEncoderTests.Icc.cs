@@ -28,16 +28,14 @@ public partial class GifEncoderTests
     public void Encode_IccProfile_PreserveRoundTrip<TPixel>(TestImageProvider<TPixel> provider, FrameColorTableMode colorTableMode)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new()
+        DecoderOptions preserveOptions = new(provider.Configuration)
         {
-            Configuration = provider.Configuration,
             ColorProfileHandling = ColorProfileHandling.Preserve,
             SkipMetadata = true
         };
 
-        DecoderOptions convertOptions = new()
+        DecoderOptions convertOptions = new(provider.Configuration)
         {
-            Configuration = provider.Configuration,
             ColorProfileHandling = ColorProfileHandling.Convert,
             SkipMetadata = true
         };
@@ -154,7 +152,7 @@ public partial class GifEncoderTests
         encoded.Position = 0;
         MagickReferenceDecoder referenceDecoder = new(GifFormat.Instance);
         using Image<TPixel> independent = await referenceDecoder.DecodeAsync<TPixel>(
-            new DecoderOptions { Configuration = provider.Configuration },
+            new DecoderOptions(provider.Configuration),
             encoded,
             TestContext.Current.CancellationToken);
 

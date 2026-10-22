@@ -1541,7 +1541,7 @@ public class Av1EncoderFrameTests
         configuration.WriteFixedHeader(fixedHeader);
 
         Assert.Equal([0x81, expectedProfileAndLevel, expectedColorFlags, 0x00], fixedHeader);
-        Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions());
+        Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions(Configuration.Default));
         Assert.True(configuration.HasMatchingImageConfiguration(parsed));
         parsed.Validate(sequenceHeader);
     }

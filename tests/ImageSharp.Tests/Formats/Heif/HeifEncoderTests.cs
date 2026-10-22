@@ -175,7 +175,7 @@ public partial class HeifEncoderTests
         Span<byte> descriptor = [0, 0, 1, 1, 0, outputWidth, 0, outputHeight];
         using Image<Rgba32> result = new(outputWidth, outputHeight);
         decoder.DecodeItemData(
-            new DecoderOptions { Configuration = Configuration.Default },
+            new DecoderOptions(Configuration.Default),
             HeifChromaUpsampling.Auto,
             gridItem,
             descriptor,
@@ -203,7 +203,7 @@ public partial class HeifEncoderTests
         Rgba32 opaqueColor = new(7, 11, 13);
         using Image<Rgba32> alphaResult = new(outputWidth, outputHeight, opaqueColor);
         using Av1FrameBuffer<byte> alphaFrame = decoder.DecodeAlphaItemData(
-            new DecoderOptions { Configuration = Configuration.Default },
+            new DecoderOptions(Configuration.Default),
             gridItem,
             descriptor,
             TestContext.Current.CancellationToken);
@@ -700,7 +700,7 @@ public partial class HeifEncoderTests
         }
 
         stream.Position = 0;
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgba32> decoded = Image.Load<Rgba32>(preserveOptions, stream);
         Assert.Equal(frameCount, decoded.Frames.Count);
         Assert.Equal(expectedRepeatCount, decoded.Metadata.GetHeifMetadata().RepeatCount);
@@ -1083,7 +1083,7 @@ public partial class HeifEncoderTests
             long boxStart = stream.Position;
             if (boxType == Heif4CharCode.Moov)
             {
-                HeifSequenceParser parser = new(new DecoderOptions { MaxFrames = 32 });
+                HeifSequenceParser parser = new(new DecoderOptions(Configuration.Default) { MaxFrames = 32 });
                 return parser.Parse(stream, boxLength, fileStartOffset: 0);
             }
 
@@ -2301,7 +2301,7 @@ public partial class HeifEncoderTests
         Assert.Equal(Av1ColorFormat.Yuv444, header.ColorConfig.GetColorFormat());
 
         stream.Position = 0;
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgb24> decoded = Image.Load<Rgb24>(options, stream);
         CicpProfile decodedProfile = Assert.IsType<CicpProfile>(decoded.Metadata.CicpProfile);
         Assert.Equal(profile.ColorPrimaries, decodedProfile.ColorPrimaries);
@@ -2435,7 +2435,7 @@ public partial class HeifEncoderTests
         Assert.Equal(exifData, encodedExif[4..].ToArray());
         Assert.Equal(xmpData, GetItemPayload(file, 3).ToArray());
 
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, file);
         Assert.Equal(
             CompactSrgbV4Profile.Profile.ToByteArray(),
@@ -2468,7 +2468,7 @@ public partial class HeifEncoderTests
         Span<byte> itemInfo = GetMetadataChild(file, Heif4CharCode.Iinf);
         Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[12..]));
 
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, file);
         Assert.Equal(CompactSrgbV4Profile.Profile.ToByteArray(), Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
         Assert.Null(decoded.Metadata.ExifProfile);
@@ -2801,7 +2801,7 @@ public partial class HeifEncoderTests
         try
         {
             decoder.DecodeItemData(
-                new DecoderOptions { Configuration = Configuration.Default },
+                new DecoderOptions(Configuration.Default),
                 HeifChromaUpsampling.Auto,
                 gridItem,
                 descriptor,

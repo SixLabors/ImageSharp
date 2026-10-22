@@ -159,7 +159,7 @@ public class HeifSequenceParserTests
             source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength),
             false);
 
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
     }
@@ -177,7 +177,7 @@ public class HeifSequenceParserTests
             source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength),
             false);
 
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
         using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
 
@@ -1373,7 +1373,7 @@ public class HeifSequenceParserTests
         uint maxFrames,
         bool skipMetadata = false,
         SegmentIntegrityHandling segmentIntegrityHandling = SegmentIntegrityHandling.Strict)
-        => new(new DecoderOptions
+        => new(new DecoderOptions(Configuration.Default)
         {
             MaxFrames = maxFrames,
             SkipMetadata = skipMetadata,

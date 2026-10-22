@@ -13,10 +13,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Path_Specific()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image<Rgb24> img = Image.Load<Rgb24>(options, this.MockFilePath))
             {
@@ -30,10 +27,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Path_Agnostic()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image img = Image.Load(options, this.MockFilePath))
             {
@@ -47,10 +41,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Path_OutFormat_Specific()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image<Rgba32> img = Image.Load<Rgba32>(options, this.MockFilePath))
             {
@@ -64,10 +55,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Path_OutFormat_Agnostic()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image img = Image.Load(options, this.MockFilePath))
             {
@@ -83,10 +71,7 @@ public partial class ImageTests
             => Assert.Throws<FileNotFoundException>(
                 () =>
                 {
-                    DecoderOptions options = new()
-                    {
-                        Configuration = this.TopLevelConfiguration
-                    };
+                    DecoderOptions options = new(this.TopLevelConfiguration);
 
                     Image.Load<Rgba32>(options, Guid.NewGuid().ToString());
                 });
@@ -96,10 +81,7 @@ public partial class ImageTests
             => Assert.Throws<ArgumentNullException>(
                 () =>
                 {
-                    DecoderOptions options = new()
-                    {
-                        Configuration = this.TopLevelConfiguration
-                    };
+                    DecoderOptions options = new(this.TopLevelConfiguration);
                     Image.Load<Rgba32>(options, (string)null);
                 });
     }

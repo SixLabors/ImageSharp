@@ -42,7 +42,7 @@ internal sealed class WebpTiffCompression : TiffBaseDecompressor
         BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         // The IFD supplies the profile; WebP owns source sample interpretation and packs its result as the requested TPixel.
-        using WebpDecoderCore decoder = new(new WebpDecoderOptions { GeneralOptions = this.options }, this.metadata.IccProfile);
+        using WebpDecoderCore decoder = new(new WebpDecoderOptions(this.options), this.metadata.IccProfile);
 
         using Image<TPixel> image = decoder.Decode<TPixel>(this.options.Configuration, stream, cancellationToken);
 

@@ -46,7 +46,7 @@ public partial class JpegEncoderTests
 
         baselineStream.Position = 0;
         progressiveStream.Position = 0;
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
         using Image<TPixel> baseline = Image.Load<TPixel>(baselineStream);
         using Image<TPixel> progressive = Image.Load<TPixel>(convertOptions, progressiveStream);

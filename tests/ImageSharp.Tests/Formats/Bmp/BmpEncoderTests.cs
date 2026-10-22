@@ -332,7 +332,7 @@ public partial class BmpEncoderTests
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new BmpDecoderOptions());
+        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new BmpDecoderOptions(new DecoderOptions(Configuration.Default)));
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 

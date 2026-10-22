@@ -206,7 +206,7 @@ public class LoadResizeSaveStressRunner
         using FileStream outputStream = File.Open(this.OutputPath(input), FileMode.Create);
 
         // Resize it to fit a 150x150 square
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
         };
@@ -229,7 +229,7 @@ public class LoadResizeSaveStressRunner
         await using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
 
         // Resize it to fit a 150x150 square.
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
         };

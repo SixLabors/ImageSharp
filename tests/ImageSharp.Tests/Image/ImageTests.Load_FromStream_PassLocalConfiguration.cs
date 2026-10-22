@@ -13,10 +13,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Stream_Specific()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image<Rgb24> img = Image.Load<Rgb24>(options, this.DataStream))
             {
@@ -30,10 +27,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Stream_Agnostic()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image img = Image.Load(options, this.DataStream))
             {
@@ -47,10 +41,7 @@ public partial class ImageTests
         [Fact]
         public void NonSeekableStream()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             NonSeekableStream stream = new(this.DataStream);
             using (Image<Rgba32> img = Image.Load<Rgba32>(options, stream))
@@ -64,10 +55,7 @@ public partial class ImageTests
         [Fact]
         public async Task NonSeekableStreamAsync()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             NonSeekableStream stream = new(this.DataStream);
             using (Image<Rgba32> img = await Image.LoadAsync<Rgba32>(options, stream))
@@ -81,10 +69,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Stream_OutFormat_Specific()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image<Rgba32> img = Image.Load<Rgba32>(options, this.DataStream))
             {
@@ -98,10 +83,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Stream_OutFormat_Agnostic()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image img = Image.Load(options, this.DataStream))
             {

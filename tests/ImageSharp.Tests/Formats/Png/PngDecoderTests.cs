@@ -139,7 +139,7 @@ public partial class PngDecoderTests
     public void PngDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };
@@ -177,7 +177,7 @@ public partial class PngDecoderTests
             TestImageProvider<Rgba32> provider =
                 FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(arg1);
 
-            DecoderOptions options = new()
+            DecoderOptions options = new(Configuration.Default)
             {
                 TargetSize = new Size { Width = 150, Height = 150 }
             };
@@ -218,13 +218,15 @@ public partial class PngDecoderTests
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+        using Image<TPixel> image = provider.GetImage(
+            PngDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
 
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(PngDecoder.Instance, preserveOptions);
 
         ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
@@ -258,10 +260,10 @@ public partial class PngDecoderTests
     private static void AssertIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
         using Image<TPixel> preserved = provider.GetImage(PngDecoder.Instance, preserveOptions);
 
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<TPixel> converted = provider.GetImage(PngDecoder.Instance, convertOptions);
 
         TestFile file = TestFile.Create(provider.SourceFileOrDescription);
@@ -273,7 +275,7 @@ public partial class PngDecoderTests
         ImageComparer.Exact.VerifySimilarity(preserved, converted);
 
         using MemoryStream stream = new(file.Bytes);
-        DecoderOptions referenceOptions = new() { Configuration = provider.Configuration };
+        DecoderOptions referenceOptions = new(provider.Configuration);
         using Image<TPixel> expected = MagickReferenceDecoder.Png.Decode<TPixel>(referenceOptions, stream);
 
         // Converted pixels are sRGB; retaining the Adobe RGB profile on the dump would make its displayed colors wrong.
@@ -475,7 +477,9 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }, stream);
+        ImageInfo imageInfo = Image.Identify(
+            new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData },
+            stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
@@ -499,7 +503,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
 
         using MemoryStream stream = new(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 40 }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions(Configuration.Default) { MaxFrames = 40 }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(40, imageInfo.FrameMetadataCollection.Count);
@@ -511,7 +515,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
 
         using MemoryStream stream = new(testFile.Bytes, false);
-        using Image image = Image.Load(new DecoderOptions { MaxFrames = 40 }, stream);
+        using Image image = Image.Load(new DecoderOptions(Configuration.Default) { MaxFrames = 40 }, stream);
 
         Assert.NotNull(image);
         Assert.Equal(40, image.Frames.Count);
@@ -664,7 +668,9 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
+        using Image<TPixel> image = provider.GetImage(
+            PngDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
 
         image.DebugSave(provider);
         if (compare)
@@ -952,7 +958,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData } };
+        PngDecoderOptions options = new(new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.
@@ -999,7 +1005,7 @@ public partial class PngDecoderTests
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }

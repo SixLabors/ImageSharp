@@ -54,7 +54,7 @@ public class EncodeJpegComparison
     public unsafe void Setup()
     {
         using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage));
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
         this.imageImageSharp = Image.Load<Rgba32>(options, imageBinaryStream);
 
         // Skia encodes these bitmap pixels without copying the original JPEG metadata. Match that work in ImageSharp.

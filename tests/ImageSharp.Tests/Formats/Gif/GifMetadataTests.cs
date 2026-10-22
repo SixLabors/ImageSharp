@@ -39,7 +39,7 @@ public class GifMetadataTests
     public void Identify_ExifToolIcc_AssemblesCompleteProfile(bool skipMetadata)
     {
         TestFile testFile = TestFile.Create(TestImages.Gif.ExifToolIcc);
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
 
         // ICC remains available for color handling even when optional metadata is skipped.
         ImageInfo info = Image.Identify(options, testFile.Bytes);
@@ -109,7 +109,7 @@ public class GifMetadataTests
     [Fact]
     public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             SkipMetadata = true
         };

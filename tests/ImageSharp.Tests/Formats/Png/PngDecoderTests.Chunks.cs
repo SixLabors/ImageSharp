@@ -135,7 +135,7 @@ public partial class PngDecoderTests
     public void DecodeAndIdentify_WithChunkRecovery_FollowIntegrityPolicy(SegmentIntegrityHandling integrity)
     {
         byte[] data = TestFile.Create(TestImages.Png.DuplicateHeaderChunkResync).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<La16>(options, data));
 
@@ -184,7 +184,7 @@ public partial class PngDecoderTests
         stream.Write(buffer);
         stream.Write(Raw1X1PngIdatAndIend);
         byte[] data = stream.ToArray();
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
 
         if (integrity == SegmentIntegrityHandling.Strict)
         {

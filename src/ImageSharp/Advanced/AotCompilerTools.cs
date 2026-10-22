@@ -133,68 +133,6 @@ internal static class AotCompilerTools
     }
 
     /// <summary>
-    /// Seeds the modern .NET AOT compiler with bulk pixel operations for every built-in pixel format.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// This method is used for AOT code generation only. Do not call it at runtime.
-    /// </exception>
-    [Preserve]
-    public static void SeedPixelOperations()
-    {
-        try
-        {
-            // Keep this inventory finite and explicit. ImageSharp cannot precompile consumer-defined pixel types, while
-            // these closed calls make every built-in specialization visible without retaining the much larger legacy seed graph.
-            AotCompilePixelOperations<A8>();
-            AotCompilePixelOperations<Argb32>();
-            AotCompilePixelOperations<Argb32P>();
-            AotCompilePixelOperations<Abgr32>();
-            AotCompilePixelOperations<Abgr32P>();
-            AotCompilePixelOperations<Bgr24>();
-            AotCompilePixelOperations<Bgr565>();
-            AotCompilePixelOperations<Bgra32>();
-            AotCompilePixelOperations<Bgra32P>();
-            AotCompilePixelOperations<Bgra4444>();
-            AotCompilePixelOperations<Bgra5551>();
-            AotCompilePixelOperations<Byte4>();
-            AotCompilePixelOperations<L16>();
-            AotCompilePixelOperations<L8>();
-            AotCompilePixelOperations<La16>();
-            AotCompilePixelOperations<La32>();
-            AotCompilePixelOperations<HalfSingle>();
-            AotCompilePixelOperations<HalfVector2>();
-            AotCompilePixelOperations<HalfVector4>();
-            AotCompilePixelOperations<HalfVector4P>();
-            AotCompilePixelOperations<NormalizedByte2>();
-            AotCompilePixelOperations<NormalizedByte4>();
-            AotCompilePixelOperations<NormalizedByte4P>();
-            AotCompilePixelOperations<NormalizedShort2>();
-            AotCompilePixelOperations<NormalizedShort4>();
-            AotCompilePixelOperations<Rg32>();
-            AotCompilePixelOperations<Rgb24>();
-            AotCompilePixelOperations<Rgb48>();
-            AotCompilePixelOperations<Rgb96>();
-            AotCompilePixelOperations<Rgba1010102>();
-            AotCompilePixelOperations<Rgba128>();
-            AotCompilePixelOperations<Rgba32>();
-            AotCompilePixelOperations<Rgba32P>();
-            AotCompilePixelOperations<Rgba64>();
-            AotCompilePixelOperations<RgbaHalf>();
-            AotCompilePixelOperations<RgbaHalfP>();
-            AotCompilePixelOperations<RgbaVector>();
-            AotCompilePixelOperations<RgbaVectorP>();
-            AotCompilePixelOperations<Short2>();
-            AotCompilePixelOperations<Short4>();
-        }
-        catch
-        {
-            // The calls only need to exist in IL; this method must never contribute a runtime execution path.
-        }
-
-        throw new InvalidOperationException("This method is used for AOT code generation only. Do not call it at runtime.");
-    }
-
-    /// <summary>
     /// Seeds the compiler using the given pixel format.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -205,6 +143,7 @@ internal static class AotCompilerTools
         // This is we actually call all the individual methods you need to seed.
         AotCompileImage<TPixel>();
         AotCompilePixelOperations<TPixel>();
+
         AotCompileImageProcessingContextFactory<TPixel>();
         AotCompileImageEncoderInternals<TPixel>();
         AotCompileImageDecoderInternals<TPixel>();
@@ -226,15 +165,14 @@ internal static class AotCompilerTools
     }
 
     /// <summary>
-    /// Seeds the selected <see cref="PixelOperations{TPixel}"/> methods required by Mono WASM AOT.
+    /// Seeds bulk pixel operations for the legacy whole-library AOT preservation path.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
     private static void AotCompilePixelOperations<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // These default arguments are never consumed. Direct calls root each named bulk conversion for this pixel type,
-        // which Mono WASM AOT may miss when following static-abstract pixel dispatch indirectly.
+        // The legacy seed is compile-only. These calls preserve its conversions and blenders without executing them.
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         _ = operations.GetPixelTypeInfo();

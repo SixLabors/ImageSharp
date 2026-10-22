@@ -26,13 +26,12 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public partial class PixelOperations<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private static readonly Lazy<PixelOperations<TPixel>> LazyInstance = new(TPixel.CreatePixelOperations, true);
-
     /// <summary>
-    /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
+    /// Gets the shared <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>.
     /// </summary>
+    /// <exception cref="TypeInitializationException">The pixel type's factory could not create the shared instance.</exception>
 #pragma warning disable CA1000 // Do not declare static members on generic types
-    public static PixelOperations<TPixel> Instance => LazyInstance.Value;
+    public static PixelOperations<TPixel> Instance => InstanceHolder.Value;
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
 #pragma warning disable CA1000 // Scalar conversions share the public generic owner with bulk conversions.
@@ -722,6 +721,38 @@ public partial class PixelOperations<TPixel>
             vectorSpan = vectorSpan[..remainder];
             this.ToUnassociatedScaledVector4(configuration, sourceSlice, vectorSpan);
             destinationOperations.FromUnassociatedScaledVector4Destructive(configuration, vectorSpan, destinationSlice);
+        }
+    }
+
+    /// <summary>
+    /// Creates and retains the bulk operations instance when <see cref="Instance"/> is first accessed.
+    /// </summary>
+    /// <remarks>
+    /// Each closed <see cref="PixelOperations{TPixel}"/> type has its own holder and instance.
+    /// The holder is separate so calls to the outer type's scalar helpers do not create bulk operations.
+    /// The explicit static constructor prevents early field initialization. The runtime synchronizes that constructor,
+    /// so concurrent callers share one instance without additional locks or a factory delegate.
+    /// The constructor calls the existing pixel factory directly. Mono WASM AOT can compile this ordinary static abstract call.
+    /// Creating a delegate directly from that interface method instead encounters the compiler defect described in
+    /// <see href="https://github.com/dotnet/runtime/pull/131880">dotnet/runtime#131880</see> on affected runtimes.
+    /// No list of pixel types or compile-only conversion calls is required by this initialization path.
+    /// If the factory throws, the runtime leaves this holder uninitialized and reports a <see cref="TypeInitializationException"/>.
+    /// It does not retry the factory on later accesses. The original exception is available through the exception's inner exception.
+    /// </remarks>
+    private static class InstanceHolder
+    {
+        /// <summary>
+        /// The bulk operations instance returned by this pixel type's factory.
+        /// </summary>
+        public static readonly PixelOperations<TPixel> Value;
+
+        /// <summary>
+        /// Initializes static members of the <see cref="InstanceHolder"/> class.
+        /// </summary>
+        static InstanceHolder()
+        {
+            // Keep this as a direct call. A delegate from the static abstract method uses Mono's faulty delegate-construction path.
+            Value = TPixel.CreatePixelOperations();
         }
     }
 }

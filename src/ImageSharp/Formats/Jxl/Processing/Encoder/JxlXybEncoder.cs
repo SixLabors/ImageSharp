@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Numerics.Tensors;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
@@ -13,8 +14,22 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
+/// <summary>
+/// When the color transform is set to XYB, this class lets the encoder
+/// convert input RGB color spaces to output XYB.
+/// </summary>
 internal static class JxlXybEncoder
 {
+    /// <summary>
+    /// Computes the Opsin absorbance for the input R, G, and B colors.
+    /// </summary>
+    /// <param name="r">The input Red color</param>
+    /// <param name="g">The input Green color</param>
+    /// <param name="b">The input Blue color</param>
+    /// <param name="premulAbsorb">The premultiplied absorbance.</param>
+    /// <param name="mixed0">The output X absorbance</param>
+    /// <param name="mixed1">The output Y absorbance</param>
+    /// <param name="mixed2">The output B absorbance</param>
     private static void OpsinAbsorbance(
         Vector<float> r,
         Vector<float> g,
@@ -60,6 +75,16 @@ internal static class JxlXybEncoder
                     Vector.Create(bias[2]))));
     }
 
+    /// <summary>
+    /// Stores the input RGB color spaces into XYB spans.
+    /// </summary>
+    /// <param name="r">Input Red components</param>
+    /// <param name="g">Input Green components</param>
+    /// <param name="b">Input Blue components</param>
+    /// <param name="valX">Output X components</param>
+    /// <param name="valY">Output Y components</param>
+    /// <param name="valZ">Output B components</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreXYB(
         Vector<float> r,
         Vector<float> g,
@@ -75,6 +100,16 @@ internal static class JxlXybEncoder
         b.CopyTo(valZ);
     }
 
+    /// <summary>
+    /// Converts RGB to XYB. The conversion happens one SIMD vector at a time.
+    /// </summary>
+    /// <param name="r">Input Red values</param>
+    /// <param name="g">Input Green values</param>
+    /// <param name="b">Input Blue values</param>
+    /// <param name="premulAbsorb">Premultiplied Opsin absorbance.</param>
+    /// <param name="valX">Converted R-&gt;X values are stored here.</param>
+    /// <param name="valY">Converted G-&gt;Y values are stored here.</param>
+    /// <param name="valZ">Converted B-&gt;B values are stored here.</param>
     private static void LinearRgbToXyb(
         Vector<float> r,
         Vector<float> g,
@@ -114,6 +149,35 @@ internal static class JxlXybEncoder
         StoreXYB(mixed0, mixed1, mixed2, valX, valY, valZ);
     }
 
+    /// <summary>
+    /// Performs an in-place conversion from RGB to XYB. This function
+    /// is meant to be invoked on each row. Parameters <paramref name="row0"/>,
+    /// <paramref name="row1"/> and <paramref name="row2"/> initially contain
+    /// input RGB values. When this function returns, every <paramref name="row0"/>,
+    /// <paramref name="row1"/> and <paramref name="row2"/> value will
+    /// contain the converted X, Y, and B, respectively.
+    /// </summary>
+    /// <param name="row0">
+    /// This contains input values for the R (Red) component (RGB).
+    /// When this method returns, each value in this span will have
+    /// the converted X component (XYB).
+    /// </param>
+    /// <param name="row1">
+    /// This contains input values for the G (Green) component (RGB).
+    /// When this method returns, each value in this span will have
+    /// the converted Y component (XYB).
+    /// </param>
+    /// <param name="row2">
+    /// This contains input values for the B (Blue) component (RGB).
+    /// When this method returns, each value in this span will have
+    /// the converted B component (XYB).
+    /// </param>
+    /// <param name="premulAbsorb">
+    /// Contains the Opsin absorbance.
+    /// </param>
+    /// <param name="xSize">
+    /// Represents the number of items within each row.
+    /// </param>
     public static void LinearRgbRowToXyb(
         Span<float> row0,
         Span<float> row1,
@@ -163,7 +227,7 @@ internal static class JxlXybEncoder
         Memory<float> premulAbsorb,
         JxlImage3F image)
     {
-        int xSize = image.Width;
+        int xSize = image.XSize;
 
         void ProcessRow(int y, ReadOnlySpan<float> premulAbsorb)
         {
@@ -190,7 +254,7 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, image.Height, configuration.GetParallelOptions(), x =>
+        _ = Parallel.For(0, image.YSize, configuration.GetParallelOptions(), x =>
         {
             ProcessRow(x, premulAbsorb.Span);
         });
@@ -201,7 +265,7 @@ internal static class JxlXybEncoder
         Memory<float> premulAbsorb,
         JxlImage3F image)
     {
-        int xSize = image.Width;
+        int xSize = image.XSize;
 
         void ProcessRow(int y, ReadOnlySpan<float> premulAbsorb)
         {
@@ -228,7 +292,7 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, image.Height, configuration.GetParallelOptions(), x =>
+        _ = Parallel.For(0, image.YSize, configuration.GetParallelOptions(), x =>
         {
             ProcessRow(x, premulAbsorb.Span);
         });
@@ -240,7 +304,7 @@ internal static class JxlXybEncoder
         JxlImage3F image,
         JxlImage3F linear)
     {
-        int xSize = image.Width;
+        int xSize = image.XSize;
 
         void ProcessRow(int y, ReadOnlySpan<float> premulAbsorb)
         {
@@ -275,10 +339,7 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, image.Height, configuration.GetParallelOptions(), x =>
-        {
-            ProcessRow(x, premulAbsorb.Span);
-        });
+        _ = Parallel.For(0, image.YSize, configuration.GetParallelOptions(), x => ProcessRow(x, premulAbsorb.Span));
     }
 
     private static void ComputePremulAbsorb(float intensityTarget, Span<float> premulAbsorb)
@@ -346,7 +407,7 @@ internal static class JxlXybEncoder
         {
             if (wantLinear)
             {
-                JxlImageOperations.CopyImageTo(image, linear!);
+                JxlImageOperations.ForceCopyImage(image, linear!);
             }
 
             LinearSrgbToXyb(configuration, premulAbsorb, image);
@@ -379,7 +440,7 @@ internal static class JxlXybEncoder
 
         if (wantLinear)
         {
-            JxlImageOperations.CopyImageTo(linear!, image);
+            JxlImageOperations.ForceCopyImage(linear!, image);
         }
 
         LinearSrgbToXyb(configuration, premulAbsorb, image);
@@ -395,8 +456,8 @@ internal static class JxlXybEncoder
         JxlImageF cbPlane,
         JxlImageF crPlane)
     {
-        int xSize = rPlane.Width;
-        int ySize = rPlane.Height;
+        int xSize = rPlane.XSize;
+        int ySize = rPlane.YSize;
 
         if (xSize == 0 || ySize == 0)
         {

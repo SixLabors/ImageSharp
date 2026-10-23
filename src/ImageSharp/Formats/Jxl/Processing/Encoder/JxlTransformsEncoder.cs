@@ -8,6 +8,9 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
+/// <summary>
+/// Performs forward DCT and AFV transforms.
+/// </summary>
 internal static class JxlTransformsEncoder
 {
     private const int MaxBlocks = 32;

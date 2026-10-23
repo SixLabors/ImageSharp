@@ -10,6 +10,9 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
+/// <summary>
+/// Tests the sRGB to XYB and vice versa color conversion.
+/// </summary>
 public class OpsinImageTests
 {
     /// <summary>
@@ -128,6 +131,10 @@ public class OpsinImageTests
         OpsinRoundtripTestRgb(1, 0, 0);
     }
 
+    /// <summary>
+    /// Tests that Linear sRGB { 0, 0, 0 } to Opsin produces
+    /// values equal to or extremely close to { 0, 0, 0 }.
+    /// </summary>
     [Fact]
     public void VerifyZero()
     {

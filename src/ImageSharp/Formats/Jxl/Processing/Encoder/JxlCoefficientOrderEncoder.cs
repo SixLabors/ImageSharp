@@ -12,16 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 internal static class JxlCoefficientOrderEncoder
 {
-    private struct PosAndCount
-    {
-        public uint Pos;
-        public ulong CountAndIdx;
-    }
-
     private static (uint UsedOrders, uint CustomizeOrders) ComputeUsedOrders(JxlSpeedTier speed, JxlAcStrategyImage acStrategy, Rectangle rect)
     {
         if (speed >= JxlSpeedTier.Falcon)
         {
+            // This can be slow. So avoid computing used orders when we
+            // want high performance.
             return (1, 1);
         }
 
@@ -57,7 +53,7 @@ internal static class JxlCoefficientOrderEncoder
         return (ret, retCustomize);
     }
 
-    private static bool ComputeCoeffOrder(JxlSpeedTier speed, IJxlDctAcImage acImage, JxlAcStrategyImage acStrategy, JxlFrameDimensions frameDim, ref uint allUsedOrders, uint prevUsedAcs, uint currentUsedAcs, uint currentUsedOrders, Span<int> order)
+    private static bool ComputeCoefficientOrder(JxlSpeedTier speed, IJxlDctAcImage acImage, JxlAcStrategyImage acStrategy, JxlFrameDimensions frameDim, ref uint allUsedOrders, uint prevUsedAcs, uint currentUsedAcs, uint currentUsedOrders, Span<int> order)
     {
         int[] numZeros = new int[JxlCoefficientOrder.CoefficientOrderMaxSize];
         double blockFraction = 1.0;
@@ -71,11 +67,13 @@ internal static class JxlCoefficientOrderEncoder
         {
             ulong threshold = uint.MaxValue * (ulong)blockFraction;
 
+            // Adapted from XorShift128Plus
             ulong s0 = 0x94D049BB133111EBUL;
             ulong s1 = 0xBF58476D1CE4E5B9UL;
 
             bool UseSample()
             {
+                // Adapted from XorShift128Plus
                 ulong s = s0;
                 ulong s0Local = s1;
                 ulong bits = s + s0Local;
@@ -194,7 +192,8 @@ internal static class JxlCoefficientOrderEncoder
 
             if (sz > (1 << 16))
             {
-                throw new InvalidOperationException("Inavlid size");
+                // The size is too large. 1 << 16 is the strict limit.
+                throw new InvalidOperationException("Invalid size");
             }
 
             if (((1u << ord) & ~currentUsedAcs) != 0)
@@ -248,6 +247,7 @@ internal static class JxlCoefficientOrderEncoder
                     throw new InvalidOperationException("Invalid coefficient order");
                 }
 
+                // 1÷√sz
                 float invSqrtSz = 1.0f / MathF.Sqrt(sz);
 
                 for (int i = 0; i < sz; ++i)
@@ -259,6 +259,7 @@ internal static class JxlCoefficientOrderEncoder
 
                     if (count >= 1uL << 48)
                     {
+                        // Up to 1 << 48 counts are allowed.
                         throw new InvalidOperationException("Count is too large");
                     }
 
@@ -270,7 +271,6 @@ internal static class JxlCoefficientOrderEncoder
                 for (int i = 0; i < sz; ++i)
                 {
                     order[offset + i] = (int)posAndVal[i].Pos;
-
                     isNonDefault |= naturalOrderBuffer[i] != posAndVal[i].Pos;
                 }
             }
@@ -304,6 +304,7 @@ internal static class JxlCoefficientOrderEncoder
         tokens.Add(new JxlToken((JxlMaTreeContext)JxlCoefficientOrder.CoeffOrderContext((uint)size), (uint)(end - skip)));
 
         uint last = 0;
+
         for (int i = skip; i < end; ++i)
         {
             tokens.Add(new JxlToken((JxlMaTreeContext)JxlCoefficientOrder.CoeffOrderContext(last), lehmer[i]));
@@ -411,6 +412,12 @@ internal static class JxlCoefficientOrderEncoder
         }
 
         return true;
+    }
+
+    private struct PosAndCount
+    {
+        public uint Pos;
+        public ulong CountAndIdx;
     }
 
     private sealed class PosAndCountComparer : IComparer<PosAndCount>

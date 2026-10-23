@@ -40,10 +40,45 @@ internal static class JxlSqueeze
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Average(int x, int y) => (x + y + ((x > y) ? 1 : 0)) >> 1;
 
+    /// <summary>
+    /// Computes a smoothed prediction tendency from three neighboring values.
+    /// </summary>
+    /// <param name="b">
+    /// The value preceding <paramref name="a"/>.
+    /// </param>
+    /// <param name="a">
+    /// The central value used to determine the local gradient.
+    /// </param>
+    /// <param name="n">
+    /// The value following <paramref name="a"/>.
+    /// </param>
+    /// <returns>
+    /// The smoothed prediction tendency, constrained according to the local
+    /// gradients when the three values are monotonically ordered; otherwise,
+    /// zero.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// When the input values are monotonically non-increasing or non-decreasing,
+    /// this method estimates a tendency using a weighted combination of the
+    /// neighboring values.
+    /// </para>
+    /// <para>
+    /// The result is adjusted to respect the gradients between <paramref name="b"/>
+    /// and <paramref name="a"/>, and between <paramref name="a"/> and
+    /// <paramref name="n"/>. These adjustments use parity-sensitive bounds
+    /// to constrain the tendency.
+    /// </para>
+    /// <para>
+    /// If the values are not monotonically ordered, the method returns zero,
+    /// indicating no prediction tendency.
+    /// </para>
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int SmoothTendency(int b, int a, int n)
     {
         int diff = 0;
+
         if (b >= a && a >= n)
         {
             diff = ((4 * b) - (3 * n) - a + 6) / 12;

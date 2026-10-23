@@ -5,8 +5,20 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
+/// <summary>
+/// XorShift is a kind of Random Number Generator (RNG) used by the
+/// JPEG-XL codec. Specifically, this is a XorShift128Plus version
+/// of the XorShift.
+/// </summary>
+/// <remarks>
+/// https://github.com/vpxyz/xorshift
+/// More precisely: https://github.com/vpxyz/xorshift/tree/master/xorshift128plus
+/// </remarks>
 internal sealed class JxlXorShift
 {
+    /// <summary>
+    /// Number of generators.
+    /// </summary>
     public const int Generators = 8;
 
     private readonly ulong[] s0 = new ulong[8];

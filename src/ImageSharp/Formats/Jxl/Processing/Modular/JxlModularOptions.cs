@@ -6,6 +6,9 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPredic
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
 
+/// <summary>
+/// Configures the Modular decoder and encoder.
+/// </summary>
 internal sealed class JxlModularOptions
 {
     /// <summary>
@@ -44,6 +47,9 @@ internal sealed class JxlModularOptions
 
     public JxlPredictor Predictor { get; set; } = JxlPredictor.Undefined;
 
+    /// <summary>
+    /// Gets or sets the mode of the weighted prediction.
+    /// </summary>
     public int WpMode { get; set; }
 
     public float FastDecodeMultiplier { get; set; } = 1.01f;

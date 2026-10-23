@@ -4,10 +4,15 @@
 using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Heuristics;
 
@@ -18,6 +23,9 @@ internal static class JxlHeuristics
     /// </summary>
     private const int Size = 5;
 
+    /// <summary>
+    /// Gets a very simple table that maps contexts to integers.
+    /// </summary>
     private static ReadOnlySpan<byte> SimpleContextMap =>
     [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -25,6 +33,9 @@ internal static class JxlHeuristics
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     ];
 
+    /// <summary>
+    /// Gets the kernels for sharper 2x downsampling.
+    /// </summary>
     private static ReadOnlySpan<float> Downsample2SharperKernel =>
     [
         -0.000314256996835f, -0.000314256996835f, -0.000897597057705f,
@@ -622,8 +633,262 @@ internal static class JxlHeuristics
         }
     }
 
+    public static void FindBestDequantMatrices(JxlCompressParameters cparams, JxlModularFrameEncoder modularFrameEncoder, out JxlDequantMatrices dequantMatrices)
+    {
+        dequantMatrices = new();
+        if (cparams.MaxErrorMode || cparams.DisablePerceptualOptimizations)
+        {
+            // Weights for the Mean Squared Error (MSE)
+            ReadOnlySpan<float> mseWeights = [0.001f, 0.001f, 0.001f];
+
+            // When perceptual options are enabled, these are MSE weights,
+            // otherwise these are max errors specified by user compression parameters.
+            ReadOnlySpan<float> wp = cparams.DisablePerceptualOptimizations ? mseWeights : cparams.MaxError;
+
+            float[][] weights = [[1.0f / wp[0]], [1.0f / wp[1]], [1.0f / wp[2]]];
+
+            JxlDctQuantWeightParameters dctParameters = new(weights);
+            JxlQuantizerEncoding[] encodings = ArrayHelpers.CreateAndInitialize(JxlQuantizerConstants.NumberOfQuantizerTables, () => JxlQuantizerEncoding.Dct(dctParameters));
+
+            dequantMatrices.SetCustom(encodings, modularFrameEncoder);
+            Span<float> dcWeights = [1.0f / wp[0], 1.0f / wp[1], 1.0f / wp[2]];
+
+            dequantMatrices.SetCustomDc(dequantMatrices, dcWeights);
+        }
+    }
+
+    public static void DownsampleImage2Sharper(Configuration configuration, JxlImageF input, JxlImageF output)
+    {
+        const int kernelX = 12;
+        const int kernelY = 12;
+
+        // A buffer used by the downsampling iteration
+        // ⚠️ IMPORTANT ⚠️ The length of the inline array
+        // MUST be equal to kernelY. When we update kernelY,
+        // please make sure to update the width of this
+        // inline array as well.
+        InlineArray12<Memory<float>> rowIn = default;
+
+        // Retrieving image dimensions
+        int xSize = input.XSize;
+        int ySize = input.YSize;
+
+        JxlImageF tempDownsample = new(configuration, xSize, ySize);
+        JxlImageOperations.ForceCopyImage(input, tempDownsample);
+
+        using JxlImageF boxDownsample = DownsampleImage(tempDownsample, 2);
+        tempDownsample.Dispose();
+
+        using JxlImageF mask = new(configuration, boxDownsample.XSize, boxDownsample.YSize);
+        CreateMask(boxDownsample, mask);
+
+        for (int y = 0; y < output.YSize; y++)
+        {
+            Span<float> rowOut = output.GetRow(y);
+            Span<float> rowMask = mask.GetRow(y);
+
+            for (int ky = 0; ky < kernelY; ky++)
+            {
+                int iy = (y * 2) + ky - ((kernelY - 1) / 2);
+
+                if (iy < 0)
+                {
+                    iy = 0;
+                }
+                else if (iy >= ySize)
+                {
+                    iy = ySize - 1;
+                }
+
+                rowIn[ky] = input.GetRowMemory(iy);
+            }
+
+            for (int x = 0; x < output.XSize; x++)
+            {
+                // Processing of min and max values of the original image
+                float min = float.MaxValue;
+                float max = float.MinValue;
+
+                // Radius
+                const int R = 5;
+
+                for (int ky = R; ky + R < kernelY; ky++)
+                {
+                    // Reusing this span as a performance improvement.
+                    // Memory<T>.Span seems to be expensive to compute.
+                    Span<float> currentRowIn = rowIn[ky].Span;
+
+                    for (int kx = R; kx + R < kernelX; kx++)
+                    {
+                        int ix = (x * 2) + kx - ((kernelX - 1) / 2);
+
+                        // Making sure x is not negative. If it is, set it to 0.
+                        if (ix < 0)
+                        {
+                            ix = 0;
+                        }
+
+                        // ix should not exceed image width. If it does, limit it.
+                        else if (ix >= xSize)
+                        {
+                            ix = xSize - 1;
+                        }
+
+                        min = float.Min(min, currentRowIn[ix]);
+                        max = float.Max(max, currentRowIn[ix]);
+                    }
+                }
+
+                float sum = 0;
+
+                for (int ky = 0; ky < kernelY; ky++)
+                {
+                    // Reusing this span as a performance improvement.
+                    // Memory<T>.Span seems to be expensive to compute.
+                    Span<float> currentRowIn = rowIn[ky].Span;
+
+                    // ky * kernelX to prevent repeated multiplications
+                    int kyKernelX = ky * kernelX;
+
+                    for (int kx = 0; kx < kernelX; kx++)
+                    {
+                        int ix = (x * 2) + kx - ((kernelX - 1) / 2);
+
+                        // Making sure x is not negative. If it is, set it to 0.
+                        if (ix < 0)
+                        {
+                            ix = 0;
+                        }
+
+                        // ix should not exceed image width. If it does, limit it.
+                        else if (ix >= xSize)
+                        {
+                            ix = xSize - 1;
+                        }
+
+                        sum += currentRowIn[ix] * Downsample2SharperKernel[kyKernelX + kx];
+                    }
+                }
+
+                rowOut[x] = sum;
+
+                const float maskMultiplier = 1;
+
+                float a = rowMask[x] * maskMultiplier;
+
+                // clipMin specifies the minimum bound.
+                // clipMax specifies the maximum bound.
+                float clipMin = min - a;
+                float clipMax = max + a;
+
+                // To prevent repeated bounds checks,
+                // this is a reference to rowOut[x].
+                ref float rowOutX = ref rowOut[x];
+
+                // Clamping to stay within the bounds
+                if (rowOutX < clipMin)
+                {
+                    rowOutX = clipMin;
+                }
+                else if (rowOutX > clipMax)
+                {
+                    rowOutX = clipMax;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes the weighted, mask-adjusted L2 difference between
+    /// two image blocks independently for each channel.
+    /// </summary>
+    /// <param name="a">First image</param>
+    /// <param name="b">Second image</param>
+    /// <param name="mask1x1">Mask for each channel</param>
+    /// <param name="by">Y block coordinate</param>
+    /// <param name="bx">X block coordinate</param>
+    /// <returns>
+    /// The L2 distance for the images.
+    /// </returns>
+    public static float ComputeBlockL2Distance(JxlImage3F a, JxlImage3F b, JxlImageF mask1x1, int by, int bx)
+    {
+        Rectangle rect = RectangleUtils.CreateRectangle(
+            bx * JxlFrameDimensions.BlockDimensions,
+            by * JxlFrameDimensions.BlockDimensions,
+            JxlFrameDimensions.BlockDimensions,
+            JxlFrameDimensions.BlockDimensions,
+            a.XSize,
+            a.YSize);
+
+        // Squared errors per channel. These are initially 0.
+        InlineArray3<float> squaredError = default;
+
+        for (int y = 0; y < rect.Height; y++)
+        {
+            // We precompute repeated PlaneRow calls for performance.
+            // The result is wrapped in an InlineArray3<T>, so we can
+            // retrieve the rows using an array-like access, which
+            // lets us use loops for each of the 3 channels.
+            //
+            // Note that we have to use Memory<T> here, as Span<T>
+            // cannot be wrapped in an InlineArray.
+            InlineArray3<Memory<float>> rowA = default;
+            InlineArray3<Memory<float>> rowB = default;
+
+            // Computing for the 'a' image first
+            rowA[0] = a.Plane(0).GetRowMemory(rect, y);
+            rowA[1] = a.Plane(1).GetRowMemory(rect, y);
+            rowA[2] = a.Plane(2).GetRowMemory(rect, y);
+
+            // And for the 'b' image here
+            rowB[0] = a.Plane(0).GetRowMemory(rect, y);
+            rowB[1] = a.Plane(1).GetRowMemory(rect, y);
+            rowB[2] = a.Plane(2).GetRowMemory(rect, y);
+
+            // We store a row for the mask directly.
+            // It's only one channel, so it can be stored
+            // as a single Span<T>.
+            Span<float> rowMask = mask1x1.GetRow(rect, y);
+
+            // Actual computation logic here.
+            for (int x = 0; x < rect.Width; x++)
+            {
+                // First we retrieve the mask for the current row and column.
+                // And then we compute the square of it.
+                float mask = rowMask[x];
+                float mask2 = mask * mask;
+
+                for (int i = 0; i < 3; ++i)
+                {
+                    // Here we compute the difference of the
+                    // two rows at the current channel and location.
+                    // We then compute the square of the difference.
+                    float diff = rowA[i].Span[x] - rowB[i].Span[x];
+                    float diff2 = diff * diff;
+
+                    // Add the squared mask multiplied by the squared
+                    // difference to the error for this channel.
+                    squaredError[i] += mask2 * diff2;
+                }
+            }
+        }
+
+        // These are weights for each channel. They're read-only.
+        ReadOnlySpan<float> weights = [12.339445295782363f, 1.0f, 0.2f];
+
+        // The result is a dot product of squared errors for each
+        // channel multiplied by the channel's respective weights.
+        float result =
+            (weights[0] * squaredError[0])
+            + (weights[1] * squaredError[1])
+            + (weights[2] * squaredError[2]);
+
+        return result;
+    }
+
     private sealed class OccCounters : IDisposable
     {
+        // These are pooled using Array<T>.Shared.Rent.
         private readonly int[] qfCounts;
         private readonly int[] dataForQfOrdCounts;
         private readonly int[] ordCounts;

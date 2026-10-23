@@ -65,6 +65,22 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
+    /// Copies everything from one plane to another. If the copy
+    /// fails, an exception is thrown.
+    /// </summary>
+    /// <typeparam name="T">The type of planes to copy.</typeparam>
+    /// <param name="from">Source plane (read-only)</param>
+    /// <param name="to">Destination plane (write-only)</param>
+    public static void ForceCopyImage<T>(JxlPlane<T> from, JxlPlane<T> to)
+        where T : unmanaged
+    {
+        if (!CopyImage(from, to))
+        {
+            throw new InvalidOperationException("Could not copy an image");
+        }
+    }
+
+    /// <summary>
     /// Copies everything from one image to another.
     /// </summary>
     /// <typeparam name="T">The type of image to copy.</typeparam>
@@ -97,6 +113,22 @@ internal static class JxlImageOperations
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Copies everything from one image to another. If the copy
+    /// fails, an exception is thrown.
+    /// </summary>
+    /// <typeparam name="T">The type of image to copy.</typeparam>
+    /// <param name="from">Source image (read-only)</param>
+    /// <param name="to">Destination image (write-only)</param>
+    public static void ForceCopyImage<T>(JxlImage3<T> from, JxlImage3<T> to)
+        where T : unmanaged
+    {
+        if (!CopyImage(from, to))
+        {
+            throw new InvalidOperationException("Could not copy an image");
+        }
     }
 
     /// <summary>

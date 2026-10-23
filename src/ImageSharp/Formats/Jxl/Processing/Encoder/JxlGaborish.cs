@@ -42,10 +42,7 @@ internal static class JxlGaborish
 
         using JxlImageF temp = new(configuration, inOut.Plane(2).XSize, inOut.Plane(2).YSize);
 
-        if (!JxlImageOperations.CopyImage(inOut.Plane(2), temp))
-        {
-            throw new InvalidOperationException("Image copying failed");
-        }
+        JxlImageOperations.ForceCopyImage(inOut.Plane(2), temp);
 
         Rectangle xRect = RectangleUtils.Extend(rect, 3, inOut.GetRectangle());
 

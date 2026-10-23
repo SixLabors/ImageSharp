@@ -153,15 +153,8 @@ internal class JxlExternalImageEncoder
 
         if (colorChannels == 1)
         {
-            if (!JxlImageOperations.CopyImage(color.Plane(0), color.Plane(1)))
-            {
-                throw new InvalidOperationException("Failed to copy plane");
-            }
-
-            if (!JxlImageOperations.CopyImage(color.Plane(0), color.Plane(2)))
-            {
-                throw new InvalidOperationException("Failed to copy plane");
-            }
+            JxlImageOperations.ForceCopyImage(color.Plane(0), color.Plane(1));
+            JxlImageOperations.ForceCopyImage(color.Plane(0), color.Plane(2));
         }
 
         if (!imageBundle.SetFromImage(color, currentColorEncoding))

@@ -50,6 +50,10 @@ internal static class JxlCluster
         histogram.TotalCount = Vector.Sum(total);
     }
 
+    /// <summary>
+    /// Computes the Shannon entropy for a histogram.
+    /// </summary>
+    /// <param name="a">The histogram to compute the entropy for.</param>
     public static void HistogramEntropy(JxlHistogram a)
     {
         a.Entropy = 0.0f;

@@ -17,13 +17,24 @@ internal sealed class JxlModularImage : IDisposable
         this.IsInvalid = false;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlModularImage"/> class,
+    /// representing an empty image with 0x0 width/height and a bit-depth
+    /// of 8 bits.
+    /// </summary>
     public JxlModularImage()
         : this(0, 0, 8)
     {
     }
 
+    /// <summary>
+    /// Gets or sets all channels within this image.
+    /// </summary>
     public List<JxlModularChannel> Channels { get; set; } = [];
 
+    /// <summary>
+    /// Gets or sets all transforms within this image.
+    /// </summary>
     public List<JxlTransform> Transforms { get; set; } = [];
 
     /// <summary>
@@ -78,6 +89,10 @@ internal sealed class JxlModularImage : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Disposes each channel within this modular image, then sets <see cref="Channels"/>
+    /// to an empty list.
+    /// </summary>
     public void Dispose()
     {
         foreach (JxlModularChannel channel in this.Channels)

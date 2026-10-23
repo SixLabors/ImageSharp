@@ -5,8 +5,14 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
+/// <summary>
+/// Aspect ratio utilities
+/// </summary>
 internal static class JxlAspectRatioHelpers
 {
+    /// <summary>
+    /// Well-known aspect ratios.
+    /// </summary>
     private static readonly SignedRational[] Ratios =
     [
         new(1, 1),
@@ -18,6 +24,11 @@ internal static class JxlAspectRatioHelpers
         new(2, 1)
     ];
 
+    /// <summary>
+    /// Returns a built-in aspect ratio.
+    /// </summary>
+    /// <param name="ratio">The index of the aspect ratio.</param>
+    /// <returns>A well-known aspect ratio.</returns>
     public static SignedRational FixedAspectRatios(int ratio) => Ratios[ratio - 1];
 
     public static int FindAspectRatio(int x, int y)

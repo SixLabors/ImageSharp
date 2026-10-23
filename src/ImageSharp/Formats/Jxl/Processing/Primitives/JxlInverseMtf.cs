@@ -4,10 +4,15 @@
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 /// <summary>
-/// Inverse Move to Front implementation
+/// Represents the Inverse Move-to-Front (MTF) Transform.
 /// </summary>
 internal static class JxlInverseMtf
 {
+    /// <summary>
+    /// Moves bytes to the front starting at index <paramref name="index"/>.
+    /// </summary>
+    /// <param name="values">The MTF bytes.</param>
+    /// <param name="index">The MTF index.</param>
     public static void MoveToFront(Span<byte> values, byte index)
     {
         byte value = values[index];
@@ -17,15 +22,22 @@ internal static class JxlInverseMtf
         values[0] = value;
     }
 
+    /// <summary>
+    /// Performs the Inverse Move-to-Front Transform on the span of bytes.
+    /// </summary>
+    /// <param name="values">The MTF bytes.</param>
     public static void InverseMoveToFrontTransform(Span<byte> values)
     {
         Span<byte> table = stackalloc byte[256];
 
+        // First, we populate the table with indices.
+        // TODO: JxlSimdUtils.Iota<byte>?
         for (int i = 0; i < table.Length; i++)
         {
             table[i] = (byte)i;
         }
 
+        // Then we do the actual inverse transform here.
         for (int i = 0; i < values.Length; i++)
         {
             byte index = values[i];

@@ -6,8 +6,22 @@ using SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
+/// <summary>
+/// Builds and writes TOC permutations.
+/// </summary>
 internal static class JxlTocEncoder
 {
+    /// <summary>
+    /// Wraps over <see cref="JxlCoefficientOrderEncoder.EncodePermutation(ReadOnlySpan{uint}, int, int, JxlBitWriter)"/>
+    /// to encode permutations into the bit-stream, while also writing a bit indicating
+    /// whether or not are permutations present.
+    /// </summary>
+    /// <param name="permutation">
+    /// Input permutations to write to the bit-stream.
+    /// </param>
+    /// <param name="writer">
+    /// The bit-stream writer where permutations are encoded into.
+    /// </param>
     public static void WriteTocPermutation(Memory<int> permutation, JxlBitWriter writer)
     {
         int nPermutation = permutation.Length;

@@ -7,7 +7,10 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Transforms;
 
 /// <summary>
-/// Reversible Color Transform (RCT)
+/// Implements the inverse and forward Reversible Color Transform (RCT)
+/// with SIMD acceleration if possible. This class implements the mathematical
+/// conversion of the RGB color space to the Y'Co'Cg color space (forward),
+/// and Y'Co'Cg to RGB (inverse), losslessly.
 /// </summary>
 internal static class JxlRct
 {
@@ -28,10 +31,8 @@ internal static class JxlRct
         DebugGuard.MustBeBetweenOrEqualTo(transformType, 0, 6, nameof(transformType));
 
         int width = in0.Length; // All input & output channels have equal widths
-
         int second = transformType >> 1;
         int third = transformType & 1;
-
         int n = Vector<int>.Count;
 
         if (transformType == 6)
@@ -185,10 +186,12 @@ internal static class JxlRct
 
         _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
         {
+            // Get input channels
             Span<int> in0 = img.Channels[m].GetRow(y);
             Span<int> in1 = img.Channels[m + 1].GetRow(y);
             Span<int> in2 = img.Channels[m + 2].GetRow(y);
 
+            // Get output channels
             Span<int> out0 = img.Channels[m + (permutation % 3)].GetRow(y);
             Span<int> out1 = img.Channels[m + ((permutation + 1 + (permutation / 3)) % 3)].GetRow(y);
             Span<int> out2 = img.Channels[m + ((permutation + 2 - (permutation / 3)) % 3)].GetRow(y);
@@ -215,7 +218,6 @@ internal static class JxlRct
 
         int second = transform >> 1;
         int third = transform & 1;
-
         int width = in0.Length; // All input & output channels have equal widths
 
         if (!Vector.IsHardwareAccelerated || Vector<int>.Count == 1)
@@ -296,7 +298,7 @@ internal static class JxlRct
 
                     // TODO: duplicate loops for second == 1, second == 2
                     // and otherwise? We should reduce the number of branches in
-                    // loops.
+                    // hot loops.
                     if (second == 1)
                     {
                         o1 -= i0;
@@ -356,10 +358,12 @@ internal static class JxlRct
 
         _ = Parallel.For(0, height, configuration.GetParallelOptions(), y =>
         {
+            // Get input channels
             Span<int> i0 = inp[0].GetRow(y);
             Span<int> i1 = inp[1].GetRow(y);
             Span<int> i2 = inp[2].GetRow(y);
 
+            // Get output channels
             Span<int> o0 = output[0].GetRow(y);
             Span<int> o1 = output[1].GetRow(y);
             Span<int> o2 = output[2].GetRow(y);

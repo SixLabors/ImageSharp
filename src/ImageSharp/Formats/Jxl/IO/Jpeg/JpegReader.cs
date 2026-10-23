@@ -32,6 +32,16 @@ internal static class JpegReader
         0, 0, 0, 0, 0, 0, 1, 0,
     ];
 
+    /// <summary>
+    /// Within <paramref name="data"/>, returns a byte whose offset is
+    /// represented by the variable <paramref name="pos"/>, then increments
+    /// <paramref name="pos"/>.
+    /// </summary>
+    /// <param name="data">Data to read the byte from.</param>
+    /// <param name="pos">The offset of the byte.</param>
+    /// <returns>
+    /// The byte at offset <paramref name="pos"/> before it was incremented.
+    /// </returns>
     private static int ReadUint8(ReadOnlySpan<byte> data, ref int pos) => data[pos++];
 
     private static int ReadUint16(ReadOnlySpan<byte> data, ref int pos)

@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
@@ -292,7 +293,7 @@ internal static class JxlGroupEncoder
         {
             // If this 8x8 block is too flat, increase the adaptive quantization level
             // a bit to reduce visible block boundaries and requantize the block.
-            if (hfNonZeros[0] + hfNonZeros[1] + hfNonZeros[2] + hfNonZeros[3] < 11)
+            if (hfNonZeros[3] + hfNonZeros[2] + hfNonZeros[1] + hfNonZeros[0] < 11)
             {
                 quant++;
 
@@ -472,13 +473,15 @@ internal static class JxlGroupEncoder
          */
 
         // Don't call .Clear(). All items will be populated.
-        Span<float> inverseQAc = stackalloc float[64];
-        Span<int> oquant = stackalloc int[64];
-        Span<float> adjQuant = stackalloc float[64];
-        Span<float> dequantm = stackalloc float[64];
+        Span<float> shared = stackalloc float[64 * 6];
 
-        Span<float> mulAdjQuantDequantm = stackalloc float[64];
-        Span<float> mulAdjQuantDequantmInverseQAc = stackalloc float[64];
+        Span<float> inverseQAc = shared.Slice(64 * 0, 64);
+        Span<int> oquant = MemoryMarshal.Cast<float, int>(shared.Slice(64 * 1, 64));
+        Span<float> adjQuant = shared.Slice(64 * 2, 64);
+        Span<float> dequantm = shared.Slice(64 * 3, 64);
+
+        Span<float> mulAdjQuantDequantm = shared.Slice(64 * 4, 64);
+        Span<float> mulAdjQuantDequantmInverseQAc = shared.Slice(64 * 5, 64);
 
         inverseQAc.Fill(quantizer.InverseQuantAc(quant));
 
@@ -552,14 +555,15 @@ internal static class JxlGroupEncoder
             Span<int> quantized = mem.Memory.Span;
 
             // SIMD on 64-bit lanes equivalent
-            // No need to call .Clear(). All values will zero-init.
-            Span<float> xFactor = stackalloc float[64];
-            Span<float> bFactor = stackalloc float[64];
-            Span<float> inX = stackalloc float[64];
-            Span<float> inY = stackalloc float[64];
-            Span<float> inB = stackalloc float[64];
-            Span<float> outX = stackalloc float[64];
-            Span<float> outB = stackalloc float[64];
+            // No need to call .Clear(). All values will be populated.
+            Span<float> shared = stackalloc float[64 * 7];
+            Span<float> xFactor = shared.Slice(64 * 0, 64);
+            Span<float> bFactor = shared.Slice(64 * 1, 64);
+            Span<float> inX = shared.Slice(64 * 2, 64);
+            Span<float> inY = shared.Slice(64 * 3, 64);
+            Span<float> inB = shared.Slice(64 * 4, 64);
+            Span<float> outX = shared.Slice(64 * 5, 64);
+            Span<float> outB = shared.Slice(64 * 6, 64);
 
             for (int by = 0; by < heightBlocks; by++)
             {

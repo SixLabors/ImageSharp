@@ -45,12 +45,7 @@ internal sealed class JxlFrameDecoder
     {
         get
         {
-            if (!this.isFinalized)
-            {
-                return 0;
-            }
-
-            if (!this.HasEverything)
+            if (!this.isFinalized || !this.HasEverything)
             {
                 return 0;
             }

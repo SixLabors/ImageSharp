@@ -14,21 +14,13 @@ internal struct JxlPatchColorspaceInfo
     {
         if (isXyb)
         {
-            this.ChannelDequant[0] = 0.01615f;
-            this.ChannelDequant[1] = 0.08875f;
-            this.ChannelDequant[2] = 0.1922f;
-            this.ChannelWeights[0] = 30.0f;
-            this.ChannelWeights[1] = 3.0f;
-            this.ChannelWeights[2] = 1.0f;
+            ((ReadOnlySpan<float>)[0.01615f, 0.08875f, 0.1922f]).CopyTo(this.ChannelDequant);
+            ((ReadOnlySpan<float>)[30.0f, 3.0f, 1.0f]).CopyTo(this.ChannelWeights);
         }
         else
         {
-            this.ChannelDequant[0] = 20.0f / 255;
-            this.ChannelDequant[1] = 22.0f / 255;
-            this.ChannelDequant[2] = 20.0f / 255;
-            this.ChannelWeights[0] = 0.017f * 255;
-            this.ChannelWeights[1] = 0.02f * 255;
-            this.ChannelWeights[2] = 0.017f * 255;
+            ((ReadOnlySpan<float>)[20.0f / 255, 22.0f / 255, 20.0f / 255]).CopyTo(this.ChannelDequant);
+            ((ReadOnlySpan<float>)[0.017f * 255, 0.02f * 255, 0.017f * 255]).CopyTo(this.ChannelWeights);
         }
     }
 
@@ -50,10 +42,9 @@ internal struct JxlPatchColorspaceInfo
     {
         float distance = 0;
 
-        for (int c = 0; c < 3; c++)
-        {
-            distance += MathF.Abs(v1[c] - v2[c]) * this.ChannelWeights[c];
-        }
+        distance += MathF.Abs(v1[2] - v2[2]) * this.ChannelWeights[2];
+        distance += MathF.Abs(v1[1] - v2[1]) * this.ChannelWeights[1];
+        distance += MathF.Abs(v1[0] - v2[0]) * this.ChannelWeights[0];
 
         return distance <= threshold;
     }

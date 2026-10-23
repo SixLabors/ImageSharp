@@ -337,8 +337,12 @@ internal sealed class JxlLz77HashChain
 
     public unsafe void FindMatch(int pos, int maxDist, ref int resultDistSymbol, ref int resultLength)
     {
-        int* pDistSymbol = (int*)Unsafe.AsPointer(ref resultDistSymbol);
-        int* pLength = (int*)Unsafe.AsPointer(ref resultLength);
-        this.FindMatch(pos, maxDist, pDistSymbol, pLength);
+        fixed (int* pDistSymbol = &resultDistSymbol)
+        {
+            fixed (int* pLength = &resultLength)
+            {
+                this.FindMatch(pos, maxDist, pDistSymbol, pLength);
+            }
+        }
     }
 }

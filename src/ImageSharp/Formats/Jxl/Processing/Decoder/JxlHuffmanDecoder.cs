@@ -34,10 +34,6 @@ internal sealed class JxlHuffmanDecoder
         new(2, 0), new(2, 4), new(2, 3), new(3, 2), new(2, 0), new(2, 4), new(2, 3), new(4, 5),
     ];
 
-    public JxlHuffmanDecoder()
-    {
-    }
-
     private static ReadOnlySpan<byte> CodeLengthCodeOrder =>
     [
         1, 2, 3, 4, 0, 5, 17, 6, 16, 7, 8, 9, 10, 11, 12, 13, 14, 15,

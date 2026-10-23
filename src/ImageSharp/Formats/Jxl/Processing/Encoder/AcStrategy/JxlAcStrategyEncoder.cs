@@ -968,7 +968,7 @@ internal static class JxlAcStrategyEncoder
             {
                 for (int cx = 0; cx + acs.CoveredBlocksX - 1 < rect.Width; cx += acs.CoveredBlocksX)
                 {
-                    if (cy + 7 < rect.Height && cx + 7 < rect.Width)
+                    if (cy < rect.Height - 7 && cx < rect.Width - 7)
                     {
                         if (cparams.DecodingSpeedTier < 4 && mt.Type == JxlAcStrategyType.DCT32X64)
                         {
@@ -1008,7 +1008,7 @@ internal static class JxlAcStrategyEncoder
                         continue;
                     }
 
-                    if (cy + 3 < rect.Height && cx + 3 < rect.Width)
+                    if (cy < rect.Height - 3 && cx < rect.Width - 3)
                     {
                         if (mt.Type == JxlAcStrategyType.DCT16X32)
                         {
@@ -1049,7 +1049,7 @@ internal static class JxlAcStrategyEncoder
                         continue;
                     }
 
-                    if (cy + 1 < rect.Height && cx + 1 < rect.Width)
+                    if (cy < rect.Height - 1 && cx < rect.Width - 1)
                     {
                         if (mt.Type == JxlAcStrategyType.DCT8X16)
                         {
@@ -1148,9 +1148,9 @@ internal static class JxlAcStrategyEncoder
 
         int step = cparams.SpeedTier >= JxlSpeedTier.Tortoise ? 2 : 1;
 
-        for (int cy = 0; cy + 3 < rect.Height; cy += step)
+        for (int cy = 0; cy < rect.Height - 3; cy += step)
         {
-            for (int cx = 0; cx + 3 < rect.Width; cx += step)
+            for (int cx = 0; cx < rect.Width - 3; cx += step)
             {
                 if ((cy | cx) % 4 == 0)
                 {

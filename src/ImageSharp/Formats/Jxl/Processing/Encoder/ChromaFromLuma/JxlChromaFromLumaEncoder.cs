@@ -252,7 +252,7 @@ internal static class JxlChromaFromLumaEncoder
                 float q = useDct8 ? 1 : quantizer.Scale * strangeMultiplier * qq;
 
                 Vector<float> qv = Vector.Create(q);
-                for (int i = 0; i < cx * cy * 64; i += Vector<float>.Count)
+                for (int i = 0; i <= (cx * cy * 64) - Vector<float>.Count; i += Vector<float>.Count)
                 {
                     Vector<float> bY = Vector.Create<float>(blockY[i..]);
                     Vector<float> bX = Vector.Create<float>(blockX[i..]);

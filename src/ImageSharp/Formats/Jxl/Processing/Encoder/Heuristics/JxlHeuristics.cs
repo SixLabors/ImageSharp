@@ -178,7 +178,7 @@ internal static class JxlHeuristics
             }
             else if (next > qft.Count + 1)
             {
-                if (j - 1 == lastCut && j != 0)
+                if (j == lastCut + 1 && j != 0)
                 {
                     qft.Add((uint)j);
                 }
@@ -356,7 +356,7 @@ internal static class JxlHeuristics
                         int x2 = x + xi;
                         int y2 = y + yi;
 
-                        if (x2 < 0 || y2 < 0 || x2 >= xsize2 || y2 >= ysize2)
+                        if ((uint)x2 >= xsize2 || (uint)y2 >= ysize2)
                         {
                             continue;
                         }
@@ -408,7 +408,7 @@ internal static class JxlHeuristics
         int kx = x2 - ix + (Size / 2);
         int ky = y2 - iy + (Size / 2);
 
-        if (kx < 0 || kx >= Size || ky < 0 || ky >= Size)
+        if ((uint)kx >= Size || (uint)ky >= Size)
         {
             // Shouldn't happen.
             return 0;

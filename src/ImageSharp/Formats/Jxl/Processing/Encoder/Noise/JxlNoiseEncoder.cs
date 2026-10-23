@@ -87,9 +87,9 @@ internal static class JxlNoiseEncoder
         Span<float> sadScoresData = sadScores.GetSpan();
         int blockIndex = 0;
 
-        for (int y = 0; y + blockSize <= opsin.YSize; y += blockSize)
+        for (int y = 0; y <= opsin.YSize - blockSize; y += blockSize)
         {
-            for (int x = 0; x + blockSize <= opsin.XSize; x += blockSize)
+            for (int x = 0; x <= opsin.XSize - blockSize; x += blockSize)
             {
                 float score = GetScoreSumsOfAbsoluteDifferences(opsin, x, y, blockSize);
                 sadScoresData[blockIndex++] = score;

@@ -25,39 +25,23 @@ internal class JxlFrameEncoder
             return 0;
         }
 
-        // No point using groups when only one group is full and the others are
-        // less than half full: multithreading will not really help much, while
-        // compression does suffer; but no reason to have group larger than image.
-        if (width <= 128 && height <= 128)
+        // Suppress warnings here, as:
+        //   (<= 128, <= 128) - produces warning to fix formatting
+        //   Applying code fix -> ( <= 128, <= 128) - produces warning, open parentheses must not have whitespace
+        //   Applying code fix - produces (<= 128, <= 128). Then first warning again.
+#pragma warning disable format
+        return (width, height) switch
         {
-            return 0;
-        }
-
-        if (width <= 256 && height <= 256)
-        {
-            return 1;
-        }
-
-        if (width <= 400 && height <= 400)
-        {
-            return 2;
-        }
-
-        return 1;
+            (<= 128, <= 128) => 0,
+            (<= 256, <= 256) => 1,
+            (<= 400, <= 400) => 2,
+            _ => 1
+        };
+#pragma warning restore format
     }
 
-    public static void SimplifyInvisible(JxlImage3F image, JxlImageF alpha, bool lossless)
+    public static unsafe void SimplifyInvisible(JxlImage3F image, JxlImageF alpha, bool lossless)
     {
-        // Invisible (alpha = 0) pixels tend to be a mess in optimized PNGs.
-        // Since they have no visual impact, we can replace them with
-        // something that compresses better and reduces artifacts near the edges. This
-        // does some kind of smoothing that seems to work.
-        // Replace invisible pixels with a weighted average of the pixel to the left,
-        // the pixel to the topright, and non-invisible neighbours.
-        // Produces downward-blurry smears, with in the upwards direction only a 1px
-        // edge duplication but not more. It would probably be better to smear in all
-        // directions. That requires an alpha-weighed convolution with a large enough
-        // kernel though, which might be too much.
         for (int c = 0; c < 3; c++)
         {
             for (int y = 0; y < image.YSize; y++)
@@ -69,73 +53,79 @@ internal class JxlFrameEncoder
                 Span<float> pa = y > 0 ? alpha.GetRow(y - 1) : [];
                 Span<float> na = y + 1 < image.YSize ? alpha.GetRow(y + 1) : [];
 
-                for (int x = 0; x < image.XSize; ++x)
+                // We create a pointer to 'a', to remove bounds checks in a hot loop.
+                // We also use a debug guard, so the range is valid.
+                DebugGuard.MustBeGreaterThanOrEqualTo(a.Length, image.XSize, nameof(a));
+                fixed (float* unsafeA = a)
                 {
-                    if (a[x] == 0)
+                    for (int x = 0; x < image.XSize; ++x)
                     {
-                        if (lossless)
+                        if (unsafeA[x] == 0)
                         {
+                            if (lossless)
+                            {
+                                row[x] = 0;
+                                continue;
+                            }
+
+                            float d = 0.0f;
                             row[x] = 0;
-                            continue;
-                        }
 
-                        float d = 0.0f;
-                        row[x] = 0;
-
-                        if (x > 0)
-                        {
-                            row[x] += row[x - 1];
-                            d++;
-
-                            if (a[x - 1] > 0.0f)
+                            if (x > 0)
                             {
                                 row[x] += row[x - 1];
                                 d++;
-                            }
-                        }
 
-                        if (x + 1 < image.XSize)
-                        {
-                            if (y > 0)
-                            {
-                                row[x] += prow[x + 1];
-                                d++;
+                                if (unsafeA[x - 1] > 0.0f)
+                                {
+                                    row[x] += row[x - 1];
+                                    d++;
+                                }
                             }
 
-                            if (a[x + 1] > 0.0f)
+                            if (x < image.XSize - 1)
                             {
-                                row[x] += 2.0f * row[x + 1];
+                                if (y > 0)
+                                {
+                                    row[x] += prow[x + 1];
+                                    d++;
+                                }
+
+                                if (unsafeA[x + 1] > 0.0f)
+                                {
+                                    row[x] += 2.0f * row[x + 1];
+                                    d += 2.0f;
+                                }
+
+                                if (y > 0 && pa[x + 1] > 0.0f)
+                                {
+                                    row[x] += 2.0f * prow[x + 1];
+                                    d += 2.0f;
+                                }
+
+                                if (y + 1 < image.YSize && na[x + 1] > 0.0f)
+                                {
+                                    row[x] += 2.0f * nrow[x + 1];
+                                    d += 2.0f;
+                                }
+                            }
+
+                            if (y > 0 && pa[x] > 0.0f)
+                            {
+                                row[x] += 2.0f * prow[x];
                                 d += 2.0f;
                             }
 
-                            if (y > 0 && pa[x + 1] > 0.0f)
+                            if (y + 1 < image.YSize && na[x] > 0.0f)
                             {
-                                row[x] += 2.0f * prow[x + 1];
+                                row[x] += 2.0f * nrow[x];
                                 d += 2.0f;
                             }
 
-                            if (y + 1 < image.YSize && na[x + 1] > 0.0f)
+                            if (d > 1.0f)
                             {
-                                row[x] += 2.0f * nrow[x + 1];
-                                d += 2.0f;
+                                row[x] /= d;
                             }
-                        }
-
-                        if (y > 0 && pa[x] > 0.0f)
-                        {
-                            row[x] += 2.0f * prow[x];
-                            d += 2.0f;
-                        }
-
-                        if (y + 1 < image.YSize && na[x] > 0.0f)
-                        {
-                            row[x] += 2.0f * nrow[x];
-                            d += 2.0f;
-                        }
-
-                        if (d > 1.0f)
-                        {
-                            row[x] /= d;
                         }
                     }
                 }

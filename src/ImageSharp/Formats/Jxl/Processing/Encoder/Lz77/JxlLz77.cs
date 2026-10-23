@@ -75,6 +75,10 @@ internal static class JxlLz77
                 symbolCostSpan[i + 1] = sce.GetBits((int)input[i].Context, (int)token) + numBits + symbolCostSpan[i];
             }
 
+            // We access items from the 'input' List very frequently,
+            // so creating a Span<T> wrapper can be much faster.
+            Span<JxlToken> inputSpan = CollectionsMarshal.AsSpan(input);
+
             for (int i = 0; i < input.Count; i++)
             {
                 int numToCopy = 0;
@@ -87,9 +91,9 @@ internal static class JxlLz77
 
                 if (i > 0)
                 {
-                    for (; i + numToCopy < input.Count; numToCopy++)
+                    for (; numToCopy < input.Count - i; numToCopy++)
                     {
-                        if (input[i + numToCopy].Value != input[i - 1].Value)
+                        if (inputSpan[i + numToCopy].Value != inputSpan[i - 1].Value)
                         {
                             break;
                         }
@@ -98,7 +102,7 @@ internal static class JxlLz77
 
                 if (numToCopy == 0)
                 {
-                    output.Add(input[i]);
+                    output.Add(inputSpan[i]);
                     continue;
                 }
 
@@ -114,14 +118,14 @@ internal static class JxlLz77
                 {
                     for (int j = 0; j < numToCopy; j++)
                     {
-                        output.Add(input[i + j]);
+                        output.Add(inputSpan[i + j]);
                     }
 
                     i += numToCopy - 1;
                     continue;
                 }
 
-                output.Add(new JxlToken(input[i].Context, (uint)lz77Length));
+                output.Add(new JxlToken(inputSpan[i].Context, (uint)lz77Length));
                 output[^1] = output[^1] with
                 {
                     IsLz77Length = true
@@ -160,7 +164,7 @@ internal static class JxlLz77
         float bitDecrease = 0;
         int totalSymbols = 0;
         JxlAnsHybridUIntConfiguration uintConfig = new();
-        List<float> symCost = [];
+        List<float> symbolCost = [];
 
         for (int stream = 0; stream < tokens.Length; stream++)
         {
@@ -171,12 +175,19 @@ internal static class JxlLz77
             totalSymbols += input.Count;
             List<uint> data = new(input.Count);
 
-            symCost.Resize(input.Count + 1);
+            symbolCost.Resize(input.Count + 1);
+
+            // For symbolCost, we should create a Span<T> wrapper over the List<T> with every
+            // iteration, as the symbolCost list can be resized.
+            Span<float> symbolCostSpan = CollectionsMarshal.AsSpan(symbolCost);
+            Span<JxlToken> inputSpan = CollectionsMarshal.AsSpan(input);
+            Span<uint> dataSpan = CollectionsMarshal.AsSpan(data);
+
             for (int pos = 0; pos < input.Count; pos++)
             {
-                uintConfig.Encode(input[pos].Value, out uint tok, out uint nbits, out _);
-                symCost[pos + 1] = sce.GetBits((int)input[pos].Context, (int)tok) + nbits + symCost[pos];
-                data[pos] = input[pos].Value;
+                uintConfig.Encode(inputSpan[pos].Value, out uint tok, out uint nbits, out _);
+                symbolCostSpan[pos + 1] = sce.GetBits((int)inputSpan[pos].Context, (int)tok) + nbits + symbolCost[pos];
+                dataSpan[pos] = inputSpan[pos].Value;
             }
 
             _ = output.EnsureCapacity(input.Count);
@@ -191,7 +202,7 @@ internal static class JxlLz77
 
             for (int pos = 0; pos < input.Count; pos++)
             {
-                output.Add(input[pos]);
+                output.Add(inputSpan[pos]);
 
                 // Guard against reading past input bounds
                 if (pos + hashSize >= input.Count)
@@ -207,7 +218,7 @@ internal static class JxlLz77
                 }
 
                 // Bit cost comparison. Raw tokens vs LZ77 pair
-                float cost = symCost[pos + len] - symCost[pos];
+                float cost = symbolCostSpan[pos + len] - symbolCostSpan[pos];
                 int lz77Length = len - (int)lz77.MinimumLength;
                 float lz77Cost = JxlLz77Costs.GetLengthCost(lz77Length) + JxlLz77Costs.GetDistanceCost(dist_symbol);
 
@@ -215,7 +226,7 @@ internal static class JxlLz77
                 {
                     for (int offset = 1; offset < len; offset++)
                     {
-                        output.Add(input[pos + offset]);
+                        output.Add(inputSpan[pos + offset]);
                         hashMap.Update(pos + offset);
                     }
 
@@ -338,12 +349,16 @@ internal static class JxlLz77
 
                 float litCost = prefixCosts[i].TotalCost + symbolCost[i + 1] - symCost[i];
 
-                if (prefixCosts[i + 1].TotalCost > litCost)
+                // Create a reference to prefixCosts[i + 1] to reduce the
+                // number of bounds checks.
+                ref MatchInfo prefixCostItem = ref prefixCosts[i + 1];
+
+                if (prefixCostItem.TotalCost > litCost)
                 {
-                    prefixCosts[i + 1].DistanceSymbol = 0;
-                    prefixCosts[i + 1].Length = 1;
-                    prefixCosts[i + 1].Context = (int)input[i].Context;
-                    prefixCosts[i + 1].TotalCost = litCost;
+                    prefixCostItem.DistanceSymbol = 0;
+                    prefixCostItem.Length = 1;
+                    prefixCostItem.Context = (int)input[i].Context;
+                    prefixCostItem.TotalCost = litCost;
                 }
 
                 if (skipLz77 > 0)
@@ -398,12 +413,16 @@ internal static class JxlLz77
                     float lz77Cost = sce.GetLengthCost((int)input[i].Context, j - minLength, lz77) + sce.GetDistanceCost(distanceSymbols[j], lz77);
                     float cost = prefixCosts[i].TotalCost + lz77Cost;
 
-                    if (prefixCosts[i + j].TotalCost > cost)
+                    // Create a reference to prefixCosts[i + j] to reduce the
+                    // number of bounds checks.
+                    ref MatchInfo prefixCost = ref prefixCosts[i + j];
+
+                    if (prefixCost.TotalCost > cost)
                     {
-                        prefixCosts[i + j].Length = j;
-                        prefixCosts[i + j].DistanceSymbol = distanceSymbols[j] + 1;
-                        prefixCosts[i + j].Context = (int)input[i].Context;
-                        prefixCosts[i + j].TotalCost = cost;
+                        prefixCost.Length = j;
+                        prefixCost.DistanceSymbol = distanceSymbols[j] + 1;
+                        prefixCost.Context = (int)input[i].Context;
+                        prefixCost.TotalCost = cost;
                     }
                 }
 

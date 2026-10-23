@@ -202,8 +202,12 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<Vector4> span)
         {
-            Span<TPixelBg> background = this.background.DangerousGetRowSpan(y + this.backgroundRectangle.Top).Slice(this.backgroundRectangle.Left, this.backgroundRectangle.Width);
-            Span<TPixelFg> foreground = this.foreground.DangerousGetRowSpan(y + this.foregroundRectangle.Top).Slice(this.foregroundRectangle.Left, this.foregroundRectangle.Width);
+            Span<TPixelBg> background = this.background.DangerousGetRowSpan(y + this.backgroundRectangle.Top)
+                .Slice(this.backgroundRectangle.Left, this.backgroundRectangle.Width);
+
+            Span<TPixelFg> foreground = this.foreground.DangerousGetRowSpan(y + this.foregroundRectangle.Top)
+                .Slice(this.foregroundRectangle.Left, this.foregroundRectangle.Width);
+
             this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity, span);
         }
     }

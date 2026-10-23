@@ -64,7 +64,19 @@ internal static class Av1YuvConverter
 
                 HeifPlanarColorConverter.ConvertToRgb<
                     TPixel, Av1PresentationSampleBufferView<byte, Av1PlanarSampleBuffer<byte>>, byte, HeifByteSampleConverter>(
-                    configuration, presented.View, destination, in parameters, mode, sourceRectangle.X, sourceRectangle.Y, sourceRectangle.Size, transform, profile, alpha, premultiplied, chromaUpsampling);
+                        configuration,
+                        presented.View,
+                        destination,
+                        in parameters,
+                        mode,
+                        sourceRectangle.X,
+                        sourceRectangle.Y,
+                        sourceRectangle.Size,
+                        transform,
+                        profile,
+                        alpha,
+                        premultiplied,
+                        chromaUpsampling);
 
                 return;
             }
@@ -94,7 +106,19 @@ internal static class Av1YuvConverter
                 configuration, highBitDepthBuffer, presentationSize.Width, presentationSize.Height);
 
             HeifPlanarColorConverter.ConvertToRgb<TPixel, Av1PresentationSampleBufferView<ushort, Av1PlanarSampleBuffer<ushort>>>(
-                configuration, presented.View, destination, in parameters, mode, sourceRectangle.X, sourceRectangle.Y, sourceRectangle.Size, transform, profile, alpha, premultiplied, chromaUpsampling);
+                configuration,
+                presented.View,
+                destination,
+                in parameters,
+                mode,
+                sourceRectangle.X,
+                sourceRectangle.Y,
+                sourceRectangle.Size,
+                transform,
+                profile,
+                alpha,
+                premultiplied,
+                chromaUpsampling);
 
             return;
         }
@@ -243,7 +267,11 @@ internal static class Av1YuvConverter
     public static void ConvertFromRgb<TPixel>(Configuration configuration, ImageFrame<TPixel> image, Av1FrameBuffer<byte> frameBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer.ColorConfig, frameBuffer.ColorConfig.ColorRange, out HeifColorConversionMode mode);
+        HeifColorConversionParameters parameters = GetConversionParameters(
+            frameBuffer.ColorConfig,
+            frameBuffer.ColorConfig.ColorRange,
+            out HeifColorConversionMode mode);
+
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
             Av1PlanarSampleBuffer<byte> buffer = new(frameBuffer);

@@ -241,11 +241,37 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> x23 = Vector128.SubtractSaturate(x10, x13);
             Vector128<short> x21 = Vector128.AddSaturate(x11, x12);
             Vector128<short> x22 = Vector128.SubtractSaturate(x11, x12);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c32, c32), Av1TransformKernels.Pair(c32, c32), x15, x16, out Vector128<short> x25, out Vector128<short> x26, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair((short)-c32, c32),
+                Av1TransformKernels.Pair(c32, c32),
+                x15,
+                x16,
+                out Vector128<short> x25,
+                out Vector128<short> x26,
+                cosBit,
+                rounding);
 
             // stage 3
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x20, x21, out Vector128<short> x30, out Vector128<short> x31, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c48, c16), Av1TransformKernels.Pair((short)-c16, c48), x22, x23, out Vector128<short> x32, out Vector128<short> x33, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x20,
+                x21,
+                out Vector128<short> x30,
+                out Vector128<short> x31,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c48, c16),
+                Av1TransformKernels.Pair((short)-c16, c48),
+                x22,
+                x23,
+                out Vector128<short> x32,
+                out Vector128<short> x33,
+                cosBit,
+                rounding);
+
             Vector128<short> x34 = Vector128.AddSaturate(x14, x25);
             Vector128<short> x35 = Vector128.SubtractSaturate(x14, x25);
             Vector128<short> x36 = Vector128.SubtractSaturate(x17, x26);
@@ -256,8 +282,25 @@ internal static partial class Av1ForwardTransformer
             in4 = x31;
             in2 = x32;
             in6 = x33;
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c56, c8), Av1TransformKernels.Pair((short)-c8, c56), x34, x37, out in1, out in7, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c24, c40), Av1TransformKernels.Pair((short)-c40, c24), x35, x36, out in5, out in3, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c56, c8),
+                Av1TransformKernels.Pair((short)-c8, c56),
+                x34,
+                x37,
+                out in1,
+                out in7,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c24, c40),
+                Av1TransformKernels.Pair((short)-c40, c24),
+                x35,
+                x36,
+                out in5,
+                out in3,
+                cosBit,
+                rounding);
         }
     }
 
@@ -305,8 +348,25 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> x17 = Vector128.SubtractSaturate(zero, in5);
 
             // stage 2
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x12, x13, out Vector128<short> x22, out Vector128<short> x23, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x16, x17, out Vector128<short> x26, out Vector128<short> x27, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x12,
+                x13,
+                out Vector128<short> x22,
+                out Vector128<short> x23,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x16,
+                x17,
+                out Vector128<short> x26,
+                out Vector128<short> x27,
+                cosBit,
+                rounding);
 
             // stage 3
             Vector128<short> x30 = Vector128.AddSaturate(x10, x22);
@@ -319,8 +379,25 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> x37 = Vector128.SubtractSaturate(x15, x27);
 
             // stage 4
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c16, c48), Av1TransformKernels.Pair(c48, (short)-c16), x34, x35, out Vector128<short> x44, out Vector128<short> x45, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c48, c16), Av1TransformKernels.Pair(c16, c48), x36, x37, out Vector128<short> x46, out Vector128<short> x47, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c16, c48),
+                Av1TransformKernels.Pair(c48, (short)-c16),
+                x34,
+                x35,
+                out Vector128<short> x44,
+                out Vector128<short> x45,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair((short)-c48, c16),
+                Av1TransformKernels.Pair(c16, c48),
+                x36,
+                x37,
+                out Vector128<short> x46,
+                out Vector128<short> x47,
+                cosBit,
+                rounding);
 
             // stages 5, 6 and 7
             Vector128<short> out7 = Vector128.AddSaturate(x30, x44);
@@ -332,10 +409,45 @@ internal static partial class Av1ForwardTransformer
             Vector128<short> out2 = Vector128.AddSaturate(x33, x47);
             Vector128<short> out6 = Vector128.SubtractSaturate(x33, x47);
 
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c4, c60), Av1TransformKernels.Pair(c60, (short)-c4), out7, out0, out in7, out in0, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c20, c44), Av1TransformKernels.Pair(c44, (short)-c20), out5, out2, out in5, out in2, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c36, c28), Av1TransformKernels.Pair(c28, (short)-c36), out3, out4, out in3, out in4, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c52, c12), Av1TransformKernels.Pair(c12, (short)-c52), out1, out6, out in1, out in6, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c4, c60),
+                Av1TransformKernels.Pair(c60, (short)-c4),
+                out7,
+                out0,
+                out in7,
+                out in0,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c20, c44),
+                Av1TransformKernels.Pair(c44, (short)-c20),
+                out5,
+                out2,
+                out in5,
+                out in2,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c36, c28),
+                Av1TransformKernels.Pair(c28, (short)-c36),
+                out3,
+                out4,
+                out in3,
+                out in4,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c52, c12),
+                Av1TransformKernels.Pair(c12, (short)-c52),
+                out1,
+                out6,
+                out in1,
+                out in6,
+                cosBit,
+                rounding);
         }
     }
 

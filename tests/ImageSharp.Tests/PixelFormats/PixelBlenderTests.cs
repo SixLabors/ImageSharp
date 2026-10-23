@@ -498,7 +498,14 @@ public class PixelBlenderTests
         }
 
         straightBlender.BlendWithCoverage(Configuration.Default, straightDestination, background, source, 1F, coverage, workingBuffer);
-        associatedBlender.BlendWithCoverage(Configuration.Default, associatedDestination, associatedBackground, Rgba32P.FromRgba32(source), 1F, coverage, workingBuffer);
+        associatedBlender.BlendWithCoverage(
+            Configuration.Default,
+            associatedDestination,
+            associatedBackground,
+            Rgba32P.FromRgba32(source),
+            1F,
+            coverage,
+            workingBuffer);
 
         // Both destinations must describe the same composite: canonical associated bytes may differ
         // by one quantization step per channel while alpha is representation-independent.

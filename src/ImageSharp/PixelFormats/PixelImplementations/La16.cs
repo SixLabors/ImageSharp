@@ -229,7 +229,8 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     public static La16 FromRgb48(Rgb48 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), byte.MaxValue);
 
     /// <inheritdoc/>
-    public static La16 FromRgba64(Rgba64 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), ColorNumerics.From16BitTo8Bit(source.A));
+    public static La16 FromRgba64(Rgba64 source)
+        => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), ColorNumerics.From16BitTo8Bit(source.A));
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is La16 other && this.Equals(other);

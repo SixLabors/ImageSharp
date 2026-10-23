@@ -201,7 +201,8 @@ internal static partial class Av1ForwardTransformer
     /// <returns>The widened samples.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> LoadFourSamples(ref short residual, int offset)
-        => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residual, offset)))).AsInt16());
+        => Vector128.WidenLower(
+            Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residual, offset)))).AsInt16());
 
     /// <summary>
     /// Applies the halving butterflies of one 4x4 Hadamard pass to four columns at once.

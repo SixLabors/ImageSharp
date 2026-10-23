@@ -98,7 +98,12 @@ public class IccReaderTests
     [WithFile(TestImages.Jpeg.ICC.SRgb, PixelTypes.Rgb24, 17, IccColorSpaceType.Rgb, IccColorSpaceType.CieXyz, 3144)]
     [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgb24, 12, IccColorSpaceType.Rgb, IccColorSpaceType.CieXyz, 940)]
     [WithFile(TestImages.Jpeg.ICC.CMYK, PixelTypes.Rgb24, 10, IccColorSpaceType.Cmyk, IccColorSpaceType.CieLab, 557168)]
-    public void ReadProfile_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedEntries, IccColorSpaceType expectedDataColorSpace, IccColorSpaceType expectedConnectionSpace, uint expectedDataSize)
+    public void ReadProfile_Works<TPixel>(
+        TestImageProvider<TPixel> provider,
+        int expectedEntries,
+        IccColorSpaceType expectedDataColorSpace,
+        IccColorSpaceType expectedConnectionSpace,
+        uint expectedDataSize)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

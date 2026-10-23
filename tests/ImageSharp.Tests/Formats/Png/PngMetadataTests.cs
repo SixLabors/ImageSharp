@@ -367,9 +367,15 @@ public class PngMetadataTests
         Assert.Contains(meta.TextData, m => m.Keyword is "Copyright" && m.Value is "ImageSharp");
         Assert.Contains(meta.TextData, m => m.Keyword is "Title" && m.Value is "unittest");
         Assert.Contains(meta.TextData, m => m.Keyword is "Description" && m.Value is "compressed-text");
-        Assert.Contains(meta.TextData, m => m.Keyword is "International" && m.Value is "'e', mu'tlheghvam, ghaH yu'" && m.LanguageTag is "x-klingon" && m.TranslatedKeyword is "warning");
+        Assert.Contains(
+            meta.TextData,
+            m => m.Keyword is "International" && m.Value is "'e', mu'tlheghvam, ghaH yu'" && m.LanguageTag is "x-klingon" && m.TranslatedKeyword is "warning");
+
         Assert.Contains(meta.TextData, m => m.Keyword is "International2" && m.Value is "ИМАГЕШАРП" && m.LanguageTag is "rus");
-        Assert.Contains(meta.TextData, m => m.Keyword is "CompressedInternational" && m.Value is "la plume de la mante" && m.LanguageTag is "fra" && m.TranslatedKeyword is "foobar");
+        Assert.Contains(
+            meta.TextData,
+            m => m.Keyword is "CompressedInternational" && m.Value is "la plume de la mante" && m.LanguageTag is "fra" && m.TranslatedKeyword is "foobar");
+
         Assert.Contains(meta.TextData, m => m.Keyword is "CompressedInternational2" && m.Value is "這是一個考驗" && m.LanguageTag is "chinese");
         Assert.Contains(meta.TextData, m => m.Keyword is "NoLang" && m.Value is "this text chunk is missing a language tag");
         Assert.Contains(meta.TextData, m => m.Keyword is "NoTranslatedKeyword" && m.Value is "dieser chunk hat kein übersetztes Schlüßelwort");

@@ -288,7 +288,9 @@ public class BinaryThresholdTest
                 TPixel actualPixel = actual[x, y];
                 if (!expected.Equals(actualPixel))
                 {
-                    Assert.Fail($"({x}, {y}) source={source[x, y]} metric={GetReferenceMetric(vectors[x], mode)} threshold={threshold} expected={expected} actual={actualPixel}");
+                    Assert.Fail(
+                        $"({x}, {y}) source={source[x, y]} metric={GetReferenceMetric(vectors[x], mode)} " +
+                        $"threshold={threshold} expected={expected} actual={actualPixel}");
                 }
             }
         }

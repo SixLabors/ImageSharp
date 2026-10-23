@@ -211,7 +211,11 @@ public class FloatingPointPixelPreservationTests
         Rgba32[] expectedTwo32 = [new(255, 0, 0, 255), new(0, 255, 0, 255), new(0, 191, 0, 255), new(128, 0, 0, 255), new(255, 0, 0, 255)];
         Rgba64[] expectedTwo64 = [new(65535, 0, 0, 65535), new(0, 65535, 0, 65535), new(0, 49151, 0, 65535), new(32768, 0, 0, 65535), new(65535, 0, 0, 65535)];
         Rgba32[] expectedFour32 = [new(255, 0, 128, 255), new(0, 255, 64, 255), new(0, 191, 255, 255), new(128, 0, 255, 128), new(255, 0, 191, 64)];
-        Rgba64[] expectedFour64 = [new(65535, 0, 32768, 65535), new(0, 65535, 16384, 65535), new(0, 49151, 65535, 65535), new(32768, 0, 65535, 32768), new(65535, 0, 49151, 16384)];
+        Rgba64[] expectedFour64 = [new(
+            65535,
+            0,
+            32768,
+            65535), new(0, 65535, 16384, 65535), new(0, 49151, 65535, 65535), new(32768, 0, 65535, 32768), new(65535, 0, 49151, 16384)];
 
         AssertBoundedConversion<HalfSingle>(expectedSingle32, expectedSingle64);
         AssertBoundedConversion<HalfVector2>(expectedTwo32, expectedTwo64);

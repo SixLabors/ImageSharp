@@ -49,7 +49,11 @@ public class Av1EncoderFrameTests
         RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TwelveBit, false, true, true);
     }
 
-    private static void RectangularIntraReferencesExtendTheLastAvailableSampleCase(int bitDepthValue, bool transpose, bool extensionAvailable, bool limitedExtent)
+    private static void RectangularIntraReferencesExtendTheLastAvailableSampleCase(
+        int bitDepthValue,
+        bool transpose,
+        bool extensionAvailable,
+        bool limitedExtent)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         if (bitDepth == Av1BitDepth.EightBit)

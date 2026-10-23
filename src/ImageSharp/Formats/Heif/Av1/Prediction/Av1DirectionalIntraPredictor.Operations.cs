@@ -53,7 +53,14 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        private static void PredictZone1(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, bool upsample, int derivative, int width, int height)
+        private static void PredictZone1(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            bool upsample,
+            int derivative,
+            int width,
+            int height)
         {
             int upsampleShift = upsample ? 1 : 0;
             int maximumBasis = (width + height - 1) << upsampleShift;
@@ -93,7 +100,15 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="width">The block width, at most sixteen.</param>
         /// <param name="height">The block height.</param>
         /// <param name="maximumBasis">The final extended reference coordinate.</param>
-        private static void PredictZone1Wide(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, int upsampleShift, int derivative, int width, int height, int maximumBasis)
+        private static void PredictZone1Wide(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            int upsampleShift,
+            int derivative,
+            int width,
+            int height,
+            int maximumBasis)
         {
             ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
             ref byte referenceBase = ref MemoryMarshal.GetReference(above);
@@ -122,7 +137,10 @@ internal static partial class Av1DirectionalIntraPredictor
                 if (upsampleShift != 0)
                 {
                     // The even half-samples are the left taps and the odd ones the right taps.
-                    a0 = Vector128.Shuffle(Vector128.LoadUnsafe(ref referenceBase, (nuint)basis), Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15));
+                    a0 = Vector128.Shuffle(
+                        Vector128.LoadUnsafe(ref referenceBase, (nuint)basis),
+                        Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15));
+
                     a1 = Vector128_.ShiftRightBytesInVector(a0, 8);
                     shift = Vector256.Create((short)(((projection << upsampleShift) & 0x3F) >> 1));
                 }
@@ -179,7 +197,14 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="derivative">The Q6 projection derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        private static void PredictZone1(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, bool upsample, int derivative, int width, int height)
+        private static void PredictZone1(
+            Span<short> destination,
+            int destinationStride,
+            ReadOnlySpan<short> above,
+            bool upsample,
+            int derivative,
+            int width,
+            int height)
         {
             int upsampleShift = upsample ? 1 : 0;
             int maximumBasis = (width + height - 1) << upsampleShift;
@@ -207,7 +232,17 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="dy">The vertical Q6 derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        private static void PredictZone2(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy, int width, int height)
+        private static void PredictZone2(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            bool upsampleAbove,
+            bool upsampleLeft,
+            int dx,
+            int dy,
+            int width,
+            int height)
         {
             int aboveShift = upsampleAbove ? 1 : 0;
             int minimumTopBasis = -(1 << aboveShift);
@@ -252,7 +287,17 @@ internal static partial class Av1DirectionalIntraPredictor
         /// <param name="dy">The vertical Q6 derivative.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        private static void PredictZone2(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy, int width, int height)
+        private static void PredictZone2(
+            Span<short> destination,
+            int destinationStride,
+            ReadOnlySpan<short> above,
+            ReadOnlySpan<short> left,
+            bool upsampleAbove,
+            bool upsampleLeft,
+            int dx,
+            int dy,
+            int width,
+            int height)
         {
             int aboveShift = upsampleAbove ? 1 : 0;
             int minimumTopBasis = -(1 << aboveShift);
@@ -386,7 +431,9 @@ internal static partial class Av1DirectionalIntraPredictor
             for (; index < validCount; index++)
             {
                 int source = basis + (index * basisIncrement);
-                Unsafe.Add(ref destinationBase, index) = (byte)(((Unsafe.Add(ref referenceBase, source) * (32 - weight)) + (Unsafe.Add(ref referenceBase, source + 1) * weight) + 16) >> 5);
+                Unsafe.Add(
+                    ref destinationBase,
+                    index) = (byte)(((Unsafe.Add(ref referenceBase, source) * (32 - weight)) + (Unsafe.Add(ref referenceBase, source + 1) * weight) + 16) >> 5);
             }
 
             if (validCount < destination.Length)
@@ -492,7 +539,9 @@ internal static partial class Av1DirectionalIntraPredictor
             for (; index < validCount; index++)
             {
                 int source = basis + (index * basisIncrement);
-                Unsafe.Add(ref destinationBase, index) = (short)(((Unsafe.Add(ref referenceBase, source) * (32 - weight)) + (Unsafe.Add(ref referenceBase, source + 1) * weight) + 16) >> 5);
+                Unsafe.Add(ref destinationBase, index) = (short)(((Unsafe.Add(ref referenceBase, source) * (32 - weight))
+                    + (Unsafe.Add(ref referenceBase, source + 1) * weight)
+                    + 16) >> 5);
             }
 
             if (validCount < destination.Length)
@@ -532,8 +581,18 @@ internal static partial class Av1DirectionalIntraPredictor
                     int basis1 = projection1 >> fractionBits;
                     int basis2 = projection2 >> fractionBits;
                     int basis3 = projection3 >> fractionBits;
-                    Vector128<int> source0 = Vector128.Create((int)Unsafe.Add(ref leftBase, basis0), Unsafe.Add(ref leftBase, basis1), Unsafe.Add(ref leftBase, basis2), Unsafe.Add(ref leftBase, basis3));
-                    Vector128<int> source1 = Vector128.Create((int)Unsafe.Add(ref leftBase, basis0 + 1), Unsafe.Add(ref leftBase, basis1 + 1), Unsafe.Add(ref leftBase, basis2 + 1), Unsafe.Add(ref leftBase, basis3 + 1));
+                    Vector128<int> source0 = Vector128.Create(
+                        (int)Unsafe.Add(ref leftBase, basis0),
+                        Unsafe.Add(ref leftBase, basis1),
+                        Unsafe.Add(ref leftBase, basis2),
+                        Unsafe.Add(ref leftBase, basis3));
+
+                    Vector128<int> source1 = Vector128.Create(
+                        (int)Unsafe.Add(ref leftBase, basis0 + 1),
+                        Unsafe.Add(ref leftBase, basis1 + 1),
+                        Unsafe.Add(ref leftBase, basis2 + 1),
+                        Unsafe.Add(ref leftBase, basis3 + 1));
+
                     Vector128<int> weights = Vector128.Create(
                         ((projection0 << upsampleShift) & 0x3F) >> 1,
                         ((projection1 << upsampleShift) & 0x3F) >> 1,
@@ -549,7 +608,9 @@ internal static partial class Av1DirectionalIntraPredictor
                 int currentProjection = projection - (index * derivative);
                 int basis = currentProjection >> fractionBits;
                 int weight = ((currentProjection << upsampleShift) & 0x3F) >> 1;
-                Unsafe.Add(ref destinationBase, index) = (byte)(((Unsafe.Add(ref leftBase, basis) * (32 - weight)) + (Unsafe.Add(ref leftBase, basis + 1) * weight) + 16) >> 5);
+                Unsafe.Add(
+                    ref destinationBase,
+                    index) = (byte)(((Unsafe.Add(ref leftBase, basis) * (32 - weight)) + (Unsafe.Add(ref leftBase, basis + 1) * weight) + 16) >> 5);
             }
         }
 
@@ -582,8 +643,18 @@ internal static partial class Av1DirectionalIntraPredictor
                     int basis1 = projection1 >> fractionBits;
                     int basis2 = projection2 >> fractionBits;
                     int basis3 = projection3 >> fractionBits;
-                    Vector128<int> source0 = Vector128.Create((int)Unsafe.Add(ref leftBase, basis0), Unsafe.Add(ref leftBase, basis1), Unsafe.Add(ref leftBase, basis2), Unsafe.Add(ref leftBase, basis3));
-                    Vector128<int> source1 = Vector128.Create((int)Unsafe.Add(ref leftBase, basis0 + 1), Unsafe.Add(ref leftBase, basis1 + 1), Unsafe.Add(ref leftBase, basis2 + 1), Unsafe.Add(ref leftBase, basis3 + 1));
+                    Vector128<int> source0 = Vector128.Create(
+                        (int)Unsafe.Add(ref leftBase, basis0),
+                        Unsafe.Add(ref leftBase, basis1),
+                        Unsafe.Add(ref leftBase, basis2),
+                        Unsafe.Add(ref leftBase, basis3));
+
+                    Vector128<int> source1 = Vector128.Create(
+                        (int)Unsafe.Add(ref leftBase, basis0 + 1),
+                        Unsafe.Add(ref leftBase, basis1 + 1),
+                        Unsafe.Add(ref leftBase, basis2 + 1),
+                        Unsafe.Add(ref leftBase, basis3 + 1));
+
                     Vector128<int> weights = Vector128.Create(
                         ((projection0 << upsampleShift) & 0x3F) >> 1,
                         ((projection1 << upsampleShift) & 0x3F) >> 1,
@@ -599,7 +670,9 @@ internal static partial class Av1DirectionalIntraPredictor
                 int currentProjection = projection - (index * derivative);
                 int basis = currentProjection >> fractionBits;
                 int weight = ((currentProjection << upsampleShift) & 0x3F) >> 1;
-                Unsafe.Add(ref destinationBase, index) = (short)(((Unsafe.Add(ref leftBase, basis) * (32 - weight)) + (Unsafe.Add(ref leftBase, basis + 1) * weight) + 16) >> 5);
+                Unsafe.Add(
+                    ref destinationBase,
+                    index) = (short)(((Unsafe.Add(ref leftBase, basis) * (32 - weight)) + (Unsafe.Add(ref leftBase, basis + 1) * weight) + 16) >> 5);
             }
         }
 

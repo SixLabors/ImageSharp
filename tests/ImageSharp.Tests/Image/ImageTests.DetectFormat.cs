@@ -131,7 +131,8 @@ public partial class ImageTests
         {
             DecoderOptions options = new(new Configuration());
 
-            return Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));
+            return Assert.ThrowsAsync<UnknownImageFormatException>(
+                async () => await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));
         }
     }
 }

@@ -116,7 +116,33 @@ public partial class SimdUtilsTests
     public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new() { 0, 32, 512 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy64 = new() { 0, 64, 512 };
 
-    public static readonly TheoryData<int> ArbitraryArraySizes = new() { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520 };
+    public static readonly TheoryData<int> ArbitraryArraySizes = new()
+    {
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        15,
+        16,
+        17,
+        63,
+        64,
+        255,
+        511,
+        512,
+        513,
+        514,
+        515,
+        516,
+        517,
+        518,
+        519,
+        520
+    };
 
     [Theory]
     [MemberData(nameof(ArraySizesDivisibleBy64))]

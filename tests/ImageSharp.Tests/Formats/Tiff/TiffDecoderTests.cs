@@ -98,7 +98,14 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [InlineData(Calliphora_GrayscaleUncompressed, 8, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(Calliphora_GrayscaleUncompressed16Bit, 16, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(Flower4BitPalette, 4, 73, 43, 72, 72, PixelResolutionUnit.PixelsPerInch)]
-    public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
+    public void Identify(
+        string imagePath,
+        int expectedPixelSize,
+        int expectedWidth,
+        int expectedHeight,
+        double expectedHResolution,
+        double expectedVResolution,
+        PixelResolutionUnit expectedResolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);

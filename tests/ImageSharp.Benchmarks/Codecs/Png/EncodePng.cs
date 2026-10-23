@@ -26,7 +26,10 @@ public class EncodePng
     {
         if (this.bmpStream == null)
         {
-            string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.LargeImage ? TestImages.Jpeg.Baseline.Jpeg420Exif : TestImages.Bmp.Car);
+            string path = Path.Combine(
+                TestEnvironment.InputImagesDirectoryFullPath,
+                this.LargeImage ? TestImages.Jpeg.Baseline.Jpeg420Exif : TestImages.Bmp.Car);
+
             this.bmpStream = File.OpenRead(path);
             this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
             this.bmpStream.Position = 0;

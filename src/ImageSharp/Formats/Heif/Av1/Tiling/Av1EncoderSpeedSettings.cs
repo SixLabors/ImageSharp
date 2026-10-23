@@ -355,7 +355,9 @@ internal readonly struct Av1EncoderSpeedSettings
         bool goodQualityImageTuning = imageTuning && !allIntra && !realtime;
         this.IntraHogPruningLevel = realtime
             ? speed >= HeifEncodingSpeed.Level8 ? 1 : 0
-            : speed >= HeifEncodingSpeed.Level6 && !goodQualityImageTuning ? 4 : speed >= HeifEncodingSpeed.Level3 ? 3 : speed >= HeifEncodingSpeed.Level2 ? 2 : 1;
+            : speed >= HeifEncodingSpeed.Level6 && !goodQualityImageTuning
+                ? 4
+                : speed >= HeifEncodingSpeed.Level3 ? 3 : speed >= HeifEncodingSpeed.Level2 ? 2 : 1;
 
         this.IntraModelCandidateCount = realtime ? 4 : allIntra
             ? speed >= HeifEncodingSpeed.Level6 ? 2 : speed >= HeifEncodingSpeed.Level1 ? 3 : 4

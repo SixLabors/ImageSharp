@@ -215,7 +215,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += ReadFloatChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += ReadFloatChannelData(
+                        stream,
+                        channel,
+                        decompressedPixelData[offset..],
+                        redPixelData,
+                        greenPixelData,
+                        bluePixelData,
+                        alphaPixelData,
+                        width);
                 }
 
                 PixelOperations<TPixel>.Instance.PackFromAssociatedScaledFloatPlanes(
@@ -306,7 +314,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += this.ReadUnsignedIntChannelData(
+                        stream,
+                        channel,
+                        decompressedPixelData[offset..],
+                        redPixelData,
+                        greenPixelData,
+                        bluePixelData,
+                        alphaPixelData,
+                        width);
                 }
 
                 for (int x = 0; x < width; x++)
@@ -340,7 +356,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         {
             decompressor.Decompress(stream, compressedBytes, uncompressedBytes, buffer);
         }
-        catch (Exception ex) when (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData && ex is InvalidImageContentException or InvalidDataException)
+        catch (Exception ex) when (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData
+            && ex is InvalidImageContentException or InvalidDataException)
         {
             // The offset table locates the next block independently of this damaged payload.
             // Discard the entire failed block so partial output or pooled bytes cannot become pixels.
@@ -457,7 +474,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="pixelData">The pixel data as float.</param>
     /// <param name="width">The width in pixel of a row.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(ExrChannelInfo channel, ReadOnlySpan<byte> decompressedPixelData, Span<float> pixelData, int width) => channel.PixelType switch
+    private static int ReadChannelData(
+        ExrChannelInfo channel,
+        ReadOnlySpan<byte> decompressedPixelData,
+        Span<float> pixelData,
+        int width) => channel.PixelType switch
     {
         ExrPixelType.Half => ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width),
         ExrPixelType.Float => ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width),
@@ -472,7 +493,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="pixelData">The pixel data as uint.</param>
     /// <param name="width">The width in pixels.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(ExrChannelInfo channel, ReadOnlySpan<byte> decompressedPixelData, Span<uint> pixelData, int width) => channel.PixelType switch
+    private static int ReadChannelData(
+        ExrChannelInfo channel,
+        ReadOnlySpan<byte> decompressedPixelData,
+        Span<uint> pixelData,
+        int width) => channel.PixelType switch
     {
         ExrPixelType.UnsignedInt => ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width),
         _ => 0,
@@ -964,7 +989,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <returns> True if the compression is supported; otherwise, false>. </returns>
     private bool IsSupportedCompression() => this.Compression switch
     {
-        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 or ExrCompression.Pxr24 => true,
+        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or
+            ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
 

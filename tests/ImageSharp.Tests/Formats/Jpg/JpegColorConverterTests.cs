@@ -714,7 +714,11 @@ public partial class JpegColorConverterTests
     /// <param name="source">The unmodified source component planes.</param>
     /// <param name="actual">The converted RGB planes.</param>
     /// <param name="index">The sample index.</param>
-    private static void AssertColorModelDefinition(JpegColorSpace colorSpace, in JpegColorConverterBase.ComponentValues source, in JpegColorConverterBase.ComponentValues actual, int index)
+    private static void AssertColorModelDefinition(
+        JpegColorSpace colorSpace,
+        in JpegColorConverterBase.ComponentValues source,
+        in JpegColorConverterBase.ComponentValues actual,
+        int index)
     {
         float c0 = source.Component0[index];
         float c1 = source.Component1[index];
@@ -742,7 +746,10 @@ public partial class JpegColorConverterTests
                 c2 -= 128F;
 
                 // JPEG applies the BT.601 matrix in the integer sample domain and rounds before normalization.
-                expected = new Rgb(MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue, MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue, MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero) / MaxColorChannelValue);
+                expected = new Rgb(
+                    MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue,
+                    MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue,
+                    MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero) / MaxColorChannelValue);
 
                 break;
             case JpegColorSpace.Ycck:
@@ -751,7 +758,10 @@ public partial class JpegColorConverterTests
                 c3 = source.Component3[index] / MaxColorChannelValue;
 
                 // Adobe YccK reconstructs inverted RGB first, then applies the normalized black component.
-                expected = new Rgb((MaxColorChannelValue - MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue, (MaxColorChannelValue - MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue, (MaxColorChannelValue - MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue);
+                expected = new Rgb(
+                    (MaxColorChannelValue - MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue,
+                    (MaxColorChannelValue - MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue,
+                    (MaxColorChannelValue - MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue);
 
                 break;
             default:

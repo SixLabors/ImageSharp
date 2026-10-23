@@ -125,9 +125,11 @@ public class PausedStream : Stream, IPausedStream
 
     public override void Write(byte[] buffer, int offset, int count) => this.Await(() => this.innerStream.Write(buffer, offset, count));
 
-    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.ReadAsync(buffer, offset, count, cancellationToken));
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        => this.Await(() => this.innerStream.ReadAsync(buffer, offset, count, cancellationToken));
 
-    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.WriteAsync(buffer, offset, count, cancellationToken));
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        => this.Await(() => this.innerStream.WriteAsync(buffer, offset, count, cancellationToken));
 
     public override void WriteByte(byte value) => this.Await(() => this.innerStream.WriteByte(value));
 
@@ -167,7 +169,8 @@ public class PausedStream : Stream, IPausedStream
         return this.innerStream.Read(buffer);
     }
 
-    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => this.innerStream.ReadAsync(buffer, cancellationToken));
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        => this.Await(() => this.innerStream.ReadAsync(buffer, cancellationToken));
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
@@ -175,5 +178,6 @@ public class PausedStream : Stream, IPausedStream
         this.innerStream.Write(buffer);
     }
 
-    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => this.innerStream.WriteAsync(buffer, cancellationToken));
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        => this.Await(() => this.innerStream.WriteAsync(buffer, cancellationToken));
 }

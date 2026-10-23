@@ -533,7 +533,8 @@ public class AffineNativeAlphaRepresentationTests
 
     [Fact]
     public void Short2FromAssociatedNativeVectorUsesScaledAlpha()
-        => AssertAlphaLessNativeFrom<Short2>(static vector => new Vector4((vector.X * ushort.MaxValue) - 32768F, (vector.Y * ushort.MaxValue) - 32768F, 0F, vector.W));
+        => AssertAlphaLessNativeFrom<Short2>(
+            static vector => new Vector4((vector.X * ushort.MaxValue) - 32768F, (vector.Y * ushort.MaxValue) - 32768F, 0F, vector.W));
 
     private static void AssertNativeConversions<TPixel>(Func<Vector4, Vector4> encodeNative)
         where TPixel : unmanaged, IPixel<TPixel>

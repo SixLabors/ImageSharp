@@ -42,18 +42,42 @@ internal static partial class Av1InverseTransformer
         int endOfBlock)
     {
         // For an 8x8 block, every end position after the first needs both axes complete. Only an end position of one uses the DC-only kernels.
-        Av1Transform2dFlipConfiguration.GetAxes(transformType, out Av1TransformType1d columnType, out Av1TransformType1d rowType, out bool flipUpsideDown, out bool flipLeftToRight);
+        Av1Transform2dFlipConfiguration.GetAxes(
+            transformType,
+            out Av1TransformType1d columnType,
+            out Av1TransformType1d rowType,
+            out bool flipUpsideDown,
+            out bool flipLeftToRight);
+
         bool dc = endOfBlock == 1;
         switch (rowType)
         {
             case Av1TransformType1d.Dct:
                 if (dc)
                 {
-                    InverseColumn8x8<Dct8DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight, dc);
+                    InverseColumn8x8<Dct8DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnType,
+                        flipUpsideDown,
+                        flipLeftToRight,
+                        dc);
                 }
                 else
                 {
-                    InverseColumn8x8<Dct8InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight, dc);
+                    InverseColumn8x8<Dct8InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnType,
+                        flipUpsideDown,
+                        flipLeftToRight,
+                        dc);
                 }
 
                 break;
@@ -61,16 +85,44 @@ internal static partial class Av1InverseTransformer
             case Av1TransformType1d.FlipAdst:
                 if (dc)
                 {
-                    InverseColumn8x8<Adst8DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight, dc);
+                    InverseColumn8x8<Adst8DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnType,
+                        flipUpsideDown,
+                        flipLeftToRight,
+                        dc);
                 }
                 else
                 {
-                    InverseColumn8x8<Adst8InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight, dc);
+                    InverseColumn8x8<Adst8InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnType,
+                        flipUpsideDown,
+                        flipLeftToRight,
+                        dc);
                 }
 
                 break;
             default:
-                InverseColumn8x8<Identity8InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight, dc);
+                InverseColumn8x8<Identity8InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    columnType,
+                    flipUpsideDown,
+                    flipLeftToRight,
+                    dc);
+
                 break;
         }
     }
@@ -105,11 +157,25 @@ internal static partial class Av1InverseTransformer
             case Av1TransformType1d.Dct:
                 if (dcColumn)
                 {
-                    Inverse8x8<TRow, Dct8DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse8x8<TRow, Dct8DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    Inverse8x8<TRow, Dct8InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse8x8<TRow, Dct8InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
@@ -117,16 +183,38 @@ internal static partial class Av1InverseTransformer
             case Av1TransformType1d.FlipAdst:
                 if (dcColumn)
                 {
-                    Inverse8x8<TRow, Adst8DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse8x8<TRow, Adst8DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    Inverse8x8<TRow, Adst8InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse8x8<TRow, Adst8InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
             default:
-                Inverse8x8<TRow, Identity8InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                Inverse8x8<TRow, Identity8InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
         }
     }
@@ -302,12 +390,47 @@ internal static partial class Av1InverseTransformer
             Vector128<short> x7 = in7;
 
             // Stage 2: rotate the odd pairs (x4, x7) and (x5, x6) with the cosine-table weights 56 and 8, and 24 and 40.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c56, (short)-c8), Av1TransformKernels.Pair(c8, c56), x4, x7, out x4, out x7, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c24, (short)-c40), Av1TransformKernels.Pair(c40, c24), x5, x6, out x5, out x6, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c56, (short)-c8),
+                Av1TransformKernels.Pair(c8, c56),
+                x4,
+                x7,
+                out x4,
+                out x7,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c24, (short)-c40),
+                Av1TransformKernels.Pair(c40, c24),
+                x5,
+                x6,
+                out x5,
+                out x6,
+                cosBit,
+                rounding);
 
             // Stage 3: for the even half, the cos(pi/4) butterfly and the rotation with weights 48 and 16. For the odd half, saturated sums and differences.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x0, x1, out x0, out x1, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c48, (short)-c16), Av1TransformKernels.Pair(c16, c48), x2, x3, out x2, out x3, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x0,
+                x1,
+                out x0,
+                out x1,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c48, (short)-c16),
+                Av1TransformKernels.Pair(c16, c48),
+                x2,
+                x3,
+                out x2,
+                out x3,
+                cosBit,
+                rounding);
+
             Vector128<short> t4 = Vector128.AddSaturate(x4, x5);
             x5 = Vector128.SubtractSaturate(x4, x5);
             x4 = t4;
@@ -322,7 +445,15 @@ internal static partial class Av1InverseTransformer
             Vector128<short> t1 = Vector128.AddSaturate(x1, x2);
             x2 = Vector128.SubtractSaturate(x1, x2);
             x1 = t1;
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c32, c32), Av1TransformKernels.Pair(c32, c32), x5, x6, out x5, out x6, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair((short)-c32, c32),
+                Av1TransformKernels.Pair(c32, c32),
+                x5,
+                x6,
+                out x5,
+                out x6,
+                cosBit,
+                rounding);
 
             // Stage 5: the output butterflies combine the even and odd halves with saturation.
             in0 = Vector128.AddSaturate(x0, x7);
@@ -411,10 +542,45 @@ internal static partial class Av1InverseTransformer
             Vector128<short> x7 = in6;
 
             // Stage 2: four rotations with the odd cosine-table weights.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c4, c60), Av1TransformKernels.Pair(c60, (short)-c4), x0, x1, out x0, out x1, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c20, c44), Av1TransformKernels.Pair(c44, (short)-c20), x2, x3, out x2, out x3, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c36, c28), Av1TransformKernels.Pair(c28, (short)-c36), x4, x5, out x4, out x5, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c52, c12), Av1TransformKernels.Pair(c12, (short)-c52), x6, x7, out x6, out x7, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c4, c60),
+                Av1TransformKernels.Pair(c60, (short)-c4),
+                x0,
+                x1,
+                out x0,
+                out x1,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c20, c44),
+                Av1TransformKernels.Pair(c44, (short)-c20),
+                x2,
+                x3,
+                out x2,
+                out x3,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c36, c28),
+                Av1TransformKernels.Pair(c28, (short)-c36),
+                x4,
+                x5,
+                out x4,
+                out x5,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c52, c12),
+                Av1TransformKernels.Pair(c12, (short)-c52),
+                x6,
+                x7,
+                out x6,
+                out x7,
+                cosBit,
+                rounding);
 
             // Stage 3: saturated sums and differences between the two halves.
             AddSubtract(ref x0, ref x4);
@@ -423,8 +589,25 @@ internal static partial class Av1InverseTransformer
             AddSubtract(ref x3, ref x7);
 
             // Stage 4: rotate the upper half with the weights 16 and 48.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c16, c48), Av1TransformKernels.Pair(c48, (short)-c16), x4, x5, out x4, out x5, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair((short)-c48, c16), Av1TransformKernels.Pair(c16, c48), x6, x7, out x6, out x7, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c16, c48),
+                Av1TransformKernels.Pair(c48, (short)-c16),
+                x4,
+                x5,
+                out x4,
+                out x5,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair((short)-c48, c16),
+                Av1TransformKernels.Pair(c16, c48),
+                x6,
+                x7,
+                out x6,
+                out x7,
+                cosBit,
+                rounding);
 
             // Stage 5: saturated sums and differences within each half.
             AddSubtract(ref x0, ref x2);
@@ -433,8 +616,25 @@ internal static partial class Av1InverseTransformer
             AddSubtract(ref x5, ref x7);
 
             // Stage 6: the cos(pi/4) butterflies.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x2, x3, out x2, out x3, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x6, x7, out x6, out x7, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x2,
+                x3,
+                out x2,
+                out x3,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x6,
+                x7,
+                out x6,
+                out x7,
+                cosBit,
+                rounding);
 
             // Stage 7: the ADST output permutation, which negates every odd output with saturation.
             in0 = x0;
@@ -480,11 +680,36 @@ internal static partial class Av1InverseTransformer
             Av1TransformKernels.Scale16(c60, (short)-c4, in0, out Vector128<short> x0, out Vector128<short> x1);
 
             // Stages 3 and 4: x4 and x5 start as copies of x0 and x1 and take the rotation with weights 16 and 48.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c16, c48), Av1TransformKernels.Pair(c48, (short)-c16), x0, x1, out Vector128<short> x4, out Vector128<short> x5, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c16, c48),
+                Av1TransformKernels.Pair(c48, (short)-c16),
+                x0,
+                x1,
+                out Vector128<short> x4,
+                out Vector128<short> x5,
+                cosBit,
+                rounding);
 
             // Stages 5 and 6: (x2, x3) start as copies of (x0, x1), and (x6, x7) start as copies of (x4, x5). Each pair takes the cos(pi/4) butterfly.
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x0, x1, out Vector128<short> x2, out Vector128<short> x3, cosBit, rounding);
-            Av1TransformKernels.Butterfly16(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), x4, x5, out Vector128<short> x6, out Vector128<short> x7, cosBit, rounding);
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x0,
+                x1,
+                out Vector128<short> x2,
+                out Vector128<short> x3,
+                cosBit,
+                rounding);
+
+            Av1TransformKernels.Butterfly16(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                x4,
+                x5,
+                out Vector128<short> x6,
+                out Vector128<short> x7,
+                cosBit,
+                rounding);
 
             // Stage 7: the ADST output permutation, which negates every odd output with saturation.
             in0 = x0;

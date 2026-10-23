@@ -104,7 +104,11 @@ internal static partial class Av1ForwardTransformer
                     for (int quadrant = 0; quadrant < 4; quadrant++)
                     {
                         int offset = ((quadrant >> 1) * 8 * stride) + ((quadrant & 1) * 8);
-                        HadamardBlocks(ref Unsafe.Add(ref blockResidual, offset), stride, ref Unsafe.Add(ref blockCoefficients, quadrant * 64), Vector128<short>.Zero);
+                        HadamardBlocks(
+                            ref Unsafe.Add(ref blockResidual, offset),
+                            stride,
+                            ref Unsafe.Add(ref blockCoefficients, quadrant * 64),
+                            Vector128<short>.Zero);
                     }
                 }
 
@@ -366,10 +370,22 @@ internal static partial class Av1ForwardTransformer
 
         // Stage 2: the vertical multiplies, rounded back to sixteen bits.
         Vector128<int> rounding = Vector128.Create(8192);
-        Vector128<int> w0 = (Vector128_.MultiplyAddAdjacent(t0, Vector128.Create(Cosine16, Cosine16, Cosine16, Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16)) + rounding) >> 14;
-        Vector128<int> w2 = (Vector128_.MultiplyAddAdjacent(t0, Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, Cosine16, Cosine16, Cosine16)) + rounding) >> 14;
-        Vector128<int> w1 = (Vector128_.MultiplyAddAdjacent(t1, Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8)) + rounding) >> 14;
-        Vector128<int> w3 = (Vector128_.MultiplyAddAdjacent(t1, Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, Cosine8, Cosine24, Cosine8, Cosine24)) + rounding) >> 14;
+        Vector128<int> w0 = (Vector128_.MultiplyAddAdjacent(
+            t0,
+            Vector128.Create(Cosine16, Cosine16, Cosine16, Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16)) + rounding) >> 14;
+
+        Vector128<int> w2 = (Vector128_.MultiplyAddAdjacent(
+            t0,
+            Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, Cosine16, Cosine16, Cosine16)) + rounding) >> 14;
+
+        Vector128<int> w1 = (Vector128_.MultiplyAddAdjacent(
+            t1,
+            Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8)) + rounding) >> 14;
+
+        Vector128<int> w3 = (Vector128_.MultiplyAddAdjacent(
+            t1,
+            Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, Cosine8, Cosine24, Cosine8, Cosine24)) + rounding) >> 14;
+
         in0 = Vector128.Shuffle(Vector128_.PackSignedSaturate(w0, w1).AsInt32(), Vector128.Create(0, 2, 1, 3)).AsInt16();
         in1 = Vector128.Shuffle(Vector128_.PackSignedSaturate(w2, w3).AsInt32(), Vector128.Create(1, 3, 0, 2)).AsInt16();
 
@@ -378,9 +394,26 @@ internal static partial class Av1ForwardTransformer
         t1 = in0 - in1;
         Vector128<int> rounding2 = Vector128.Create(8192 + 16384);
         w0 = (Vector128_.MultiplyAddAdjacent(t0, Vector128.Create(Cosine16)) + rounding2) >> 16;
-        w1 = (Vector128_.MultiplyAddAdjacent(t0, Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16)) + rounding2) >> 16;
-        w2 = (Vector128_.MultiplyAddAdjacent(t1, Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, (short)-Cosine8, (short)-Cosine24)) + rounding2) >> 16;
-        w3 = (Vector128_.MultiplyAddAdjacent(t1, Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, Cosine8, (short)-Cosine24, Cosine8)) + rounding2) >> 16;
+        w1 = (Vector128_.MultiplyAddAdjacent(
+            t0,
+            Vector128.Create(
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16)) + rounding2) >> 16;
+
+        w2 = (Vector128_.MultiplyAddAdjacent(
+            t1,
+            Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, (short)-Cosine8, (short)-Cosine24)) + rounding2) >> 16;
+
+        w3 = (Vector128_.MultiplyAddAdjacent(
+            t1,
+            Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, Cosine8, (short)-Cosine24, Cosine8)) + rounding2) >> 16;
+
         upper = Vector128_.PackSignedSaturate(w0, w2);
         lower = Vector128_.PackSignedSaturate(w1, w3);
     }
@@ -406,10 +439,22 @@ internal static partial class Av1ForwardTransformer
         Vector256<short> t1 = r2.AsInt16() - r3.AsInt16();
 
         Vector256<int> rounding = Vector256.Create(8192);
-        Vector256<int> w0 = (Vector256_.MultiplyAddAdjacent(t0, Repeat(Vector128.Create(Cosine16, Cosine16, Cosine16, Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16))) + rounding) >> 14;
-        Vector256<int> w2 = (Vector256_.MultiplyAddAdjacent(t0, Repeat(Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, Cosine16, Cosine16, Cosine16))) + rounding) >> 14;
-        Vector256<int> w1 = (Vector256_.MultiplyAddAdjacent(t1, Repeat(Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8))) + rounding) >> 14;
-        Vector256<int> w3 = (Vector256_.MultiplyAddAdjacent(t1, Repeat(Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, Cosine8, Cosine24, Cosine8, Cosine24))) + rounding) >> 14;
+        Vector256<int> w0 = (Vector256_.MultiplyAddAdjacent(
+            t0,
+            Repeat(Vector128.Create(Cosine16, Cosine16, Cosine16, Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16))) + rounding) >> 14;
+
+        Vector256<int> w2 = (Vector256_.MultiplyAddAdjacent(
+            t0,
+            Repeat(Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, Cosine16, Cosine16, Cosine16))) + rounding) >> 14;
+
+        Vector256<int> w1 = (Vector256_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8))) + rounding) >> 14;
+
+        Vector256<int> w3 = (Vector256_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, Cosine8, Cosine24, Cosine8, Cosine24))) + rounding) >> 14;
+
         in0 = Vector256.Shuffle(Vector256_.PackSignedSaturate(w0, w1).AsInt32(), Vector256.Create(0, 2, 1, 3, 4, 6, 5, 7)).AsInt16();
         in1 = Vector256.Shuffle(Vector256_.PackSignedSaturate(w2, w3).AsInt32(), Vector256.Create(1, 3, 0, 2, 5, 7, 4, 6)).AsInt16();
 
@@ -417,9 +462,42 @@ internal static partial class Av1ForwardTransformer
         t1 = in0 - in1;
         Vector256<int> rounding2 = Vector256.Create(8192 + 16384);
         w0 = (Vector256_.MultiplyAddAdjacent(t0, Vector256.Create(Cosine16)) + rounding2) >> 16;
-        w1 = (Vector256_.MultiplyAddAdjacent(t0, Repeat(Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16))) + rounding2) >> 16;
-        w2 = (Vector256_.MultiplyAddAdjacent(t1, Repeat(Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, (short)-Cosine8, (short)-Cosine24))) + rounding2) >> 16;
-        w3 = (Vector256_.MultiplyAddAdjacent(t1, Repeat(Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, Cosine8, (short)-Cosine24, Cosine8))) + rounding2) >> 16;
+        w1 = (Vector256_.MultiplyAddAdjacent(
+            t0,
+            Repeat(Vector128.Create(
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16))) + rounding2) >> 16;
+
+        w2 = (Vector256_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Vector128.Create(
+                Cosine8,
+                Cosine24,
+                Cosine8,
+                Cosine24,
+                (short)-Cosine8,
+                (short)-Cosine24,
+                (short)-Cosine8,
+                (short)-Cosine24))) + rounding2) >> 16;
+
+        w3 = (Vector256_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Vector128.Create(
+                Cosine24,
+                (short)-Cosine8,
+                Cosine24,
+                (short)-Cosine8,
+                (short)-Cosine24,
+                Cosine8,
+                (short)-Cosine24,
+                Cosine8))) + rounding2) >> 16;
+
         upper = Vector256_.PackSignedSaturate(w0, w2);
         lower = Vector256_.PackSignedSaturate(w1, w3);
     }
@@ -444,20 +522,68 @@ internal static partial class Av1ForwardTransformer
         Vector512<short> t1 = r2.AsInt16() - r3.AsInt16();
 
         Vector512<int> rounding = Vector512.Create(8192);
-        Vector512<int> w0 = (Vector512_.MultiplyAddAdjacent(t0, Repeat(Repeat(Vector128.Create(Cosine16, Cosine16, Cosine16, Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16)))) + rounding) >> 14;
-        Vector512<int> w2 = (Vector512_.MultiplyAddAdjacent(t0, Repeat(Repeat(Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, Cosine16, Cosine16, Cosine16)))) + rounding) >> 14;
-        Vector512<int> w1 = (Vector512_.MultiplyAddAdjacent(t1, Repeat(Repeat(Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8)))) + rounding) >> 14;
-        Vector512<int> w3 = (Vector512_.MultiplyAddAdjacent(t1, Repeat(Repeat(Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, Cosine8, Cosine24, Cosine8, Cosine24)))) + rounding) >> 14;
-        in0 = Vector512.Shuffle(Vector512_.PackSignedSaturate(w0, w1).AsInt32(), Vector512.Create(0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15)).AsInt16();
-        in1 = Vector512.Shuffle(Vector512_.PackSignedSaturate(w2, w3).AsInt32(), Vector512.Create(1, 3, 0, 2, 5, 7, 4, 6, 9, 11, 8, 10, 13, 15, 12, 14)).AsInt16();
+        Vector512<int> w0 = (Vector512_.MultiplyAddAdjacent(
+            t0,
+            Repeat(Repeat(Vector128.Create(Cosine16, Cosine16, Cosine16, Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16)))) + rounding) >> 14;
+
+        Vector512<int> w2 = (Vector512_.MultiplyAddAdjacent(
+            t0,
+            Repeat(Repeat(Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, Cosine16, Cosine16, Cosine16)))) + rounding) >> 14;
+
+        Vector512<int> w1 = (Vector512_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Repeat(Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8)))) + rounding) >> 14;
+
+        Vector512<int> w3 = (Vector512_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Repeat(Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, Cosine8, Cosine24, Cosine8, Cosine24)))) + rounding) >> 14;
+
+        in0 = Vector512.Shuffle(Vector512_.PackSignedSaturate(w0, w1).AsInt32(), Vector512.Create(0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15))
+            .AsInt16();
+
+        in1 = Vector512.Shuffle(Vector512_.PackSignedSaturate(w2, w3).AsInt32(), Vector512.Create(1, 3, 0, 2, 5, 7, 4, 6, 9, 11, 8, 10, 13, 15, 12, 14))
+            .AsInt16();
 
         t0 = in0 + in1;
         t1 = in0 - in1;
         Vector512<int> rounding2 = Vector512.Create(8192 + 16384);
         w0 = (Vector512_.MultiplyAddAdjacent(t0, Vector512.Create(Cosine16)) + rounding2) >> 16;
-        w1 = (Vector512_.MultiplyAddAdjacent(t0, Repeat(Repeat(Vector128.Create(Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16, Cosine16, (short)-Cosine16)))) + rounding2) >> 16;
-        w2 = (Vector512_.MultiplyAddAdjacent(t1, Repeat(Repeat(Vector128.Create(Cosine8, Cosine24, Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, (short)-Cosine8, (short)-Cosine24)))) + rounding2) >> 16;
-        w3 = (Vector512_.MultiplyAddAdjacent(t1, Repeat(Repeat(Vector128.Create(Cosine24, (short)-Cosine8, Cosine24, (short)-Cosine8, (short)-Cosine24, Cosine8, (short)-Cosine24, Cosine8)))) + rounding2) >> 16;
+        w1 = (Vector512_.MultiplyAddAdjacent(
+            t0,
+            Repeat(Repeat(Vector128.Create(
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16,
+                Cosine16,
+                (short)-Cosine16)))) + rounding2) >> 16;
+
+        w2 = (Vector512_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Repeat(Vector128.Create(
+                Cosine8,
+                Cosine24,
+                Cosine8,
+                Cosine24,
+                (short)-Cosine8,
+                (short)-Cosine24,
+                (short)-Cosine8,
+                (short)-Cosine24)))) + rounding2) >> 16;
+
+        w3 = (Vector512_.MultiplyAddAdjacent(
+            t1,
+            Repeat(Repeat(Vector128.Create(
+                Cosine24,
+                (short)-Cosine8,
+                Cosine24,
+                (short)-Cosine8,
+                (short)-Cosine24,
+                Cosine8,
+                (short)-Cosine24,
+                Cosine8)))) + rounding2) >> 16;
+
         upper = Vector512_.PackSignedSaturate(w0, w2);
         lower = Vector512_.PackSignedSaturate(w1, w3);
     }

@@ -174,7 +174,8 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
     {
         if (a.Frames.Count != b.Frames.Count)
         {
-            throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
+            throw new ImageProcessingException(
+                $"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
         }
     }
 }

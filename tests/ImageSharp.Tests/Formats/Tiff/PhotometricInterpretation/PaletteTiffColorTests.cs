@@ -87,7 +87,15 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     [Theory]
     [MemberData(nameof(Palette4Data))]
     [MemberData(nameof(Palette8Data))]
-    public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
+    public void Decode_WritesPixelData(
+        byte[] inputData,
+        ushort bitsPerSample,
+        ushort[] colorMap,
+        int left,
+        int top,
+        int width,
+        int height,
+        Rgba32[][] expectedResult)
         => AssertDecode(expectedResult, pixels =>
             {
                 new PaletteTiffColor<Rgba32>(

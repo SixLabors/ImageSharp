@@ -205,7 +205,15 @@ internal abstract class BitWriterBase
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    protected static WebpVp8X WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha, bool hasAnimation)
+    protected static WebpVp8X WriteVp8XHeader(
+        Stream stream,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        IccProfile? iccProfile,
+        uint width,
+        uint height,
+        bool hasAlpha,
+        bool hasAnimation)
     {
         WebpVp8X chunk = new(hasAnimation, xmpProfile != null, exifProfile != null, hasAlpha, iccProfile != null, width, height);
 

@@ -121,7 +121,8 @@ public static class TestUtils
         return true;
     }
 
-    public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",") => string.Join(separator, items.Select(o => string.Format(CultureInfo.InvariantCulture, "{0}", o)));
+    public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",")
+        => string.Join(separator, items.Select(o => string.Format(CultureInfo.InvariantCulture, "{0}", o)));
 
     public static Type GetClrType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
 

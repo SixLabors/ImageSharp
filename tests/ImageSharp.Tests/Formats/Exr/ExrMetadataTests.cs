@@ -118,7 +118,11 @@ public class ExrMetadataTests
     [InlineData(PixelColorType.YCbCr, 48, ExrImageDataType.Unknown, ExrPixelType.Float)]
     [InlineData(PixelColorType.CMYK, 64, ExrImageDataType.Unknown, ExrPixelType.Float)]
     [InlineData(PixelColorType.YCCK, 64, ExrImageDataType.Unknown, ExrPixelType.Float)]
-    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(PixelColorType pixelColorType, int bitsPerPixel, ExrImageDataType expectedImageDataType, ExrPixelType expectedPixelType)
+    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(
+        PixelColorType pixelColorType,
+        int bitsPerPixel,
+        ExrImageDataType expectedImageDataType,
+        ExrPixelType expectedPixelType)
     {
         FormatConnectingMetadata formatConnectingMetadata = new()
         {

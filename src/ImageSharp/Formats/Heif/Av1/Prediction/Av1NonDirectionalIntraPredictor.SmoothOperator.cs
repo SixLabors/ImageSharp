@@ -48,7 +48,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<byte> Predict(Vector128<byte> top, Vector128<byte> left, Vector128<byte> topLeft, Vector128<byte> topRight, Vector128<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector128<byte> Predict(
+            Vector128<byte> top,
+            Vector128<byte> left,
+            Vector128<byte> topLeft,
+            Vector128<byte> topRight,
+            Vector128<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             Widen(top, out Vector128<int> top0, out Vector128<int> top1, out Vector128<int> top2, out Vector128<int> top3);
             Vector128<int> weight0 = Vector128.LoadUnsafe(ref columnWeights);
@@ -71,7 +78,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<byte> Predict(Vector256<byte> top, Vector256<byte> left, Vector256<byte> topLeft, Vector256<byte> topRight, Vector256<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector256<byte> Predict(
+            Vector256<byte> top,
+            Vector256<byte> left,
+            Vector256<byte> topLeft,
+            Vector256<byte> topRight,
+            Vector256<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             Widen(top, out Vector256<int> top0, out Vector256<int> top1, out Vector256<int> top2, out Vector256<int> top3);
             Vector256<int> weight0 = Vector256.LoadUnsafe(ref columnWeights);
@@ -94,7 +108,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<byte> Predict(Vector512<byte> top, Vector512<byte> left, Vector512<byte> topLeft, Vector512<byte> topRight, Vector512<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector512<byte> Predict(
+            Vector512<byte> top,
+            Vector512<byte> left,
+            Vector512<byte> topLeft,
+            Vector512<byte> topRight,
+            Vector512<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             Widen(top, out Vector512<int> top0, out Vector512<int> top1, out Vector512<int> top2, out Vector512<int> top3);
             Vector512<int> weight0 = Vector512.LoadUnsafe(ref columnWeights);
@@ -126,7 +147,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<short> Predict(Vector128<short> top, Vector128<short> left, Vector128<short> topLeft, Vector128<short> topRight, Vector128<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector128<short> Predict(
+            Vector128<short> top,
+            Vector128<short> left,
+            Vector128<short> topLeft,
+            Vector128<short> topRight,
+            Vector128<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             Widen(top, out Vector128<int> top0, out Vector128<int> top1);
             Vector128<int> weight0 = Vector128.LoadUnsafe(ref columnWeights);
@@ -145,7 +173,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<short> Predict(Vector256<short> top, Vector256<short> left, Vector256<short> topLeft, Vector256<short> topRight, Vector256<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector256<short> Predict(
+            Vector256<short> top,
+            Vector256<short> left,
+            Vector256<short> topLeft,
+            Vector256<short> topRight,
+            Vector256<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             Widen(top, out Vector256<int> top0, out Vector256<int> top1);
             Vector256<int> weight0 = Vector256.LoadUnsafe(ref columnWeights);
@@ -164,7 +199,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<short> Predict(Vector512<short> top, Vector512<short> left, Vector512<short> topLeft, Vector512<short> topRight, Vector512<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector512<short> Predict(
+            Vector512<short> top,
+            Vector512<short> left,
+            Vector512<short> topLeft,
+            Vector512<short> topRight,
+            Vector512<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             Widen(top, out Vector512<int> top0, out Vector512<int> top1);
             Vector512<int> weight0 = Vector512.LoadUnsafe(ref columnWeights);

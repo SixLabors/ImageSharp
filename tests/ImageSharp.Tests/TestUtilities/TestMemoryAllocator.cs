@@ -39,7 +39,8 @@ internal class TestMemoryAllocator : MemoryAllocator
 
     public int BufferCapacityInBytes { get; set; } = int.MaxValue;
 
-    public IReadOnlyList<AllocationRequest> AllocationLog => this.allocationLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
+    public IReadOnlyList<AllocationRequest> AllocationLog
+        => this.allocationLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 
     public IReadOnlyList<ReturnRequest> ReturnLog => this.returnLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 

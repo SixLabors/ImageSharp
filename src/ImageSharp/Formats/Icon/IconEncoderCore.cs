@@ -77,7 +77,13 @@ internal abstract class IconEncoderCore
     /// <param name="entries">The directory metadata for the source frames.</param>
     /// <param name="provider">The frame metadata provider.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    internal void Encode<TPixel, TProvider>(Image<TPixel> image, Stream stream, int frameIndex, Span<EncodingFrameMetadata> entries, TProvider provider, CancellationToken cancellationToken)
+    internal void Encode<TPixel, TProvider>(
+        Image<TPixel> image,
+        Stream stream,
+        int frameIndex,
+        Span<EncodingFrameMetadata> entries,
+        TProvider provider,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
         where TProvider : struct, IEncodingFrameMetadataProvider
     {
@@ -137,7 +143,10 @@ internal abstract class IconEncoderCore
                 {
                     // PNG accepts Image rather than ImageFrame, and ANI variants may occupy only part of their common canvas.
                     // Allocate only for those cases; full-sized BMP frames can be encoded directly from their existing storage.
-                    ImageMetadata? metadata = this.encoder.SkipMetadata || encodingMetadata.Compression is not IconFrameCompression.Png ? null : image.Metadata.DeepClone();
+                    ImageMetadata? metadata = this.encoder.SkipMetadata || encodingMetadata.Compression is not IconFrameCompression.Png
+                        ? null
+                        : image.Metadata.DeepClone();
+
                     encodingImage = new Image<TPixel>(image.Configuration, width, height, metadata);
 
                     // Cropped and isolated resources still need their own profile under SkipMetadata.

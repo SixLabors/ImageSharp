@@ -57,7 +57,15 @@ public class TiffUtilitiesTest
     [InlineData(32767, 0, 0, 65535, 32767, 0, 0, 65535)]
     [InlineData(0, 32767, 0, 65535, 0, 32767, 0, 65535)]
     [InlineData(0, 0, 32767, 65535, 0, 0, 32767, 65535)]
-    public void ColorFromRgba64Premultiplied_WithNoAlpha_ReturnExpectedValues(ushort r, ushort g, ushort b, ushort a, ushort expectedR, ushort expectedG, ushort expectedB, ushort expectedA)
+    public void ColorFromRgba64Premultiplied_WithNoAlpha_ReturnExpectedValues(
+        ushort r,
+        ushort g,
+        ushort b,
+        ushort a,
+        ushort expectedR,
+        ushort expectedG,
+        ushort expectedB,
+        ushort expectedA)
     {
         Rgba64 actual = TiffUtilities.ColorFromRgba64Premultiplied<Rgba64>(r, g, b, a);
 
@@ -76,7 +84,15 @@ public class TiffUtilitiesTest
     [InlineData(8191, 0, 0, 0, 0, 0, 0, 0)] // Red, 0% Alpha
     [InlineData(0, 8191, 0, 0, 0, 0, 0, 0)] // Green, 0% Alpha
     [InlineData(0, 0, 8191, 0, 0, 0, 0, 0)] // Blue, 0% Alpha
-    public void ColorFromRgba64Premultiplied_WithAlpha_ReturnExpectedValues(ushort r, ushort g, ushort b, ushort a, ushort expectedR, ushort expectedG, ushort expectedB, ushort expectedA)
+    public void ColorFromRgba64Premultiplied_WithAlpha_ReturnExpectedValues(
+        ushort r,
+        ushort g,
+        ushort b,
+        ushort a,
+        ushort expectedR,
+        ushort expectedG,
+        ushort expectedB,
+        ushort expectedA)
     {
         Rgba64 actual = TiffUtilities.ColorFromRgba64Premultiplied<Rgba64>(r, g, b, a);
 

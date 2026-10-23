@@ -28,7 +28,14 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
     private readonly int kernelSize;
     private readonly bool preserveAlpha;
 
-    public MedianRowOperation(Rectangle bounds, Buffer2D<TPixel> targetPixels, Buffer2D<TPixel> sourcePixels, KernelSamplingMap map, int kernelSize, Configuration configuration, bool preserveAlpha)
+    public MedianRowOperation(
+        Rectangle bounds,
+        Buffer2D<TPixel> targetPixels,
+        Buffer2D<TPixel> sourcePixels,
+        KernelSamplingMap map,
+        int kernelSize,
+        Configuration configuration,
+        bool preserveAlpha)
     {
         this.bounds = bounds;
         this.configuration = configuration;

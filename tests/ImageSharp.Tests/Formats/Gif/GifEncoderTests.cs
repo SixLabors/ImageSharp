@@ -24,7 +24,12 @@ public partial class GifEncoderTests
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
     {
-        { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
+        {
+            TestImages.Gif.Rings,
+            (int)ImageMetadata.DefaultHorizontalResolution,
+            (int)ImageMetadata.DefaultVerticalResolution,
+            PixelResolutionUnit.PixelsPerInch
+        },
         { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
         { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
     };

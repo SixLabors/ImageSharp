@@ -132,8 +132,24 @@ public class Av1LoopRestorationStatisticsTests
                     }
 
                     long actual = bitDepth == 8
-                        ? Av1LoopRestorationEncoder.MeasureCorrelation<byte>(byteSamples, stride, byteSamples.AsSpan(secondStart), stride, width, height, average, rowStep)
-                        : Av1LoopRestorationEncoder.MeasureCorrelation<ushort>(samples, stride, samples.AsSpan(secondStart), stride, width, height, average, rowStep);
+                        ? Av1LoopRestorationEncoder.MeasureCorrelation<byte>(
+                            byteSamples,
+                            stride,
+                            byteSamples.AsSpan(secondStart),
+                            stride,
+                            width,
+                            height,
+                            average,
+                            rowStep)
+                        : Av1LoopRestorationEncoder.MeasureCorrelation<ushort>(
+                            samples,
+                            stride,
+                            samples.AsSpan(secondStart),
+                            stride,
+                            width,
+                            height,
+                            average,
+                            rowStep);
 
                     Assert.Equal(expected, actual);
                 }

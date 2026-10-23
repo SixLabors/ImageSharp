@@ -176,7 +176,14 @@ public class RgbTiffColorTests : PhotometricInterpretationTestBase
 
     [Theory]
     [MemberData(nameof(Rgb8Data))]
-    public void Decode_WritesPixelData_8Bit(byte[] inputData, TiffBitsPerSample bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+    public void Decode_WritesPixelData_8Bit(
+        byte[] inputData,
+        TiffBitsPerSample bitsPerSample,
+        int left,
+        int top,
+        int width,
+        int height,
+        Rgba32[][] expectedResult)
     {
         AssertDecode(expectedResult, pixels =>
             {

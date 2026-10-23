@@ -13,7 +13,14 @@ internal class JpegComponent : IDisposable, IJpegComponent
 {
     private readonly MemoryAllocator memoryAllocator;
 
-    public JpegComponent(MemoryAllocator memoryAllocator, JpegFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+    public JpegComponent(
+        MemoryAllocator memoryAllocator,
+        JpegFrame frame,
+        byte id,
+        int horizontalFactor,
+        int verticalFactor,
+        byte quantizationTableIndex,
+        int index)
     {
         this.memoryAllocator = memoryAllocator;
         this.Frame = frame;

@@ -42,7 +42,10 @@ public abstract class TiffEncoderBaseTester
         TiffFrameMetadata outputMeta = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;
 
-        Number rowsPerStrip = exifProfileOutput.GetValue(ExifTag.RowsPerStrip) != null ? exifProfileOutput.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
+        Number rowsPerStrip = exifProfileOutput.GetValue(ExifTag.RowsPerStrip) != null
+            ? exifProfileOutput.GetValue(ExifTag.RowsPerStrip).Value
+            : TiffConstants.RowsPerStripInfinity;
+
         Assert.True(output.Height > (int)rowsPerStrip);
         Assert.True(exifProfileOutput.GetValue(ExifTag.StripOffsets)?.Value.Length > 1);
         Number[] stripByteCounts = exifProfileOutput.GetValue(ExifTag.StripByteCounts)?.Value;

@@ -195,7 +195,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        using SpectralConverter<TPixel> spectralConverter = new(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
+        using SpectralConverter<TPixel> spectralConverter = new(
+            this.configuration,
+            this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
+
         this.ParseStream(stream, spectralConverter, cancellationToken);
 
         if (!this.hasSOSMarker)
@@ -1280,7 +1283,12 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="frameMarker">The current frame marker.</param>
     /// <param name="decodingComponentType">The jpeg decoding component type.</param>
     /// <param name="metadataOnly">Whether to parse metadata only.</param>
-    private bool ProcessStartOfFrameMarker(BufferedReadStream stream, int remaining, in JpegFileMarker frameMarker, ComponentType decodingComponentType, bool metadataOnly)
+    private bool ProcessStartOfFrameMarker(
+        BufferedReadStream stream,
+        int remaining,
+        in JpegFileMarker frameMarker,
+        ComponentType decodingComponentType,
+        bool metadataOnly)
     {
         if (this.Frame != null)
         {
@@ -1599,7 +1607,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             if (dcTableIndex >= 4 || acTableIndex >= 4)
             {
                 // TODO: extract as separate method?
-                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
+                JpegThrowHelper.ThrowInvalidImageContentException(
+                    $"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
             }
 
             component.DcTableId = dcTableIndex;

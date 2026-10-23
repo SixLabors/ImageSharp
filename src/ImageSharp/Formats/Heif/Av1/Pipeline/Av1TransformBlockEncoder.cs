@@ -704,9 +704,31 @@ internal static partial class Av1TransformBlockEncoder
         ReadOnlySpan<byte> inverseWeights = satdMeasured ? default : workspace.GetInverseQuantizationMatrix(componentType, transformSize, transformType);
         state.EndOfBlock = optimize
             ? Av1ForwardQuantizer.QuantizeLossy(
-                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights)
+                transformed,
+                quantized,
+                dequantized,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                workspace.EncoderOptions.Sharpness,
+                weights,
+                inverseWeights)
             : Av1ForwardQuantizer.QuantizeRegular(
-                transformed, quantized, dequantized, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, workspace.EncoderOptions.Sharpness, weights, inverseWeights);
+                transformed,
+                quantized,
+                dequantized,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                workspace.EncoderOptions.Sharpness,
+                weights,
+                inverseWeights);
 
         if (optimize && state.EndOfBlock > 0)
         {

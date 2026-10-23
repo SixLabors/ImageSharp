@@ -22,7 +22,8 @@ public class Av1TransformSizeTests
             {
                 Av1TransformSize.Size4x4 or Av1TransformSize.Size4x8 or Av1TransformSize.Size4x16 => 4,
                 Av1TransformSize.Size8x4 or Av1TransformSize.Size8x8 or Av1TransformSize.Size8x16 or Av1TransformSize.Size8x32 => 8,
-                Av1TransformSize.Size16x4 or Av1TransformSize.Size16x8 or Av1TransformSize.Size16x16 or Av1TransformSize.Size16x32 or Av1TransformSize.Size16x64 => 16,
+                Av1TransformSize.Size16x4 or Av1TransformSize.Size16x8 or Av1TransformSize.Size16x16 or
+                Av1TransformSize.Size16x32 or Av1TransformSize.Size16x64 => 16,
                 Av1TransformSize.Size32x8 or Av1TransformSize.Size32x16 or Av1TransformSize.Size32x32 or Av1TransformSize.Size32x64 => 32,
                 Av1TransformSize.Size64x16 or Av1TransformSize.Size64x32 or Av1TransformSize.Size64x64 => 64,
                 _ => -1
@@ -32,7 +33,8 @@ public class Av1TransformSizeTests
             {
                 Av1TransformSize.Size4x4 or Av1TransformSize.Size8x4 or Av1TransformSize.Size16x4 => 4,
                 Av1TransformSize.Size4x8 or Av1TransformSize.Size8x8 or Av1TransformSize.Size16x8 or Av1TransformSize.Size32x8 => 8,
-                Av1TransformSize.Size4x16 or Av1TransformSize.Size8x16 or Av1TransformSize.Size16x16 or Av1TransformSize.Size32x16 or Av1TransformSize.Size64x16 => 16,
+                Av1TransformSize.Size4x16 or Av1TransformSize.Size8x16 or Av1TransformSize.Size16x16 or
+                Av1TransformSize.Size32x16 or Av1TransformSize.Size64x16 => 16,
                 Av1TransformSize.Size8x32 or Av1TransformSize.Size16x32 or Av1TransformSize.Size32x32 or Av1TransformSize.Size64x32 => 32,
                 Av1TransformSize.Size16x64 or Av1TransformSize.Size32x64 or Av1TransformSize.Size64x64 => 64,
                 _ => -1

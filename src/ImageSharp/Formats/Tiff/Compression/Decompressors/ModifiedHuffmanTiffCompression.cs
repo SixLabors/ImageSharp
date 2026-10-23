@@ -25,7 +25,12 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
     /// <param name="photometricInterpretation">The photometric interpretation.</param>
-    public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
+    public ModifiedHuffmanTiffCompression(
+        MemoryAllocator allocator,
+        TiffFillOrder fillOrder,
+        int width,
+        int bitsPerPixel,
+        TiffPhotometricInterpretation photometricInterpretation)
         : base(allocator, width, bitsPerPixel)
     {
         this.FillOrder = fillOrder;

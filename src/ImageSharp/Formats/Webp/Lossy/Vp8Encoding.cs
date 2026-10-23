@@ -130,14 +130,38 @@ internal static unsafe class Vp8Encoding
 
             // Vertical pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
-            InverseTransformVerticalPassVector128(in0, in2, in1, in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3);
+            InverseTransformVerticalPassVector128(
+                in0,
+                in2,
+                in1,
+                in3,
+                out Vector128<short> tmp0,
+                out Vector128<short> tmp1,
+                out Vector128<short> tmp2,
+                out Vector128<short> tmp3);
 
             // Transpose the two 4x4.
-            LossyUtils.Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            LossyUtils.Vp8Transpose_2_4x4_16bVector128(
+                tmp0,
+                tmp1,
+                tmp2,
+                tmp3,
+                out Vector128<long> t0,
+                out Vector128<long> t1,
+                out Vector128<long> t2,
+                out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
-            InverseTransformHorizontalPassVector128(t0, t2, t1, t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3);
+            InverseTransformHorizontalPassVector128(
+                t0,
+                t2,
+                t1,
+                t3,
+                out Vector128<short> shifted0,
+                out Vector128<short> shifted1,
+                out Vector128<short> shifted2,
+                out Vector128<short> shifted3);
 
             // Transpose the two 4x4.
             LossyUtils.Vp8Transpose_2_4x4_16bVector128(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
@@ -205,14 +229,38 @@ internal static unsafe class Vp8Encoding
 
             // Vertical pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
-            InverseTransformVerticalPassVector128(in0, in2, in1, in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3);
+            InverseTransformVerticalPassVector128(
+                in0,
+                in2,
+                in1,
+                in3,
+                out Vector128<short> tmp0,
+                out Vector128<short> tmp1,
+                out Vector128<short> tmp2,
+                out Vector128<short> tmp3);
 
             // Transpose the two 4x4.
-            LossyUtils.Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            LossyUtils.Vp8Transpose_2_4x4_16bVector128(
+                tmp0,
+                tmp1,
+                tmp2,
+                tmp3,
+                out Vector128<long> t0,
+                out Vector128<long> t1,
+                out Vector128<long> t2,
+                out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
-            InverseTransformHorizontalPassVector128(t0, t2, t1, t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3);
+            InverseTransformHorizontalPassVector128(
+                t0,
+                t2,
+                t1,
+                t3,
+                out Vector128<short> shifted0,
+                out Vector128<short> shifted1,
+                out Vector128<short> shifted2,
+                out Vector128<short> shifted3);
 
             // Transpose the two 4x4.
             LossyUtils.Vp8Transpose_2_4x4_16bVector128(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
@@ -296,7 +344,15 @@ internal static unsafe class Vp8Encoding
         }
     }
 
-    private static void InverseTransformVerticalPassVector128(Vector128<long> in0, Vector128<long> in2, Vector128<long> in1, Vector128<long> in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3)
+    private static void InverseTransformVerticalPassVector128(
+        Vector128<long> in0,
+        Vector128<long> in2,
+        Vector128<long> in1,
+        Vector128<long> in3,
+        out Vector128<short> tmp0,
+        out Vector128<short> tmp1,
+        out Vector128<short> tmp2,
+        out Vector128<short> tmp3)
     {
         Vector128<short> a = in0.AsInt16() + in2.AsInt16();
         Vector128<short> b = in0.AsInt16() - in2.AsInt16();
@@ -325,7 +381,15 @@ internal static unsafe class Vp8Encoding
         tmp3 = a - d;
     }
 
-    private static void InverseTransformHorizontalPassVector128(Vector128<long> t0, Vector128<long> t2, Vector128<long> t1, Vector128<long> t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3)
+    private static void InverseTransformHorizontalPassVector128(
+        Vector128<long> t0,
+        Vector128<long> t2,
+        Vector128<long> t1,
+        Vector128<long> t3,
+        out Vector128<short> shifted0,
+        out Vector128<short> shifted1,
+        out Vector128<short> shifted2,
+        out Vector128<short> shifted3)
     {
         Vector128<short> dc = t0.AsInt16() + Vector128.Create((short)4);
         Vector128<short> a = dc + t2.AsInt16();
@@ -535,9 +599,15 @@ internal static unsafe class Vp8Encoding
         Vector128<int> tmp0 = Vector128_.MultiplyAddAdjacent(a01, Vector128.Create(8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0, 8, 0).AsInt16()); // K88p
 
         // [ (a0 - a1) << 3, ... ]
-        Vector128<int> tmp2 = Vector128_.MultiplyAddAdjacent(a01, Vector128.Create(8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255).AsInt16());        // K88m
-        Vector128<int> tmp11 = Vector128_.MultiplyAddAdjacent(a32, Vector128.Create(232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8).AsInt16());   // K5352_2217p
-        Vector128<int> tmp31 = Vector128_.MultiplyAddAdjacent(a32, Vector128.Create(169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235).AsInt16());   // K5352_2217m
+        Vector128<int> tmp2 = Vector128_.MultiplyAddAdjacent(
+            a01,
+            Vector128.Create(8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255, 8, 0, 248, 255).AsInt16());        // K88m
+        Vector128<int> tmp11 = Vector128_.MultiplyAddAdjacent(
+            a32,
+            Vector128.Create(232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8).AsInt16());   // K5352_2217p
+        Vector128<int> tmp31 = Vector128_.MultiplyAddAdjacent(
+            a32,
+            Vector128.Create(169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235).AsInt16());   // K5352_2217m
         Vector128<int> tmp12 = tmp11 + Vector128.Create(1812);
         Vector128<int> tmp32 = tmp31 + Vector128.Create(937);
         Vector128<int> tmp1 = Vector128.ShiftRightArithmetic(tmp12, 9);
@@ -560,8 +630,12 @@ internal static unsafe class Vp8Encoding
         Vector128<long> a22 = Vector128_.UnpackHigh(a32.AsInt64(), a32.AsInt64());
 
         Vector128<short> b23 = Vector128_.UnpackLow(a22.AsInt16(), a32.AsInt16());
-        Vector128<int> c1 = Vector128_.MultiplyAddAdjacent(b23, Vector128.Create(169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20).AsInt16());  // K5352_2217
-        Vector128<int> c3 = Vector128_.MultiplyAddAdjacent(b23, Vector128.Create(24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8).AsInt16());  // K2217_5352
+        Vector128<int> c1 = Vector128_.MultiplyAddAdjacent(
+            b23,
+            Vector128.Create(169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20, 169, 8, 232, 20).AsInt16());  // K5352_2217
+        Vector128<int> c3 = Vector128_.MultiplyAddAdjacent(
+            b23,
+            Vector128.Create(24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8, 24, 235, 169, 8).AsInt16());  // K2217_5352
         Vector128<int> d1 = c1 + Vector128.Create(12000 + (1 << 16));  // K12000PlusOne
         Vector128<int> d3 = c3 + Vector128.Create(51000);
         Vector128<int> e1 = Vector128.ShiftRightArithmetic(d1, 16);
@@ -1088,7 +1162,8 @@ internal static unsafe class Vp8Encoding
     private static byte Clip8b(int v) => (v & ~0xff) == 0 ? (byte)v : v < 0 ? (byte)0 : (byte)255;
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void Store(Span<byte> dst, ReadOnlySpan<byte> reference, int x, int y, int v) => dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
+    private static void Store(Span<byte> dst, ReadOnlySpan<byte> reference, int x, int y, int v)
+        => dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int Mul(int a, int b) => (a * b) >> 16;

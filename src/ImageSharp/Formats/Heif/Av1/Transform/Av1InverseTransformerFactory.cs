@@ -155,6 +155,14 @@ internal static class Av1InverseTransformerFactory
         }
 
         config.ConfigureInverseSparsity(transformFunctionParameters.EndOfBuffer, transformFunctionParameters.BitDepth);
-        Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace, transformFunctionParameters.BitDepth);
+        Av1Inverse2dTransformer.Transform2dAdd(
+            coefficients,
+            readBuffer,
+            readStride,
+            writeBuffer,
+            writeStride,
+            ref config,
+            workspace,
+            transformFunctionParameters.BitDepth);
     }
 }

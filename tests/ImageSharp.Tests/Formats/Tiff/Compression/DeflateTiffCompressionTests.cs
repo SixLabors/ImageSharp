@@ -25,7 +25,16 @@ public class DeflateTiffCompressionTests
         using BufferedReadStream stream = CreateCompressedStream(data);
         byte[] buffer = new byte[data.Length];
 
-        using DeflateTiffCompression decompressor = new(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0, 0);
+        using DeflateTiffCompression decompressor = new(
+            Configuration.Default.MemoryAllocator,
+            10,
+            8,
+            TiffColorType.BlackIsZero8,
+            TiffPredictor.None,
+            false,
+            false,
+            0,
+            0);
 
         // These codecs return raw TIFF samples; no final pixel region is needed.
         decompressor.Decompress<Rgba32>(stream, 0, (uint)stream.Length, 1, buffer, default, default);
@@ -38,7 +47,10 @@ public class DeflateTiffCompressionTests
         Stream compressedStream = new MemoryStream();
 
         using (Stream uncompressedStream = new MemoryStream(data),
-                      deflateStream = new ZLibStream(compressedStream, new ZLibCompressionOptions { CompressionLevel = (int)DeflateCompressionLevel.Level6 }, true))
+                      deflateStream = new ZLibStream(
+                          compressedStream,
+                          new ZLibCompressionOptions { CompressionLevel = (int)DeflateCompressionLevel.Level6 },
+                          true))
         {
             uncompressedStream.CopyTo(deflateStream);
         }

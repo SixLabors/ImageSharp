@@ -125,7 +125,11 @@ internal static partial class Av1WedgeSearch
         /// <param name="weights">The mask weights of the first prediction.</param>
         /// <param name="total">The running total.</param>
         /// <returns>The updated running total.</returns>
-        public static abstract Vector128<ulong> AccumulateSquaredErrors(Vector128<short> residual, Vector128<short> difference, Vector128<short> weights, Vector128<ulong> total);
+        public static abstract Vector128<ulong> AccumulateSquaredErrors(
+            Vector128<short> residual,
+            Vector128<short> difference,
+            Vector128<short> weights,
+            Vector128<ulong> total);
 
         /// <summary>
         /// Adds the squared saturated wedge residuals of sixteen samples to a running total.
@@ -135,7 +139,11 @@ internal static partial class Av1WedgeSearch
         /// <param name="weights">The mask weights of the first prediction.</param>
         /// <param name="total">The running total.</param>
         /// <returns>The updated running total.</returns>
-        public static abstract Vector256<ulong> AccumulateSquaredErrors(Vector256<short> residual, Vector256<short> difference, Vector256<short> weights, Vector256<ulong> total);
+        public static abstract Vector256<ulong> AccumulateSquaredErrors(
+            Vector256<short> residual,
+            Vector256<short> difference,
+            Vector256<short> weights,
+            Vector256<ulong> total);
 
         /// <summary>
         /// Adds the squared saturated wedge residuals of thirty-two samples to a running total.
@@ -145,7 +153,11 @@ internal static partial class Av1WedgeSearch
         /// <param name="weights">The mask weights of the first prediction.</param>
         /// <param name="total">The running total.</param>
         /// <returns>The updated running total.</returns>
-        public static abstract Vector512<ulong> AccumulateSquaredErrors(Vector512<short> residual, Vector512<short> difference, Vector512<short> weights, Vector512<ulong> total);
+        public static abstract Vector512<ulong> AccumulateSquaredErrors(
+            Vector512<short> residual,
+            Vector512<short> difference,
+            Vector512<short> weights,
+            Vector512<ulong> total);
 
         /// <summary>
         /// Adds the squared saturated wedge residual of one sample to a running total.
@@ -259,7 +271,11 @@ internal static partial class Av1WedgeSearch
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<ulong> AccumulateSquaredErrors(Vector128<short> residual, Vector128<short> difference, Vector128<short> weights, Vector128<ulong> total)
+        public static Vector128<ulong> AccumulateSquaredErrors(
+            Vector128<short> residual,
+            Vector128<short> difference,
+            Vector128<short> weights,
+            Vector128<ulong> total)
         {
             // The weighted residual 64 * r + m * d needs a thirty-two-bit lane before its saturation to sixteen bits.
             // The multiply-add of the saturated values with themselves gives the sum of two adjacent squares. That sum is
@@ -271,7 +287,11 @@ internal static partial class Av1WedgeSearch
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<ulong> AccumulateSquaredErrors(Vector256<short> residual, Vector256<short> difference, Vector256<short> weights, Vector256<ulong> total)
+        public static Vector256<ulong> AccumulateSquaredErrors(
+            Vector256<short> residual,
+            Vector256<short> difference,
+            Vector256<short> weights,
+            Vector256<ulong> total)
         {
             Vector256<short> saturated = Saturate(residual, difference, weights);
             (Vector256<ulong> lower, Vector256<ulong> upper) = Vector256.Widen(Vector256_.MultiplyAddAdjacent(saturated, saturated).AsUInt32());
@@ -280,7 +300,11 @@ internal static partial class Av1WedgeSearch
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<ulong> AccumulateSquaredErrors(Vector512<short> residual, Vector512<short> difference, Vector512<short> weights, Vector512<ulong> total)
+        public static Vector512<ulong> AccumulateSquaredErrors(
+            Vector512<short> residual,
+            Vector512<short> difference,
+            Vector512<short> weights,
+            Vector512<ulong> total)
         {
             Vector512<short> saturated = Saturate(residual, difference, weights);
             (Vector512<ulong> lower, Vector512<ulong> upper) = Vector512.Widen(Vector512_.MultiplyAddAdjacent(saturated, saturated).AsUInt32());

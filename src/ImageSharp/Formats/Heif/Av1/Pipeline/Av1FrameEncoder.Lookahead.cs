@@ -195,14 +195,30 @@ internal static partial class Av1FrameEncoder
             Size frameSize = new(source.Width, source.Height);
             int superblockTargetRate = Av1RateControl.GetSuperblockTargetRate(secondPass.FrameTarget, source.Width, source.Height);
             switchableBeforeFix = Av1TileEncoder.AnalyzeFrame<TSample, TOperator>(
-                this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
+                this.SymbolEncoder,
+                source,
+                references,
+                searchReferences,
+                current.Buffer.Frame,
+                picture,
+                this.Coefficients,
+                this.TileWorkspace,
+                this.BlockWorkspace);
 
             while (secondPass.UsesRecodeLoop)
             {
                 // Each measuring pack finalizes the frame, and this steps the film grain seed.
                 this.PrepareFilmGrain();
                 Av1TileEncoder.PackFrame<TSample, TOperator>(
-                    this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
+                    this.SymbolEncoder,
+                    source,
+                    references,
+                    searchReferences,
+                    current.Buffer.Frame,
+                    picture,
+                    this.Coefficients,
+                    this.TileWorkspace,
+                    this.BlockWorkspace);
 
                 long packedBits = this.MeasureLaggedFrame(Av1TileEncoder.FromPackedTiles(picture, this.SymbolEncoder), writeSequenceHeader);
 
@@ -245,7 +261,15 @@ internal static partial class Av1FrameEncoder
                     superblockTargetRate);
 
                 switchableBeforeFix = Av1TileEncoder.AnalyzeFrame<TSample, TOperator>(
-                    this.SymbolEncoder, source, references, searchReferences, current.Buffer.Frame, picture, this.Coefficients, this.TileWorkspace, this.BlockWorkspace);
+                    this.SymbolEncoder,
+                    source,
+                    references,
+                    searchReferences,
+                    current.Buffer.Frame,
+                    picture,
+                    this.Coefficients,
+                    this.TileWorkspace,
+                    this.BlockWorkspace);
             }
 
             // The frame before a forced key frame records its unfiltered error. Only a bit budget reads it.
@@ -481,7 +505,10 @@ internal static partial class Av1FrameEncoder
             Av1MotionSearchSettings keyFrameMotionSettings = new(this.Options.Speed, false, image.Size, -1, true, false, this.Options.Tuning);
             using LookaheadTemporalModel<TSample, TFilterOperator, TSearchOperator, TTplOperator>? temporalModel =
                 this.Options.LagInFrames > 1
-                    ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames) { MotionSettings = keyFrameMotionSettings }
+                    ? new(this, lookahead, coder.ReferencePool, filter, image.Width, image.Height, colorFormat, secondPass.LagInFrames)
+                    {
+                        MotionSettings = keyFrameMotionSettings
+                    }
                     : null;
 
             if (temporalModel is not null)

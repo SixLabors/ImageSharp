@@ -59,7 +59,14 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     [InlineData(Indexed8_LZW, 8, 64, 64, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(MinIsWhite, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(MinIsBlack, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
-    public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
+    public void Identify(
+        string imagePath,
+        int expectedPixelSize,
+        int expectedWidth,
+        int expectedHeight,
+        double expectedHResolution,
+        double expectedVResolution,
+        PixelResolutionUnit expectedResolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);

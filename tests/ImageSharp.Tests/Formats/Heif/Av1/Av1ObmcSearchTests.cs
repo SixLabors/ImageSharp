@@ -57,7 +57,13 @@ public class Av1ObmcSearchTests
                     int[] mask = CreateMask(random, width * height);
                     int expected = SumAbsoluteDifferencesReference(prediction, stride, weightedSource, mask, width, height);
                     int actual = bitDepth == 8
-                        ? Av1ObmcSearch.SumAbsoluteDifferences<byte, Av1ObmcSearch.ByteOperator>(ToBytes(prediction), stride, weightedSource, mask, width, height)
+                        ? Av1ObmcSearch.SumAbsoluteDifferences<byte, Av1ObmcSearch.ByteOperator>(
+                            ToBytes(prediction),
+                            stride,
+                            weightedSource,
+                            mask,
+                            width,
+                            height)
                         : Av1ObmcSearch.SumAbsoluteDifferences<ushort, Av1ObmcSearch.UInt16Operator>(prediction, stride, weightedSource, mask, width, height);
 
                     Assert.Equal(expected, actual);
@@ -212,11 +218,27 @@ public class Av1ObmcSearchTests
         ulong actualSquares;
         if (bitDepth == 8)
         {
-            Av1ObmcSearch.GetMoments<byte, Av1ObmcSearch.ByteOperator>(ToBytes(prediction), stride, weightedSource, mask, width, height, out actualSum, out actualSquares);
+            Av1ObmcSearch.GetMoments<byte, Av1ObmcSearch.ByteOperator>(
+                ToBytes(prediction),
+                stride,
+                weightedSource,
+                mask,
+                width,
+                height,
+                out actualSum,
+                out actualSquares);
         }
         else
         {
-            Av1ObmcSearch.GetMoments<ushort, Av1ObmcSearch.UInt16Operator>(prediction, stride, weightedSource, mask, width, height, out actualSum, out actualSquares);
+            Av1ObmcSearch.GetMoments<ushort, Av1ObmcSearch.UInt16Operator>(
+                prediction,
+                stride,
+                weightedSource,
+                mask,
+                width,
+                height,
+                out actualSum,
+                out actualSquares);
         }
 
         Assert.Equal(expectedSum, actualSum);
@@ -244,7 +266,15 @@ public class Av1ObmcSearchTests
     /// <summary>
     /// The scalar definition of the accumulation of obmc_variance(), with ROUND_POWER_OF_TWO_SIGNED().
     /// </summary>
-    private static void GetMomentsReference(ushort[] prediction, int stride, int[] weightedSource, int[] mask, int width, int height, out long sum, out ulong squares)
+    private static void GetMomentsReference(
+        ushort[] prediction,
+        int stride,
+        int[] weightedSource,
+        int[] mask,
+        int width,
+        int height,
+        out long sum,
+        out ulong squares)
     {
         sum = 0;
         squares = 0;

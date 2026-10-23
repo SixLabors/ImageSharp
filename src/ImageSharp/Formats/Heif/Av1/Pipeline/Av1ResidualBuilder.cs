@@ -619,7 +619,9 @@ internal static partial class Av1ResidualBuilder
             {
                 (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(Vector512.LoadUnsafe(ref rowBase, (nuint)index));
                 (Vector512.LoadUnsafe(ref sumBase, (nuint)index) + lower).StoreUnsafe(ref sumBase, (nuint)index);
-                (Vector512.LoadUnsafe(ref sumBase, (nuint)(index + Vector512<int>.Count)) + upper).StoreUnsafe(ref sumBase, (nuint)(index + Vector512<int>.Count));
+                (Vector512.LoadUnsafe(ref sumBase, (nuint)(index + Vector512<int>.Count)) + upper).StoreUnsafe(
+                    ref sumBase,
+                    (nuint)(index + Vector512<int>.Count));
             }
         }
 
@@ -629,7 +631,9 @@ internal static partial class Av1ResidualBuilder
             {
                 (Vector256<int> lower, Vector256<int> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref rowBase, (nuint)index));
                 (Vector256.LoadUnsafe(ref sumBase, (nuint)index) + lower).StoreUnsafe(ref sumBase, (nuint)index);
-                (Vector256.LoadUnsafe(ref sumBase, (nuint)(index + Vector256<int>.Count)) + upper).StoreUnsafe(ref sumBase, (nuint)(index + Vector256<int>.Count));
+                (Vector256.LoadUnsafe(ref sumBase, (nuint)(index + Vector256<int>.Count)) + upper).StoreUnsafe(
+                    ref sumBase,
+                    (nuint)(index + Vector256<int>.Count));
             }
         }
 
@@ -639,7 +643,9 @@ internal static partial class Av1ResidualBuilder
             {
                 (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref rowBase, (nuint)index));
                 (Vector128.LoadUnsafe(ref sumBase, (nuint)index) + lower).StoreUnsafe(ref sumBase, (nuint)index);
-                (Vector128.LoadUnsafe(ref sumBase, (nuint)(index + Vector128<int>.Count)) + upper).StoreUnsafe(ref sumBase, (nuint)(index + Vector128<int>.Count));
+                (Vector128.LoadUnsafe(ref sumBase, (nuint)(index + Vector128<int>.Count)) + upper).StoreUnsafe(
+                    ref sumBase,
+                    (nuint)(index + Vector128<int>.Count));
             }
         }
 

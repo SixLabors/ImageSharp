@@ -91,8 +91,22 @@ internal static partial class Av1MotionSearchBase
         // Projection sums fit in signed sixteen-bit storage for blocks up to 128 samples.
         // The normalization comes only after the sum of a full column or row.
         // Rounding each sample first gives a different projected variance and a different selected displacement.
-        Av1IntegralProjection.ProjectColumns(horizontal, reference[(referenceOrigin - left)..], referenceStride, horizontalCount, block.Height, horizontalShift);
-        Av1IntegralProjection.ProjectRows(vertical, reference[(referenceOrigin - (top * referenceStride))..], referenceStride, block.Width, verticalCount, verticalShift);
+        Av1IntegralProjection.ProjectColumns(
+            horizontal,
+            reference[(referenceOrigin - left)..],
+            referenceStride,
+            horizontalCount,
+            block.Height,
+            horizontalShift);
+
+        Av1IntegralProjection.ProjectRows(
+            vertical,
+            reference[(referenceOrigin - (top * referenceStride))..],
+            referenceStride,
+            block.Width,
+            verticalCount,
+            verticalShift);
+
         Av1IntegralProjection.ProjectColumns(sourceHorizontal, source, sourceStride, block.Width, block.Height, horizontalShift);
         Av1IntegralProjection.ProjectRows(sourceVertical, source, sourceStride, block.Width, block.Height, verticalShift);
 

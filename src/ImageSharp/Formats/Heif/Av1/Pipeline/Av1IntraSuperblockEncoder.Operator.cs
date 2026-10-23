@@ -1060,7 +1060,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<uint> LoadHashBytes(ref byte source, nuint offset, Vector256<uint> lanes)
-            => Vector256.WidenLower(Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, offset))).AsByte()).ToVector256Unsafe());
+            => Vector256.WidenLower(
+                Vector128.WidenLower(
+                    Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, offset))).AsByte()).ToVector256Unsafe());
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1747,7 +1749,9 @@ internal static partial class Av1IntraSuperblockEncoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> LoadHashBytes(ref ushort source, nuint offset, Vector128<uint> lanes)
         {
-            Vector128<ushort> samples = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, offset)))).AsUInt16();
+            Vector128<ushort> samples = Vector128.CreateScalarUnsafe(
+                Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, offset)))).AsUInt16();
+
             return Vector128.WidenLower((samples ^ (samples >>> 8)) & Vector128.Create((ushort)255));
         }
 

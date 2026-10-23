@@ -497,10 +497,19 @@ public partial class JpegDecoderTests
         Assert.Equal("BilderBox - Erwin Wodicka / wodicka@aon.at", exifProfile.GetValue(ExifTag.Copyright).Value);
         Assert.Equal("Adobe Photoshop CS3 Windows", exifProfile.GetValue(ExifTag.Software).Value);
 
-        Assert.Equal("Carers; seniors; caregiver; senior care; retirement home; hands; old; elderly; elderly caregiver; elder care; elderly care; geriatric care; nursing home; age; old age care; outpatient; needy; health care; home nurse; home care; sick; retirement; medical; mobile; the elderly; nursing department; nursing treatment; nursing; care services; nursing services; nursing care; nursing allowance; nursing homes; home nursing; care category; nursing class; care; nursing shortage; nursing patient care staff\0", exifProfile.GetValue(ExifTag.XPKeywords).Value);
+        Assert.Equal(
+            "Carers; seniors; caregiver; senior care; retirement home; hands; old; elderly; elderly caregiver; elder care; elderly care; geriatric care; " +
+            "nursing home; age; old age care; outpatient; needy; health care; home nurse; home care; sick; retirement; medical; mobile; the elderly; " +
+            "nursing department; nursing treatment; nursing; care services; nursing services; nursing care; nursing allowance; nursing homes; home " +
+            "nursing; care category; nursing class; care; nursing shortage; nursing patient care staff\0",
+            exifProfile.GetValue(ExifTag.XPKeywords).Value);
+
+        const string userComment =
+            "StockSubmitter|Miscellaneous||Miscellaneous$|00|0000330000000110000000000000000|22$@NA_1005010.460@145$$@Miscellaneous.Miscellaneous$$@$@26$" +
+            "$@$@$@$@205$@$@$@$@$@$@$@$@$@43$@$@$@$$@Miscellaneous.Miscellaneous$$@90$$@22$@$@$@$@$@$@$|||";
 
         Assert.Equal(
-            new EncodedString(EncodedString.CharacterCode.ASCII, "StockSubmitter|Miscellaneous||Miscellaneous$|00|0000330000000110000000000000000|22$@NA_1005010.460@145$$@Miscellaneous.Miscellaneous$$@$@26$$@$@$@$@205$@$@$@$@$@$@$@$@$@43$@$@$@$$@Miscellaneous.Miscellaneous$$@90$$@22$@$@$@$@$@$@$|||"),
+            new EncodedString(EncodedString.CharacterCode.ASCII, userComment),
             exifProfile.GetValue(ExifTag.UserComment).Value);
 
         // the profile contains 4 duplicated UserComment

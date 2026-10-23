@@ -50,7 +50,12 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         return ms;
     }
 
-    public Stream CreateAsyncSemaphoreStream(SemaphoreSlim notifyWaitPositionReachedSemaphore, SemaphoreSlim continueSemaphore, bool seeakable, int size = 1024, int waitAfterPosition = 512)
+    public Stream CreateAsyncSemaphoreStream(
+        SemaphoreSlim notifyWaitPositionReachedSemaphore,
+        SemaphoreSlim continueSemaphore,
+        bool seeakable,
+        int size = 1024,
+        int waitAfterPosition = 512)
     {
         byte[] buffer = new byte[size];
         this.header.CopyTo(buffer, 0);
@@ -204,7 +209,11 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(
+                this.CreateDefaultSpecializedOptions(options),
+                stream,
+                cancellationToken);
+
             ImageMetadata metadata = image.Metadata;
             return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {

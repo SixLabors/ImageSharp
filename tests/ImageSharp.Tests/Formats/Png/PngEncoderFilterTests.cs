@@ -210,7 +210,9 @@ public class PngEncoderFilterTests : MeasureFixture
     /// </summary>
     [Fact]
     public void EncodeMatchesReferencesAcrossRegisterBoundaries()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertEncodersMatchReferences, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertEncodersMatchReferences,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares every filter with its independent scalar reference across SIMD boundaries and pixel strides.

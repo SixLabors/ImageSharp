@@ -143,11 +143,13 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromAbgr32(Abgr32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromAbgr32(Abgr32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromArgb32(Argb32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromArgb32(Argb32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,11 +157,13 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromBgr24(Bgr24 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromBgr24(Bgr24 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromBgra32(Bgra32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromBgra32(Bgra32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -195,19 +199,23 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgb24(Rgb24 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromRgb24(Rgb24 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgba32(Rgba32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromRgba32(Rgba32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgb48(Rgb48 source) => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
+    public static Rgb96 FromRgb48(Rgb48 source)
+        => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgba64(Rgba64 source) => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
+    public static Rgb96 FromRgba64(Rgba64 source)
+        => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

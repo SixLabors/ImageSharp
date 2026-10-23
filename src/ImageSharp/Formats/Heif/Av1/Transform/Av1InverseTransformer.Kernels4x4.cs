@@ -35,18 +35,51 @@ internal static partial class Av1InverseTransformer
         int destinationStride,
         Av1TransformType transformType)
     {
-        Av1Transform2dFlipConfiguration.GetAxes(transformType, out Av1TransformType1d columnType, out Av1TransformType1d rowType, out bool flipUpsideDown, out bool flipLeftToRight);
+        Av1Transform2dFlipConfiguration.GetAxes(
+            transformType,
+            out Av1TransformType1d columnType,
+            out Av1TransformType1d rowType,
+            out bool flipUpsideDown,
+            out bool flipLeftToRight);
+
         switch (rowType)
         {
             case Av1TransformType1d.Dct:
-                InverseColumn4x4<Dct4InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight);
+                InverseColumn4x4<Dct4InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    columnType,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
             case Av1TransformType1d.Adst:
             case Av1TransformType1d.FlipAdst:
-                InverseColumn4x4<Adst4InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight);
+                InverseColumn4x4<Adst4InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    columnType,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
             default:
-                InverseColumn4x4<Identity4InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnType, flipUpsideDown, flipLeftToRight);
+                InverseColumn4x4<Identity4InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    columnType,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
         }
     }
@@ -77,14 +110,38 @@ internal static partial class Av1InverseTransformer
         switch (columnType)
         {
             case Av1TransformType1d.Dct:
-                Inverse4x4<TRow, Dct4InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                Inverse4x4<TRow, Dct4InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
             case Av1TransformType1d.Adst:
             case Av1TransformType1d.FlipAdst:
-                Inverse4x4<TRow, Adst4InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                Inverse4x4<TRow, Adst4InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
             default:
-                Inverse4x4<TRow, Identity4InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                Inverse4x4<TRow, Identity4InverseKernel>(
+                    coefficients,
+                    prediction,
+                    predictionStride,
+                    destination,
+                    destinationStride,
+                    flipUpsideDown,
+                    flipLeftToRight);
+
                 break;
         }
     }
@@ -240,8 +297,25 @@ internal static partial class Av1InverseTransformer
 
             // Stages 1 and 2: the even inputs in0 and in2 give x0 and x1 through the cos(pi/4) butterfly. The odd inputs in1 and in3 give x2 and x3 through a
             // rotation with the cos(pi/8) and cos(3pi/8) weights.
-            Butterfly4(Av1TransformKernels.Pair(c32, c32), Av1TransformKernels.Pair(c32, (short)-c32), in0, in2, out Vector128<short> x0, out Vector128<short> x1, cosBit, rounding);
-            Butterfly4(Av1TransformKernels.Pair(c48, (short)-c16), Av1TransformKernels.Pair(c16, c48), in1, in3, out Vector128<short> x2, out Vector128<short> x3, cosBit, rounding);
+            Butterfly4(
+                Av1TransformKernels.Pair(c32, c32),
+                Av1TransformKernels.Pair(c32, (short)-c32),
+                in0,
+                in2,
+                out Vector128<short> x0,
+                out Vector128<short> x1,
+                cosBit,
+                rounding);
+
+            Butterfly4(
+                Av1TransformKernels.Pair(c48, (short)-c16),
+                Av1TransformKernels.Pair(c16, c48),
+                in1,
+                in3,
+                out Vector128<short> x2,
+                out Vector128<short> x3,
+                cosBit,
+                rounding);
 
             // Stage 3: the output butterflies combine the even and odd halves with saturation.
             in0 = Vector128.AddSaturate(x0, x3);
@@ -278,16 +352,20 @@ internal static partial class Av1InverseTransformer
             Vector128<short> u1 = Vector128_.UnpackLow(in1, in3);
 
             // x0*sin1 + x2*sin4 + x1*sin3 + x3*sin2
-            Vector128<int> x0 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s1, s4)) + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(s3, s2));
+            Vector128<int> x0 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s1, s4))
+                + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(s3, s2));
 
             // x0*sin2 - x2*sin1 + x1*sin3 - x3*sin4
-            Vector128<int> x1 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s2, (short)-s1)) + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(s3, (short)-s4));
+            Vector128<int> x1 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s2, (short)-s1))
+                + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(s3, (short)-s4));
 
             // x0*sin3 - x2*sin3 + x3*sin3
-            Vector128<int> x2 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s3, (short)-s3)) + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(0, s3));
+            Vector128<int> x2 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s3, (short)-s3))
+                + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair(0, s3));
 
             // x0*sin4 + x2*sin2 - x1*sin3 - x3*sin1
-            Vector128<int> x3 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s4, s2)) + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair((short)-s3, (short)-s1));
+            Vector128<int> x3 = Vector128_.MultiplyAddAdjacent(u0, Av1TransformKernels.Pair(s4, s2))
+                + Vector128_.MultiplyAddAdjacent(u1, Av1TransformKernels.Pair((short)-s3, (short)-s1));
 
             x0 = (x0 + rounding) >> cosBit;
             x1 = (x1 + rounding) >> cosBit;
@@ -315,7 +393,9 @@ internal static partial class Av1InverseTransformer
             int cosBit)
         {
             // The scale sqrt(2) is one plus a fraction. The rounding high multiply applies sqrt(2) - 1 in Q15, and the saturating add applies the one.
-            Vector128<short> scale = Vector128.Create((short)((Av1Transform1dMath.NewSqrt2 - (1 << Av1Transform1dMath.NewSqrt2Bits)) << (15 - Av1Transform1dMath.NewSqrt2Bits)));
+            Vector128<short> scale = Vector128.Create(
+                (short)((Av1Transform1dMath.NewSqrt2 - (1 << Av1Transform1dMath.NewSqrt2Bits)) << (15 - Av1Transform1dMath.NewSqrt2Bits)));
+
             in0 = Vector128.AddSaturate(Vector128_.MultiplyHighRoundScale(in0, scale), in0);
             in1 = Vector128.AddSaturate(Vector128_.MultiplyHighRoundScale(in1, scale), in1);
             in2 = Vector128.AddSaturate(Vector128_.MultiplyHighRoundScale(in2, scale), in2);

@@ -24,7 +24,9 @@ public class DecodeTiff
 #if BIG_TESTS
     private static readonly int BufferSize = 1024 * 68;
 
-    private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Path.Combine(TestImages.Tiff.Benchmark_Path, this.TestImage));
+    private string TestImageFullPath => Path.Combine(
+        TestEnvironment.InputImagesDirectoryFullPath,
+        Path.Combine(TestImages.Tiff.Benchmark_Path, this.TestImage));
 
     [Params(
         TestImages.Tiff.Benchmark_BwFax3,

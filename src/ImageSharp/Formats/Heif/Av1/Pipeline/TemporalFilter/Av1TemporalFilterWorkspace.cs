@@ -50,7 +50,10 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     public Av1TemporalFilterWorkspace(Configuration configuration)
     {
         MemoryAllocator allocator = configuration.MemoryAllocator;
-        this.samples = allocator.Allocate<TSample>(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength + ZeroCount, AllocationOptions.Clean);
+        this.samples = allocator.Allocate<TSample>(
+            AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength + ZeroCount,
+            AllocationOptions.Clean);
+
         this.errors = allocator.Allocate<uint>(AllPlanePixels + (4 * BlockPixels) + ColumnCount, AllocationOptions.Clean);
         this.counts = allocator.Allocate<ushort>(AllPlanePixels);
         this.intermediate = allocator.Allocate<short>(Av1TemporalFilter.PredictionIntermediateLength);
@@ -73,7 +76,8 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     /// <summary>
     /// Gets a row of zero samples, the reference of the source variance measurements.
     /// </summary>
-    public ReadOnlySpan<TSample> Zeros => this.samples!.Memory.Span.Slice(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength, ZeroCount);
+    public ReadOnlySpan<TSample> Zeros
+        => this.samples!.Memory.Span.Slice(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength, ZeroCount);
 
     /// <summary>
     /// Gets the weighted sums of all planes of one filter block.

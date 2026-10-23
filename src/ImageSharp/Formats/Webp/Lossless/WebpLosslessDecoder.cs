@@ -352,7 +352,14 @@ internal sealed class WebpLosslessDecoder
         }
     }
 
-    private static void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, ReadOnlySpan<uint> pixelData, ref int lastCached)
+    private static void AdvanceByOne(
+        ref int col,
+        ref int row,
+        int width,
+        ColorCache colorCache,
+        ref int decodedPixels,
+        ReadOnlySpan<uint> pixelData,
+        ref int lastCached)
     {
         col++;
         decodedPixels++;

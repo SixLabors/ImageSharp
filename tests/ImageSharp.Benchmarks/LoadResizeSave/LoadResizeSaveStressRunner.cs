@@ -191,7 +191,15 @@ public class LoadResizeSaveStressRunner
         graphics.CompositingMode = CompositingMode.SourceCopy;
         graphics.CompositingQuality = CompositingQuality.AssumeLinear;
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        graphics.DrawImage(image, System.Drawing.Rectangle.FromLTRB(0, 0, resized.Width, resized.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+        graphics.DrawImage(
+            image,
+            System.Drawing.Rectangle.FromLTRB(0, 0, resized.Width, resized.Height),
+            0,
+            0,
+            image.Width,
+            image.Height,
+            GraphicsUnit.Pixel,
+            attributes);
 
         // Save the results
         using EncoderParameters encoderParams = new(1);

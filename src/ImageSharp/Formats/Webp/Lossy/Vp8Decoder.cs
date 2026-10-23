@@ -29,7 +29,12 @@ internal class Vp8Decoder : IDisposable
     /// <param name="segmentHeader">The segment header.</param>
     /// <param name="probabilities">The probabilities.</param>
     /// <param name="memoryAllocator">Used for allocating memory for the pixel data output and the temporary buffers.</param>
-    public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, MemoryAllocator memoryAllocator)
+    public Vp8Decoder(
+        Vp8FrameHeader frameHeader,
+        Vp8PictureHeader pictureHeader,
+        Vp8SegmentHeader segmentHeader,
+        Vp8Proba probabilities,
+        MemoryAllocator memoryAllocator)
     {
         this.FilterHeader = new Vp8FilterHeader();
         this.FrameHeader = frameHeader;

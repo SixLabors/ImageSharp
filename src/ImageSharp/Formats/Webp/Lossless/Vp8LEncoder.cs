@@ -834,7 +834,15 @@ internal class Vp8LEncoder : IDisposable
         this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
         this.bitWriter.PutBits((uint)(predBits - 2), 3);
 
-        this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality, lowEffort);
+        this.EncodeImageNoHuffman(
+            this.TransformData.GetSpan(),
+            this.HashChain,
+            this.Refs[0],
+            this.Refs[1],
+            transformWidth,
+            transformHeight,
+            this.quality,
+            lowEffort);
     }
 
     private void ApplyCrossColorFilter(int width, int height, bool lowEffort)
@@ -843,16 +851,39 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch);
+        PredictorEncoder.ColorSpaceTransform(
+            width,
+            height,
+            colorTransformBits,
+            this.quality,
+            this.EncodedData.GetSpan(),
+            this.TransformData.GetSpan(),
+            this.scratch);
 
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
         this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
         this.bitWriter.PutBits((uint)(colorTransformBits - 2), 3);
 
-        this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality, lowEffort);
+        this.EncodeImageNoHuffman(
+            this.TransformData.GetSpan(),
+            this.HashChain,
+            this.Refs[0],
+            this.Refs[1],
+            transformWidth,
+            transformHeight,
+            this.quality,
+            lowEffort);
     }
 
-    private void EncodeImageNoHuffman(ReadOnlySpan<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, uint quality, bool lowEffort)
+    private void EncodeImageNoHuffman(
+        ReadOnlySpan<uint> bgra,
+        Vp8LHashChain hashChain,
+        Vp8LBackwardRefs refsTmp1,
+        Vp8LBackwardRefs refsTmp2,
+        int width,
+        int height,
+        uint quality,
+        bool lowEffort)
     {
         int cacheBits = 0;
         ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
@@ -1158,7 +1189,14 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="transformBits">The transformation bits.</param>
     /// <param name="redAndBlueAlwaysZero">Indicates if red and blue are always zero.</param>
     /// <returns>The entropy mode to use.</returns>
-    private EntropyIx AnalyzeEntropy(ReadOnlySpan<uint> bgra, int width, int height, bool usePalette, int paletteSize, int transformBits, out bool redAndBlueAlwaysZero)
+    private EntropyIx AnalyzeEntropy(
+        ReadOnlySpan<uint> bgra,
+        int width,
+        int height,
+        bool usePalette,
+        int paletteSize,
+        int transformBits,
+        out bool redAndBlueAlwaysZero)
     {
         if (usePalette && paletteSize <= 16)
         {
@@ -1410,7 +1448,16 @@ internal class Vp8LEncoder : IDisposable
     /// We assume that all src[] values have a corresponding entry in the palette.
     /// Note: src[] can be the same as dst[]
     /// </summary>
-    private void ApplyPalette(Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<uint> palette, int paletteSize, int width, int height, int xBits)
+    private void ApplyPalette(
+        Span<uint> src,
+        int srcStride,
+        Span<uint> dst,
+        int dstStride,
+        Span<uint> palette,
+        int paletteSize,
+        int width,
+        int height,
+        int xBits)
     {
         using IMemoryOwner<byte> tmpRowBuffer = this.memoryAllocator.Allocate<byte>(width);
         Span<byte> tmpRow = tmpRowBuffer.GetSpan();
@@ -1497,7 +1544,18 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private static void ApplyPaletteFor(int width, int height, ReadOnlySpan<uint> palette, int hashIdx, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] buffer, int xBits)
+    private static void ApplyPaletteFor(
+        int width,
+        int height,
+        ReadOnlySpan<uint> palette,
+        int hashIdx,
+        Span<uint> src,
+        int srcStride,
+        Span<uint> dst,
+        int dstStride,
+        Span<byte> tmpRow,
+        uint[] buffer,
+        int xBits)
     {
         uint prevPix = palette[0];
         uint prevIdx = 0;
@@ -1534,7 +1592,19 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private static void ApplyPaletteForWithIdxMap(int width, int height, ReadOnlySpan<uint> palette, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] idxMap, int xBits, uint[] paletteSorted, int paletteSize)
+    private static void ApplyPaletteForWithIdxMap(
+        int width,
+        int height,
+        ReadOnlySpan<uint> palette,
+        Span<uint> src,
+        int srcStride,
+        Span<uint> dst,
+        int dstStride,
+        Span<byte> tmpRow,
+        uint[] idxMap,
+        int xBits,
+        uint[] paletteSorted,
+        int paletteSize)
     {
         uint prevPix = palette[0];
         uint prevIdx = 0;
@@ -1923,7 +1993,9 @@ internal class Vp8LEncoder : IDisposable
         // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
         // pixel in each, plus 2 regular scanlines of bytes.
         int bgraScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
-        int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
+        int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform
+            ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits)
+            : 0;
 
         this.BgraScratch = this.memoryAllocator.Allocate<uint>(bgraScratchSize);
         this.TransformData = this.memoryAllocator.Allocate<uint>(transformDataSize);

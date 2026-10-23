@@ -95,10 +95,12 @@ internal static class Av1GradientHistogram
             for (; column <= count - Vector512<short>.Count; column += Vector512<short>.Count)
             {
                 nuint i = (nuint)column;
-                Vector512<short> dx = Vector512.LoadUnsafe(ref above, i + 2) + (Vector512.LoadUnsafe(ref current, i + 2) << 1) + Vector512.LoadUnsafe(ref below, i + 2)
+                Vector512<short> dx = Vector512.LoadUnsafe(ref above, i + 2) + (Vector512.LoadUnsafe(ref current, i + 2) << 1)
+                    + Vector512.LoadUnsafe(ref below, i + 2)
                     - Vector512.LoadUnsafe(ref above, i) - (Vector512.LoadUnsafe(ref current, i) << 1) - Vector512.LoadUnsafe(ref below, i);
 
-                Vector512<short> dy = Vector512.LoadUnsafe(ref below, i) + (Vector512.LoadUnsafe(ref below, i + 1) << 1) + Vector512.LoadUnsafe(ref below, i + 2)
+                Vector512<short> dy = Vector512.LoadUnsafe(ref below, i) + (Vector512.LoadUnsafe(ref below, i + 1) << 1)
+                    + Vector512.LoadUnsafe(ref below, i + 2)
                     - Vector512.LoadUnsafe(ref above, i) - (Vector512.LoadUnsafe(ref above, i + 1) << 1) - Vector512.LoadUnsafe(ref above, i + 2);
 
                 dx.StoreUnsafe(ref horizontalBase, i);
@@ -112,10 +114,12 @@ internal static class Av1GradientHistogram
             for (; column <= count - Vector256<short>.Count; column += Vector256<short>.Count)
             {
                 nuint i = (nuint)column;
-                Vector256<short> dx = Vector256.LoadUnsafe(ref above, i + 2) + (Vector256.LoadUnsafe(ref current, i + 2) << 1) + Vector256.LoadUnsafe(ref below, i + 2)
+                Vector256<short> dx = Vector256.LoadUnsafe(ref above, i + 2) + (Vector256.LoadUnsafe(ref current, i + 2) << 1)
+                    + Vector256.LoadUnsafe(ref below, i + 2)
                     - Vector256.LoadUnsafe(ref above, i) - (Vector256.LoadUnsafe(ref current, i) << 1) - Vector256.LoadUnsafe(ref below, i);
 
-                Vector256<short> dy = Vector256.LoadUnsafe(ref below, i) + (Vector256.LoadUnsafe(ref below, i + 1) << 1) + Vector256.LoadUnsafe(ref below, i + 2)
+                Vector256<short> dy = Vector256.LoadUnsafe(ref below, i) + (Vector256.LoadUnsafe(ref below, i + 1) << 1)
+                    + Vector256.LoadUnsafe(ref below, i + 2)
                     - Vector256.LoadUnsafe(ref above, i) - (Vector256.LoadUnsafe(ref above, i + 1) << 1) - Vector256.LoadUnsafe(ref above, i + 2);
 
                 dx.StoreUnsafe(ref horizontalBase, i);
@@ -129,10 +133,12 @@ internal static class Av1GradientHistogram
             for (; column <= count - Vector128<short>.Count; column += Vector128<short>.Count)
             {
                 nuint i = (nuint)column;
-                Vector128<short> dx = Vector128.LoadUnsafe(ref above, i + 2) + (Vector128.LoadUnsafe(ref current, i + 2) << 1) + Vector128.LoadUnsafe(ref below, i + 2)
+                Vector128<short> dx = Vector128.LoadUnsafe(ref above, i + 2) + (Vector128.LoadUnsafe(ref current, i + 2) << 1)
+                    + Vector128.LoadUnsafe(ref below, i + 2)
                     - Vector128.LoadUnsafe(ref above, i) - (Vector128.LoadUnsafe(ref current, i) << 1) - Vector128.LoadUnsafe(ref below, i);
 
-                Vector128<short> dy = Vector128.LoadUnsafe(ref below, i) + (Vector128.LoadUnsafe(ref below, i + 1) << 1) + Vector128.LoadUnsafe(ref below, i + 2)
+                Vector128<short> dy = Vector128.LoadUnsafe(ref below, i) + (Vector128.LoadUnsafe(ref below, i + 1) << 1)
+                    + Vector128.LoadUnsafe(ref below, i + 2)
                     - Vector128.LoadUnsafe(ref above, i) - (Vector128.LoadUnsafe(ref above, i + 1) << 1) - Vector128.LoadUnsafe(ref above, i + 2);
 
                 dx.StoreUnsafe(ref horizontalBase, i);

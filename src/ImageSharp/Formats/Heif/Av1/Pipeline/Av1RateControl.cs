@@ -665,7 +665,9 @@ internal sealed class Av1RateControl
         int savedHeight = this.height;
         this.width = resizeSize.Width;
         this.height = resizeSize.Height;
-        int targetBitsPerMacroblock = (int)(((ulong)this.thisFrameTarget << BitsPerMacroblockShift) / (ulong)GetMacroblockCount(resizeSize.Width, resizeSize.Height));
+        int targetBitsPerMacroblock = (int)(((ulong)this.thisFrameTarget << BitsPerMacroblockShift)
+            / (ulong)GetMacroblockCount(resizeSize.Width, resizeSize.Height));
+
         int qIndex = this.RegulateQuantizer(previousFrameIntra, screenContent, in sourceSad, this.bestQuality, activeWorstQuality, targetBitsPerMacroblock);
         this.width = savedWidth;
         this.height = savedHeight;

@@ -78,21 +78,35 @@ internal static class IccTestDataNonPrimitives
         [VersionNumberMax, VersionNumberValMax]
     ];
 
-    public static readonly Vector3 XyzNumberValMin = new(IccTestDataPrimitives.Fix16ValMin, IccTestDataPrimitives.Fix16ValMin, IccTestDataPrimitives.Fix16ValMin);
+    public static readonly Vector3 XyzNumberValMin = new(
+        IccTestDataPrimitives.Fix16ValMin,
+        IccTestDataPrimitives.Fix16ValMin,
+        IccTestDataPrimitives.Fix16ValMin);
+
     public static readonly Vector3 XyzNumberVal0 = new(0, 0, 0);
     public static readonly Vector3 XyzNumberVal1 = new(1, 1, 1);
     public static readonly Vector3 XyzNumberValVar1 = new(1, 2, 3);
     public static readonly Vector3 XyzNumberValVar2 = new(4, 5, 6);
     public static readonly Vector3 XyzNumberValVar3 = new(7, 8, 9);
-    public static readonly Vector3 XyzNumberValMax = new(IccTestDataPrimitives.Fix16ValMax, IccTestDataPrimitives.Fix16ValMax, IccTestDataPrimitives.Fix16ValMax);
+    public static readonly Vector3 XyzNumberValMax = new(
+        IccTestDataPrimitives.Fix16ValMax,
+        IccTestDataPrimitives.Fix16ValMax,
+        IccTestDataPrimitives.Fix16ValMax);
 
-    public static readonly byte[] XyzNumberMin = ArrayHelper.Concat(IccTestDataPrimitives.Fix16Min, IccTestDataPrimitives.Fix16Min, IccTestDataPrimitives.Fix16Min);
+    public static readonly byte[] XyzNumberMin = ArrayHelper.Concat(
+        IccTestDataPrimitives.Fix16Min,
+        IccTestDataPrimitives.Fix16Min,
+        IccTestDataPrimitives.Fix16Min);
+
     public static readonly byte[] XyzNumber0 = ArrayHelper.Concat(IccTestDataPrimitives.Fix160, IccTestDataPrimitives.Fix160, IccTestDataPrimitives.Fix160);
     public static readonly byte[] XyzNumber1 = ArrayHelper.Concat(IccTestDataPrimitives.Fix161, IccTestDataPrimitives.Fix161, IccTestDataPrimitives.Fix161);
     public static readonly byte[] XyzNumberVar1 = ArrayHelper.Concat(IccTestDataPrimitives.Fix161, IccTestDataPrimitives.Fix162, IccTestDataPrimitives.Fix163);
     public static readonly byte[] XyzNumberVar2 = ArrayHelper.Concat(IccTestDataPrimitives.Fix164, IccTestDataPrimitives.Fix165, IccTestDataPrimitives.Fix166);
     public static readonly byte[] XyzNumberVar3 = ArrayHelper.Concat(IccTestDataPrimitives.Fix167, IccTestDataPrimitives.Fix168, IccTestDataPrimitives.Fix169);
-    public static readonly byte[] XyzNumberMax = ArrayHelper.Concat(IccTestDataPrimitives.Fix16Max, IccTestDataPrimitives.Fix16Max, IccTestDataPrimitives.Fix16Max);
+    public static readonly byte[] XyzNumberMax = ArrayHelper.Concat(
+        IccTestDataPrimitives.Fix16Max,
+        IccTestDataPrimitives.Fix16Max,
+        IccTestDataPrimitives.Fix16Max);
 
     public static readonly object[][] XyzNumberTestData =
     [
@@ -103,12 +117,31 @@ internal static class IccTestDataNonPrimitives
     ];
 
     public static readonly IccProfileId ProfileIdValMin = new(0, 0, 0, 0);
-    public static readonly IccProfileId ProfileIdValRand = new(IccTestDataPrimitives.UInt32ValRand1, IccTestDataPrimitives.UInt32ValRand2, IccTestDataPrimitives.UInt32ValRand3, IccTestDataPrimitives.UInt32ValRand4);
+    public static readonly IccProfileId ProfileIdValRand = new(
+        IccTestDataPrimitives.UInt32ValRand1,
+        IccTestDataPrimitives.UInt32ValRand2,
+        IccTestDataPrimitives.UInt32ValRand3,
+        IccTestDataPrimitives.UInt32ValRand4);
+
     public static readonly IccProfileId ProfileIdValMax = new(uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
 
-    public static readonly byte[] ProfileIdMin = ArrayHelper.Concat(IccTestDataPrimitives.UInt320, IccTestDataPrimitives.UInt320, IccTestDataPrimitives.UInt320, IccTestDataPrimitives.UInt320);
-    public static readonly byte[] ProfileIdRand = ArrayHelper.Concat(IccTestDataPrimitives.UInt32Rand1, IccTestDataPrimitives.UInt32Rand2, IccTestDataPrimitives.UInt32Rand3, IccTestDataPrimitives.UInt32Rand4);
-    public static readonly byte[] ProfileIdMax = ArrayHelper.Concat(IccTestDataPrimitives.UInt32Max, IccTestDataPrimitives.UInt32Max, IccTestDataPrimitives.UInt32Max, IccTestDataPrimitives.UInt32Max);
+    public static readonly byte[] ProfileIdMin = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt320,
+        IccTestDataPrimitives.UInt320,
+        IccTestDataPrimitives.UInt320,
+        IccTestDataPrimitives.UInt320);
+
+    public static readonly byte[] ProfileIdRand = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt32Rand1,
+        IccTestDataPrimitives.UInt32Rand2,
+        IccTestDataPrimitives.UInt32Rand3,
+        IccTestDataPrimitives.UInt32Rand4);
+
+    public static readonly byte[] ProfileIdMax = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt32Max,
+        IccTestDataPrimitives.UInt32Max,
+        IccTestDataPrimitives.UInt32Max,
+        IccTestDataPrimitives.UInt32Max);
 
     public static readonly object[][] ProfileIdTestData =
     [

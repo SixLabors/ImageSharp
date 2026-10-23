@@ -34,7 +34,12 @@ internal class BinaryDecoder
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="colorType">The color type of the encoded pixels.</param>
     /// <param name="componentType">The data type of the pixel components.</param>
-    public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType)
+    public static void Process<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        PbmColorType colorType,
+        PbmComponentType componentType)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (colorType == PbmColorType.Grayscale)

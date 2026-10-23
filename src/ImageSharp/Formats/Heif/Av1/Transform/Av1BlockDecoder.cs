@@ -2169,7 +2169,8 @@ internal sealed class Av1BlockDecoder
                     if (highBitDepth)
                     {
                         Av1CompoundMaskBlendPredictor.Blend(
-                            MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])[(destinationRow * reconstructionStride)..],
+                            MemoryMarshal
+                                .Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])[(destinationRow * reconstructionStride)..],
                             reconstructionStride,
                             highBitDepthNeighborPrediction,
                             neighborWidth,

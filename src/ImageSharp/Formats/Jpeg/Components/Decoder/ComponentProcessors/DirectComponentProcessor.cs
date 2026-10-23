@@ -12,7 +12,12 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
 {
     private Block8x8F dequantizationTable;
 
-    public DirectComponentProcessor(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
+    public DirectComponentProcessor(
+        MemoryAllocator memoryAllocator,
+        JpegFrame frame,
+        IRawJpegData rawJpeg,
+        Size postProcessorBufferSize,
+        IJpegComponent component)
         : base(memoryAllocator, frame, postProcessorBufferSize, component, blockSize: 8)
     {
         this.dequantizationTable = rawJpeg.QuantizationTables[component.QuantizationTableIndex];

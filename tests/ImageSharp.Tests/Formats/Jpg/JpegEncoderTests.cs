@@ -135,7 +135,11 @@ public partial class JpegEncoderTests
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 24, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 46, 8, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 51, 7, PixelTypes.Rgb24)]
-    public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
+    public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(
+        TestImageProvider<TPixel> provider,
+        JpegColorType colorType,
+        int quality,
+        float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, ImageComparer.Tolerant(0.12f));
 
     [Theory]
@@ -155,7 +159,11 @@ public partial class JpegEncoderTests
 
     [Theory]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 48, PixelTypes.Rgb24 | PixelTypes.Bgr24)]
-    public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
+    public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(
+        TestImageProvider<TPixel> provider,
+        JpegColorType colorType,
+        int quality,
+        float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.06f));
 
     [Theory]

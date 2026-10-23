@@ -65,7 +65,8 @@ internal static class TiffDecoderOptionsParser
 
         if (fillOrder == TiffFillOrder.LeastSignificantBitFirst && frameMetadata.BitsPerPixel != TiffBitsPerPixel.Bit1)
         {
-            TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
+            TiffThrowHelper.ThrowNotSupported(
+                "The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
         }
 
         if (frameMetadata.Predictor == TiffPredictor.FloatingPoint)
@@ -188,7 +189,8 @@ internal static class TiffDecoderOptionsParser
                 TiffThrowHelper.ThrowImageFormatException("TileOffsets are missing and are required for decoding the TIFF image!");
             }
 
-            if (planarConfiguration == TiffPlanarConfiguration.Chunky && exifProfile.GetValueInternal(ExifTag.TileOffsets) is null && exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
+            if (planarConfiguration == TiffPlanarConfiguration.Chunky && exifProfile.GetValueInternal(ExifTag.TileOffsets) is null
+                && exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
             {
                 TiffThrowHelper.ThrowImageFormatException("TileOffsets are missing and are required for decoding the TIFF image!");
             }
@@ -340,7 +342,8 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 if ((bitsPerSample.Channels == 3 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2)) ||
-                    (bitsPerSample.Channels == 4 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2 && bitsPerSample.Channel2 == bitsPerSample.Channel3)))
+                    (bitsPerSample.Channels == 4 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2
+                        && bitsPerSample.Channel2 == bitsPerSample.Channel3)))
                 {
                     TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
                 }

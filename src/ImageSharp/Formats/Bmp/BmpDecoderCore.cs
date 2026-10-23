@@ -1018,7 +1018,15 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="redMask">The bitmask for the red channel.</param>
     /// <param name="greenMask">The bitmask for the green channel.</param>
     /// <param name="blueMask">The bitmask for the blue channel.</param>
-    private void ReadRgb16<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask = DefaultRgb16RMask, int greenMask = DefaultRgb16GMask, int blueMask = DefaultRgb16BMask)
+    private void ReadRgb16<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        int redMask = DefaultRgb16RMask,
+        int greenMask = DefaultRgb16GMask,
+        int blueMask = DefaultRgb16BMask)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int padding = CalculatePadding(width, 2);
@@ -1051,9 +1059,18 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan[offset..]);
 
                 // Rescale values, so the values range from 0 to 255.
-                int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
-                int g = (greenMaskBits == 5) ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask) : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
-                int b = (blueMaskBits == 5) ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask) : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
+                int r = (redMaskBits == 5)
+                    ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask)
+                    : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
+
+                int g = (greenMaskBits == 5)
+                    ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask)
+                    : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
+
+                int b = (blueMaskBits == 5)
+                    ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask)
+                    : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
+
                 Rgb24 rgb = new((byte)r, (byte)g, (byte)b);
 
                 pixelRow[x] = TPixel.FromRgb24(rgb);
@@ -1263,7 +1280,16 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="greenMask">The bitmask for the green channel.</param>
     /// <param name="blueMask">The bitmask for the blue channel.</param>
     /// <param name="alphaMask">The bitmask for the alpha channel.</param>
-    private void ReadRgb32BitFields<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask, int alphaMask)
+    private void ReadRgb32BitFields<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        int redMask,
+        int greenMask,
+        int blueMask,
+        int alphaMask)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int padding = CalculatePadding(width, 4);
@@ -1557,7 +1583,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 this.fileHeader = BmpFileHeader.Parse(buffer);
                 if (this.fileHeader.Value.Type != BmpConstants.TypeMarkers.Bitmap)
                 {
-                    BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Value.Type}'.");
+                    BmpThrowHelper.ThrowNotSupportedException(
+                        $"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Value.Type}'.");
                 }
 
                 break;

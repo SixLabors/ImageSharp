@@ -586,7 +586,10 @@ internal static partial class PorterDuffFunctions
         Vector4 sourcePremultiplied = Numerics.WithW(source * sourceAlpha, sourceAlpha);
 
         // Use the same fused operation as the wider paths so exact midpoints cannot change across vector widths.
-        Vector4 result = Vector128.MultiplyAddEstimate((sourcePremultiplied - backdropPremultiplied).AsVector128(), Vector128.Create(coverage), backdropPremultiplied.AsVector128()).AsVector4();
+        Vector4 result = Vector128.MultiplyAddEstimate(
+            (sourcePremultiplied - backdropPremultiplied).AsVector128(),
+            Vector128.Create(coverage),
+            backdropPremultiplied.AsVector128()).AsVector4();
 
         Numerics.UnPremultiply(ref result);
         return result;

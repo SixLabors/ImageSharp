@@ -313,7 +313,10 @@ internal ref struct Av1Transform2dFlipConfiguration
         int transformHeightIndex = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
         this.TransformFunctionTypeColumn = TransformFunctionTypeMap[(transformHeightIndex * 4) + (int)this.TransformTypeColumn];
         this.TransformFunctionTypeRow = TransformFunctionTypeMap[(transformWidthIndex * 4) + (int)this.TransformTypeRow];
-        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
+        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid
+            ? StageNumberList[(int)this.TransformFunctionTypeColumn]
+            : -1;
+
         this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
 
         if (isForward)

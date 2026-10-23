@@ -20,7 +20,12 @@ internal sealed class IccMeasurementTagDataEntry : IccTagDataEntry, IEquatable<I
     /// <param name="geometry">Geometry</param>
     /// <param name="flare">Flare</param>
     /// <param name="illuminant">Illuminant</param>
-    public IccMeasurementTagDataEntry(IccStandardObserver observer, Vector3 xyzBacking, IccMeasurementGeometry geometry, float flare, IccStandardIlluminant illuminant)
+    public IccMeasurementTagDataEntry(
+        IccStandardObserver observer,
+        Vector3 xyzBacking,
+        IccMeasurementGeometry geometry,
+        float flare,
+        IccStandardIlluminant illuminant)
         : this(observer, xyzBacking, geometry, flare, illuminant, IccProfileTag.Unknown)
     {
     }
@@ -34,7 +39,13 @@ internal sealed class IccMeasurementTagDataEntry : IccTagDataEntry, IEquatable<I
     /// <param name="flare">Flare</param>
     /// <param name="illuminant">Illuminant</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccMeasurementTagDataEntry(IccStandardObserver observer, Vector3 xyzBacking, IccMeasurementGeometry geometry, float flare, IccStandardIlluminant illuminant, IccProfileTag tagSignature)
+    public IccMeasurementTagDataEntry(
+        IccStandardObserver observer,
+        Vector3 xyzBacking,
+        IccMeasurementGeometry geometry,
+        float flare,
+        IccStandardIlluminant illuminant,
+        IccProfileTag tagSignature)
         : base(IccTypeSignature.Measurement, tagSignature)
     {
         this.Observer = observer;

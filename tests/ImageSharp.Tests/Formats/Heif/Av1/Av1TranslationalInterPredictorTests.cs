@@ -80,7 +80,8 @@ public class Av1TranslationalInterPredictorTests
     /// <summary>
     /// Exercises the native vector width and the complete scalar fallback.
     /// </summary>
-    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX
+        | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies exact 8-, 10-, and 12-bit copy and convolution output, compound intermediates, scalar tails, and untouched

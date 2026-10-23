@@ -90,7 +90,9 @@ public class TiffFloatRowTests
         }
 
         using MemoryStream stream = new();
-        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.Float, BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = TiffCompression.None });
+        input.Save(
+            stream,
+            new TiffEncoder { SampleFormat = TiffSampleFormat.Float, BitsPerPixel = TiffBitsPerPixel.Bit96, Compression = TiffCompression.None });
 
         stream.Position = 0;
         using Image<RgbaVector> output = Image.Load<RgbaVector>(stream);
@@ -120,7 +122,9 @@ public class TiffFloatRowTests
         }
 
         using MemoryStream stream = new();
-        input.Save(stream, new TiffEncoder { SampleFormat = TiffSampleFormat.Float, BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = TiffCompression.None });
+        input.Save(
+            stream,
+            new TiffEncoder { SampleFormat = TiffSampleFormat.Float, BitsPerPixel = TiffBitsPerPixel.Bit128, Compression = TiffCompression.None });
 
         stream.Position = 0;
         using Image<RgbaVectorP> output = Image.Load<RgbaVectorP>(stream);

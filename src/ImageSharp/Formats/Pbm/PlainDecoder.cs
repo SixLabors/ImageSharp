@@ -25,7 +25,12 @@ internal class PlainDecoder
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="colorType">The ColorType to decode.</param>
     /// <param name="componentType">Data type of the pixles components.</param>
-    public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType)
+    public static void Process<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        PbmColorType colorType,
+        PbmComponentType componentType)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (colorType == PbmColorType.Grayscale)

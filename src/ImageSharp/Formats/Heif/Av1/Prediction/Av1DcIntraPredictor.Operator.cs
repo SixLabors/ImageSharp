@@ -104,7 +104,15 @@ internal static class Av1DcIntraPredictor
     /// <param name="left">The left reference.</param>
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
-    public static void Predict(bool hasLeft, bool hasAbove, Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
+    public static void Predict(
+        bool hasLeft,
+        bool hasAbove,
+        Span<byte> destination,
+        int destinationStride,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        int width,
+        int height)
         => Predictor<DcOperator>.Predict(hasLeft, hasAbove, destination, destinationStride, above, left, width, height);
 
     /// <summary>
@@ -119,7 +127,16 @@ internal static class Av1DcIntraPredictor
     /// <param name="width">The block width.</param>
     /// <param name="height">The block height.</param>
     /// <param name="bitDepth">The reconstructed sample precision.</param>
-    public static void Predict(bool hasLeft, bool hasAbove, Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth)
+    public static void Predict(
+        bool hasLeft,
+        bool hasAbove,
+        Span<short> destination,
+        int destinationStride,
+        ReadOnlySpan<short> above,
+        ReadOnlySpan<short> left,
+        int width,
+        int height,
+        int bitDepth)
         => Predictor<DcOperator>.Predict(hasLeft, hasAbove, destination, destinationStride, above, left, width, height, bitDepth);
 
     /// <summary>
@@ -219,7 +236,15 @@ internal static class Av1DcIntraPredictor
         /// <param name="left">The left reference.</param>
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
-        public static void Predict(bool hasLeft, bool hasAbove, Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
+        public static void Predict(
+            bool hasLeft,
+            bool hasAbove,
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            int width,
+            int height)
         {
             int count = (hasAbove ? width : 0) + (hasLeft ? height : 0);
             int sum = (hasAbove ? Sum(above[..width]) : 0) + (hasLeft ? Sum(left[..height]) : 0);
@@ -243,7 +268,16 @@ internal static class Av1DcIntraPredictor
         /// <param name="width">The block width.</param>
         /// <param name="height">The block height.</param>
         /// <param name="bitDepth">The reconstructed sample precision.</param>
-        public static void Predict(bool hasLeft, bool hasAbove, Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, int bitDepth)
+        public static void Predict(
+            bool hasLeft,
+            bool hasAbove,
+            Span<short> destination,
+            int destinationStride,
+            ReadOnlySpan<short> above,
+            ReadOnlySpan<short> left,
+            int width,
+            int height,
+            int bitDepth)
         {
             int count = (hasAbove ? width : 0) + (hasLeft ? height : 0);
             int sum = (hasAbove ? Sum(above[..width]) : 0) + (hasLeft ? Sum(left[..height]) : 0);

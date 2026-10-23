@@ -402,7 +402,13 @@ public class KernelSamplingMapTest
         this.AssertOffsets(kernelSize, bounds, mode, mode, xExpected, yExpected);
     }
 
-    private void AssertOffsets(Size kernelSize, Rectangle bounds, BorderWrappingMode xBorderMode, BorderWrappingMode yBorderMode, int[] xExpected, int[] yExpected)
+    private void AssertOffsets(
+        Size kernelSize,
+        Rectangle bounds,
+        BorderWrappingMode xBorderMode,
+        BorderWrappingMode yBorderMode,
+        int[] xExpected,
+        int[] yExpected)
     {
         // Arrange
         KernelSamplingMap map = new(Configuration.Default.MemoryAllocator);

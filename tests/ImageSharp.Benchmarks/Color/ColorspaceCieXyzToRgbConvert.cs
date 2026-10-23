@@ -15,7 +15,9 @@ public class ColorspaceCieXyzToRgbConvert
 
     private static readonly ColorProfileConverter ColorProfileConverter = new();
 
-    private static readonly IColorConverter<XYZColor, RGBColor> ColourfulConverter = new ConverterBuilder().FromXYZ(RGBWorkingSpaces.sRGB.WhitePoint).ToRGB(RGBWorkingSpaces.sRGB).Build();
+    private static readonly IColorConverter<XYZColor, RGBColor> ColourfulConverter = new ConverterBuilder().FromXYZ(RGBWorkingSpaces.sRGB.WhitePoint)
+        .ToRGB(RGBWorkingSpaces.sRGB)
+        .Build();
 
     [Benchmark(Baseline = true, Description = "Colourful Convert")]
     public double ColourfulConvert() => ColourfulConverter.Convert(XYZColor).R;

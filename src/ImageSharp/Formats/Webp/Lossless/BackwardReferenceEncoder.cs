@@ -375,7 +375,13 @@ internal static class BackwardReferenceEncoder
         return chosenPathSize;
     }
 
-    private static void BackwardReferencesHashChainFollowChosenPath(ReadOnlySpan<uint> bgra, int cacheBits, ReadOnlySpan<ushort> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
+    private static void BackwardReferencesHashChainFollowChosenPath(
+        ReadOnlySpan<uint> bgra,
+        int cacheBits,
+        ReadOnlySpan<ushort> chosenPath,
+        int chosenPathSize,
+        Vp8LHashChain hashChain,
+        Vp8LBackwardRefs backwardRefs)
     {
         bool useColorCache = cacheBits > 0;
         ColorCache? colorCache = null;
@@ -545,7 +551,14 @@ internal static class BackwardReferenceEncoder
     /// Compute an LZ77 by forcing matches to happen within a given distance cost.
     /// We therefore limit the algorithm to the lowest 32 values in the PlaneCode definition.
     /// </summary>
-    private static void BackwardReferencesLz77Box(int xSize, int ySize, ReadOnlySpan<uint> bgra, int cacheBits, Vp8LHashChain hashChainBest, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
+    private static void BackwardReferencesLz77Box(
+        int xSize,
+        int ySize,
+        ReadOnlySpan<uint> bgra,
+        int cacheBits,
+        Vp8LHashChain hashChainBest,
+        Vp8LHashChain hashChain,
+        Vp8LBackwardRefs refs)
     {
         int pixelCount = xSize * ySize;
         int[] windowOffsets = new int[WindowOffsetsSizeMax];

@@ -3000,7 +3000,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderFrame<TSample>.PlanarView reference = this.references.Span[(int)modeInfo.Block.ReferenceFrame].CodedView;
             bool warped = this.useWarpedPrediction;
             Av1GlobalMotionParameters warpModel = this.warpedModel;
-            if (!warped && this.TryGetGlobalWarpModel(modeInfo.Block.Mode, modeInfo.Block.ReferenceFrame, modeInfo.Block.BlockSize, out Av1GlobalMotionParameters global))
+
+            if (!warped && this.TryGetGlobalWarpModel(
+                modeInfo.Block.Mode,
+                modeInfo.Block.ReferenceFrame,
+                modeInfo.Block.BlockSize,
+                out Av1GlobalMotionParameters global))
             {
                 warped = true;
                 warpModel = global;
@@ -9899,9 +9904,23 @@ internal static partial class Av1IntraSuperblockEncoder
             int sourceOffset = (halfHeight * stride) + halfWidth;
             int predictionOffset = (halfHeight * width) + halfWidth;
             long firstTopLeft = this.GetQuadrantSquaredError(source, stride, firstPrediction, width, halfWidth, halfHeight);
-            long firstBottomRight = this.GetQuadrantSquaredError(source[sourceOffset..], stride, firstPrediction[predictionOffset..], width, halfWidth, halfHeight);
+            long firstBottomRight = this.GetQuadrantSquaredError(
+                source[sourceOffset..],
+                stride,
+                firstPrediction[predictionOffset..],
+                width,
+                halfWidth,
+                halfHeight);
+
             long secondTopLeft = this.GetQuadrantSquaredError(source, stride, secondPrediction, width, halfWidth, halfHeight);
-            long secondBottomRight = this.GetQuadrantSquaredError(source[sourceOffset..], stride, secondPrediction[predictionOffset..], width, halfWidth, halfHeight);
+            long secondBottomRight = this.GetQuadrantSquaredError(
+                source[sourceOffset..],
+                stride,
+                secondPrediction[predictionOffset..],
+                width,
+                halfWidth,
+                halfHeight);
+
             long topLeft = firstTopLeft - secondTopLeft;
             long bottomRight = secondBottomRight - firstBottomRight;
             return topLeft + bottomRight > 0;

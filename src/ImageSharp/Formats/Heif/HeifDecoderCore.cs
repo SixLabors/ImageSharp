@@ -1654,7 +1654,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         for (uint entryIndex = 0; entryIndex < entryCount; entryIndex++)
         {
             uint itemId = ReadUInt16Or32(boxBuffer, version == 1, ref bytesRead);
-            HeifItem? item = this.FindItemById(itemId) ?? throw new InvalidImageContentException($"Item property association references unknown item ID {itemId}.");
+            HeifItem? item = this.FindItemById(itemId)
+                ?? throw new InvalidImageContentException($"Item property association references unknown item ID {itemId}.");
 
             EnsureBufferRemaining(boxBuffer, bytesRead, 1, "item property association");
             int associationCount = boxBuffer[bytesRead++];

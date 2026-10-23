@@ -45,7 +45,13 @@ internal static partial class Av1TranslationalInterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector128<byte> samples = Vector128.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1, out Vector128<int> samples2, out Vector128<int> samples3);
+            Av1NonDirectionalIntraPredictorBase.Widen(
+                samples,
+                out Vector128<int> samples0,
+                out Vector128<int> samples1,
+                out Vector128<int> samples2,
+                out Vector128<int> samples3);
+
             Vector128<int> coefficient = Vector128.Create((int)Unsafe.Add(ref coefficients, tap));
 
             // Each widened vector holds four consecutive source columns. One tap coefficient multiplies all lanes.
@@ -91,7 +97,13 @@ internal static partial class Av1TranslationalInterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector256<byte> samples = Vector256.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector256<int> samples0, out Vector256<int> samples1, out Vector256<int> samples2, out Vector256<int> samples3);
+            Av1NonDirectionalIntraPredictorBase.Widen(
+                samples,
+                out Vector256<int> samples0,
+                out Vector256<int> samples1,
+                out Vector256<int> samples2,
+                out Vector256<int> samples3);
+
             Vector256<int> coefficient = Vector256.Create((int)Unsafe.Add(ref coefficients, tap));
 
             result0 += samples0 * coefficient;
@@ -135,7 +147,13 @@ internal static partial class Av1TranslationalInterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector512<byte> samples = Vector512.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector512<int> samples0, out Vector512<int> samples1, out Vector512<int> samples2, out Vector512<int> samples3);
+            Av1NonDirectionalIntraPredictorBase.Widen(
+                samples,
+                out Vector512<int> samples0,
+                out Vector512<int> samples1,
+                out Vector512<int> samples2,
+                out Vector512<int> samples3);
+
             Vector512<int> coefficient = Vector512.Create((int)Unsafe.Add(ref coefficients, tap));
 
             result0 += samples0 * coefficient;

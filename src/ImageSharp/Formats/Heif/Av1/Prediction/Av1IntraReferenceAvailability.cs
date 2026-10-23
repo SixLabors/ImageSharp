@@ -121,7 +121,19 @@ internal static class Av1IntraReferenceAvailability
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="subY">The vertical chroma subsampling shift.</param>
     /// <returns><see langword="true"/> when the bottom-left reference extension is available, otherwise <see langword="false"/>.</returns>
-    public static bool HasBottomLeft(Av1BlockSize superblockSize, Av1BlockSize blockSize, int modeInfoRow, int modeInfoColumn, bool bottomAvailable, bool haveLeft, Av1PartitionType partition, Av1TransformSize transformSize, int blockModeInfoRowOffset, int blockModeInfoColumnOffset, int subX, int subY)
+    public static bool HasBottomLeft(
+        Av1BlockSize superblockSize,
+        Av1BlockSize blockSize,
+        int modeInfoRow,
+        int modeInfoColumn,
+        bool bottomAvailable,
+        bool haveLeft,
+        Av1PartitionType partition,
+        Av1TransformSize transformSize,
+        int blockModeInfoRowOffset,
+        int blockModeInfoColumnOffset,
+        int subX,
+        int subY)
     {
         if (!bottomAvailable || !haveLeft)
         {
@@ -175,7 +187,9 @@ internal static class Av1IntraReferenceAvailability
             // Only the left superblock is available. Thus all required pixels must fall in that superblock.
             if (blockColumnInSuperblock == 0)
             {
-                int blockStartRowOffset = blockRowInSuperblock << (blockHeightInModeInfoLog2 + Av1Constants.ModeInfoSizeLog2 - Av1TransformSize.Size4x4.GetBlockWidthLog2()) >> subY;
+                int blockStartRowOffset = blockRowInSuperblock
+                    << (blockHeightInModeInfoLog2 + Av1Constants.ModeInfoSizeLog2 - Av1TransformSize.Size4x4.GetBlockWidthLog2()) >> subY;
+
                 int rowOffsetInSuperblock = blockStartRowOffset + blockModeInfoRowOffset;
                 int superblockHeightInUnits = superblockModeInfoSize >> subY;
                 return rowOffsetInSuperblock + bottomLeftUnitCount < superblockHeightInUnits;
@@ -189,7 +203,10 @@ internal static class Av1IntraReferenceAvailability
             }
 
             // In the general case, the packed table tells whether the decoder reconstructs the bottom-left block before the current block.
-            int thisBlockIndex = ((blockRowInSuperblock + 0) << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2 - blockWidthInModeInfoLog2)) + blockColumnInSuperblock + 0;
+            int thisBlockIndex = ((blockRowInSuperblock + 0) << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2 - blockWidthInModeInfoLog2))
+                + blockColumnInSuperblock
+                + 0;
+
             return Av1BottomRightTopLeftConstants.HasBottomLeft(partition, blockSize, thisBlockIndex);
         }
     }
@@ -210,7 +227,19 @@ internal static class Av1IntraReferenceAvailability
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="subY">The vertical chroma subsampling shift.</param>
     /// <returns><see langword="true"/> when the top-right reference extension is available, otherwise <see langword="false"/>.</returns>
-    public static bool HasTopRight(Av1BlockSize superblockSize, Av1BlockSize blockSize, int modeInfoRow, int modeInfoColumn, bool haveTop, bool rightAvailable, Av1PartitionType partition, Av1TransformSize transformSize, int blockModeInfoRowOffset, int blockModeInfoColumnOffset, int subX, int subY)
+    public static bool HasTopRight(
+        Av1BlockSize superblockSize,
+        Av1BlockSize blockSize,
+        int modeInfoRow,
+        int modeInfoColumn,
+        bool haveTop,
+        bool rightAvailable,
+        Av1PartitionType partition,
+        Av1TransformSize transformSize,
+        int blockModeInfoRowOffset,
+        int blockModeInfoColumnOffset,
+        int subX,
+        int subY)
     {
         if (!haveTop || !rightAvailable)
         {
@@ -273,7 +302,10 @@ internal static class Av1IntraReferenceAvailability
             }
 
             // In the general case, the packed table tells whether the decoder reconstructs the top-right block before the current block.
-            int thisBlockIndex = ((blockRowInSuperblock + 0) << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2 - blockWidthInModeInfoLog2)) + blockColumnInSuperBlock + 0;
+            int thisBlockIndex = ((blockRowInSuperblock + 0) << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2 - blockWidthInModeInfoLog2))
+                + blockColumnInSuperBlock
+                + 0;
+
             return Av1BottomRightTopLeftConstants.HasTopRight(partition, blockSize, thisBlockIndex);
         }
     }

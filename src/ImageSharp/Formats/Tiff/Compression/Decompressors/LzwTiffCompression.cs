@@ -36,7 +36,16 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
     /// <param name="tileWidth">Number of pixels in a tile row.</param>
     /// <param name="tileHeight">Number of rows in a tile.</param>
-    public LzwTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian, bool isTiled, int tileWidth, int tileHeight)
+    public LzwTiffCompression(
+        MemoryAllocator memoryAllocator,
+        int width,
+        int bitsPerPixel,
+        TiffColorType colorType,
+        TiffPredictor predictor,
+        bool isBigEndian,
+        bool isTiled,
+        int tileWidth,
+        int tileHeight)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
         this.colorType = colorType;

@@ -19,7 +19,12 @@ public class WebpMetaDataTests
 {
     public static IEnumerable<object[]> IccMetadataOptions()
     {
-        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary, SegmentIntegrityHandling.IgnoreImageData })
+        foreach (SegmentIntegrityHandling integrity in new[]
+        {
+            SegmentIntegrityHandling.Strict,
+            SegmentIntegrityHandling.IgnoreAncillary,
+            SegmentIntegrityHandling.IgnoreImageData
+        })
         {
             foreach (bool skipMetadata in new[] { false, true })
             {
@@ -37,7 +42,12 @@ public class WebpMetaDataTests
         {
             foreach (uint length in new[] { 0x40000000U, 0xFFFFFFFEU, uint.MaxValue })
             {
-                foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary, SegmentIntegrityHandling.IgnoreImageData })
+                foreach (SegmentIntegrityHandling integrity in new[]
+                {
+                    SegmentIntegrityHandling.Strict,
+                    SegmentIntegrityHandling.IgnoreAncillary,
+                    SegmentIntegrityHandling.IgnoreImageData
+                })
                 {
                     yield return new object[] { chunkType, length, integrity, false };
                     yield return new object[] { chunkType, length, integrity, true };

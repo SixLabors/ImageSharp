@@ -1768,7 +1768,8 @@ internal partial class Av1TileWriter
                         else
                         {
                             interpolationCounts[
-                                (horizontalContext * Av1InterpolationProbabilities.FilterCount) + (int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
+                                (horizontalContext * Av1InterpolationProbabilities.FilterCount)
+                                    + (int)macroBlockModeInfo.Block.HorizontalInterpolationFilter]++;
                         }
                     }
                 }

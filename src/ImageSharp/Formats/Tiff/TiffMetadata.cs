@@ -254,7 +254,9 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
         bool isGrayscale = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero;
         PixelColorType colorType = this.PhotometricInterpretation switch
         {
-            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bpp == 1 ? PixelColorType.Binary : PixelColorType.Luminance,
+            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bpp == 1
+                ? PixelColorType.Binary
+                : PixelColorType.Luminance,
             TiffPhotometricInterpretation.PaletteColor => PixelColorType.Indexed,
             TiffPhotometricInterpretation.Rgb => PixelColorType.RGB,
             TiffPhotometricInterpretation.Separated => PixelColorType.CMYK,

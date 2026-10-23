@@ -1166,7 +1166,9 @@ internal sealed class ObuReader
     /// </summary>
     /// <param name="reader">The reader positioned at the decoder-model syntax.</param>
     /// <param name="sequenceHeader">The sequence header that receives the decoder-model information.</param>
-    private static void ReadDecoderModelInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader) => sequenceHeader.DecoderModelInfo = new ObuDecoderModelInfo
+    private static void ReadDecoderModelInfo(
+        ref Av1BitStreamReader reader,
+        ObuSequenceHeader sequenceHeader) => sequenceHeader.DecoderModelInfo = new ObuDecoderModelInfo
     {
         BufferDelayLength = reader.ReadLiteral(5) + 1,
         NumUnitsInDecodingTick = reader.ReadLiteral(32),
@@ -2006,7 +2008,10 @@ internal sealed class ObuReader
 
         if (frameHeader.CodedLossless)
         {
-            DebugGuard.IsFalse(frameHeader.DeltaQParameters.IsPresent, nameof(frameHeader.DeltaQParameters.IsPresent), "No Delta Q parameters are allowed for lossless frame.");
+            DebugGuard.IsFalse(
+                frameHeader.DeltaQParameters.IsPresent,
+                nameof(frameHeader.DeltaQParameters.IsPresent),
+                "No Delta Q parameters are allowed for lossless frame.");
         }
 
         this.ReadLoopFilterParameters(ref reader, sequenceHeader);
@@ -2598,13 +2603,18 @@ internal sealed class ObuReader
 
             frameHeader.LoopRestorationParameters.Items[0].Size = Av1Constants.RestorationMaxTileSize >> (2 - frameHeader.LoopRestorationParameters.UnitShift);
             frameHeader.LoopRestorationParameters.UVShift = 0;
-            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration)
+
+            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY
+                && frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration)
             {
                 frameHeader.LoopRestorationParameters.UVShift = (int)reader.ReadLiteral(1);
             }
 
-            frameHeader.LoopRestorationParameters.Items[1].Size = frameHeader.LoopRestorationParameters.Items[0].Size >> frameHeader.LoopRestorationParameters.UVShift;
-            frameHeader.LoopRestorationParameters.Items[2].Size = frameHeader.LoopRestorationParameters.Items[0].Size >> frameHeader.LoopRestorationParameters.UVShift;
+            frameHeader.LoopRestorationParameters.Items[1].Size = frameHeader.LoopRestorationParameters.Items[0].Size
+                >> frameHeader.LoopRestorationParameters.UVShift;
+
+            frameHeader.LoopRestorationParameters.Items[2].Size = frameHeader.LoopRestorationParameters.Items[0].Size
+                >> frameHeader.LoopRestorationParameters.UVShift;
         }
     }
 

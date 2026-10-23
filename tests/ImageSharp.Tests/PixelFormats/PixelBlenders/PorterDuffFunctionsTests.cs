@@ -449,14 +449,44 @@ public class PorterDuffFunctionsTests
     {
         { PixelColorBlendingMode.ColorDodge, CreateTestVector(0F, .25F, .8F, 1F), CreateTestVector(1F, .5F, .5F, 1F), CreateTestVector(0F, .5F, 1F, 1F) },
         { PixelColorBlendingMode.ColorBurn, CreateTestVector(1F, .4F, .75F, 1F), CreateTestVector(0F, 0F, .5F, 1F), CreateTestVector(1F, 0F, .5F, 1F) },
-        { PixelColorBlendingMode.SoftLight, CreateTestVector(.25F, .64F, .16F, 1F), CreateTestVector(.75F, .75F, .25F, 1F), CreateTestVector(.375F, .72F, .0928F, 1F) },
-        { PixelColorBlendingMode.SoftLight, CreateTestVector(.25F, .36F, .81F, 1F), CreateTestVector(.5F, .5F, .5F, 1F), CreateTestVector(.25F, .36F, .81F, 1F) },
+        {
+            PixelColorBlendingMode.SoftLight,
+            CreateTestVector(.25F, .64F, .16F, 1F),
+            CreateTestVector(.75F, .75F, .25F, 1F),
+            CreateTestVector(.375F, .72F, .0928F, 1F)
+        },
+        {
+            PixelColorBlendingMode.SoftLight,
+            CreateTestVector(.25F, .36F, .81F, 1F),
+            CreateTestVector(.5F, .5F, .5F, 1F),
+            CreateTestVector(.25F, .36F, .81F, 1F)
+        },
         { PixelColorBlendingMode.Difference, CreateTestVector(.1F, .8F, .4F, 1F), CreateTestVector(.7F, .2F, .4F, 1F), CreateTestVector(.6F, .6F, 0F, 1F) },
         { PixelColorBlendingMode.Exclusion, CreateTestVector(.1F, .8F, .4F, 1F), CreateTestVector(.7F, .2F, .4F, 1F), CreateTestVector(.66F, .68F, .48F, 1F) },
-        { PixelColorBlendingMode.Hue, CreateTestVector(.2F, .7F, .4F, 1F), CreateTestVector(.9F, .1F, .6F, 1F), CreateTestVector(.832625F, .332625F, .645125F, 1F) },
-        { PixelColorBlendingMode.Saturation, CreateTestVector(.2F, .7F, .4F, 1F), CreateTestVector(.9F, .1F, .6F, 1F), CreateTestVector(.0098F, .8098F, .3298F, 1F) },
-        { PixelColorBlendingMode.Color, CreateTestVector(.2F, .7F, .4F, 1F), CreateTestVector(.9F, .1F, .6F, 1F), CreateTestVector(1F, .234851485F, .713069307F, 1F) },
-        { PixelColorBlendingMode.Luminosity, CreateTestVector(.2F, .7F, .4F, 1F), CreateTestVector(.9F, .1F, .6F, 1F), CreateTestVector(.078F, .578F, .278F, 1F) },
+        {
+            PixelColorBlendingMode.Hue,
+            CreateTestVector(.2F, .7F, .4F, 1F),
+            CreateTestVector(.9F, .1F, .6F, 1F),
+            CreateTestVector(.832625F, .332625F, .645125F, 1F)
+        },
+        {
+            PixelColorBlendingMode.Saturation,
+            CreateTestVector(.2F, .7F, .4F, 1F),
+            CreateTestVector(.9F, .1F, .6F, 1F),
+            CreateTestVector(.0098F, .8098F, .3298F, 1F)
+        },
+        {
+            PixelColorBlendingMode.Color,
+            CreateTestVector(.2F, .7F, .4F, 1F),
+            CreateTestVector(.9F, .1F, .6F, 1F),
+            CreateTestVector(1F, .234851485F, .713069307F, 1F)
+        },
+        {
+            PixelColorBlendingMode.Luminosity,
+            CreateTestVector(.2F, .7F, .4F, 1F),
+            CreateTestVector(.9F, .1F, .6F, 1F),
+            CreateTestVector(.078F, .578F, .278F, 1F)
+        },
         { PixelColorBlendingMode.Hue, CreateTestVector(.5F, .5F, .5F, 1F), CreateTestVector(.9F, .2F, .6F, 1F), CreateTestVector(.5F, .5F, .5F, 1F) },
         { PixelColorBlendingMode.Saturation, CreateTestVector(.5F, .5F, .5F, 1F), CreateTestVector(.9F, .2F, .6F, 1F), CreateTestVector(.5F, .5F, .5F, 1F) },
     };
@@ -478,7 +508,12 @@ public class PorterDuffFunctionsTests
             return;
         }
 
-        Vector256<float> actual = InvokeExtendedBlend(mode, Vector256.Create(back.AsVector().AsVector128(), back.AsVector().AsVector128()), Vector256.Create(source.AsVector().AsVector128(), source.AsVector().AsVector128()), Vector256.Create(1F));
+        Vector256<float> actual = InvokeExtendedBlend(
+            mode,
+            Vector256.Create(back.AsVector().AsVector128(), back.AsVector().AsVector128()),
+            Vector256.Create(source.AsVector().AsVector128(), source.AsVector().AsVector128()),
+            Vector256.Create(1F));
+
         Vector256<float> expectedVector = Vector256.Create(expected.AsVector().AsVector128(), expected.AsVector().AsVector128());
         Assert.Equal(expectedVector, actual, FloatComparer);
     }
@@ -531,7 +566,11 @@ public class PorterDuffFunctionsTests
         };
 
     /// <inheritdoc cref="InvokeExtendedBlend(PixelColorBlendingMode, Vector4, Vector4, float)" />
-    private static Vector256<float> InvokeExtendedBlend(PixelColorBlendingMode mode, Vector256<float> backdrop, Vector256<float> source, Vector256<float> amount)
+    private static Vector256<float> InvokeExtendedBlend(
+        PixelColorBlendingMode mode,
+        Vector256<float> backdrop,
+        Vector256<float> source,
+        Vector256<float> amount)
         => mode switch
         {
             PixelColorBlendingMode.ColorDodge => PorterDuffFunctions.ColorDodgeSrcOver(backdrop, source, amount),
@@ -546,7 +585,11 @@ public class PorterDuffFunctionsTests
         };
 
     /// <inheritdoc cref="InvokeExtendedBlend(PixelColorBlendingMode, Vector4, Vector4, float)" />
-    private static Vector512<float> InvokeExtendedBlend(PixelColorBlendingMode mode, Vector512<float> backdrop, Vector512<float> source, Vector512<float> amount)
+    private static Vector512<float> InvokeExtendedBlend(
+        PixelColorBlendingMode mode,
+        Vector512<float> backdrop,
+        Vector512<float> source,
+        Vector512<float> amount)
         => mode switch
         {
             PixelColorBlendingMode.ColorDodge => PorterDuffFunctions.ColorDodgeSrcOver(backdrop, source, amount),

@@ -239,7 +239,10 @@ internal abstract class BaseExifReader
         }
     }
 
-    protected void ReadBigValue(IList<IExifValue> values, (ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag, Span<byte> buffer)
+    protected void ReadBigValue(
+        IList<IExifValue> values,
+        (ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag,
+        Span<byte> buffer)
     {
         this.Seek(tag.Offset);
         if (this.TryReadSpan(buffer))

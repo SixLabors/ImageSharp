@@ -546,7 +546,9 @@ internal sealed class ObuWriter : IDisposable
 
         if (useSuperResolution)
         {
-            writer.WriteLiteral((uint)frameHeader.FrameSize.SuperResolutionDenominator - Av1Constants.SuperResolutionScaleDenominatorMinimum, Av1Constants.SuperResolutionScaleBits);
+            writer.WriteLiteral(
+                (uint)frameHeader.FrameSize.SuperResolutionDenominator - Av1Constants.SuperResolutionScaleDenominatorMinimum,
+                Av1Constants.SuperResolutionScaleBits);
         }
     }
 
@@ -638,7 +640,9 @@ internal sealed class ObuWriter : IDisposable
         tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperblock, superblockColumnCount);
         tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superblockColumnCount, Av1Constants.MaxTileColumnCount));
         tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
-        tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
+        tileInfo.MinLog2TileCount = Math.Max(
+            tileInfo.MinLog2TileColumnCount,
+            ObuReader.TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
 
         // Uniform spacing codes the chosen logarithms. Explicit spacing derives them from the tile counts.
         int log2TileColumnCount = tileInfo.HasUniformTileSpacing
@@ -1315,7 +1319,8 @@ internal sealed class ObuWriter : IDisposable
                 }
             }
 
-            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration)
+            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY
+                && frameHeader.LoopRestorationParameters.UsesChromaLoopRestoration)
             {
                 writer.WriteLiteral((uint)frameHeader.LoopRestorationParameters.UVShift, 1);
             }

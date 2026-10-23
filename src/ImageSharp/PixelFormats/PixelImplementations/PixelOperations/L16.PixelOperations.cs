@@ -54,7 +54,9 @@ public partial struct L16
                     (Vector512<uint> lower, Vector512<uint> upper) = Vector512.Widen(packed);
 
                     StoreLuminanceVectors(Vector512.ConvertToSingle(lower.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)i));
-                    StoreLuminanceVectors(Vector512.ConvertToSingle(upper.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
+                    StoreLuminanceVectors(
+                        Vector512.ConvertToSingle(upper.AsInt32()) / maximum,
+                        ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
                 }
             }
 
@@ -70,7 +72,9 @@ public partial struct L16
                     (Vector256<uint> lower, Vector256<uint> upper) = Vector256.Widen(packed);
 
                     StoreLuminanceVectors(Vector256.ConvertToSingle(lower.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)i));
-                    StoreLuminanceVectors(Vector256.ConvertToSingle(upper.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
+                    StoreLuminanceVectors(
+                        Vector256.ConvertToSingle(upper.AsInt32()) / maximum,
+                        ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
                 }
             }
 
@@ -86,7 +90,9 @@ public partial struct L16
                     (Vector128<uint> lower, Vector128<uint> upper) = Vector128.Widen(packed);
 
                     StoreLuminanceVectors(Vector128.ConvertToSingle(lower.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)i));
-                    StoreLuminanceVectors(Vector128.ConvertToSingle(upper.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
+                    StoreLuminanceVectors(
+                        Vector128.ConvertToSingle(upper.AsInt32()) / maximum,
+                        ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
                 }
             }
 

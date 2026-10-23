@@ -47,7 +47,19 @@ internal static partial class Av1ForwardQuantizer
         if (!weights.IsEmpty)
         {
             return QuantizeWithMatrix(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights, regular: false);
+                coefficients,
+                quantizedCoefficients,
+                dequantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                sharpness,
+                weights,
+                inverseWeights,
+                regular: false);
         }
 
         ReadOnlySpan<short> inverseScan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).InverseScan;

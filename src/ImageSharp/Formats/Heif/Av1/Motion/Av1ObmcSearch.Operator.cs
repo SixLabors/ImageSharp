@@ -188,7 +188,11 @@ internal static partial class Av1ObmcSearch
         /// <param name="total">The running total.</param>
         /// <returns>The updated running total.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<uint> AccumulateAbsoluteDifferences(Vector128<int> prediction, Vector128<int> weightedSource, Vector128<int> mask, Vector128<uint> total)
+        public static Vector128<uint> AccumulateAbsoluteDifferences(
+            Vector128<int> prediction,
+            Vector128<int> weightedSource,
+            Vector128<int> mask,
+            Vector128<uint> total)
         {
             // The absolute difference is below 2^24, so the biased value stays far below 2^31.
             // Thus the logical shift gives the same result as the signed shift of the scalar form and rounds half up.
@@ -205,7 +209,11 @@ internal static partial class Av1ObmcSearch
         /// <param name="total">The running total.</param>
         /// <returns>The updated running total.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> AccumulateAbsoluteDifferences(Vector256<int> prediction, Vector256<int> weightedSource, Vector256<int> mask, Vector256<uint> total)
+        public static Vector256<uint> AccumulateAbsoluteDifferences(
+            Vector256<int> prediction,
+            Vector256<int> weightedSource,
+            Vector256<int> mask,
+            Vector256<uint> total)
         {
             Vector256<uint> difference = Vector256.Abs(weightedSource - (prediction * mask)).AsUInt32();
             return total + Vector256.ShiftRightLogical(difference + Vector256.Create((uint)DifferenceBias), DifferenceShift);
@@ -220,7 +228,11 @@ internal static partial class Av1ObmcSearch
         /// <param name="total">The running total.</param>
         /// <returns>The updated running total.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<uint> AccumulateAbsoluteDifferences(Vector512<int> prediction, Vector512<int> weightedSource, Vector512<int> mask, Vector512<uint> total)
+        public static Vector512<uint> AccumulateAbsoluteDifferences(
+            Vector512<int> prediction,
+            Vector512<int> weightedSource,
+            Vector512<int> mask,
+            Vector512<uint> total)
         {
             Vector512<uint> difference = Vector512.Abs(weightedSource - (prediction * mask)).AsUInt32();
             return total + Vector512.ShiftRightLogical(difference + Vector512.Create((uint)DifferenceBias), DifferenceShift);
@@ -247,7 +259,12 @@ internal static partial class Av1ObmcSearch
         /// <param name="sum">The running signed total.</param>
         /// <param name="squares">The running squared total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(Vector128<int> prediction, Vector128<int> weightedSource, Vector128<int> mask, ref Vector128<int> sum, ref Vector128<uint> squares)
+        public static void AccumulateMoments(
+            Vector128<int> prediction,
+            Vector128<int> weightedSource,
+            Vector128<int> mask,
+            ref Vector128<int> sum,
+            ref Vector128<uint> squares)
         {
             // The sign lane is -1 for a negative value, which lowers the bias by one.
             // Then the arithmetic shift rounds half away from zero, the same as the signed rounding of the scalar form.
@@ -269,7 +286,12 @@ internal static partial class Av1ObmcSearch
         /// <param name="sum">The running signed total.</param>
         /// <param name="squares">The running squared total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(Vector256<int> prediction, Vector256<int> weightedSource, Vector256<int> mask, ref Vector256<int> sum, ref Vector256<uint> squares)
+        public static void AccumulateMoments(
+            Vector256<int> prediction,
+            Vector256<int> weightedSource,
+            Vector256<int> mask,
+            ref Vector256<int> sum,
+            ref Vector256<uint> squares)
         {
             Vector256<int> value = weightedSource - (prediction * mask);
             Vector256<int> difference = Vector256.ShiftRightArithmetic(
@@ -289,7 +311,12 @@ internal static partial class Av1ObmcSearch
         /// <param name="sum">The running signed total.</param>
         /// <param name="squares">The running squared total.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateMoments(Vector512<int> prediction, Vector512<int> weightedSource, Vector512<int> mask, ref Vector512<int> sum, ref Vector512<uint> squares)
+        public static void AccumulateMoments(
+            Vector512<int> prediction,
+            Vector512<int> weightedSource,
+            Vector512<int> mask,
+            ref Vector512<int> sum,
+            ref Vector512<uint> squares)
         {
             Vector512<int> value = weightedSource - (prediction * mask);
             Vector512<int> difference = Vector512.ShiftRightArithmetic(

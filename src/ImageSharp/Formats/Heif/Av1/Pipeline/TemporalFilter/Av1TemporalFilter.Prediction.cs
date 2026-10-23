@@ -380,7 +380,12 @@ internal static partial class Av1TemporalFilter
     /// <param name="terms">The rounding of the sample precision.</param>
     /// <param name="destination">The first output sample.</param>
     /// <param name="width">The number of output samples.</param>
-    private static void FilterHorizontalRow<TSample, TOperator>(ref TSample source, ref short kernel, in ConvolveTerms terms, ref TSample destination, int width)
+    private static void FilterHorizontalRow<TSample, TOperator>(
+        ref TSample source,
+        ref short kernel,
+        in ConvolveTerms terms,
+        ref TSample destination,
+        int width)
         where TSample : unmanaged
         where TOperator : struct, ITemporalFilterOperator<TSample>
     {
@@ -603,7 +608,9 @@ internal static partial class Av1TemporalFilter
             Vector128<int> sum = Vector128<int>.Zero;
             for (int tap = 0; tap < SharpTaps; tap++)
             {
-                Vector128<short> values = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref source, tap * step)))).AsInt16();
+                Vector128<short> values = Vector128.CreateScalarUnsafe(
+                    Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref source, tap * step)))).AsInt16();
+
                 sum += Vector128.WidenLower(values) * (int)Unsafe.Add(ref kernel, tap);
             }
 

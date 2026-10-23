@@ -47,6 +47,7 @@ internal static class Av1Transform1dMath
         // The scalar path widens before multiplication. It stays exact for conformant transform stages and also for stress inputs outside the bounded
         // production range.
         long weightedSum = ((long)weight0 * input0) + ((long)weight1 * input1);
+
         return (int)((weightedSum + (1L << (cosBit - 1))) >> cosBit);
     }
 
@@ -61,6 +62,7 @@ internal static class Av1Transform1dMath
     {
         long maximum = (1L << (bitCount - 1)) - 1;
         long minimum = -(1L << (bitCount - 1));
+
         return (int)Math.Clamp(value, minimum, maximum);
     }
 
@@ -79,6 +81,7 @@ internal static class Av1Transform1dMath
         // The transform stage ranges bound this sequence, so the low 32-bit products and sum produce the normative result. Int32 lanes map directly to the SSE
         // and Neon multiply, add, and shift instructions.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1);
+
         return (weightedSum + Vector128.Create(1 << (cosBit - 1))) >> cosBit;
     }
 
@@ -97,6 +100,7 @@ internal static class Av1Transform1dMath
         // The bounded stage inputs let the complete butterfly stay in 32-bit lanes. The JIT then emits the AVX2 multiply, add, and shift sequence and does not
         // split every input into widened 64-bit vectors.
         Vector256<int> weightedSum = (input0 * weight0) + (input1 * weight1);
+
         return (weightedSum + Vector256.Create(1 << (cosBit - 1))) >> cosBit;
     }
 
@@ -115,6 +119,7 @@ internal static class Av1Transform1dMath
         // The AV1 stage ranges bound the products and the sum, so Int32 lanes produce the normative result. With 32-bit lanes, 512-bit SIMD evaluates sixteen
         // independent transform axes without widened intermediate vectors.
         Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1);
+
         return (weightedSum + Vector512.Create(1 << (cosBit - 1))) >> cosBit;
     }
 
@@ -126,11 +131,7 @@ internal static class Av1Transform1dMath
     /// <param name="sum">The thirty-two saturated sums.</param>
     /// <param name="difference">The thirty-two saturated differences.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void AddSubtract(
-        in Vector512<short> input0,
-        in Vector512<short> input1,
-        out Vector512<short> sum,
-        out Vector512<short> difference)
+    public static void AddSubtract(in Vector512<short> input0, in Vector512<short> input1, out Vector512<short> sum, out Vector512<short> difference)
     {
         // The code reads both operands before it writes either destination. An input can alias one or both outputs, because the stages alternate between two
         // fixed transform-stage buffers.
@@ -197,11 +198,7 @@ internal static class Av1Transform1dMath
     /// <param name="sum">The sixteen saturated sums.</param>
     /// <param name="difference">The sixteen saturated differences.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void AddSubtract(
-        in Vector256<short> input0,
-        in Vector256<short> input1,
-        out Vector256<short> sum,
-        out Vector256<short> difference)
+    public static void AddSubtract(in Vector256<short> input0, in Vector256<short> input1, out Vector256<short> sum, out Vector256<short> difference)
     {
         Vector256<short> left = input0;
         Vector256<short> right = input1;
@@ -297,6 +294,7 @@ internal static class Av1Transform1dMath
 
             output0 = Vector128_.PackSignedSaturate(output0Lower, output0Upper);
             output1 = Vector128_.PackSignedSaturate(output1Lower, output1Upper);
+
             return;
         }
 
@@ -333,6 +331,7 @@ internal static class Av1Transform1dMath
     {
         int maximum = (1 << (bitCount - 1)) - 1;
         int minimum = -(1 << (bitCount - 1));
+
         return Vector128.Clamp(value, Vector128.Create(minimum), Vector128.Create(maximum));
     }
 
@@ -347,6 +346,7 @@ internal static class Av1Transform1dMath
     {
         int maximum = (1 << (bitCount - 1)) - 1;
         int minimum = -(1 << (bitCount - 1));
+
         return Vector256.Clamp(value, Vector256.Create(minimum), Vector256.Create(maximum));
     }
 
@@ -361,6 +361,7 @@ internal static class Av1Transform1dMath
     {
         int maximum = (1 << (bitCount - 1)) - 1;
         int minimum = -(1 << (bitCount - 1));
+
         return Vector512.Clamp(value, Vector512.Create(minimum), Vector512.Create(maximum));
     }
 
@@ -414,6 +415,7 @@ internal static class Av1Transform1dMath
         // value of twelve-bit content cannot wrap through Int32.
         lower = ((lower * multiplier) + rounding) >> fractionalBits;
         upper = ((upper * multiplier) + rounding) >> fractionalBits;
+
         return Vector128.Narrow(lower, upper);
     }
 
@@ -432,7 +434,27 @@ internal static class Av1Transform1dMath
 
         lower = ((lower * multiplier) + rounding) >> fractionalBits;
         upper = ((upper * multiplier) + rounding) >> fractionalBits;
+
         return Vector256.Narrow(lower, upper);
+    }
+
+    /// <summary>
+    /// Multiplies and rounds sixteen fixed-point values with signed sixty-four-bit intermediate lanes.
+    /// </summary>
+    /// <param name="value">The sixteen values to scale.</param>
+    /// <param name="multiplier">The fixed-point multiplier.</param>
+    /// <param name="fractionalBits">The number of fractional bits in the multiplier.</param>
+    /// <returns>The sixteen rounded results.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> MultiplyRoundWidened(Vector512<int> value, int multiplier, int fractionalBits)
+    {
+        (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(value);
+        Vector512<long> rounding = Vector512.Create(1L << (fractionalBits - 1));
+
+        lower = ((lower * multiplier) + rounding) >> fractionalBits;
+        upper = ((upper * multiplier) + rounding) >> fractionalBits;
+
+        return Vector512.Narrow(lower, upper);
     }
 
     /// <summary>
@@ -452,6 +474,7 @@ internal static class Av1Transform1dMath
     public static int MultiplyAdd4(int weight0, int input0, int weight1, int input1, int weight2, int input2, int weight3, int input3, int fractionalBits)
     {
         long weightedSum = ((long)weight0 * input0) + ((long)weight1 * input1) + ((long)weight2 * input2) + ((long)weight3 * input3);
+
         return (int)((weightedSum + (1L << (fractionalBits - 1))) >> fractionalBits);
     }
 
@@ -483,6 +506,7 @@ internal static class Av1Transform1dMath
         // The four-point ADST factorization has the same bounded-intermediate contract as the butterfly stages. Accumulation in Int32 lanes gives the normative
         // result and avoids eight widening operations per sum.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+
         return (weightedSum + Vector128.Create(1 << (fractionalBits - 1))) >> fractionalBits;
     }
 
@@ -512,6 +536,7 @@ internal static class Av1Transform1dMath
         int fractionalBits)
     {
         Vector256<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+
         return (weightedSum + Vector256.Create(1 << (fractionalBits - 1))) >> fractionalBits;
     }
 
@@ -541,6 +566,7 @@ internal static class Av1Transform1dMath
         int fractionalBits)
     {
         Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+
         return (weightedSum + Vector512.Create(1 << (fractionalBits - 1))) >> fractionalBits;
     }
 
@@ -572,6 +598,7 @@ internal static class Av1Transform1dMath
         // Conformant ADST4 sine products and their factorized sums stay in Int32. Only the final scale and rounding widen. The code keeps that exact boundary
         // and does not widen every transform multiplication.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+
         return MultiplyRoundWidened(weightedSum, 1, fractionalBits);
     }
 
@@ -601,6 +628,37 @@ internal static class Av1Transform1dMath
         int fractionalBits)
     {
         Vector256<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+
+        return MultiplyRoundWidened(weightedSum, 1, fractionalBits);
+    }
+
+    /// <summary>
+    /// Multiplies four sets of sixteen inputs in signed thirty-two-bit lanes, then widens the terminal rounding step.
+    /// </summary>
+    /// <param name="weight0">The first fixed-point weight.</param>
+    /// <param name="input0">The first sixteen input values.</param>
+    /// <param name="weight1">The second fixed-point weight.</param>
+    /// <param name="input1">The second sixteen input values.</param>
+    /// <param name="weight2">The third fixed-point weight.</param>
+    /// <param name="input2">The third sixteen input values.</param>
+    /// <param name="weight3">The fourth fixed-point weight.</param>
+    /// <param name="input3">The fourth sixteen input values.</param>
+    /// <param name="fractionalBits">The number of fractional bits in each weight.</param>
+    /// <returns>The sixteen rounded fixed-point sums.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> MultiplyAdd4WidenedRound(
+        int weight0,
+        Vector512<int> input0,
+        int weight1,
+        Vector512<int> input1,
+        int weight2,
+        Vector512<int> input2,
+        int weight3,
+        Vector512<int> input3,
+        int fractionalBits)
+    {
+        Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+
         return MultiplyRoundWidened(weightedSum, 1, fractionalBits);
     }
 }

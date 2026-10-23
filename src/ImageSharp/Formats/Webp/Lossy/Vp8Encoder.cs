@@ -936,7 +936,8 @@ internal class Vp8Encoder : IDisposable
         // uvAlpha is normally spread around ~60. The useful range is
         // typically ~30 (quite bad) to ~100 (ok to decimate UV more).
         // We map it to the safe maximal range of MAX/MIN_DQ_UV for dq_uv.
-        this.DqUvAc = (this.uvAlpha - WebpConstants.QuantEncMidAlpha) * (WebpConstants.QuantEncMaxDqUv - WebpConstants.QuantEncMinDqUv) / (WebpConstants.QuantEncMaxAlpha - WebpConstants.QuantEncMinAlpha);
+        this.DqUvAc = (this.uvAlpha - WebpConstants.QuantEncMidAlpha) * (WebpConstants.QuantEncMaxDqUv - WebpConstants.QuantEncMinDqUv)
+            / (WebpConstants.QuantEncMaxAlpha - WebpConstants.QuantEncMinAlpha);
 
         // We rescale by the user-defined strength of adaptation.
         this.DqUvAc = this.DqUvAc * this.spatialNoiseShaping / 100;
@@ -1090,7 +1091,17 @@ internal class Vp8Encoder : IDisposable
         }
     }
 
-    private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, Span<int> alphas, out int uvAlpha)
+    private int MacroBlockAnalysis(
+        int width,
+        int height,
+        Vp8EncIterator it,
+        Span<byte> y,
+        Span<byte> u,
+        Span<byte> v,
+        int yStride,
+        int uvStride,
+        Span<int> alphas,
+        out int uvAlpha)
     {
         int alpha = 0;
         uvAlpha = 0;
@@ -1169,7 +1180,13 @@ internal class Vp8Encoder : IDisposable
             // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
             // For method <= 1, we don't re-examine the decision but just go ahead with
             // quantization/reconstruction.
-            QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= WebpEncodingMethod.Level2, this.method >= WebpEncodingMethod.Level1, this.MbHeaderLimit);
+            QuantEnc.RefineUsingDistortion(
+                it,
+                this.SegmentInfos,
+                rd,
+                this.method >= WebpEncodingMethod.Level2,
+                this.method >= WebpEncodingMethod.Level1,
+                this.MbHeaderLimit);
         }
 
         bool isSkipped = rd.Nz == 0;

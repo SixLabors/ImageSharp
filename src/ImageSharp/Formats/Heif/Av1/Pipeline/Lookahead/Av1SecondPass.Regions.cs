@@ -784,7 +784,12 @@ internal sealed partial class Av1SecondPass
     /// <param name="thisLast">The last frame.</param>
     /// <param name="list">Receives the regions.</param>
     /// <returns>The number of regions.</returns>
-    private static int FindStableRegions(ReadOnlySpan<Av1FirstPassStatistics> frames, ReadOnlySpan<double> codedGradient, int thisStart, int thisLast, Span<Region> list)
+    private static int FindStableRegions(
+        ReadOnlySpan<Av1FirstPassStatistics> frames,
+        ReadOnlySpan<double> codedGradient,
+        int thisStart,
+        int thisLast,
+        Span<Region> list)
     {
         int k = 0;
         list[k].Start = thisStart;

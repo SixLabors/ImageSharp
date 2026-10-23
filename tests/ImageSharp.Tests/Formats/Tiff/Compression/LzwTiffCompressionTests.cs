@@ -38,7 +38,16 @@ public class LzwTiffCompressionTests
         using BufferedReadStream stream = CreateCompressedStream(data);
         byte[] buffer = new byte[data.Length];
 
-        using LzwTiffCompression decompressor = new(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0, 0);
+        using LzwTiffCompression decompressor = new(
+            Configuration.Default.MemoryAllocator,
+            10,
+            8,
+            TiffColorType.BlackIsZero8,
+            TiffPredictor.None,
+            false,
+            false,
+            0,
+            0);
 
         // These codecs return raw TIFF samples; no final pixel region is needed.
         decompressor.Decompress<Rgba32>(stream, 0, (uint)stream.Length, 1, buffer, default, default);

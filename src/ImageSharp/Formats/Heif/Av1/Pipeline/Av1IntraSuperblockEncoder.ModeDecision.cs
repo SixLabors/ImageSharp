@@ -450,7 +450,10 @@ internal static partial class Av1IntraSuperblockEncoder
             // partition and the estimated real-time search read a resized reference through its copy at the frame size.
             this.simpleMotionReference = picture.Parent.IsSourceAlternateReference ? Av1ReferenceFrameType.Alternate : Av1ReferenceFrameType.Last;
             this.reference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : searchReferences.Span[(int)this.simpleMotionReference].CodedView;
-            this.goldenReference = picture.Parent.FrameHeader.IsIntra ? reconstruction.CodedView : searchReferences.Span[(int)Av1ReferenceFrameType.Golden].CodedView;
+            this.goldenReference = picture.Parent.FrameHeader.IsIntra
+                ? reconstruction.CodedView
+                : searchReferences.Span[(int)Av1ReferenceFrameType.Golden].CodedView;
+
             this.hasDistinctGoldenReference = (picture.Parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Golden)) != 0;
             this.reconstruction = reconstruction.CodedView;
             this.picture = picture;
@@ -4848,7 +4851,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 // block encode. A leaf whose search was reused also needs that encode for its samples.
                 bool siblingIsIntra = (reconstructSplitLeaf || reconstructSibling) &&
                     (this.picture.Parent.FrameHeader.IsIntra ||
-                     this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.ModeInfo.Block.ReferenceFrame <= Av1ReferenceFrameType.Intra);
+                     this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.ModeInfo.Block
+                         .ReferenceFrame <= Av1ReferenceFrameType.Intra);
 
                 if (searchChildren && !siblingIsIntra && (reconstructSplitLeaf || reconstructSibling))
                 {

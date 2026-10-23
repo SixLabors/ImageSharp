@@ -46,7 +46,13 @@ internal static partial class Av1InverseTransformer
         Av1TransformType transformType,
         int endOfBlock)
     {
-        Av1Transform2dFlipConfiguration.GetAxes(transformType, out Av1TransformType1d columnType, out Av1TransformType1d rowType, out bool flipUpsideDown, out bool flipLeftToRight);
+        Av1Transform2dFlipConfiguration.GetAxes(
+            transformType,
+            out Av1TransformType1d columnType,
+            out Av1TransformType1d rowType,
+            out bool flipUpsideDown,
+            out bool flipLeftToRight);
+
         bool rowIdentity = rowType == Av1TransformType1d.Identity;
         bool columnIdentity = columnType == Av1TransformType1d.Identity;
         if (rowIdentity && columnIdentity)
@@ -91,22 +97,57 @@ internal static partial class Av1InverseTransformer
             switch (rowType, variant)
             {
                 case (Av1TransformType1d.Dct, 0):
-                    InverseColumnIdentity16x16<Dct16DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipLeftToRight);
+                    InverseColumnIdentity16x16<Dct16DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipLeftToRight);
+
                     break;
                 case (Av1TransformType1d.Dct, 1):
-                    InverseColumnIdentity16x16<Dct16LowInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipLeftToRight);
+                    InverseColumnIdentity16x16<Dct16LowInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipLeftToRight);
+
                     break;
                 case (Av1TransformType1d.Dct, _):
                     InverseColumnIdentity16x16<Dct16InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipLeftToRight);
                     break;
                 case (_, 0):
-                    InverseColumnIdentity16x16<Adst16DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipLeftToRight);
+                    InverseColumnIdentity16x16<Adst16DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipLeftToRight);
+
                     break;
                 case (_, 1):
-                    InverseColumnIdentity16x16<Adst16LowInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipLeftToRight);
+                    InverseColumnIdentity16x16<Adst16LowInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipLeftToRight);
+
                     break;
                 default:
-                    InverseColumnIdentity16x16<Adst16InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipLeftToRight);
+                    InverseColumnIdentity16x16<Adst16InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipLeftToRight);
+
                     break;
             }
 
@@ -123,33 +164,87 @@ internal static partial class Av1InverseTransformer
             case 0:
                 if (rowDct)
                 {
-                    InverseColumn16x16<Dct16DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnDct, shared, flipUpsideDown, flipLeftToRight);
+                    InverseColumn16x16<Dct16DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnDct,
+                        shared,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    InverseColumn16x16<Adst16DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnDct, shared, flipUpsideDown, flipLeftToRight);
+                    InverseColumn16x16<Adst16DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnDct,
+                        shared,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
             case 1:
                 if (rowDct)
                 {
-                    InverseColumn16x16<Dct16LowInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnDct, shared, flipUpsideDown, flipLeftToRight);
+                    InverseColumn16x16<Dct16LowInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnDct,
+                        shared,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    InverseColumn16x16<Adst16LowInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnDct, shared, flipUpsideDown, flipLeftToRight);
+                    InverseColumn16x16<Adst16LowInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnDct,
+                        shared,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
             default:
                 if (rowDct)
                 {
-                    InverseColumn16x16<Dct16InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnDct, shared, flipUpsideDown, flipLeftToRight);
+                    InverseColumn16x16<Dct16InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnDct,
+                        shared,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    InverseColumn16x16<Adst16InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, columnDct, shared, flipUpsideDown, flipLeftToRight);
+                    InverseColumn16x16<Adst16InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        columnDct,
+                        shared,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
@@ -194,33 +289,75 @@ internal static partial class Av1InverseTransformer
             case 0:
                 if (columnDct)
                 {
-                    Inverse16x16<TRow, Dct16DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse16x16<TRow, Dct16DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    Inverse16x16<TRow, Adst16DcInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse16x16<TRow, Adst16DcInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
             case 1:
                 if (columnDct)
                 {
-                    Inverse16x16<TRow, Dct16LowInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse16x16<TRow, Dct16LowInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    Inverse16x16<TRow, Adst16LowInverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse16x16<TRow, Adst16LowInverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
             default:
                 if (columnDct)
                 {
-                    Inverse16x16<TRow, Dct16InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse16x16<TRow, Dct16InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
                 else
                 {
-                    Inverse16x16<TRow, Adst16InverseKernel>(coefficients, prediction, predictionStride, destination, destinationStride, flipUpsideDown, flipLeftToRight);
+                    Inverse16x16<TRow, Adst16InverseKernel>(
+                        coefficients,
+                        prediction,
+                        predictionStride,
+                        destination,
+                        destinationStride,
+                        flipUpsideDown,
+                        flipLeftToRight);
                 }
 
                 break;
@@ -250,30 +387,205 @@ internal static partial class Av1InverseTransformer
         where TRow : struct, IAv1Kernel16
         where TColumn : struct, IAv1Kernel16
     {
-        Load16x16(coefficients, out Vector256<short> r0, out Vector256<short> r1, out Vector256<short> r2, out Vector256<short> r3, out Vector256<short> r4, out Vector256<short> r5, out Vector256<short> r6, out Vector256<short> r7, out Vector256<short> r8, out Vector256<short> r9, out Vector256<short> r10, out Vector256<short> r11, out Vector256<short> r12, out Vector256<short> r13, out Vector256<short> r14, out Vector256<short> r15);
+        Load16x16(
+            coefficients,
+            out Vector256<short> r0,
+            out Vector256<short> r1,
+            out Vector256<short> r2,
+            out Vector256<short> r3,
+            out Vector256<short> r4,
+            out Vector256<short> r5,
+            out Vector256<short> r6,
+            out Vector256<short> r7,
+            out Vector256<short> r8,
+            out Vector256<short> r9,
+            out Vector256<short> r10,
+            out Vector256<short> r11,
+            out Vector256<short> r12,
+            out Vector256<short> r13,
+            out Vector256<short> r14,
+            out Vector256<short> r15);
 
         // Lanes become vertical frequencies so the horizontal transform combines the sixteen column vectors.
-        Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
-        TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, InverseCosBit);
-        RoundShift16x16(2, ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+        Av1TransformKernels.Transpose16x16(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
+        TRow.Transform(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15,
+            InverseCosBit);
+
+        RoundShift16x16(
+            2,
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
 
         // Each vector is now one spatial column. The reversed order mirrors the block horizontally. After that, row k is in r(15 - k), and the vertical kernel
         // runs over the reversed references.
         if (flipLeftToRight)
         {
-            Av1TransformKernels.Transpose16x16(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
-            TColumn.Transform(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0, InverseCosBit);
+            Av1TransformKernels.Transpose16x16(
+                ref r15,
+                ref r14,
+                ref r13,
+                ref r12,
+                ref r11,
+                ref r10,
+                ref r9,
+                ref r8,
+                ref r7,
+                ref r6,
+                ref r5,
+                ref r4,
+                ref r3,
+                ref r2,
+                ref r1,
+                ref r0);
+
+            TColumn.Transform(
+                ref r15,
+                ref r14,
+                ref r13,
+                ref r12,
+                ref r11,
+                ref r10,
+                ref r9,
+                ref r8,
+                ref r7,
+                ref r6,
+                ref r5,
+                ref r4,
+                ref r3,
+                ref r2,
+                ref r1,
+                ref r0,
+                InverseCosBit);
         }
         else
         {
-            Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
-            TColumn.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, InverseCosBit);
+            Av1TransformKernels.Transpose16x16(
+                ref r0,
+                ref r1,
+                ref r2,
+                ref r3,
+                ref r4,
+                ref r5,
+                ref r6,
+                ref r7,
+                ref r8,
+                ref r9,
+                ref r10,
+                ref r11,
+                ref r12,
+                ref r13,
+                ref r14,
+                ref r15);
+
+            TColumn.Transform(
+                ref r0,
+                ref r1,
+                ref r2,
+                ref r3,
+                ref r4,
+                ref r5,
+                ref r6,
+                ref r7,
+                ref r8,
+                ref r9,
+                ref r10,
+                ref r11,
+                ref r12,
+                ref r13,
+                ref r14,
+                ref r15,
+                InverseCosBit);
         }
 
-        RoundShift16x16(4, ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+        RoundShift16x16(
+            4,
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
 
         // A horizontal flip leaves row k in r(15 - k), and a vertical flip reverses the row order again. The rows are reversed when exactly one flip applies.
-        AddRows16x16(prediction, predictionStride, destination, destinationStride, flipUpsideDown != flipLeftToRight, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15);
+        AddRows16x16(
+            prediction,
+            predictionStride,
+            destination,
+            destinationStride,
+            flipUpsideDown != flipLeftToRight,
+            r0,
+            r1,
+            r2,
+            r3,
+            r4,
+            r5,
+            r6,
+            r7,
+            r8,
+            r9,
+            r10,
+            r11,
+            r12,
+            r13,
+            r14,
+            r15);
     }
 
     /// <summary>
@@ -299,11 +611,103 @@ internal static partial class Av1InverseTransformer
         bool flipUpsideDown)
         where TColumn : struct, IAv1Kernel16
     {
-        Load16x16(coefficients, out Vector256<short> r0, out Vector256<short> r1, out Vector256<short> r2, out Vector256<short> r3, out Vector256<short> r4, out Vector256<short> r5, out Vector256<short> r6, out Vector256<short> r7, out Vector256<short> r8, out Vector256<short> r9, out Vector256<short> r10, out Vector256<short> r11, out Vector256<short> r12, out Vector256<short> r13, out Vector256<short> r14, out Vector256<short> r15);
-        ScaleIdentityRows16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
-        TColumn.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, InverseCosBit);
-        RoundShift16x16(4, ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
-        AddRows16x16(prediction, predictionStride, destination, destinationStride, flipUpsideDown, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15);
+        Load16x16(
+            coefficients,
+            out Vector256<short> r0,
+            out Vector256<short> r1,
+            out Vector256<short> r2,
+            out Vector256<short> r3,
+            out Vector256<short> r4,
+            out Vector256<short> r5,
+            out Vector256<short> r6,
+            out Vector256<short> r7,
+            out Vector256<short> r8,
+            out Vector256<short> r9,
+            out Vector256<short> r10,
+            out Vector256<short> r11,
+            out Vector256<short> r12,
+            out Vector256<short> r13,
+            out Vector256<short> r14,
+            out Vector256<short> r15);
+
+        ScaleIdentityRows16x16(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
+        TColumn.Transform(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15,
+            InverseCosBit);
+
+        RoundShift16x16(
+            4,
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
+        AddRows16x16(
+            prediction,
+            predictionStride,
+            destination,
+            destinationStride,
+            flipUpsideDown,
+            r0,
+            r1,
+            r2,
+            r3,
+            r4,
+            r5,
+            r6,
+            r7,
+            r8,
+            r9,
+            r10,
+            r11,
+            r12,
+            r13,
+            r14,
+            r15);
     }
 
     /// <summary>
@@ -325,9 +729,61 @@ internal static partial class Av1InverseTransformer
         bool flipLeftToRight)
         where TRow : struct, IAv1Kernel16
     {
-        Load16x16(coefficients, out Vector256<short> r0, out Vector256<short> r1, out Vector256<short> r2, out Vector256<short> r3, out Vector256<short> r4, out Vector256<short> r5, out Vector256<short> r6, out Vector256<short> r7, out Vector256<short> r8, out Vector256<short> r9, out Vector256<short> r10, out Vector256<short> r11, out Vector256<short> r12, out Vector256<short> r13, out Vector256<short> r14, out Vector256<short> r15);
-        Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
-        TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, InverseCosBit);
+        Load16x16(
+            coefficients,
+            out Vector256<short> r0,
+            out Vector256<short> r1,
+            out Vector256<short> r2,
+            out Vector256<short> r3,
+            out Vector256<short> r4,
+            out Vector256<short> r5,
+            out Vector256<short> r6,
+            out Vector256<short> r7,
+            out Vector256<short> r8,
+            out Vector256<short> r9,
+            out Vector256<short> r10,
+            out Vector256<short> r11,
+            out Vector256<short> r12,
+            out Vector256<short> r13,
+            out Vector256<short> r14,
+            out Vector256<short> r15);
+
+        Av1TransformKernels.Transpose16x16(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
+        TRow.Transform(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15,
+            InverseCosBit);
 
         // The first stage shift of -2 adds the rounding offset 2 and shifts right by 2. The addition saturates.
         Vector256<short> half = Vector256.Create((short)2);
@@ -351,14 +807,67 @@ internal static partial class Av1InverseTransformer
         // The reversed transpose mirrors the lanes horizontally and leaves row k in r(15 - k). The reversed add then restores the row order.
         if (flipLeftToRight)
         {
-            Av1TransformKernels.Transpose16x16(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
+            Av1TransformKernels.Transpose16x16(
+                ref r15,
+                ref r14,
+                ref r13,
+                ref r12,
+                ref r11,
+                ref r10,
+                ref r9,
+                ref r8,
+                ref r7,
+                ref r6,
+                ref r5,
+                ref r4,
+                ref r3,
+                ref r2,
+                ref r1,
+                ref r0);
         }
         else
         {
-            Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+            Av1TransformKernels.Transpose16x16(
+                ref r0,
+                ref r1,
+                ref r2,
+                ref r3,
+                ref r4,
+                ref r5,
+                ref r6,
+                ref r7,
+                ref r8,
+                ref r9,
+                ref r10,
+                ref r11,
+                ref r12,
+                ref r13,
+                ref r14,
+                ref r15);
         }
 
-        AddIdentityRows16x16(prediction, predictionStride, destination, destinationStride, flipLeftToRight, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15);
+        AddIdentityRows16x16(
+            prediction,
+            predictionStride,
+            destination,
+            destinationStride,
+            flipLeftToRight,
+            r0,
+            r1,
+            r2,
+            r3,
+            r4,
+            r5,
+            r6,
+            r7,
+            r8,
+            r9,
+            r10,
+            r11,
+            r12,
+            r13,
+            r14,
+            r15);
     }
 
     /// <summary>
@@ -379,9 +888,65 @@ internal static partial class Av1InverseTransformer
         Span<byte> destination,
         int destinationStride)
     {
-        Load16x16(coefficients, out Vector256<short> r0, out Vector256<short> r1, out Vector256<short> r2, out Vector256<short> r3, out Vector256<short> r4, out Vector256<short> r5, out Vector256<short> r6, out Vector256<short> r7, out Vector256<short> r8, out Vector256<short> r9, out Vector256<short> r10, out Vector256<short> r11, out Vector256<short> r12, out Vector256<short> r13, out Vector256<short> r14, out Vector256<short> r15);
-        ScaleIdentityRows16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
-        AddIdentityRows16x16(prediction, predictionStride, destination, destinationStride, false, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15);
+        Load16x16(
+            coefficients,
+            out Vector256<short> r0,
+            out Vector256<short> r1,
+            out Vector256<short> r2,
+            out Vector256<short> r3,
+            out Vector256<short> r4,
+            out Vector256<short> r5,
+            out Vector256<short> r6,
+            out Vector256<short> r7,
+            out Vector256<short> r8,
+            out Vector256<short> r9,
+            out Vector256<short> r10,
+            out Vector256<short> r11,
+            out Vector256<short> r12,
+            out Vector256<short> r13,
+            out Vector256<short> r14,
+            out Vector256<short> r15);
+
+        ScaleIdentityRows16x16(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
+        AddIdentityRows16x16(
+            prediction,
+            predictionStride,
+            destination,
+            destinationStride,
+            false,
+            r0,
+            r1,
+            r2,
+            r3,
+            r4,
+            r5,
+            r6,
+            r7,
+            r8,
+            r9,
+            r10,
+            r11,
+            r12,
+            r13,
+            r14,
+            r15);
     }
 
     /// <summary>
@@ -631,7 +1196,28 @@ internal static partial class Av1InverseTransformer
     {
         Vector256<short> one = Vector256.Create((short)1);
         Vector256<short> scale = Av1TransformKernels.PairWide(Identity16Scale, 1 << (Av1Transform1dMath.NewSqrt2Bits - 1));
-        AddRows16x16(prediction, predictionStride, destination, destinationStride, reversed, ScaleIdentityColumn(r0, one, scale), ScaleIdentityColumn(r1, one, scale), ScaleIdentityColumn(r2, one, scale), ScaleIdentityColumn(r3, one, scale), ScaleIdentityColumn(r4, one, scale), ScaleIdentityColumn(r5, one, scale), ScaleIdentityColumn(r6, one, scale), ScaleIdentityColumn(r7, one, scale), ScaleIdentityColumn(r8, one, scale), ScaleIdentityColumn(r9, one, scale), ScaleIdentityColumn(r10, one, scale), ScaleIdentityColumn(r11, one, scale), ScaleIdentityColumn(r12, one, scale), ScaleIdentityColumn(r13, one, scale), ScaleIdentityColumn(r14, one, scale), ScaleIdentityColumn(r15, one, scale));
+        AddRows16x16(
+            prediction,
+            predictionStride,
+            destination,
+            destinationStride,
+            reversed,
+            ScaleIdentityColumn(r0, one, scale),
+            ScaleIdentityColumn(r1, one, scale),
+            ScaleIdentityColumn(r2, one, scale),
+            ScaleIdentityColumn(r3, one, scale),
+            ScaleIdentityColumn(r4, one, scale),
+            ScaleIdentityColumn(r5, one, scale),
+            ScaleIdentityColumn(r6, one, scale),
+            ScaleIdentityColumn(r7, one, scale),
+            ScaleIdentityColumn(r8, one, scale),
+            ScaleIdentityColumn(r9, one, scale),
+            ScaleIdentityColumn(r10, one, scale),
+            ScaleIdentityColumn(r11, one, scale),
+            ScaleIdentityColumn(r12, one, scale),
+            ScaleIdentityColumn(r13, one, scale),
+            ScaleIdentityColumn(r14, one, scale),
+            ScaleIdentityColumn(r15, one, scale));
     }
 
     /// <summary>
@@ -1003,7 +1589,42 @@ internal static partial class Av1InverseTransformer
         Av1TransformKernels.AddSubtractWide(ref x12, ref x14);
         Av1TransformKernels.AddSubtractWide(ref x13, ref x15);
 
-        Adst16Stages8And9(ref x0, ref x1, ref x2, ref x3, ref x4, ref x5, ref x6, ref x7, ref x8, ref x9, ref x10, ref x11, ref x12, ref x13, ref x14, ref x15, out out0, out out1, out out2, out out3, out out4, out out5, out out6, out out7, out out8, out out9, out out10, out out11, out out12, out out13, out out14, out out15, (short)cospi[32], rounding, cosBit);
+        Adst16Stages8And9(
+            ref x0,
+            ref x1,
+            ref x2,
+            ref x3,
+            ref x4,
+            ref x5,
+            ref x6,
+            ref x7,
+            ref x8,
+            ref x9,
+            ref x10,
+            ref x11,
+            ref x12,
+            ref x13,
+            ref x14,
+            ref x15,
+            out out0,
+            out out1,
+            out out2,
+            out out3,
+            out out4,
+            out out5,
+            out out6,
+            out out7,
+            out out8,
+            out out9,
+            out out10,
+            out out11,
+            out out12,
+            out out13,
+            out out14,
+            out out15,
+            (short)cospi[32],
+            rounding,
+            cosBit);
     }
 
     /// <summary>
@@ -1174,28 +1795,131 @@ internal static partial class Av1InverseTransformer
             Vector256<short> x15 = in15;
 
             // Stage 2: rotate the odd pairs (x8, x15), (x9, x14), (x10, x13) and (x11, x12).
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c60, (short)-c4), Av1TransformKernels.PairWide(c4, c60), ref x8, ref x15, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c28, (short)-c36), Av1TransformKernels.PairWide(c36, c28), ref x9, ref x14, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c44, (short)-c20), Av1TransformKernels.PairWide(c20, c44), ref x10, ref x13, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c12, (short)-c52), Av1TransformKernels.PairWide(c52, c12), ref x11, ref x12, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c60, (short)-c4),
+                Av1TransformKernels.PairWide(c4, c60),
+                ref x8,
+                ref x15,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c28, (short)-c36),
+                Av1TransformKernels.PairWide(c36, c28),
+                ref x9,
+                ref x14,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c44, (short)-c20),
+                Av1TransformKernels.PairWide(c20, c44),
+                ref x10,
+                ref x13,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c12, (short)-c52),
+                Av1TransformKernels.PairWide(c52, c12),
+                ref x11,
+                ref x12,
+                rounding,
+                cosBit);
 
             // Stage 3: rotate (x4, x7) and (x5, x6), and take saturated sums and differences of x8 to x15.
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c56, (short)-c8), Av1TransformKernels.PairWide(c8, c56), ref x4, ref x7, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c24, (short)-c40), Av1TransformKernels.PairWide(c40, c24), ref x5, ref x6, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c56, (short)-c8),
+                Av1TransformKernels.PairWide(c8, c56),
+                ref x4,
+                ref x7,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c24, (short)-c40),
+                Av1TransformKernels.PairWide(c40, c24),
+                ref x5,
+                ref x6,
+                rounding,
+                cosBit);
+
             Av1TransformKernels.AddSubtractWide(ref x8, ref x9);
             Av1TransformKernels.AddSubtractWide(ref x11, ref x10);
             Av1TransformKernels.AddSubtractWide(ref x12, ref x13);
             Av1TransformKernels.AddSubtractWide(ref x15, ref x14);
 
             // Stage 4: the cos(pi/4) butterfly of (x0, x1), the rotation of (x2, x3), sums and differences of x4 to x7, and rotations of x9, x10, x13, x14.
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c32, c32), Av1TransformKernels.PairWide(c32, (short)-c32), ref x0, ref x1, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c48, (short)-c16), Av1TransformKernels.PairWide(c16, c48), ref x2, ref x3, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c32, c32),
+                Av1TransformKernels.PairWide(c32, (short)-c32),
+                ref x0,
+                ref x1,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c48, (short)-c16),
+                Av1TransformKernels.PairWide(c16, c48),
+                ref x2,
+                ref x3,
+                rounding,
+                cosBit);
+
             Av1TransformKernels.AddSubtractWide(ref x4, ref x5);
             Av1TransformKernels.AddSubtractWide(ref x7, ref x6);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c16, c48), Av1TransformKernels.PairWide(c48, c16), ref x9, ref x14, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c48, (short)-c16), Av1TransformKernels.PairWide((short)-c16, c48), ref x10, ref x13, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide((short)-c16, c48),
+                Av1TransformKernels.PairWide(c48, c16),
+                ref x9,
+                ref x14,
+                rounding,
+                cosBit);
 
-            Dct16Stages5To7(ref x0, ref x1, ref x2, ref x3, ref x4, ref x5, ref x6, ref x7, ref x8, ref x9, ref x10, ref x11, ref x12, ref x13, ref x14, ref x15, out in0, out in1, out in2, out in3, out in4, out in5, out in6, out in7, out in8, out in9, out in10, out in11, out in12, out in13, out in14, out in15, c32, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide((short)-c48, (short)-c16),
+                Av1TransformKernels.PairWide((short)-c16, c48),
+                ref x10,
+                ref x13,
+                rounding,
+                cosBit);
+
+            Dct16Stages5To7(
+                ref x0,
+                ref x1,
+                ref x2,
+                ref x3,
+                ref x4,
+                ref x5,
+                ref x6,
+                ref x7,
+                ref x8,
+                ref x9,
+                ref x10,
+                ref x11,
+                ref x12,
+                ref x13,
+                ref x14,
+                ref x15,
+                out in0,
+                out in1,
+                out in2,
+                out in3,
+                out in4,
+                out in5,
+                out in6,
+                out in7,
+                out in8,
+                out in9,
+                out in10,
+                out in11,
+                out in12,
+                out in13,
+                out in14,
+                out in15,
+                c32,
+                rounding,
+                cosBit);
         }
     }
 
@@ -1261,10 +1985,58 @@ internal static partial class Av1InverseTransformer
             Av1TransformKernels.ScaleWide(c48, c16, x2, out x2, out Vector256<short> x3);
             Av1TransformKernels.AddSubtractWide(ref x4, ref x5);
             Av1TransformKernels.AddSubtractWide(ref x7, ref x6);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c16, c48), Av1TransformKernels.PairWide(c48, c16), ref x9, ref x14, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c48, (short)-c16), Av1TransformKernels.PairWide((short)-c16, c48), ref x10, ref x13, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide((short)-c16, c48),
+                Av1TransformKernels.PairWide(c48, c16),
+                ref x9,
+                ref x14,
+                rounding,
+                cosBit);
 
-            Dct16Stages5To7(ref x0, ref x1, ref x2, ref x3, ref x4, ref x5, ref x6, ref x7, ref x8, ref x9, ref x10, ref x11, ref x12, ref x13, ref x14, ref x15, out in0, out in1, out in2, out in3, out in4, out in5, out in6, out in7, out in8, out in9, out in10, out in11, out in12, out in13, out in14, out in15, c32, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide((short)-c48, (short)-c16),
+                Av1TransformKernels.PairWide((short)-c16, c48),
+                ref x10,
+                ref x13,
+                rounding,
+                cosBit);
+
+            Dct16Stages5To7(
+                ref x0,
+                ref x1,
+                ref x2,
+                ref x3,
+                ref x4,
+                ref x5,
+                ref x6,
+                ref x7,
+                ref x8,
+                ref x9,
+                ref x10,
+                ref x11,
+                ref x12,
+                ref x13,
+                ref x14,
+                ref x15,
+                out in0,
+                out in1,
+                out in2,
+                out in3,
+                out in4,
+                out in5,
+                out in6,
+                out in7,
+                out in8,
+                out in9,
+                out in10,
+                out in11,
+                out in12,
+                out in13,
+                out in14,
+                out in15,
+                c32,
+                rounding,
+                cosBit);
         }
     }
 
@@ -1380,16 +2152,106 @@ internal static partial class Av1InverseTransformer
             Vector256<short> x15 = in14;
 
             // Stage 2: eight rotations with the odd cosine-table weights.
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c2, c62), Av1TransformKernels.PairWide(c62, (short)-c2), ref x0, ref x1, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c10, c54), Av1TransformKernels.PairWide(c54, (short)-c10), ref x2, ref x3, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c18, c46), Av1TransformKernels.PairWide(c46, (short)-c18), ref x4, ref x5, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c26, c38), Av1TransformKernels.PairWide(c38, (short)-c26), ref x6, ref x7, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c34, c30), Av1TransformKernels.PairWide(c30, (short)-c34), ref x8, ref x9, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c42, c22), Av1TransformKernels.PairWide(c22, (short)-c42), ref x10, ref x11, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c50, c14), Av1TransformKernels.PairWide(c14, (short)-c50), ref x12, ref x13, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c58, c6), Av1TransformKernels.PairWide(c6, (short)-c58), ref x14, ref x15, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c2, c62),
+                Av1TransformKernels.PairWide(c62, (short)-c2),
+                ref x0,
+                ref x1,
+                rounding,
+                cosBit);
 
-            Adst16Stages3To9(ref x0, ref x1, ref x2, ref x3, ref x4, ref x5, ref x6, ref x7, ref x8, ref x9, ref x10, ref x11, ref x12, ref x13, ref x14, ref x15, out in0, out in1, out in2, out in3, out in4, out in5, out in6, out in7, out in8, out in9, out in10, out in11, out in12, out in13, out in14, out in15, cospi, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c10, c54),
+                Av1TransformKernels.PairWide(c54, (short)-c10),
+                ref x2,
+                ref x3,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c18, c46),
+                Av1TransformKernels.PairWide(c46, (short)-c18),
+                ref x4,
+                ref x5,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c26, c38),
+                Av1TransformKernels.PairWide(c38, (short)-c26),
+                ref x6,
+                ref x7,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c34, c30),
+                Av1TransformKernels.PairWide(c30, (short)-c34),
+                ref x8,
+                ref x9,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c42, c22),
+                Av1TransformKernels.PairWide(c22, (short)-c42),
+                ref x10,
+                ref x11,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c50, c14),
+                Av1TransformKernels.PairWide(c14, (short)-c50),
+                ref x12,
+                ref x13,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c58, c6),
+                Av1TransformKernels.PairWide(c6, (short)-c58),
+                ref x14,
+                ref x15,
+                rounding,
+                cosBit);
+
+            Adst16Stages3To9(
+                ref x0,
+                ref x1,
+                ref x2,
+                ref x3,
+                ref x4,
+                ref x5,
+                ref x6,
+                ref x7,
+                ref x8,
+                ref x9,
+                ref x10,
+                ref x11,
+                ref x12,
+                ref x13,
+                ref x14,
+                ref x15,
+                out in0,
+                out in1,
+                out in2,
+                out in3,
+                out in4,
+                out in5,
+                out in6,
+                out in7,
+                out in8,
+                out in9,
+                out in10,
+                out in11,
+                out in12,
+                out in13,
+                out in14,
+                out in15,
+                cospi,
+                rounding,
+                cosBit);
         }
     }
 
@@ -1433,7 +2295,42 @@ internal static partial class Av1InverseTransformer
             Av1TransformKernels.ScaleWide((short)cospi[50], (short)cospi[14], in3, out Vector256<short> x12, out Vector256<short> x13);
             Av1TransformKernels.ScaleWide((short)cospi[58], (short)cospi[6], in1, out Vector256<short> x14, out Vector256<short> x15);
 
-            Adst16Stages3To9(ref x0, ref x1, ref x2, ref x3, ref x4, ref x5, ref x6, ref x7, ref x8, ref x9, ref x10, ref x11, ref x12, ref x13, ref x14, ref x15, out in0, out in1, out in2, out in3, out in4, out in5, out in6, out in7, out in8, out in9, out in10, out in11, out in12, out in13, out in14, out in15, cospi, rounding, cosBit);
+            Adst16Stages3To9(
+                ref x0,
+                ref x1,
+                ref x2,
+                ref x3,
+                ref x4,
+                ref x5,
+                ref x6,
+                ref x7,
+                ref x8,
+                ref x9,
+                ref x10,
+                ref x11,
+                ref x12,
+                ref x13,
+                ref x14,
+                ref x15,
+                out in0,
+                out in1,
+                out in2,
+                out in3,
+                out in4,
+                out in5,
+                out in6,
+                out in7,
+                out in8,
+                out in9,
+                out in10,
+                out in11,
+                out in12,
+                out in13,
+                out in14,
+                out in15,
+                cospi,
+                rounding,
+                cosBit);
         }
     }
 
@@ -1501,7 +2398,42 @@ internal static partial class Av1InverseTransformer
             Vector256<short> x14 = x12;
             Vector256<short> x15 = x13;
 
-            Adst16Stages8And9(ref x0, ref x1, ref x2, ref x3, ref x4, ref x5, ref x6, ref x7, ref x8, ref x9, ref x10, ref x11, ref x12, ref x13, ref x14, ref x15, out in0, out in1, out in2, out in3, out in4, out in5, out in6, out in7, out in8, out in9, out in10, out in11, out in12, out in13, out in14, out in15, (short)cospi[32], rounding, cosBit);
+            Adst16Stages8And9(
+                ref x0,
+                ref x1,
+                ref x2,
+                ref x3,
+                ref x4,
+                ref x5,
+                ref x6,
+                ref x7,
+                ref x8,
+                ref x9,
+                ref x10,
+                ref x11,
+                ref x12,
+                ref x13,
+                ref x14,
+                ref x15,
+                out in0,
+                out in1,
+                out in2,
+                out in3,
+                out in4,
+                out in5,
+                out in6,
+                out in7,
+                out in8,
+                out in9,
+                out in10,
+                out in11,
+                out in12,
+                out in13,
+                out in14,
+                out in15,
+                (short)cospi[32],
+                rounding,
+                cosBit);
         }
     }
 }

@@ -27,7 +27,10 @@ public static class PixelRowDelegateExtensions
     /// <param name="rowOperation">The user defined processing delegate to use to modify image rows.</param>
     /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation rowOperation, PixelConversionModifiers modifiers)
+    public static IImageProcessingContext ProcessPixelRowsAsVector4(
+        this IImageProcessingContext source,
+        PixelRowOperation rowOperation,
+        PixelConversionModifiers modifiers)
         => source.ApplyProcessor(new PixelRowDelegateProcessor(rowOperation, modifiers));
 
     /// <summary>
@@ -52,7 +55,11 @@ public static class PixelRowDelegateExtensions
     /// </param>
     /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation rowOperation, Rectangle rectangle, PixelConversionModifiers modifiers)
+    public static IImageProcessingContext ProcessPixelRowsAsVector4(
+        this IImageProcessingContext source,
+        PixelRowOperation rowOperation,
+        Rectangle rectangle,
+        PixelConversionModifiers modifiers)
         => source.ApplyProcessor(new PixelRowDelegateProcessor(rowOperation, modifiers), rectangle);
 
     /// <summary>
@@ -71,7 +78,10 @@ public static class PixelRowDelegateExtensions
     /// <param name="rowOperation">The user defined processing delegate to use to modify image rows.</param>
     /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation, PixelConversionModifiers modifiers)
+    public static IImageProcessingContext ProcessPixelRowsAsVector4(
+        this IImageProcessingContext source,
+        PixelRowOperation<Point> rowOperation,
+        PixelConversionModifiers modifiers)
         => source.ApplyProcessor(new PositionAwarePixelRowDelegateProcessor(rowOperation, modifiers));
 
     /// <summary>
@@ -83,7 +93,10 @@ public static class PixelRowDelegateExtensions
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation, Rectangle rectangle)
+    public static IImageProcessingContext ProcessPixelRowsAsVector4(
+        this IImageProcessingContext source,
+        PixelRowOperation<Point> rowOperation,
+        Rectangle rectangle)
         => ProcessPixelRowsAsVector4(source, rowOperation, rectangle, PixelConversionModifiers.None);
 
     /// <summary>
@@ -96,6 +109,10 @@ public static class PixelRowDelegateExtensions
     /// </param>
     /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation, Rectangle rectangle, PixelConversionModifiers modifiers)
+    public static IImageProcessingContext ProcessPixelRowsAsVector4(
+        this IImageProcessingContext source,
+        PixelRowOperation<Point> rowOperation,
+        Rectangle rectangle,
+        PixelConversionModifiers modifiers)
         => source.ApplyProcessor(new PositionAwarePixelRowDelegateProcessor(rowOperation, modifiers), rectangle);
 }

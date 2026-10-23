@@ -198,7 +198,11 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     }
 
     /// <inheritdoc />
-    protected sealed override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
+    protected sealed override void BlendFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        ReadOnlySpan<Vector4> source,
+        ReadOnlySpan<float> amount)
     {
         // Each amount belongs to one pixel and must be repeated across that pixel's four components.
         int scalarStart = 0;
@@ -309,7 +313,12 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     }
 
     /// <inheritdoc />
-    protected sealed override void BlendWithCoverageFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount, ReadOnlySpan<float> coverage)
+    protected sealed override void BlendWithCoverageFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        ReadOnlySpan<Vector4> source,
+        float amount,
+        ReadOnlySpan<float> coverage)
     {
         // Coverage mixes the composed result back toward the original background, so it is fused into this pass.
         int scalarStart = 0;
@@ -378,7 +387,12 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     }
 
     /// <inheritdoc />
-    protected sealed override void BlendWithCoverageFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, Vector4 source, float amount, ReadOnlySpan<float> coverage)
+    protected sealed override void BlendWithCoverageFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        Vector4 source,
+        float amount,
+        ReadOnlySpan<float> coverage)
     {
         // The constant source is expanded once per selected width and reused for the complete row.
         int scalarStart = 0;
@@ -446,7 +460,12 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     }
 
     /// <inheritdoc />
-    protected sealed override void BlendWithCoverageFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount, ReadOnlySpan<float> coverage)
+    protected sealed override void BlendWithCoverageFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        ReadOnlySpan<Vector4> source,
+        ReadOnlySpan<float> amount,
+        ReadOnlySpan<float> coverage)
     {
         // Amount controls composition while coverage controls the final mix with the untouched background.
         int scalarStart = 0;
@@ -521,7 +540,12 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     }
 
     /// <inheritdoc />
-    protected sealed override void BlendWithCoverageFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, Vector4 source, ReadOnlySpan<float> amount, ReadOnlySpan<float> coverage)
+    protected sealed override void BlendWithCoverageFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        Vector4 source,
+        ReadOnlySpan<float> amount,
+        ReadOnlySpan<float> coverage)
     {
         // The invariant source is expanded once; only amount and coverage are gathered for each vector batch.
         int scalarStart = 0;
@@ -606,7 +630,23 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     /// <returns>Four consecutive copies of the pixel.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<float> CreateVector512(Vector4 pixel)
-        => Vector512.Create(pixel.X, pixel.Y, pixel.Z, pixel.W, pixel.X, pixel.Y, pixel.Z, pixel.W, pixel.X, pixel.Y, pixel.Z, pixel.W, pixel.X, pixel.Y, pixel.Z, pixel.W);
+        => Vector512.Create(
+            pixel.X,
+            pixel.Y,
+            pixel.Z,
+            pixel.W,
+            pixel.X,
+            pixel.Y,
+            pixel.Z,
+            pixel.W,
+            pixel.X,
+            pixel.Y,
+            pixel.Z,
+            pixel.W,
+            pixel.X,
+            pixel.Y,
+            pixel.Z,
+            pixel.W);
 
     /// <summary>
     /// Expands and clamps two per-pixel scalar values for two packed RGBA pixels.
@@ -630,7 +670,23 @@ internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<float> CreateClampedVector512(ref float values)
     {
-        Vector512<float> result = Vector512.Create(values, values, values, values, Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 1), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 2), Unsafe.Add(ref values, 3), Unsafe.Add(ref values, 3), Unsafe.Add(ref values, 3), Unsafe.Add(ref values, 3));
+        Vector512<float> result = Vector512.Create(
+            values,
+            values,
+            values,
+            values,
+            Unsafe.Add(ref values, 1),
+            Unsafe.Add(ref values, 1),
+            Unsafe.Add(ref values, 1),
+            Unsafe.Add(ref values, 1),
+            Unsafe.Add(ref values, 2),
+            Unsafe.Add(ref values, 2),
+            Unsafe.Add(ref values, 2),
+            Unsafe.Add(ref values, 2),
+            Unsafe.Add(ref values, 3),
+            Unsafe.Add(ref values, 3),
+            Unsafe.Add(ref values, 3),
+            Unsafe.Add(ref values, 3));
 
         // Use the scalar tail's rule: NaN becomes zero, and infinities become the corresponding opacity endpoints.
         return ColorNumerics.ClampToFinite(result, Vector512<float>.Zero, Vector512<float>.One);

@@ -469,7 +469,15 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
             statistics.MotionVectors[reference] = bestReferenceVector;
             singleVectors[reference] = bestReferenceVector;
-            int interCost = this.GetInterCost(input, source.Samples[sourceIndex..], source.Stride, reference, x, y, bestReferenceVector, frame.UsePredictionSad);
+            int interCost = this.GetInterCost(
+                input,
+                source.Samples[sourceIndex..],
+                source.Stride,
+                reference,
+                x,
+                y,
+                bestReferenceVector,
+                frame.UsePredictionSad);
 
             // The inter cost of each reference lets the coding search prune inter modes.
             statistics.PredictionError[reference] = Math.Max(1, interCost);

@@ -126,8 +126,6 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
         if (Avx512F.IsSupported)
         {
-            // 4 pixels per iteration. Using overlapped 16-float loads.
-            Vector512<int> perm = Vector512.Create(0, 1, 2, 0, 3, 4, 5, 0, 6, 7, 8, 0, 9, 10, 11, 0);
             Vector512<float> ones = Vector512.Create(1F);
 
             // BlendVariable selects from 'ones' where the sign-bit of mask lane is set.
@@ -161,58 +159,68 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
                 src = ref Unsafe.Add(ref src, 48U);
                 dst = ref Unsafe.Add(ref dst, 64U);
             }
+        }
 
-            int quads = (length - i) >> 2;
+        if (Avx2.IsSupported)
+        {
+            Vector256<float> ones = Vector256.Create(1F);
+            Vector256<int> expandEnds = Vector256.Create(0, 1, 2, 0, 3, 4, 5, 0);
+            Vector256<int> expandLast = Vector256.Create(2, 3, 4, 0, 5, 6, 7, 0);
+            Vector256<int> expandSecond = Vector256.Create(6, 7, 8, 0, 9, 10, 11, 0);
+            Vector256<int> expandThird = Vector256.Create(4, 5, 6, 0, 7, 8, 9, 0);
 
-            // Leave the last quad (4 pixels) for the scalar tail.
-            int simdQuads = quads - 1;
+            // Each output contains two [R G B W] colors. Insert one in lanes 3 and 7 after selecting RGB.
+            // Eight colors use three complete input registers and four output registers, with no overlapping reads.
+            const byte alphaMask = 0x88;
+            nuint count = (length - i).Vector256Count<float>();
 
-            for (int q = 0; q < simdQuads; q++)
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
-                Vector512<float> v = Vector512.LoadUnsafe(ref src);
-                Vector512<float> rgbx = Avx512F.PermuteVar16x32(v, perm);
-                Vector512<float> rgba = Avx512F.BlendVariable(rgbx, ones, alphaSelect);
+                Vector256<int> rgb0 = Vector256.LoadUnsafe(ref src).AsInt32();
+                Vector256<int> rgb1 = Vector256.LoadUnsafe(ref src, 8U).AsInt32();
+                Vector256<int> rgb2 = Vector256.LoadUnsafe(ref src, 16U).AsInt32();
 
-                rgba.StoreUnsafe(ref dst);
+                // The middle outputs join adjacent registers. Indices 8..15 select the second input.
+                Vector256<float> rgba0 = Avx2.PermuteVar8x32(rgb0, expandEnds).AsSingle();
+                Vector256<float> rgba1 = Vector256_.PermuteVar8x32x2(rgb0, expandSecond, rgb1).AsSingle();
+                Vector256<float> rgba2 = Vector256_.PermuteVar8x32x2(rgb1, expandThird, rgb2).AsSingle();
+                Vector256<float> rgba3 = Avx2.PermuteVar8x32(rgb2, expandLast).AsSingle();
+                Avx.Blend(rgba0, ones, alphaMask).StoreUnsafe(ref dst);
+                Avx.Blend(rgba1, ones, alphaMask).StoreUnsafe(ref dst, 8U);
+                Avx.Blend(rgba2, ones, alphaMask).StoreUnsafe(ref dst, 16U);
+                Avx.Blend(rgba3, ones, alphaMask).StoreUnsafe(ref dst, 24U);
+                src = ref Unsafe.Add(ref src, 24U);
+                dst = ref Unsafe.Add(ref dst, 32U);
+            }
+        }
 
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> rgbMask = Vector128.Create(-1, -1, -1, 0);
+            Vector128<float> ones = Vector128.Create(1F);
+            nuint count = (length - i).Vector128Count<float>();
+
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+            {
+                // Three registers hold [R0 G0 B0 R1], [G1 B1 R2 G2], and [B2 R3 G3 B3].
+                // Align adjacent registers to put each RGB triple in lanes 0..2. Lane 3 is replaced with one.
+                // These byte operations preserve every RGB bit, including NaN payloads and signed zero.
+                Vector128<byte> rgb0 = Vector128.LoadUnsafe(ref src).AsByte();
+                Vector128<byte> rgb1 = Vector128.LoadUnsafe(ref src, 4U).AsByte();
+                Vector128<byte> rgb2 = Vector128.LoadUnsafe(ref src, 8U).AsByte();
+                Vector128<float> rgba1 = Vector128_.AlignRight(rgb1, rgb0, 3 * sizeof(float)).AsSingle();
+                Vector128<float> rgba2 = Vector128_.AlignRight(rgb2, rgb1, 2 * sizeof(float)).AsSingle();
+                Vector128<float> rgba3 = Vector128_.ShiftRightBytesInVector(rgb2, sizeof(float)).AsSingle();
+                Vector128.ConditionalSelect(rgbMask.AsSingle(), rgb0.AsSingle(), ones).StoreUnsafe(ref dst);
+                Vector128.ConditionalSelect(rgbMask.AsSingle(), rgba1, ones).StoreUnsafe(ref dst, 4U);
+                Vector128.ConditionalSelect(rgbMask.AsSingle(), rgba2, ones).StoreUnsafe(ref dst, 8U);
+                Vector128.ConditionalSelect(rgbMask.AsSingle(), rgba3, ones).StoreUnsafe(ref dst, 12U);
                 src = ref Unsafe.Add(ref src, 12U);
                 dst = ref Unsafe.Add(ref dst, 16U);
-
-                i += 4;
-            }
-        }
-        else if (Avx2.IsSupported)
-        {
-            // 2 pixels per iteration. Using overlapped 8-float loads.
-            Vector256<int> perm = Vector256.Create(0, 1, 2, 0, 3, 4, 5, 0);
-
-            Vector256<float> ones = Vector256.Create(1F);
-
-            // vblendps mask: bit i selects lane i from 'ones' when set.
-            // We want lanes 3 and 7 -> 0b10001000 = 0x88.
-            const byte alphaMask = 0x88;
-
-            int pairs = length >> 1;
-
-            // Leave the last pair (2 pixels) for the scalar tail.
-            int simdPairs = pairs - 1;
-
-            for (int p = 0; p < simdPairs; p++)
-            {
-                Vector256<float> v = Vector256.LoadUnsafe(ref src);
-                Vector256<float> rgbx = Avx2.PermuteVar8x32(v, perm);
-                Vector256<float> rgba = Avx.Blend(rgbx, ones, alphaMask);
-
-                rgba.StoreUnsafe(ref dst);
-
-                src = ref Unsafe.Add(ref src, 6U);
-                dst = ref Unsafe.Add(ref dst, 8U);
-
-                i += 2;
             }
         }
 
-        // Tail (and non-AVX paths)
+        // Fewer than four colors remain on SIMD hardware. Without SIMD, this handles the complete span.
         for (; i < length; i++)
         {
             Unsafe.Add(ref dstV4, (uint)i) = Unsafe.Add(ref srcRgb, (uint)i).ToScaledVector4();
@@ -243,9 +251,6 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
         if (Avx512F.IsSupported)
         {
-            // 4 pixels per iteration. Using overlapped 16-float stores:
-            Vector512<int> idx = Vector512.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
-
             // Four registers contain sixteen [R G B W] colors. Select RGB into three complete output registers.
             // Each mask joins two neighboring input registers; indices 16..31 select the second register.
             Vector512<int> packFirst = Vector512.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 20);
@@ -266,50 +271,55 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
                 src = ref Unsafe.Add(ref src, 64U);
                 dst = ref Unsafe.Add(ref dst, 48U);
             }
+        }
 
-            // Smaller groups retain the existing packing path and scalar remainder.
-            int quads = (length - i) >> 2;
+        if (Avx2.IsSupported)
+        {
+            Vector256<int> packFirst = Vector256.Create(0, 1, 2, 4, 5, 6, 8, 9);
+            Vector256<int> packMiddle = Vector256.Create(2, 4, 5, 6, 8, 9, 10, 12);
+            Vector256<int> packLast = Vector256.Create(5, 6, 8, 9, 10, 12, 13, 14);
+            nuint count = (length - i).Vector256Count<float>();
 
-            // Leave the last quad (4 pixels) for the scalar tail.
-            int simdQuads = quads - 1;
-
-            for (int q = 0; q < simdQuads; q++)
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
-                Vector512<float> v = Vector512.LoadUnsafe(ref src);
-                Vector512<float> packed = Avx512F.PermuteVar16x32(v, idx);
+                // Four registers hold eight [R G B W] colors. Join RGB from neighboring registers into three outputs.
+                // Read the whole block first and write exactly 24 floats, including when the block ends the span.
+                Vector256<int> rgba0 = Vector256.LoadUnsafe(ref src).AsInt32();
+                Vector256<int> rgba1 = Vector256.LoadUnsafe(ref src, 8U).AsInt32();
+                Vector256<int> rgba2 = Vector256.LoadUnsafe(ref src, 16U).AsInt32();
+                Vector256<int> rgba3 = Vector256.LoadUnsafe(ref src, 24U).AsInt32();
+                Vector256_.PermuteVar8x32x2(rgba0, packFirst, rgba1).AsSingle().StoreUnsafe(ref dst);
+                Vector256_.PermuteVar8x32x2(rgba1, packMiddle, rgba2).AsSingle().StoreUnsafe(ref dst, 8U);
+                Vector256_.PermuteVar8x32x2(rgba2, packLast, rgba3).AsSingle().StoreUnsafe(ref dst, 16U);
+                src = ref Unsafe.Add(ref src, 32U);
+                dst = ref Unsafe.Add(ref dst, 24U);
+            }
+        }
 
-                packed.StoreUnsafe(ref dst);
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (length - i).Vector128Count<float>();
 
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+            {
+                // Load all four [R G B W] inputs before storing, so compaction at the same address is safe.
+                Vector128<float> rgba0 = Vector128.LoadUnsafe(ref src);
+                Vector128<float> rgba1 = Vector128.LoadUnsafe(ref src, 4U);
+                Vector128<float> rgba2 = Vector128.LoadUnsafe(ref src, 8U);
+                Vector128<float> rgba3 = Vector128.LoadUnsafe(ref src, 12U);
+
+                // Each following store replaces the preceding W with its R. The final store writes only RGB,
+                // so all stores stay within these twelve output floats. This needs no shuffles or component arithmetic.
+                rgba0.StoreUnsafe(ref dst);
+                rgba1.StoreUnsafe(ref dst, 3U);
+                rgba2.StoreUnsafe(ref dst, 6U);
+                Unsafe.As<float, Vector3>(ref Unsafe.Add(ref dst, 9U)) = rgba3.AsVector3();
                 src = ref Unsafe.Add(ref src, 16U);
                 dst = ref Unsafe.Add(ref dst, 12U);
-                i += 4;
-            }
-        }
-        else if (Avx2.IsSupported)
-        {
-            // 2 pixels per iteration, using overlapped 8-float stores:
-            Vector256<int> idx = Vector256.Create(0, 1, 2, 4, 5, 6, 0, 0);
-
-            int pairs = length >> 1;
-
-            // Leave the last pair (2 pixels) for the scalar tail.
-            int simdPairs = pairs - 1;
-
-            int pairIndex = 0;
-            for (; pairIndex < simdPairs; pairIndex++)
-            {
-                Vector256<float> v = Vector256.LoadUnsafe(ref src);
-                Vector256<float> packed = Avx2.PermuteVar8x32(v, idx);
-
-                packed.StoreUnsafe(ref dst);
-
-                src = ref Unsafe.Add(ref src, 8U);
-                dst = ref Unsafe.Add(ref dst, 6U);
-                i += 2;
             }
         }
 
-        // Tail (and non-AVX paths)
+        // Fewer than four colors remain on SIMD hardware. Without SIMD, this handles the complete span.
         for (; i < length; i++)
         {
             Vector4 v = Unsafe.Add(ref srcV4, (uint)i);

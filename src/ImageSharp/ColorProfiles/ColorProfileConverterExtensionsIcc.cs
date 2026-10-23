@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -89,7 +91,29 @@ internal static class ColorProfileConverterExtensionsIcc
         // The transforms depend only on the converter's options, so they are built once per converter.
         IccTransform transform = converter.GetIccTransform();
 
-        transform.Converter.Convert(source, destination);
+        // Model loading and packing depend on TFrom and TTo; the ICC loop depends only on the configured operator.
+        // Keep them separate so Native AOT retains one bulk transform implementation for each operator.
+        // One 4 KiB stack block holds sixteen full Vector512 blocks or sixty-four full Vector128 blocks.
+        // Reuse it for the whole span, with several SIMD blocks per transform call and no row-sized allocation.
+        // The model loader writes every component in the selected block before the transform reads it.
+        // Do not clear the scratch storage again before that write.
+        Unsafe.SkipInit(out InlineArray256<Vector4> storage);
+        Span<Vector4> vectors = storage;
+
+        while (!source.IsEmpty)
+        {
+            int length = Math.Min(source.Length, vectors.Length);
+            Span<Vector4> block = vectors[..length];
+
+            // The model APIs retain their existing component units and packing rules. The ICC loop transforms
+            // this block in place, with SIMD traversal and profile stages in the same implementation.
+            TFrom.ToScaledVector4(source[..length], block);
+            transform.Converter.Convert(block, block);
+            TTo.FromScaledVector4(block, destination[..length]);
+
+            source = source[length..];
+            destination = destination[length..];
+        }
     }
 
     /// <summary>

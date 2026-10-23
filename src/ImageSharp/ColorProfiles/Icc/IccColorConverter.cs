@@ -10,7 +10,8 @@ using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 namespace SixLabors.ImageSharp.ColorProfiles.Icc;
 
 /// <summary>
-/// Owns SIMD dispatch and span traversal for a configured ICC operator.
+/// Owns SIMD dispatch and vector-span traversal for a configured ICC operator.
+/// Typed model conversion is handled by the caller, so each operator has one bulk transform loop.
 /// </summary>
 /// <typeparam name="TOperator">The operator containing the selected profile stages and their constants.</typeparam>
 internal sealed class IccColorConverter<TOperator> : IIccColorConverter
@@ -40,80 +41,6 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 Convert(Vector4 value) => this.colorOperator.Convert(value);
-
-    /// <inheritdoc/>
-    public void Convert<TFrom, TTo>(ReadOnlySpan<TFrom> source, Span<TTo> destination)
-        where TFrom : struct, IColorProfile<TFrom>
-        where TTo : struct, IColorProfile<TTo>
-    {
-        // Sixteen [X Y Z W] colors provide 16 lanes per component for Vector512<float>.
-        // Narrower SIMD widths use a prefix of this storage. Each model supplies its own scaling and packing rules.
-        // Load a complete block before storing its converted colors; no full-row temporary buffer is needed.
-        InlineArray16<Vector4> storage = default;
-        Span<Vector4> vectors = storage;
-        int i = 0;
-
-        if (Vector512.IsHardwareAccelerated)
-        {
-            Span<Vector4> block = vectors[..16];
-            nuint count = (source.Length - i).Vector512Count<float>();
-
-            for (nuint index = 0; index < count; index++, i += 16)
-            {
-                TFrom.ToScaledVector4(source.Slice(i, 16), block);
-                SimdUtils.Deinterleave4(block, 0, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z, out Vector512<float> w);
-                this.colorOperator.Convert(ref x, ref y, ref z, ref w);
-                SimdUtils.Interleave4(x, y, z, w, ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(block)));
-                TTo.FromScaledVector4(block, destination.Slice(i, 16));
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Span<Vector4> block = vectors[..8];
-            nuint count = (source.Length - i).Vector256Count<float>();
-
-            for (nuint index = 0; index < count; index++, i += 8)
-            {
-                TFrom.ToScaledVector4(source.Slice(i, 8), block);
-                SimdUtils.Deinterleave4(block, 0, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z, out Vector256<float> w);
-                this.colorOperator.Convert(ref x, ref y, ref z, ref w);
-                SimdUtils.Interleave4(x, y, z, w, ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(block)));
-                TTo.FromScaledVector4(block, destination.Slice(i, 8));
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Span<Vector4> block = vectors[..4];
-            nuint count = (source.Length - i).Vector128Count<float>();
-
-            for (nuint index = 0; index < count; index++, i += 4)
-            {
-                TFrom.ToScaledVector4(source.Slice(i, 4), block);
-                SimdUtils.Deinterleave4(block, 0, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z, out Vector128<float> w);
-                this.colorOperator.Convert(ref x, ref y, ref z, ref w);
-                SimdUtils.Interleave4(x, y, z, w, ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(block)));
-                TTo.FromScaledVector4(block, destination.Slice(i, 4));
-            }
-        }
-
-        // The tail also uses the bulk model APIs. Scalar fallback reuses the same bounded storage.
-        while (i < source.Length)
-        {
-            int count = Math.Min(vectors.Length, source.Length - i);
-            Span<Vector4> block = vectors[..count];
-            TFrom.ToScaledVector4(source.Slice(i, count), block);
-
-            for (int index = 0; index < count; index++)
-            {
-                block[index] = this.colorOperator.Convert(block[index]);
-            }
-
-            TTo.FromScaledVector4(block, destination.Slice(i, count));
-            i += count;
-        }
-    }
 
     /// <inheritdoc/>
     public void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination)

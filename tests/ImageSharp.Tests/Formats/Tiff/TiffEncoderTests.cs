@@ -267,13 +267,16 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         Assert.Equal(imageBytes[5], expectedIfdOffsetBytes[1]);
     }
 
+    /// <summary>
+    /// Checks that backpatching multiple frame directories produces identical seekable and buffered output.
+    /// </summary>
     [Fact]
     public async Task TiffEncoder_ToNonSeekableStream_MatchesSeekableStream()
     {
         // arrange
         // Each frame adds an IFD offset that is patched after the frame data is written.
         using Image<Rgba32> image = new(32, 24, Color.Red.ToPixel<Rgba32>());
-        image.Frames.AddFrame(new ImageFrame<Rgba32>(image.Configuration, 32, 24, Color.Blue.ToPixel<Rgba32>()));
+        image.Frames.CreateFrame(Color.Blue.ToPixel<Rgba32>());
         TiffEncoder encoder = new();
         using MemoryStream seekable = new();
         image.Save(seekable, encoder);
@@ -286,8 +289,9 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         await image.SaveAsync(new NonSeekableStream(asyncTarget), encoder, TestContext.Current.CancellationToken);
 
         // assert
-        Assert.Equal(seekable.ToArray(), syncTarget.ToArray());
-        Assert.Equal(seekable.ToArray(), asyncTarget.ToArray());
+        byte[] expected = seekable.ToArray();
+        Assert.Equal(expected, syncTarget.ToArray());
+        Assert.Equal(expected, asyncTarget.ToArray());
     }
 
     [Theory]

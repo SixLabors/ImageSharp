@@ -193,20 +193,35 @@ internal sealed class ChunkedMemoryStream : Stream
         long remaining = this.memoryChunkBuffer.Length - this.position;
 
         // Ensure we have enough capacity to write the data.
-        if (remaining < count)
+        while (remaining < count)
         {
-            // A position beyond the allocated chunks, reached by seeking past the end, has no chunk
-            // until the buffer grows, so its chunk location is resolved again after expanding.
-            bool resolvePosition = remaining < 0;
-            while (remaining < count)
-            {
-                this.memoryChunkBuffer.Expand();
-                remaining = this.memoryChunkBuffer.Length - this.position;
-            }
+            this.memoryChunkBuffer.Expand();
+            remaining = this.memoryChunkBuffer.Length - this.position;
+        }
 
-            if (resolvePosition)
+        if (this.position > this.length)
+        {
+            // Seeking does not expose bytes or allocate storage. A later write exposes the skipped range,
+            // which must contain zeros rather than pooled data. Clear only that gap, not each new chunk.
+            long gap = this.position - this.length;
+
+            // Locate the previous end after expansion. Clearing the gap also advances the cursor to the write position.
+            this.SetPosition(this.length);
+
+            while (gap > 0)
             {
-                this.SetPosition(this.position);
+                MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
+                int bytesToClear = (int)Math.Min(gap, chunk.Length - this.chunkIndex);
+                chunk.Buffer.Slice(this.chunkIndex, bytesToClear).Clear();
+
+                gap -= bytesToClear;
+                this.position += bytesToClear;
+                this.chunkIndex += bytesToClear;
+                if (this.chunkIndex == chunk.Length)
+                {
+                    this.chunkIndex = 0;
+                    this.bufferIndex++;
+                }
             }
         }
 
@@ -345,6 +360,10 @@ internal sealed class ChunkedMemoryStream : Stream
         }
     }
 
+    /// <summary>
+    /// Moves the logical position without allocating storage or changing the stream length.
+    /// </summary>
+    /// <param name="value">The nonnegative byte offset from the start of the stream.</param>
     private void SetPosition(long value)
     {
         long newPosition = value;
@@ -359,9 +378,8 @@ internal sealed class ChunkedMemoryStream : Stream
         int currentChunkIndex = 0;
         long offset = newPosition;
 
-        // A position at or beyond the end of the allocated chunks starts the chunk that the next write allocates.
-        // This is exact at the end of the chunks, which is also where a write that fills the last chunk leaves
-        // the position. Write resolves a position further beyond the end once the chunks reach it.
+        // At the capacity boundary, the next byte belongs to the next chunk. Positions beyond capacity have
+        // no allocated chunk yet. Write expands storage, then traverses the gap from the previous stream end.
         if (offset >= this.memoryChunkBuffer.Length)
         {
             this.bufferIndex = this.memoryChunkBuffer.ChunkCount;

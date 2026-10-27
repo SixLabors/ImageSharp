@@ -131,6 +131,7 @@ internal sealed class LzwDecoder : IDisposable
     /// Decodes and decompresses all pixel indices for a single row from the stream, assigning the pixel values to the buffer.
     /// </summary>
     /// <param name="indices">The pixel indices array to decode to.</param>
+    /// <exception cref="InvalidImageContentException">The first code addresses an entry outside the LZW code tables.</exception>
     public void DecodePixelRow(Span<byte> indices)
     {
         indices.Clear();
@@ -209,14 +210,12 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
-                    // The only non-literal code that can reach this point is the next available code. With a
-                    // minimum code size of 12 the clear code is 4096, so that code lies past the end of the
-                    // 4096-entry code tables. It has no table entry to output, so the data is corrupt and
-                    // decoding stops. This branch only runs for the first code of the data or after a clear
-                    // code, so the check adds no per-pixel cost.
+                    // This first code has no previous string to extend. With a tolerated minimum size of 12,
+                    // the next available code is 4098, beyond the 4096-entry tables. Report the corrupt data
+                    // before indexing either table; the GIF decoder applies the image data integrity policy.
                     if (code >= MaxStackSize)
                     {
-                        break;
+                        GifThrowHelper.ThrowInvalidImageContentException("The GIF LZW code exceeds the code table bounds.");
                     }
 
                     pixelStack[top++] = suffix[code];
@@ -284,6 +283,7 @@ internal sealed class LzwDecoder : IDisposable
     /// Decodes and decompresses all pixel indices from the stream allowing skipping of the data.
     /// </summary>
     /// <param name="length">The resulting index table length.</param>
+    /// <exception cref="InvalidImageContentException">The first code addresses an entry outside the LZW code tables.</exception>
     public void SkipIndices(int length)
     {
         // Get span values from the owners.
@@ -360,14 +360,12 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
-                    // The only non-literal code that can reach this point is the next available code. With a
-                    // minimum code size of 12 the clear code is 4096, so that code lies past the end of the
-                    // 4096-entry code tables. It has no table entry to output, so the data is corrupt and
-                    // decoding stops. This branch only runs for the first code of the data or after a clear
-                    // code, so the check adds no per-pixel cost.
+                    // This first code has no previous string to extend. With a tolerated minimum size of 12,
+                    // the next available code is 4098, beyond the 4096-entry tables. Report the corrupt data
+                    // before indexing either table; the GIF decoder applies the image data integrity policy.
                     if (code >= MaxStackSize)
                     {
-                        break;
+                        GifThrowHelper.ThrowInvalidImageContentException("The GIF LZW code exceeds the code table bounds.");
                     }
 
                     pixelStack[top++] = suffix[code];

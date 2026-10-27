@@ -588,6 +588,23 @@ public static class TestImages
     public static class Gif
     {
         public const string Rings = "Gif/rings.gif";
+        public const string Frame20x20At0x0Interlaced = "Gif/frames/20x20-left0-top0-interlaced.gif";
+        public const string Frame20x20At0x0Sequential = "Gif/frames/20x20-left0-top0-sequential.gif";
+        public const string Frame10x10At0x5Interlaced = "Gif/frames/10x10-left0-top5-interlaced.gif";
+        public const string Frame10x10At0x5Sequential = "Gif/frames/10x10-left0-top5-sequential.gif";
+        public const string Frame10x10At5x3Interlaced = "Gif/frames/10x10-left5-top3-interlaced.gif";
+        public const string Frame10x10At0x10Interlaced = "Gif/frames/10x10-left0-top10-interlaced.gif";
+        public const string Frame10x10At0x10Sequential = "Gif/frames/10x10-left0-top10-sequential.gif";
+        public const string Frame10x20At0x8Interlaced = "Gif/frames/10x20-left0-top8-interlaced.gif";
+        public const string Frame10x20At0x9Interlaced = "Gif/frames/10x20-left0-top9-interlaced.gif";
+        public const string Frame10x1At0x0Interlaced = "Gif/frames/10x1-left0-top0-interlaced.gif";
+        public const string Frame10x2At0x0Interlaced = "Gif/frames/10x2-left0-top0-interlaced.gif";
+        public const string Frame10x3At0x7Interlaced = "Gif/frames/10x3-left0-top7-interlaced.gif";
+        public const string Frame10x4At0x0Interlaced = "Gif/frames/10x4-left0-top0-interlaced.gif";
+        public const string Frame4x4At12x0Interlaced = "Gif/frames/4x4-left12-top0-interlaced.gif";
+        public const string Frame4x4At12x0Sequential = "Gif/frames/4x4-left12-top0-sequential.gif";
+        public const string LzwCodeOutsideTable = "Gif/frames/lzw-code-outside-table.gif";
+        public const string LzwCodeOutsideTableHiddenRow = "Gif/frames/lzw-code-outside-table-hidden-row.gif";
         public const string Giphy = "Gif/giphy.gif";
         public const string Cheers = "Gif/cheers.gif";
         public const string Receipt = "Gif/receipt.gif";

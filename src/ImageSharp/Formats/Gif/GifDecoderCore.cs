@@ -175,6 +175,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
             }
         }
+        catch
+        {
+            // Ownership transfers to the caller only after decoding succeeds. Dispose a partially decoded image on failure.
+            image?.Dispose();
+            throw;
+        }
         finally
         {
             this.globalColorTable?.Dispose();
@@ -589,7 +595,15 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             }
         }
 
-        this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colorTable, backgroundColor.ToPixel<TPixel>());
+        try
+        {
+            this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colorTable, backgroundColor.ToPixel<TPixel>());
+        }
+        catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
+        {
+            // Keep completed rows. SkipBlock below consumes the rest of this frame so the next descriptor remains readable.
+            // Header and palette parsing stay outside this recovery boundary; structural errors remain fatal.
+        }
 
         // Update from newly decoded frame.
         FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
@@ -862,7 +876,15 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
         {
             using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
-            lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+
+            try
+            {
+                lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+            }
+            catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
+            {
+                // Identify still reads LZW codes. Use the same recovery policy and sub-block skipping as full decoding.
+            }
         }
 
         ImageFrameMetadata currentFrame = new();

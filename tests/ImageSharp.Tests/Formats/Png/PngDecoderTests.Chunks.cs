@@ -298,39 +298,34 @@ public partial class PngDecoderTests
     /// and zero-length data chunks are permitted. Every layout must decode to the same pixels.
     /// </summary>
     /// <param name="layout">The name of the data chunk layout to write.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    /// <param name="corruptEmptyChunk">Whether to corrupt the CRC of each empty data chunk.</param>
     [Theory]
-    [InlineData("LeadingEmpty")]
-    [InlineData("ConsecutiveLeadingEmpty")]
-    [InlineData("FirstOneByte")]
-    [InlineData("EmptyWithinHeader")]
-    [InlineData("EveryOneByte")]
-    [InlineData("EveryOneByteWithEmpty")]
-    [InlineData("EmptyBetween")]
-    [InlineData("TrailingEmpty")]
-    public void Decode_CompressedDataSplitAcrossDataChunks_DecodesPixelExact(string layout)
+    [InlineData("LeadingEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("ConsecutiveLeadingEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("FirstOneByte", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EveryOneByte", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EveryOneByteWithEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EmptyBetween", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("TrailingEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.Strict, true)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.IgnoreImageData, true)]
+    public void Decode_CompressedDataSplitAcrossDataChunks_FollowsIntegrityPolicy(string layout, SegmentIntegrityHandling integrity, bool corruptEmptyChunk)
     {
         using Image<Rgba32> expected = CreateNoiseImage(40, 30, 1);
         using MemoryStream stream = new();
         expected.Save(stream, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
-        List<(string Type, byte[] Data)> chunks = ReadChunks(stream.ToArray());
+        byte[] encoded = stream.ToArray();
+        List<(string Type, byte[] Data)> chunks = ReadChunks(encoded);
 
         byte[] zlib = [.. chunks.Where(c => c.Type == "IDAT").SelectMany(c => c.Data)];
-        byte[][] segments = layout switch
-        {
-            "LeadingEmpty" => [[], zlib],
-            "ConsecutiveLeadingEmpty" => [[], [], zlib],
-            "FirstOneByte" => [zlib[..1], zlib[1..]],
-            "EmptyWithinHeader" => [zlib[..1], [], zlib[1..]],
-            "EveryOneByte" => [.. zlib.Select(b => new[] { b })],
-            "EveryOneByteWithEmpty" => [.. zlib.SelectMany(b => new[] { [b], Array.Empty<byte>() })],
-            "EmptyBetween" => [zlib[..(zlib.Length / 2)], [], zlib[(zlib.Length / 2)..]],
-            "TrailingEmpty" => [zlib, []],
-            _ => throw new ArgumentOutOfRangeException(nameof(layout)),
-        };
+        byte[][] segments = SplitCompressedData(zlib, layout);
 
         // Replace the encoder's data chunks with the requested layout, keeping every other chunk in place.
         using MemoryStream output = new();
-        output.Write(stream.ToArray().AsSpan(0, 8));
+        output.Write(encoded.AsSpan(0, 8));
         foreach ((string type, byte[] data) in chunks)
         {
             if (type == "IDAT")
@@ -343,13 +338,30 @@ public partial class PngDecoderTests
                 foreach (byte[] segment in segments)
                 {
                     WriteChunk(output, "IDAT", segment);
+                    if (corruptEmptyChunk && segment.Length == 0)
+                    {
+                        // Corrupt only the CRC. The compressed bytes and all chunk boundaries remain valid.
+                        output.GetBuffer()[(int)output.Position - 1] ^= 1;
+                    }
                 }
             }
 
             WriteChunk(output, type, data);
         }
 
-        using Image<Rgba32> actual = Image.Load<Rgba32>(output.ToArray());
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        if (corruptEmptyChunk && integrity != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
+            });
+
+            Assert.Equal("CRC Error. PNG IDAT chunk is corrupt!", exception.Message);
+            return;
+        }
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
 
         ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
@@ -358,8 +370,21 @@ public partial class PngDecoderTests
     /// A frame data chunk may carry nothing but its sequence number. Such chunks must not end the frame's
     /// compressed data early, wherever they fall.
     /// </summary>
-    [Fact]
-    public void Decode_EmptyFrameDataChunks_DecodesPixelExact()
+    /// <param name="layout">The frame data layout to write.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    /// <param name="corruptEmptyChunk">Whether to corrupt the CRC of each sequence-only frame data chunk.</param>
+    [Theory]
+    [InlineData("LeadingEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("ConsecutiveLeadingEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("TrailingEmpty", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.Strict, true)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.IgnoreImageData, true)]
+    [InlineData("TruncatedSequenceBetween", SegmentIntegrityHandling.Strict, false)]
+    [InlineData("TruncatedSequenceBetween", SegmentIntegrityHandling.IgnoreAncillary, false)]
+    [InlineData("TruncatedSequenceBetween", SegmentIntegrityHandling.IgnoreImageData, false)]
+    public void Decode_EmptyFrameDataChunks_FollowsIntegrityPolicy(string layout, SegmentIntegrityHandling integrity, bool corruptEmptyChunk)
     {
         using Image<Rgba32> image = CreateNoiseImage(40, 30, 1);
         using (Image<Rgba32> frame = CreateNoiseImage(40, 30, 2))
@@ -373,8 +398,7 @@ public partial class PngDecoderTests
         List<(string Type, byte[] Data)> chunks = ReadChunks(encoded);
         Assert.Contains(chunks, c => c.Type == "fdAT");
 
-        // Split every frame data chunk inside its zlib header, around an empty frame data chunk, and renumber
-        // the shared fcTL/fdAT sequence so the result stays a well-formed animation.
+        // Renumber fcTL and fdAT together so rechunking preserves the animation's sequence order.
         using MemoryStream output = new();
         output.Write(encoded.AsSpan(0, 8));
         uint sequenceNumber = 0;
@@ -382,10 +406,26 @@ public partial class PngDecoderTests
         {
             if (type == "fdAT")
             {
-                ReadOnlySpan<byte> payload = data.AsSpan(4);
-                WriteChunk(output, type, [.. GetSequenceNumber(sequenceNumber++), .. payload[..1]]);
-                WriteChunk(output, type, GetSequenceNumber(sequenceNumber++));
-                WriteChunk(output, type, [.. GetSequenceNumber(sequenceNumber++), .. payload[1..]]);
+                foreach (byte[] segment in SplitCompressedData(data[4..], layout))
+                {
+                    byte[] sequence = GetSequenceNumber(sequenceNumber++);
+                    if (layout == "TruncatedSequenceBetween" && segment.Length == 0)
+                    {
+                        // The preceding payload reaches the inflater before this structural error is encountered.
+                        WriteChunk(output, type, sequence.AsSpan(0, 3));
+                    }
+                    else
+                    {
+                        WriteChunk(output, type, [.. sequence, .. segment]);
+                    }
+
+                    if (corruptEmptyChunk && segment.Length == 0)
+                    {
+                        // fdAT is image data even though its chunk type is ancillary in the PNG naming scheme.
+                        output.GetBuffer()[(int)output.Position - 1] ^= 1;
+                    }
+                }
+
                 continue;
             }
 
@@ -398,15 +438,68 @@ public partial class PngDecoderTests
         }
 
         using Image<Rgba32> expected = Image.Load<Rgba32>(encoded);
-        using Image<Rgba32> actual = Image.Load<Rgba32>(output.ToArray());
-
-        Assert.Equal(expected.Frames.Count, actual.Frames.Count);
-        for (int i = 0; i < expected.Frames.Count; i++)
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        if (layout == "TruncatedSequenceBetween")
         {
-            using Image<Rgba32> expectedFrame = expected.Frames.CloneFrame(i);
-            using Image<Rgba32> actualFrame = actual.Frames.CloneFrame(i);
-            ImageComparer.Exact.VerifySimilarity(expectedFrame, actualFrame);
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
+            });
+
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, output.ToArray()));
+            return;
         }
+
+        if (corruptEmptyChunk && integrity != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
+            });
+
+            Assert.Equal("CRC Error. PNG fdAT chunk is corrupt!", exception.Message);
+            return;
+        }
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Rejects frame data that cannot contain a sequence number, regardless of the recoverable-error policy.
+    /// </summary>
+    /// <param name="length">The invalid frame data length.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    [Theory]
+    [InlineData(0, SegmentIntegrityHandling.Strict)]
+    [InlineData(3, SegmentIntegrityHandling.Strict)]
+    [InlineData(0, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(3, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(0, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(3, SegmentIntegrityHandling.IgnoreImageData)]
+    public void DecodeAndIdentify_FrameDataWithoutSequenceNumber_ThrowsInvalidImageContentException(int length, SegmentIntegrityHandling integrity)
+    {
+        byte[] encoded = TestFile.Create(TestImages.Png.APng).Bytes;
+        List<(string Type, byte[] Data)> chunks = ReadChunks(encoded);
+        Assert.Contains(chunks, chunk => chunk.Type == "fdAT");
+
+        using MemoryStream stream = new();
+        stream.Write(encoded.AsSpan(0, 8));
+        foreach ((string type, byte[] data) in chunks)
+        {
+            // Preserve valid CRCs so the failure must come from the missing structural field.
+            WriteChunk(stream, type, type == "fdAT" ? data.AsSpan(0, length) : data);
+        }
+
+        byte[] invalid = stream.ToArray();
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, invalid);
+        });
+
+        Assert.Equal("The frame data chunk does not contain a sequence number.", exception.Message);
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, invalid));
     }
 
     /// <summary>
@@ -414,10 +507,21 @@ public partial class PngDecoderTests
     /// instead of reading outside the color table.
     /// </summary>
     /// <param name="interlaceMode">The interlace mode of the image.</param>
+    /// <param name="paletteLength">The number of palette bytes, fewer than one complete entry.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
     [Theory]
-    [InlineData(PngInterlaceMode.None)]
-    [InlineData(PngInterlaceMode.Adam7)]
-    public void Decode_PaletteChunkShorterThanOneEntry_ThrowsInvalidImageContentException(PngInterlaceMode interlaceMode)
+    [InlineData(PngInterlaceMode.None, 0, SegmentIntegrityHandling.Strict)]
+    [InlineData(PngInterlaceMode.None, 1, SegmentIntegrityHandling.Strict)]
+    [InlineData(PngInterlaceMode.None, 2, SegmentIntegrityHandling.Strict)]
+    [InlineData(PngInterlaceMode.Adam7, 0, SegmentIntegrityHandling.Strict)]
+    [InlineData(PngInterlaceMode.Adam7, 1, SegmentIntegrityHandling.Strict)]
+    [InlineData(PngInterlaceMode.Adam7, 2, SegmentIntegrityHandling.Strict)]
+    [InlineData(PngInterlaceMode.None, 2, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(PngInterlaceMode.None, 2, SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_PaletteChunkShorterThanOneEntry_ThrowsInvalidImageContentException(
+        PngInterlaceMode interlaceMode,
+        int paletteLength,
+        SegmentIntegrityHandling integrity)
     {
         // Zeroed scanlines: filter type None and palette index 0. A 9x9 image has 9 rows of 1 + 9 bytes, or
         // 100 bytes across the seven Adam7 passes, each row of which also starts with a filter byte.
@@ -425,11 +529,15 @@ public partial class PngDecoderTests
         using MemoryStream stream = new();
         stream.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
         WriteChunk(stream, "IHDR", CreateHeaderData(9, 9, 8, PngColorType.Palette, interlaceMode));
-        WriteChunk(stream, "PLTE", [10, 20]);
+        WriteChunk(stream, "PLTE", new byte[paletteLength]);
         WriteChunk(stream, "IDAT", Compress(indices));
         WriteChunk(stream, "IEND", []);
 
-        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream.ToArray()));
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, stream.ToArray());
+        });
     }
 
     /// <summary>
@@ -475,6 +583,26 @@ public partial class PngDecoderTests
         Assert.Equal(ushort.MinValue, image[0, 0].A);
         Assert.Equal(ushort.MaxValue, image[1, 0].A);
     }
+
+    /// <summary>
+    /// Splits compressed data without changing its bytes, including layouts with empty chunks.
+    /// </summary>
+    /// <param name="data">The complete compressed data.</param>
+    /// <param name="layout">The chunk layout.</param>
+    /// <returns>The ordered chunk payloads.</returns>
+    private static byte[][] SplitCompressedData(byte[] data, string layout)
+        => layout switch
+        {
+            "LeadingEmpty" => [[], data],
+            "ConsecutiveLeadingEmpty" => [[], [], data],
+            "FirstOneByte" => [data[..1], data[1..]],
+            "EmptyWithinHeader" => [data[..1], [], data[1..]],
+            "EveryOneByte" => [.. data.Select(b => new[] { b })],
+            "EveryOneByteWithEmpty" => [.. data.SelectMany(b => new[] { [b], Array.Empty<byte>() })],
+            "EmptyBetween" or "TruncatedSequenceBetween" => [data[..(data.Length / 2)], [], data[(data.Length / 2)..]],
+            "TrailingEmpty" => [data, []],
+            _ => throw new ArgumentOutOfRangeException(nameof(layout)),
+        };
 
     /// <summary>
     /// Creates an image filled with reproducible random colors.

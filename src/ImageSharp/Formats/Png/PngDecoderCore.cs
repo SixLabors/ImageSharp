@@ -216,6 +216,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameData:
                         {
+                            ValidateFrameDataChunk(chunk);
+
                             if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
@@ -258,10 +260,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
+                                // PLTE and tRNS precede IDAT. Validate the required indexed palette before
+                                // allocating pixel storage, outside recovery from compressed-data errors.
+                                this.AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                                 this.InitializeImage(metadata, currentFrameControl.Value, out image);
-
-                                // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
                             this.ReadScanlines(
@@ -413,6 +415,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.FrameData:
+                            ValidateFrameDataChunk(chunk);
+
                             if (frameCount > this.maxFrames)
                             {
                                 // Must skip the chunk data even when we've hit maxFrames, because TryReadChunk
@@ -454,7 +458,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
                                 // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
+                                this.AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
                             this.SkipChunkDataAndCrc(chunk);
@@ -1331,17 +1335,22 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Decodes and assigns the color palette to the metadata
+    /// Assigns the palette to metadata and rejects indexed images without a complete palette entry.
     /// </summary>
     /// <param name="palette">The palette buffer.</param>
     /// <param name="alpha">The alpha palette buffer.</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private static void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
+    private void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
     {
-        // A palette chunk too short to hold a single entry would produce an empty color table, which the
-        // scanline processors would index outside of. Treat it as missing so indexed decoding reports it.
+        // Indexed samples require at least one complete RGB entry. Reject a missing table before scanline
+        // recovery can suppress the error in IgnoreImageData mode. Other color types have an optional palette.
         if (palette.Length < Unsafe.SizeOf<Rgb24>())
         {
+            if (this.pngColorType is PngColorType.Palette)
+            {
+                PngThrowHelper.ThrowMissingPalette();
+            }
+
             return;
         }
 
@@ -2199,8 +2208,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 return 0;
             }
 
-            if (chunk.Type is not (PngChunkType.Data or PngChunkType.FrameData))
+            if (chunk.Type is not PngChunkType.Data)
             {
+                // Only IDAT payloads belong to this stream. Frame data must return to the outer loop
+                // for its own framing checks, outside recovery from compressed-data errors.
                 this.nextChunk = chunk;
                 return 0;
             }
@@ -2237,8 +2248,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 return 0;
             }
 
-            if (chunk.Type is not PngChunkType.FrameData)
+            if (chunk.Type is not PngChunkType.FrameData || chunk.Length < sizeof(uint))
             {
+                // A short fdAT cannot supply compressed data. Let the outer chunk loop validate it outside
+                // image-data recovery, just as that loop handles the next frame control or end chunk.
                 this.nextChunk = chunk;
                 return 0;
             }
@@ -2265,17 +2278,31 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     {
         while (this.TryReadChunk(buffer, out PngChunk chunk))
         {
-            if (chunk.Type is PngChunkType.FrameData)
+            if (chunk.Type is PngChunkType.FrameData && chunk.Length >= sizeof(uint))
             {
                 chunk.Data?.Dispose();
                 this.SkipChunkDataAndCrc(chunk);
             }
             else
             {
-                // Not a FrameData chunk; store it so the next TryReadChunk call returns it.
+                // Preserve other chunks, including malformed fdAT, for validation by the outer chunk loop.
                 this.nextChunk = chunk;
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks the required sequence number before consuming a frame data chunk.
+    /// </summary>
+    /// <param name="chunk">The frame data chunk.</param>
+    private static void ValidateFrameDataChunk(in PngChunk chunk)
+    {
+        // A missing sequence number is a structural error in every integrity mode. Call this from the outer
+        // chunk loop, outside the scope that permits recovery from compressed image-data errors.
+        if (chunk.Length < sizeof(uint))
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("The frame data chunk does not contain a sequence number.");
         }
     }
 

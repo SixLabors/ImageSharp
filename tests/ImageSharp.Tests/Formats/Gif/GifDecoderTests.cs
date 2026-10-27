@@ -24,6 +24,14 @@ public class GifDecoderTests
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
     ];
 
+    /// <summary>
+    /// The four palette colors in the stored frame geometry fixtures.
+    /// </summary>
+    private static readonly Rgba32[] GeometryTestColorTable =
+    [
+        new(255, 0, 0), new(0, 255, 0), new(0, 0, 255), new(255, 255, 255)
+    ];
+
     [Theory]
     [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
     public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
@@ -440,6 +448,127 @@ public class GifDecoderTests
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateGifWithMalformedApplicationExtension());
         });
+    }
+
+    /// <summary>
+    /// Invalid LZW table codes fail unless image data errors are explicitly ignored.
+    /// Recovery retains completed rows and continues to the following animation frame.
+    /// </summary>
+    /// <param name="path">The stored GIF with an invalid first code or an invalid code after a clear.</param>
+    /// <param name="completedRows">The number of valid rows before the invalid code.</param>
+    /// <param name="frameCount">The number of stored animation frames.</param>
+    [Theory]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTable, 0, 1)]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTableHiddenRow, 1, 2)]
+    public void Decode_LzwCodePastCodeTables_RespectsIntegrityHandling(string path, int completedRows, int frameCount)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            if (integrity is not SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+                });
+
+                continue;
+            }
+
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            Assert.Equal(new Size(4, frameCount == 1 ? 4 : 2), actual.Size);
+            Assert.Equal(frameCount, actual.Frames.Count);
+
+            for (int y = 0; y < actual.Height; y++)
+            {
+                for (int x = 0; x < actual.Width; x++)
+                {
+                    // A completed row is red. An undecoded row keeps the frame's transparent background.
+                    Assert.Equal(y < completedRows ? new Rgba32(255, 0, 0) : default, actual[x, y]);
+
+                    if (frameCount == 2)
+                    {
+                        // The complete green frame after the corrupt frame proves that sub-block recovery resumed correctly.
+                        Assert.Equal(new Rgba32(0, 255, 0), actual.Frames[1][x, y]);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Identify uses LZW index skipping and must apply the same image data policy as full decoding.
+    /// </summary>
+    /// <param name="path">The stored GIF with an invalid table code.</param>
+    /// <param name="frameCount">The number of stored animation frames.</param>
+    [Theory]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTable, 1)]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTableHiddenRow, 2)]
+    public void Identify_LzwCodePastCodeTables_RespectsIntegrityHandling(string path, int frameCount)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            if (integrity is not SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+                continue;
+            }
+
+            ImageInfo info = Image.Identify(options, data);
+            Assert.Equal(new Size(4, frameCount == 1 ? 4 : 2), info.Size);
+            Assert.Equal(frameCount, info.FrameMetadataCollection.Count);
+        }
+    }
+
+    /// <summary>
+    /// Clips stored frame rows to the logical screen without changing interlace order or later frame parsing.
+    /// </summary>
+    /// <param name="path">The stored GIF with a four-color row pattern and a second frame containing one white pixel.</param>
+    /// <param name="width">The first frame's stored width.</param>
+    /// <param name="height">The first frame's stored height.</param>
+    /// <param name="left">The first frame's left offset.</param>
+    /// <param name="top">The first frame's top offset.</param>
+    [Theory]
+    [InlineData(TestImages.Gif.Frame20x20At0x0Interlaced, 20, 20, 0, 0)]
+    [InlineData(TestImages.Gif.Frame20x20At0x0Sequential, 20, 20, 0, 0)]
+    [InlineData(TestImages.Gif.Frame10x10At0x5Interlaced, 10, 10, 0, 5)]
+    [InlineData(TestImages.Gif.Frame10x10At0x5Sequential, 10, 10, 0, 5)]
+    [InlineData(TestImages.Gif.Frame10x10At5x3Interlaced, 10, 10, 5, 3)]
+    [InlineData(TestImages.Gif.Frame10x10At0x10Interlaced, 10, 10, 0, 10)]
+    [InlineData(TestImages.Gif.Frame10x10At0x10Sequential, 10, 10, 0, 10)]
+    [InlineData(TestImages.Gif.Frame10x20At0x8Interlaced, 10, 20, 0, 8)]
+    [InlineData(TestImages.Gif.Frame10x20At0x9Interlaced, 10, 20, 0, 9)]
+    [InlineData(TestImages.Gif.Frame10x1At0x0Interlaced, 10, 1, 0, 0)]
+    [InlineData(TestImages.Gif.Frame10x2At0x0Interlaced, 10, 2, 0, 0)]
+    [InlineData(TestImages.Gif.Frame10x3At0x7Interlaced, 10, 3, 0, 7)]
+    [InlineData(TestImages.Gif.Frame10x4At0x0Interlaced, 10, 4, 0, 0)]
+    [InlineData(TestImages.Gif.Frame4x4At12x0Interlaced, 4, 4, 12, 0)]
+    [InlineData(TestImages.Gif.Frame4x4At12x0Sequential, 4, 4, 12, 0)]
+    public void Decode_FrameExceedingLogicalScreen_WritesOnlyRowsInsideCanvas(string path, int width, int height, int left, int top)
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(path).Bytes);
+
+        Assert.Equal(new Size(10, 10), image.Size);
+        Assert.Equal(2, image.Frames.Count);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                // Frame row n contains palette index n modulo four. Pixels outside its rectangle stay transparent.
+                bool inFrame = x >= left && x < left + width && y >= top && y < top + height;
+                Rgba32 expected = inFrame ? GeometryTestColorTable[(y - top) % 4] : default;
+                Assert.Equal(expected, image[x, y]);
+            }
+        }
+
+        // Even when the first frame is clipped or fully hidden, its data must not consume the next image descriptor.
+        Assert.Equal(new Rgba32(255, 255, 255), image.Frames[1][0, 0]);
     }
 
     private static byte[] CreateGifWithMalformedApplicationExtension()

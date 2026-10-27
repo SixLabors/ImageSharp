@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -699,87 +698,79 @@ public class BmpDecoderTests
         });
     }
 
+    /// <summary>
+    /// Invalid RGB bit depths cannot define a pixel layout, even when image data errors are ignored.
+    /// </summary>
+    /// <param name="path">The stored bitmap with an unsupported RGB bit depth.</param>
     [Theory]
-    [InlineData(0)]
-    [InlineData(3)]
-    [InlineData(7)]
-    [InlineData(12)]
-    [InlineData(33)]
-    public void BmpDecoder_InvalidUncompressedBitsPerPixel_ThrowsInvalidImageContentException(short bitsPerPixel)
+    [InlineData(InvalidRgbDepth0)]
+    [InlineData(InvalidRgbDepth3)]
+    [InlineData(InvalidRgbDepth7)]
+    [InlineData(InvalidRgbDepth12)]
+    [InlineData(InvalidRgbDepth33)]
+    public void BmpDecoder_InvalidUncompressedBitsPerPixel_ThrowsInvalidImageContentException(string path)
     {
-        byte[] data = CreateUncompressedBitmap(2, 2, bitsPerPixel, 8);
+        byte[] data = TestFile.Create(path).Bytes;
 
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
-        Assert.Throws<InvalidImageContentException>(() =>
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(data);
-        });
-    }
-
-    [Theory]
-    [InlineData(4000, 4000)]
-    [InlineData(100000, 1)]
-    public void BmpDecoder_PixelDataSmallerThanDeclared_ThrowsBeforeAllocatingPixelBuffer(int width, int height)
-    {
-        byte[] data = CreateUncompressedBitmap(width, height, 24, 72);
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        DecoderOptions options = new() { Configuration = configuration };
-
-        Assert.Throws<InvalidImageContentException>(() =>
-        {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
-        });
-
-        // The rejection must happen before the Rgba32 pixel buffer for the declared dimensions is requested.
-        Assert.DoesNotContain(allocator.AllocationLog, request => request.LengthInBytes >= width * height * 4);
-    }
-
-    [Fact]
-    public void BmpDecoder_MissingLastRowPadding_Decodes()
-    {
-        using Image<Rgb24> expected = new(1, 2);
-        expected[0, 0] = new Rgb24(255, 0, 0);
-        expected[0, 1] = new Rgb24(0, 0, 255);
-
-        using MemoryStream stream = new();
-        expected.SaveAsBmp(stream, new BmpEncoder { BitsPerPixel = BmpBitsPerPixel.Bit24 });
-
-        // Each 24-bit row of one pixel holds three bytes of pixel data and one byte of padding.
-        // The pixel data is at the end of the file, so dropping the last byte removes the padding of the last row.
-        byte[] data = stream.ToArray()[..^1];
-
-        using Image<Rgb24> actual = Image.Load<Rgb24>(data);
-
-        Assert.Equal(expected[0, 0], actual[0, 0]);
-        Assert.Equal(expected[0, 1], actual[0, 1]);
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
     }
 
     /// <summary>
-    /// Creates a bitmap with a file header, a 40-byte BITMAPINFOHEADER without compression, and zeroed pixel data.
+    /// Rejects dimensions that require more pixel data than the file contains before requesting pixel storage.
     /// </summary>
-    /// <param name="width">The declared width.</param>
-    /// <param name="height">The declared height.</param>
-    /// <param name="bitsPerPixel">The declared bits per pixel.</param>
-    /// <param name="pixelDataLength">The number of pixel data bytes that follow the headers.</param>
-    /// <returns>The encoded bitmap.</returns>
-    private static byte[] CreateUncompressedBitmap(int width, int height, short bitsPerPixel, int pixelDataLength)
+    /// <param name="path">The stored bitmap with incomplete RGB or bit-fields pixel data.</param>
+    [Theory]
+    [InlineData(TruncatedRgb24LargeImage)]
+    [InlineData(TruncatedRgb24WideRow)]
+    [InlineData(TruncatedBitFields16)]
+    [InlineData(TruncatedBitFields32)]
+    [InlineData(TruncatedAlphaBitFields32)]
+    [InlineData(TruncatedRgb32MaximumDimensions)]
+    public void BmpDecoder_PixelDataSmallerThanDeclared_ThrowsBeforeAllocatingPixelBuffer(string path)
     {
-        const int pixelDataOffset = 54;
-        byte[] bmp = new byte[pixelDataOffset + pixelDataLength];
-        Span<byte> span = bmp;
-        span[0] = (byte)'B';
-        span[1] = (byte)'M';
-        BinaryPrimitives.WriteInt32LittleEndian(span[2..], bmp.Length);
-        BinaryPrimitives.WriteInt32LittleEndian(span[10..], pixelDataOffset);
-        BinaryPrimitives.WriteInt32LittleEndian(span[14..], 40);
-        BinaryPrimitives.WriteInt32LittleEndian(span[18..], width);
-        BinaryPrimitives.WriteInt32LittleEndian(span[22..], height);
-        BinaryPrimitives.WriteInt16LittleEndian(span[26..], 1);
-        BinaryPrimitives.WriteInt16LittleEndian(span[28..], bitsPerPixel);
+        byte[] data = TestFile.Create(path).Bytes;
 
-        return bmp;
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            // The allocator's group limit prevents a failed maximum-dimension regression from allocating that image.
+            TestMemoryAllocator allocator = new();
+            allocator.EnableNonThreadSafeLogging();
+            Configuration configuration = Configuration.Default.Clone();
+            configuration.MemoryAllocator = allocator;
+            DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = integrity };
+
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+
+            // An allocation-limit exception is too late. No Rgba32 buffer, including a split buffer, may be requested.
+            Assert.Null(exception.InnerException);
+            Assert.DoesNotContain(allocator.AllocationLog, request => request.ElementType == typeof(Rgba32));
+        }
+    }
+
+    /// <summary>
+    /// Accepts a missing padding byte after the final stored row in either row order.
+    /// </summary>
+    /// <param name="path">The stored one-column bitmap with a red top pixel and a blue bottom pixel.</param>
+    [Theory]
+    [InlineData(MissingFinalRowPadding)]
+    [InlineData(MissingFinalRowPaddingTopDown)]
+    public void BmpDecoder_MissingLastRowPadding_Decodes(string path)
+    {
+        using Image<Rgb24> actual = Image.Load<Rgb24>(TestFile.Create(path).Bytes);
+
+        Assert.Equal(new Size(1, 2), actual.Size);
+        Assert.Equal(new Rgb24(255, 0, 0), actual[0, 0]);
+        Assert.Equal(new Rgb24(0, 0, 255), actual[0, 1]);
     }
 }

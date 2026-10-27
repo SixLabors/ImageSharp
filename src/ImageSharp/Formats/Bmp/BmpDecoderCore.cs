@@ -133,10 +133,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
             ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
 
-            // Uncompressed pixel data has a size fixed by the header, so a header that declares more data than the
-            // stream holds is rejected before the pixel buffer is allocated. Otherwise a small file could make the
-            // decoder allocate a buffer for its declared dimensions before the first row read fails.
-            // The bit fields reader decodes every depth other than 16 as 32 bits per pixel.
+            // Reject impossible RGB and bit-fields dimensions before allocating the image. Ignoring image data errors
+            // does not make these dimensions safe: a tiny file could otherwise request a large pixel buffer.
+            // Match ReadBitFields, which uses 32-bit storage for every depth other than 16.
             int storedBitsPerPixel = this.infoHeader.Compression switch
             {
                 BmpCompression.RGB => bitsPerPixel,
@@ -146,17 +145,16 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             if (storedBitsPerPixel > 0)
             {
-                // Every row is padded to a multiple of four bytes. The padding of the last row is not required,
-                // because the row readers accept a short final read. Long arithmetic keeps the sizes of
-                // oversized declared dimensions from overflowing.
+                // Stored rows start on four-byte boundaries. Retain support for missing padding after the final row.
+                // Reserve that row's pixel bytes, then count the complete strides available for the other rows.
+                // Division avoids multiplying width by height, which can overflow even long for 32-bit BMP dimensions.
                 long rowBits = (long)this.infoHeader.Width * storedBitsPerPixel;
                 long stride = (rowBits + 31) / 32 * 4;
-                long requiredLength = (stride * (this.infoHeader.Height - 1)) + ((rowBits + 7) / 8);
+                long finalRowBytes = (rowBits + 7) / 8;
                 long remainingLength = stream.Length - stream.Position;
-                if (requiredLength > remainingLength)
+                if (remainingLength < finalRowBytes || this.infoHeader.Height - 1 > (remainingLength - finalRowBytes) / stride)
                 {
-                    BmpThrowHelper.ThrowInvalidImageContentException(
-                        $"The bitmap declares {requiredLength} bytes of pixel data, but only {remainingLength} bytes remain in the stream.");
+                    BmpThrowHelper.ThrowInvalidImageContentException("The bitmap does not contain enough pixel data for its declared dimensions.");
                 }
             }
 

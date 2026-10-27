@@ -588,8 +588,8 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // The lossy encoder produces the same bitstream with and without hardware intrinsics,
-        // so the expected size is the same on every architecture.
+        // All quantizer paths apply the same luma AC sharpening. This stored fixture therefore uses
+        // one size bound for the scalar, SSE4.1 and AVX2 paths.
         const int expectedFileSize = 64060;
 
         WebpEncoder encoder = new()
@@ -616,8 +616,8 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // The lossy encoder produces the same bitstream with and without hardware intrinsics,
-        // so the expected size is the same on every architecture.
+        // All quantizer paths apply the same luma AC sharpening. This stored fixture therefore uses
+        // one size bound for the scalar, SSE4.1 and AVX2 paths.
         const int expectedFileSize = 16240;
 
         WebpEncoder encoder = new()

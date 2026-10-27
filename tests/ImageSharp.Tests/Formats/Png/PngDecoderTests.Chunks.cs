@@ -314,10 +314,7 @@ public partial class PngDecoderTests
     [InlineData("EmptyWithinHeader", SegmentIntegrityHandling.IgnoreImageData, true)]
     public void Decode_CompressedDataSplitAcrossDataChunks_FollowsIntegrityPolicy(string layout, SegmentIntegrityHandling integrity, bool corruptEmptyChunk)
     {
-        using Image<Rgba32> expected = CreateNoiseImage(40, 30, 1);
-        using MemoryStream stream = new();
-        expected.Save(stream, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
-        byte[] encoded = stream.ToArray();
+        byte[] encoded = TestFile.Create(TestImages.Png.Noise).Bytes;
         List<(string Type, byte[] Data)> chunks = ReadChunks(encoded);
 
         byte[] zlib = [.. chunks.Where(c => c.Type == "IDAT").SelectMany(c => c.Data)];
@@ -361,6 +358,7 @@ public partial class PngDecoderTests
             return;
         }
 
+        using Image<Rgba32> expected = Image.Load<Rgba32>(encoded);
         using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
 
         ImageComparer.Exact.VerifySimilarity(expected, actual);
@@ -386,15 +384,7 @@ public partial class PngDecoderTests
     [InlineData("TruncatedSequenceBetween", SegmentIntegrityHandling.IgnoreImageData, false)]
     public void Decode_EmptyFrameDataChunks_FollowsIntegrityPolicy(string layout, SegmentIntegrityHandling integrity, bool corruptEmptyChunk)
     {
-        using Image<Rgba32> image = CreateNoiseImage(40, 30, 1);
-        using (Image<Rgba32> frame = CreateNoiseImage(40, 30, 2))
-        {
-            image.Frames.AddFrame(frame.Frames.RootFrame);
-        }
-
-        using MemoryStream stream = new();
-        image.Save(stream, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
-        byte[] encoded = stream.ToArray();
+        byte[] encoded = TestFile.Create(TestImages.Png.APng).Bytes;
         List<(string Type, byte[] Data)> chunks = ReadChunks(encoded);
         Assert.Contains(chunks, c => c.Type == "fdAT");
 
@@ -437,7 +427,6 @@ public partial class PngDecoderTests
             WriteChunk(output, type, data);
         }
 
-        using Image<Rgba32> expected = Image.Load<Rgba32>(encoded);
         DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
         if (layout == "TruncatedSequenceBetween")
         {
@@ -461,6 +450,7 @@ public partial class PngDecoderTests
             return;
         }
 
+        using Image<Rgba32> expected = Image.Load<Rgba32>(encoded);
         using Image<Rgba32> actual = Image.Load<Rgba32>(options, output.ToArray());
         ImageComparer.Exact.VerifySimilarity(expected, actual);
     }
@@ -603,28 +593,6 @@ public partial class PngDecoderTests
             "TrailingEmpty" => [data, []],
             _ => throw new ArgumentOutOfRangeException(nameof(layout)),
         };
-
-    /// <summary>
-    /// Creates an image filled with reproducible random colors.
-    /// </summary>
-    /// <param name="width">The image width.</param>
-    /// <param name="height">The image height.</param>
-    /// <param name="seed">The random seed.</param>
-    /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-    private static Image<Rgba32> CreateNoiseImage(int width, int height, int seed)
-    {
-        Random random = new(seed);
-        Image<Rgba32> image = new(width, height);
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                image[x, y] = new Rgba32((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
-            }
-        }
-
-        return image;
-    }
 
     /// <summary>
     /// Splits a PNG file into its chunks without validating them.

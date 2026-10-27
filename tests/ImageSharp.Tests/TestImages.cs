@@ -55,6 +55,7 @@ public static class TestImages
         public const string Gray4BitTrans = "Png/gray-4-tRNS.png";
         public const string L8BitTrans = "Png/gray-8-tRNS.png";
         public const string LowColorVariance = "Png/low-variance.png";
+        public const string Noise = "Png/noise-rgba32.png";
         public const string PngWithMetadata = "Png/PngWithMetaData.png";
         public const string InvalidTextData = "Png/InvalidTextData.png";
         public const string DuplicateHeaderChunkResync = "Png/duplicate-header-chunk-resync.png";

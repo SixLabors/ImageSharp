@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.IO;
@@ -224,51 +225,77 @@ public class ChunkedMemoryStreamTests
         }
     }
 
+    /// <summary>
+    /// Checks overwrites within a chunk, across chunks, and beyond the previous end of the stream.
+    /// </summary>
+    /// <param name="length">The initial stream length.</param>
+    /// <param name="position">The offset to overwrite.</param>
     [Theory]
-    [InlineData(16)]
-    [InlineData(DefaultSmallChunkSize + 16)]
-    public void MemoryStream_OverwriteAfterSeek_DoesNotChangeLength(int length)
+    [InlineData(16, 6)]
+    [InlineData(DefaultSmallChunkSize + 16, DefaultSmallChunkSize - 2)]
+    [InlineData(16, 14)]
+    public void MemoryStream_OverwriteAfterSeek_MatchesMemoryStream(int length, int position)
     {
         using ChunkedMemoryStream ms = new(this.allocator);
-        byte[] expected = this.CreateTestBuffer(length);
-        ms.Write(expected, 0, expected.Length);
+        using MemoryStream expected = new();
+        byte[] head = this.CreateTestBuffer(length);
+        ms.Write(head, 0, head.Length);
+        expected.Write(head, 0, head.Length);
 
         // Patch bytes inside the written data, as encoders do for offsets that are only known later.
         byte[] patch = [1, 2, 3, 4];
-        ms.Position = length - 10;
+        ms.Position = position;
+        expected.Position = position;
         ms.Write(patch, 0, patch.Length);
-        patch.CopyTo(expected, length - 10);
+        expected.Write(patch, 0, patch.Length);
 
-        Assert.Equal(length - 6, ms.Position);
-        Assert.Equal(length, ms.Length);
-        Assert.Equal(expected, ms.ToArray());
+        Assert.Equal(expected.Position, ms.Position);
+        Assert.Equal(expected.Length, ms.Length);
+        Assert.Equal(expected.ToArray(), ms.ToArray());
     }
 
+    /// <summary>
+    /// Checks seek gaps before filling the reserved header, so dirty allocator bytes cannot go undetected.
+    /// </summary>
+    /// <param name="length">The initial stream length.</param>
+    /// <param name="gap">The number of bytes to skip before writing.</param>
+    /// <param name="count">The number of tail bytes to write.</param>
     [Theory]
-    [InlineData(0, 16)]
-    [InlineData(16, 16)]
-    [InlineData(DefaultSmallChunkSize, 0)]
-    [InlineData(DefaultSmallChunkSize - 8, 16)]
-    [InlineData(16, DefaultSmallChunkSize * 2)]
-    public void MemoryStream_WriteAfterSeekPastEnd_WritesAtPosition(int length, int gap)
+    [InlineData(0, 16, 4)]
+    [InlineData(16, 16, 4)]
+    [InlineData(DefaultSmallChunkSize, 0, 4)]
+    [InlineData(DefaultSmallChunkSize - 8, 16, 4)]
+    [InlineData(16, DefaultSmallChunkSize * 2, 4)]
+    [InlineData(0, DefaultSmallChunkSize, 0)]
+    public void MemoryStream_WriteAfterSeekPastEnd_WritesAtPosition(int length, int gap, int count)
     {
-        using ChunkedMemoryStream ms = new(this.allocator);
+        using ChunkedMemoryStream ms = new(new TestMemoryAllocator());
+        using MemoryStream expected = new();
         byte[] head = this.CreateTestBuffer(length);
         ms.Write(head, 0, head.Length);
+        expected.Write(head, 0, head.Length);
 
         // Leave a gap after the data, as encoders do for a header that is written last.
         byte[] tail = [1, 2, 3, 4];
         ms.Seek(gap, SeekOrigin.Current);
-        ms.Write(tail, 0, tail.Length);
-        Assert.Equal(length + gap + tail.Length, ms.Length);
+        expected.Seek(gap, SeekOrigin.Current);
+        ms.Write(tail, 0, count);
+        expected.Write(tail, 0, count);
+
+        // MemoryStream exposes zeros in the gap. The dirty allocator makes missing initialization deterministic.
+        Assert.Equal(expected.Position, ms.Position);
+        Assert.Equal(expected.Length, ms.Length);
+        Assert.Equal(expected.ToArray(), ms.ToArray());
 
         byte[] header = this.CreateTestBuffer(gap);
         ms.Position = length;
+        expected.Position = length;
         ms.Write(header, 0, header.Length);
+        expected.Write(header, 0, header.Length);
 
-        byte[] expected = [.. head, .. header, .. tail];
+        Assert.Equal(expected.Position, ms.Position);
         Assert.Equal(expected.Length, ms.Length);
-        Assert.Equal(expected, ms.ToArray());
+        Assert.Equal(expected.ToArray(), ms.ToArray());
     }
 
     [Fact]

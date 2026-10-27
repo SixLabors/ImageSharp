@@ -58,6 +58,10 @@ public partial class ImageTests
             Assert.True(format is PngFormat);
         }
 
+        /// <summary>
+        /// Checks that synchronous and asynchronous buffering preserve the bytes written by each encoder.
+        /// </summary>
+        /// <param name="filename">The filename used to select the encoder.</param>
         [Theory]
         [InlineData("test.ani")]
         [InlineData("test.bmp")]
@@ -99,8 +103,9 @@ public partial class ImageTests
             using MemoryStream asyncTarget = new();
             await image.SaveAsync(new NonSeekableStream(asyncTarget), encoder, TestContext.Current.CancellationToken);
 
-            Assert.Equal(seekable.ToArray(), syncTarget.ToArray());
-            Assert.Equal(seekable.ToArray(), asyncTarget.ToArray());
+            byte[] expected = seekable.ToArray();
+            Assert.Equal(expected, syncTarget.ToArray());
+            Assert.Equal(expected, asyncTarget.ToArray());
         }
 
         [Fact]

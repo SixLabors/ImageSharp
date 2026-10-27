@@ -1002,6 +1002,34 @@ public static class TestImages
         public const string Benchmark_RgbPackbits = "medium_rgb_packbits.tiff";
         public const string Benchmark_RgbUncompressed = "medium_rgb_uncompressed.tiff";
 
+        public const string StripLayoutRgbReference = "Tiff/strips/rgb-4000x2.png";
+        public const string PlanarYCbCrSubsampled = "Tiff/strips/planar-ycbcr-subsampled.tiff";
+        public const string ChunkyRowsPerStripMissing = "Tiff/strips/chunky-rowsperstrip-missing.tiff";
+        public const string ChunkyRowsPerStripLarge = "Tiff/strips/chunky-rowsperstrip-large.tiff";
+        public const string ChunkyRowsPerStripMax = "Tiff/strips/chunky-rowsperstrip-max.tiff";
+        public const string ChunkyRowsPerStripZero = "Tiff/strips/chunky-rowsperstrip-zero.tiff";
+        public const string PlanarRowsPerStripMissing = "Tiff/strips/planar-rowsperstrip-missing.tiff";
+        public const string PlanarRowsPerStripLarge = "Tiff/strips/planar-rowsperstrip-large.tiff";
+        public const string PlanarRowsPerStripMax = "Tiff/strips/planar-rowsperstrip-max.tiff";
+        public const string PlanarRowsPerStripZero = "Tiff/strips/planar-rowsperstrip-zero.tiff";
+        public const string ChunkyRgb16SingleStrip = "Tiff/strips/chunky-rgb16-700-rows.tiff";
+        public const string ChunkyRgb16MultipleStrips = "Tiff/strips/chunky-rgb16-600-rows.tiff";
+        public const string PlanarRgb16SingleStrip = "Tiff/strips/planar-rgb16-700-rows.tiff";
+        public const string PlanarRgb16MultipleStrips = "Tiff/strips/planar-rgb16-600-rows.tiff";
+        public const string ChunkyRgb16ShortStrip = "Tiff/strips/chunky-rgb16-short-strip.tiff";
+        public const string PlanarRgb16ShortStrip = "Tiff/strips/planar-rgb16-short-strip.tiff";
+        public const string FrameAboveAllocationLimit = "Tiff/strips/frame-above-allocation-limit.tiff";
+        public const string ReverseDirectories = "Tiff/strips/reverse-directories.tiff";
+        public const string BigTiffReverseDirectories = "Tiff/strips/reverse-directories.bigtiff";
+        public const string DirectoryLoopOne = "Tiff/strips/loop-1-forward.tiff";
+        public const string DirectoryLoopTwo = "Tiff/strips/loop-2-forward.tiff";
+        public const string DirectoryLoopTwoReverse = "Tiff/strips/loop-2-reverse.tiff";
+        public const string DirectoryLoopThreeReverse = "Tiff/strips/loop-3-reverse.tiff";
+        public const string BigTiffDirectoryLoopOne = "Tiff/strips/loop-1-forward.bigtiff";
+        public const string BigTiffDirectoryLoopTwo = "Tiff/strips/loop-2-forward.bigtiff";
+        public const string BigTiffDirectoryLoopTwoReverse = "Tiff/strips/loop-2-reverse.bigtiff";
+        public const string BigTiffDirectoryLoopThreeReverse = "Tiff/strips/loop-3-reverse.bigtiff";
+
         public const string BilevelWithoutBitsPerSampleUncompressed = "Tiff/defaults/bilevel-no-bitspersample-none.tiff";
         public const string BilevelWithoutBitsPerSampleFax4 = "Tiff/defaults/bilevel-no-bitspersample-g4.tiff";
         public const string BilevelWithoutSampleTags = "Tiff/defaults/bilevel-no-bitspersample-or-samplesperpixel.tiff";

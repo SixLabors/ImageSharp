@@ -85,9 +85,9 @@ internal struct JpegBitReader
     public readonly bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
     /// <summary>
-    /// Whether a TEM or reserved marker has been detected, I.E. One below SOF0.
-    /// Such a marker can neither end a restart interval nor the scan.
+    /// Determines whether the detected marker is TEM or a reserved code before SOF0.
     /// </summary>
+    /// <returns>True for TEM and reserved marker codes.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool HasReservedMarker() => this.Marker < JpegConstants.Markers.SOF0;
 
@@ -184,39 +184,56 @@ internal struct JpegBitReader
         return temp;
     }
 
+    /// <summary>
+    /// Finds the next marker at a restart boundary and applies the selected image-data recovery policy.
+    /// </summary>
+    /// <param name="integrityHandling">The recovery policy for compressed image data.</param>
+    /// <returns>True if a marker was found. False if the stream ended first.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool FindNextMarker()
+    public bool FindNextMarker(SegmentIntegrityHandling integrityHandling)
     {
-        while (true)
+        do
         {
-            int b = this.stream.ReadByte();
-            if (b == -1)
+            // The bit reader can already hold a marker from its entropy-data lookahead.
+            // Libjpeg treats codes before SOF0 as damaged image data and scans forward to another marker.
+            // Only IgnoreImageData permits that recovery. Real segment markers stay with the segment parser.
+            if (this.HasReservedMarker() && integrityHandling != SegmentIntegrityHandling.IgnoreImageData)
             {
-                return false;
+                JpegThrowHelper.ThrowInvalidImageContentException("Unexpected marker before a JPEG restart marker.");
             }
 
-            // Found a marker.
-            if (b == JpegConstants.Markers.XFF)
+            while (true)
             {
-                while (b == JpegConstants.Markers.XFF)
+                int b = this.stream.ReadByte();
+                if (b == -1)
                 {
-                    // Loop here to discard any padding FF bytes on terminating marker.
-                    b = this.stream.ReadByte();
-                    if (b == -1)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
-                // Found a valid marker. Exit loop
-                if (b != 0)
+                if (b == JpegConstants.Markers.XFF)
                 {
-                    this.Marker = (byte)b;
-                    this.MarkerPosition = this.stream.Position - 2;
-                    return true;
+                    // Multiple FF bytes are marker padding. FF 00 is a stuffed data byte, not a marker.
+                    while (b == JpegConstants.Markers.XFF)
+                    {
+                        b = this.stream.ReadByte();
+                        if (b == -1)
+                        {
+                            return false;
+                        }
+                    }
+
+                    if (b != 0)
+                    {
+                        this.Marker = (byte)b;
+                        this.MarkerPosition = this.stream.Position - 2;
+                        break;
+                    }
                 }
             }
         }
+        while (this.HasReservedMarker());
+
+        return true;
     }
 
     [MethodImpl(InliningOptions.AlwaysInline)]

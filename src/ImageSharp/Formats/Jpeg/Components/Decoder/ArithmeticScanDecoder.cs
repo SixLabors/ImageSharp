@@ -203,6 +203,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     }
 
     /// <inheritdoc/>
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; set; }
+
+    /// <inheritdoc/>
     public int ResetInterval
     {
         set
@@ -1100,9 +1103,10 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     {
         if (this.restartInterval > 0 && (--this.todo) == 0)
         {
-            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF)
+            // Use the same marker recovery and integrity policy as Huffman-coded scans.
+            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF || this.scanBuffer.HasReservedMarker())
             {
-                if (!this.scanBuffer.FindNextMarker())
+                if (!this.scanBuffer.FindNextMarker(this.SegmentIntegrityHandling))
                 {
                     return false;
                 }
@@ -1119,8 +1123,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 component.AcStatistics?.Reset();
             }
 
-            this.Reset();
-
+            // Reset clears the detected marker. Classify it first so a real segment marker can be read again.
             if (this.scanBuffer.HasRestartMarker())
             {
                 this.Reset();

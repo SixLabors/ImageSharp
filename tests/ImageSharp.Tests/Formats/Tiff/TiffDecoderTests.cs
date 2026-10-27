@@ -1006,6 +1006,78 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         });
     }
 
+    /// <summary>
+    /// Missing sample-depth tags use the TIFF default in Decode and Identify under every integrity mode.
+    /// </summary>
+    /// <param name="path">The stored bilevel TIFF without BitsPerSample, with or without SamplesPerPixel.</param>
+    [Theory]
+    [InlineData(BilevelWithoutBitsPerSampleUncompressed)]
+    [InlineData(BilevelWithoutBitsPerSampleFax4)]
+    [InlineData(BilevelWithoutSampleTags)]
+    public void TiffDecoder_CanDecode_BilevelWithoutBitsPerSample(string path)
+    {
+        using Image<L8> expected = Image.Load<L8>(TestFile.Create(Fax4Compressed).Bytes);
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            using Image<L8> actual = Image.Load<L8>(options, data);
+            ImageInfo info = Image.Identify(options, data);
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+            TiffFrameMetadata metadata = actual.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(new TiffBitsPerSample(1, 0, 0), metadata.BitsPerSample);
+            Assert.Equal(TiffBitsPerPixel.Bit1, metadata.BitsPerPixel);
+            Assert.Equal(1, info.PixelType.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit1, info.FrameMetadataCollection[0].GetTiffMetadata().BitsPerPixel);
+        }
+    }
+
+    /// <summary>
+    /// A missing sample-depth tag must not reduce an unsupported sample count to a supported layout.
+    /// </summary>
+    /// <param name="path">The stored TIFF with zero or five declared samples per pixel.</param>
+    [Theory]
+    [InlineData(MissingBitsPerSampleWithZeroSamples)]
+    [InlineData(MissingBitsPerSampleWithFiveSamples)]
+    public void TiffDecoder_WithoutBitsPerSample_RejectsUnsupportedSampleCounts(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<NotSupportedException>(() => Image.Identify(options, data));
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<L8> image = Image.Load<L8>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
+    /// A present but unusable sample-depth tag must not inherit a valid default layout.
+    /// </summary>
+    /// <param name="path">The stored TIFF with an empty or zero-valued BitsPerSample entry.</param>
+    [Theory]
+    [InlineData(EmptyBitsPerSample)]
+    [InlineData(ZeroBitsPerSample)]
+    public void TiffDecoder_PresentInvalidBitsPerSample_IsNotDefaulted(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<L8> image = Image.Load<L8>(options, data);
+            });
+        }
+    }
+
     private static byte[] CreateTiffWithMalformedIccProfile()
         => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
+
 }

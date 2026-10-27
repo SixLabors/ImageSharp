@@ -9,8 +9,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization;
 /// Performs Bradley Adaptive Threshold filter against an image.
 /// </summary>
 /// <remarks>
+/// Each pixel is compared with the mean of a centered window, clipped to the processing rectangle.
+/// The window includes the current pixel, including when the rectangle is only one pixel wide or tall.
+/// <para>
 /// Implements "Adaptive Thresholding Using the Integral Image",
 /// see paper: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.420.7883&amp;rep=rep1&amp;type=pdf
+/// </para>
 /// </remarks>
 public class AdaptiveThresholdProcessor : IImageProcessor
 {

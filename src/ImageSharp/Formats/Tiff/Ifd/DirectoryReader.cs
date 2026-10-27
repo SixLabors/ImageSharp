@@ -74,8 +74,17 @@ internal class DirectoryReader
     private List<ExifProfile> ReadIfds(bool isBigTiff)
     {
         List<EntryReader> readers = [];
+
+        // TIFF allows directories at any offset, so a chain that goes backwards in the file is valid.
+        // Only a directory offset that has already been read means the chain loops.
+        HashSet<ulong> visitedOffsets = new(4);
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
         {
+            if (!visitedOffsets.Add(this.nextIfdOffset))
+            {
+                TiffThrowHelper.ThrowImageFormatException("TIFF image contains circular directory offsets");
+            }
+
             EntryReader reader = new(this.stream, this.ByteOrder, this.allocator);
             reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
@@ -88,11 +97,6 @@ internal class DirectoryReader
                 {
                     reader.ReadBigValues();
                 }
-            }
-
-            if (this.nextIfdOffset >= reader.NextIfdOffset && reader.NextIfdOffset != 0)
-            {
-                TiffThrowHelper.ThrowImageFormatException("TIFF image contains circular directory offsets");
             }
 
             this.nextIfdOffset = reader.NextIfdOffset;

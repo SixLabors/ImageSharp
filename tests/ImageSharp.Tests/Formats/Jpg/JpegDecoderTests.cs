@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+using static SixLabors.ImageSharp.Tests.TestImages.Jpeg;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -297,6 +298,98 @@ public partial class JpegDecoderTests
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
+    }
+
+    /// <summary>
+    /// Checks restart recovery against clean stored files whose pixels also match in libjpeg.
+    /// </summary>
+    /// <param name="originalFile">The clean JPEG input.</param>
+    /// <param name="malformedFile">The input with extra markers before restart markers.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-tem.jpg")]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-reserved-bf.jpg")]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-reserved-chain.jpg")]
+    [InlineData(MarkerDirectory + "noninterleaved.jpg", MarkerDirectory + "noninterleaved-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "progressive.jpg", MarkerDirectory + "progressive-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic.jpg", MarkerDirectory + "arithmetic-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive.jpg", MarkerDirectory + "arithmetic-progressive-reserved-12.jpg")]
+    public void Decode_ReservedMarkerBeforeRestartMarkers_RecoversWithIgnoreImageData(string originalFile, string malformedFile)
+    {
+        // These stored files have complete restart intervals. Libjpeg warns about the extra markers,
+        // then finds the restart marker and produces the same pixels as the clean file.
+        // The arithmetic inputs declare their conditioning tables to isolate restart recovery.
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(originalFile).Bytes);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, TestFile.Create(malformedFile).Bytes);
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Rejects image-data errors when the selected policy permits only ancillary recovery or no recovery.
+    /// </summary>
+    /// <param name="fileName">The input with reserved markers before restart markers.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "baseline-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "noninterleaved-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "progressive-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive-reserved-12.jpg")]
+    public void Decode_ReservedMarkerBeforeRestartMarkers_RespectsIntegrity(string fileName)
+    {
+        byte[] data = TestFile.Create(fileName).Bytes;
+        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions ancillary = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, data);
+        });
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(ancillary, data);
+        });
+    }
+
+    /// <summary>
+    /// Accepts a standalone TEM marker between header segments under every integrity policy.
+    /// </summary>
+    [Fact]
+    public void Decode_TemMarkerBetweenHeaderSegments_IsSkipped()
+    {
+        byte[] data = TestFile.Create(MarkerDirectory + "header-tem.jpg").Bytes;
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes);
+
+        // TEM has no length field. The following bytes belong to the next marker, not to TEM.
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Equal(new Size(32, 24), Image.Identify(options, data).Size);
+
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// Keeps required header lengths valid after a standalone TEM marker.
+    /// </summary>
+    [Fact]
+    public void Decode_InvalidQuantizationSegmentAfterTem_RemainsFatal()
+    {
+        // TEM precedes DQT in this stored file. DQT declares more bytes than the file contains.
+        // No image data has been read, so there is no safe point for recovery.
+        byte[] data = TestFile.Create(MarkerDirectory + "header-tem-invalid-dqt-length.jpg").Bytes;
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2315

@@ -273,12 +273,11 @@ internal static class JpegConstants
         public const byte RST7 = 0xD7;
 
         /// <summary>
-        /// Temporary private use in arithmetic coding
-        /// <remarks>
-        /// Like SOI, EOI and RSTn, this marker stands alone and is not followed by a length field.
-        /// It is the lowest marker code, every code between it and <see cref="SOF0"/> is reserved.
-        /// </remarks>
+        /// Temporary private marker for arithmetic coding.
         /// </summary>
+        /// <remarks>
+        /// This marker stands alone. It has no length field or payload.
+        /// </remarks>
         public const byte TEM = 0x01;
     }
 

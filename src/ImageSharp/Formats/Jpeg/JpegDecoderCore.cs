@@ -188,9 +188,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     }
                 }
 
-                // Found a valid marker. Exit loop.
-                // FF 00 is a stuffed data byte. RSTn and TEM stand alone without a length field (ITU T.81 B.1.1.4),
-                // so stray ones between marker segments carry no data and are skipped.
+                // FF 00 is a stuffed data byte. RSTn and TEM have no length field (ITU T.81, Table B.1).
+                // Skip these standalone markers so the next marker's bytes are not read as a length.
                 if (b is not 0 and not JpegConstants.Markers.TEM and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
                 {
                     return new JpegFileMarker((byte)(uint)b, stream.Position - 2);
@@ -326,6 +325,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
+        // Apply the image-data policy to the active decoder, including one supplied by TIFF.
+        this.scanDecoder.SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling;
+
         this.Metadata ??= new ImageMetadata();
 
         Span<byte> markerBuffer = stackalloc byte[2];
@@ -388,7 +390,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     case JpegConstants.Markers.SOF10:
                     case JpegConstants.Markers.SOF13:
                     case JpegConstants.Markers.SOF14:
-                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, cancellationToken);
+                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, cancellationToken)
+                        {
+                            SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling
+                        };
+
                         if (this.resetInterval.HasValue)
                         {
                             this.scanDecoder.ResetInterval = this.resetInterval.Value;

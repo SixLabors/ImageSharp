@@ -355,6 +355,10 @@ public partial class PngEncoderTests
         }
     }
 
+    /// <summary>
+    /// Checks the stored byte order independently of the decoder, then checks the identified transparency marker.
+    /// </summary>
+    /// <param name="colorType">The PNG color type.</param>
     [Theory]
     [InlineData(PngColorType.Grayscale)]
     [InlineData(PngColorType.Rgb)]

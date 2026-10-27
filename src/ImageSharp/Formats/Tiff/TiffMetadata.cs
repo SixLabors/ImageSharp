@@ -52,6 +52,10 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
     /// <summary>
     /// Gets or sets number of bits per component. Derived from the root frame.
     /// </summary>
+    /// <remarks>
+    /// New metadata uses eight bits for each RGB component.
+    /// On decode, an absent <see cref="SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag.BitsPerSample"/> tag means one bit for each sample.
+    /// </remarks>
     public TiffBitsPerSample BitsPerSample { get; set; } = TiffConstants.DefaultBitsPerSample;
 
     /// <summary>

@@ -2,15 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
-using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -999,63 +996,77 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     /// <summary>
-    /// A bilevel TIFF without a BitsPerSample entry uses the TIFF 6.0 default of one bit per sample.
+    /// Missing sample-depth tags use the TIFF default in Decode and Identify under every integrity mode.
     /// </summary>
-    /// <param name="compression">The compression of the encoded image.</param>
+    /// <param name="path">The stored bilevel TIFF without BitsPerSample, with or without SamplesPerPixel.</param>
     [Theory]
-    [InlineData(TiffCompression.None)]
-    [InlineData(TiffCompression.CcittGroup4Fax)]
-    public void TiffDecoder_CanDecode_BilevelWithoutBitsPerSample(TiffCompression compression)
+    [InlineData(BilevelWithoutBitsPerSampleUncompressed)]
+    [InlineData(BilevelWithoutBitsPerSampleFax4)]
+    [InlineData(BilevelWithoutSampleTags)]
+    public void TiffDecoder_CanDecode_BilevelWithoutBitsPerSample(string path)
     {
-        using Image<L8> source = new(16, 8);
-        for (int y = 0; y < source.Height; y++)
+        using Image<L8> expected = Image.Load<L8>(TestFile.Create(Fax4Compressed).Bytes);
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            for (int x = 0; x < source.Width; x++)
-            {
-                source[x, y] = new L8((byte)((x + y) % 3 == 0 ? 255 : 0));
-            }
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            using Image<L8> actual = Image.Load<L8>(options, data);
+            ImageInfo info = Image.Identify(options, data);
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+            TiffFrameMetadata metadata = actual.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(new TiffBitsPerSample(1, 0, 0), metadata.BitsPerSample);
+            Assert.Equal(TiffBitsPerPixel.Bit1, metadata.BitsPerPixel);
+            Assert.Equal(1, info.PixelType.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit1, info.FrameMetadataCollection[0].GetTiffMetadata().BitsPerPixel);
         }
+    }
 
-        using MemoryStream stream = new();
-        source.Save(stream, new TiffEncoder { BitsPerPixel = TiffBitsPerPixel.Bit1, Compression = compression });
-        byte[] withBitsPerSample = stream.ToArray();
+    /// <summary>
+    /// A missing sample-depth tag must not reduce an unsupported sample count to a supported layout.
+    /// </summary>
+    /// <param name="path">The stored TIFF with zero or five declared samples per pixel.</param>
+    [Theory]
+    [InlineData(MissingBitsPerSampleWithZeroSamples)]
+    [InlineData(MissingBitsPerSampleWithFiveSamples)]
+    public void TiffDecoder_WithoutBitsPerSample_RejectsUnsupportedSampleCounts(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
 
-        // Move the BitsPerSample entry to an unused private tag, so the decoder no longer finds it.
-        byte[] withoutBitsPerSample = (byte[])withBitsPerSample.Clone();
-        RenameFirstDirectoryEntry(withoutBitsPerSample, ExifTagValue.BitsPerSample, 65000);
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<NotSupportedException>(() => Image.Identify(options, data));
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<L8> image = Image.Load<L8>(options, data);
+            });
+        }
+    }
 
-        using Image<L8> expected = Image.Load<L8>(withBitsPerSample);
-        using Image<L8> actual = Image.Load<L8>(withoutBitsPerSample);
-        ImageInfo info = Image.Identify(withoutBitsPerSample);
+    /// <summary>
+    /// A present but unusable sample-depth tag must not inherit a valid default layout.
+    /// </summary>
+    /// <param name="path">The stored TIFF with an empty or zero-valued BitsPerSample entry.</param>
+    [Theory]
+    [InlineData(EmptyBitsPerSample)]
+    [InlineData(ZeroBitsPerSample)]
+    public void TiffDecoder_PresentInvalidBitsPerSample_IsNotDefaulted(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
 
-        ImageComparer.Exact.VerifySimilarity(expected, actual);
-        Assert.Equal(TiffBitsPerPixel.Bit1, actual.Frames.RootFrame.Metadata.GetTiffMetadata().BitsPerPixel);
-        Assert.Equal(1, info.PixelType.BitsPerPixel);
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<L8> image = Image.Load<L8>(options, data);
+            });
+        }
     }
 
     private static byte[] CreateTiffWithMalformedIccProfile()
         => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
 
-    /// <summary>
-    /// Changes the tag of an entry in the first directory of a little-endian TIFF.
-    /// </summary>
-    /// <param name="tiff">The encoded TIFF.</param>
-    /// <param name="tag">The tag of the entry to change.</param>
-    /// <param name="newTag">The new tag number.</param>
-    private static void RenameFirstDirectoryEntry(byte[] tiff, ExifTagValue tag, ushort newTag)
-    {
-        int ifdOffset = (int)BinaryPrimitives.ReadUInt32LittleEndian(tiff.AsSpan(4));
-        int count = BinaryPrimitives.ReadUInt16LittleEndian(tiff.AsSpan(ifdOffset));
-        for (int i = 0; i < count; i++)
-        {
-            int entry = ifdOffset + 2 + (i * 12);
-            if (BinaryPrimitives.ReadUInt16LittleEndian(tiff.AsSpan(entry)) == (ushort)tag)
-            {
-                BinaryPrimitives.WriteUInt16LittleEndian(tiff.AsSpan(entry), newTag);
-                return;
-            }
-        }
-
-        throw new InvalidOperationException($"Tag {tag} not found.");
-    }
 }

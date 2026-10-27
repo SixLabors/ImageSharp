@@ -80,7 +80,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             ImageMetadata metadata = new();
             Span<byte> buffer = stackalloc byte[4];
 
-            uint fileSize = this.ReadImageHeader(stream, buffer);
+            this.ReadImageHeader(stream, buffer);
 
             using (this.webImageInfo = this.ReadVp8Info(stream, metadata))
             {
@@ -94,7 +94,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.backgroundColorHandling,
                         this.ExecuteAncillarySegmentAction);
 
-                    return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
+                    return animationDecoder.Decode<TPixel>(
+                        stream,
+                        this.webImageInfo.Features,
+                        this.webImageInfo.Width,
+                        this.webImageInfo.Height,
+                        metadata,
+                        this.riffEnd);
                 }
 
                 // A VP8X header alone describes a canvas, not decodable image data.
@@ -145,7 +151,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        uint fileSize = this.ReadImageHeader(stream, stackalloc byte[4]);
+        this.ReadImageHeader(stream, stackalloc byte[4]);
         ImageMetadata metadata = new();
 
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
@@ -165,7 +171,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.webImageInfo.Features,
                     this.webImageInfo.Width,
                     this.webImageInfo.Height,
-                    fileSize);
+                    metadata,
+                    this.riffEnd);
             }
 
             return new ImageInfo(
@@ -179,8 +186,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    /// <returns>The file size in bytes.</returns>
-    private uint ReadImageHeader(BufferedReadStream stream, Span<byte> buffer)
+    private void ReadImageHeader(BufferedReadStream stream, Span<byte> buffer)
     {
         long riffStart = stream.Position;
 
@@ -190,17 +196,25 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         // Read file size.
         // The size of the file in bytes starting at offset 8.
         // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
-        uint fileSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
+        if (stream.Read(buffer) != 4)
+        {
+            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the RIFF size.");
+        }
+
+        uint fileSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
 
         // Bytes after the RIFF payload are not part of the image, so chunks are only read up to its end,
-        // as libwebp does. A declared size larger than the stream describes a truncated file, so reading
-        // then stops at the end of the stream instead.
-        this.riffEnd = Math.Min(riffStart + WebpConstants.ChunkHeaderSize + fileSize, stream.Length);
+        // as libwebp does. Keep the declared end separate from EOF: IgnoreImageData can recover a compressed
+        // payload cut short at EOF, but it must never borrow bytes from outside its declared parent.
+        this.riffEnd = riffStart + WebpConstants.ChunkHeaderSize + fileSize;
 
         // Skip 'WEBP' from the header.
         stream.Skip(4);
 
-        return fileSize;
+        if (fileSize < 12 || Math.Min(this.riffEnd, stream.Length) - stream.Position < WebpConstants.ChunkHeaderSize)
+        {
+            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the first WebP chunk.");
+        }
     }
 
     /// <summary>
@@ -219,62 +233,87 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
 
         WebpImageInfo? info = null;
         WebpFeatures features = new();
-        switch (chunkType)
+        bool allowTruncatedPayload = this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData;
+        try
         {
-            case WebpChunkType.Vp8:
-                info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
-                webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                webpMetadata.ColorType = WebpColorType.Yuv;
-                return info;
-            case WebpChunkType.Vp8L:
-                info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
-                webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
-                return info;
-            case WebpChunkType.Vp8X:
-                info = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features);
+            switch (chunkType)
+            {
+                case WebpChunkType.Vp8:
+                    info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features, this.riffEnd, allowTruncatedPayload);
+                    webpMetadata.FileFormat = WebpFileFormatType.Lossy;
+                    webpMetadata.ColorType = WebpColorType.Yuv;
+                    return info;
+                case WebpChunkType.Vp8L:
+                    info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features, this.riffEnd, allowTruncatedPayload);
+                    webpMetadata.FileFormat = WebpFileFormatType.Lossless;
+                    webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
+                    return info;
+                case WebpChunkType.Vp8X:
+                    info = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features, this.riffEnd);
 
-                // Fewer bytes than a chunk header before the end of the RIFF payload cannot start another chunk.
-                while (this.riffEnd - stream.Position >= WebpConstants.ChunkHeaderSize)
-                {
-                    chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-                    if (chunkType == WebpChunkType.Vp8)
+                    // Fewer bytes than a chunk header before the end of the RIFF payload cannot start another chunk.
+                    while (Math.Min(this.riffEnd, stream.Length) - stream.Position >= WebpConstants.ChunkHeaderSize)
                     {
-                        info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
-                        webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                        webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
-                    }
-                    else if (chunkType == WebpChunkType.Vp8L)
-                    {
-                        info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
-                        webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                        webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
-                    }
-                    else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
-                    {
-                        // ANIM chunks appear before EXIF and XMP chunks.
-                        // Return after parsing an ANIM chunk - The animated decoder will handle the rest.
-                        bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, metadata, chunkType, features, ignoreAlpha, buffer);
-                        if (isAnimationChunk)
+                        chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
+                        if (chunkType == WebpChunkType.Vp8)
                         {
-                            return info;
+                            WebpImageInfo imageInfo = WebpChunkParsingUtils.ReadVp8Header(
+                                this.memoryAllocator,
+                                stream,
+                                buffer,
+                                features,
+                                this.riffEnd,
+                                allowTruncatedPayload);
+
+                            info.Dispose();
+                            info = imageInfo;
+                            webpMetadata.FileFormat = WebpFileFormatType.Lossy;
+                            webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
+                        }
+                        else if (chunkType == WebpChunkType.Vp8L)
+                        {
+                            WebpImageInfo imageInfo = WebpChunkParsingUtils.ReadVp8LHeader(
+                                this.memoryAllocator,
+                                stream,
+                                buffer,
+                                features,
+                                this.riffEnd,
+                                allowTruncatedPayload);
+
+                            info.Dispose();
+                            info = imageInfo;
+                            webpMetadata.FileFormat = WebpFileFormatType.Lossless;
+                            webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
+                        }
+                        else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
+                        {
+                            // ANIM chunks appear before EXIF and XMP chunks.
+                            // Return after parsing an ANIM chunk - The animated decoder will handle the rest.
+                            bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, metadata, chunkType, features, ignoreAlpha, buffer);
+                            if (isAnimationChunk)
+                            {
+                                return info;
+                            }
+                        }
+                        else
+                        {
+                            // Unknown chunks do not change the pixels. Widen their padded size before skipping,
+                            // and stop at RIFF when the declaration exceeds the available container bytes.
+                            WebpChunkParsingUtils.SkipChunk(stream, buffer, this.riffEnd);
                         }
                     }
-                    else
-                    {
-                        // Ignore unknown chunks.
-                        // These must always fall after the image data so we are safe to always skip them.
-                        // A chunk extending past the RIFF payload ends the parsing instead of wrapping to a negative skip.
-                        uint chunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
-                        stream.Position = Math.Min(stream.Position + chunkSize, this.riffEnd);
-                    }
-                }
 
-                return info;
-            default:
-                WebpThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
-                return
-                    new WebpImageInfo(); // this return will never be reached, because throw helper will throw an exception.
+                    return info;
+                default:
+                    WebpThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
+                    return
+                        new WebpImageInfo(); // this return will never be reached, because throw helper will throw an exception.
+            }
+        }
+        catch
+        {
+            info?.Dispose();
+            throw;
         }
     }
 
@@ -305,19 +344,19 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 // precede the image data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction, this.riffEnd);
                 break;
 
             case WebpChunkType.Exif:
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata));
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, this.riffEnd));
                 break;
 
             case WebpChunkType.Xmp:
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata));
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, this.riffEnd));
                 break;
 
             case WebpChunkType.AnimationParameter:
-                ReadAnimationParameters(stream, features, buffer);
+                ReadAnimationParameters(stream, features, buffer, this.riffEnd);
                 return true;
 
             case WebpChunkType.Alpha:
@@ -350,24 +389,23 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         }
 
         // Fewer bytes than a chunk header before the end of the RIFF payload cannot start another chunk.
-        while (this.riffEnd - stream.Position >= WebpConstants.ChunkHeaderSize)
+        while (Math.Min(this.riffEnd, stream.Length) - stream.Position >= WebpConstants.ChunkHeaderSize)
         {
             // Read chunk header.
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             if (chunkType == WebpChunkType.Exif)
             {
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata));
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, this.riffEnd));
             }
             else if (chunkType == WebpChunkType.Xmp)
             {
-                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata));
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, this.riffEnd));
             }
             else
             {
                 // Skip unknown chunks.
                 // A chunk extending past the RIFF payload ends the parsing instead of wrapping to a negative skip.
-                uint chunkLength = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
-                stream.Position = Math.Min(stream.Position + chunkLength, this.riffEnd);
+                WebpChunkParsingUtils.SkipChunk(stream, buffer, this.riffEnd);
             }
         }
     }
@@ -378,10 +416,12 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="features">The webp features.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private static void ReadAnimationParameters(BufferedReadStream stream, WebpFeatures features, Span<byte> buffer)
+    /// <param name="containerEnd">The end of the RIFF payload.</param>
+    private static void ReadAnimationParameters(BufferedReadStream stream, WebpFeatures features, Span<byte> buffer, long containerEnd)
     {
         features.Animation = true;
-        uint animationChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
+        uint animationChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 6, false);
+        long chunkEnd = stream.Position + animationChunkSize + (animationChunkSize & 1);
         byte blue = (byte)stream.ReadByte();
         byte green = (byte)stream.ReadByte();
         byte red = (byte)stream.ReadByte();
@@ -394,6 +434,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         }
 
         features.AnimationLoopCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+        stream.Position = chunkEnd;
     }
 
     /// <summary>
@@ -405,15 +446,17 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="buffer">Temporary buffer.</param>
     private void ReadAlphaData(BufferedReadStream stream, WebpFeatures features, bool ignoreAlpha, Span<byte> buffer)
     {
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
+        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, this.riffEnd, 1, false);
+        long chunkEnd = stream.Position + alphaChunkSize + (alphaChunkSize & 1);
         if (ignoreAlpha)
         {
-            stream.Skip((int)alphaChunkSize);
+            stream.Position = chunkEnd;
             return;
         }
 
         features.AlphaChunkHeader = (byte)stream.ReadByte();
         int alphaDataSize = (int)(alphaChunkSize - 1);
+        this.alphaData?.Dispose();
         this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
         Span<byte> alphaData = this.alphaData.GetSpan();
         int bytesRead = stream.Read(alphaData, 0, alphaDataSize);
@@ -421,6 +464,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         {
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha data from the stream");
         }
+
+        stream.Position = chunkEnd;
     }
 
     /// <inheritdoc/>

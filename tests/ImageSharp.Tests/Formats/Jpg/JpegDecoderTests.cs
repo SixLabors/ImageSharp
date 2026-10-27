@@ -382,6 +382,7 @@ public partial class JpegDecoderTests
         // TEM precedes DQT in this stored file. DQT declares more bytes than the file contains.
         // No image data has been read, so there is no safe point for recovery.
         byte[] data = TestFile.Create(MarkerDirectory + "header-tem-invalid-dqt-length.jpg").Bytes;
+
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
             DecoderOptions options = new() { SegmentIntegrityHandling = integrity };

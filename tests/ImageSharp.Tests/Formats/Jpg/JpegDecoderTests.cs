@@ -302,6 +302,31 @@ public partial class JpegDecoderTests
     }
 
     /// <summary>
+    /// Uses the JPEG defaults when an arithmetic conditioning table is not declared.
+    /// </summary>
+    /// <param name="originalFile">The input with explicit conditioning tables.</param>
+    /// <param name="defaultFile">The input that omits default conditioning tables.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "arithmetic.jpg", MarkerDirectory + "arithmetic-defaults.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive.jpg", MarkerDirectory + "arithmetic-progressive-defaults.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive.jpg", MarkerDirectory + "arithmetic-progressive-default-ac.jpg")]
+    public void Decode_ArithmeticConditioningDefaults_MatchExplicitTables(string originalFile, string defaultFile)
+    {
+        // These stored files contain identical coded scans. Libjpeg produces identical pixels with or without
+        // the default DAC entries. Omission is valid JPEG syntax and does not require image-data recovery.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(originalFile).Bytes);
+        byte[] data = TestFile.Create(defaultFile).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
     /// Checks restart recovery against clean stored files whose pixels also match in libjpeg.
     /// </summary>
     /// <param name="originalFile">The clean JPEG input.</param>

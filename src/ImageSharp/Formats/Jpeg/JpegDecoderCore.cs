@@ -1637,6 +1637,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (this.scanDecoder is ArithmeticScanDecoder arithmeticScanDecoder)
         {
+            // An arithmetic JPEG can omit DAC entirely. The scan decoder adds defaults for undeclared entries.
+            this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 

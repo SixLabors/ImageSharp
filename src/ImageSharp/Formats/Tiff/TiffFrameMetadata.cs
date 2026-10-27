@@ -51,6 +51,10 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     /// <summary>
     /// Gets or sets number of bits per component.
     /// </summary>
+    /// <remarks>
+    /// New metadata uses eight bits for each RGB component.
+    /// On decode, an absent <see cref="ExifTag.BitsPerSample"/> tag means one bit for each sample.
+    /// </remarks>
     public TiffBitsPerSample BitsPerSample { get; set; } = TiffConstants.DefaultBitsPerSample;
 
     /// <summary>
@@ -218,18 +222,24 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
 
         if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue))
         {
-            if (TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
-            {
-                meta.BitsPerSample = bitsPerSample;
-            }
+            // TryParse returns zero sample depths on failure. A present invalid entry must not inherit the RGB defaults.
+            meta.BitsPerSample = TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample)
+                ? bitsPerSample
+                : default;
         }
         else
         {
-            // TIFF 6.0 defines a default of one bit for each sample when the entry is absent, which bilevel
-            // fax and scanner files rely on. SamplesPerPixel defaults to one, and at most four samples are used.
+            // TIFF 6.0 defines one bit per sample when BitsPerSample is absent (page 29).
+            // SamplesPerPixel defaults to one (page 39). These file defaults differ from new metadata's RGB defaults.
             int samplesPerPixel = profile.TryGetValue(ExifTag.SamplesPerPixel, out IExifValue<ushort>? samplesPerPixelValue)
                 ? samplesPerPixelValue.Value
                 : 1;
+
+            // This metadata type stores at most four sample depths. Do not reduce a different count to a supported layout.
+            if (samplesPerPixel is < 1 or > 4)
+            {
+                TiffThrowHelper.ThrowNotSupported("Only TIFF images with one to four samples per pixel are supported.");
+            }
 
             meta.BitsPerSample = new TiffBitsPerSample(
                 1,

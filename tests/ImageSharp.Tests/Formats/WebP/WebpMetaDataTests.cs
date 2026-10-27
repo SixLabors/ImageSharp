@@ -353,18 +353,22 @@ public class WebpMetaDataTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Decode_OddLengthMetadataChunks_ReadsPayloadsWithoutPaddingByte(bool skipMetadata)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Decode_OddLengthMetadataChunks_ReadsPayloadsWithoutPaddingByte(bool skipMetadata, bool animated)
     {
         // Local libwebp extracts these exact odd-length payloads and decodes the same solid 2x2 image.
-        byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd-metadata.webp").Bytes;
+        byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + (animated ? "odd-metadata-animated.webp" : "odd-metadata.webp")).Bytes;
         byte[] icc = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd.icc").Bytes;
         byte[] xmp = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd.xmp").Bytes;
 
         DecoderOptions options = new() { SkipMetadata = skipMetadata };
         using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
 
+        // ICCP precedes ANIM. Entering the frame decoder must retain that profile, not replace its metadata owner.
+        Assert.Equal(animated ? 2 : 1, image.Frames.Count);
         Assert.Equal(new Rgba32(17, 34, 51), image[0, 0]);
         if (skipMetadata)
         {

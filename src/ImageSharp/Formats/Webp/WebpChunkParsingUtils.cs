@@ -240,19 +240,19 @@ internal static class WebpChunkParsingUtils
         // but the container specification requires readers to ignore them, so they are not validated.
         byte imageFeatures = (byte)stream.ReadByte();
 
-        // If bit 3 is set, a ICC Profile Chunk should be present.
+        // If bit 5 is set, an ICC Profile Chunk should be present.
         features.IccProfile = (imageFeatures & (1 << 5)) != 0;
 
         // If bit 4 is set, any of the frames of the image contain transparency information ("alpha" chunk).
         features.Alpha = (imageFeatures & (1 << 4)) != 0;
 
-        // If bit 5 is set, a EXIF metadata should be present.
+        // If bit 3 is set, EXIF metadata should be present.
         features.ExifProfile = (imageFeatures & (1 << 3)) != 0;
 
-        // If bit 6 is set, XMP metadata should be present.
+        // If bit 2 is set, XMP metadata should be present.
         features.XmpMetaData = (imageFeatures & (1 << 2)) != 0;
 
-        // If bit 7 is set, animation should be present.
+        // If bit 1 is set, animation should be present.
         features.Animation = (imageFeatures & (1 << 1)) != 0;
 
         // Readers ignore these three reserved bytes, as they ignore reserved feature bits.

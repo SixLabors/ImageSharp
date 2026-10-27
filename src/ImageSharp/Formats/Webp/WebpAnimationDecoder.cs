@@ -250,7 +250,7 @@ internal class WebpAnimationDecoder : IDisposable
     /// Reads frame information from the specified stream and updates the provided frame metadata.
     /// </summary>
     /// <param name="stream">The stream from which to read the frame information. Must support reading and seeking.</param>
-    /// <param name="frameMetadata">A reference to the structure that will be updated with the parsed frame metadata.</param>
+    /// <param name="frameMetadata">The metadata updated from the frame header.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
     private static void ReadFrameInfo(BufferedReadStream stream, ImageFrameMetadata frameMetadata, long containerEnd)
     {

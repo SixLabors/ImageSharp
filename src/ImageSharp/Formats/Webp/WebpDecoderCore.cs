@@ -234,6 +234,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         WebpImageInfo? info = null;
         WebpFeatures features = new();
         bool allowTruncatedPayload = this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData;
+
+        // Retain local ownership until return. Metadata parsing can fail after a copied bitstream has been allocated.
         try
         {
             switch (chunkType)

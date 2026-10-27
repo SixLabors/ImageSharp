@@ -279,6 +279,13 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         this.spectralConverter.InjectFrameData(frame, jpegData);
     }
 
+    /// <summary>
+    /// Gets the declared conditioning table or stores the JPEG defaults for an undeclared table.
+    /// </summary>
+    /// <param name="arithmeticDecodingTables">The conditioning tables for this image.</param>
+    /// <param name="isDcTable">True for a DC table. False for an AC table.</param>
+    /// <param name="identifier">The table identifier selected by the component.</param>
+    /// <returns>The declared table or a table with the standard default values.</returns>
     private static ArithmeticDecodingTable GetArithmeticTable(List<ArithmeticDecodingTable> arithmeticDecodingTables, bool isDcTable, int identifier)
     {
         int tableClass = isDcTable ? 0 : 1;
@@ -291,7 +298,11 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             }
         }
 
-        return null;
+        // Omitted DAC entries are valid. Cache the defaults so later scans reuse the table without another allocation.
+        // A later DAC segment replaces this entry through the existing table-update path.
+        ArithmeticDecodingTable table = new((byte)tableClass, (byte)identifier);
+        arithmeticDecodingTables.Add(table);
+        return table;
     }
 
     private ArithmeticStatistics CreateOrGetStatisticsBin(bool dc, int identifier, bool reset = false)

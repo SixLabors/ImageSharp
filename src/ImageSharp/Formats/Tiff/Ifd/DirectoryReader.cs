@@ -77,7 +77,7 @@ internal class DirectoryReader
 
         // TIFF allows directories at any offset, so a chain that goes backwards in the file is valid.
         // Only a directory offset that has already been read means the chain loops.
-        HashSet<ulong> visitedOffsets = [];
+        HashSet<ulong> visitedOffsets = new(4);
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
         {
             if (!visitedOffsets.Add(this.nextIfdOffset))

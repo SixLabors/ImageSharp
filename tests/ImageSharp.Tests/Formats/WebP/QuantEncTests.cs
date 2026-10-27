@@ -38,16 +38,20 @@ public class QuantEncTests
         Assert.Equal(expectedResult, actualResult);
     }
 
+    /// <summary>
+    /// Checks luma sharpening at quantization boundaries against fixed results from local libwebp.
+    /// </summary>
     private static void RunQuantizeBlockWithSharpeningTest()
     {
-        // arrange
-        // A luma AC matrix (type 0) gets non-zero sharpening for every AC coefficient. With Q = 200 the
-        // sharpen values are 2, 5 or 8, and the inputs sit just below a level boundary, so several levels
-        // are only reached when the sharpening is added before quantizing.
+        // The AC quantizer step is 200. Its sharpening biases are 2, 5 or 8.
+        // Several magnitudes require that bias to reach the next level.
+        // The input includes positive and negative coefficients.
+        // The expected values come from libwebp's scalar quantizer.
+        // Levels use VP8 zigzag order. Reconstructed coefficients use the input's 4 by 4 order.
         short[] input = [300, -110, 112, -310, 113, -500, 290, -115, 700, -108, 295, -490, 111, -298, 505, -299];
         short[] output = new short[16];
         short[] expectedOutput = [7, 0, 1, 3, -2, 1, -2, 1, -1, 1, -1, 1, -1, -2, 2, -1];
-        short[] expectedInput = [280, 0, 200, -400, 200, -400, 200, -200, 600, -200, 200, -400, 200, -200, 400, -200];
+        short[] expectedReconstructed = [280, 0, 200, -400, 200, -400, 200, -200, 600, -200, 200, -400, 200, -200, 400, -200];
         Vp8Matrix vp8Matrix = default;
         vp8Matrix.Q[0] = 40;
         vp8Matrix.Q[1] = 200;
@@ -58,7 +62,7 @@ public class QuantEncTests
 
         // assert
         Assert.Equal(expectedOutput, output);
-        Assert.Equal(expectedInput, input);
+        Assert.Equal(expectedReconstructed, input);
         Assert.Equal(1, actualResult);
     }
 
@@ -74,12 +78,23 @@ public class QuantEncTests
     [Fact]
     public void QuantizeBlock_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableAVX2);
 
+    /// <summary>
+    /// Runs the sharpening regression with the available hardware intrinsics.
+    /// </summary>
     [Fact]
     public void QuantizeBlock_WithSharpening_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.AllowAll);
 
+    /// <summary>
+    /// Runs the sharpening regression through the scalar fallback.
+    /// </summary>
     [Fact]
-    public void QuantizeBlock_WithSharpening_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.DisableHWIntrinsic);
+    public void QuantizeBlock_WithSharpening_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.DisableHWIntrinsic);
 
+    /// <summary>
+    /// Runs the sharpening regression without AVX2, including the SSE4.1 path on supported x86 hardware.
+    /// </summary>
     [Fact]
-    public void QuantizeBlock_WithSharpening_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.DisableAVX2);
+    public void QuantizeBlock_WithSharpening_WithoutAVX2_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockWithSharpeningTest, HwIntrinsics.DisableAVX2);
 }

@@ -252,8 +252,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         }
         else
         {
-            // Record the image size before the root frame is allocated, so that a failure to allocate
-            // any buffer of the image reports its real dimensions.
+            // Record the root size before allocation so allocation errors report the image dimensions.
             size = new Size(width, height);
             this.Dimensions = size.Value;
         }
@@ -270,24 +269,21 @@ internal class TiffDecoderCore : ImageDecoderCore
             {
                 this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
             }
+
+            // This shared conversion accepts RGB-compatible pixels. Other TIFF color models convert while decoding their samples.
+            if (this.ColorType is >= TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar)
+            {
+                _ = this.TryConvertIccProfile(frame);
+            }
+
+            return frame;
         }
         catch
         {
-            // The frame is not owned by an image yet, so it must be released here.
+            // The caller takes ownership only after this method returns, including any ICC conversion.
             frame.Dispose();
             throw;
         }
-
-        // Only RGB-compatible color types can be converted here because the TPixel-based ICC profile conversion
-        // expects RGB-like pixel data; other photometric interpretations (YCbCr, CMYK, Lab, etc.) would require
-        // dedicated transforms. We do this once at the frame level to avoid duplicating conversion logic
-        // across all color decoders and to keep their decode paths focused on raw pixel unpacking.
-        if (this.ColorType is >= TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar)
-        {
-            _ = this.TryConvertIccProfile(frame);
-        }
-
-        return frame;
     }
 
     private (ImageFrameMetadata FrameMetadata, TiffFrameMetadata TiffMetadata) CreateFrameMetadata(ExifProfile tags)
@@ -334,13 +330,18 @@ internal class TiffDecoderCore : ImageDecoderCore
     private void DecodeImageWithStrips<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, int width, int height, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // A missing RowsPerStrip defaults to 2^32 - 1, and any value of at least the image height means that
-        // the entire image is one strip. Limiting the value to the height keeps the strip buffer sizes to the
-        // rows that actually exist, for both the chunky and the planar layout.
+        // TIFF 6.0 defaults RowsPerStrip to 2^32 - 1 (page 39). A value at least as large as height describes one strip.
+        // Both layouts allocate storage for the rows that exist, not the larger declared strip height.
         int rowsPerStrip = height;
         if (tags.TryGetValue(ExifTag.RowsPerStrip, out IExifValue<Number> value))
         {
             rowsPerStrip = Math.Min((int)value.Value, height);
+        }
+
+        // TIFF 6.0 requires at least one row per strip. Zero cannot define row offsets or a strip count.
+        if (rowsPerStrip <= 0)
+        {
+            TiffThrowHelper.ThrowImageFormatException("RowsPerStrip must be greater than zero.");
         }
 
         Array stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
@@ -463,9 +464,8 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel, frame.Metadata);
 
-        // As for chunky data, an uncompressed strip of a plane that is larger than the allocator allows for a single
-        // buffer is read and decoded one row at a time. Every row of a plane holds the same number of bytes, so the
-        // position of each row in the strip is known without decoding the rows before it.
+        // Read an uncompressed plane in rows when its strip exceeds the single-buffer limit.
+        // Each row has a fixed byte count, so its file offset does not depend on decoding earlier rows.
         bool readRows = false;
         if (decompressor is NoneTiffCompression && this.CanReadStripRows())
         {
@@ -524,12 +524,19 @@ internal class TiffDecoderCore : ImageDecoderCore
                             byteCount = byteCount > rowStart ? Math.Min(byteCount - rowStart, bytesPerRow) : 0;
                         }
 
+                        Span<byte> stripBuffer = stripBuffers[planeIndex].GetSpan();
+                        if (decompressor is NoneTiffCompression)
+                        {
+                            // The last strip can be shorter than the reusable buffer. Padding is not required image data.
+                            stripBuffer = stripBuffer[..(int)this.CalculateUncompressedDataSize(width, readHeight, planeIndex)];
+                        }
+
                         decompressor.Decompress(
                             this.inputStream,
                             offset,
                             byteCount,
                             readHeight,
-                            stripBuffers[planeIndex].GetSpan(),
+                            stripBuffer,
                             cancellationToken);
 
                         stripIndex += stripsPerPlane;
@@ -576,13 +583,8 @@ internal class TiffDecoderCore : ImageDecoderCore
         TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>(frame.Metadata);
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-        // There exists in this world TIFF files with uncompressed strips larger than the allocator allows
-        // for a single buffer, up to and beyond Int32.MaxValue bytes. We can read them, but we cannot allocate
-        // a buffer that large to hold the uncompressed data, even when the decoded image fits in memory.
-        // In this scenario we fall back to reading and decoding one row at a time.
-        //
-        // The NoneTiffCompression decompressor can be used to read individual rows since we have
-        // a guarantee that each row required the same number of bytes.
+        // An uncompressed strip can exceed the single-buffer limit even when the decoded image fits in memory.
+        // Read it in rows. Each row has a fixed byte count and uses the same reusable buffer.
         if (decompressor is NoneTiffCompression none
             && uncompressedStripSize > (ulong)this.memoryAllocator.SingleBufferAllocationLimitBytes
             && this.CanReadStripRows())
@@ -614,23 +616,19 @@ internal class TiffDecoderCore : ImageDecoderCore
 
                 ulong baseOffset = stripOffsets[stripIndex];
                 ulong available = stripByteCounts[stripIndex];
-                ulong required = (ulong)bytesPerRow * (ulong)stripHeight;
-                if (available < required)
-                {
-                    break;
-                }
-
                 for (int r = 0; r < stripHeight; r++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    ulong rowOffset = baseOffset + ((ulong)r * (ulong)bytesPerRow);
+                    ulong rowStart = (ulong)r * (ulong)bytesPerRow;
+                    ulong rowOffset = baseOffset + rowStart;
+                    ulong rowByteCount = available > rowStart ? Math.Min(available - rowStart, (ulong)bytesPerRow) : 0;
 
-                    // Use the NoneTiffCompression decompressor to read exactly one row.
+                    // Keep reads within this strip. The decompressor applies the integrity policy to missing row samples.
                     none.Decompress(
                         this.inputStream,
                         rowOffset,
-                        (ulong)bytesPerRow,
+                        rowByteCount,
                         1,
                         rowBuffer,
                         cancellationToken);
@@ -674,12 +672,19 @@ internal class TiffDecoderCore : ImageDecoderCore
                 break;
             }
 
+            Span<byte> stripData = stripBufferSpan;
+            if (decompressor is NoneTiffCompression)
+            {
+                // Only the final strip's actual rows must be present. The buffer can also hold a full strip.
+                stripData = stripData[..(int)this.CalculateUncompressedDataSize(width, stripHeight, -1)];
+            }
+
             decompressor.Decompress(
                 this.inputStream,
                 stripOffsets[stripIndex],
                 stripByteCounts[stripIndex],
                 stripHeight,
-                stripBufferSpan,
+                stripData,
                 cancellationToken);
 
             colorDecoder.Decode(stripBufferSpan, pixels, 0, top, width, stripHeight);
@@ -729,11 +734,16 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         try
         {
-            int bytesPerTileRow = RoundUpToMultipleOfEight(tileWidth * bitsPerPixel);
-            int uncompressedTilesSize = bytesPerTileRow * tileLength;
             for (int i = 0; i < tilesBuffers.Length; i++)
             {
-                tilesBuffers[i] = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
+                // Each buffer holds one plane, not every component of a pixel. Tile padding still uses the full tile dimensions.
+                ulong uncompressedTileSize = this.CalculateStripBufferSize(tileWidth, tileLength, i);
+                if (uncompressedTileSize > int.MaxValue)
+                {
+                    TiffThrowHelper.ThrowNotSupported("Tiles larger than Int32.MaxValue bytes are not supported.");
+                }
+
+                tilesBuffers[i] = this.memoryAllocator.Allocate<byte>((int)uncompressedTileSize, AllocationOptions.Clean);
             }
 
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, frame.Metadata, true, tileWidth, tileLength);
@@ -755,12 +765,18 @@ internal class TiffDecoderCore : ImageDecoderCore
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
+                        Span<byte> tileBuffer = tilesBuffers[i].GetSpan();
+                        if (decompressor is NoneTiffCompression)
+                        {
+                            tileBuffer = tileBuffer[..(int)this.CalculateUncompressedDataSize(tileWidth, tileLength, i)];
+                        }
+
                         decompressor.Decompress(
                             this.inputStream,
                             tileOffsets[tileIndexForChannel],
                             tileByteCounts[tileIndexForChannel],
                             tileLength,
-                            tilesBuffers[i].GetSpan(),
+                            tileBuffer,
                             cancellationToken);
 
                         tileIndexForChannel += tilesPerChannel;
@@ -981,6 +997,12 @@ internal class TiffDecoderCore : ImageDecoderCore
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
         {
             DebugGuard.IsTrue(plane == -1, "Expected Chunky planar.");
+
+            if (this.CompressionType == TiffDecoderCompressionType.None && !this.CanReadStripRows())
+            {
+                return this.CalculateUncompressedDataSize(width, height, plane);
+            }
+
             bitsPerPixel = this.BitsPerPixel;
         }
         else
@@ -1010,18 +1032,43 @@ internal class TiffDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Gets a value indicating whether every row of uncompressed strip data can be decoded on its own,
-    /// which allows a strip to be read one row at a time.
+    /// Calculates the encoded byte count for an uncompressed strip, tile, or individual row.
     /// </summary>
-    /// <remarks>
-    /// YCbCr data with chroma subsampling stores the samples of a block of rows together, so its rows cannot be
-    /// located or decoded separately and the strip must be decoded whole.
-    /// </remarks>
+    /// <param name="width">The stored row width, including tile padding when applicable.</param>
+    /// <param name="height">The number of stored rows.</param>
+    /// <param name="plane">The planar component index, or -1 for chunky data.</param>
+    /// <returns>The number of encoded bytes required for these samples.</returns>
+    private ulong CalculateUncompressedDataSize(int width, int height, int plane)
+    {
+        if (this.CanReadStripRows())
+        {
+            return this.CalculateStripBufferSize(width, height, plane);
+        }
+
+        ulong horizontal = this.YcbcrSubSampling[0];
+        ulong vertical = this.YcbcrSubSampling[1];
+        ulong groupsAcross = ((ulong)width + horizontal - 1) / horizontal;
+        ulong groupsDown = ((ulong)height + vertical - 1) / vertical;
+
+        // Chunky YCbCr stores horizontal * vertical luminance samples, then one Cb and one Cr sample per group.
+        // Planar YCbCr stores full-resolution luminance and one sample per group in each separate chroma plane.
+        // Chroma expansion needs larger plane buffers, but those extra bytes are not required in the file.
+        return this.PlanarConfiguration == TiffPlanarConfiguration.Chunky
+            ? groupsAcross * groupsDown * ((horizontal * vertical) + 2)
+            : plane == 0 ? (ulong)width * (ulong)height : groupsAcross * groupsDown;
+    }
+
+    /// <summary>
+    /// Determines whether each uncompressed row can be read and decoded separately.
+    /// </summary>
     /// <returns><see langword="true"/> if the rows of a strip can be decoded one at a time.</returns>
     private bool CanReadStripRows()
-        => this.PhotometricInterpretation != TiffPhotometricInterpretation.YCbCr
-        || this.YcbcrSubSampling is null
-        || (this.YcbcrSubSampling[0] == 1 && this.YcbcrSubSampling[1] == 1);
+    {
+        // Subsampled YCbCr groups can span rows. Read the complete strip before expanding its chroma samples.
+        return this.PhotometricInterpretation != TiffPhotometricInterpretation.YCbCr
+            || this.YcbcrSubSampling is null
+            || (this.YcbcrSubSampling[0] == 1 && this.YcbcrSubSampling[1] == 1);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int RoundUpToMultipleOfEight(int value) => (int)(((uint)value + 7) / 8);

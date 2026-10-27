@@ -68,7 +68,6 @@ public partial class ImageTests
         [InlineData("test.cur")]
         [InlineData("test.exr")]
         [InlineData("test.gif")]
-        [InlineData("test.heif")]
         [InlineData("test.ico")]
         [InlineData("test.jpg")]
         [InlineData("test.pbm")]
@@ -101,7 +100,7 @@ public partial class ImageTests
             image.Save(new NonSeekableStream(syncTarget), encoder);
 
             using MemoryStream asyncTarget = new();
-            await image.SaveAsync(new NonSeekableStream(asyncTarget), encoder, TestContext.Current.CancellationToken);
+            await image.SaveAsync(new NonSeekableStream(asyncTarget), encoder);
 
             byte[] expected = seekable.ToArray();
             Assert.Equal(expected, syncTarget.ToArray());

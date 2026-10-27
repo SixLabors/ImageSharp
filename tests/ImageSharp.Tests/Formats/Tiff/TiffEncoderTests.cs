@@ -286,7 +286,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
 
         // act
         image.Save(new NonSeekableStream(syncTarget), encoder);
-        await image.SaveAsync(new NonSeekableStream(asyncTarget), encoder, TestContext.Current.CancellationToken);
+        await image.SaveAsync(new NonSeekableStream(asyncTarget), encoder);
 
         // assert
         byte[] expected = seekable.ToArray();

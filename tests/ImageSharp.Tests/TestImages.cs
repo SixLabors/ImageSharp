@@ -1002,6 +1002,14 @@ public static class TestImages
         public const string Benchmark_RgbPackbits = "medium_rgb_packbits.tiff";
         public const string Benchmark_RgbUncompressed = "medium_rgb_uncompressed.tiff";
 
+        public const string BilevelWithoutBitsPerSampleUncompressed = "Tiff/defaults/bilevel-no-bitspersample-none.tiff";
+        public const string BilevelWithoutBitsPerSampleFax4 = "Tiff/defaults/bilevel-no-bitspersample-g4.tiff";
+        public const string BilevelWithoutSampleTags = "Tiff/defaults/bilevel-no-bitspersample-or-samplesperpixel.tiff";
+        public const string MissingBitsPerSampleWithZeroSamples = "Tiff/defaults/no-bitspersample-samplesperpixel-zero.tiff";
+        public const string MissingBitsPerSampleWithFiveSamples = "Tiff/defaults/no-bitspersample-samplesperpixel-five.tiff";
+        public const string EmptyBitsPerSample = "Tiff/defaults/empty-bitspersample.tiff";
+        public const string ZeroBitsPerSample = "Tiff/defaults/zero-bitspersample.tiff";
+
         public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
         public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
         public const string Calliphora_GrayscaleLzw_Predictor = "Tiff/Calliphora_gray_lzw_predictor.tiff";

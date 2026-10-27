@@ -69,11 +69,6 @@ internal static class TiffConstants
     public const TiffBitsPerPixel DefaultBitsPerPixel = TiffBitsPerPixel.Bit24;
 
     /// <summary>
-    /// The default bits per sample for color images with 8 bits for each color channel.
-    /// </summary>
-    public static readonly TiffBitsPerSample DefaultBitsPerSample = BitsPerSampleRgb8Bit;
-
-    /// <summary>
     /// The default compression is None.
     /// </summary>
     public const TiffCompression DefaultCompression = TiffCompression.None;
@@ -107,6 +102,13 @@ internal static class TiffConstants
     /// The bits per sample for color images with 8 bits for each color channel.
     /// </summary>
     public static readonly TiffBitsPerSample BitsPerSampleRgb8Bit = new(8, 8, 8);
+
+    // Initialize this alias after the value it references. Static fields initialize in declaration order.
+
+    /// <summary>
+    /// The default bits per sample for color images with 8 bits for each color channel.
+    /// </summary>
+    public static readonly TiffBitsPerSample DefaultBitsPerSample = BitsPerSampleRgb8Bit;
 
     /// <summary>
     /// The list of mime types that equate to a tiff.

@@ -38,18 +38,18 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         TPixel lower = this.definition.Lower.ToPixel<TPixel>();
         float thresholdLimit = this.definition.ThresholdLimit;
 
-        // ClusterSize defines the size of cluster to used to check for average.
-        // Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
-        byte clusterSize = (byte)Math.Clamp(interest.Width / 16F, 0, 255);
+        // Use a centered window with at least one neighboring pixel on each side, where the bounds allow it.
+        // Retain the radius cap of 255 so the window does not keep growing for images wider than 4096 pixels.
+        byte windowRadius = (byte)Math.Clamp(interest.Width / 16, 1, 255);
 
         using Buffer2D<ulong> intImage = source.CalculateIntegralImage(interest);
-        RowOperation operation = new(configuration, interest, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize);
-        ParallelRowIterator.IterateRows<RowOperation, L8>(
-            configuration,
-            interest,
-            in operation);
+        RowOperation operation = new(configuration, interest, source.PixelBuffer, intImage, upper, lower, thresholdLimit, windowRadius);
+        ParallelRowIterator.IterateRows<RowOperation, L8>(configuration, interest, in operation);
     }
 
+    /// <summary>
+    /// Applies the local threshold using the inclusive sums stored in the integral image.
+    /// </summary>
     private readonly struct RowOperation : IRowOperation<L8>
     {
         private readonly Configuration configuration;
@@ -61,8 +61,19 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly float thresholdLimit;
         private readonly int startX;
         private readonly int startY;
-        private readonly byte clusterSize;
+        private readonly byte windowRadius;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RowOperation"/> struct.
+        /// </summary>
+        /// <param name="configuration">The configuration used for bulk luminance conversion.</param>
+        /// <param name="bounds">The image rectangle to process.</param>
+        /// <param name="source">The pixel buffer to update.</param>
+        /// <param name="intImage">The inclusive integral image, with coordinates relative to <paramref name="bounds"/>.</param>
+        /// <param name="upper">The output for samples above the local threshold.</param>
+        /// <param name="lower">The output for samples at or below the local threshold.</param>
+        /// <param name="thresholdLimit">The fraction of the local mean used as the threshold.</param>
+        /// <param name="windowRadius">The number of neighboring pixels to include on each side.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public RowOperation(
             Configuration configuration,
@@ -72,7 +83,7 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             TPixel upper,
             TPixel lower,
             float thresholdLimit,
-            byte clusterSize)
+            byte windowRadius)
         {
             this.configuration = configuration;
             this.bounds = bounds;
@@ -83,7 +94,7 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             this.upper = upper;
             this.lower = lower;
             this.thresholdLimit = thresholdLimit;
-            this.clusterSize = clusterSize;
+            this.windowRadius = windowRadius;
         }
 
         /// <inheritdoc/>
@@ -98,22 +109,37 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
             PixelOperations<TPixel>.Instance.ToL8(this.configuration, rowSpan, span);
 
-            int startY = this.startY;
             int maxX = this.bounds.Width - 1;
-            int maxY = this.bounds.Height - 1;
-            int clusterSize = this.clusterSize;
+            int windowRadius = this.windowRadius;
             float thresholdLimit = this.thresholdLimit;
-            Buffer2D<ulong> image = this.intImage;
+
+            // Integral coordinates are relative to the processing rectangle. Include the current pixel
+            // and clip each side of its centered window to that rectangle, including one-pixel dimensions.
+            int relativeY = y - this.startY;
+            int top = Math.Max(relativeY - windowRadius, 0);
+            int bottom = Math.Min(relativeY + windowRadius, this.bounds.Height - 1);
+            uint windowHeight = (uint)(bottom - top + 1);
+
+            // I(x,y) includes row y and column x. Subtract the prefix ending just before the window.
+            // An empty prefix span represents the image's top boundary. Acquire both spans once per row.
+            ReadOnlySpan<ulong> bottomRow = this.intImage.DangerousGetRowSpan(bottom);
+            ReadOnlySpan<ulong> precedingRow = top > 0 ? this.intImage.DangerousGetRowSpan(top - 1) : default;
+
             for (int x = 0; x < rowSpan.Length; x++)
             {
-                int x1 = Math.Clamp(x - clusterSize + 1, 0, maxX);
-                int x2 = Math.Min(x + clusterSize + 1, maxX);
-                int y1 = Math.Clamp(y - startY - clusterSize + 1, 0, maxY);
-                int y2 = Math.Min(y - startY + clusterSize + 1, maxY);
+                int left = Math.Max(x - windowRadius, 0);
+                int right = Math.Min(x + windowRadius, maxX);
+                uint count = (uint)(right - left + 1) * windowHeight;
 
-                uint count = (uint)((x2 - x1) * (y2 - y1));
-                ulong sum = Math.Min(image[x2, y2] - image[x1, y2] - image[x2, y1] + image[x1, y1], ulong.MaxValue);
+                ulong sum = bottomRow[right] - (precedingRow.IsEmpty ? 0 : precedingRow[right]);
+                if (left > 0)
+                {
+                    // Remove the columns before the window from the same vertical band. Subtracting
+                    // these nonnegative band sums avoids unsigned underflow between integral corners.
+                    sum -= bottomRow[left - 1] - (precedingRow.IsEmpty ? 0 : precedingRow[left - 1]);
+                }
 
+                // The inclusive window always contains the current pixel, so count cannot be zero.
                 if (span[x].PackedValue * count <= sum * thresholdLimit)
                 {
                     rowSpan[x] = this.lower;

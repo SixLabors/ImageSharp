@@ -85,6 +85,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         this.acHuffmanTables = new HuffmanTable[maxTables];
     }
 
+    /// <inheritdoc/>
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; set; }
+
     /// <summary>
     /// Sets reset interval determined by RST markers.
     /// </summary>
@@ -745,9 +748,10 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     {
         if (this.restartInterval > 0 && (--this.todo) == 0)
         {
-            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF)
+            // A reserved marker cannot complete a restart interval. The shared reader applies the recovery policy.
+            if (this.scanBuffer.Marker == JpegConstants.Markers.XFF || this.scanBuffer.HasReservedMarker())
             {
-                if (!this.scanBuffer.FindNextMarker())
+                if (!this.scanBuffer.FindNextMarker(this.SegmentIntegrityHandling))
                 {
                     return false;
                 }

@@ -227,11 +227,8 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 
     /// <summary>
     /// Updates the data of the profile.
+    /// Adds the UTF-8 character set declaration when any value uses UTF-8.
     /// </summary>
-    /// <remarks>
-    /// When any value uses UTF-8 encoding, which is the default encoding of a value, the data starts with the
-    /// 1:90 Coded Character Set dataset declaring UTF-8, also when the text is ASCII only.
-    /// </remarks>
     public void UpdateData()
     {
         int length = 0;
@@ -334,15 +331,14 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     }
 
     /// <summary>
-    /// Gets if any value has UTF-8 encoding.
+    /// Determines whether any value uses UTF-8.
     /// </summary>
-    /// <returns>true if any value has UTF-8 encoding.</returns>
+    /// <returns>True if any value uses UTF-8.</returns>
     private bool HasValuesInUtf8()
     {
         foreach (IptcValue value in this.values)
         {
-            // Compare the code page rather than the instance. Cloned values hold a copy of their encoding,
-            // and callers can pass their own UTF8Encoding, but both still write UTF-8 bytes.
+            // Identify UTF-8 by code page. Cloning an encoding changes its identity, not its code page.
             if (value.Encoding.CodePage == Encoding.UTF8.CodePage)
             {
                 return true;

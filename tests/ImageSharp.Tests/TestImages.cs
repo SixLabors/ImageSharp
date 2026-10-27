@@ -787,6 +787,11 @@ public static class TestImages
 
     public static class Webp
     {
+        /// <summary>
+        /// Stored WebP container boundary and metadata inputs.
+        /// </summary>
+        public const string ContainerDirectory = "Webp/container/";
+
         // Reference image as png
         public const string Peak = "Webp/peak.png";
 

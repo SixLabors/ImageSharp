@@ -264,6 +264,11 @@ public static class TestImages
 
     public static class Jpeg
     {
+        /// <summary>
+        /// Stored JPEG marker and restart-recovery inputs.
+        /// </summary>
+        public const string MarkerDirectory = "Jpg/markers/";
+
         public static class ICC
         {
             public const string SRgb = "Jpg/icc-profiles/Momiji-sRGB-yes.jpg";

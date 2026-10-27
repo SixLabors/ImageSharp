@@ -358,14 +358,15 @@ public partial class PngEncoderTests
     /// <summary>
     /// Checks the stored byte order independently of the decoder, then checks the identified transparency marker.
     /// </summary>
+    /// <param name="path">The stored 16-bit input image.</param>
     /// <param name="colorType">The PNG color type.</param>
     [Theory]
-    [InlineData(PngColorType.Grayscale)]
-    [InlineData(PngColorType.Rgb)]
-    public void TransparencyChunk_16Bit_IsWrittenBigEndian(PngColorType colorType)
+    [InlineData(TestImages.Png.TrnsGray16BigEndian, PngColorType.Grayscale)]
+    [InlineData(TestImages.Png.TrnsRgb16BigEndian, PngColorType.Rgb)]
+    public void TransparencyChunk_16Bit_IsWrittenBigEndian(string path, PngColorType colorType)
     {
         // arrange
-        using Image<Rgba64> input = new(2, 1);
+        using Image<Rgba64> input = Image.Load<Rgba64>(TestFile.Create(path).Bytes);
         PngMetadata metadata = input.Metadata.GetPngMetadata();
         metadata.ColorType = colorType;
         metadata.BitDepth = PngBitDepth.Bit16;

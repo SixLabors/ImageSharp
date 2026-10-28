@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
@@ -117,12 +116,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_WideBinaryGrayscale_SamplesAreBigEndian()
     {
-        // Per the Netpbm specification, 16-bit samples store the most significant byte first.
-        byte[] header = Encoding.ASCII.GetBytes("P5\n2 1\n65535\n");
-        byte[] samples = [0x80, 0x00, 0x00, 0x80];
-        byte[] data = [.. header, .. samples];
-
-        using Image<L16> image = Image.Load<L16>(data);
+        using Image<L16> image = Image.Load<L16>(TestFile.Create(WideGrayPgm).Bytes);
 
         Assert.Equal(0x8000, image[0, 0].PackedValue);
         Assert.Equal(0x0080, image[1, 0].PackedValue);
@@ -131,12 +125,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_WideBinaryRgb_SamplesAreBigEndian()
     {
-        // Per the Netpbm specification, 16-bit samples store the most significant byte first.
-        byte[] header = Encoding.ASCII.GetBytes("P6\n1 1\n65535\n");
-        byte[] samples = [0x81, 0xB5, 0x84, 0x91, 0x86, 0x71];
-        byte[] data = [.. header, .. samples];
-
-        using Image<Rgb48> image = Image.Load<Rgb48>(data);
+        using Image<Rgb48> image = Image.Load<Rgb48>(TestFile.Create(WideRgbPpm).Bytes);
 
         Assert.Equal(new Rgb48(0x81B5, 0x8491, 0x8671), image[0, 0]);
     }
@@ -144,9 +133,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_NonStandardByteMaxPixelValue_UpscalesToFullRange()
     {
-        byte[] data = Encoding.ASCII.GetBytes("P2\n1 1\n100\n100");
-
-        using Image<L8> image = Image.Load<L8>(data);
+        using Image<L8> image = Image.Load<L8>(TestFile.Create(ByteWhitePgm).Bytes);
 
         Assert.Equal(255, image[0, 0].PackedValue);
     }
@@ -154,14 +141,160 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_NonStandardShortMaxPixelValue_UpscalesToFullRange()
     {
-        byte[] header = Encoding.ASCII.GetBytes("P5\n1 1\n1000\n");
-        byte[] samples = [0x03, 0xE8];
-        byte[] data = [.. header, .. samples];
-
-        using Image<L16> image = Image.Load<L16>(data);
+        using Image<L16> image = Image.Load<L16>(TestFile.Create(WideWhitePgm).Bytes);
 
         Assert.Equal(65535, image[0, 0].PackedValue);
     }
+
+    /// <summary>
+    /// Preserves non-standard sample ranges when packing both byte and ushort destination pixels.
+    /// </summary>
+    /// <param name="imagePath">The stored PGM or PPM input.</param>
+    /// <param name="maxPixelValue">The declared maximum sample value.</param>
+    /// <param name="isRgb">True for three-channel samples.</param>
+    [Theory]
+    [InlineData(P2Max100Pgm, 100, false)]
+    [InlineData(P3Max100Ppm, 100, true)]
+    [InlineData(P5Max100Pgm, 100, false)]
+    [InlineData(P6Max100Ppm, 100, true)]
+    [InlineData(P2Max1000Pgm, 1000, false)]
+    [InlineData(P3Max1000Ppm, 1000, true)]
+    [InlineData(P5Max1000Pgm, 1000, false)]
+    [InlineData(P6Max1000Ppm, 1000, true)]
+    public void Decode_NonStandardMaxPixelValue_PreservesSamplePrecision(string imagePath, int maxPixelValue, bool isRgb)
+    {
+        // The six stored samples are 0, 7, Maxval/2, Maxval-1, Maxval and 3.
+        // These fixed expectations round their fractions once at the destination precision.
+        byte[] expected8 = maxPixelValue == 100 ? [0, 18, 128, 252, 255, 8] : [0, 2, 128, 255, 255, 1];
+        ushort[] expected16 = maxPixelValue == 100 ? [0, 4587, 32768, 64880, 65535, 1966] : [0, 459, 32768, 65469, 65535, 197];
+        byte[] data = TestFile.Create(imagePath).Bytes;
+        using Image<Rgb24> image8 = Image.Load<Rgb24>(data);
+        using Image<Rgb48> image16 = Image.Load<Rgb48>(data);
+        int width = isRgb ? 2 : 6;
+        Assert.Equal(new Size(width, 1), image8.Size);
+        Assert.Equal(image8.Size, image16.Size);
+
+        for (int x = 0; x < width; x++)
+        {
+            int red = isRgb ? x * 3 : x;
+            int green = isRgb ? red + 1 : red;
+            int blue = isRgb ? red + 2 : red;
+            Assert.Equal(new Rgb24(expected8[red], expected8[green], expected8[blue]), image8[x, 0]);
+            Assert.Equal(new Rgb48(expected16[red], expected16[green], expected16[blue]), image16[x, 0]);
+        }
+    }
+
+    /// <summary>
+    /// Saturates sample magnitudes independently of the selected integrity mode.
+    /// </summary>
+    /// <param name="imagePath">The stored input containing samples above Maxval.</param>
+    [Theory]
+    [InlineData(P2AboveMax100Pgm)]
+    [InlineData(P3AboveMax100Ppm)]
+    [InlineData(P5AboveMax100Pgm)]
+    [InlineData(P6AboveMax100Ppm)]
+    [InlineData(P2AboveMax1000Pgm)]
+    [InlineData(P3AboveMax1000Ppm)]
+    [InlineData(P5AboveMax1000Pgm)]
+    [InlineData(P6AboveMax1000Ppm)]
+    [InlineData(P2DecimalOverflowPgm)]
+    [InlineData(P3DecimalOverflowPpm)]
+    public void Decode_SamplesAboveMaxval_SaturateInEveryIntegrityMode(string imagePath)
+    {
+        byte[] data = TestFile.Create(imagePath).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            using Image<Rgb48> image = Image.Load<Rgb48>(options, data);
+            Assert.Equal(new Rgb48(65535, 65535, 65535), image[0, 0]);
+        }
+    }
+
+    /// <summary>
+    /// Preserves the available pixels and channels when a non-standard raster ends early.
+    /// </summary>
+    /// <param name="imagePath">The truncated stored input.</param>
+    /// <param name="isRgb">True for a truncated RGB pixel; false for a truncated grayscale row.</param>
+    [Theory]
+    [InlineData(P2PartialPgm, false)]
+    [InlineData(P5PartialPgm, false)]
+    [InlineData(P3PartialPpm, true)]
+    [InlineData(P6PartialPpm, true)]
+    public void Decode_PartialRaster_PreservesAvailableImageData(string imagePath, bool isRgb)
+    {
+        byte[] data = TestFile.Create(imagePath).Bytes;
+        Rgb24[] expected = isRgb
+            ? [new(0, 2, 128), new(255, 0, 0)]
+            : [new(0, 0, 0), new(18, 18, 18), new(255, 255, 255), new(128, 128, 128), default, default];
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
+            Assert.Equal(isRgb ? new Size(2, 1) : new Size(3, 2), image.Size);
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], image[i % image.Width, i / image.Width]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Keeps raster bytes whose values are whitespace or a comment marker.
+    /// </summary>
+    /// <param name="imagePath">The stored binary input.</param>
+    /// <param name="isRgb">True for RGB samples.</param>
+    [Theory]
+    [InlineData(RasterWhitespacePgm, false)]
+    [InlineData(RasterWhitespacePpm, true)]
+    public void Decode_BinaryRaster_DoesNotSkipSampleBytes(string imagePath, bool isRgb)
+    {
+        // Stored magnitudes 9, 10, 13, 32 and 35 are TAB, LF, CR, space and '#'. They belong to the raster.
+        byte[] expected = [23, 26, 33, 82, 89, 255];
+        using Image<Rgb24> image = Image.Load<Rgb24>(TestFile.Create(imagePath).Bytes);
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            int red = isRgb ? x * 3 : x;
+            Assert.Equal(new Rgb24(expected[red], expected[isRgb ? red + 1 : red], expected[isRgb ? red + 2 : red]), image[x, 0]);
+        }
+    }
+
+    /// <summary>
+    /// Keeps a binary PBM raster byte whose value equals ASCII space.
+    /// </summary>
+    [Fact]
+    public void Decode_BinaryBitmap_DoesNotSkipRasterByte()
+    {
+        using Image<L8> image = Image.Load<L8>(TestFile.Create(RasterWhitespacePbm).Bytes);
+
+        for (int x = 0; x < 8; x++)
+        {
+            Assert.Equal(x == 2 ? 0 : 255, image[x, 0].PackedValue);
+        }
+    }
+
+    /// <summary>
+    /// Rejects an overflowing header dimension before allocating the image.
+    /// </summary>
+    [Fact]
+    public void Decode_OverflowingHeader_RemainsFatal()
+    {
+        byte[] data = TestFile.Create(HeaderDecimalOverflowPgm).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
+            });
+        }
+    }
+
 
     [Theory]
     [WithFile(RgbPlain, PixelTypes.Rgb24)]
@@ -186,13 +319,13 @@ public class PbmDecoderTests
     }
 
     [Theory]
-    [InlineData("P2")]
-    [InlineData("P3")]
-    [InlineData("P5")]
-    [InlineData("P6")]
-    public void Decode_MaxPixelValueZero_ThrowsInvalidImageContentException(string magic)
+    [InlineData(P2ZeroMaxPgm)]
+    [InlineData(P3ZeroMaxPpm)]
+    [InlineData(P5ZeroMaxPgm)]
+    [InlineData(P6ZeroMaxPpm)]
+    public void Decode_MaxPixelValueZero_ThrowsInvalidImageContentException(string imagePath)
     {
-        byte[] bytes = Encoding.ASCII.GetBytes($"{magic} 1 1 0\n0");
+        byte[] bytes = TestFile.Create(imagePath).Bytes;
         using MemoryStream stream = new(bytes);
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
@@ -201,8 +334,7 @@ public class PbmDecoderTests
     [Fact]
     public void PlainText_PrematureEof()
     {
-        byte[] bytes = Encoding.ASCII.GetBytes($"P1\n100 100\n1 0 1 0 1 0");
-        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(bytes);
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(PlainEofPbm);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
         Assert.Equal(new Size(100, 100), eofHitCounter.Image.Size);

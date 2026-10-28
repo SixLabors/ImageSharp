@@ -62,8 +62,19 @@ internal static class BufferedReadStreamExtensions
     /// It's up to the call site to handle such a situation.
     /// </remarks>
     public static bool ReadDecimal(this BufferedReadStream stream, out int value)
+        => stream.ReadDecimal(out value, out _);
+
+    /// <summary>
+    /// Reads a decimal value and reports values above the supported integer range without wrapping.
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="value">The parsed value, saturated at <see cref="int.MaxValue"/>.</param>
+    /// <param name="overflow">True if the decimal value exceeds <see cref="int.MaxValue"/>.</param>
+    /// <returns>False if EOF was reached. The final digits are retained in <paramref name="value"/>.</returns>
+    public static bool ReadDecimal(this BufferedReadStream stream, out int value, out bool overflow)
     {
         value = 0;
+        overflow = false;
         while (true)
         {
             int current = stream.ReadByte();
@@ -78,7 +89,17 @@ internal static class BufferedReadStreamExtensions
                 break;
             }
 
-            value = (value * 10) + current;
+            // Keep consuming digits after overflow so the next sample starts at the correct byte.
+            // Sample conversion can saturate this value. Header parsing rejects an overflowing field.
+            if (value > (int.MaxValue - current) / 10)
+            {
+                value = int.MaxValue;
+                overflow = true;
+            }
+            else
+            {
+                value = (value * 10) + current;
+            }
         }
 
         return true;

@@ -6,7 +6,6 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Pbm;
 
@@ -65,10 +64,6 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
         this.ProcessPixels(stream, pixels);
-        if (this.NeedsUpscaling())
-        {
-            this.ProcessUpscaling(image);
-        }
 
         return image;
     }
@@ -138,19 +133,25 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         }
 
         if (!stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int width) ||
+            !stream.ReadDecimal(out int width, out bool widthOverflow) || widthOverflow ||
             !stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int height) ||
-            !stream.SkipWhitespaceAndComments())
+            !stream.ReadDecimal(out int height, out bool heightOverflow) || heightOverflow)
         {
-            ThrowPrematureEof();
+            ThrowInvalidHeader();
+        }
+
+        // ReadDecimal consumed the separator after height. Only PBM's binary raster starts here;
+        // other formats still need a Maxval token, and plain PBM still needs to skip token whitespace.
+        if ((this.colorType != PbmColorType.BlackAndWhite || this.encoding == PbmEncoding.Plain) && !stream.SkipWhitespaceAndComments())
+        {
+            ThrowInvalidHeader();
         }
 
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            if (!stream.ReadDecimal(out this.maxPixelValue))
+            if (!stream.ReadDecimal(out this.maxPixelValue, out bool maxValueOverflow) || maxValueOverflow)
             {
-                ThrowPrematureEof();
+                ThrowInvalidHeader();
             }
 
             if (this.maxPixelValue <= 0 || this.maxPixelValue >= 65536)
@@ -167,7 +168,12 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
                 this.componentType = PbmComponentType.Byte;
             }
 
-            stream.SkipWhitespaceAndComments();
+            // The binary formats have exactly one separator before the raster. Its bytes can equal whitespace or '#'.
+            // Plain samples are decimal tokens, so their leading whitespace and comments still need to be skipped.
+            if (this.encoding == PbmEncoding.Plain)
+            {
+                stream.SkipWhitespaceAndComments();
+            }
         }
         else
         {
@@ -182,8 +188,9 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         meta.ColorType = this.colorType;
         meta.ComponentType = this.componentType;
 
+        // Reject an incomplete header or a decimal field that exceeds the supported integer range.
         [DoesNotReturn]
-        static void ThrowPrematureEof() => throw new InvalidImageContentException("Reached EOF while reading the header.");
+        static void ThrowInvalidHeader() => throw new InvalidImageContentException("Invalid or incomplete PBM header.");
     }
 
     private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
@@ -191,21 +198,11 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     {
         if (this.encoding == PbmEncoding.Binary)
         {
-            BinaryDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType);
+            BinaryDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType, this.maxPixelValue);
         }
         else
         {
-            PlainDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType);
+            PlainDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType, this.maxPixelValue);
         }
     }
-
-    private void ProcessUpscaling<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int maxAllocationValue = this.componentType == PbmComponentType.Short ? 65535 : 255;
-        float factor = maxAllocationValue / (float)this.maxPixelValue;
-        image.Mutate(x => x.Brightness(factor));
-    }
-
-    private bool NeedsUpscaling() => this.colorType != PbmColorType.BlackAndWhite && this.maxPixelValue is not 255 and not 65535;
 }

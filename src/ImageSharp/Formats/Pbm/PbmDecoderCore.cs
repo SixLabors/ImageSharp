@@ -133,19 +133,25 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         }
 
         if (!stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int width) ||
+            !stream.ReadDecimal(out int width, out bool widthOverflow) || widthOverflow ||
             !stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int height) ||
-            !stream.SkipWhitespaceAndComments())
+            !stream.ReadDecimal(out int height, out bool heightOverflow) || heightOverflow)
         {
-            ThrowPrematureEof();
+            ThrowInvalidHeader();
+        }
+
+        // ReadDecimal consumed the separator after height. Only PBM's binary raster starts here;
+        // other formats still need a Maxval token, and plain PBM still needs to skip token whitespace.
+        if ((this.colorType != PbmColorType.BlackAndWhite || this.encoding == PbmEncoding.Plain) && !stream.SkipWhitespaceAndComments())
+        {
+            ThrowInvalidHeader();
         }
 
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            if (!stream.ReadDecimal(out this.maxPixelValue))
+            if (!stream.ReadDecimal(out this.maxPixelValue, out bool maxValueOverflow) || maxValueOverflow)
             {
-                ThrowPrematureEof();
+                ThrowInvalidHeader();
             }
 
             if (this.maxPixelValue <= 0 || this.maxPixelValue >= 65536)
@@ -162,7 +168,12 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
                 this.componentType = PbmComponentType.Byte;
             }
 
-            stream.SkipWhitespaceAndComments();
+            // The binary formats have exactly one separator before the raster. Its bytes can equal whitespace or '#'.
+            // Plain samples are decimal tokens, so their leading whitespace and comments still need to be skipped.
+            if (this.encoding == PbmEncoding.Plain)
+            {
+                stream.SkipWhitespaceAndComments();
+            }
         }
         else
         {
@@ -177,8 +188,9 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         meta.ColorType = this.colorType;
         meta.ComponentType = this.componentType;
 
+        // Reject an incomplete header or a decimal field that exceeds the supported integer range.
         [DoesNotReturn]
-        static void ThrowPrematureEof() => throw new InvalidImageContentException("Reached EOF while reading the header.");
+        static void ThrowInvalidHeader() => throw new InvalidImageContentException("Invalid or incomplete PBM header.");
     }
 
     private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)

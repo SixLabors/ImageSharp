@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms;
 
 internal sealed class JxlColorEncoding
@@ -33,44 +35,31 @@ internal sealed class JxlColorEncoding
 
     public int Channels => (this.ColorSpace == JxlColorSpace.Gray) ? 1 : 3;
 
-    public bool TryGetPrimaries(out JxlCieXyPrimaries xy)
+    /// <summary>
+    /// Gets the red, green, and blue primary chromaticities from the decoded color-encoding fields.
+    /// </summary>
+    /// <param name="primaries">The primary chromaticities, or the default value when no primary fields are available.</param>
+    /// <returns>Whether decoded color fields are available and the color space supplies RGB primaries.</returns>
+    public bool TryGetPrimaries(out RgbPrimariesChromaticityCoordinates primaries)
     {
-        xy = default;
+        primaries = default;
 
-        if (!this.HasPrimaries || !this.HasPrimaries)
+        // An ICC-only encoding has no decoded primary fields. Gray and XYB do not supply RGB primary fields either.
+        if (!this.HaveFields || !this.HasPrimaries)
         {
             return false;
         }
 
-        switch (this.Primaries)
+        // Preserve the coordinates used by libjxl color_encoding_cms.h. Its sRGB coordinates differ slightly
+        // from the ideal standard coordinates, so replacing them with a working-space preset would change this conversion.
+        primaries = this.Primaries switch
         {
-            case JxlPrimaries.Custom:
-                xy.R = this.Red.GetValue();
-                xy.G = this.Green.GetValue();
-                xy.B = this.Blue.GetValue();
-                break;
-
-            case JxlPrimaries.SRgb:
-                xy.R = new(0.639998686f, 0.330010138f);
-                xy.G = new(0.300003784f, 0.600003357f);
-                xy.B = new(0.150002046f, 0.059997204f);
-                break;
-
-            case JxlPrimaries.Bt2020:
-                xy.R = new(0.708f, 0.292f);
-                xy.G = new(0.170f, 0.797f);
-                xy.B = new(0.131f, 0.046f);
-                break;
-
-            case JxlPrimaries.P3:
-                xy.R = new(0.680f, 0.320f);
-                xy.G = new(0.265f, 0.690f);
-                xy.B = new(0.150f, 0.060f);
-                break;
-
-            default:
-                throw new InvalidOperationException("Invalid primaries: " + this.Primaries);
-        }
+            JxlPrimaries.Custom => new(this.Red.GetValue(), this.Green.GetValue(), this.Blue.GetValue()),
+            JxlPrimaries.SRgb => new(new(0.639998686F, 0.330010138F), new(0.300003784F, 0.600003357F), new(0.150002046F, 0.059997204F)),
+            JxlPrimaries.Bt2020 => new(new(0.708F, 0.292F), new(0.170F, 0.797F), new(0.131F, 0.046F)),
+            JxlPrimaries.P3 => new(new(0.680F, 0.320F), new(0.265F, 0.690F), new(0.150F, 0.060F)),
+            _ => throw new InvalidOperationException("Invalid primaries: " + this.Primaries)
+        };
 
         return true;
     }

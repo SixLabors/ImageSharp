@@ -94,7 +94,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             int sampleY = Unsafe.Add(ref sampleRowBase, kY);
             sourceRow = this.sourcePixels.DangerousGetRowSpan(sampleY).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, sourceBuffer);
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
@@ -117,7 +117,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         // Now we need to combine the values and copy the original alpha values
         // from the source row.
         sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, sourceBuffer);
 
         for (nuint x = 0; x < (uint)sourceRow.Length; x++)
         {
@@ -130,7 +130,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         }
 
         Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetYBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, targetYBuffer, targetRowSpan);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -161,7 +161,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             int sampleY = Unsafe.Add(ref sampleRowBase, kY);
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(sampleY).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, sourceBuffer);
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
@@ -195,6 +195,6 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         }
 
         Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetYBuffer, targetRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, targetYBuffer, targetRow);
     }
 }

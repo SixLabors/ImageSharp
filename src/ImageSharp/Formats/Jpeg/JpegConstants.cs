@@ -271,6 +271,14 @@ internal static class JpegConstants
         /// </remarks>
         /// </summary>
         public const byte RST7 = 0xD7;
+
+        /// <summary>
+        /// Temporary private marker for arithmetic coding.
+        /// </summary>
+        /// <remarks>
+        /// This marker stands alone. It has no length field or payload.
+        /// </remarks>
+        public const byte TEM = 0x01;
     }
 
     /// <summary>

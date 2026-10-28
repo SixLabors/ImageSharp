@@ -9,8 +9,19 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests various companding algorithms. Expanded numbers are hand calculated from formulas online.
 /// </summary>
-public class CompandingTests
+public partial class CompandingTests
 {
+    // The recorded native power comparison covers 524,424 input/exponent pairs at each execution width.
+    // Its largest relative error against the power formula is below 0.000464. Use 0.0005 for direct formula checks.
+    // Extended-value tests scale by max(1, abs(expected)) to apply this bound to both SDR and HDR values.
+    private const float DirectApproximationTolerance = 5E-4F;
+
+    private static readonly ApproximateFloatComparer DirectComparer = new(DirectApproximationTolerance);
+
+    // A round trip evaluates two approximate transfer functions. Allow the sum of their individual error bounds.
+    private static readonly ApproximateFloatComparer RoundTripComparer = new(2F * DirectApproximationTolerance);
+
+    // Keep scalar/SIMD agreement and sixteen-bit table accuracy separate from direct approximation accuracy.
     private static readonly ApproximateFloatComparer Comparer = new(.000001F);
 
     [Fact]
@@ -99,10 +110,20 @@ public class CompandingTests
         CompandingIsCorrectImpl(e, c, .36236193F, input);
     }
 
+    /// <summary>
+    /// Checks published curve values and round trips with the error bounds for direct approximation.
+    /// </summary>
+    /// <param name="e">The expanded color.</param>
+    /// <param name="c">The color after expansion and compression.</param>
+    /// <param name="expanded">The expanded component calculated from the curve formula.</param>
+    /// <param name="compressed">The original nonlinear color.</param>
     private static void CompandingIsCorrectImpl(Vector4 e, Vector4 c, float expanded, Vector4 compressed)
     {
-        // W (alpha) is already the linear representation of the color.
-        Assert.Equal(new Vector4(expanded, expanded, expanded, e.W), e, Comparer);
-        Assert.Equal(compressed, c, Comparer);
+        Assert.Equal(new Vector4(expanded, expanded, expanded, compressed.W), e, DirectComparer);
+        Assert.Equal(compressed, c, RoundTripComparer);
+
+        // Transfer functions change RGB only. Approximation error must never permit a change to alpha.
+        Assert.Equal(compressed.W, e.W);
+        Assert.Equal(compressed.W, c.W);
     }
 }

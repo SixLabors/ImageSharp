@@ -25,7 +25,7 @@ public sealed class BmpDecoder : SpecializedImageDecoder<BmpDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        return new BmpDecoderCore(new BmpDecoderOptions { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
+        return new BmpDecoderCore(new BmpDecoderOptions(options)).Identify(options.Configuration, stream, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -47,5 +47,5 @@ public sealed class BmpDecoder : SpecializedImageDecoder<BmpDecoderOptions>
 
     /// <inheritdoc/>
     protected override BmpDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-        => new() { GeneralOptions = options };
+        => new(options);
 }

@@ -91,7 +91,10 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,
-            ColorType = color
+            ColorType = color,
+
+            // Float and half samples retain values outside [0,1]. Unsigned samples use normalized integer component values.
+            ColorRange = this.PixelType == ExrPixelType.UnsignedInt ? PixelColorRange.Sdr : PixelColorRange.Extended
         };
     }
 

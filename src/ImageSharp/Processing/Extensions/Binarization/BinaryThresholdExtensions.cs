@@ -16,7 +16,7 @@ public static class BinaryThresholdExtensions
     /// Luminance as the color component to be compared to threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BinaryThreshold(this IImageProcessingContext source, float threshold)
         => source.ApplyProcessor(new BinaryThresholdProcessor(threshold, BinaryThresholdMode.Luminance));
@@ -25,7 +25,7 @@ public static class BinaryThresholdExtensions
     /// Applies binarization to the image splitting the pixels at the given threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="mode">Selects the value to be compared to threshold.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BinaryThreshold(
@@ -39,7 +39,7 @@ public static class BinaryThresholdExtensions
     /// Luminance as the color component to be compared to threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
@@ -54,7 +54,7 @@ public static class BinaryThresholdExtensions
     /// Applies binarization to the image splitting the pixels at the given threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="mode">Selects the value to be compared to threshold.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
@@ -72,7 +72,7 @@ public static class BinaryThresholdExtensions
     /// Luminance as the color component to be compared to threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
@@ -87,7 +87,7 @@ public static class BinaryThresholdExtensions
     /// Applies binarization to the image splitting the pixels at the given threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
     /// <param name="mode">Selects the value to be compared to threshold.</param>
@@ -105,7 +105,7 @@ public static class BinaryThresholdExtensions
     /// Luminance as the color component to be compared to threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
     /// <param name="rectangle">
@@ -124,7 +124,7 @@ public static class BinaryThresholdExtensions
     /// Applies binarization to the image splitting the pixels at the given threshold.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
     /// <param name="mode">Selects the value to be compared to threshold.</param>

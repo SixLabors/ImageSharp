@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -44,7 +45,7 @@ public class SpectralJpegTests
     {
         // Calculating data from ImageSharp
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-        JpegDecoderOptions option = new();
+        JpegDecoderOptions option = new(new DecoderOptions(Configuration.Default));
 
         using JpegDecoderCore decoder = new(option);
         using MemoryStream ms = new(sourceBytes);
@@ -74,7 +75,7 @@ public class SpectralJpegTests
 
         // Calculating data from ImageSharp
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-        JpegDecoderOptions options = new();
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default));
 
         using JpegDecoderCore decoder = new(options);
         using MemoryStream ms = new(sourceBytes);

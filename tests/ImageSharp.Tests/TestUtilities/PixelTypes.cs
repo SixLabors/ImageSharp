@@ -8,7 +8,8 @@ namespace SixLabors.ImageSharp.Tests;
 /// They trigger the desired parametrization for <see cref="TestImageProvider{TPixel}"/>.
 /// </summary>
 [Flags]
-public enum PixelTypes
+// More than 32 pixel formats need separate flags; long also retains every existing flag value.
+public enum PixelTypes : long
 {
     Undefined = 0,
 
@@ -67,6 +68,30 @@ public enum PixelTypes
     La32 = 1 << 26,
 
     Abgr32 = 1 << 27,
+
+    Rgba32P = 1 << 28,
+
+    RgbaVectorP = 1 << 29,
+
+    /// <summary>
+    /// Selects associated BGRA byte pixels.
+    /// </summary>
+    Bgra32P = 1L << 30,
+
+    /// <summary>
+    /// Selects associated ARGB byte pixels.
+    /// </summary>
+    Argb32P = 1L << 31,
+
+    /// <summary>
+    /// Selects associated ABGR byte pixels.
+    /// </summary>
+    Abgr32P = 1L << 32,
+
+    /// <summary>
+    /// Selects associated signed-normalized byte pixels.
+    /// </summary>
+    NormalizedByte4P = 1L << 33,
 
     // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 

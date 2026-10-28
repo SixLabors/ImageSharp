@@ -78,13 +78,14 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             // extracted individually from a multi-frame image.
             ColorTableMode = metadata.ColorTableMode,
             RepeatCount = metadata.RepeatCount,
+            BackgroundColor = metadata.BackgroundColor,
         };
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp = this.ColorTableMode == FrameColorTableMode.Global && this.GlobalColorTable.HasValue
-            ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
+            ? Math.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
             : 8;
 
         return new PixelTypeInfo(bpp)

@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -130,8 +131,10 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     public static Cmyk FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        // To CMY
-        Vector3 cmy = Vector3.One - source.AsVector3Unsafe();
+        // CMYK channels represent bounded ink amounts. Limit RGB before extracting black,
+        // so an HDR component above one cannot produce negative black and alter the other inks.
+        Vector3 rgb = ColorNumerics.ClampToFinite(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        Vector3 cmy = Vector3.One - rgb;
 
         // To CMYK
         Vector3 k = new(MathF.Min(cmy.X, MathF.Min(cmy.Y, cmy.Z)));
@@ -151,8 +154,89 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Rgb, Vector3>(source);
+        ref float output = ref Unsafe.As<Cmyk, float>(ref MemoryMarshal.GetReference(destination));
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector512Count<float>();
+            Vector512<float> one = Vector512.Create(1F);
+
+            for (nuint group = 0; group < groups; group++, i += Vector512<float>.Count)
+            {
+                // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                Vector512<float> c = one - ColorNumerics.ClampToFinite(r, Vector512<float>.Zero, one);
+                Vector512<float> m = one - ColorNumerics.ClampToFinite(g, Vector512<float>.Zero, one);
+                Vector512<float> y = one - ColorNumerics.ClampToFinite(b, Vector512<float>.Zero, one);
+                Vector512<float> k = Vector512.Min(c, Vector512.Min(m, y));
+                Vector512<float> nonBlack = Vector512.LessThan(k, Vector512.Create(1F - Constants.Epsilon));
+
+                // Near black, the scalar model returns CMY = 0 and K = 1. Use a safe divisor in those lanes,
+                // then clear their chromatic inks. Keep division rather than a rounded reciprocal to preserve its arithmetic.
+                Vector512<float> divisor = Vector512.ConditionalSelect(nonBlack, one - k, one);
+                c = ((c - k) / divisor) & nonBlack;
+                m = ((m - k) / divisor) & nonBlack;
+                y = ((y - k) / divisor) & nonBlack;
+                k = Vector512.ConditionalSelect(nonBlack, k, one);
+                SimdUtils.Interleave4(c, m, y, k, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector256Count<float>();
+            Vector256<float> one = Vector256.Create(1F);
+
+            for (nuint group = 0; group < groups; group++, i += Vector256<float>.Count)
+            {
+                // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                Vector256<float> c = one - ColorNumerics.ClampToFinite(r, Vector256<float>.Zero, one);
+                Vector256<float> m = one - ColorNumerics.ClampToFinite(g, Vector256<float>.Zero, one);
+                Vector256<float> y = one - ColorNumerics.ClampToFinite(b, Vector256<float>.Zero, one);
+                Vector256<float> k = Vector256.Min(c, Vector256.Min(m, y));
+                Vector256<float> nonBlack = Vector256.LessThan(k, Vector256.Create(1F - Constants.Epsilon));
+
+                // Near black, the scalar model returns CMY = 0 and K = 1. Use a safe divisor in those lanes,
+                // then clear their chromatic inks. Keep division rather than a rounded reciprocal to preserve its arithmetic.
+                Vector256<float> divisor = Vector256.ConditionalSelect(nonBlack, one - k, one);
+                c = ((c - k) / divisor) & nonBlack;
+                m = ((m - k) / divisor) & nonBlack;
+                y = ((y - k) / divisor) & nonBlack;
+                k = Vector256.ConditionalSelect(nonBlack, k, one);
+                SimdUtils.Interleave4(c, m, y, k, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint groups = (source.Length - i).Vector128Count<float>();
+            Vector128<float> one = Vector128.Create(1F);
+
+            for (nuint group = 0; group < groups; group++, i += Vector128<float>.Count)
+            {
+                // Each lane contains one RGB color. CMYK ink amounts are bounded, so use the same RGB limits as the scalar model.
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+                Vector128<float> c = one - ColorNumerics.ClampToFinite(r, Vector128<float>.Zero, one);
+                Vector128<float> m = one - ColorNumerics.ClampToFinite(g, Vector128<float>.Zero, one);
+                Vector128<float> y = one - ColorNumerics.ClampToFinite(b, Vector128<float>.Zero, one);
+                Vector128<float> k = Vector128.Min(c, Vector128.Min(m, y));
+                Vector128<float> nonBlack = Vector128.LessThan(k, Vector128.Create(1F - Constants.Epsilon));
+
+                // Near black, the scalar model returns CMY = 0 and K = 1. Use a safe divisor in those lanes,
+                // then clear their chromatic inks. Keep division rather than a rounded reciprocal to preserve its arithmetic.
+                Vector128<float> divisor = Vector128.ConditionalSelect(nonBlack, one - k, one);
+                c = ((c - k) / divisor) & nonBlack;
+                m = ((m - k) / divisor) & nonBlack;
+                y = ((y - k) / divisor) & nonBlack;
+                k = Vector128.ConditionalSelect(nonBlack, k, one);
+                SimdUtils.Interleave4(c, m, y, k, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+            }
+        }
+
+        for (; i < source.Length; i++)
         {
             Rgb rgb = source[i];
             destination[i] = FromProfileConnectingSpace(options, in rgb);
@@ -169,8 +253,83 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Cmyk> source, Span<Rgb> destination)
     {
-        // TODO: We can possibly optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        int i = 0;
+        ReadOnlySpan<Vector4> packed = MemoryMarshal.Cast<Cmyk, Vector4>(source);
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<Cmyk, float>(source);
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> one = Vector512.Create(1F);
+
+            // Four packed component registers contain sixteen complete CMYK pixels.
+            nuint vectorCount = components.Vector512Count<float>() / 4;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector512<float> c, out Vector512<float> m, out Vector512<float> y, out Vector512<float> k);
+
+                // Keep the scalar subtraction before multiplication and leave the RGB range unclipped.
+                Vector512<float> factor = one - k;
+                Vector512<float> r = (one - c) * factor;
+                Vector512<float> g = (one - m) * factor;
+                Vector512<float> b = (one - y) * factor;
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> one = Vector256.Create(1F);
+
+            // Four packed component registers contain eight complete CMYK pixels.
+            nuint vectorCount = components[(i * 4)..].Vector256Count<float>() / 4;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector256<float> c, out Vector256<float> m, out Vector256<float> y, out Vector256<float> k);
+                Vector256<float> factor = one - k;
+                Vector256<float> r = (one - c) * factor;
+                Vector256<float> g = (one - m) * factor;
+                Vector256<float> b = (one - y) * factor;
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> one = Vector128.Create(1F);
+
+            // Four packed component registers contain four complete CMYK pixels.
+            nuint vectorCount = components[(i * 4)..].Vector128Count<float>() / 4;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+            {
+                // Four CMYK pixels transpose into channel lanes so the scalar (1 - channel) * (1 - K) order is preserved.
+                Vector128<float> pixel0 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i]));
+                Vector128<float> pixel1 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 1]));
+                Vector128<float> pixel2 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 2]));
+                Vector128<float> pixel3 = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.AsRef(in packed[i + 3]));
+                SimdUtils.Transpose4(
+                    pixel0,
+                    pixel1,
+                    pixel2,
+                    pixel3,
+                    out Vector128<float> c,
+                    out Vector128<float> m,
+                    out Vector128<float> y,
+                    out Vector128<float> k);
+
+                Vector128<float> factor = one - k;
+                Vector128<float> r = (one - c) * factor;
+                Vector128<float> g = (one - m) * factor;
+                Vector128<float> b = (one - y) * factor;
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        for (; i < source.Length; i++)
         {
             destination[i] = source[i].ToProfileConnectingSpace(options);
         }

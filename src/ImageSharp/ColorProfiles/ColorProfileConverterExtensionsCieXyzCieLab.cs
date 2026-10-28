@@ -40,7 +40,7 @@ public static class ColorProfileConverterExtensionsCieXyzCieLab
 
         // Adapt to target white point
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        pcsFrom = VonKriesChromaticAdaptation.Transform(in pcsFrom, whitePoints, options.AdaptationMatrix);
+        pcsFrom = VonKriesChromaticAdaptation.Transform(in pcsFrom, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
 
         // Convert between PCS
         CieLab pcsTo = CieLab.FromProfileConnectingSpace(options, in pcsFrom);
@@ -82,7 +82,7 @@ public static class ColorProfileConverterExtensionsCieXyzCieLab
 
         // Adapt to target white point
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        VonKriesChromaticAdaptation.Transform(pcsFrom, pcsFrom, whitePoints, options.AdaptationMatrix);
+        VonKriesChromaticAdaptation.Transform(pcsFrom, pcsFrom, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
 
         // Convert between PCS.
         using IMemoryOwner<CieLab> pcsToOwner = options.MemoryAllocator.Allocate<CieLab>(source.Length);

@@ -15,10 +15,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Bytes_Specific()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image<Rgb24> img = Image.Load<Rgb24>(options, this.ByteSpan))
             {
@@ -32,10 +29,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Bytes_Agnostic()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image img = Image.Load(options, this.ByteSpan))
             {
@@ -49,10 +43,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Bytes_OutFormat_Specific()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image<Bgr24> img = Image.Load<Bgr24>(options, this.ByteSpan))
             {
@@ -66,10 +57,7 @@ public partial class ImageTests
         [Fact]
         public void Configuration_Bytes_OutFormat_Agnostic()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             using (Image img = Image.Load(options, this.ByteSpan))
             {
@@ -83,10 +71,7 @@ public partial class ImageTests
         [Fact]
         public void FromBytes_EmptySpan_Throws()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.TopLevelConfiguration
-            };
+            DecoderOptions options = new(this.TopLevelConfiguration);
 
             Assert.Throws<UnknownImageFormatException>(() => Image.Load(options, []));
         }

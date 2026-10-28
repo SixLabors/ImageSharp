@@ -169,7 +169,10 @@ public abstract partial class Image
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
-        Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(
+            pixelMemoryOwner.Memory.Length >= (long)width * height,
+            nameof(pixelMemoryOwner),
+            "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -218,7 +221,10 @@ public abstract partial class Image
         ValidateWrapMemoryStride(width, height, rowStride, nameof(rowStride));
 
         long requiredLength = GetRequiredLength(width, height, rowStride);
-        Guard.IsTrue(pixelMemoryOwner.Memory.Length >= requiredLength, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(
+            pixelMemoryOwner.Memory.Length >= requiredLength,
+            nameof(pixelMemoryOwner),
+            "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
         return new Image<TPixel>(configuration, memorySource, width, height, rowStride, metadata);
@@ -300,7 +306,10 @@ public abstract partial class Image
 
         ByteMemoryManager<TPixel> memoryManager = new(byteMemory);
 
-        Guard.IsTrue(memoryManager.Memory.Length >= (long)width * height, nameof(byteMemory), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(
+            memoryManager.Memory.Length >= (long)width * height,
+            nameof(byteMemory),
+            "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -422,7 +431,10 @@ public abstract partial class Image
 
         ByteMemoryOwner<TPixel> pixelMemoryOwner = new(byteMemoryOwner);
 
-        Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(
+            pixelMemoryOwner.Memory.Length >= (long)width * height,
+            nameof(pixelMemoryOwner),
+            "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -472,7 +484,10 @@ public abstract partial class Image
 
         ByteMemoryOwner<TPixel> pixelMemoryOwner = new(byteMemoryOwner);
         long requiredLength = GetRequiredLength(width, height, rowStride);
-        Guard.IsTrue(pixelMemoryOwner.Memory.Length >= requiredLength, nameof(byteMemoryOwner), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(
+            pixelMemoryOwner.Memory.Length >= requiredLength,
+            nameof(byteMemoryOwner),
+            "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
         return new Image<TPixel>(configuration, memorySource, width, height, rowStride, metadata);

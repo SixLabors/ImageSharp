@@ -15,7 +15,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Ico;
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Cur;
 
 [Trait("Format", "Cur")]
-public class CurEncoderTests
+public partial class CurEncoderTests
 {
     private static CurEncoder Encoder => new();
 

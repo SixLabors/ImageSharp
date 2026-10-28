@@ -15,7 +15,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Ico;
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
 
 [Trait("Format", "Icon")]
-public class IcoEncoderTests
+public partial class IcoEncoderTests
 {
     private static IcoEncoder Encoder => new();
 

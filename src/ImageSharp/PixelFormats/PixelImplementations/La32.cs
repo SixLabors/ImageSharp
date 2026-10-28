@@ -41,6 +41,18 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
         this.A = a;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="La32"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Luminance and alpha use consecutive 16-bit words in memory. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public La32(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue
     {
@@ -73,6 +85,21 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(La32 left, La32 right) => !left.Equals(right);
 
+    /// <inheritdoc />
+    public static La32 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static La32 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static La32 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static La32 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32()
@@ -98,6 +125,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
         => PixelTypeInfo.Create<La32>(
             PixelComponentInfo.Create<La32>(2, 16, 16),
             PixelColorType.Luminance | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>
@@ -131,10 +159,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La32 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -248,7 +273,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static La32 Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One) * Max;
         ushort l = ColorNumerics.Get16BitBT709Luminance(vector.X, vector.Y, vector.Z);
         ushort a = (ushort)MathF.Round(vector.W);
         return new La32(l, a);

@@ -13,7 +13,7 @@ public class BinaryThresholdProcessor : IImageProcessor
     /// <summary>
     /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class.
     /// </summary>
-    /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="mode">The color component to be compared to threshold.</param>
     public BinaryThresholdProcessor(float threshold, BinaryThresholdMode mode)
         : this(threshold, Color.White, Color.Black, mode)
@@ -24,7 +24,7 @@ public class BinaryThresholdProcessor : IImageProcessor
     /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class with
     /// Luminance as color component to be compared to threshold.
     /// </summary>
-    /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     public BinaryThresholdProcessor(float threshold)
         : this(threshold, Color.White, Color.Black, BinaryThresholdMode.Luminance)
     {
@@ -33,7 +33,7 @@ public class BinaryThresholdProcessor : IImageProcessor
     /// <summary>
     /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class.
     /// </summary>
-    /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
     /// <param name="mode">The color component to be compared to threshold.</param>
@@ -50,7 +50,7 @@ public class BinaryThresholdProcessor : IImageProcessor
     /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class with
     /// Luminance as color component to be compared to threshold.
     /// </summary>
-    /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+    /// <param name="threshold">The threshold as a fraction of the selected region's observed metric range. Must be between 0 and 1.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
     public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor)
@@ -59,7 +59,7 @@ public class BinaryThresholdProcessor : IImageProcessor
     }
 
     /// <summary>
-    /// Gets the threshold value.
+    /// Gets the threshold as a fraction of the selected region's observed metric range.
     /// </summary>
     public float Threshold { get; }
 

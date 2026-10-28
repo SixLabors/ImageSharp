@@ -17,7 +17,7 @@ public partial struct Bgr24
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Bgr24>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Bgr24>
     {
         /// <inheritdoc />
         public override void FromBgr24(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<Bgr24> destination)
@@ -37,26 +37,6 @@ public partial struct Bgr24
             source.CopyTo(destination.Slice(0, source.Length));
         }
 
-        /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<Bgr24> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(PixelConversionModifiers.Scale));
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<Bgr24> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
-        }
-    
         /// <inheritdoc />
         public override void ToRgba32(
             Configuration configuration,
@@ -324,12 +304,12 @@ public partial struct Bgr24
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Bgr24> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToBgr24(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToBgr24(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

@@ -50,7 +50,12 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         return ms;
     }
 
-    public Stream CreateAsyncSemaphoreStream(SemaphoreSlim notifyWaitPositionReachedSemaphore, SemaphoreSlim continueSemaphore, bool seeakable, int size = 1024, int waitAfterPosition = 512)
+    public Stream CreateAsyncSemaphoreStream(
+        SemaphoreSlim notifyWaitPositionReachedSemaphore,
+        SemaphoreSlim continueSemaphore,
+        bool seeakable,
+        int size = 1024,
+        int waitAfterPosition = 512)
     {
         byte[] buffer = new byte[size];
         this.header.CopyTo(buffer, 0);
@@ -204,7 +209,11 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(
+                this.CreateDefaultSpecializedOptions(options),
+                stream,
+                cancellationToken);
+
             ImageMetadata metadata = image.Metadata;
             return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {
@@ -213,7 +222,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         }
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-            => new() { GeneralOptions = options };
+            => new(options);
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
@@ -238,7 +247,17 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public class TestDecoderOptions : ISpecializedDecoderOptions
     {
-        public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestDecoderOptions"/> class.
+        /// </summary>
+        /// <param name="generalOptions">The general options supplied to the test decoder.</param>
+        public TestDecoderOptions(DecoderOptions generalOptions)
+        {
+            this.GeneralOptions = generalOptions;
+        }
+
+        /// <inheritdoc/>
+        public DecoderOptions GeneralOptions { get; }
     }
 
     public class TestEncoder : IImageEncoder
@@ -266,6 +285,21 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
     {
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromAbgr32P(Abgr32P source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromArgb32P(Argb32P source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromBgra32P(Bgra32P source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromRgba32P(Rgba32P source) => default;
+
+        /// <inheritdoc />
+        public readonly Rgba32P ToRgba32P() => default;
+
         public readonly Rgba32 ToRgba32() => default;
 
         public readonly Vector4 ToScaledVector4() => default;
@@ -288,6 +322,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
             => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(
                 PixelComponentInfo.Create<TestPixelForAgnosticDecode>(2, 8, 8),
                 PixelColorType.Red | PixelColorType.Green,
+                PixelColorRange.Sdr,
                 PixelAlphaRepresentation.None);
 
         public static PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();

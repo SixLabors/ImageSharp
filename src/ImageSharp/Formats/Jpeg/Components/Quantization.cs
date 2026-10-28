@@ -146,7 +146,7 @@ internal static class Quantization
             quality = (int)Math.Round(5000.0 / sumPercent);
         }
 
-        return Numerics.Clamp(quality, MinQualityFactor, MaxQualityFactor);
+        return Math.Clamp(quality, MinQualityFactor, MaxQualityFactor);
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ internal static class Quantization
         for (int j = 0; j < Block8x8F.Size; j++)
         {
             int x = ((unscaledTable[j] * scale) + 50) / 100;
-            table[j] = Numerics.Clamp(x, 1, 255);
+            table[j] = Math.Clamp(x, 1, 255);
         }
 
         return table;
@@ -194,7 +194,7 @@ internal static class Quantization
         for (int j = 0; j < Block8x8.Size; j++)
         {
             int x = ((unscaledTable[j] * scale) + 50) / 100;
-            table[j] = (short)(uint)Numerics.Clamp(x, 1, 255);
+            table[j] = (short)(uint)Math.Clamp(x, 1, 255);
         }
 
         return table;

@@ -19,6 +19,58 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga;
 public class TgaDecoderTests
 {
     [Theory]
+    [WithFile(Bit16PalRle, PixelTypes.Rgba32)]
+    [WithFile(Bit24PalTopLeft, PixelTypes.Rgba32)]
+    [WithFile(Bit32PalRleTopLeft, PixelTypes.Rgba32)]
+    [WithFile(ColorMapOffset, PixelTypes.Rgba32)]
+    public void TgaDecoder_IdentifyReadsColorTable<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ImageInfo info = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        TgaMetadata identified = info.Metadata.GetTgaMetadata();
+        using Image<TPixel> image = provider.GetImage(TgaDecoder.Instance);
+        TgaMetadata decoded = image.Metadata.GetTgaMetadata();
+
+        Assert.Equal(PixelColorType.Indexed, info.PixelType.ColorType);
+        Assert.Equal(decoded.ColorMapFirstEntryIndex, identified.ColorMapFirstEntryIndex);
+        Assert.Equal(decoded.ColorMapEntryBitDepth, identified.ColorMapEntryBitDepth);
+        Assert.NotNull(identified.ColorTable);
+        Assert.Equal(decoded.ColorTable.Value.ToArray(), identified.ColorTable.Value.ToArray());
+    }
+
+    [Theory]
+    [WithFile(ColorMapOffset, PixelTypes.Rgba32)]
+    public void TgaDecoder_CanDecode_ColorMapFirstEntryIndex<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TgaDecoder.Instance);
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        TgaMetadata metadata = image.Metadata.GetTgaMetadata();
+
+        // The file stores 72 colors beginning at absolute index 39; pixel indices address that range.
+        Assert.Equal(39, metadata.ColorMapFirstEntryIndex);
+        Assert.Equal(72, metadata.ColorTable.Value.Length);
+    }
+
+    [Theory]
+    [WithFile(Bit24PalTopLeft, PixelTypes.Rgba32)]
+    public void TgaDecoder_IdentifyPreservesEncodedPaletteColors<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ImageInfo info = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        TgaMetadata metadata = info.Metadata.GetTgaMetadata();
+
+        Assert.Equal(0, metadata.ColorMapFirstEntryIndex);
+        Assert.Equal(24, metadata.ColorMapEntryBitDepth);
+        Assert.Equal(256, metadata.ColorTable.Value.Length);
+
+        // The real fixture begins with BGR bytes 01-00-00, then 09-05-04.
+        Assert.Equal(Color.FromPixel(new Bgr24(0, 0, 1)), metadata.ColorTable.Value.Span[0]);
+        Assert.Equal(Color.FromPixel(new Bgr24(4, 5, 9)), metadata.ColorTable.Value.Span[1]);
+    }
+
+    [Theory]
     [WithFile(Gray8BitTopLeft, PixelTypes.Rgba32)]
     public void TgaDecoder_CanDecode_Gray_WithTopLeftOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -747,7 +799,7 @@ public class TgaDecoderTests
     public void TgaDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };

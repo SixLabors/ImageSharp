@@ -16,7 +16,8 @@ public class ColorspaceCieXyzToCieLabConvert
 
     private static readonly ColorProfileConverter ColorProfileConverter = new();
 
-    private static readonly IColorConverter<XYZColor, LabColor> ColourfulConverter = new ConverterBuilder().FromXYZ(Illuminants.D50).ToLab(Illuminants.D50).Build();
+    private static readonly IColorConverter<XYZColor, LabColor> ColourfulConverter = new ConverterBuilder().FromXYZ(Illuminants.D50).ToLab(Illuminants.D50)
+        .Build();
 
     [Benchmark(Baseline = true, Description = "Colourful Convert")]
     public double ColourfulConvert() => ColourfulConverter.Convert(XYZColor).L;

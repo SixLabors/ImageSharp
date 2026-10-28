@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -18,7 +17,7 @@ public partial struct Rgba64
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgba64>
+    internal partial class PixelOperations : Rgba64CompatiblePixelOperations<Rgba64>
     {
         /// <inheritdoc />
         public override void FromRgba64(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<Rgba64> destination)
@@ -255,12 +254,12 @@ public partial struct Rgba64
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Rgba64> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToRgba64(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToRgba64(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

@@ -111,7 +111,10 @@ internal sealed class LoadResizeSaveParallelMemoryStress
         }
 
         Stats stats = new(timer, lrs.Benchmarks.TotalProcessedMegapixels);
-        Console.WriteLine($"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}, TotalOutstandingHandles: {UnmanagedMemoryHandle.TotalOutstandingHandles}, Total Gen2 GC count: {GC.CollectionCount(2)}");
+        Console.WriteLine(
+            $"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}, " +
+            $"TotalOutstandingHandles: {UnmanagedMemoryHandle.TotalOutstandingHandles}, Total Gen2 GC count: {GC.CollectionCount(2)}");
+
         Console.WriteLine(stats.GetMarkdown());
         if (options?.FileOutput != null)
         {
@@ -252,7 +255,12 @@ internal sealed class LoadResizeSaveParallelMemoryStress
         [Option('r', "repeat-count", Required = false, Default = 1, HelpText = "Times to run the whole benchmark")]
         public int RepeatCount { get; set; } = 1;
 
-        [Option('g', "gc-frequency", Required = false, Default = 0, HelpText = "Positive number: call GC every 'g'-th resize. Negative number: call GC '-g' times in the end.")]
+        [Option(
+            'g',
+            "gc-frequency",
+            Required = false,
+            Default = 0,
+            HelpText = "Positive number: call GC every 'g'-th resize. Negative number: call GC '-g' times in the end.")]
         public int GcFrequency { get; set; }
 
         [Option('e', "release-at-end", Required = false, Default = false, HelpText = "Specify to run ReleaseRetainedResources() after execution")]
@@ -261,13 +269,23 @@ internal sealed class LoadResizeSaveParallelMemoryStress
         [Option('w', "pause", Required = false, Default = false, HelpText = "Specify to pause and wait for user input after the execution")]
         public bool PauseAtEnd { get; set; }
 
-        [Option('f', "file", Required = false, Default = null, HelpText = "Specify to print the execution time to a file. Format: '<file>;<formatstr>' see the code for formatstr semantics.")]
+        [Option(
+            'f',
+            "file",
+            Required = false,
+            Default = null,
+            HelpText = "Specify to print the execution time to a file. Format: '<file>;<formatstr>' see the code for formatstr semantics.")]
         public string FileOutput { get; set; }
 
         [Option('t', "trim-period", Required = false, Default = null, HelpText = "Trim period for the pool in seconds")]
         public int? TrimTimeSeconds { get; set; }
 
-        [Option('l', "leak-frequency", Required = false, Default = 0, HelpText = "Inject leaking memory allocations after every 'l'-th resize to stress test finalizer behavior.")]
+        [Option(
+            'l',
+            "leak-frequency",
+            Required = false,
+            Default = 0,
+            HelpText = "Inject leaking memory allocations after every 'l'-th resize to stress test finalizer behavior.")]
         public int LeakFrequency { get; set; }
 
         public static CommandLineOptions Parse(string[] args)

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
@@ -44,5 +45,37 @@ public class TiffDecoder : ImageDecoder
 
     /// <inheritdoc/>
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => this.Decode<Rgba32>(options, stream, cancellationToken);
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        long position = stream.Position;
+        ImageInfo info = this.Identify(options, stream, cancellationToken);
+        stream.Position = position;
+
+        TiffMetadata metadata = info.Metadata.GetTiffMetadata();
+        if (metadata.SampleFormat == TiffSampleFormat.Float)
+        {
+            // TIFF samples are decoded once into the pixel type chosen from the root IFD.
+            return metadata.ExtraSampleType == TiffExtraSampleType.AssociatedAlphaData
+                ? this.Decode<RgbaVectorP>(options, stream, cancellationToken)
+                : this.Decode<RgbaVector>(options, stream, cancellationToken);
+        }
+
+        if (metadata.SampleFormat == TiffSampleFormat.UnsignedInteger &&
+            metadata.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
+        {
+            // Match the stored integer channel width when choosing the default pixel type.
+            return metadata.BitsPerPixel switch
+            {
+                TiffBitsPerPixel.Bit48 => this.Decode<Rgb48>(options, stream, cancellationToken),
+                TiffBitsPerPixel.Bit64 => this.Decode<Rgba64>(options, stream, cancellationToken),
+                TiffBitsPerPixel.Bit96 => this.Decode<Rgb96>(options, stream, cancellationToken),
+                TiffBitsPerPixel.Bit128 => this.Decode<Rgba128>(options, stream, cancellationToken),
+                _ => this.Decode<Rgba32>(options, stream, cancellationToken),
+            };
+        }
+
+        return this.Decode<Rgba32>(options, stream, cancellationToken);
+    }
 }

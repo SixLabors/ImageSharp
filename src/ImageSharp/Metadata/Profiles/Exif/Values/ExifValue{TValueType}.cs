@@ -48,5 +48,6 @@ internal abstract class ExifValue<TValueType> : ExifValue, IExifValue<TValueType
         return false;
     }
 
-    public override string? ToString() => ExifTagDescriptionAttribute.TryGetDescription(this.Tag, this.Value, out string? description) ? description : this.StringValue;
+    public override string? ToString()
+        => ExifTagDescriptionAttribute.TryGetDescription(this.Tag, this.Value, out string? description) ? description : this.StringValue;
 }

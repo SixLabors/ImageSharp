@@ -9,13 +9,12 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp;
 
 internal static partial class SimdUtils
 {
-    public static class HwIntrinsics
+    public static partial class HwIntrinsics
     {
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
 #pragma warning disable SA1137 // Elements should have the same indentation
@@ -26,16 +25,8 @@ internal static partial class SimdUtils
         public static Vector512<int> PermuteMaskDeinterleave16x32() => Vector512.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> PermuteMaskEvenOdd8x32() => Vector256.Create(0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> PermuteMaskSwitchInnerDWords8x32() => Vector256.Create(0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<uint> MoveFirst24BytesToSeparateLanes() => Vector256.Create(0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector256<byte> ExtractRgb() => Vector256.Create(0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF);
+        public static Vector256<uint> PermuteMaskSwitchInnerDWords8x32()
+            => Vector256.Create(0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<byte> ShuffleMaskPad4Nx16() => Vector128.Create(0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
@@ -43,13 +34,6 @@ internal static partial class SimdUtils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<byte> ShuffleMaskSlice4Nx16() => Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<byte> ShuffleMaskShiftAlpha() => Vector256.Create(
-            (byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15,
-                  0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> PermuteMaskShiftAlpha8x32() => Vector256.Create(0u, 1, 2, 4, 5, 6, 3, 7);
 #pragma warning restore SA1137 // Elements should have the same indentation
 #pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
@@ -940,16 +924,20 @@ internal static partial class SimdUtils
                 ref Vector512<byte> destinationBase = ref Unsafe.As<byte, Vector512<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector512<float> scale = Vector512.Create(scaleFactor);
+                Vector512<float> lowerBound = Vector512<float>.Zero;
+                Vector512<float> upperBound = Vector512.Create(byte.MaxValue / scaleFactor);
                 Vector512<int> mask = PermuteMaskDeinterleave16x32();
 
                 for (nuint i = 0; i < n; i++)
                 {
                     ref Vector512<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector512<float> f0 = scale * s;
-                    Vector512<float> f1 = scale * Unsafe.Add(ref s, 1);
-                    Vector512<float> f2 = scale * Unsafe.Add(ref s, 2);
-                    Vector512<float> f3 = scale * Unsafe.Add(ref s, 3);
+                    // Float-to-int conversion maps infinities and overflow to an invalid integer.
+                    // Clamp in the float domain first so SIMD agrees with the scalar byte saturation rule.
+                    Vector512<float> f0 = scale * ColorNumerics.ClampToFinite(s, lowerBound, upperBound);
+                    Vector512<float> f1 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector512<float> f2 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector512<float> f3 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector512<int> w0 = Vector512_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector512<int> w1 = Vector512_.ConvertToInt32RoundAwayFromZero(f1);
@@ -974,16 +962,19 @@ internal static partial class SimdUtils
                 ref Vector256<byte> destinationBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector256<float> scale = Vector256.Create(scaleFactor);
+                Vector256<float> lowerBound = Vector256<float>.Zero;
+                Vector256<float> upperBound = Vector256.Create(byte.MaxValue / scaleFactor);
                 Vector256<int> mask = PermuteMaskDeinterleave8x32();
 
                 for (nuint i = 0; i < n; i++)
                 {
                     ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector256<float> f0 = scale * s;
-                    Vector256<float> f1 = scale * Unsafe.Add(ref s, 1);
-                    Vector256<float> f2 = scale * Unsafe.Add(ref s, 2);
-                    Vector256<float> f3 = scale * Unsafe.Add(ref s, 3);
+                    // Clamp before integer conversion so infinity and overflow reach the byte endpoint.
+                    Vector256<float> f0 = scale * ColorNumerics.ClampToFinite(s, lowerBound, upperBound);
+                    Vector256<float> f1 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector256<float> f2 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector256<float> f3 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector256<int> w0 = Vector256_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector256<int> w1 = Vector256_.ConvertToInt32RoundAwayFromZero(f1);
@@ -1009,27 +1000,23 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destinationBase = ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector128<float> scale = Vector128.Create(scaleFactor);
-                Vector128<int> min = Vector128<int>.Zero;
-                Vector128<int> max = Vector128.Create((int)byte.MaxValue);
+                Vector128<float> lowerBound = Vector128<float>.Zero;
+                Vector128<float> upperBound = Vector128.Create(byte.MaxValue / scaleFactor);
 
                 for (nuint i = 0; i < n; i++)
                 {
                     ref Vector128<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector128<float> f0 = scale * s;
-                    Vector128<float> f1 = scale * Unsafe.Add(ref s, 1);
-                    Vector128<float> f2 = scale * Unsafe.Add(ref s, 2);
-                    Vector128<float> f3 = scale * Unsafe.Add(ref s, 3);
+                    // Clamp before integer conversion so infinity and overflow reach the byte endpoint.
+                    Vector128<float> f0 = scale * ColorNumerics.ClampToFinite(s, lowerBound, upperBound);
+                    Vector128<float> f1 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 1), lowerBound, upperBound);
+                    Vector128<float> f2 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 2), lowerBound, upperBound);
+                    Vector128<float> f3 = scale * ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 3), lowerBound, upperBound);
 
                     Vector128<int> w0 = Vector128_.ConvertToInt32RoundAwayFromZero(f0);
                     Vector128<int> w1 = Vector128_.ConvertToInt32RoundAwayFromZero(f1);
                     Vector128<int> w2 = Vector128_.ConvertToInt32RoundAwayFromZero(f2);
                     Vector128<int> w3 = Vector128_.ConvertToInt32RoundAwayFromZero(f3);
-
-                    w0 = Vector128.Clamp(w0, min, max);
-                    w1 = Vector128.Clamp(w1, min, max);
-                    w2 = Vector128.Clamp(w2, min, max);
-                    w3 = Vector128.Clamp(w3, min, max);
 
                     Vector128<ushort> u0 = Vector128.Narrow(w0, w1).AsUInt16();
                     Vector128<ushort> u1 = Vector128.Narrow(w2, w3).AsUInt16();
@@ -1037,172 +1024,6 @@ internal static partial class SimdUtils
                     Unsafe.Add(ref destinationBase, i) = Vector128.Narrow(u0, u1);
                 }
             }
-        }
-
-        internal static void PackFromRgbPlanesAvx2Reduce(
-            ref ReadOnlySpan<byte> redChannel,
-            ref ReadOnlySpan<byte> greenChannel,
-            ref ReadOnlySpan<byte> blueChannel,
-            ref Span<Rgb24> destination)
-        {
-            ref Vector256<byte> rBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(redChannel));
-            ref Vector256<byte> gBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(greenChannel));
-            ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
-            ref byte dBase = ref Unsafe.As<Rgb24, byte>(ref MemoryMarshal.GetReference(destination));
-
-            nuint count = redChannel.Vector256Count<byte>();
-
-            Vector256<uint> control1 = PermuteMaskEvenOdd8x32();
-
-            Vector256<uint> control2 = PermuteMaskShiftAlpha8x32();
-            Vector256<byte> a = Vector256.Create((byte)255);
-
-            Vector256<byte> shuffleAlpha = ShuffleMaskShiftAlpha();
-
-            for (nuint i = 0; i < count; i++)
-            {
-                Vector256<byte> r0 = Unsafe.Add(ref rBase, i);
-                Vector256<byte> g0 = Unsafe.Add(ref gBase, i);
-                Vector256<byte> b0 = Unsafe.Add(ref bBase, i);
-
-                r0 = Avx2.PermuteVar8x32(r0.AsUInt32(), control1).AsByte();
-                g0 = Avx2.PermuteVar8x32(g0.AsUInt32(), control1).AsByte();
-                b0 = Avx2.PermuteVar8x32(b0.AsUInt32(), control1).AsByte();
-
-                Vector256<byte> rg = Avx2.UnpackLow(r0, g0);
-                Vector256<byte> b1 = Avx2.UnpackLow(b0, a);
-
-                Vector256<byte> rgb1 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-                Vector256<byte> rgb2 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-
-                rg = Avx2.UnpackHigh(r0, g0);
-                b1 = Avx2.UnpackHigh(b0, a);
-
-                Vector256<byte> rgb3 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-                Vector256<byte> rgb4 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-
-                rgb1 = Avx2.Shuffle(rgb1, shuffleAlpha);
-                rgb2 = Avx2.Shuffle(rgb2, shuffleAlpha);
-                rgb3 = Avx2.Shuffle(rgb3, shuffleAlpha);
-                rgb4 = Avx2.Shuffle(rgb4, shuffleAlpha);
-
-                rgb1 = Avx2.PermuteVar8x32(rgb1.AsUInt32(), control2).AsByte();
-                rgb2 = Avx2.PermuteVar8x32(rgb2.AsUInt32(), control2).AsByte();
-                rgb3 = Avx2.PermuteVar8x32(rgb3.AsUInt32(), control2).AsByte();
-                rgb4 = Avx2.PermuteVar8x32(rgb4.AsUInt32(), control2).AsByte();
-
-                ref byte d1 = ref Unsafe.Add(ref dBase, 24 * 4 * i);
-                ref byte d2 = ref Unsafe.Add(ref d1, 24);
-                ref byte d3 = ref Unsafe.Add(ref d2, 24);
-                ref byte d4 = ref Unsafe.Add(ref d3, 24);
-
-                Unsafe.As<byte, Vector256<byte>>(ref d1) = rgb1;
-                Unsafe.As<byte, Vector256<byte>>(ref d2) = rgb2;
-                Unsafe.As<byte, Vector256<byte>>(ref d3) = rgb3;
-                Unsafe.As<byte, Vector256<byte>>(ref d4) = rgb4;
-            }
-
-            int slice = (int)count * Vector256<byte>.Count;
-            redChannel = redChannel[slice..];
-            greenChannel = greenChannel[slice..];
-            blueChannel = blueChannel[slice..];
-            destination = destination[slice..];
-        }
-
-        internal static void PackFromRgbPlanesAvx2Reduce(
-            ref ReadOnlySpan<byte> redChannel,
-            ref ReadOnlySpan<byte> greenChannel,
-            ref ReadOnlySpan<byte> blueChannel,
-            ref Span<Rgba32> destination)
-        {
-            ref Vector256<byte> rBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(redChannel));
-            ref Vector256<byte> gBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(greenChannel));
-            ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
-            ref Vector256<byte> dBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
-
-            nuint count = redChannel.Vector256Count<byte>();
-            Vector256<uint> control1 = PermuteMaskEvenOdd8x32();
-            Vector256<byte> a = Vector256.Create((byte)255);
-
-            for (nuint i = 0; i < count; i++)
-            {
-                Vector256<byte> r0 = Unsafe.Add(ref rBase, i);
-                Vector256<byte> g0 = Unsafe.Add(ref gBase, i);
-                Vector256<byte> b0 = Unsafe.Add(ref bBase, i);
-
-                r0 = Avx2.PermuteVar8x32(r0.AsUInt32(), control1).AsByte();
-                g0 = Avx2.PermuteVar8x32(g0.AsUInt32(), control1).AsByte();
-                b0 = Avx2.PermuteVar8x32(b0.AsUInt32(), control1).AsByte();
-
-                Vector256<byte> rg = Avx2.UnpackLow(r0, g0);
-                Vector256<byte> b1 = Avx2.UnpackLow(b0, a);
-
-                Vector256<byte> rgb1 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-                Vector256<byte> rgb2 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-
-                rg = Avx2.UnpackHigh(r0, g0);
-                b1 = Avx2.UnpackHigh(b0, a);
-
-                Vector256<byte> rgb3 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-                Vector256<byte> rgb4 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
-
-                ref Vector256<byte> d0 = ref Unsafe.Add(ref dBase, i * 4);
-                d0 = rgb1;
-                Unsafe.Add(ref d0, 1) = rgb2;
-                Unsafe.Add(ref d0, 2) = rgb3;
-                Unsafe.Add(ref d0, 3) = rgb4;
-            }
-
-            int slice = (int)count * Vector256<byte>.Count;
-            redChannel = redChannel[slice..];
-            greenChannel = greenChannel[slice..];
-            blueChannel = blueChannel[slice..];
-            destination = destination[slice..];
-        }
-
-        internal static void UnpackToRgbPlanesAvx2Reduce(
-            ref Span<float> redChannel,
-            ref Span<float> greenChannel,
-            ref Span<float> blueChannel,
-            ref ReadOnlySpan<Rgb24> source)
-        {
-            ref Vector256<byte> rgbByteSpan = ref Unsafe.As<Rgb24, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
-            ref Vector256<float> destRRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(redChannel));
-            ref Vector256<float> destGRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(greenChannel));
-            ref Vector256<float> destBRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(blueChannel));
-
-            Vector256<uint> extractToLanesMask = MoveFirst24BytesToSeparateLanes();
-            Vector256<byte> extractRgbMask = ExtractRgb();
-            Vector256<byte> rgb, rg, bx;
-            Vector256<float> r, g, b;
-
-            // Each iteration consumes 8 Rgb24 pixels (24 bytes) but starts with a 32-byte load,
-            // so we need 3 extra pixels of addressable slack beyond the vectorized chunk.
-            const int bytesPerRgbStride = 24;
-            nuint count = source.Length > 3 ? (uint)(source.Length - 3) / 8 : 0;
-            for (nuint i = 0; i < count; i++)
-            {
-                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (uint)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
-
-                rgb = Avx2.Shuffle(rgb, extractRgbMask);
-
-                rg = Avx2.UnpackLow(rgb, Vector256<byte>.Zero);
-                bx = Avx2.UnpackHigh(rgb, Vector256<byte>.Zero);
-
-                r = Avx.ConvertToVector256Single(Avx2.UnpackLow(rg, Vector256<byte>.Zero).AsInt32());
-                g = Avx.ConvertToVector256Single(Avx2.UnpackHigh(rg, Vector256<byte>.Zero).AsInt32());
-                b = Avx.ConvertToVector256Single(Avx2.UnpackLow(bx, Vector256<byte>.Zero).AsInt32());
-
-                Unsafe.Add(ref destRRef, i) = r;
-                Unsafe.Add(ref destGRef, i) = g;
-                Unsafe.Add(ref destBRef, i) = b;
-            }
-
-            int sliceCount = (int)(count * 8);
-            redChannel = redChannel[sliceCount..];
-            greenChannel = greenChannel[sliceCount..];
-            blueChannel = blueChannel[sliceCount..];
-            source = source[sliceCount..];
         }
     }
 }

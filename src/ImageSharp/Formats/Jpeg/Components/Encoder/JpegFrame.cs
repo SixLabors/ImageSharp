@@ -11,23 +11,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 /// </summary>
 internal sealed class JpegFrame : IDisposable
 {
-    public JpegFrame(Image image, JpegFrameConfig frameConfig, bool interleaved)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JpegFrame"/> class.
+    /// </summary>
+    /// <param name="configuration">The memory allocation configuration.</param>
+    /// <param name="size">The encoded pixel size.</param>
+    /// <param name="frameConfig">The JPEG component layout.</param>
+    /// <param name="interleaved">Whether scans interleave their components.</param>
+    public JpegFrame(Configuration configuration, Size size, JpegFrameConfig frameConfig, bool interleaved)
     {
         this.ColorSpace = frameConfig.ColorType;
 
         this.Interleaved = interleaved;
 
-        this.PixelWidth = image.Width;
-        this.PixelHeight = image.Height;
+        this.PixelWidth = size.Width;
+        this.PixelHeight = size.Height;
 
-        MemoryAllocator allocator = image.Configuration.MemoryAllocator;
+        MemoryAllocator allocator = configuration.MemoryAllocator;
 
         JpegComponentConfig[] componentConfigs = frameConfig.Components;
         this.Components = new Component[componentConfigs.Length];
         for (int i = 0; i < this.Components.Length; i++)
         {
             JpegComponentConfig componentConfig = componentConfigs[i];
-            this.Components[i] = new Component(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
+            this.Components[i] = new Component(
+                allocator,
+                componentConfig.HorizontalSampleFactor,
+                componentConfig.VerticalSampleFactor,
+                componentConfig.QuantizatioTableIndex)
             {
                 DcTableId = componentConfig.DcTableSelector,
                 AcTableId = componentConfig.AcTableSelector,
@@ -38,8 +49,8 @@ internal sealed class JpegFrame : IDisposable
 
         int maxSubFactorH = frameConfig.MaxHorizontalSamplingFactor;
         int maxSubFactorV = frameConfig.MaxVerticalSamplingFactor;
-        this.McusPerLine = (int)Numerics.DivideCeil((uint)image.Width, (uint)maxSubFactorH * 8);
-        this.McusPerColumn = (int)Numerics.DivideCeil((uint)image.Height, (uint)maxSubFactorV * 8);
+        this.McusPerLine = (int)Numerics.DivideCeil((uint)size.Width, (uint)maxSubFactorH * 8);
+        this.McusPerColumn = (int)Numerics.DivideCeil((uint)size.Height, (uint)maxSubFactorV * 8);
 
         for (int i = 0; i < this.Components.Length; i++)
         {

@@ -5,6 +5,7 @@
 using System.Buffers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 
@@ -27,7 +28,8 @@ internal sealed class PackBitsTiffCompression : TiffBaseDecompressor
     }
 
     /// <inheritdoc/>
-    protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
+    protected override void Decompress<TPixel>(
+        BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         if (this.compressedDataMemory == null)
         {

@@ -72,27 +72,12 @@ internal sealed partial class IccDataReader
     /// <returns>The read CLUT8.</returns>
     public IccClut ReadClut8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
     {
-        int length = 0;
-        for (int i = 0; i < inChannelCount; i++)
-        {
-            length += (int)Math.Pow(gridPointCount[i], inChannelCount);
-        }
+        int length = this.GetClutLength(inChannelCount, outChannelCount, gridPointCount, 1);
 
-        length /= inChannelCount;
+        int byteCount = length * outChannelCount;
 
-        const float Max = byte.MaxValue;
-
-        float[] values = new float[length * outChannelCount];
-        int offset = 0;
-        for (int i = 0; i < length; i++)
-        {
-            for (int j = 0; j < outChannelCount; j++)
-            {
-                values[offset++] = this.data[this.currentIndex++] / Max;
-            }
-        }
-
-        return new IccClut(values, gridPointCount, IccClutDataType.UInt8, outChannelCount);
+        // GetClutLength validated the complete sample range. Keep the encoded precision without expanding each node.
+        return new IccClut(this.data.AsMemory(this.AddIndex(byteCount), byteCount), gridPointCount, IccClutDataType.UInt8, outChannelCount);
     }
 
     /// <summary>
@@ -104,29 +89,11 @@ internal sealed partial class IccDataReader
     /// <returns>The read CLUT16.</returns>
     public IccClut ReadClut16(int inChannelCount, int outChannelCount, byte[] gridPointCount)
     {
-        int start = this.currentIndex;
-        int length = 0;
-        for (int i = 0; i < inChannelCount; i++)
-        {
-            length += (int)Math.Pow(gridPointCount[i], inChannelCount);
-        }
+        int length = this.GetClutLength(inChannelCount, outChannelCount, gridPointCount, 2);
+        int byteCount = length * outChannelCount * sizeof(ushort);
 
-        length /= inChannelCount;
-
-        const float Max = ushort.MaxValue;
-
-        float[] values = new float[length * outChannelCount];
-        int offset = 0;
-        for (int i = 0; i < length; i++)
-        {
-            for (int j = 0; j < outChannelCount; j++)
-            {
-                values[offset++] = this.ReadUInt16() / Max;
-            }
-        }
-
-        this.currentIndex = start + (length * outChannelCount * 2);
-        return new IccClut(values, gridPointCount, IccClutDataType.UInt16, outChannelCount);
+        // The CLUT owns a native-endian copy. The table keeps this integer representation for its lifetime.
+        return new IccClut(this.data.AsMemory(this.AddIndex(byteCount), byteCount), gridPointCount, IccClutDataType.UInt16, outChannelCount);
     }
 
     /// <summary>
@@ -139,13 +106,7 @@ internal sealed partial class IccDataReader
     public IccClut ReadClutF32(int inChCount, int outChCount, byte[] gridPointCount)
     {
         int start = this.currentIndex;
-        int length = 0;
-        for (int i = 0; i < inChCount; i++)
-        {
-            length += (int)Math.Pow(gridPointCount[i], inChCount);
-        }
-
-        length /= inChCount;
+        int length = this.GetClutLength(inChCount, outChCount, gridPointCount, 4);
 
         float[] values = new float[length * outChCount];
         int offset = 0;
@@ -159,5 +120,39 @@ internal sealed partial class IccDataReader
 
         this.currentIndex = start + (length * outChCount * 4);
         return new IccClut(values, gridPointCount, IccClutDataType.Float, outChCount);
+    }
+
+    /// <summary>
+    /// Computes the node count and validates the complete sample range before any CLUT read or allocation.
+    /// </summary>
+    /// <param name="inputChannelCount">The number of grid axes.</param>
+    /// <param name="outputChannelCount">The samples stored at each node.</param>
+    /// <param name="gridPointCount">The number of nodes on each axis.</param>
+    /// <param name="bytesPerValue">The encoded sample size in bytes.</param>
+    /// <returns>The number of complete grid nodes.</returns>
+    private int GetClutLength(int inputChannelCount, int outputChannelCount, byte[] gridPointCount, int bytesPerValue)
+    {
+        int length = 1;
+        for (int i = 0; i < inputChannelCount; i++)
+        {
+            // Bound each multiplication before it can overflow. A zero-sized axis cannot contain a sample.
+            int gridPoints = gridPointCount[i];
+            if (gridPoints == 0 || length > int.MaxValue / gridPoints)
+            {
+                throw new InvalidIccProfileException("Invalid CLUT dimensions.");
+            }
+
+            length *= gridPoints;
+        }
+
+        // All channels of every node must fit in the remaining profile bytes.
+        long valueCount = (long)length * outputChannelCount;
+        long byteCount = valueCount * bytesPerValue;
+        if (valueCount > int.MaxValue || byteCount > this.data.Length - this.currentIndex)
+        {
+            throw new InvalidIccProfileException("The CLUT data is shorter than its declared dimensions.");
+        }
+
+        return length;
     }
 }

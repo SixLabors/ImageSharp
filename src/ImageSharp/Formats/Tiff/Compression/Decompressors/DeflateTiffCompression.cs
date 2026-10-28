@@ -3,10 +3,11 @@
 
 using System.IO.Compression;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 
@@ -40,7 +41,16 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
     /// <param name="tileWidth">Number of pixels in a tile row.</param>
     /// <param name="tileHeight">Number of rows in a tile.</param>
-    public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian, bool isTiled, int tileWidth, int tileHeight)
+    public DeflateTiffCompression(
+        MemoryAllocator memoryAllocator,
+        int width,
+        int bitsPerPixel,
+        TiffColorType colorType,
+        TiffPredictor predictor,
+        bool isBigEndian,
+        bool isTiled,
+        int tileWidth,
+        int tileHeight)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
         this.colorType = colorType;
@@ -51,7 +61,8 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     }
 
     /// <inheritdoc/>
-    protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
+    protected override void Decompress<TPixel>(
+        BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         long pos = stream.Position;
         using (ZlibInflateReader deframeStream = new(
@@ -69,7 +80,7 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
                 int totalRead = 0;
                 while (totalRead < buffer.Length)
                 {
-                    int bytesRead = dataStream.Read(buffer, totalRead, buffer.Length - totalRead);
+                    int bytesRead = dataStream.Read(buffer[totalRead..]);
                     if (bytesRead <= 0)
                     {
                         break;

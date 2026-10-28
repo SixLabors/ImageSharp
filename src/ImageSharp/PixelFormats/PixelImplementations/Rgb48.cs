@@ -70,6 +70,21 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static bool operator !=(Rgb48 left, Rgb48 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Rgb48 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgb48 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgb48 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgb48 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromRgb48(this);
 
@@ -86,6 +101,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
         => PixelTypeInfo.Create<Rgb48>(
             PixelComponentInfo.Create<Rgb48>(3, 16, 16, 16),
             PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
@@ -114,11 +130,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb48 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,12 +138,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb48 FromAssociatedVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static Rgb48 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -141,7 +148,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb48 FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One) * Max;
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One) * Max;
         return new Rgb48((ushort)MathF.Round(source.X), (ushort)MathF.Round(source.Y), (ushort)MathF.Round(source.Z));
     }
 

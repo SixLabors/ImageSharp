@@ -246,7 +246,9 @@ internal static class HistogramEncoder
                     // For some images, 'tryCombine' turns out to be false for a lot of
                     // histogram pairs. In that case, we fallback to combining
                     // histograms as usual to avoid increasing the header size.
-                    bool tryCombine = curCombo.TrivialSymbol != NonTrivialSym || (histograms[idx].TrivialSymbol == NonTrivialSym && histograms[first].TrivialSymbol == NonTrivialSym);
+                    bool tryCombine = curCombo.TrivialSymbol != NonTrivialSym
+                        || (histograms[idx].TrivialSymbol == NonTrivialSym && histograms[first].TrivialSymbol == NonTrivialSym);
+
                     const int maxCombineFailures = 32;
                     if (tryCombine || binInfo[binId].NumCombineFailures >= maxCombineFailures)
                     {

@@ -2,13 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Tests.Helpers;
 
 public class NumericsTests
 {
-    private delegate void SpanAction<T, in TArg, in TArg1>(Span<T> span, TArg arg, TArg1 arg1);
-
     private readonly ApproximateFloatComparer approximateFloatComparer = new(1e-6f);
 
     /// <summary>
@@ -233,114 +232,6 @@ public class NumericsTests
         {
             // Alpha is the divisor and must still survive each SIMD width without any floating-point transformation.
             Assert.Equal(BitConverter.SingleToInt32Bits(expected[i].W), BitConverter.SingleToInt32Bits(source[i].W));
-        }
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampByte(int length, byte min, byte max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampInt(int length, int min, int max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampUInt(int length, uint min, uint max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampFloat(int length, float min, float max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    [Theory]
-    [InlineData(64, 36, 96)]
-    [InlineData(128, 16, 196)]
-    [InlineData(567, 18, 142)]
-    [InlineData(1024, 0, 255)]
-    public void ClampDouble(int length, double min, double max)
-    {
-        TestClampSpan(
-            length,
-            min,
-            max,
-            (s, m1, m2) => Numerics.Clamp(s, m1, m2),
-            (v, m1, m2) => Numerics.Clamp(v, m1, m2));
-    }
-
-    private static void TestClampSpan<T>(
-        int length,
-        T min,
-        T max,
-        SpanAction<T, T, T> clampAction,
-        Func<T, T, T, T> refClampFunc)
-        where T : unmanaged, IComparable<T>
-    {
-        Span<T> actual = new T[length];
-
-        Random r = new();
-        for (int i = 0; i < length; i++)
-        {
-            actual[i] = (T)Convert.ChangeType(r.Next(byte.MinValue, byte.MaxValue), typeof(T));
-        }
-
-        Span<T> expected = new T[length];
-        actual.CopyTo(expected);
-
-        for (int i = 0; i < expected.Length; i++)
-        {
-            ref T v = ref expected[i];
-            v = refClampFunc(v, min, max);
-        }
-
-        clampAction(actual, min, max);
-
-        for (int i = 0; i < expected.Length; i++)
-        {
-            Assert.Equal(expected[i], actual[i]);
         }
     }
 }

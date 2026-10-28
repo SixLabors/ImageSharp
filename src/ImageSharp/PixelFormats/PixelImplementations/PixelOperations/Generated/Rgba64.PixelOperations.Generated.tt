@@ -10,7 +10,7 @@ public partial struct Rgba64
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgba64>
+    internal partial class PixelOperations : Rgba64CompatiblePixelOperations<Rgba64>
     {
         <# GenerateAllDefaultConversionMethods("Rgba64"); #>
     }

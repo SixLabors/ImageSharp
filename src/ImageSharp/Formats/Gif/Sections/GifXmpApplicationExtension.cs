@@ -28,7 +28,7 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
     /// <param name="stream">The stream to read from.</param>
     /// <param name="allocator">The memory allocator.</param>
     /// <returns>The XMP metadata</returns>
-    public static GifXmpApplicationExtension Read(Stream stream, MemoryAllocator allocator)
+    public static GifXmpApplicationExtension Read(BufferedReadStream stream, MemoryAllocator allocator)
     {
         byte[] xmpBytes = ReadXmpData(stream, allocator, out bool terminated);
         if (!terminated)
@@ -75,7 +75,7 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
         return this.ContentLength;
     }
 
-    private static byte[] ReadXmpData(Stream stream, MemoryAllocator allocator, out bool terminated)
+    private static byte[] ReadXmpData(BufferedReadStream stream, MemoryAllocator allocator, out bool terminated)
     {
         using ChunkedMemoryStream bytes = new(allocator);
 

@@ -19,6 +19,12 @@ public abstract class RgbWorkingSpace
     {
         this.WhitePoint = referenceWhite;
         this.ChromaticityCoordinates = chromaticityCoordinates;
+
+        Matrix4x4 rgbToCieXyz = CreateRgbToCieXyzMatrix(referenceWhite, chromaticityCoordinates);
+        this.RgbToCieXyzMatrix = rgbToCieXyz;
+
+        _ = Matrix4x4.Invert(rgbToCieXyz, out Matrix4x4 cieXyzToRgb);
+        this.CieXyzToRgbMatrix = cieXyzToRgb;
     }
 
     /// <summary>
@@ -30,6 +36,17 @@ public abstract class RgbWorkingSpace
     /// Gets the chromaticity of the rgb primaries.
     /// </summary>
     public RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
+
+    /// <summary>
+    /// Gets the matrix transforming linear rgb coordinates in this working space to CIE XYZ.
+    /// </summary>
+    internal Matrix4x4 RgbToCieXyzMatrix { get; }
+
+    /// <summary>
+    /// Gets the inverse of <see cref="RgbToCieXyzMatrix"/>, transforming CIE XYZ to linear rgb
+    /// coordinates in this working space.
+    /// </summary>
+    internal Matrix4x4 CieXyzToRgbMatrix { get; }
 
     /// <summary>
     /// Compresses the linear vectors to their nonlinear equivalents with respect to the energy.
@@ -84,4 +101,64 @@ public abstract class RgbWorkingSpace
     /// <inheritdoc/>
     public override int GetHashCode()
         => HashCode.Combine(this.GetType(), this.WhitePoint, this.ChromaticityCoordinates);
+
+    /// <summary>
+    /// Builds the linear RGB-to-XYZ matrix from the primaries and reference white.
+    /// </summary>
+    /// <param name="referenceWhite">The XYZ value that RGB white must produce.</param>
+    /// <param name="chromaticityCoordinates">The xy chromaticities of the red, green and blue primaries.</param>
+    /// <returns>The matrix that transforms linear RGB in this working space to XYZ.</returns>
+    private static Matrix4x4 CreateRgbToCieXyzMatrix(CieXyz referenceWhite, RgbPrimariesChromaticityCoordinates chromaticityCoordinates)
+    {
+        float xr = chromaticityCoordinates.R.X;
+        float xg = chromaticityCoordinates.G.X;
+        float xb = chromaticityCoordinates.B.X;
+        float yr = chromaticityCoordinates.R.Y;
+        float yg = chromaticityCoordinates.G.Y;
+        float yb = chromaticityCoordinates.B.Y;
+
+        // Convert each xy primary to XYZ with unit luminance (Y = 1).
+        float mXr = xr / yr;
+        float mZr = (1 - xr - yr) / yr;
+
+        float mXg = xg / yg;
+        float mZg = (1 - xg - yg) / yg;
+
+        float mXb = xb / yb;
+        float mZb = (1 - xb - yb) / yb;
+
+        Matrix4x4 xyzMatrix = new()
+        {
+            M11 = mXr,
+            M21 = mXg,
+            M31 = mXb,
+            M12 = 1F,
+            M22 = 1F,
+            M32 = 1F,
+            M13 = mZr,
+            M23 = mZg,
+            M33 = mZb,
+            M44 = 1F
+        };
+
+        Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
+
+        // Scale the three primaries so RGB white (1,1,1) maps to the reference white.
+        Vector3 vector = Vector3.Transform(referenceWhite.AsVector3Unsafe(), inverseXyzMatrix);
+
+        // Each row stores one primary's contribution to X, Y and Z for Vector3.Transform.
+        return new Matrix4x4
+        {
+            M11 = vector.X * mXr,
+            M21 = vector.Y * mXg,
+            M31 = vector.Z * mXb,
+            M12 = vector.X,
+            M22 = vector.Y,
+            M32 = vector.Z,
+            M13 = vector.X * mZr,
+            M23 = vector.Y * mZg,
+            M33 = vector.Z * mZb,
+            M44 = 1F
+        };
+    }
 }

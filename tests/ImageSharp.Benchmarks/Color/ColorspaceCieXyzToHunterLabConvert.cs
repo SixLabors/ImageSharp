@@ -16,7 +16,9 @@ public class ColorspaceCieXyzToHunterLabConvert
 
     private static readonly ColorProfileConverter ColorProfileConverter = new();
 
-    private static readonly IColorConverter<XYZColor, HunterLabColor> ColourfulConverter = new ConverterBuilder().FromXYZ(Illuminants.C).ToHunterLab(Illuminants.C).Build();
+    private static readonly IColorConverter<XYZColor, HunterLabColor> ColourfulConverter = new ConverterBuilder().FromXYZ(Illuminants.C)
+        .ToHunterLab(Illuminants.C)
+        .Build();
 
     [Benchmark(Baseline = true, Description = "Colourful Convert")]
     public double ColourfulConvert() => ColourfulConverter.Convert(XYZColor).L;

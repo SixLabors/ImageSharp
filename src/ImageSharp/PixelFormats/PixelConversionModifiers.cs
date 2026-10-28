@@ -6,11 +6,7 @@ using SixLabors.ImageSharp.ColorProfiles.Companding;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Specifies vector representation transformations applied by
-/// <see cref="PixelOperations{TPixel}.ToVector4(Configuration,ReadOnlySpan{TPixel},Span{System.Numerics.Vector4},PixelConversionModifiers)"/>
-/// and
-/// <see cref="PixelOperations{TPixel}.FromVector4Destructive(Configuration,Span{System.Numerics.Vector4},Span{TPixel},PixelConversionModifiers)"/>
-/// during bulk pixel conversion.
+/// Specifies the numeric range, alpha representation, and companding used for vector values in pixel row operations.
 /// </summary>
 [Flags]
 public enum PixelConversionModifiers

@@ -11,7 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 internal static class ExrThrowHelper
 {
     [DoesNotReturn]
-    public static Exception NotSupportedDecompressor(string compressionType) => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");
+    public static Exception NotSupportedDecompressor(string compressionType)
+        => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");
 
     [DoesNotReturn]
     public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
@@ -29,5 +30,6 @@ internal static class ExrThrowHelper
     public static void ThrowInvalidImageHeader(string msg) => throw new InvalidImageContentException(msg);
 
     [DoesNotReturn]
-    public static Exception NotSupportedCompressor(string compressionType) => throw new NotSupportedException($"Not supported encoder compression method: {compressionType}");
+    public static Exception NotSupportedCompressor(string compressionType)
+        => throw new NotSupportedException($"Not supported encoder compression method: {compressionType}");
 }

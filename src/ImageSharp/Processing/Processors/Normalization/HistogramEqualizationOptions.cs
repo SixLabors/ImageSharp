@@ -14,15 +14,15 @@ public class HistogramEqualizationOptions
     public HistogramEqualizationMethod Method { get; set; } = HistogramEqualizationMethod.Global;
 
     /// <summary>
-    /// Gets or sets the number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-    /// or 65536 for 16-bit grayscale images.
+    /// Gets or sets the number of luminance bins for SDR pixel formats. Typical values are 256 for 8-bit samples
+    /// or 65536 for 16-bit samples. Extended-range pixel formats use bins based on sample magnitude instead.
     /// Defaults to 256.
     /// </summary>
     public int LuminanceLevels { get; set; } = 256;
 
     /// <summary>
-    /// Gets or sets a value indicating whether to clip the histogram bins at a specific value.
-    /// It is recommended to use clipping when the AdaptiveTileInterpolation method is used, to suppress artifacts which can occur on the borders of the tiles.
+    /// Gets or sets a value indicating whether to limit bin counts and redistribute excess counts.
+    /// This limits contrast amplification near tile borders. It does not clip pixel component values.
     /// Defaults to false.
     /// </summary>
     public bool ClipHistogram { get; set; }

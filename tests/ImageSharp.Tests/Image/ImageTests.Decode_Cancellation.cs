@@ -16,6 +16,7 @@ public partial class ImageTests
         public static readonly string[] TestFileForEachCodec =
         [
             TestImages.Jpeg.Baseline.Snake,
+            TestImages.Heif.IrvineAvif,
 
             // TODO: Figure out Unix cancellation failures, and validate cancellation for each decoder.
             //TestImages.Bmp.Car,
@@ -85,10 +86,7 @@ public partial class ImageTests
             configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
             configuration.StreamProcessingBufferSize = (int)Math.Min(128, pausedStream.Length / 4);
 
-            DecoderOptions options = new()
-            {
-                Configuration = configuration
-            };
+            DecoderOptions options = new(configuration);
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {

@@ -85,6 +85,21 @@ public struct RgbaDouble : IPixel<RgbaDouble>
     public static bool operator !=(RgbaDouble left, RgbaDouble right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static RgbaDouble FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaDouble FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaDouble FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaDouble FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
@@ -101,6 +116,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
         => PixelTypeInfo.Create<RgbaDouble>(
             PixelComponentInfo.Create<RgbaDouble>(4, 64, 64, 64, 64),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -134,10 +150,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaDouble FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations<RgbaDouble>.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -155,7 +168,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaDouble FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
         return new RgbaDouble(source.X, source.Y, source.Z, source.W);
     }
 

@@ -26,5 +26,6 @@ internal sealed class RgbJpegSpectralConverter<TPixel> : SpectralConverter<TPixe
     }
 
     /// <inheritdoc/>
-    protected override JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData) => JpegColorConverterBase.GetConverter(JpegColorSpace.RGB, frame.Precision);
+    protected override JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData)
+        => JpegColorConverterBase.GetConverter(JpegColorSpace.RGB, frame.Precision);
 }

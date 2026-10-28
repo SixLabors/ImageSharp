@@ -234,8 +234,14 @@ public partial class ImageTests
             Assert.ThrowsAny<ArgumentOutOfRangeException>(() => Image.WrapMemory(pixelSource.AsMemory(), width: 3, height: 2, rowStride: 2));
             Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory(pixelSource.AsMemory(0, 6), width: 3, height: 2, rowStride: 4));
 
-            Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory<Rgba32>(byteSource.AsMemory(), width: 3, height: 2, rowStrideInBytes: (4 * Unsafe.SizeOf<Rgba32>()) - 1));
-            Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory<Rgba32>(byteSource.AsMemory(0, 6 * Unsafe.SizeOf<Rgba32>()), width: 3, height: 2, rowStrideInBytes: 4 * Unsafe.SizeOf<Rgba32>()));
+            Assert.ThrowsAny<ArgumentException>(
+                () => Image.WrapMemory<Rgba32>(byteSource.AsMemory(), width: 3, height: 2, rowStrideInBytes: (4 * Unsafe.SizeOf<Rgba32>()) - 1));
+
+            Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory<Rgba32>(
+                byteSource.AsMemory(0, 6 * Unsafe.SizeOf<Rgba32>()),
+                width: 3,
+                height: 2,
+                rowStrideInBytes: 4 * Unsafe.SizeOf<Rgba32>()));
         }
 
         [Fact]

@@ -111,7 +111,7 @@ public class TestImageProviderTests
                         .GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
 
                     TestDecoderWithParameters decoder1 = new();
-                    TestDecoderWithParametersOptions options1 = new()
+                    TestDecoderWithParametersOptions options1 = new(new DecoderOptions(Configuration.Default))
                     {
                         Param1 = "Lol",
                         Param2 = 42
@@ -120,7 +120,7 @@ public class TestImageProviderTests
                     decoder1.InitCaller(testName);
 
                     TestDecoderWithParameters decoder2 = new();
-                    TestDecoderWithParametersOptions options2 = new()
+                    TestDecoderWithParametersOptions options2 = new(new DecoderOptions(Configuration.Default))
                     {
                         Param1 = "LoL",
                         Param2 = 42
@@ -157,7 +157,7 @@ public class TestImageProviderTests
                         .GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
 
                     TestDecoderWithParameters decoder1 = new();
-                    TestDecoderWithParametersOptions options1 = new()
+                    TestDecoderWithParametersOptions options1 = new(new DecoderOptions(Configuration.Default))
                     {
                         Param1 = "Lol",
                         Param2 = 666
@@ -166,7 +166,7 @@ public class TestImageProviderTests
                     decoder1.InitCaller(testName);
 
                     TestDecoderWithParameters decoder2 = new();
-                    TestDecoderWithParametersOptions options2 = new()
+                    TestDecoderWithParametersOptions options2 = new(new DecoderOptions(Configuration.Default))
                     {
                         Param1 = "Lol",
                         Param2 = 666
@@ -385,7 +385,7 @@ public class TestImageProviderTests
             => this.Decode<Rgba32>(options, stream, cancellationToken);
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-            => new() { GeneralOptions = options };
+            => new(options);
 
         internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
@@ -432,7 +432,7 @@ public class TestImageProviderTests
             => this.Decode<Rgba32>(options, stream, cancellationToken);
 
         protected override TestDecoderWithParametersOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-            => new() { GeneralOptions = options };
+            => new(options);
 
         internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
 
@@ -445,15 +445,35 @@ public class TestImageProviderTests
 
     private class TestDecoderOptions : ISpecializedDecoderOptions
     {
-        public DecoderOptions GeneralOptions { get; init; } = new();
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestDecoderOptions"/> class.
+        /// </summary>
+        /// <param name="generalOptions">The general options supplied to the test decoder.</param>
+        public TestDecoderOptions(DecoderOptions generalOptions)
+        {
+            this.GeneralOptions = generalOptions;
+        }
+
+        /// <inheritdoc/>
+        public DecoderOptions GeneralOptions { get; }
     }
 
     private class TestDecoderWithParametersOptions : ISpecializedDecoderOptions
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestDecoderWithParametersOptions"/> class.
+        /// </summary>
+        /// <param name="generalOptions">The general options supplied to the test decoder.</param>
+        public TestDecoderWithParametersOptions(DecoderOptions generalOptions)
+        {
+            this.GeneralOptions = generalOptions;
+        }
+
         public string Param1 { get; init; }
 
         public int Param2 { get; init; }
 
-        public DecoderOptions GeneralOptions { get; init; } = new();
+        /// <inheritdoc/>
+        public DecoderOptions GeneralOptions { get; }
     }
 }

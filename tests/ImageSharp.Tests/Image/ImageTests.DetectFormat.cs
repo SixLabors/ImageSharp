@@ -41,10 +41,7 @@ public partial class ImageTests
         [Fact]
         public void FromBytes_CustomConfiguration()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.LocalConfiguration
-            };
+            DecoderOptions options = new(this.LocalConfiguration);
 
             IImageFormat format = Image.DetectFormat(options, this.ByteArray);
             Assert.Equal(this.LocalImageFormat, format);
@@ -71,10 +68,7 @@ public partial class ImageTests
         [Fact]
         public void FromFileSystemPath_CustomConfiguration()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.LocalConfiguration
-            };
+            DecoderOptions options = new(this.LocalConfiguration);
 
             IImageFormat format = Image.DetectFormat(options, this.MockFilePath);
             Assert.Equal(this.LocalImageFormat, format);
@@ -83,10 +77,7 @@ public partial class ImageTests
         [Fact]
         public async Task FromFileSystemPathAsync_CustomConfiguration()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.LocalConfiguration
-            };
+            DecoderOptions options = new(this.LocalConfiguration);
 
             IImageFormat format = await Image.DetectFormatAsync(options, this.MockFilePath);
             Assert.Equal(this.LocalImageFormat, format);
@@ -104,10 +95,7 @@ public partial class ImageTests
         [Fact]
         public void FromStream_CustomConfiguration()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.LocalConfiguration
-            };
+            DecoderOptions options = new(this.LocalConfiguration);
 
             IImageFormat format = Image.DetectFormat(options, this.DataStream);
             Assert.Equal(this.LocalImageFormat, format);
@@ -116,10 +104,7 @@ public partial class ImageTests
         [Fact]
         public void WhenNoMatchingFormatFound_Throws_UnknownImageFormatException()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = new Configuration()
-            };
+            DecoderOptions options = new(new Configuration());
 
             Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(options, this.DataStream));
         }
@@ -135,10 +120,7 @@ public partial class ImageTests
         [Fact]
         public async Task FromStreamAsync_CustomConfiguration()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = this.LocalConfiguration
-            };
+            DecoderOptions options = new(this.LocalConfiguration);
 
             IImageFormat format = await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
             Assert.Equal(this.LocalImageFormat, format);
@@ -147,12 +129,10 @@ public partial class ImageTests
         [Fact]
         public Task WhenNoMatchingFormatFoundAsync_Throws_UnknownImageFormatException()
         {
-            DecoderOptions options = new()
-            {
-                Configuration = new Configuration()
-            };
+            DecoderOptions options = new(new Configuration());
 
-            return Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));
+            return Assert.ThrowsAsync<UnknownImageFormatException>(
+                async () => await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));
         }
     }
 }

@@ -11,5 +11,5 @@ public partial struct Bgr24
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Bgr24>;
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Bgr24>;
 }

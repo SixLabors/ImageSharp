@@ -414,6 +414,14 @@ public static class FeatureTestRunner
                     // Not a COMPlus value. We filter in calling method.
                     features.Add(key, nameof(HwIntrinsics.AllowAll));
                     break;
+#if NET10_0_OR_GREATER
+                case nameof(HwIntrinsics.DisableAVX512F):
+
+                    // .NET 10 groups AVX512F, BW, CD, DQ, and VL under EnableAVX512; EnableAVX512F has no effect.
+                    // https://github.com/dotnet/runtime/blob/v10.0.12/src/coreclr/inc/clrconfigvalues.h
+                    features.Add(key, "EnableAVX512");
+                    break;
+#endif
 #if NET11_0_OR_GREATER
                 case nameof(HwIntrinsics.DisableSSE42):
 

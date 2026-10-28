@@ -144,7 +144,11 @@ internal class HuffmanScanEncoder
     /// <param name="frame">Frame to encode.</param>
     /// <param name="converter">Converter from color to spectral.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public void EncodeScanBaselineInterleaved<TPixel>(JpegColorType color, JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+    public void EncodeScanBaselineInterleaved<TPixel>(
+        JpegColorType color,
+        JpegFrame frame,
+        SpectralConverter<TPixel> converter,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         switch (color)
@@ -478,7 +482,10 @@ internal class HuffmanScanEncoder
     /// <param name="frame">Frame to encode.</param>
     /// <param name="converter">Converter from color to spectral.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    private void EncodeThreeComponentBaselineInterleavedScanNoSubsampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+    private void EncodeThreeComponentBaselineInterleavedScanNoSubsampling<TPixel>(
+        JpegFrame frame,
+        SpectralConverter<TPixel> converter,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         nuint mcusPerColumn = (uint)frame.McusPerColumn;

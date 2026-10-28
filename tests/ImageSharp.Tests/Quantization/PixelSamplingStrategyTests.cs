@@ -72,7 +72,12 @@ public class PixelSamplingStrategyTests
 
     [Theory]
     [WithBlankImages(nameof(DefaultPixelSamplingStrategy_MultiFrame_Data), 1, 1, PixelTypes.L8)]
-    public void DefaultPixelSamplingStrategy_IsFair_MultiFrame(TestImageProvider<L8> dummyProvider, int width, int height, int noOfFrames, int maximumNumberOfPixels)
+    public void DefaultPixelSamplingStrategy_IsFair_MultiFrame(
+        TestImageProvider<L8> dummyProvider,
+        int width,
+        int height,
+        int noOfFrames,
+        int maximumNumberOfPixels)
     {
         using Image<L8> image = CreateTestImage(width, height, noOfFrames);
 

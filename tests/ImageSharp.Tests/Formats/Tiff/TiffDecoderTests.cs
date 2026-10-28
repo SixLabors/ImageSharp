@@ -2,11 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
+using System.Numerics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -23,13 +26,76 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [ValidateDisposedMemoryAllocations]
 public class TiffDecoderTests : TiffDecoderBaseTester
 {
+    /// <summary>
+    /// Pixel formats used to check nested WebP conversion, including associated alpha.
+    /// </summary>
+    private const PixelTypes WebpPixelTypes = PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP;
+
     public static readonly string[] MultiframeTestImages = Multiframes;
+
+    /// <summary>
+    /// Decoding preserves finite HDR samples within the half-precision range and bounds nonfinite samples.
+    /// </summary>
+    /// <remarks>
+    /// The positive-infinity input comes from
+    /// <see href="https://github.com/SixLabors/ImageSharp/security/advisories/GHSA-j3p4-wp97-rph4">CVE-2026-106113</see>.
+    /// The complete decode-and-equalize reproduction remains in HistogramEqualizationTests.GlobalHistogramEqualization_Cve2026106113.
+    /// </remarks>
+    /// <param name="hex">The encoded floating-point TIFF.</param>
+    /// <param name="intensity">The intensity stored in the encoded TIFF.</param>
+    [Theory]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F",
+        float.PositiveInfinity)]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F0000C07F",
+        float.NaN)]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000004000000040000000400000004000000040000000400000004000000040",
+        2F)]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+                "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+                "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F",
+        .5F)]
+    public void Decode_FloatingPointSamples_UsesFiniteHalfVector4ColorRange(string hex, float intensity)
+    {
+        byte[] data = Convert.FromHexString(hex);
+        using Image<HalfVector4> image = Image.Load<HalfVector4>(data);
+        Assert.Equal(new Size(8, 1), image.Size);
+
+        // Decoding uses the color conversion API: NaN maps to the finite minimum, and positive infinity maps to the finite maximum.
+        // Finite HDR samples such as 2 remain unchanged. These bounds come from Half storage, not the SDR interval [0,1].
+        float expectedIntensity = float.IsNaN(intensity) ? (float)Half.MinValue : Math.Clamp(intensity, (float)Half.MinValue, (float)Half.MaxValue);
+        Vector4 expected = new(expectedIntensity, expectedIntensity, expectedIntensity, 1F);
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            // Check stored components too: output conversion must not conceal a nonfinite value left by the decoder.
+            Assert.Equal(expected, image[x, 0].ToVector4());
+            Assert.Equal(expected, image[x, 0].ToScaledVector4());
+        }
+    }
 
     [Theory]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
-    [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance));
+
+    /// <summary>
+    /// Checks the existing sixteen-bit CMYK sample against an independent decoder.
+    /// </summary>
+    /// <param name="provider">The real sixteen-bit CMYK image.</param>
+    [Theory]
+    [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
+    public void Decode_Cmyk16_MatchesReference(TestImageProvider<Rgba32> provider)
+        => TestTiffDecoder(provider, useExactComparer: false);
 
     [Theory]
     [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
@@ -37,7 +103,14 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [InlineData(Calliphora_GrayscaleUncompressed, 8, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(Calliphora_GrayscaleUncompressed16Bit, 16, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(Flower4BitPalette, 4, 73, 43, 72, 72, PixelResolutionUnit.PixelsPerInch)]
-    public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
+    public void Identify(
+        string imagePath,
+        int expectedPixelSize,
+        int expectedWidth,
+        int expectedHeight,
+        double expectedHResolution,
+        double expectedVResolution,
+        PixelResolutionUnit expectedResolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -169,6 +242,17 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    /// <summary>
+    /// Palette TIFFs with LZW compression and horizontal prediction preserve colors for both palette ranges.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The TIFF image provider.</param>
+    [Theory]
+    [WithFile(Issue3182ColorMap16Bit, PixelTypes.Rgba64)]
+    [WithFile(Issue3182ColorMap8Bit, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_PaletteWithLzwAndPredictor<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
     [Theory]
     [WithFile(Rgb4BitPalette, PixelTypes.Rgba32)]
     [WithFile(Flower4BitPalette, PixelTypes.Rgba32)]
@@ -185,6 +269,47 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Flower2BitGray, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_2Bit_Gray<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    /// <summary>
+    /// Compares existing grayscale fixtures with Magick across SIMD and scalar feature modes.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded pixel type.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(Flower2BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower6BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower8BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower10BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower12BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
+    [WithFile(Flower16BitGray, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    [WithFile(Flower16BitGrayLittleEndian, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    [WithFile(Flower16BitGrayMinIsWhiteBigEndian, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    [WithFile(Flower16BitGrayMinIsWhiteLittleEndian, PixelTypes.Rgba32 | PixelTypes.Rgba64)]
+    public void TiffDecoder_GrayscaleReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            PixelTests<TPixel>.AssertExistingReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares existing RGB and RGBA planar fixtures with Magick across SIMD modes.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded pixel type.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(FlowerRgb888Planar6Strips, PixelTypes.Rgba32)]
+    [WithFile(FlowerRgb888Planar15Strips, PixelTypes.Rgba32)]
+    [WithFile(Rgba8BitPlanarUnassociatedAlpha, PixelTypes.Rgba32)]
+    [WithFile(Rgba16BitPlanarUnassociatedAlphaLittleEndian, PixelTypes.Rgba32)]
+    [WithFile(Rgba16BitPlanarUnassociatedAlphaBigEndian, PixelTypes.Rgba32)]
+    public void TiffDecoder_PlanarReference_FeatureModes<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            PixelTests<TPixel>.AssertExistingReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
 
     [Theory]
     [WithFile(FlowerRgb222Contiguous, PixelTypes.Rgba32)]
@@ -319,11 +444,21 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(FlowerYCbCr888Contiguoush4v4, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YCbCr_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertYcbcrReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares the full YCbCr image with its checked-in reference in the selected hardware mode.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void AssertYcbcrReference(string providerDump)
     {
-        // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-        // converting the pixel data from Magick.NET to our format with YCbCr?
-        using Image<TPixel> image = provider.GetImage();
-        image.DebugSave(provider);
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        using Image<Rgba32> image = provider.GetImage(TiffDecoder.Instance);
+
+        // Magick's YCbCr interpretation differs, so this family uses its checked-in exact reference.
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
@@ -347,11 +482,21 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(CmykJpeg, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertCmykReference,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares the full CMYK image with its checked-in reference in the selected hardware mode.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void AssertCmykReference(string providerDump)
     {
-        // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
-        // converting the pixel data from Magick.NET to our format with CMYK?
-        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-        image.DebugSave(provider);
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        using Image<Rgba32> image = provider.GetImage(TiffDecoder.Instance);
+
+        // Magick's CMYK interpretation differs, so this family uses its checked-in exact reference.
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
@@ -363,27 +508,104 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+        using Image<TPixel> image = provider.GetImage(
+            TiffDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // ICC power approximation can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
         Assert.Null(image.Metadata.IccProfile);
     }
 
+    /// <summary>
+    /// Checks that an eight-bit destination is packed after ICC conversion of the native sixteen-bit samples.
+    /// </summary>
+    /// <param name="provider">The real sixteen-bit RGB TIFF with an embedded profile.</param>
     [Theory]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.RgbaVector)]
+    public void Decode_IccProfile_PacksDestinationAfterConversion(TestImageProvider<RgbaVector> provider)
+    {
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<RgbaVector> precise = provider.GetImage(TiffDecoder.Instance, options);
+
+        // Keep the decoded component precision through ICC, then apply the existing final byte conversion once.
+        using Image<Rgba32> expected = precise.CloneAs<Rgba32>();
+        TestImageProvider<Rgba32> byteProvider = TestImageProvider<Rgba32>.File(provider.SourceFileOrDescription);
+        byteProvider.Configuration = provider.Configuration;
+        using Image<Rgba32> actual = byteProvider.GetImage(TiffDecoder.Instance, options);
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies conversion of the reporter's CMYK profile using its relative-colorimetric intent.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The image provider.</param>
+    [Theory]
+    [WithFile(Issue3198, PixelTypes.Rgba32)]
+    public void Decode_CmykIcc_Issue3198<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        image.DebugSave(provider);
+
+        // LittleCMS 2.19 generated the reference from the embedded profile to CompactSrgbV4Profile,
+        // using relative colorimetric intent without black-point compensation.
+
+        // After final rounding, limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
+    }
+
+    [Theory]
+    [WithFile(Icc.PerceptualCmyk, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualCieLab, PixelTypes.Rgba32)]
     [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
     [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
+    [WithFile(Issue3198, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb8Webp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        using Image<TPixel> preserved = provider.GetImage(TiffDecoder.Instance, preserveOptions);
 
-        Assert.NotNull(image.Metadata.IccProfile);
-        Assert.NotSame(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> converted = provider.GetImage(TiffDecoder.Instance, convertOptions);
+
+        ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        TiffFrameMetadata sourceFrameMetadata = sourceInfo.FrameMetadataCollection[0].GetTiffMetadata();
+        TiffFrameMetadata preservedFrameMetadata = preserved.Frames.RootFrame.Metadata.GetTiffMetadata();
+        TiffFrameMetadata convertedFrameMetadata = converted.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.NotSame(preserved.Frames.RootFrame.Metadata.IccProfile, preserved.Metadata.IccProfile);
         Assert.Equal(
-            image.Frames.RootFrame.Metadata.IccProfile.ToByteArray(),
-            image.Metadata.IccProfile.ToByteArray());
+            preserved.Frames.RootFrame.Metadata.IccProfile.ToByteArray(),
+            preserved.Metadata.IccProfile.ToByteArray());
+
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(sourceInfo.FrameMetadataCollection[0].IccProfile.ToByteArray(), preserved.Frames.RootFrame.Metadata.IccProfile.ToByteArray());
+
+        // ICC conversion changes pixels, while TIFF metadata retains the source file's encoded sample layout.
+        Assert.Equal(sourceFrameMetadata.PhotometricInterpretation, preservedFrameMetadata.PhotometricInterpretation);
+        Assert.Equal(sourceFrameMetadata.BitsPerSample, preservedFrameMetadata.BitsPerSample);
+        Assert.Equal(sourceFrameMetadata.BitsPerPixel, preservedFrameMetadata.BitsPerPixel);
+        Assert.Equal(sourceFrameMetadata.PhotometricInterpretation, convertedFrameMetadata.PhotometricInterpretation);
+        Assert.Equal(sourceFrameMetadata.BitsPerSample, convertedFrameMetadata.BitsPerSample);
+        Assert.Equal(sourceFrameMetadata.BitsPerPixel, convertedFrameMetadata.BitsPerPixel);
+
+        ImageComparer.Exact.VerifySimilarity(converted, preserved);
+
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Null(converted.Frames.RootFrame.Metadata.IccProfile);
     }
 
     [Theory]
@@ -395,8 +617,42 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
 
-        // ARM reports a 0.0000% difference, so we use a tolerant comparer here.
-        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+        // Preserve keeps the converted pixels, so both modes use the same ICC reference.
+        // The Issue2454_B reference retains negative intermediate XYZ until final pixel packing. Its five previously
+        // clipped dark pixels were checked with libjpeg coefficients, direct cosine IDCT and LittleCMS using the original profile.
+        provider.Utility.TestName = nameof(this.TiffDecoder_CanDecode_YccK_ICC);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
+    }
+
+    /// <summary>
+    /// Checks that TIFF's nested JPEG decoder retains fractional and negative ICC output in floating-point pixels.
+    /// </summary>
+    /// <param name="provider">The existing YCCK TIFF with its original CMYK profile.</param>
+    [Theory]
+    [WithFile(Issues2454_B, PixelTypes.RgbaVector)]
+    public void TiffDecoder_YcckIcc_RetainsFloatingRgb(TestImageProvider<RgbaVector> provider)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertFloatingYcckRgb,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares a dark pixel with the independently checked native transform before byte packing.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    private static void AssertFloatingYcckRgb(string providerDump)
+    {
+        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
+        using Image<RgbaVector> image = provider.GetImage(TiffDecoder.Instance);
+
+        // LittleCMS transforms the same fractional CMYK samples through this TIFF's unchanged ICC profile.
+        // Its RGB result below uses byte-code units; divide by 255 to compare normalized floating-point pixels.
+        // This bound covers the established analytic-curve error. Rounding RGB to bytes would lose the green fraction;
+        // clipping intermediate XYZ would also change this pixel. Neither operation is required by float storage.
+        Vector4 expected = new(-15.415898F / 255F, 5.247180F / 255F, -3.835872F / 255F, 1F);
+        Assert.Equal(expected, image[1767, 1161].ToScaledVector4(), new ApproximateFloatComparer(5E-4F));
     }
 
     [Theory]
@@ -426,7 +682,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_YccK_ICC<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             ColorProfileHandling = ColorProfileHandling.Convert,
         };
@@ -434,8 +690,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         image.DebugSave(provider);
 
-        // Linux reports a 0.0000% difference, so we use a tolerant comparer here.
-        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -471,6 +727,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba8BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+
         // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
 
@@ -711,7 +968,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -729,25 +986,25 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
     [WithFile(RgbJpegCompressed2, PixelTypes.Rgba32)]
-    [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
+    [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(YCbCrJpegCompressed, PixelTypes.Rgba32)]
     [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]
-    [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
-    [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
+    [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(Issues2123, PixelTypes.Rgba32, 0.110f)]
     public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: tolerance);
 
     [Theory]
-    [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32, 0.1003f)]
     [WithFile(RgbOldJpegCompressed3, PixelTypes.Rgba32)]
-    [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
     [WithFile(YCbCrOldJpegCompressed, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions decoderOptions = new()
+        DecoderOptions decoderOptions = new(Configuration.Default)
         {
             MaxFrames = 1
         };
@@ -760,15 +1017,86 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             decoderOptions);
     }
 
+    /// <summary>
+    /// Checks nested WebP output against an independent decoder across integer, floating and associated pixel formats.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested output pixel format.</typeparam>
+    /// <param name="provider">The real TIFF fixture.</param>
+    /// <param name="referencePath">The independent uncompressed TIFF with the same decoded RGBA samples.</param>
     [Theory]
-    [WithFile(WebpCompressed, PixelTypes.Rgba32)]
-    public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(WebpCompressed, WebpPixelTypes, WebpCompressedReference)]
+    [WithFile(WebpCompressedRgb, WebpPixelTypes, WebpCompressedRgbReference)]
+    [WithFile(WebpCompressedRgbTiled, WebpPixelTypes, WebpCompressedRgbReference)]
+    [WithFile(WebpCompressedRgbaAlphaOmitted, WebpPixelTypes, WebpCompressedRgbReference)]
+    [WithFile(WebpCompressedLosslessRgbaOpaque, WebpPixelTypes, WebpCompressedLosslessRgbaOpaqueReference)]
+    public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider, string referencePath)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsWindows)
-        {
-            TestTiffDecoder(provider, useExactComparer: false);
-        }
+        // The fixtures cover multiple strips, cropped edge tiles and RGBA headers whose WebP data omits an opaque alpha plane.
+        // Comparing the requested TPixel output catches RGB-only staging and incorrect copies of nested pixel bytes.
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+
+        // Some native libtiff builds omit WebP support. Read the fixed uncompressed reference through Magick
+        // so every platform still compares all pixels against an independent decoder in the requested TPixel.
+        using MemoryStream referenceStream = new(TestFile.Create(referencePath).Bytes);
+        using Image<TPixel> reference = ReferenceDecoder.Decode<TPixel>(DecoderOptions.Default, referenceStream);
+        ImageComparer.Tolerant(0.001F).VerifySimilarity(reference, image);
+    }
+
+    /// <summary>
+    /// Checks that TIFF passes its profile to WebP and applies the source transform once.
+    /// </summary>
+    /// <typeparam name="TPixel">The requested output pixel format.</typeparam>
+    /// <param name="provider">The profiled TIFF fixture.</param>
+    [Theory]
+    [WithFile(Icc.PerceptualRgb8Webp, WebpPixelTypes)]
+    public void Decode_WebpIcc_ConvertsOnce<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+
+        // libtiff recompressed Perceptual_RGB8 losslessly, retaining its source RGB samples and IFD profile.
+        // Compare with the uncompressed source in TPixel to check the nested decoder's full output, including out-of-range float RGB.
+        using Image<TPixel> uncompressed = Image.Load<TPixel>(options, TestFile.Create(Icc.PerceptualRgb8).Bytes);
+
+        // The same RGB samples and profile must agree per pixel. Allow one sixteen-bit code per RGB channel for float rounding.
+        ImageComparer.Tolerant(0F, 3).VerifySimilarity(uncompressed, image);
+
+        image.DebugSave(provider);
+
+        // The independent CMM can round eight-bit source colors differently. No pixel may exceed three byte codes in total.
+        // Use the original uncompressed input for the independent CMM as well. Its RGB samples and ICC profile
+        // match the lossless WebP TIFF, and decoding it does not require native TIFF/WebP support.
+        using MemoryStream referenceStream = new(TestFile.Create(Icc.PerceptualRgb8).Bytes);
+        using Image<TPixel> reference = ReferenceDecoder.Decode<TPixel>(options, referenceStream);
+        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(reference, image);
+
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
+    }
+
+    /// <summary>
+    /// Rejects planar WebP before the decoder selects a raw channel-buffer path.
+    /// </summary>
+    /// <param name="path">An existing strip or tile WebP TIFF.</param>
+    [Theory]
+    [InlineData(WebpCompressedRgb)]
+    [InlineData(WebpCompressedRgbTiled)]
+    public void Parse_WebpPlanarLayout_Throws(string path)
+    {
+        using FileStream stream = File.OpenRead(TestFile.Create(path).FullPath);
+        DirectoryReader reader = new(stream, Configuration.Default.MemoryAllocator);
+        ExifProfile tags = reader.Read()[0];
+
+        // Change only the layout tag from a real fixture to test rejection of the layout that libtiff's WebP codec excludes.
+        tags.SetValue(ExifTag.PlanarConfiguration, (ushort)TiffPlanarConfiguration.Planar);
+        TiffFrameMetadata metadata = TiffFrameMetadata.Parse(tags);
+        TiffDecoderCore decoder = new(new DecoderOptions(Configuration.Default));
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => decoder.VerifyAndParse(tags, metadata));
+        Assert.Equal("WebP compression is not supported with planar configuration", exception.Message);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/1891
@@ -809,13 +1137,13 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
 
-        // The image is handcrafted to simulate issue 2679. ImageMagick will throw an expection here and wont decode,
-        // so we compare to rererence output instead.
+        // The image is handcrafted to simulate issue 2679. ImageMagick throws an exception and cannot decode it,
+        // so compare against reference output instead.
         image.DebugSave(provider, appendPixelTypeToFileName: false);
-        image.CompareToReferenceOutput(
-            ImageComparer.Exact,
-            provider,
-            appendPixelTypeToFileName: false);
+
+        // JPEG has already expanded the subsampled chroma before TIFF receives the RGB pixels.
+        // Comparing the whole image catches TIFF incorrectly applying the subsampling a second time.
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -865,7 +1193,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };
@@ -896,39 +1224,146 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    /// <summary>
+    /// Checks that identification ignores an invalid ICC header length under the default ancillary-error policy.
+    /// </summary>
     [Fact]
     public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
     {
-        ImageInfo info = Image.Identify(CreateTiffWithMalformedIccProfile());
-        Assert.Equal(1, info.Width);
-        Assert.Equal(1, info.Height);
+        ImageInfo info = Image.Identify(TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes);
+
+        Assert.Equal(new Size(100, 100), info.Size);
+        Assert.Null(info.Metadata.IccProfile);
+        Assert.Null(info.FrameMetadataCollection[0].IccProfile);
     }
 
+    /// <summary>
+    /// Checks that decoding ignores the invalid profile while retaining the image under the default ancillary-error policy.
+    /// </summary>
     [Fact]
     public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
     {
-        using Image<Rgba32> image = Image.Load<Rgba32>(CreateTiffWithMalformedIccProfile());
-        Assert.Equal(1, image.Width);
-        Assert.Equal(1, image.Height);
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes);
+
+        Assert.Equal(new Size(100, 100), image.Size);
+        Assert.Null(image.Metadata.IccProfile);
+        Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);
     }
 
+    /// <summary>
+    /// Checks strict ICC validation during identification.
+    /// </summary>
     [Fact]
     public void Identify_MalformedIccProfile_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, CreateTiffWithMalformedIccProfile()));
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
+
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, data));
     }
 
+    /// <summary>
+    /// Checks strict ICC validation during decoding.
+    /// </summary>
     [Fact]
     public void Decode_MalformedIccProfile_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        byte[] data = TestFile.Create(TestImages.Tiff.Icc.InvalidProfileSize).Bytes;
+
         Assert.Throws<InvalidIccProfileException>(() =>
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateTiffWithMalformedIccProfile());
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
         });
     }
 
-    private static byte[] CreateTiffWithMalformedIccProfile()
-        => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
+    /// <summary>
+    /// Provides a non-generic RemoteExecutor callback whose declaring type retains the requested pixel format.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded pixel type.</typeparam>
+    private static class PixelTests<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        /// <summary>
+        /// Compares the decoded fixture with the independent reference at the requested pixel precision.
+        /// </summary>
+        /// <param name="providerDump">The serialized source image provider.</param>
+        public static void AssertExistingReference(string providerDump)
+        {
+            TestImageProvider<TPixel> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump);
+            TestTiffDecoder(provider);
+        }
+    }
+
+    /// <summary>
+    /// Missing sample-depth tags use the TIFF default in Decode and Identify under every integrity mode.
+    /// </summary>
+    /// <param name="path">The stored bilevel TIFF without BitsPerSample, with or without SamplesPerPixel.</param>
+    [Theory]
+    [InlineData(BilevelWithoutBitsPerSampleUncompressed)]
+    [InlineData(BilevelWithoutBitsPerSampleFax4)]
+    [InlineData(BilevelWithoutSampleTags)]
+    public void TiffDecoder_CanDecode_BilevelWithoutBitsPerSample(string path)
+    {
+        using Image<L8> expected = Image.Load<L8>(TestFile.Create(Fax4Compressed).Bytes);
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            using Image<L8> actual = Image.Load<L8>(options, data);
+            ImageInfo info = Image.Identify(options, data);
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+            TiffFrameMetadata metadata = actual.Frames.RootFrame.Metadata.GetTiffMetadata();
+            Assert.Equal(new TiffBitsPerSample(1, 0, 0), metadata.BitsPerSample);
+            Assert.Equal(TiffBitsPerPixel.Bit1, metadata.BitsPerPixel);
+            Assert.Equal(1, info.PixelType.BitsPerPixel);
+            Assert.Equal(TiffBitsPerPixel.Bit1, info.FrameMetadataCollection[0].GetTiffMetadata().BitsPerPixel);
+        }
+    }
+
+    /// <summary>
+    /// A missing sample-depth tag must not reduce an unsupported sample count to a supported layout.
+    /// </summary>
+    /// <param name="path">The stored TIFF with zero or five declared samples per pixel.</param>
+    [Theory]
+    [InlineData(MissingBitsPerSampleWithZeroSamples)]
+    [InlineData(MissingBitsPerSampleWithFiveSamples)]
+    public void TiffDecoder_WithoutBitsPerSample_RejectsUnsupportedSampleCounts(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<NotSupportedException>(() => Image.Identify(options, data));
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<L8> image = Image.Load<L8>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
+    /// A present but unusable sample-depth tag must not inherit a valid default layout.
+    /// </summary>
+    /// <param name="path">The stored TIFF with an empty or zero-valued BitsPerSample entry.</param>
+    [Theory]
+    [InlineData(EmptyBitsPerSample)]
+    [InlineData(ZeroBitsPerSample)]
+    public void TiffDecoder_PresentInvalidBitsPerSample_IsNotDefaulted(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<NotSupportedException>(() =>
+            {
+                using Image<L8> image = Image.Load<L8>(options, data);
+            });
+        }
+    }
+
 }

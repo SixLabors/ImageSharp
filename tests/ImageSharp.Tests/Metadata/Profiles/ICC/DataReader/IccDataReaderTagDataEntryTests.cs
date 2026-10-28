@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc;
 
@@ -72,6 +73,24 @@ public class IccDataReaderTagDataEntryTests
         IccCurveTagDataEntry output = reader.ReadCurveTagDataEntry();
 
         Assert.Equal(expected, output);
+    }
+
+    /// <summary>
+    /// Rejects a curve count that exceeds the available samples before allocating its float array.
+    /// </summary>
+    /// <param name="pointCount">The malformed declared sample count.</param>
+    [Theory]
+    [InlineData(4U)]
+    [InlineData(uint.MaxValue)]
+    public void ReadCurveTagDataEntry_RejectsPointCountBeyondPayload(uint pointCount)
+    {
+        // This existing fixture contains three sixteen-bit samples after its four-byte count.
+        // Changing only that count leaves too few samples, including when the count would overflow allocation limits.
+        byte[] data = (byte[])IccTestDataTagDataEntry.CurveArr2.Clone();
+        BinaryPrimitives.WriteUInt32BigEndian(data, pointCount);
+        IccDataReader reader = CreateReader(data);
+
+        Assert.Throws<InvalidIccProfileException>(() => reader.ReadCurveTagDataEntry());
     }
 
     [Theory]

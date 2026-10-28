@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
@@ -15,7 +16,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 namespace SixLabors.ImageSharp.Tests.Formats.Gif;
 
 [Trait("Format", "Gif")]
-public class GifEncoderTests
+public partial class GifEncoderTests
 {
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0015F);
@@ -23,7 +24,12 @@ public class GifEncoderTests
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
     {
-        { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
+        {
+            TestImages.Gif.Rings,
+            (int)ImageMetadata.DefaultHorizontalResolution,
+            (int)ImageMetadata.DefaultVerticalResolution,
+            PixelResolutionUnit.PixelsPerInch
+        },
         { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
         { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
     };
@@ -345,6 +351,47 @@ public class GifEncoderTests
                     Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
                     break;
             }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Heif.AnimatedLeo, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new GifEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("gif"), memStream.ToArray());
+
+        // The decoded AV1 frames hold more colors than a gif palette, so the quantizer changes some of them.
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        ImageComparer.TolerantPercentage(0.92f).VerifySimilarity(output, image);
+
+        HeifMetadata heif = image.Metadata.GetHeifMetadata();
+        GifMetadata gif = output.Metadata.GetGifMetadata();
+
+        Assert.Equal(heif.RepeatCount, gif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            HeifFrameMetadata heifF = image.Frames[i].Metadata.GetHeifMetadata();
+            GifFrameMetadata gifF = output.Frames[i].Metadata.GetGifMetadata();
+
+            // GIF stores the frame delay in whole centiseconds.
+            Assert.Equal((int)Math.Round(heifF.FrameDelay.ToDouble() * 100), gifF.FrameDelay);
+
+            // HEIF frames are complete images, so they are not disposed.
+            Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
         }
     }
 

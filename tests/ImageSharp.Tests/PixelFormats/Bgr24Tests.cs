@@ -130,6 +130,7 @@ public class Bgr24Tests
         Assert.Equal(Unsafe.SizeOf<Bgr24>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.BGR, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(3, componentInfo.ComponentCount);

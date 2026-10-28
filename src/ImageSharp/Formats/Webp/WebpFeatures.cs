@@ -44,8 +44,7 @@ internal class WebpFeatures
     public ushort AnimationLoopCount { get; set; }
 
     /// <summary>
-    /// Gets or sets  default background color of the animation frame canvas.
-    /// This color MAY be used to fill the unused space on the canvas around the frames, as well as the transparent pixels of the first frame..
+    /// Gets or sets the background color from the animation parameters chunk. It is populated before animated decoding begins.
     /// </summary>
-    public Color? AnimationBackgroundColor { get; set; }
+    public Color AnimationBackgroundColor { get; set; }
 }

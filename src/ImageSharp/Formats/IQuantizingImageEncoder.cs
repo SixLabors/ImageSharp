@@ -40,11 +40,11 @@ public abstract class QuantizingImageEncoder : AlphaAwareImageEncoder, IQuantizi
 public abstract class QuantizingAnimatedImageEncoder : QuantizingImageEncoder, IAnimatedImageEncoder
 {
     /// <inheritdoc/>
-    public Color? BackgroundColor { get; }
+    public Color? BackgroundColor { get; init; }
 
     /// <inheritdoc/>
-    public ushort? RepeatCount { get; }
+    public ushort? RepeatCount { get; init; }
 
     /// <inheritdoc/>
-    public bool? AnimateRootFrame { get; }
+    public bool? AnimateRootFrame { get; init; }
 }

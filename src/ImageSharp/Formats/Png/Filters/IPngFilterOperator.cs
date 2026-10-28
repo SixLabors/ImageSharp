@@ -348,15 +348,25 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
     /// <param name="distanceAbove">The Paeth distances for the above candidates.</param>
     /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector128<byte> SelectPredictor(Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft, Vector128<byte> aboveMinusUpper, Vector128<byte> leftMinusUpper, Vector128<byte> distanceLeft, Vector128<byte> distanceAbove)
+    private static Vector128<byte> SelectPredictor(
+        Vector128<byte> left,
+        Vector128<byte> above,
+        Vector128<byte> upperLeft,
+        Vector128<byte> aboveMinusUpper,
+        Vector128<byte> leftMinusUpper,
+        Vector128<byte> distanceLeft,
+        Vector128<byte> distanceAbove)
     {
-        Vector128<byte> sameDirection = Vector128.Equals(Vector128.Equals(aboveMinusUpper, Vector128<byte>.Zero), Vector128.Equals(leftMinusUpper, Vector128<byte>.Zero));
+        Vector128<byte> sameDirection = Vector128.Equals(
+            Vector128.Equals(aboveMinusUpper, Vector128<byte>.Zero),
+            Vector128.Equals(leftMinusUpper, Vector128<byte>.Zero));
 
         // If left and above lie on the same side of upper-left, distanceUpper is
         // their summed distance and cannot beat either neighbor; the all-bits mask
         // excludes upper-left. On opposite sides, that distance is the absolute
         // difference between distanceLeft and distanceAbove.
-        Vector128<byte> distanceUpper = sameDirection | Vector128.SubtractSaturate(distanceAbove, distanceLeft) | Vector128.SubtractSaturate(distanceLeft, distanceAbove);
+        Vector128<byte> distanceUpper = sameDirection | Vector128.SubtractSaturate(distanceAbove, distanceLeft)
+            | Vector128.SubtractSaturate(distanceLeft, distanceAbove);
 
         // Equality selects above before upper-left, implementing PNG's second tie rule.
         Vector128<byte> minimumAboveUpper = Vector128.Min(distanceUpper, distanceAbove);
@@ -378,13 +388,23 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
     /// <param name="distanceAbove">The Paeth distances for the above candidates.</param>
     /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector256<byte> SelectPredictor(Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft, Vector256<byte> aboveMinusUpper, Vector256<byte> leftMinusUpper, Vector256<byte> distanceLeft, Vector256<byte> distanceAbove)
+    private static Vector256<byte> SelectPredictor(
+        Vector256<byte> left,
+        Vector256<byte> above,
+        Vector256<byte> upperLeft,
+        Vector256<byte> aboveMinusUpper,
+        Vector256<byte> leftMinusUpper,
+        Vector256<byte> distanceLeft,
+        Vector256<byte> distanceAbove)
     {
-        Vector256<byte> sameDirection = Vector256.Equals(Vector256.Equals(aboveMinusUpper, Vector256<byte>.Zero), Vector256.Equals(leftMinusUpper, Vector256<byte>.Zero));
+        Vector256<byte> sameDirection = Vector256.Equals(
+            Vector256.Equals(aboveMinusUpper, Vector256<byte>.Zero),
+            Vector256.Equals(leftMinusUpper, Vector256<byte>.Zero));
 
         // Exclude upper-left when its distance is the non-minimal sum; otherwise
         // compute its distance as the absolute difference of the two known distances.
-        Vector256<byte> distanceUpper = sameDirection | Vector256.SubtractSaturate(distanceAbove, distanceLeft) | Vector256.SubtractSaturate(distanceLeft, distanceAbove);
+        Vector256<byte> distanceUpper = sameDirection | Vector256.SubtractSaturate(distanceAbove, distanceLeft)
+            | Vector256.SubtractSaturate(distanceLeft, distanceAbove);
 
         // Select above on equality, then select left on equality to preserve PNG's
         // required left, above, upper-left tie order in every byte lane.
@@ -406,13 +426,23 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
     /// <param name="distanceAbove">The Paeth distances for the above candidates.</param>
     /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector512<byte> SelectPredictor(Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft, Vector512<byte> aboveMinusUpper, Vector512<byte> leftMinusUpper, Vector512<byte> distanceLeft, Vector512<byte> distanceAbove)
+    private static Vector512<byte> SelectPredictor(
+        Vector512<byte> left,
+        Vector512<byte> above,
+        Vector512<byte> upperLeft,
+        Vector512<byte> aboveMinusUpper,
+        Vector512<byte> leftMinusUpper,
+        Vector512<byte> distanceLeft,
+        Vector512<byte> distanceAbove)
     {
-        Vector512<byte> sameDirection = Vector512.Equals(Vector512.Equals(aboveMinusUpper, Vector512<byte>.Zero), Vector512.Equals(leftMinusUpper, Vector512<byte>.Zero));
+        Vector512<byte> sameDirection = Vector512.Equals(
+            Vector512.Equals(aboveMinusUpper, Vector512<byte>.Zero),
+            Vector512.Equals(leftMinusUpper, Vector512<byte>.Zero));
 
         // Exclude upper-left when its distance is the non-minimal sum; otherwise
         // compute its distance as the absolute difference of the two known distances.
-        Vector512<byte> distanceUpper = sameDirection | Vector512.SubtractSaturate(distanceAbove, distanceLeft) | Vector512.SubtractSaturate(distanceLeft, distanceAbove);
+        Vector512<byte> distanceUpper = sameDirection | Vector512.SubtractSaturate(distanceAbove, distanceLeft)
+            | Vector512.SubtractSaturate(distanceLeft, distanceAbove);
 
         // Select above on equality, then select left on equality to preserve PNG's
         // required left, above, upper-left tie order in every byte lane.

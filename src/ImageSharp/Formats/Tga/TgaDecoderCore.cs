@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -61,6 +62,8 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <inheritdoc />
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        Image<TPixel>? image = null;
+
         try
         {
             TgaImageOrigin origin = this.ReadFileHeader(stream);
@@ -72,59 +75,38 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                 TgaThrowHelper.ThrowNotSupportedException($"Unknown tga colormap type {this.fileHeader.ColorMapType} found");
             }
 
-            if (this.fileHeader.Width == 0 || this.fileHeader.Height == 0)
+            if (this.fileHeader.Width <= 0 || this.fileHeader.Height <= 0)
             {
-                throw new UnknownImageFormatException("Width or height cannot be 0");
+                TgaThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
             }
 
-            Image<TPixel> image = new(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+            image = new Image<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
             if (this.fileHeader.ColorMapType == 1)
             {
-                if (this.fileHeader.CMapLength <= 0)
+                // Identify and Decode retain the same decoded Color table; pixel expansion reads those entries directly.
+                ReadOnlySpan<Color> colors = this.ReadColorMap(stream, this.tgaMetadata);
+
+                if (this.fileHeader.ImageType == TgaImageType.RleColorMapped)
                 {
-                    TgaThrowHelper.ThrowInvalidImageContentException("Missing tga color map length");
+                    this.ReadPalettedRle(
+                        stream,
+                        this.fileHeader.Width,
+                        this.fileHeader.Height,
+                        pixels,
+                        colors,
+                        origin);
                 }
-
-                if (this.fileHeader.CMapDepth <= 0)
+                else
                 {
-                    TgaThrowHelper.ThrowInvalidImageContentException("Missing tga color map depth");
-                }
-
-                int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
-                int colorMapSizeInBytes = this.fileHeader.CMapLength * colorMapPixelSizeInBytes;
-                using (IMemoryOwner<byte> palette = this.memoryAllocator.Allocate<byte>(colorMapSizeInBytes, AllocationOptions.Clean))
-                {
-                    Span<byte> paletteSpan = palette.GetSpan();
-                    int bytesRead = stream.Read(paletteSpan, this.fileHeader.CMapStart, colorMapSizeInBytes);
-                    if (bytesRead != colorMapSizeInBytes)
-                    {
-                        TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read the color map");
-                    }
-
-                    if (this.fileHeader.ImageType == TgaImageType.RleColorMapped)
-                    {
-                        this.ReadPalettedRle(
-                            stream,
-                            this.fileHeader.Width,
-                            this.fileHeader.Height,
-                            pixels,
-                            paletteSpan,
-                            colorMapPixelSizeInBytes,
-                            origin);
-                    }
-                    else
-                    {
-                        this.ReadPaletted(
-                            stream,
-                            this.fileHeader.Width,
-                            this.fileHeader.Height,
-                            pixels,
-                            paletteSpan,
-                            colorMapPixelSizeInBytes,
-                            origin);
-                    }
+                    this.ReadPaletted(
+                        stream,
+                        this.fileHeader.Width,
+                        this.fileHeader.Height,
+                        pixels,
+                        colors,
+                        origin);
                 }
 
                 return image;
@@ -133,7 +115,8 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             // Even if the image type indicates it is not a paletted image, it can still contain a palette. Skip those bytes.
             if (this.fileHeader.CMapLength > 0)
             {
-                int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
+                // TGA stores each entry in whole bytes, including 15-bit entries.
+                int colorMapPixelSizeInBytes = (this.fileHeader.CMapDepth + 7) / 8;
                 stream.Skip(this.fileHeader.CMapLength * colorMapPixelSizeInBytes);
             }
 
@@ -197,7 +180,13 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         }
         catch (IndexOutOfRangeException e)
         {
+            image?.Dispose();
             throw new ImageFormatException("TGA image does not have a valid format.", e);
+        }
+        catch
+        {
+            image?.Dispose();
+            throw;
         }
     }
 
@@ -210,11 +199,17 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="height">The height of the image.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="palette">The color palette.</param>
-    /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
     /// <param name="origin">The image origin.</param>
-    private void ReadPaletted<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, Span<byte> palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
+    private void ReadPaletted<TPixel>(
+        BufferedReadStream stream,
+        int width,
+        int height,
+        Buffer2D<TPixel> pixels,
+        ReadOnlySpan<Color> palette,
+        TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // ReadColorMap decoded each entry once; index lookup packs its retained Color into the requested TPixel.
         bool invertX = InvertX(origin);
 
         for (int y = 0; y < height; y++)
@@ -222,61 +217,19 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             int newY = InvertY(y, height, origin);
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
 
-            switch (colorMapPixelSizeInBytes)
+            if (invertX)
             {
-                case 2:
-                    if (invertX)
-                    {
-                        for (int x = width - 1; x >= 0; x--)
-                        {
-                            this.ReadPalettedBgra16Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            this.ReadPalettedBgra16Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
-                        }
-                    }
-
-                    break;
-
-                case 3:
-                    if (invertX)
-                    {
-                        for (int x = width - 1; x >= 0; x--)
-                        {
-                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
-                        }
-                    }
-
-                    break;
-
-                case 4:
-                    if (invertX)
-                    {
-                        for (int x = width - 1; x >= 0; x--)
-                        {
-                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
-                        }
-                    }
-
-                    break;
+                for (int x = width - 1; x >= 0; x--)
+                {
+                    pixelRow[x] = palette[this.ReadPaletteIndex(stream)].ToPixel<TPixel>();
+                }
+            }
+            else
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    pixelRow[x] = palette[this.ReadPaletteIndex(stream)].ToPixel<TPixel>();
+                }
             }
         }
     }
@@ -290,15 +243,21 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     /// <param name="height">The height of the image.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="palette">The color palette.</param>
-    /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
     /// <param name="origin">The image origin.</param>
-    private void ReadPalettedRle<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, Span<byte> palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
+    private void ReadPalettedRle<TPixel>(
+        BufferedReadStream stream,
+        int width,
+        int height,
+        Buffer2D<TPixel> pixels,
+        ReadOnlySpan<Color> palette,
+        TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean);
-        TPixel color = default;
+        // RLE packets repeat complete 8- or 16-bit indices, so their stride follows PixelDepth rather than CMapDepth.
+        int indexBytes = this.fileHeader.PixelDepth / 8;
+        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * indexBytes, AllocationOptions.Clean);
         Span<byte> bufferSpan = buffer.GetSpan();
-        this.UncompressRle(stream, width, height, bufferSpan, bytesPerPixel: 1);
+        this.UncompressRle(stream, width, height, bufferSpan, indexBytes);
 
         for (int y = 0; y < height; y++)
         {
@@ -307,25 +266,10 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
             int rowStartIdx = y * width;
             for (int x = 0; x < width; x++)
             {
-                int idx = rowStartIdx + x;
-                switch (colorMapPixelSizeInBytes)
-                {
-                    case 1:
-                        color = TPixel.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
-                        break;
-                    case 2:
-                        color = this.ReadPalettedBgra16Pixel<TPixel>(palette, bufferSpan[idx], colorMapPixelSizeInBytes);
-                        break;
-                    case 3:
-                        color = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
-                        break;
-                    case 4:
-                        color = TPixel.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
-                        break;
-                }
-
+                int idx = (rowStartIdx + x) * indexBytes;
+                int index = indexBytes == 1 ? bufferSpan[idx] : BinaryPrimitives.ReadUInt16LittleEndian(bufferSpan[idx..]);
                 int newX = InvertX(x, width, origin);
-                pixelRow[newX] = color;
+                pixelRow[newX] = palette[this.GetPaletteIndex(index)].ToPixel<TPixel>();
             }
         }
     }
@@ -634,10 +578,98 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         }
     }
 
+    /// <summary>
+    /// Reads the declared color map and retains its colors in TGA metadata.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the first color map entry.</param>
+    /// <param name="metadata">The metadata that receives the decoded color map.</param>
+    /// <returns>The decoded colors in index order.</returns>
+    private Color[] ReadColorMap(BufferedReadStream stream, TgaMetadata metadata)
+    {
+        if (this.fileHeader.CMapLength == 0)
+        {
+            TgaThrowHelper.ThrowInvalidImageContentException("Missing tga color map length");
+        }
+
+        // CMapDepth describes each stored color, while PixelDepth describes the index in image data.
+        // Fifteen-bit colors still occupy two whole bytes in the TGA color map.
+        int bytesPerEntry = this.fileHeader.CMapDepth switch
+        {
+            8 => 1,
+            15 or 16 => 2,
+            24 => 3,
+            32 => 4,
+            _ => throw new NotSupportedException($"Unsupported tga color map depth {this.fileHeader.CMapDepth}")
+        };
+
+        if (this.fileHeader.PixelDepth is not 8 and not 16)
+        {
+            TgaThrowHelper.ThrowNotSupportedException($"Unsupported tga color map index depth {this.fileHeader.PixelDepth}");
+        }
+
+        int byteLength = this.fileHeader.CMapLength * bytesPerEntry;
+
+        // The raw bytes are needed only while creating the Color table retained by both Identify and Decode.
+        using IMemoryOwner<byte> palette = this.memoryAllocator.Allocate<byte>(byteLength);
+        Span<byte> raw = palette.GetSpan()[..byteLength];
+
+        if (stream.Read(raw) != raw.Length)
+        {
+            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read the color map");
+        }
+
+        Color[] colors = new Color[this.fileHeader.CMapLength];
+        for (int i = 0; i < colors.Length; i++)
+        {
+            Span<byte> entry = raw.Slice(i * bytesPerEntry, bytesPerEntry);
+            colors[i] = bytesPerEntry switch
+            {
+                1 => Color.FromPixel(new L8(entry[0])),
+                2 => Color.FromPixel(this.ReadPaletteBgra5551(entry)),
+                3 => Color.FromPixel(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetReference(entry))),
+                _ => Color.FromPixel(Unsafe.As<byte, Bgra32>(ref MemoryMarshal.GetReference(entry)))
+            };
+        }
+
+        // CMapStart is the absolute index of the first stored color, not a byte offset;
+        // the file contains exactly CMapLength entries beginning at that index.
+        metadata.ColorMapFirstEntryIndex = this.fileHeader.CMapStart;
+        metadata.ColorMapEntryBitDepth = this.fileHeader.CMapDepth;
+        metadata.ColorTable = colors;
+
+        return colors;
+    }
+
+    /// <summary>
+    /// Reads a 15- or 16-bit palette entry with the same alpha convention as pixel decoding.
+    /// </summary>
+    /// <param name="entry">The two stored bytes.</param>
+    /// <returns>The palette color.</returns>
+    private Bgra5551 ReadPaletteBgra5551(ReadOnlySpan<byte> entry)
+    {
+        Bgra5551 color = new() { PackedValue = BinaryPrimitives.ReadUInt16LittleEndian(entry) };
+
+        if (this.fileHeader.CMapDepth == 15 || !this.hasAlpha)
+        {
+            // Fifteen-bit entries have no alpha; 16-bit entries use it only when declared.
+            color.PackedValue |= 0x8000;
+        }
+
+        return color;
+    }
+
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadFileHeader(stream);
+
+        if (this.fileHeader.ColorMapType == 1)
+        {
+            stream.Skip(this.fileHeader.IdLength);
+
+            this.ReadColorMap(stream, this.tgaMetadata);
+        }
+
         return new ImageInfo(
             new Size(this.fileHeader.Width, this.fileHeader.Height),
             this.metadata);
@@ -722,58 +754,53 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row, pixelSpan, width);
     }
 
+    /// <summary>
+    /// Reads an image index and locates its entry in the stored color map.
+    /// </summary>
+    /// <param name="stream">The image data stream.</param>
+    /// <returns>The index relative to the first stored color map entry.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadPalettedBgra16Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, Span<TPixel> pixelRow)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private int ReadPaletteIndex(BufferedReadStream stream)
     {
-        int colorIndex = stream.ReadByte();
-        if (colorIndex == -1)
+        int low = stream.ReadByte();
+        if (low < 0)
         {
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
         }
 
-        pixelRow[x] = this.ReadPalettedBgra16Pixel<TPixel>(palette, colorIndex, colorMapPixelSizeInBytes);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TPixel ReadPalettedBgra16Pixel<TPixel>(Span<byte> palette, int index, int colorMapPixelSizeInBytes)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[index * colorMapPixelSizeInBytes]);
-
-        if (!this.hasAlpha)
+        int index = low;
+        if (this.fileHeader.PixelDepth == 16)
         {
-            // Set alpha value to 1, to treat it as opaque.
-            bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+            // TGA stores a 16-bit image index least-significant byte first.
+            int high = stream.ReadByte();
+            if (high < 0)
+            {
+                TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+            }
+
+            index |= high << 8;
         }
 
-        return TPixel.FromBgra5551(bgra);
+        return this.GetPaletteIndex(index);
     }
 
+    /// <summary>
+    /// Converts an absolute color-map index to an entry in the colors stored in this file.
+    /// </summary>
+    /// <param name="index">The image's absolute palette index.</param>
+    /// <returns>The index relative to the first stored color map entry.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadPalettedBgr24Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, Span<TPixel> pixelRow)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private int GetPaletteIndex(int index)
     {
-        int colorIndex = stream.ReadByte();
-        if (colorIndex == -1)
+        // Subtraction maps the absolute image index into the stored table. Casting to unsigned
+        // rejects both indices below CMapStart and indices beyond its CMapLength entries.
+        int relativeIndex = index - this.fileHeader.CMapStart;
+        if ((uint)relativeIndex >= this.fileHeader.CMapLength)
         {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
+            TgaThrowHelper.ThrowInvalidImageContentException("Tga color index is outside the color map");
         }
 
-        pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadPalettedBgra32Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, Span<TPixel> pixelRow)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int colorIndex = stream.ReadByte();
-        if (colorIndex == -1)
-        {
-            TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
-        }
-
-        pixelRow[x] = TPixel.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
+        return relativeIndex;
     }
 
     /// <summary>

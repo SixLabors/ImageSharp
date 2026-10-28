@@ -258,5 +258,6 @@ internal class Vp8EncProba
     private static int CalcTokenProba(int nb, int total) => nb != 0 ? (255 - (nb * 255 / total)) : 255;
 
     // Cost of coding 'nb' 1's and 'total-nb' 0's using 'proba' probability.
-    private static int BranchCost(int nb, int total, int proba) => (nb * LossyUtils.Vp8BitCost(1, (byte)proba)) + ((total - nb) * LossyUtils.Vp8BitCost(0, (byte)proba));
+    private static int BranchCost(int nb, int total, int proba)
+        => (nb * LossyUtils.Vp8BitCost(1, (byte)proba)) + ((total - nb) * LossyUtils.Vp8BitCost(0, (byte)proba));
 }

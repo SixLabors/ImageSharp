@@ -105,33 +105,24 @@ public class EncodeWebp
         });
     }
 
-    /* Results 04.11.2021
-     * Summary *
-    BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19043.1320 (21H1/May2021Update)
-    Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
-    .NET SDK=6.0.100-rc.2.21505.57
-      [Host]     : .NET 5.0.11 (5.0.1121.47308), X64 RyuJIT
-      Job-WQLXJO : .NET 5.0.11 (5.0.1121.47308), X64 RyuJIT
-      Job-OJJAMD : .NET Core 3.1.20 (CoreCLR 4.700.21.47003, CoreFX 4.700.21.47101), X64 RyuJIT
-      Job-OMFOAS : .NET Framework 4.8 (4.8.4420.0), X64 RyuJIT
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
 
-    IterationCount=3  LaunchCount=1  WarmupCount=3
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
 
-    |                     Method |        Job |              Runtime |             Arguments |    TestImage |      Mean |     Error |   StdDev | Ratio | RatioSD |       Gen 0 |     Gen 1 |     Gen 2 |  Allocated |
-    |--------------------------- |----------- |--------------------- |---------------------- |------------- |----------:|----------:|---------:|------:|--------:|------------:|----------:|----------:|-----------:|
-    |        'Magick Webp Lossy' | Job-WQLXJO |             .NET 5.0 | /p:DebugType=portable | Png/Bike.png |  23.33 ms |  1.491 ms | 0.082 ms |  0.15 |    0.00 |           - |         - |         - |      67 KB |
-    |    'ImageSharp Webp Lossy' | Job-WQLXJO |             .NET 5.0 | /p:DebugType=portable | Png/Bike.png | 245.80 ms | 24.288 ms | 1.331 ms |  1.53 |    0.01 | 135000.0000 |         - |         - | 552,713 KB |
-    |     'Magick Webp Lossless' | Job-WQLXJO |             .NET 5.0 | /p:DebugType=portable | Png/Bike.png | 160.36 ms | 11.131 ms | 0.610 ms |  1.00 |    0.00 |           - |         - |         - |     518 KB |
-    | 'ImageSharp Webp Lossless' | Job-WQLXJO |             .NET 5.0 | /p:DebugType=portable | Png/Bike.png | 313.93 ms | 45.605 ms | 2.500 ms |  1.96 |    0.01 |  34000.0000 | 5000.0000 | 2000.0000 | 161,670 KB |
-    |                            |            |                      |                       |              |           |           |          |       |         |             |           |           |            |
-    |        'Magick Webp Lossy' | Job-OJJAMD |        .NET Core 3.1 |               Default | Png/Bike.png |  23.36 ms |  2.289 ms | 0.125 ms |  0.15 |    0.00 |           - |         - |         - |      67 KB |
-    |    'ImageSharp Webp Lossy' | Job-OJJAMD |        .NET Core 3.1 |               Default | Png/Bike.png | 254.64 ms | 19.620 ms | 1.075 ms |  1.59 |    0.00 | 135000.0000 |         - |         - | 552,713 KB |
-    |     'Magick Webp Lossless' | Job-OJJAMD |        .NET Core 3.1 |               Default | Png/Bike.png | 160.30 ms |  9.549 ms | 0.523 ms |  1.00 |    0.00 |           - |         - |         - |     518 KB |
-    | 'ImageSharp Webp Lossless' | Job-OJJAMD |        .NET Core 3.1 |               Default | Png/Bike.png | 320.35 ms | 22.924 ms | 1.257 ms |  2.00 |    0.01 |  34000.0000 | 5000.0000 | 2000.0000 | 161,669 KB |
-    |                            |            |                      |                       |              |           |           |          |       |         |             |           |           |            |
-    |        'Magick Webp Lossy' | Job-OMFOAS | .NET Framework 4.7.2 |               Default | Png/Bike.png |  23.37 ms |  0.908 ms | 0.050 ms |  0.15 |    0.00 |           - |         - |         - |      68 KB |
-    |    'ImageSharp Webp Lossy' | Job-OMFOAS | .NET Framework 4.7.2 |               Default | Png/Bike.png | 378.67 ms | 25.540 ms | 1.400 ms |  2.36 |    0.01 | 135000.0000 |         - |         - | 554,351 KB |
-    |     'Magick Webp Lossless' | Job-OMFOAS | .NET Framework 4.7.2 |               Default | Png/Bike.png | 160.13 ms |  5.115 ms | 0.280 ms |  1.00 |    0.00 |           - |         - |         - |     520 KB |
-    | 'ImageSharp Webp Lossless' | Job-OMFOAS | .NET Framework 4.7.2 |               Default | Png/Bike.png | 379.01 ms | 71.192 ms | 3.902 ms |  2.37 |    0.02 |  34000.0000 | 5000.0000 | 2000.0000 | 162,119 KB |
+    | Method                      | TestImage     |        Mean |       Error |     StdDev |   Ratio |        Gen0 |        Gen1 |        Gen2 |    Allocated |   Alloc Ratio |
+    | --------------------------- | ------------- | ----------: | ----------: | ---------: | ------: | ----------: | ----------: | ----------: | -----------: | ------------: |
+    | 'Magick Webp Lossy'         | Png/Bike.png  |    13.60 ms |    1.243 ms |   0.068 ms |    0.08 |           - |           - |           - |     58.99 KB |          0.12 |
+    | 'ImageSharp Webp Lossy'     | Png/Bike.png  |    40.14 ms |    3.336 ms |   0.183 ms |    0.25 |           - |           - |           - |    259.71 KB |          0.51 |
+    | 'Magick Webp Lossless'      | Png/Bike.png  |   162.98 ms |    4.846 ms |   0.266 ms |    1.00 |           - |           - |           - |    508.96 KB |          1.00 |
+    | 'ImageSharp Webp Lossless'  | Png/Bike.png  |   102.26 ms |   46.199 ms |   2.532 ms |    0.63 |   2000.0000 |   2000.0000 |   2000.0000 |   3898.44 KB |          7.66 |
+
+    Allocated reports managed memory only.
+    Ratio uses Magick Webp Lossless as the baseline for every method, including lossy encoding.
     */
 }

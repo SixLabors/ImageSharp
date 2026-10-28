@@ -227,6 +227,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 
     /// <summary>
     /// Updates the data of the profile.
+    /// Adds the UTF-8 character set declaration when any value uses UTF-8.
     /// </summary>
     public void UpdateData()
     {
@@ -330,14 +331,15 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     }
 
     /// <summary>
-    /// Gets if any value has UTF-8 encoding.
+    /// Determines whether any value uses UTF-8.
     /// </summary>
-    /// <returns>true if any value has UTF-8 encoding.</returns>
+    /// <returns>True if any value uses UTF-8.</returns>
     private bool HasValuesInUtf8()
     {
         foreach (IptcValue value in this.values)
         {
-            if (value.Encoding == Encoding.UTF8)
+            // Identify UTF-8 by code page. Cloning an encoding changes its identity, not its code page.
+            if (value.Encoding.CodePage == Encoding.UTF8.CodePage)
             {
                 return true;
             }

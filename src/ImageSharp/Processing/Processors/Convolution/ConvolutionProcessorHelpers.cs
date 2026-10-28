@@ -89,7 +89,10 @@ internal static class ConvolutionProcessorHelpers
     /// <param name="row">The resulting 1D row vector, if possible.</param>
     /// <param name="column">The resulting 1D column vector, if possible.</param>
     /// <returns>Whether or not <paramref name="matrix"/> was linearly separable.</returns>
-    public static bool TryGetLinearlySeparableComponents(this DenseMatrix<float> matrix, [NotNullWhen(true)] out float[]? row, [NotNullWhen(true)] out float[]? column)
+    public static bool TryGetLinearlySeparableComponents(
+        this DenseMatrix<float> matrix,
+        [NotNullWhen(true)] out float[]? row,
+        [NotNullWhen(true)] out float[]? column)
     {
         int height = matrix.Rows;
         int width = matrix.Columns;

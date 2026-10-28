@@ -104,7 +104,10 @@ public class QuantizedImageTests
     {
         using Image<TPixel> image = provider.GetImage();
         HexadecatreeQuantizer hexadecatreeQuantizer = new();
-        IQuantizer<TPixel> quantizer = hexadecatreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions { MaxColors = 128 });
+        IQuantizer<TPixel> quantizer = hexadecatreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(
+            Configuration.Default,
+            new QuantizerOptions { MaxColors = 128 });
+
         ImageFrame<TPixel> frame = image.Frames[0];
         quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
     }

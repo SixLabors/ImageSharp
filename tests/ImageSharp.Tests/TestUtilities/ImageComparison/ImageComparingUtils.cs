@@ -41,7 +41,7 @@ public static class ImageComparingUtils
 
         Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
 
-        using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
+        using (IUnsafePixelCollection<float> pixels = magickImage.GetPixelsUnsafe())
         {
             byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 

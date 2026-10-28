@@ -715,7 +715,10 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
     public static Vector512<float> PlusNormal(Vector512<float> destination, Vector512<float> source)
     {
         Vector512<float> one = Vector512.Create(1F);
-        Vector512<float> alpha = Vector512.Min(one, Vector512_.ShuffleNative(source, ShuffleAlphaControl) + Vector512_.ShuffleNative(destination, ShuffleAlphaControl));
+        Vector512<float> alpha = Vector512.Min(
+            one,
+            Vector512_.ShuffleNative(source, ShuffleAlphaControl) + Vector512_.ShuffleNative(destination, ShuffleAlphaControl));
+
         return Vector512.ConditionalSelect(AlphaMask512(), alpha, Vector512.Min(one, destination + source));
     }
 

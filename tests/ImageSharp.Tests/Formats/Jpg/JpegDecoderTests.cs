@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+using static SixLabors.ImageSharp.Tests.TestImages.Jpeg;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -64,7 +65,7 @@ public partial class JpegDecoderTests
     [Fact]
     public void ParseStream_BasicPropertiesAreCorrect()
     {
-        JpegDecoderOptions options = new();
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default));
         Configuration configuration = options.GeneralOptions.Configuration;
         byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
         using MemoryStream ms = new(bytes);
@@ -115,7 +116,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
@@ -133,7 +134,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Resize_Bicubic<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 },
             Sampler = KnownResamplers.Bicubic
@@ -155,10 +156,9 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_IDCT_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
-        JpegDecoderOptions specializedOptions = new()
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
+        JpegDecoderOptions specializedOptions = new(options)
         {
-            GeneralOptions = options,
             ResizeMode = JpegDecoderResizeMode.IdctOnly
         };
 
@@ -179,10 +179,9 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_Scale_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
-        JpegDecoderOptions specializedOptions = new()
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
+        JpegDecoderOptions specializedOptions = new(options)
         {
-            GeneralOptions = options,
             ResizeMode = JpegDecoderResizeMode.ScaleOnly
         };
 
@@ -203,10 +202,9 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_Combined_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
-        JpegDecoderOptions specializedOptions = new()
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size { Width = 150, Height = 150 } };
+        JpegDecoderOptions specializedOptions = new(options)
         {
-            GeneralOptions = options,
             ResizeMode = JpegDecoderResizeMode.Combined
         };
 
@@ -299,6 +297,124 @@ public partial class JpegDecoderTests
         image.CompareToOriginal(provider);
     }
 
+    /// <summary>
+    /// Uses the JPEG defaults when an arithmetic conditioning table is not declared.
+    /// </summary>
+    /// <param name="originalFile">The input with explicit conditioning tables.</param>
+    /// <param name="defaultFile">The input that omits default conditioning tables.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "arithmetic.jpg", MarkerDirectory + "arithmetic-defaults.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive.jpg", MarkerDirectory + "arithmetic-progressive-defaults.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive.jpg", MarkerDirectory + "arithmetic-progressive-default-ac.jpg")]
+    public void Decode_ArithmeticConditioningDefaults_MatchExplicitTables(string originalFile, string defaultFile)
+    {
+        // These stored files contain identical coded scans. Libjpeg produces identical pixels with or without
+        // the default DAC entries. Omission is valid JPEG syntax and does not require image-data recovery.
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(originalFile).Bytes);
+        byte[] data = TestFile.Create(defaultFile).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// Checks restart recovery against clean stored files whose pixels also match in libjpeg.
+    /// </summary>
+    /// <param name="originalFile">The clean JPEG input.</param>
+    /// <param name="malformedFile">The input with extra markers before restart markers.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-tem.jpg")]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-reserved-bf.jpg")]
+    [InlineData(MarkerDirectory + "baseline.jpg", MarkerDirectory + "baseline-reserved-chain.jpg")]
+    [InlineData(MarkerDirectory + "noninterleaved.jpg", MarkerDirectory + "noninterleaved-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "progressive.jpg", MarkerDirectory + "progressive-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic.jpg", MarkerDirectory + "arithmetic-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive.jpg", MarkerDirectory + "arithmetic-progressive-reserved-12.jpg")]
+    public void Decode_ReservedMarkerBeforeRestartMarkers_RecoversWithIgnoreImageData(string originalFile, string malformedFile)
+    {
+        // These stored files have complete restart intervals. Libjpeg warns about the extra markers,
+        // then finds the restart marker and produces the same pixels as the clean file.
+        // The arithmetic inputs declare their conditioning tables to isolate restart recovery.
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(originalFile).Bytes);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, TestFile.Create(malformedFile).Bytes);
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Rejects image-data errors when the selected policy permits only ancillary recovery or no recovery.
+    /// </summary>
+    /// <param name="fileName">The input with reserved markers before restart markers.</param>
+    [Theory]
+    [InlineData(MarkerDirectory + "baseline-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "noninterleaved-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "progressive-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-reserved-12.jpg")]
+    [InlineData(MarkerDirectory + "arithmetic-progressive-reserved-12.jpg")]
+    public void Decode_ReservedMarkerBeforeRestartMarkers_RespectsIntegrity(string fileName)
+    {
+        byte[] data = TestFile.Create(fileName).Bytes;
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions ancillary = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(strict, data);
+        });
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(ancillary, data);
+        });
+    }
+
+    /// <summary>
+    /// Accepts a standalone TEM marker between header segments under every integrity policy.
+    /// </summary>
+    [Fact]
+    public void Decode_TemMarkerBetweenHeaderSegments_IsSkipped()
+    {
+        byte[] data = TestFile.Create(MarkerDirectory + "header-tem.jpg").Bytes;
+        using Image<Rgba32> expected = Image.Load<Rgba32>(TestFile.Create(MarkerDirectory + "baseline.jpg").Bytes);
+
+        // TEM has no length field. The following bytes belong to the next marker, not to TEM.
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Equal(new Size(32, 24), Image.Identify(options, data).Size);
+
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// Keeps required header lengths valid after a standalone TEM marker.
+    /// </summary>
+    [Fact]
+    public void Decode_InvalidQuantizationSegmentAfterTem_RemainsFatal()
+    {
+        // TEM precedes DQT in this stored file. DQT declares more bytes than the file contains.
+        // No image data has been read, so there is no safe point for recovery.
+        byte[] data = TestFile.Create(MarkerDirectory + "header-tem-invalid-dqt-length.jpg").Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/2315
     // https://github.com/SixLabors/ImageSharp/issues/2334
     [Theory]
@@ -369,14 +485,14 @@ public partial class JpegDecoderTests
     public void Decode_CMYK_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // The measured power error can change final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -384,14 +500,14 @@ public partial class JpegDecoderTests
     public void Decode_YCCK_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // The measured power error can change final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     [Theory]
@@ -407,14 +523,24 @@ public partial class JpegDecoderTests
     public void Decode_RGB_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider);
+
+        // The measured power error can change final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // Compare each pixel in sixteen-bit units (one eight-bit code is 257), without averaging image error.
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
+
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        using Image<TPixel> preserved = provider.GetImage(JpegDecoder.Instance, preserveOptions);
+
+        ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        ImageComparer.Exact.VerifySimilarity(image, preserved);
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+
+        Assert.Null(image.Metadata.IccProfile);
     }
 
     [Theory]
@@ -422,10 +548,24 @@ public partial class JpegDecoderTests
     public void Decode_RGB_ICC_Jpeg_Issue3064<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        JpegDecoderOptions options = new()
-        {
-            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
-        };
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
+    /// <summary>
+    /// Verifies that converting the grayscale ICC profile preserves the sample's distinct neutral tones.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type.</typeparam>
+    /// <param name="provider">The image provider.</param>
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.Issue3197, PixelTypes.Rgba32)]
+    public void Decode_Grayscale_ICC_Jpeg_Issue3197<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
         image.DebugSave(provider);
@@ -486,14 +626,14 @@ public partial class JpegDecoderTests
     [Fact]
     public void Identify_MalformedApp13Segment_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateJpegWithMalformedApp13Segment()));
     }
 
     [Fact]
     public void Decode_MalformedApp13Segment_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateJpegWithMalformedApp13Segment());

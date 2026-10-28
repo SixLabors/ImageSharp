@@ -27,6 +27,9 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     private TiffFrameMetadata(TiffFrameMetadata other)
     {
         this.BitsPerPixel = other.BitsPerPixel;
+        this.BitsPerSample = other.BitsPerSample;
+        this.SampleFormat = other.SampleFormat;
+        this.ExtraSampleType = other.ExtraSampleType;
         this.Compression = other.Compression;
         this.PhotometricInterpretation = other.PhotometricInterpretation;
         this.Predictor = other.Predictor;
@@ -49,6 +52,16 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     /// Gets or sets number of bits per component.
     /// </summary>
     public TiffBitsPerSample BitsPerSample { get; set; } = TiffConstants.DefaultBitsPerSample;
+
+    /// <summary>
+    /// Gets or sets the format of the samples stored in this frame.
+    /// </summary>
+    public TiffSampleFormat SampleFormat { get; set; } = TiffSampleFormat.UnsignedInteger;
+
+    /// <summary>
+    /// Gets or sets the TIFF interpretation of an extra sample in this frame.
+    /// </summary>
+    internal TiffExtraSampleType? ExtraSampleType { get; set; }
 
     /// <summary>
     /// Gets or sets the compression scheme used on the image data.
@@ -89,6 +102,19 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     public static TiffFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
     {
         TiffFrameMetadata frameMetadata = new();
+        if (metadata.PixelTypeInfo is PixelTypeInfo pixelType && TiffMetadata.TryGetLayout(
+            pixelType,
+            out TiffPhotometricInterpretation photometric,
+            out TiffBitsPerSample samples,
+            out TiffExtraSampleType? extraSample))
+        {
+            frameMetadata.PhotometricInterpretation = photometric;
+            frameMetadata.BitsPerSample = samples;
+            frameMetadata.BitsPerPixel = samples.BitsPerPixel();
+            frameMetadata.ExtraSampleType = extraSample;
+            frameMetadata.InkSet = photometric == TiffPhotometricInterpretation.Separated ? TiffInkSet.Cmyk : null;
+        }
+
         if (metadata.EncodingWidth.HasValue && metadata.EncodingHeight.HasValue)
         {
             frameMetadata.EncodingWidth = metadata.EncodingWidth.Value;
@@ -100,11 +126,57 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
 
     /// <inheritdoc/>
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
-        => new()
+    {
+        int bitsPerPixel = (int)this.BitsPerPixel;
+        TiffBitsPerSample samples = this.BitsPerSample;
+        PixelComponentInfo components = samples.Channels switch
         {
+            1 => PixelComponentInfo.Create(1, bitsPerPixel, samples.Channel0),
+            2 => PixelComponentInfo.Create(2, bitsPerPixel, samples.Channel0, samples.Channel1),
+            3 => PixelComponentInfo.Create(3, bitsPerPixel, samples.Channel0, samples.Channel1, samples.Channel2),
+            _ => PixelComponentInfo.Create(4, bitsPerPixel, samples.Channel0, samples.Channel1, samples.Channel2, samples.Channel3)
+        };
+
+        // A total depth of 32 bits can mean one float sample or four 8-bit samples.
+        // PhotometricInterpretation and BitsPerSample describe the actual layout.
+        bool isGrayscale = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero;
+        PixelColorType colorType = this.PhotometricInterpretation switch
+        {
+            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bitsPerPixel == 1
+                ? PixelColorType.Binary
+                : PixelColorType.Luminance,
+            TiffPhotometricInterpretation.PaletteColor => PixelColorType.Indexed,
+            TiffPhotometricInterpretation.Rgb => PixelColorType.RGB,
+            TiffPhotometricInterpretation.Separated => PixelColorType.CMYK,
+            TiffPhotometricInterpretation.YCbCr => PixelColorType.YCbCr,
+            TiffPhotometricInterpretation.CieLab => PixelColorType.Lab,
+            _ => PixelColorType.Other
+        };
+
+        bool hasAlpha = (isGrayscale && samples.Channels == 2)
+            || (this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb && samples.Channels == 4);
+
+        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
+        if (hasAlpha)
+        {
+            colorType |= PixelColorType.Alpha;
+            alpha = this.ExtraSampleType == TiffExtraSampleType.AssociatedAlphaData
+                ? PixelAlphaRepresentation.Associated
+                : PixelAlphaRepresentation.Unassociated;
+        }
+
+        return new FormatConnectingFrameMetadata
+        {
+            PixelTypeInfo = new PixelTypeInfo(bitsPerPixel)
+            {
+                ComponentInfo = components,
+                ColorType = colorType,
+                AlphaRepresentation = alpha
+            },
             EncodingWidth = this.EncodingWidth,
             EncodingHeight = this.EncodingHeight
         };
+    }
 
     /// <inheritdoc/>
     public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
@@ -160,13 +232,44 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         meta.EncodingWidth = GetImageWidth(profile);
         meta.EncodingHeight = GetImageHeight(profile);
 
-        if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue)
-            && TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
+        if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue))
         {
-            meta.BitsPerSample = bitsPerSample;
+            // TryParse returns zero sample depths on failure. A present invalid entry must not inherit the RGB defaults.
+            meta.BitsPerSample = TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample)
+                ? bitsPerSample
+                : default;
+        }
+        else
+        {
+            // TIFF 6.0 defines one bit per sample when BitsPerSample is absent (page 29).
+            // SamplesPerPixel defaults to one (page 39). These file defaults differ from new metadata's RGB defaults.
+            int samplesPerPixel = profile.TryGetValue(ExifTag.SamplesPerPixel, out IExifValue<ushort>? samplesPerPixelValue)
+                ? samplesPerPixelValue.Value
+                : 1;
+
+            // This metadata type stores at most four sample depths. Do not reduce a different count to a supported layout.
+            if (samplesPerPixel is < 1 or > 4)
+            {
+                TiffThrowHelper.ThrowNotSupported("Only TIFF images with one to four samples per pixel are supported.");
+            }
+
+            meta.BitsPerSample = new TiffBitsPerSample(
+                1,
+                (ushort)(samplesPerPixel > 1 ? 1 : 0),
+                (ushort)(samplesPerPixel > 2 ? 1 : 0),
+                (ushort)(samplesPerPixel > 3 ? 1 : 0));
         }
 
         meta.BitsPerPixel = meta.BitsPerSample.BitsPerPixel();
+
+        if (profile.TryGetValue(ExifTag.SampleFormat, out IExifValue<ushort[]>? sampleFormatValue))
+        {
+            ushort[]? values = sampleFormatValue.Value;
+            if (values is not null && values.Length > 0)
+            {
+                meta.SampleFormat = (TiffSampleFormat)values[0];
+            }
+        }
 
         if (profile.TryGetValue(ExifTag.Compression, out IExifValue<ushort>? compressionValue))
         {
@@ -186,6 +289,27 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         if (profile.TryGetValue(ExifTag.InkSet, out IExifValue<ushort>? inkSetValue))
         {
             meta.InkSet = (TiffInkSet)inkSetValue.Value;
+        }
+
+        if (profile.TryGetValue(ExifTag.ExtraSamples, out IExifValue<ushort[]>? extraSamples))
+        {
+            ushort[]? values = extraSamples.Value;
+            if (values is not null && values.Length > 0)
+            {
+                TiffExtraSampleType sampleType = (TiffExtraSampleType)values[0];
+
+                // CorelDRAW uses a nonstandard value for straight alpha. Decode it with the
+                // same association as the standard unassociated-alpha tag.
+                if (sampleType == TiffExtraSampleType.CorelDrawUnassociatedAlphaData)
+                {
+                    sampleType = TiffExtraSampleType.UnassociatedAlphaData;
+                }
+
+                if (sampleType is TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData)
+                {
+                    meta.ExtraSampleType = sampleType;
+                }
+            }
         }
 
         // Remove values, we've explicitly captured them and they could change on encode.

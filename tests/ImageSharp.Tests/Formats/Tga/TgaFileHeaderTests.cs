@@ -36,7 +36,6 @@ public class TgaFileHeaderTests
 
     [Theory]
     [InlineData(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 250, 0, 195, 0, 32, 8 }, 250, 195, TgaBitsPerPixel.Bit32)]
-    [InlineData(new byte[] { 26, 1, 9, 0, 0, 0, 1, 16, 0, 0, 0, 0, 128, 0, 128, 0, 8, 0 }, 128, 128, TgaBitsPerPixel.Bit8)]
     [InlineData(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 220, 0, 220, 0, 16, 0 }, 220, 220, TgaBitsPerPixel.Bit16)]
     [InlineData(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 124, 0, 124, 0, 24, 32 }, 124, 124, TgaBitsPerPixel.Bit24)]
     public void Identify_WithValidData_Works(byte[] data, int width, int height, TgaBitsPerPixel bitsPerPixel)
@@ -48,5 +47,14 @@ public class TgaFileHeaderTests
         Assert.Equal(bitsPerPixel, tgaData.BitsPerPixel);
         Assert.Equal(width, info.Width);
         Assert.Equal(height, info.Height);
+    }
+
+    [Fact]
+    public void Identify_WithTruncatedColorMap_Throws()
+    {
+        // The header declares an image ID and 256 palette entries, but contains neither payload.
+        byte[] data = [26, 1, 9, 0, 0, 0, 1, 16, 0, 0, 0, 0, 128, 0, 128, 0, 8, 0];
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
     }
 }

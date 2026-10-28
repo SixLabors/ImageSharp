@@ -106,17 +106,14 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             case PixelColorType.Luminance:
                 color = PngColorType.Grayscale;
                 break;
+            case PixelColorType.Luminance | PixelColorType.Alpha:
+                color = PngColorType.GrayscaleWithAlpha;
+                break;
             case PixelColorType.RGB:
             case PixelColorType.BGR:
                 color = PngColorType.Rgb;
                 break;
             default:
-                if (colorType.HasFlag(PixelColorType.Luminance | PixelColorType.Alpha))
-                {
-                    color = PngColorType.GrayscaleWithAlpha;
-                    break;
-                }
-
                 color = PngColorType.RgbWithAlpha;
                 break;
         }
@@ -149,7 +146,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         {
             case PngColorType.Palette:
                 bpp = this.ColorTable.HasValue
-                    ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.ColorTable.Value.Length), 1, 8)
+                    ? Math.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.ColorTable.Value.Length), 1, 8)
                     : 8;
 
                 colorType = PixelColorType.Indexed;
@@ -224,7 +221,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         {
             ColorTableMode = FrameColorTableMode.Global,
             PixelTypeInfo = this.GetPixelTypeInfo(),
-            RepeatCount = (ushort)Numerics.Clamp(this.RepeatCount, 0, ushort.MaxValue),
+            RepeatCount = (ushort)Math.Clamp(this.RepeatCount, 0, ushort.MaxValue),
         };
 
     /// <inheritdoc/>

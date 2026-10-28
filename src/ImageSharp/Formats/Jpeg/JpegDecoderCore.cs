@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -37,14 +37,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     private byte[] exifData;
 
     /// <summary>
-    /// Whether the image has an ICC marker.
+    /// The lazily allocated reader for ICC APP2 payloads.
     /// </summary>
-    private bool hasIcc;
-
-    /// <summary>
-    /// Contains ICC data.
-    /// </summary>
-    private byte[] iccData;
+    private IccReader iccReader;
 
     /// <summary>
     /// Whether the image has a IPTC data.
@@ -188,8 +183,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     }
                 }
 
-                // Found a valid marker. Exit loop
-                if (b is not 0 and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
+                // FF 00 is a stuffed data byte. RSTn and TEM have no length field (ITU T.81, Table B.1).
+                // Skip these standalone markers so the next marker's bytes are not read as a length.
+                if (b is not 0 and not JpegConstants.Markers.TEM and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
                 {
                     return new JpegFileMarker((byte)(uint)b, stream.Position - 2);
                 }
@@ -200,7 +196,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        using SpectralConverter<TPixel> spectralConverter = new(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
+        using SpectralConverter<TPixel> spectralConverter = new(
+            this.configuration,
+            this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
+
         this.ParseStream(stream, spectralConverter, cancellationToken);
 
         if (!this.hasSOSMarker)
@@ -210,7 +209,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.InitializeMetadataProfiles();
 
-        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
 
         return new Image<TPixel>(
             this.configuration,
@@ -274,10 +273,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 // Get the marker length.
                 int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
 
-                // Check whether the stream actually has enough bytes to read
-                // markerContentByteSize is always positive so we cast
-                // to uint to avoid sign extension
-                if (stream.RemainingBytes < (uint)markerContentByteSize)
+                // Validate the entire segment before parsing it. Casting directly
+                // to ulong also rejects lengths smaller than the two-byte length field.
+                if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
                 {
                     JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
                 }
@@ -325,6 +323,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
+        // Apply the image-data policy to the active decoder, including one supplied by TIFF.
+        this.scanDecoder.SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling;
+
         this.Metadata ??= new ImageMetadata();
 
         Span<byte> markerBuffer = stackalloc byte[2];
@@ -351,10 +352,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 // Get the marker length.
                 int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
 
-                // Check whether stream actually has enough bytes to read
-                // markerContentByteSize is always positive so we cast
-                // to uint to avoid sign extension.
-                if (stream.RemainingBytes < (uint)markerContentByteSize)
+                // Validate the entire segment before parsing it. Casting directly
+                // to ulong also rejects lengths smaller than the two-byte length field.
+                if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
                 {
                     if (metadataOnly && this.Metadata != null && this.Frame != null)
                     {
@@ -388,7 +388,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     case JpegConstants.Markers.SOF10:
                     case JpegConstants.Markers.SOF13:
                     case JpegConstants.Markers.SOF14:
-                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, cancellationToken);
+                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, cancellationToken)
+                        {
+                            SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling
+                        };
+
                         if (this.resetInterval.HasValue)
                         {
                             this.scanDecoder.ResetInterval = this.resetInterval.Value;
@@ -537,6 +541,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // Set large fields to null.
         this.Frame = null;
         this.scanDecoder = null;
+        this.iccReader = null;
     }
 
     /// <summary>
@@ -568,7 +573,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (componentCount == 1)
         {
-            return JpegColorSpace.Grayscale;
+            return JpegColorSpace.Luminance;
         }
 
         if (componentCount == 3)
@@ -604,7 +609,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (componentCount == 1)
         {
-            return JpegColorSpace.Grayscale;
+            return JpegColorSpace.Luminance;
         }
 
         if (componentCount == 3)
@@ -629,7 +634,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         switch (this.ColorSpace)
         {
-            case JpegColorSpace.Grayscale:
+            case JpegColorSpace.Luminance:
                 return JpegColorType.Luminance;
 
             case JpegColorSpace.RGB:
@@ -696,25 +701,17 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitIccProfile()
     {
-        if (this.hasIcc && this.Metadata.IccProfile == null)
+        // A profile supplied by the TIFF container takes precedence over JPEG APP2 metadata.
+        if (this.iccReader is not null && this.Metadata.IccProfile == null)
         {
-            IccProfile profile = new(this.iccData);
-            if (profile.CheckIsValid())
-            {
-                this.Metadata.IccProfile = profile;
-            }
-            else
-            {
-                throw new InvalidIccProfileException("Invalid ICC profile.");
-            }
+            this.Metadata.IccProfile = this.iccReader.ToProfile();
         }
     }
 
     private void SetIccMetadata(IccProfile profile)
     {
-        if (!this.skipMetadata && profile?.CheckIsValid() == true)
+        if (profile?.CheckIsValid() == true)
         {
-            this.hasIcc = true;
             this.Metadata ??= new ImageMetadata();
             this.Metadata.IccProfile = profile;
         }
@@ -841,7 +838,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // TODO: thumbnail
         if (remaining > 0)
         {
-            if (stream.Position + remaining >= stream.Length)
+            if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
             {
                 this.ThrowOrIgnoreNonStrictSegmentError("Bad App0 Marker length.");
                 stream.Skip(remaining);
@@ -877,7 +874,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             return;
         }
 
-        if (stream.Position + remaining >= stream.Length)
+        if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
         {
             this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
             stream.Skip(remaining);
@@ -968,31 +965,37 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             return;
         }
 
-        if (this.skipMetadata)
-        {
-            stream.Skip(remaining);
-            return;
-        }
-
         Span<byte> identifier = stackalloc byte[icclength];
         stream.Read(identifier);
         remaining -= icclength; // We have read it by this point
 
         if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
         {
-            this.hasIcc = true;
-            byte[] profile = new byte[remaining];
-            stream.Read(profile, 0, remaining);
+            // APP2 may split one ICC profile across several markers; retain managed segments until final validation.
+            this.ExecuteAncillarySegmentAction(() =>
+            {
+                this.iccReader ??= new IccReader();
 
-            if (this.iccData is null)
-            {
-                this.iccData = profile;
-            }
-            else
-            {
-                // If the ICC information exceeds 64K, it will be split over multiple APP2 markers
-                ExtendProfile(ref this.iccData, profile);
-            }
+                try
+                {
+                    if (this.iccReader.Read(stream, remaining) != remaining)
+                    {
+                        throw new InvalidImageContentException("Not enough data to read JPEG ICC profile.");
+                    }
+                }
+                catch (InvalidIccProfileException)
+                {
+                    // An oversized segment was rejected before its payload was consumed.
+                    this.iccReader = null;
+                    stream.Skip(remaining);
+                    throw;
+                }
+                catch
+                {
+                    this.iccReader = null;
+                    throw;
+                }
+            });
         }
         else
         {
@@ -1288,7 +1291,12 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="frameMarker">The current frame marker.</param>
     /// <param name="decodingComponentType">The jpeg decoding component type.</param>
     /// <param name="metadataOnly">Whether to parse metadata only.</param>
-    private bool ProcessStartOfFrameMarker(BufferedReadStream stream, int remaining, in JpegFileMarker frameMarker, ComponentType decodingComponentType, bool metadataOnly)
+    private bool ProcessStartOfFrameMarker(
+        BufferedReadStream stream,
+        int remaining,
+        in JpegFileMarker frameMarker,
+        ComponentType decodingComponentType,
+        bool metadataOnly)
     {
         if (this.Frame != null)
         {
@@ -1607,7 +1615,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             if (dcTableIndex >= 4 || acTableIndex >= 4)
             {
                 // TODO: extract as separate method?
-                JpegThrowHelper.ThrowInvalidImageContentException($"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
+                JpegThrowHelper.ThrowInvalidImageContentException(
+                    $"Invalid huffman table for component:{componentSelectorId}: dc={dcTableIndex}, ac={acTableIndex}");
             }
 
             component.DcTableId = dcTableIndex;
@@ -1631,11 +1640,13 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (this.scanDecoder is ArithmeticScanDecoder arithmeticScanDecoder)
         {
+            // An arithmetic JPEG can omit DAC entirely. The scan decoder adds defaults for undeclared entries.
+            this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 
         this.ExecuteAncillarySegmentAction(this.InitIccProfile);
-        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        _ = IccProfile.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
         this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }
 

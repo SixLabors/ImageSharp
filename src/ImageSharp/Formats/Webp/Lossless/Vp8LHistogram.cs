@@ -206,9 +206,13 @@ internal abstract unsafe class Vp8LHistogram
         uint notUsed = 0;
 
         double alphaCost = this.PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref alphaSym, 3, stats, bitsEntropy);
-        double distanceCost = this.PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, 4, stats, bitsEntropy) + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
+        double distanceCost = this.PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, 4, stats, bitsEntropy)
+            + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
+
         int numCodes = this.NumCodes();
-        this.LiteralCost = this.PopulationCost(this.Literal, numCodes, ref notUsed, 0, stats, bitsEntropy) + ExtraCost(this.Literal[WebpConstants.NumLiteralCodes..], WebpConstants.NumLengthCodes);
+        this.LiteralCost = this.PopulationCost(this.Literal, numCodes, ref notUsed, 0, stats, bitsEntropy)
+            + ExtraCost(this.Literal[WebpConstants.NumLiteralCodes..], WebpConstants.NumLengthCodes);
+
         this.RedCost = this.PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref redSym, 1, stats, bitsEntropy);
         this.BlueCost = this.PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref blueSym, 2, stats, bitsEntropy);
         this.BitCost = this.LiteralCost + this.RedCost + this.BlueCost + alphaCost + distanceCost;
@@ -270,7 +274,13 @@ internal abstract unsafe class Vp8LHistogram
             : NonTrivialSym;
     }
 
-    public bool GetCombinedHistogramEntropy(Vp8LHistogram b, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy, double costThreshold, double costInitial, out double cost)
+    public bool GetCombinedHistogramEntropy(
+        Vp8LHistogram b,
+        Vp8LStreaks stats,
+        Vp8LBitEntropy bitEntropy,
+        double costThreshold,
+        double costInitial,
+        out double cost)
     {
         bool trivialAtEnd = false;
         cost = costInitial;

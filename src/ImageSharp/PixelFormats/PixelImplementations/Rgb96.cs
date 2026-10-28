@@ -116,11 +116,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb96 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -128,12 +124,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromAssociatedVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static Rgb96 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,7 +134,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb96 FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
         return new Rgb96(
             (uint)Math.Round(source.X * Max),
             (uint)Math.Round(source.Y * Max),
@@ -152,11 +143,13 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromAbgr32(Abgr32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromAbgr32(Abgr32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromArgb32(Argb32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromArgb32(Argb32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -164,11 +157,13 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromBgr24(Bgr24 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromBgr24(Bgr24 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromBgra32(Bgra32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromBgra32(Bgra32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -204,26 +199,46 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgb24(Rgb24 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromRgb24(Rgb24 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgba32(Rgba32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+    public static Rgb96 FromRgba32(Rgba32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgb48(Rgb48 source) => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
+    public static Rgb96 FromRgb48(Rgb48 source)
+        => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb96 FromRgba64(Rgba64 source) => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
+    public static Rgb96 FromRgba64(Rgba64 source)
+        => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb96>(
             PixelComponentInfo.Create<Rgb96>(3, 32, 32, 32),
             PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
+
+    /// <inheritdoc />
+    public static Rgb96 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgb96 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgb96 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgb96 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

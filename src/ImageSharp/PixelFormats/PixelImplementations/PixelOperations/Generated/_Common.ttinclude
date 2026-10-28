@@ -40,27 +40,25 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Bgr24"
             ];
 
-    // Types with Rgba32-combatable to/from Vector4 conversion
-    private static readonly string[] Rgba32CompatibleTypes =
-        [
-            "Argb32",
-        "Abgr32",
-        "Bgra32",
-        "Rgb24",
-        "Bgr24"
-            ];
+    // These layouts store associated bytes. Channel shuffles retain those bytes; straight-alpha conversions change their meaning.
+    private static readonly string[] AssociatedOptimizedPixelTypes =
+        ["Rgba32P", "Argb32P", "Abgr32P", "Bgra32P"];
 
     void GenerateGenericConverterMethods(string pixelType)
     {
 #>
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+<#+ if (pixelType.EndsWith("P")) { #>
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<<#=pixelType#>> destination)
+<#+ } else { #>
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<<#=pixelType#>> destination)
+<#+ } #>
         {
-            PixelOperations<TSourcePixel>.Instance.To<#=pixelType#>(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.To<#=pixelType#>(configuration, source, destination.Slice(0, source.Length));
         }
 <#+
     }
@@ -111,116 +109,194 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 <#+
     }
 
-    void GenerateOptimized32BitConversionMethods(string thisPixelType, string otherPixelType)
+    void GenerateOptimized32BitConversionMethods(string pixelType, string otherType)
     {
+        // PixelConverter's byte shuffles change channel order only. The same operations serve both alpha representations.
+        string thisConverterType = pixelType.EndsWith("P") ? pixelType.Substring(0, pixelType.Length - 1) : pixelType;
+        string otherConverterType = otherType.EndsWith("P") ? otherType.Substring(0, otherType.Length - 1) : otherType;
+        string destination = pixelType.EndsWith("P") ? "destination.Slice(0, source.Length)" : "destination";
+
     #>
-    
+
         /// <inheritdoc />
-        public override void To<#=otherPixelType#>(
+<#+ if (pixelType.EndsWith("P")) { #>
+        public override void To<#=otherType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<<#=otherType#>> destination)
+<#+ } else { #>
+        public override void To<#=otherType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=thisPixelType#>> source,
-            Span<<#=otherPixelType#>> destination)
+            ReadOnlySpan<<#=pixelType#>> source,
+            Span<<#=otherType#>> destination)
+<#+ } #>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(source);
-            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(destination);
-            PixelConverter.From<#=thisPixelType#>.To<#=otherPixelType#>(sourceBytes, destinationBytes);
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=otherType#>, byte>(<#=destination#>);
+<#+ if (pixelType.EndsWith("P")) { #>
+
+            // The shuffle moves complete associated channel bytes; it does not change RGB values or alpha.
+<#+ } #>
+            PixelConverter.From<#=thisConverterType#>.To<#=otherConverterType#>(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
-        public override void From<#=otherPixelType#>(
+<#+ if (pixelType.EndsWith("P")) { #>
+        public override void From<#=otherType#>(Configuration configuration, ReadOnlySpan<<#=otherType#>> source, Span<<#=pixelType#>> destination)
+<#+ } else { #>
+        public override void From<#=otherType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=otherPixelType#>> source,
-            Span<<#=thisPixelType#>> destination)
+            ReadOnlySpan<<#=otherType#>> source,
+            Span<<#=pixelType#>> destination)
+<#+ } #>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(source);
-            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(destination);
-            PixelConverter.From<#=otherPixelType#>.To<#=thisPixelType#>(sourceBytes, destinationBytes);
-        }        
-<#+
-    }
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=otherType#>, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(<#=destination#>);
+<#+ if (pixelType.EndsWith("P")) { #>
 
-    void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType, bool hasAlpha)
-    {
-           string removeFromModifiers = "PixelConversionModifiers.Scale";
-           string removeToModifiers = "PixelConversionModifiers.Scale";
-
-           if (!hasAlpha)
-           {
-               // Premultiplication cannot change an alpha-less source, but premultiplied input
-               // must still be unassociated before its alpha channel is discarded.
-               removeToModifiers += " | PixelConversionModifiers.Premultiply";
-           }
-
-           if (hasAlpha)
-           {
-               GenerateRgba32Compatible32BitVector4ConversionMethods(pixelType, removeFromModifiers);
-               return;
-           }
-#>
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<<#=pixelType#>> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(<#=removeFromModifiers#>));
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<<#=pixelType#>> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(<#=removeToModifiers#>));
+            // The shuffle moves complete associated channel bytes; it does not change RGB values or alpha.
+<#+ } #>
+            PixelConverter.From<#=otherConverterType#>.To<#=thisConverterType#>(sourceBytes, destinationBytes);
         }
 <#+
     }
 
-    void GenerateRgba32Compatible32BitVector4ConversionMethods(string pixelType, string removeTheseModifiers)
+    /// <summary>
+    /// Generates self-copy, packed shuffle and generic dispatch overrides for an associated byte layout.
+    /// </summary>
+    /// <param name="pixelType">The associated pixel type.</param>
+    void GenerateAllAssociatedConversionMethods(string pixelType)
     {
+        GenerateDefaultSelfConversionMethods(pixelType);
+
+        foreach (string destinationType in AssociatedOptimizedPixelTypes.Where(p => p != pixelType))
+        {
+            GenerateOptimized32BitConversionMethods(pixelType, destinationType);
+        }
+
+        GenerateGenericConverterMethods(pixelType);
+    }
+
+    /// <summary>
+    /// Routes all named RgbaVector source conversions through its generic bulk conversion.
+    /// </summary>
+    void GenerateRgbaVectorFromMethods()
+    {
+        // Keep the source list shared with the other generated pixel operations, including associated byte layouts.
+        foreach (string sourceType in CommonPixelTypes.Concat(AssociatedOptimizedPixelTypes))
+        {
 #>
 
         /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<<#=pixelType#>> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-            destination = destination[..sourceVectors.Length];
-            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers.Remove(<#=removeTheseModifiers#>));
-
-            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=pixelType#>, byte>(destination);
-
-            // The SIMD saturating conversion produces RGBA byte order. Reusing the destination
-            // buffer and shuffling it in place avoids the row-sized Rgba32 temporary used by
-            // the generic Rgba-compatible path for non-Rgba32 formats.
-            SimdUtils.NormalizedFloatToByteSaturate(
-                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                destinationBytes);
-            PixelConverter.FromRgba32.To<#=pixelType#>(destinationBytes, destinationBytes);
+        public override void From<#=sourceType#>(Configuration configuration, ReadOnlySpan<<#=sourceType#>> source, Span<RgbaVector> destination)
+            => this.From(configuration, source, destination);
+<#+
         }
+    }
+
+
+    /// <summary>
+    /// Generates the shared native, scaled and alpha-representation extraction methods for unsigned sixteen-bit formats.
+    /// </summary>
+    /// <param name="pixelType">The unsigned sixteen-bit pixel type.</param>
+    void GenerateUnsigned16Vector4ConversionMethods(string pixelType)
+    {
+        bool hasAlpha = pixelType == "Rgba64" || pixelType == "La32";
+#>
 
         /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<<#=pixelType#>> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+<#+ if (hasAlpha) { #>
         {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(<#=removeTheseModifiers#>));
+            this.ToUnassociatedVector4(configuration, source, destination);
+
+            // Normalize before association, matching the single-pixel API's floating-point rounding.
+            Numerics.Premultiply(destination[..source.Length]);
+        }
+<#+ } else { #>
+            => this.ToUnassociatedVector4(configuration, source, destination);
+<#+ } #>
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
+<#+
+        if (pixelType != "La32" && pixelType != "Rg32")
+        {
+            return;
+        }
+
+        // These layouts both store two unsigned words. Only their expansion to RGBA differs.
+        string green = pixelType == "La32" ? "first" : "second";
+#>
+
+        /// <inheritdoc />
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Each uint contains two consecutive ushort components: the first in bits 0..15 and the second in bits 16..31.
+            // Both supported layouts use this packed order. No staging array or intermediate pixel conversion is needed.
+            ref uint input = ref Unsafe.As<<#=pixelType#>, uint>(ref MemoryMarshal.GetReference(source));
+            ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+            int i = 0;
+<#+
+        foreach (int width in new[] { 512, 256, 128 })
+        {
+            string vector = "Vector" + width;
+            string blueValue = pixelType == "La32" ? "first" : vector + "<float>.Zero";
+            string alphaValue = pixelType == "La32" ? "second" : vector + ".Create(1F)";
+#>
+
+            if (<#=vector#>.IsHardwareAccelerated)
+            {
+                nuint groups = (source.Length - i).Vector<#=width#>Count<uint>();
+                <#=vector#><uint> mask = <#=vector#>.Create((uint)ushort.MaxValue);
+                <#=vector#><float> maximum = <#=vector#>.Create((float)ushort.MaxValue);
+
+                // One register contains <#=width / 32#> pixels. Masking and shifting separate the two word components.
+                // Both values fit signed int, so conversion avoids the extra work needed for the full uint range.
+                // Divide by 65535 as the single-pixel API does. Multiplying by a rounded reciprocal can change the final float.
+                for (nuint group = 0; group < groups; group++, i += <#=vector#><uint>.Count)
+                {
+                    <#=vector#><uint> packed = <#=vector#>.LoadUnsafe(ref input, (uint)i);
+                    <#=vector#><float> first = <#=vector#>.ConvertToSingle((packed & mask).AsInt32()) / maximum;
+                    <#=vector#><float> second = <#=vector#>.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
+
+<#+ if (pixelType == "La32") { #>
+                    // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
+<#+ } else { #>
+                    // RG has neither blue nor alpha. Each output vector is [R, G, 0, 1], matching the single-pixel defaults.
+<#+ } #>
+                    SimdUtils.Interleave4(first, <#=green#>, <#=blueValue#>, <#=alphaValue#>, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                }
+            }
+<#+
+        }
+#>
+
+            // Smaller vector widths consume complete groups left by wider paths. Only the final incomplete group is scalar.
+            // Call the single-pixel API so channel defaults and normalization retain exactly the same arithmetic.
+            for (; i < source.Length; i++)
+            {
+                destination[i] = source[i].ToUnassociatedVector4();
+            }
         }
 <#+
     }
@@ -229,9 +305,9 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
     {
         GenerateDefaultSelfConversionMethods(pixelType);
 
-        if (Rgba32CompatibleTypes.Contains(pixelType))
+        if (pixelType == "L16" || pixelType == "La32")
         {
-            GenerateRgba32CompatibleVector4ConversionMethods(pixelType, pixelType.EndsWith("32"));
+            GenerateUnsigned16Vector4ConversionMethods(pixelType);
         }
 
         var matching32BitTypes = OptimizedPixelTypes.Contains(pixelType) ?

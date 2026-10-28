@@ -36,8 +36,12 @@ internal static unsafe class QuantEnc
         int tlambda = dqm.TLambda;
         Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3.AsSpan();
-        Vp8ModeScore rdTmp = new();
-        Vp8Residual res = new();
+
+        // Reuse the iterator scratch accumulator instead of allocating one per macroblock.
+        // Clear it so that it starts from the same zeroed state as a fresh instance.
+        Vp8ModeScore rdTmp = it.RdScratch;
+        rdTmp.Clear();
+        Vp8Residual res = it.ResidualScratch;
         Vp8ModeScore rdCur = rdTmp;
         Vp8ModeScore rdBest = rd;
         int mode;
@@ -80,6 +84,10 @@ internal static unsafe class QuantEnc
             }
         }
 
+        // The rejected accumulator becomes the scratch instance for the next macroblock. When the
+        // best result lives in the scratch instance, the caller's reference is exchanged for it so
+        // that no levels need to be copied.
+        it.RdScratch = rdCur;
         if (rdBest != rd)
         {
             rd = rdBest;
@@ -107,7 +115,11 @@ internal static unsafe class QuantEnc
         Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3.AsSpan();
         int totalHeaderBits = 0;
-        Vp8ModeScore rdBest = new();
+
+        // Reuse the iterator scratch accumulators instead of allocating per macroblock. rdBest
+        // collects the winning levels of every 4x4 block, so it must start zeroed like a fresh instance.
+        Vp8ModeScore rdBest = it.RdScratch2;
+        rdBest.Clear();
 
         if (maxI4HeaderBits == 0)
         {
@@ -118,9 +130,11 @@ internal static unsafe class QuantEnc
         rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
         rdBest.SetRdScore(dqm.LambdaMode);
         it.StartI4();
-        Vp8ModeScore rdi4 = new();
-        Vp8ModeScore rdTmp = new();
-        Vp8Residual res = new();
+
+        // Both accumulators are cleared inside the loops before they are read.
+        Vp8ModeScore rdi4 = it.RdScratch3;
+        Vp8ModeScore rdTmp = it.RdScratch;
+        Vp8Residual res = it.ResidualScratch;
         Span<short> tmpLevels = stackalloc short[16];
         do
         {
@@ -220,9 +234,12 @@ internal static unsafe class QuantEnc
         Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst0 = it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst = dst0;
-        Vp8ModeScore rdBest = new();
-        Vp8ModeScore rdUv = new();
-        Vp8Residual res = new();
+
+        // Reuse the iterator scratch accumulators instead of allocating per macroblock. Only the
+        // scores of rdBest are read, and rdUv is cleared before every mode, so neither needs clearing here.
+        Vp8ModeScore rdBest = it.RdScratch2;
+        Vp8ModeScore rdUv = it.RdScratch3;
+        Vp8Residual res = it.ResidualScratch;
         int mode;
 
         rd.ModeUv = -1;
@@ -364,7 +381,13 @@ internal static unsafe class QuantEnc
     }
 
     // Refine intra16/intra4 sub-modes based on distortion only (not rate).
-    public static void RefineUsingDistortion(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode, int mbHeaderLimit)
+    public static void RefineUsingDistortion(
+        Vp8EncIterator it,
+        Vp8SegmentInfo[] segmentInfos,
+        Vp8ModeScore rd,
+        bool tryBothModes,
+        bool refineUvMode,
+        int mbHeaderLimit)
     {
         long bestScore = Vp8ModeScore.MaxCost;
         int nz = 0;
@@ -522,9 +545,12 @@ internal static unsafe class QuantEnc
             // coeff = abs(in)
             Vector256<ushort> coeff0 = Avx2.Abs(input0);
 
-            // coeff = abs(in) + sharpen
+            // Each lane stores the magnitude of one input coefficient.
+            // Add its sharpening bias before quantization, as the scalar path does.
+            // A magnitude is at most 32768. Vp8Matrix.Expand limits each bias to 12.
+            // The sum fits in an unsigned 16-bit lane.
             Vector256<short> sharpen0 = Unsafe.As<short, Vector256<short>>(ref mtx.Sharpen[0]);
-            Avx2.Add(coeff0.AsInt16(), sharpen0);
+            coeff0 = Avx2.Add(coeff0.AsInt16(), sharpen0).AsUInt16();
 
             // out = (coeff * iQ + B) >> QFIX
             // doing calculations with 32b precision (QFIX=17)
@@ -559,8 +585,44 @@ internal static unsafe class QuantEnc
             Unsafe.As<short, Vector256<short>>(ref inputRef) = input0;
 
             // zigzag the output before storing it.
-            Vector256<byte> tmp256 = Avx2.Shuffle(out0.AsByte(), Vector256.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13, 2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15));  // Cst256
-            Vector256<byte> tmp78 = Avx2.Shuffle(out0.AsByte(), Vector256.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255)); // Cst78
+            Vector256<byte> tmp256 = Avx2.Shuffle(
+                out0.AsByte(),
+                Vector256.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13, 2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15));  // Cst256
+            Vector256<byte> tmp78 = Avx2.Shuffle(
+                out0.AsByte(),
+                Vector256.Create(
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    14,
+                    15,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    0,
+                    1,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255,
+                    254,
+                    255)); // Cst78
 
             // Reverse the order of the 16-byte lanes.
             Vector256<byte> tmp87 = Avx2.Permute2x128(tmp78, tmp78, 1);
@@ -589,11 +651,14 @@ internal static unsafe class QuantEnc
             Vector128<ushort> coeff0 = Ssse3.Abs(input0);
             Vector128<ushort> coeff8 = Ssse3.Abs(input8);
 
-            // coeff = abs(in) + sharpen
+            // coeff0 holds magnitudes for coefficients 0 through 7.
+            // coeff8 holds magnitudes for coefficients 8 through 15.
+            // Add each coefficient's sharpening bias before quantization.
+            // As in AVX2, each sum fits in an unsigned 16-bit lane.
             Vector128<short> sharpen0 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[0]);
             Vector128<short> sharpen8 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[8]);
-            Sse2.Add(coeff0.AsInt16(), sharpen0);
-            Sse2.Add(coeff8.AsInt16(), sharpen8);
+            coeff0 = Sse2.Add(coeff0.AsInt16(), sharpen0).AsUInt16();
+            coeff8 = Sse2.Add(coeff8.AsInt16(), sharpen8).AsUInt16();
 
             // out = (coeff * iQ + B) >> QFIX
             // doing calculations with 32b precision (QFIX=17)
@@ -652,9 +717,14 @@ internal static unsafe class QuantEnc
             // reg's boundaries.
             // We use pshufb instead of pshuflo/pshufhi.
             Vector128<byte> tmpLo = Ssse3.Shuffle(out0.AsByte(), Vector128.Create(0, 1, 2, 3, 8, 9, 254, 255, 10, 11, 4, 5, 6, 7, 12, 13));
-            Vector128<byte> tmp7 = Ssse3.Shuffle(out0.AsByte(), Vector128.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255)); // extract #7
+            Vector128<byte> tmp7 = Ssse3.Shuffle(
+                out0.AsByte(),
+                Vector128.Create(254, 255, 254, 255, 254, 255, 254, 255, 14, 15, 254, 255, 254, 255, 254, 255)); // extract #7
             Vector128<byte> tmpHi = Ssse3.Shuffle(out8.AsByte(), Vector128.Create(2, 3, 8, 9, 10, 11, 4, 5, 254, 255, 6, 7, 12, 13, 14, 15));
-            Vector128<byte> tmp8 = Ssse3.Shuffle(out8.AsByte(), Vector128.Create(254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255));   // extract #8
+
+            Vector128<byte> tmp8 = Ssse3.Shuffle(
+                out8.AsByte(),
+                Vector128.Create(254, 255, 254, 255, 254, 255, 0, 1, 254, 255, 254, 255, 254, 255, 254, 255));   // extract #8
             Vector128<byte> outZ0 = Sse2.Or(tmpLo, tmp8);
             Vector128<byte> outZ8 = Sse2.Or(tmpHi, tmp7);
 

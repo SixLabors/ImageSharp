@@ -42,7 +42,7 @@ internal sealed partial class IccDataReader
     /// </summary>
     /// <param name="index">The new index position</param>
     public void SetIndex(int index)
-        => this.currentIndex = Numerics.Clamp(index, 0, this.data.Length);
+        => this.currentIndex = Math.Clamp(index, 0, this.data.Length);
 
     /// <summary>
     /// Returns the current <see cref="currentIndex"/> without increment and adds the given increment

@@ -14,10 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// <see cref="ToVector4"/> and scaled vector conversions return color components in <c>[0, 1]</c> with an implicit
 /// alpha of <c>1</c>. The storage layout matches <c>DXGI_FORMAT_B5G6R5_UNORM</c>.
 /// </remarks>
-/// <param name="vector">
-/// The vector containing the components for the packed value.
-/// </param>
-public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ushort>
+public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="Bgr565"/> struct.
@@ -30,8 +27,26 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgr565"/> struct.
+    /// </summary>
+    /// <param name="vector">The vector containing the components for the packed value.</param>
+    public Bgr565(Vector3 vector) => this.PackedValue = Pack(vector);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgr565"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Bits 0-4 store blue, bits 5-10 store green, and bits 11-15 store red.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgr565(ushort packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
-    public ushort PackedValue { get; set; } = Pack(vector);
+    public ushort PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="Bgr565"/> objects for equality.
@@ -68,6 +83,7 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
         => PixelTypeInfo.Create<Bgr565>(
             PixelComponentInfo.Create<Bgr565>(3, 5, 6, 5),
             PixelColorType.BGR,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
@@ -96,11 +112,7 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgr565 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -108,12 +120,22 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Bgr565 FromAssociatedVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static Bgr565 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
+
+    /// <inheritdoc />
+    public static Bgr565 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgr565 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgr565 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgr565 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
@@ -208,7 +230,10 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector3 vector)
     {
-        vector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+        vector = new Vector3(
+            ColorNumerics.ClampToFinite(vector.X, 0F, 1F),
+            ColorNumerics.ClampToFinite(vector.Y, 0F, 1F),
+            ColorNumerics.ClampToFinite(vector.Z, 0F, 1F));
 
         return (ushort)((((int)Math.Round(vector.X * 31F) & 0x1F) << 11)
                | (((int)Math.Round(vector.Y * 63F) & 0x3F) << 5)

@@ -23,7 +23,17 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
     private TgaMetadata(TgaMetadata other)
-        => this.BitsPerPixel = other.BitsPerPixel;
+    {
+        this.BitsPerPixel = other.BitsPerPixel;
+        this.AlphaChannelBits = other.AlphaChannelBits;
+        this.ColorMapFirstEntryIndex = other.ColorMapFirstEntryIndex;
+        this.ColorMapEntryBitDepth = other.ColorMapEntryBitDepth;
+
+        if (other.ColorTable?.Length > 0)
+        {
+            this.ColorTable = other.ColorTable.Value.ToArray();
+        }
+    }
 
     /// <summary>
     /// Gets or sets the number of bits per pixel.
@@ -34,6 +44,21 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// Gets or sets the number of alpha bits per pixel.
     /// </summary>
     public byte AlphaChannelBits { get; set; }
+
+    /// <summary>
+    /// Gets or sets the first index represented by <see cref="ColorTable"/>.
+    /// </summary>
+    public ushort ColorMapFirstEntryIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the bit depth of each color map entry.
+    /// </summary>
+    public byte ColorMapEntryBitDepth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the color table, if any.
+    /// </summary>
+    public ReadOnlyMemory<Color>? ColorTable { get; set; }
 
     /// <inheritdoc/>
     public static TgaMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
@@ -53,6 +78,17 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp = (int)this.BitsPerPixel;
+
+        if (this.ColorTable.HasValue)
+        {
+            return new PixelTypeInfo(bpp)
+            {
+                ComponentInfo = PixelComponentInfo.Create(1, bpp, bpp),
+                ColorType = PixelColorType.Indexed,
+                AlphaRepresentation = PixelAlphaRepresentation.None
+            };
+        }
+
         PixelComponentInfo info;
         PixelColorType color;
         PixelAlphaRepresentation alpha;
@@ -99,6 +135,9 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        this.ColorTable = null;
+        this.ColorMapFirstEntryIndex = 0;
+        this.ColorMapEntryBitDepth = 0;
     }
 
     /// <inheritdoc/>

@@ -27,7 +27,40 @@ internal static class WebpCommonUtils
             int length = (row.Length * 4) - 3;
             fixed (byte* src = rowBytes)
             {
-                Vector256<byte> alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+                Vector256<byte> alphaMaskVector256 = Vector256.Create(
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255,
+                    0,
+                    0,
+                    0,
+                    255);
+
                 Vector256<byte> all0x80Vector256 = Vector256.Create((byte)0x80).AsByte();
 
                 for (; i + 128 <= length; i += 128)

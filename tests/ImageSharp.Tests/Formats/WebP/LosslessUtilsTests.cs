@@ -11,9 +11,24 @@ public class LosslessUtilsTests
 {
     private static void RunCombinedShannonEntropyTest()
     {
-        int[] x = [3, 5, 2, 5, 3, 1, 2, 2, 3, 3, 1, 2, 1, 2, 1, 1, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 1, 1, 0, 0, 2, 1, 1, 0, 3, 1, 2, 3, 2, 3
+        int[] x =
+        [
+            3, 5, 2, 5, 3, 1, 2, 2, 3, 3, 1, 2, 1, 2, 1, 1, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 1, 1, 0,
+            0, 2, 1, 1, 0, 3, 1, 2, 3, 2, 3
         ];
-        int[] y = [11, 12, 8, 3, 4, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 2, 1, 1, 2, 4, 6, 4
+
+        int[] y =
+        [
+            11, 12, 8, 3, 4, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 2, 2, 1, 1, 2, 4, 6, 4
         ];
         const float expected = 884.7585f;
 
@@ -295,10 +310,12 @@ public class LosslessUtilsTests
     public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
     [Fact]
-    public void CombinedShannonEntropy_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCombinedShannonEntropyTest, HwIntrinsics.AllowAll);
+    public void CombinedShannonEntropy_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCombinedShannonEntropyTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void CombinedShannonEntropy_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCombinedShannonEntropyTest, HwIntrinsics.DisableAVX2);
+    public void CombinedShannonEntropy_WithoutAVX2_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCombinedShannonEntropyTest, HwIntrinsics.DisableAVX2);
 
     [Fact]
     public void Predictor11_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor11Test, HwIntrinsics.AllowAll);
@@ -331,16 +348,19 @@ public class LosslessUtilsTests
     public void SubtractGreen_Scalar_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void SubtractGreen_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+    public void SubtractGreen_WithoutAvxOrSSSE3_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void AddGreenToBlueAndRed_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.AllowAll);
+    public void AddGreenToBlueAndRed_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.AllowAll);
 
     [Fact]
     public void AddGreenToBlueAndRed_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX2);
 
     [Fact]
-    public void AddGreenToBlueAndRed_WithoutAVX2OrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+    public void AddGreenToBlueAndRed_WithoutAVX2OrSSSE3_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void TransformColor_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.AllowAll);
@@ -352,11 +372,14 @@ public class LosslessUtilsTests
     public void TransformColor_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.DisableAVX2);
 
     [Fact]
-    public void TransformColorInverse_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.AllowAll);
+    public void TransformColorInverse_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void TransformColorInverse_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableHWIntrinsic);
+    public void TransformColorInverse_WithoutSSE2_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void TransformColorInverse_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableAVX2);
+    public void TransformColorInverse_WithoutAVX2_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableAVX2);
 }

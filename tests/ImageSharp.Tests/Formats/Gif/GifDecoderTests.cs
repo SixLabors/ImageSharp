@@ -2,7 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics.X86;
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
@@ -22,6 +25,118 @@ public class GifDecoderTests
     public static readonly string[] MultiFrameTestFiles =
     [
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
+    ];
+
+    /// <summary>
+    /// Preserve and Convert use the ICC-transformed palette for pixels and metadata while retaining profiles by policy.
+    /// </summary>
+    /// <typeparam name="TPixel">The output pixel type.</typeparam>
+    /// <param name="provider">The GIF fixture provider.</param>
+    /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
+    [Theory]
+    [WithFile(TestImages.Gif.ExifToolIcc, PixelTypes.Rgba32 | PixelTypes.Rgba64 | PixelTypes.RgbaVector, false)]
+    [WithFile(TestImages.Gif.ExifToolIcc, PixelTypes.Rgba32 | PixelTypes.Rgba64 | PixelTypes.RgbaVector, true)]
+    public void Decode_ExifToolIcc_ConvertsPaletteAndAppliesRetention<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => AssertExifToolIccPaletteAndRetention<TPixel>(TestFile.Create(provider.SourceFileOrDescription).Bytes, skipMetadata);
+
+    // Use the same fixture bytes and assertions for ordinary and associated destination pixel types.
+    private static void AssertExifToolIccPaletteAndRetention<TPixel>(byte[] source, bool skipMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = skipMetadata };
+
+        ImageInfo preservedInfo = Image.Identify(preserveOptions, source);
+        ImageInfo convertedInfo = Image.Identify(convertOptions, source);
+
+        // GIF's six-byte header and seven-byte logical screen descriptor precede this fixture's 256-entry global RGB table.
+        ReadOnlySpan<Rgb24> encodedPalette = MemoryMarshal.Cast<byte, Rgb24>(source.AsSpan(13, 256 * 3));
+
+        using Image<TPixel> preserved = Image.Load<TPixel>(preserveOptions, source);
+        using Image<TPixel> converted = Image.Load<TPixel>(convertOptions, source);
+
+        ColorConversionOptions conversionOptions = new()
+        {
+            SourceIccProfile = preservedInfo.Metadata.IccProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile
+        };
+
+        ColorProfileConverter converter = new(conversionOptions);
+        Rgb[] expectedPalette = new Rgb[encodedPalette.Length];
+
+        // Convert the encoded lookup once to keep the expected palette independent of GIF pixel expansion.
+        for (int i = 0; i < encodedPalette.Length; i++)
+        {
+            expectedPalette[i] = Rgb.FromScaledVector4(encodedPalette[i].ToScaledVector4());
+        }
+
+        converter.Convert<Rgb, Rgb>(expectedPalette, expectedPalette);
+
+        ReadOnlySpan<Color> identifiedPalette = preservedInfo.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+        ReadOnlySpan<Color> convertedInfoPalette = convertedInfo.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+        ReadOnlySpan<Color> preservedPalette = preserved.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+        ReadOnlySpan<Color> convertedPalette = converted.Metadata.GetGifMetadata().GlobalColorTable.Value.Span;
+
+        Assert.Equal(256, identifiedPalette.Length);
+        Assert.Equal(256, convertedInfoPalette.Length);
+        Assert.Equal(256, preservedPalette.Length);
+        Assert.Equal(256, convertedPalette.Length);
+
+        for (int i = 0; i < encodedPalette.Length; i++)
+        {
+            Color expectedIdentified = Color.FromScaledVector(expectedPalette[i].ToScaledVector4());
+            Color expected = Color.FromPixel(TPixel.FromUnassociatedScaledVector4(expectedPalette[i].ToScaledVector4()));
+
+            Assert.Equal(expectedIdentified, identifiedPalette[i]);
+            Assert.Equal(expectedIdentified, convertedInfoPalette[i]);
+            Assert.Equal(expected, preservedPalette[i]);
+            Assert.Equal(expected, convertedPalette[i]);
+        }
+
+        Assert.NotEqual(Color.FromPixel(encodedPalette[100]), identifiedPalette[100]);
+        Assert.Equal(identifiedPalette[0], preservedInfo.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(convertedInfoPalette[0], convertedInfo.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(preservedPalette[0], preserved.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(convertedPalette[0], converted.Metadata.GetGifMetadata().BackgroundColor);
+        Assert.Equal(preservedInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Null(convertedInfo.Metadata.IccProfile);
+        Assert.Null(converted.Metadata.IccProfile);
+
+        // Every encoded pixel uses palette index 35, so one expected color covers the whole 8x8 frame.
+        TPixel expectedPixel = Color.FromScaledVector(expectedPalette[35].ToScaledVector4()).ToPixel<TPixel>();
+
+        for (int y = 0; y < preserved.Height; y++)
+        {
+            for (int x = 0; x < preserved.Width; x++)
+            {
+                Assert.Equal(expectedPixel, preserved[x, y]);
+            }
+        }
+
+        ImageComparer.Exact.VerifySimilarity(preserved, converted);
+    }
+
+    /// <summary>
+    /// Verifies that associated destination pixels retain their alpha representation in converted GIF palettes.
+    /// </summary>
+    /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Decode_ExifToolIcc_ConvertsAssociatedPaletteAndAppliesRetention(bool skipMetadata)
+    {
+        byte[] source = TestFile.Create(TestImages.Gif.ExifToolIcc).Bytes;
+        AssertExifToolIccPaletteAndRetention<Rgba32P>(source, skipMetadata);
+        AssertExifToolIccPaletteAndRetention<RgbaVectorP>(source, skipMetadata);
+    }
+
+    /// <summary>
+    /// The four palette colors in the stored frame geometry fixtures.
+    /// </summary>
+    private static readonly Rgba32[] GeometryTestColorTable =
+    [
+        new(255, 0, 0), new(0, 255, 0), new(0, 0, 255), new(255, 255, 255)
     ];
 
     [Theory]
@@ -88,7 +203,7 @@ public class GifDecoderTests
     public void GifDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 },
             MaxFrames = 1
@@ -153,7 +268,7 @@ public class GifDecoderTests
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -257,7 +372,7 @@ public class GifDecoderTests
     public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -269,7 +384,7 @@ public class GifDecoderTests
     public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -318,7 +433,7 @@ public class GifDecoderTests
     public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -330,7 +445,7 @@ public class GifDecoderTests
     public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions(Configuration.Default) { MaxFrames = 1 });
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -394,7 +509,7 @@ public class GifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(testFile.FullPath));
         Assert.Throws<InvalidImageContentException>(() => Image.Load(testFile.FullPath));
 
-        DecoderOptions options = new() { SkipMetadata = true };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = true };
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.FullPath));
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, testFile.FullPath));
     }
@@ -428,18 +543,139 @@ public class GifDecoderTests
     [Fact]
     public void Identify_MalformedApplicationExtension_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateGifWithMalformedApplicationExtension()));
     }
 
     [Fact]
     public void Decode_MalformedApplicationExtension_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateGifWithMalformedApplicationExtension());
         });
+    }
+
+    /// <summary>
+    /// Invalid LZW table codes fail unless image data errors are explicitly ignored.
+    /// Recovery retains completed rows and continues to the following animation frame.
+    /// </summary>
+    /// <param name="path">The stored GIF with an invalid first code or an invalid code after a clear.</param>
+    /// <param name="completedRows">The number of valid rows before the invalid code.</param>
+    /// <param name="frameCount">The number of stored animation frames.</param>
+    [Theory]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTable, 0, 1)]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTableHiddenRow, 1, 2)]
+    public void Decode_LzwCodePastCodeTables_RespectsIntegrityHandling(string path, int completedRows, int frameCount)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity is not SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() =>
+                {
+                    using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+                });
+
+                continue;
+            }
+
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            Assert.Equal(new Size(4, frameCount == 1 ? 4 : 2), actual.Size);
+            Assert.Equal(frameCount, actual.Frames.Count);
+
+            for (int y = 0; y < actual.Height; y++)
+            {
+                for (int x = 0; x < actual.Width; x++)
+                {
+                    // A completed row is red. An undecoded row keeps the frame's transparent background.
+                    Assert.Equal(y < completedRows ? new Rgba32(255, 0, 0) : default, actual[x, y]);
+
+                    if (frameCount == 2)
+                    {
+                        // The complete green frame after the corrupt frame proves that sub-block recovery resumed correctly.
+                        Assert.Equal(new Rgba32(0, 255, 0), actual.Frames[1][x, y]);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Identify uses LZW index skipping and must apply the same image data policy as full decoding.
+    /// </summary>
+    /// <param name="path">The stored GIF with an invalid table code.</param>
+    /// <param name="frameCount">The number of stored animation frames.</param>
+    [Theory]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTable, 1)]
+    [InlineData(TestImages.Gif.LzwCodeOutsideTableHiddenRow, 2)]
+    public void Identify_LzwCodePastCodeTables_RespectsIntegrityHandling(string path, int frameCount)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            if (integrity is not SegmentIntegrityHandling.IgnoreImageData)
+            {
+                Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+                continue;
+            }
+
+            ImageInfo info = Image.Identify(options, data);
+            Assert.Equal(new Size(4, frameCount == 1 ? 4 : 2), info.Size);
+            Assert.Equal(frameCount, info.FrameMetadataCollection.Count);
+        }
+    }
+
+    /// <summary>
+    /// Clips stored frame rows to the logical screen without changing interlace order or later frame parsing.
+    /// </summary>
+    /// <param name="path">The stored GIF with a four-color row pattern and a second frame containing one white pixel.</param>
+    /// <param name="width">The first frame's stored width.</param>
+    /// <param name="height">The first frame's stored height.</param>
+    /// <param name="left">The first frame's left offset.</param>
+    /// <param name="top">The first frame's top offset.</param>
+    [Theory]
+    [InlineData(TestImages.Gif.Frame20x20At0x0Interlaced, 20, 20, 0, 0)]
+    [InlineData(TestImages.Gif.Frame20x20At0x0Sequential, 20, 20, 0, 0)]
+    [InlineData(TestImages.Gif.Frame10x10At0x5Interlaced, 10, 10, 0, 5)]
+    [InlineData(TestImages.Gif.Frame10x10At0x5Sequential, 10, 10, 0, 5)]
+    [InlineData(TestImages.Gif.Frame10x10At5x3Interlaced, 10, 10, 5, 3)]
+    [InlineData(TestImages.Gif.Frame10x10At0x10Interlaced, 10, 10, 0, 10)]
+    [InlineData(TestImages.Gif.Frame10x10At0x10Sequential, 10, 10, 0, 10)]
+    [InlineData(TestImages.Gif.Frame10x20At0x8Interlaced, 10, 20, 0, 8)]
+    [InlineData(TestImages.Gif.Frame10x20At0x9Interlaced, 10, 20, 0, 9)]
+    [InlineData(TestImages.Gif.Frame10x1At0x0Interlaced, 10, 1, 0, 0)]
+    [InlineData(TestImages.Gif.Frame10x2At0x0Interlaced, 10, 2, 0, 0)]
+    [InlineData(TestImages.Gif.Frame10x3At0x7Interlaced, 10, 3, 0, 7)]
+    [InlineData(TestImages.Gif.Frame10x4At0x0Interlaced, 10, 4, 0, 0)]
+    [InlineData(TestImages.Gif.Frame4x4At12x0Interlaced, 4, 4, 12, 0)]
+    [InlineData(TestImages.Gif.Frame4x4At12x0Sequential, 4, 4, 12, 0)]
+    public void Decode_FrameExceedingLogicalScreen_WritesOnlyRowsInsideCanvas(string path, int width, int height, int left, int top)
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(path).Bytes);
+
+        Assert.Equal(new Size(10, 10), image.Size);
+        Assert.Equal(2, image.Frames.Count);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                // Frame row n contains palette index n modulo four. Pixels outside its rectangle stay transparent.
+                bool inFrame = x >= left && x < left + width && y >= top && y < top + height;
+                Rgba32 expected = inFrame ? GeometryTestColorTable[(y - top) % 4] : default;
+                Assert.Equal(expected, image[x, y]);
+            }
+        }
+
+        // Even when the first frame is clipped or fully hidden, its data must not consume the next image descriptor.
+        Assert.Equal(new Rgba32(255, 255, 255), image.Frames[1][0, 0]);
     }
 
     private static byte[] CreateGifWithMalformedApplicationExtension()

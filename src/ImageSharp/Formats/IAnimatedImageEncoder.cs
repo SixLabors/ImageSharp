@@ -6,6 +6,9 @@ namespace SixLabors.ImageSharp.Formats;
 /// <summary>
 /// Defines the contract for all image encoders that allow encoding animation sequences.
 /// </summary>
+/// <remarks>
+/// Explicit values override image metadata. A <see langword="null"/> value uses image metadata or the format default.
+/// </remarks>
 public interface IAnimatedImageEncoder
 {
     /// <summary>

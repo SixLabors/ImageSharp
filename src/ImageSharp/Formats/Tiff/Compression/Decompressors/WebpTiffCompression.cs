@@ -1,52 +1,53 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 
 /// <summary>
-/// Class to handle cases where TIFF image data is compressed as a webp stream.
+/// Decodes WebP strips and tiles directly into the requested TIFF pixel format.
 /// </summary>
-internal class WebpTiffCompression : TiffBaseDecompressor
+internal sealed class WebpTiffCompression : TiffBaseDecompressor
 {
     private readonly DecoderOptions options;
+
+    private readonly ImageFrameMetadata metadata;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpTiffCompression"/> class.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="memoryAllocator">The memory allocator.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="bitsPerPixel">The bits per pixel.</param>
-    /// <param name="predictor">The predictor.</param>
-    public WebpTiffCompression(DecoderOptions options, MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
-        : base(memoryAllocator, width, bitsPerPixel, predictor)
-        => this.options = options;
-
-    /// <inheritdoc/>
-    protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
+    /// <param name="width">The encoded strip or tile width.</param>
+    /// <param name="bitsPerPixel">The total number of bits in each TIFF source pixel.</param>
+    /// <param name="metadata">The containing TIFF frame's ICC profile metadata.</param>
+    public WebpTiffCompression(DecoderOptions options, MemoryAllocator memoryAllocator, int width, int bitsPerPixel, ImageFrameMetadata metadata)
+        : base(memoryAllocator, width, bitsPerPixel, TiffPredictor.None)
     {
-        using WebpDecoderCore decoder = new(new WebpDecoderOptions { GeneralOptions = this.options });
-        using Image<Rgb24> image = decoder.Decode<Rgb24>(this.options.Configuration, stream, cancellationToken);
-        CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
+        this.options = options;
+        this.metadata = metadata;
     }
 
-    private static void CopyImageBytesToBuffer(Span<byte> buffer, Buffer2D<Rgb24> pixelBuffer)
+    /// <inheritdoc/>
+    public override bool DecodesPixels => true;
+
+    /// <inheritdoc/>
+    protected override void Decompress<TPixel>(
+        BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
-        int offset = 0;
-        for (int y = 0; y < pixelBuffer.Height; y++)
-        {
-            Span<Rgb24> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
-            Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
-            rgbBytes.CopyTo(buffer[offset..]);
-            offset += rgbBytes.Length;
-        }
+        // The IFD supplies the profile; WebP owns source sample interpretation and packs its result as the requested TPixel.
+        using WebpDecoderCore decoder = new(new WebpDecoderOptions(this.options), this.metadata.IccProfile);
+
+        using Image<TPixel> image = decoder.Decode<TPixel>(this.options.Configuration, stream, cancellationToken);
+
+        this.metadata.IccProfile ??= image.Metadata.IccProfile;
+        this.CopyPixels(image.Frames.RootFrame.PixelBuffer, stripHeight, pixels);
     }
 
     /// <inheritdoc/>

@@ -2,8 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -23,6 +26,176 @@ internal abstract partial class JpegColorConverterBase
         public static int ComponentCount => 4;
 
         /// <inheritdoc/>
+        public static float GetProfileChromaOffset(float maximumValue, float halfValue)
+        {
+            // TIFF writes chroma directly. Normalize the integer JPEG midpoint before applying the matrix.
+            return halfValue / maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = 1F - (c0 * scale);
+            c1 = 1F - (c1 * scale);
+            c2 = 1F - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = Vector128<float>.One - (c0 * scale);
+            c1 = Vector128<float>.One - (c1 * scale);
+            c2 = Vector128<float>.One - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = Vector256<float>.One - (c0 * scale);
+            c1 = Vector256<float>.One - (c1 * scale);
+            c2 = Vector256<float>.One - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // TIFF stores the matrix of CMY complements and an unchanged K sample.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 = Vector512<float>.One - (c0 * scale);
+            c1 = Vector512<float>.One - (c1 * scale);
+            c2 = Vector512<float>.One - (c2 * scale);
+            c3 = c3 * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            YCbCrOperator.ConvertFromRgb(1F - c0, 1F - c1, 1F - c2, 1F, halfValue, 1F, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector128<float> one = Vector128<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector256<float> one = Vector256<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector512<float> one = Vector512<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 *= maximumValue;
+            c1 *= maximumValue;
+            c2 *= maximumValue;
+            c3 *= maximumValue;
+        }
+
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref float c0, ref float c1, ref float c2, float c3, float maximumValue, float halfValue, float scale)
         {
@@ -40,7 +213,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, Vector128<float> c3, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale)
+        public static void ConvertToRgb(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
         {
             Vector128<float> y = c0 * scale;
             Vector128<float> cb = (c1 - halfValue) * scale;
@@ -49,13 +229,24 @@ internal abstract partial class JpegColorConverterBase
 
             // Four lanes apply the non-rounded YCbCr matrix before their lane-aligned K modulation.
             c0 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(YCbCrOperator.RCrMult), y) * k;
-            c1 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(-YCbCrOperator.GCrMult), Vector128.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrOperator.GCbMult), y)) * k;
+            c1 = Vector128.MultiplyAddEstimate(
+                cr,
+                Vector128.Create(-YCbCrOperator.GCrMult),
+                Vector128.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrOperator.GCbMult), y)) * k;
+
             c2 = Vector128.MultiplyAddEstimate(cb, Vector128.Create(YCbCrOperator.BCbMult), y) * k;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, Vector256<float> c3, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale)
+        public static void ConvertToRgb(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
         {
             Vector256<float> y = c0 * scale;
             Vector256<float> cb = (c1 - halfValue) * scale;
@@ -64,13 +255,24 @@ internal abstract partial class JpegColorConverterBase
 
             // Eight lanes apply the non-rounded YCbCr matrix before their lane-aligned K modulation.
             c0 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(YCbCrOperator.RCrMult), y) * k;
-            c1 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(-YCbCrOperator.GCrMult), Vector256.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrOperator.GCbMult), y)) * k;
+            c1 = Vector256.MultiplyAddEstimate(
+                cr,
+                Vector256.Create(-YCbCrOperator.GCrMult),
+                Vector256.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrOperator.GCbMult), y)) * k;
+
             c2 = Vector256.MultiplyAddEstimate(cb, Vector256.Create(YCbCrOperator.BCbMult), y) * k;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, Vector512<float> c3, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale)
+        public static void ConvertToRgb(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
         {
             Vector512<float> y = c0 * scale;
             Vector512<float> cb = (c1 - halfValue) * scale;
@@ -79,13 +281,27 @@ internal abstract partial class JpegColorConverterBase
 
             // Sixteen lanes apply the non-rounded YCbCr matrix before their lane-aligned K modulation.
             c0 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(YCbCrOperator.RCrMult), y) * k;
-            c1 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(-YCbCrOperator.GCrMult), Vector512.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrOperator.GCbMult), y)) * k;
+            c1 = Vector512.MultiplyAddEstimate(
+                cr,
+                Vector512.Create(-YCbCrOperator.GCrMult),
+                Vector512.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrOperator.GCbMult), y)) * k;
+
             c2 = Vector512.MultiplyAddEstimate(cb, Vector512.Create(YCbCrOperator.BCbMult), y) * k;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(float r, float g, float b, float maximumValue, float halfValue, float scale, out float c0, out float c1, out float c2, out float c3)
+        public static void ConvertFromRgb(
+            float r,
+            float g,
+            float b,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            out float c0,
+            out float c1,
+            out float c2,
+            out float c3)
         {
             r *= SourceScale;
             g *= SourceScale;
@@ -115,7 +331,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector128<float> r, Vector128<float> g, Vector128<float> b, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+        public static void ConvertFromRgb(
+            Vector128<float> r,
+            Vector128<float> g,
+            Vector128<float> b,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            out Vector128<float> c0,
+            out Vector128<float> c1,
+            out Vector128<float> c2,
+            out Vector128<float> c3)
         {
             Vector128<float> sourceScale = Vector128.Create(SourceScale);
             r *= sourceScale;
@@ -129,15 +355,37 @@ internal abstract partial class JpegColorConverterBase
             r = (r * divisor) & nonBlack;
             g = (g * divisor) & nonBlack;
             b = (b * divisor) & nonBlack;
-            c0 = Vector128.MultiplyAddEstimate(Vector128.Create(0.299F), r, Vector128.MultiplyAddEstimate(Vector128.Create(0.587F), g, Vector128.Create(0.114F) * b)) * maximumValue;
-            c1 = halfValue + (Vector128.MultiplyAddEstimate(Vector128.Create(-0.168736F), r, Vector128.MultiplyAddEstimate(Vector128.Create(-0.331264F), g, Vector128.Create(0.5F) * b)) * maximumValue);
-            c2 = halfValue + (Vector128.MultiplyAddEstimate(Vector128.Create(0.5F), r, Vector128.MultiplyAddEstimate(Vector128.Create(-0.418688F), g, Vector128.Create(-0.081312F) * b)) * maximumValue);
+            c0 = Vector128.MultiplyAddEstimate(
+                Vector128.Create(0.299F),
+                r,
+                Vector128.MultiplyAddEstimate(Vector128.Create(0.587F), g, Vector128.Create(0.114F) * b)) * maximumValue;
+
+            c1 = halfValue + (Vector128.MultiplyAddEstimate(
+                Vector128.Create(-0.168736F),
+                r,
+                Vector128.MultiplyAddEstimate(Vector128.Create(-0.331264F), g, Vector128.Create(0.5F) * b)) * maximumValue);
+
+            c2 = halfValue + (Vector128.MultiplyAddEstimate(
+                Vector128.Create(0.5F),
+                r,
+                Vector128.MultiplyAddEstimate(Vector128.Create(-0.418688F), g, Vector128.Create(-0.081312F) * b)) * maximumValue);
+
             c3 = k * maximumValue;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector256<float> r, Vector256<float> g, Vector256<float> b, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+        public static void ConvertFromRgb(
+            Vector256<float> r,
+            Vector256<float> g,
+            Vector256<float> b,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            out Vector256<float> c0,
+            out Vector256<float> c1,
+            out Vector256<float> c2,
+            out Vector256<float> c3)
         {
             Vector256<float> sourceScale = Vector256.Create(SourceScale);
             r *= sourceScale;
@@ -151,15 +399,37 @@ internal abstract partial class JpegColorConverterBase
             r = (r * divisor) & nonBlack;
             g = (g * divisor) & nonBlack;
             b = (b * divisor) & nonBlack;
-            c0 = Vector256.MultiplyAddEstimate(Vector256.Create(0.299F), r, Vector256.MultiplyAddEstimate(Vector256.Create(0.587F), g, Vector256.Create(0.114F) * b)) * maximumValue;
-            c1 = halfValue + (Vector256.MultiplyAddEstimate(Vector256.Create(-0.168736F), r, Vector256.MultiplyAddEstimate(Vector256.Create(-0.331264F), g, Vector256.Create(0.5F) * b)) * maximumValue);
-            c2 = halfValue + (Vector256.MultiplyAddEstimate(Vector256.Create(0.5F), r, Vector256.MultiplyAddEstimate(Vector256.Create(-0.418688F), g, Vector256.Create(-0.081312F) * b)) * maximumValue);
+            c0 = Vector256.MultiplyAddEstimate(
+                Vector256.Create(0.299F),
+                r,
+                Vector256.MultiplyAddEstimate(Vector256.Create(0.587F), g, Vector256.Create(0.114F) * b)) * maximumValue;
+
+            c1 = halfValue + (Vector256.MultiplyAddEstimate(
+                Vector256.Create(-0.168736F),
+                r,
+                Vector256.MultiplyAddEstimate(Vector256.Create(-0.331264F), g, Vector256.Create(0.5F) * b)) * maximumValue);
+
+            c2 = halfValue + (Vector256.MultiplyAddEstimate(
+                Vector256.Create(0.5F),
+                r,
+                Vector256.MultiplyAddEstimate(Vector256.Create(-0.418688F), g, Vector256.Create(-0.081312F) * b)) * maximumValue);
+
             c3 = k * maximumValue;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector512<float> r, Vector512<float> g, Vector512<float> b, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+        public static void ConvertFromRgb(
+            Vector512<float> r,
+            Vector512<float> g,
+            Vector512<float> b,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            out Vector512<float> c0,
+            out Vector512<float> c1,
+            out Vector512<float> c2,
+            out Vector512<float> c3)
         {
             Vector512<float> sourceScale = Vector512.Create(SourceScale);
             r *= sourceScale;
@@ -173,9 +443,21 @@ internal abstract partial class JpegColorConverterBase
             r = (r * divisor) & nonBlack;
             g = (g * divisor) & nonBlack;
             b = (b * divisor) & nonBlack;
-            c0 = Vector512.MultiplyAddEstimate(Vector512.Create(0.299F), r, Vector512.MultiplyAddEstimate(Vector512.Create(0.587F), g, Vector512.Create(0.114F) * b)) * maximumValue;
-            c1 = halfValue + (Vector512.MultiplyAddEstimate(Vector512.Create(-0.168736F), r, Vector512.MultiplyAddEstimate(Vector512.Create(-0.331264F), g, Vector512.Create(0.5F) * b)) * maximumValue);
-            c2 = halfValue + (Vector512.MultiplyAddEstimate(Vector512.Create(0.5F), r, Vector512.MultiplyAddEstimate(Vector512.Create(-0.418688F), g, Vector512.Create(-0.081312F) * b)) * maximumValue);
+            c0 = Vector512.MultiplyAddEstimate(
+                Vector512.Create(0.299F),
+                r,
+                Vector512.MultiplyAddEstimate(Vector512.Create(0.587F), g, Vector512.Create(0.114F) * b)) * maximumValue;
+
+            c1 = halfValue + (Vector512.MultiplyAddEstimate(
+                Vector512.Create(-0.168736F),
+                r,
+                Vector512.MultiplyAddEstimate(Vector512.Create(-0.331264F), g, Vector512.Create(0.5F) * b)) * maximumValue);
+
+            c2 = halfValue + (Vector512.MultiplyAddEstimate(
+                Vector512.Create(0.5F),
+                r,
+                Vector512.MultiplyAddEstimate(Vector512.Create(-0.418688F), g, Vector512.Create(-0.081312F) * b)) * maximumValue);
+
             c3 = k * maximumValue;
         }
     }

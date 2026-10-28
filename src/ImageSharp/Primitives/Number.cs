@@ -69,7 +69,7 @@ public struct Number : IEquatable<Number>, IComparable<Number>
     {
         return number.isSigned
             ? number.signedValue
-            : (int)Numerics.Clamp(number.unsignedValue, 0, int.MaxValue);
+            : (int)Math.Clamp(number.unsignedValue, 0, int.MaxValue);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public struct Number : IEquatable<Number>, IComparable<Number>
     public static explicit operator uint(Number number)
     {
         return number.isSigned
-            ? (uint)Numerics.Clamp(number.signedValue, 0, int.MaxValue)
+            ? (uint)Math.Clamp(number.signedValue, 0, int.MaxValue)
             : number.unsignedValue;
     }
 
@@ -90,8 +90,8 @@ public struct Number : IEquatable<Number>, IComparable<Number>
     public static explicit operator ushort(Number number)
     {
         return number.isSigned
-            ? (ushort)Numerics.Clamp(number.signedValue, ushort.MinValue, ushort.MaxValue)
-            : (ushort)Numerics.Clamp(number.unsignedValue, ushort.MinValue, ushort.MaxValue);
+            ? (ushort)Math.Clamp(number.signedValue, ushort.MinValue, ushort.MaxValue)
+            : (ushort)Math.Clamp(number.unsignedValue, ushort.MinValue, ushort.MaxValue);
     }
 
     /// <summary>

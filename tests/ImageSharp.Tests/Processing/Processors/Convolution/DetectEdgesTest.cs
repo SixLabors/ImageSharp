@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Exr;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
@@ -124,9 +126,6 @@ public class DetectEdgesTest
     public void DetectEdges_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // James:
-        // I think our comparison is not accurate enough (nor can be) for RgbaVector.
-        // The image pixels are identical according to BeyondCompare.
         ImageComparer comparer = typeof(TPixel) == typeof(RgbaVector) ?
             ImageComparer.TolerantPercentage(1f) :
             OpaqueComparer;
@@ -134,8 +133,12 @@ public class DetectEdgesTest
         using (Image<TPixel> image = provider.GetImage())
         {
             image.Mutate(x => x.DetectEdges());
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(comparer, provider);
+
+            // Sobel magnitudes can exceed 1. Float EXR retains those values so the reference checks the full gradient.
+            bool floatingPoint = typeof(TPixel) == typeof(RgbaVector);
+            string extension = floatingPoint ? "exr" : "png";
+            image.DebugSave(provider, extension: extension, encoder: floatingPoint ? new ExrEncoder { PixelType = ExrPixelType.Float } : null);
+            image.CompareToReferenceOutput(comparer, provider, extension: extension);
         }
     }
 

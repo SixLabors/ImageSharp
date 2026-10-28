@@ -279,7 +279,23 @@ internal static unsafe class PredictorEncoder
                     }
                 }
 
-                GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, transparentColorMode, usedSubtractGreen, nearLossless, residuals, scratch);
+                GetResidual(
+                    width,
+                    height,
+                    upperRow,
+                    currentRow,
+                    maxDiffs,
+                    mode,
+                    startX,
+                    startX + maxX,
+                    y,
+                    maxQuantization,
+                    transparentColorMode,
+                    usedSubtractGreen,
+                    nearLossless,
+                    residuals,
+                    scratch);
+
                 for (int relativeX = 0; relativeX < maxX; ++relativeX)
                 {
                     UpdateHisto(histoArgb, residuals[relativeX]);
@@ -517,7 +533,12 @@ internal static unsafe class PredictorEncoder
             greenDiff = NearLosslessDiff(newGreen, (byte)((value >> 8) & 0xff));
         }
 
-        byte r = NearLosslessComponent(NearLosslessDiff((byte)((value >> 16) & 0xff), greenDiff), (byte)((predict >> 16) & 0xff), (byte)(0xff - newGreen), quantization);
+        byte r = NearLosslessComponent(
+            NearLosslessDiff((byte)((value >> 16) & 0xff), greenDiff),
+            (byte)((predict >> 16) & 0xff),
+            (byte)(0xff - newGreen),
+            quantization);
+
         byte b = NearLosslessComponent(NearLosslessDiff((byte)(value & 0xff), greenDiff), (byte)(predict & 0xff), (byte)(0xff - newGreen), quantization);
 
         return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
@@ -903,14 +924,35 @@ internal static unsafe class PredictorEncoder
         bestTx.GreenToRed = (byte)(greenToRedBest & 0xff);
     }
 
-    private static void GetBestGreenRedToBlue(Span<uint> argb, int stride, Span<int> scratch, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, uint quality, int[] accumulatedBlueHisto, ref Vp8LMultipliers bestTx)
+    private static void GetBestGreenRedToBlue(
+        Span<uint> argb,
+        int stride,
+        Span<int> scratch,
+        int tileWidth,
+        int tileHeight,
+        Vp8LMultipliers prevX,
+        Vp8LMultipliers prevY,
+        uint quality,
+        int[] accumulatedBlueHisto,
+        ref Vp8LMultipliers bestTx)
     {
         int iters = (quality < 25) ? 1 : (quality > 50) ? GreenRedToBlueMaxIters : 4;
         int greenToBlueBest = 0;
         int redToBlueBest = 0;
 
         // Initial value at origin:
-        double bestDiff = GetPredictionCostCrossColorBlue(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToBlueBest, redToBlueBest, accumulatedBlueHisto);
+        double bestDiff = GetPredictionCostCrossColorBlue(
+            argb,
+            stride,
+            scratch,
+            tileWidth,
+            tileHeight,
+            prevX,
+            prevY,
+            greenToBlueBest,
+            redToBlueBest,
+            accumulatedBlueHisto);
+
         for (int iter = 0; iter < iters; iter++)
         {
             int delta = DeltaLut[iter];
@@ -918,7 +960,18 @@ internal static unsafe class PredictorEncoder
             {
                 int greenToBlueCur = (Offset[axis][0] * delta) + greenToBlueBest;
                 int redToBlueCur = (Offset[axis][1] * delta) + redToBlueBest;
-                double curDiff = GetPredictionCostCrossColorBlue(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToBlueCur, redToBlueCur, accumulatedBlueHisto);
+                double curDiff = GetPredictionCostCrossColorBlue(
+                    argb,
+                    stride,
+                    scratch,
+                    tileWidth,
+                    tileHeight,
+                    prevX,
+                    prevY,
+                    greenToBlueCur,
+                    redToBlueCur,
+                    accumulatedBlueHisto);
+
                 if (curDiff < bestDiff)
                 {
                     bestDiff = curDiff;

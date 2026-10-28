@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -101,6 +101,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadExrHeader(stream);
+
         if (!this.IsSupportedCompression())
         {
             ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
@@ -166,7 +167,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int height = this.Height;
         int channelCount = this.Channels.Count;
 
-        using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4);
+        // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
+        using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
         Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
         Span<float> redPixelData = rowBuffer.GetSpan()[..width];
@@ -192,10 +194,19 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
             this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
-            uint rowStartIndex = this.ReadUnsignedInteger(stream);
+
+            // Chunk coordinates are signed and absolute; pixel rows are relative to the data window.
+            uint rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
+            if (rowStartIndex >= height)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
+            }
 
             uint compressedBytesCount = this.ReadUnsignedInteger(stream);
-            decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
+            uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
+            uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
+
+            this.DecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
@@ -204,16 +215,24 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += ReadFloatChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += ReadFloatChannelData(
+                        stream,
+                        channel,
+                        decompressedPixelData[offset..],
+                        redPixelData,
+                        greenPixelData,
+                        bluePixelData,
+                        alphaPixelData,
+                        width);
                 }
 
-                for (int x = 0; x < width; x++)
-                {
-                    Vector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1F);
-
-                    // OpenEXR channels are associated color values, not values in the destination pixel format's native numeric range.
-                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(pixelValue);
-                }
+                PixelOperations<TPixel>.Instance.PackFromAssociatedScaledFloatPlanes(
+                    this.configuration,
+                    redPixelData,
+                    greenPixelData,
+                    bluePixelData,
+                    hasAlpha ? alphaPixelData : Span<float>.Empty,
+                    pixelRow);
 
                 decodedRows++;
             }
@@ -247,7 +266,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int height = this.Height;
         int channelCount = this.Channels.Count;
 
-        using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4);
+        // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
+        using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
         Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
         Span<uint> redPixelData = rowBuffer.GetSpan()[..width];
@@ -273,10 +293,19 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
             this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
-            uint rowStartIndex = this.ReadUnsignedInteger(stream);
+
+            // Chunk coordinates are signed and absolute; pixel rows are relative to the data window.
+            uint rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
+            if (rowStartIndex >= height)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
+            }
 
             uint compressedBytesCount = this.ReadUnsignedInteger(stream);
-            decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
+            uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
+            uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
+
+            this.DecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
@@ -285,7 +314,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += this.ReadUnsignedIntChannelData(
+                        stream,
+                        channel,
+                        decompressedPixelData[offset..],
+                        redPixelData,
+                        greenPixelData,
+                        bluePixelData,
+                        alphaPixelData,
+                        width);
                 }
 
                 for (int x = 0; x < width; x++)
@@ -302,6 +339,29 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             stream.Position = nextRowOffsetPosition;
 
             cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
+    /// <summary>
+    /// Decompresses a block according to the configured image-data integrity policy.
+    /// </summary>
+    /// <param name="decompressor">The decompressor for the stored compression type.</param>
+    /// <param name="stream">The encoded block stream.</param>
+    /// <param name="compressedBytes">The declared compressed byte count.</param>
+    /// <param name="uncompressedBytes">The expected byte count for the rows in this block.</param>
+    /// <param name="buffer">The reusable decompressed pixel buffer.</param>
+    private void DecompressBlock(ExrBaseDecompressor decompressor, BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    {
+        try
+        {
+            decompressor.Decompress(stream, compressedBytes, uncompressedBytes, buffer);
+        }
+        catch (Exception ex) when (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData
+            && ex is InvalidImageContentException or InvalidDataException)
+        {
+            // The offset table locates the next block independently of this damaged payload.
+            // Discard the entire failed block so partial output or pooled bytes cannot become pixels.
+            buffer[..(int)uncompressedBytes].Clear();
         }
     }
 
@@ -414,7 +474,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="pixelData">The pixel data as float.</param>
     /// <param name="width">The width in pixel of a row.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(ExrChannelInfo channel, ReadOnlySpan<byte> decompressedPixelData, Span<float> pixelData, int width) => channel.PixelType switch
+    private static int ReadChannelData(
+        ExrChannelInfo channel,
+        ReadOnlySpan<byte> decompressedPixelData,
+        Span<float> pixelData,
+        int width) => channel.PixelType switch
     {
         ExrPixelType.Half => ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width),
         ExrPixelType.Float => ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width),
@@ -429,7 +493,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="pixelData">The pixel data as uint.</param>
     /// <param name="width">The width in pixels.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(ExrChannelInfo channel, ReadOnlySpan<byte> decompressedPixelData, Span<uint> pixelData, int width) => channel.PixelType switch
+    private static int ReadChannelData(
+        ExrChannelInfo channel,
+        ReadOnlySpan<byte> decompressedPixelData,
+        Span<uint> pixelData,
+        int width) => channel.PixelType switch
     {
         ExrPixelType.UnsignedInt => ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width),
         _ => 0,
@@ -921,7 +989,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <returns> True if the compression is supported; otherwise, false>. </returns>
     private bool IsSupportedCompression() => this.Compression switch
     {
-        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 or ExrCompression.Pxr24 => true,
+        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or
+            ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
 

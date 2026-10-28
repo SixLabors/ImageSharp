@@ -172,8 +172,8 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
 
         topLeft.Y = GetMinY(bitmap);
         topLeft.X = GetMinX(bitmap);
-        bottomRight.Y = Numerics.Clamp(GetMaxY(bitmap) + 1, 0, height);
-        bottomRight.X = Numerics.Clamp(GetMaxX(bitmap) + 1, 0, width);
+        bottomRight.Y = Math.Clamp(GetMaxY(bitmap) + 1, 0, height);
+        bottomRight.X = Math.Clamp(GetMaxX(bitmap) + 1, 0, width);
 
         return GetBoundingRectangle(topLeft, bottomRight);
     }

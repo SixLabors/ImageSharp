@@ -8,8 +8,20 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 public sealed class WebpDecoderOptions : ISpecializedDecoderOptions
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebpDecoderOptions"/> class with the specified general options.
+    /// </summary>
+    /// <param name="generalOptions">The general options used to decode and identify images.</param>
+    /// <exception cref="ArgumentNullException">The general options are null.</exception>
+    public WebpDecoderOptions(DecoderOptions generalOptions)
+    {
+        Guard.NotNull(generalOptions, nameof(generalOptions));
+
+        this.GeneralOptions = generalOptions;
+    }
+
     /// <inheritdoc/>
-    public DecoderOptions GeneralOptions { get; init; } = new();
+    public DecoderOptions GeneralOptions { get; }
 
     /// <summary>
     /// Gets the flag to decide how to handle the background color Animation Chunk.

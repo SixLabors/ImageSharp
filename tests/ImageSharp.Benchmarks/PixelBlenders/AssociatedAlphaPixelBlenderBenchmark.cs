@@ -45,8 +45,8 @@ public class AssociatedAlphaPixelBlenderBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        this.unassociatedBlender = PixelOperations<Rgba32>.Instance.GetPixelBlender(this.ColorMode, this.AlphaMode);
-        this.associatedBlender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(this.ColorMode, this.AlphaMode);
+        this.unassociatedBlender = PixelBlenders<Rgba32>.GetPixelBlender(this.ColorMode, this.AlphaMode);
+        this.associatedBlender = PixelBlenders<Rgba32P>.GetPixelBlender(this.ColorMode, this.AlphaMode);
 
         Random random = new(42);
 

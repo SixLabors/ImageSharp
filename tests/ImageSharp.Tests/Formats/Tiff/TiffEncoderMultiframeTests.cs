@@ -20,7 +20,8 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
     [Theory]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeMultiframe_NotSupport<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb));
+        where TPixel : unmanaged, IPixel<TPixel>
+            => Assert.Throws<NotSupportedException>(() => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb));
 
     [Theory]
     [WithFile(MultiframeDeflateWithPreview, PixelTypes.Rgba32)]

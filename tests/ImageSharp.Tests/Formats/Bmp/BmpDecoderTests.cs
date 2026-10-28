@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -33,6 +34,43 @@ public class BmpDecoderTests
         { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
         { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
     };
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict, false)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary, false)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData, false)]
+    [InlineData(SegmentIntegrityHandling.Strict, true)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData, true)]
+    public void Decode_WithProfileLargerThanRemainingData_RespectsOptions(SegmentIntegrityHandling integrityHandling, bool skipMetadata)
+    {
+        byte[] payload = Convert.FromHexString(
+            "424D8E000000000000008A0000007C0000000100000001000000010018000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "000000000000000000000000000000000000000000000000000000000000C800" +
+            "00000000004000000000000000");
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling, SkipMetadata = skipMetadata };
+
+        if (integrityHandling is SegmentIntegrityHandling.Strict)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
+        }
+        else
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+            Assert.Equal(new Size(1, 1), image.Size);
+            Assert.Equal(new Rgba32(0, 0, 0), image[0, 0]);
+            Assert.Null(image.Metadata.IccProfile);
+
+            ImageInfo info = Image.Identify(options, payload);
+
+            Assert.Equal(image.Size, info.Size);
+            Assert.Null(info.Metadata.IccProfile);
+        }
+    }
 
     [Theory]
     [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
@@ -196,7 +234,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         RleSkippedPixelHandling skippedPixelHandling = RleSkippedPixelHandling.Black;
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = skippedPixelHandling };
 
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
@@ -209,7 +247,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = skippedPixelHandling };
 
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
@@ -224,7 +262,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_SystemDrawingRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         if (TestEnvironment.IsWindows)
@@ -239,7 +277,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
@@ -251,7 +289,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDeltaAndEOL_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
@@ -268,7 +306,7 @@ public class BmpDecoderTests
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
         }
 
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
@@ -285,7 +323,7 @@ public class BmpDecoderTests
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
         }
 
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
 
@@ -308,7 +346,7 @@ public class BmpDecoderTests
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
         }
 
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
 
@@ -380,19 +418,8 @@ public class BmpDecoderTests
     }
 
     [Theory]
-    [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecodeLessThanFullPalette<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
-        image.DebugSave(provider);
-        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
-    }
-
-    [Theory]
-    [WithFile(OversizedPalette, PixelTypes.Rgba32)]
     [WithFile(Rgb24LargePalette, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecodeOversizedPalette<TPixel>(TestImageProvider<TPixel> provider)
+    public void BmpDecoder_CanDecodeLargeDirectColorPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
@@ -404,6 +431,12 @@ public class BmpDecoderTests
     }
 
     [Theory]
+
+    // This indexed palette declares 300 entries at 8 bpp, exceeding the format's 256-entry limit.
+    [WithFile(OversizedPalette, PixelTypes.Rgba32)]
+
+    // This 8-bit core-header palette contains only 252 entries instead of the full 256-entry table.
+    [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
     [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
     public void BmpDecoder_ThrowsInvalidImageContentException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -660,5 +693,81 @@ public class BmpDecoderTests
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
         });
+    }
+
+    /// <summary>
+    /// Invalid RGB bit depths cannot define a pixel layout, even when image data errors are ignored.
+    /// </summary>
+    /// <param name="path">The stored bitmap with an unsupported RGB bit depth.</param>
+    [Theory]
+    [InlineData(InvalidRgbDepth0)]
+    [InlineData(InvalidRgbDepth3)]
+    [InlineData(InvalidRgbDepth7)]
+    [InlineData(InvalidRgbDepth12)]
+    [InlineData(InvalidRgbDepth33)]
+    public void BmpDecoder_InvalidUncompressedBitsPerPixel_ThrowsInvalidImageContentException(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Rejects dimensions that require more pixel data than the file contains before requesting pixel storage.
+    /// </summary>
+    /// <param name="path">The stored bitmap with incomplete RGB or bit-fields pixel data.</param>
+    [Theory]
+    [InlineData(TruncatedRgb24LargeImage)]
+    [InlineData(TruncatedRgb24WideRow)]
+    [InlineData(TruncatedBitFields16)]
+    [InlineData(TruncatedBitFields32)]
+    [InlineData(TruncatedAlphaBitFields32)]
+    [InlineData(TruncatedRgb32MaximumDimensions)]
+    public void BmpDecoder_PixelDataSmallerThanDeclared_ThrowsBeforeAllocatingPixelBuffer(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            // The allocator's group limit prevents a failed maximum-dimension regression from allocating that image.
+            TestMemoryAllocator allocator = new();
+            allocator.EnableNonThreadSafeLogging();
+            Configuration configuration = Configuration.Default.Clone();
+            configuration.MemoryAllocator = allocator;
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
+
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+
+            // An allocation-limit exception is too late. No Rgba32 buffer, including a split buffer, may be requested.
+            Assert.Null(exception.InnerException);
+            Assert.DoesNotContain(allocator.AllocationLog, request => request.ElementType == typeof(Rgba32));
+        }
+    }
+
+    /// <summary>
+    /// Accepts a missing padding byte after the final stored row in either row order.
+    /// </summary>
+    /// <param name="path">The stored one-column bitmap with a red top pixel and a blue bottom pixel.</param>
+    [Theory]
+    [InlineData(MissingFinalRowPadding)]
+    [InlineData(MissingFinalRowPaddingTopDown)]
+    public void BmpDecoder_MissingLastRowPadding_Decodes(string path)
+    {
+        using Image<Rgb24> actual = Image.Load<Rgb24>(TestFile.Create(path).Bytes);
+
+        Assert.Equal(new Size(1, 2), actual.Size);
+        Assert.Equal(new Rgb24(255, 0, 0), actual[0, 0]);
+        Assert.Equal(new Rgb24(0, 0, 255), actual[0, 1]);
     }
 }

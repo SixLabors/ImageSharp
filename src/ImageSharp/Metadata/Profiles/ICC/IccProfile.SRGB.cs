@@ -313,6 +313,11 @@ public sealed partial class IccProfile
 
         public override bool Equals(object? obj) => obj is Trc trc && this.Equals(trc);
 
+        /// <summary>
+        /// Compares stored curve values exactly before testing their agreement with sRGB.
+        /// </summary>
+        /// <param name="other">The other channel's curve.</param>
+        /// <returns>Whether the complete stored curves match.</returns>
         public bool Equals(Trc other)
         {
             if (this.kind != other.kind)
@@ -327,7 +332,8 @@ public sealed partial class IccProfile
 
             if (this.kind == 1)
             {
-                // parametric: exact parameter match and type match
+                // These values come from ICC integer encodings, not separate calculations. Equal stored
+                // coefficients decode identically. A tolerance here would allow different channel curves.
                 return this.n == other.n &&
                        this.g == other.g && this.a == other.a &&
                        this.b == other.b && this.c == other.c &&
@@ -370,6 +376,7 @@ public sealed partial class IccProfile
             // Sampled ICC curves store unsigned sixteen-bit values. Check every node against the
             // shared sRGB expansion path within one stored level. Its lookup table is reused, not
             // allocated per profile. This work is profile selection, never a pixel-row operation.
+            // Keep the negated <= comparisons below: they also reject NaN. A > comparison would not.
             const float sampleTolerance = 1F / ushort.MaxValue;
             float[] table = SRgbCompanding.GetExpandLookupTable();
             float step = 1F / (this.n - 1);

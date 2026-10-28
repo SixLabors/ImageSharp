@@ -7,6 +7,7 @@ using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -291,6 +292,158 @@ public partial class PngDecoderTests
 
         using MemoryStream stream = new(payload);
         using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+    }
+
+    /// <summary>
+    /// Checks stored IDAT layouts and applies the configured policy to the input's CRC errors.
+    /// </summary>
+    /// <param name="path">The stored PNG input.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    /// <param name="hasInvalidCrc">Whether the input contains an invalid image-data CRC.</param>
+    [Theory]
+    [InlineData(TestImages.Png.IdatLeadingEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatConsecutiveLeadingEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatFirstOneByte, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatEmptyWithinHeader, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatEveryOneByte, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatEveryOneByteWithEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatEmptyBetween, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatTrailingEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.IdatEmptyBadCrc, SegmentIntegrityHandling.Strict, true)]
+    [InlineData(TestImages.Png.IdatEmptyBadCrc, SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData(TestImages.Png.IdatEmptyBadCrc, SegmentIntegrityHandling.IgnoreImageData, true)]
+    public void Decode_CompressedDataSplitAcrossDataChunks_FollowsIntegrityPolicy(string path, SegmentIntegrityHandling integrity, bool hasInvalidCrc)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+        if (hasInvalidCrc && integrity != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            });
+
+            Assert.Equal("CRC Error. PNG IDAT chunk is corrupt!", exception.Message);
+            return;
+        }
+
+        using Image<Rgba32> expected = TestFile.Create(TestImages.Png.Noise).CreateRgba32Image();
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Checks stored empty frame payloads without changing their pixels or bypassing image-data CRC policy.
+    /// </summary>
+    /// <param name="path">The stored APNG input.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    /// <param name="hasInvalidCrc">Whether the input contains invalid frame-data CRCs.</param>
+    [Theory]
+    [InlineData(TestImages.Png.FdatLeadingEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.FdatConsecutiveLeadingEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.FdatEmptyWithinHeader, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.FdatTrailingEmpty, SegmentIntegrityHandling.Strict, false)]
+    [InlineData(TestImages.Png.FdatEmptyBadCrc, SegmentIntegrityHandling.Strict, true)]
+    [InlineData(TestImages.Png.FdatEmptyBadCrc, SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData(TestImages.Png.FdatEmptyBadCrc, SegmentIntegrityHandling.IgnoreImageData, true)]
+    public void Decode_EmptyFrameDataChunks_FollowsIntegrityPolicy(string path, SegmentIntegrityHandling integrity, bool hasInvalidCrc)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+        if (hasInvalidCrc && integrity != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+            });
+
+            Assert.Equal("CRC Error. PNG fdAT chunk is corrupt!", exception.Message);
+            return;
+        }
+
+        using Image<Rgba32> expected = TestFile.Create(TestImages.Png.APng).CreateRgba32Image();
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+    }
+
+    /// <summary>
+    /// Rejects stored frame chunks without a complete sequence number, including chunks within compressed data.
+    /// </summary>
+    /// <param name="path">The malformed APNG input.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    [Theory]
+    [InlineData(TestImages.Png.FdatShort0, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.FdatShort3, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.FdatTruncatedSequenceBetween, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.FdatShort0, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Png.FdatShort3, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Png.FdatTruncatedSequenceBetween, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Png.FdatShort0, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Png.FdatShort3, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Png.FdatTruncatedSequenceBetween, SegmentIntegrityHandling.IgnoreImageData)]
+    public void DecodeAndIdentify_FrameDataWithoutSequenceNumber_ThrowsInvalidImageContentException(string path, SegmentIntegrityHandling integrity)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+        });
+
+        Assert.Equal("The frame data chunk does not contain a sequence number.", exception.Message);
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+    }
+
+    /// <summary>
+    /// Rejects stored indexed PNGs without one complete RGB palette entry in every integrity mode.
+    /// </summary>
+    /// <param name="path">The malformed PNG input, including its interlace mode and palette length.</param>
+    /// <param name="integrity">The segment integrity policy.</param>
+    [Theory]
+    [InlineData(TestImages.Png.PaletteShort0, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.PaletteShort1, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.PaletteShort2, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.PaletteAdam7Short0, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.PaletteAdam7Short1, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.PaletteAdam7Short2, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Png.PaletteShort2, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Png.PaletteShort2, SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_PaletteChunkShorterThanOneEntry_ThrowsInvalidImageContentException(string path, SegmentIntegrityHandling integrity)
+    {
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> actual = Image.Load<Rgba32>(options, TestFile.Create(path).Bytes);
+        });
+    }
+
+    /// <summary>
+    /// Checks that the stored 16-bit marker 0x0102 selects that gray sample, not the byte-swapped sample 0x0201.
+    /// </summary>
+    [Fact]
+    public void Decode_16BitGrayscaleTransparency_IsBigEndian()
+    {
+        byte[] data = TestFile.Create(TestImages.Png.TrnsGray16BigEndian).Bytes;
+        Assert.Equal(new L16(0x0102), Image.Identify(data).Metadata.GetPngMetadata().TransparentColor?.ToPixel<L16>());
+
+        using Image<Rgba64> image = Image.Load<Rgba64>(data);
+        Assert.Equal(ushort.MinValue, image[0, 0].A);
+        Assert.Equal(ushort.MaxValue, image[1, 0].A);
+    }
+
+    /// <summary>
+    /// Checks that the stored marker (0x0102, 0x0304, 0x0506) selects that RGB sample, not its byte-swapped sample.
+    /// </summary>
+    [Fact]
+    public void Decode_16BitRgbTransparency_IsBigEndian()
+    {
+        byte[] data = TestFile.Create(TestImages.Png.TrnsRgb16BigEndian).Bytes;
+        Rgb48 expected = new(0x0102, 0x0304, 0x0506);
+        Assert.Equal(expected, Image.Identify(data).Metadata.GetPngMetadata().TransparentColor?.ToPixel<Rgb48>());
+
+        using Image<Rgba64> image = Image.Load<Rgba64>(data);
+        Assert.Equal(ushort.MinValue, image[0, 0].A);
+        Assert.Equal(ushort.MaxValue, image[1, 0].A);
     }
 
     private static string GetChunkTypeName(uint value)

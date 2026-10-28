@@ -38,7 +38,7 @@ internal static class TiffDecompressorsFactory
             case TiffDecoderCompressionType.None:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                return new NoneTiffCompression(allocator, width, bitsPerPixel);
+                return new NoneTiffCompression(allocator, width, bitsPerPixel, options.SegmentIntegrityHandling);
 
             case TiffDecoderCompressionType.PackBits:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

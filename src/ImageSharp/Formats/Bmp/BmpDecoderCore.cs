@@ -130,6 +130,31 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             this.ReadImageHeaders(stream, out bool inverted, out bool isIndexed, out Color[] palette);
             ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
 
+            // Reject impossible RGB and bit-fields dimensions before allocating the image. Ignoring image data errors
+            // does not make these dimensions safe: a tiny file could otherwise request a large pixel buffer.
+            // Match ReadBitFields, which uses 32-bit storage for every depth other than 16.
+            int storedBitsPerPixel = this.infoHeader.Compression switch
+            {
+                BmpCompression.RGB => bitsPerPixel,
+                BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS => bitsPerPixel is 16 ? 16 : 32,
+                _ => 0
+            };
+
+            if (storedBitsPerPixel > 0)
+            {
+                // Stored rows start on four-byte boundaries. Retain support for missing padding after the final row.
+                // Reserve that row's pixel bytes, then count the complete strides available for the other rows.
+                // Division avoids multiplying width by height, which can overflow even long for 32-bit BMP dimensions.
+                long rowBits = (long)this.infoHeader.Width * storedBitsPerPixel;
+                long stride = (rowBits + 31) / 32 * 4;
+                long finalRowBytes = (rowBits + 7) / 8;
+                long remainingLength = stream.Length - stream.Position;
+                if (remainingLength < finalRowBytes || this.infoHeader.Height - 1 > (remainingLength - finalRowBytes) / stride)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("The bitmap does not contain enough pixel data for its declared dimensions.");
+                }
+            }
+
             if (isIndexed)
             {
                 this.ConvertColorPalette<TPixel>(palette, this.metadata.IccProfile);
@@ -183,10 +208,6 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         this.infoHeader.BitsPerPixel,
                         inverted);
 
-                    break;
-
-                case BmpCompression.RGB when bitsPerPixel is <= 0 or > 32:
-                    BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {bitsPerPixel}");
                     break;
 
                 case BmpCompression.RLE24:
@@ -1636,6 +1657,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         if (this.infoHeader.Width <= 0 || this.infoHeader.Height <= 0)
         {
             BmpThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
+        }
+
+        // Uncompressed pixel data is only defined for these depths. Rejecting any other depth here, rather than in
+        // the pixel readers, also keeps identification from reporting a header that cannot be decoded.
+        if (this.infoHeader.Compression is BmpCompression.RGB && this.infoHeader.BitsPerPixel is not (1 or 2 or 4 or 8 or 16 or 24 or 32))
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {this.infoHeader.BitsPerPixel}");
         }
 
         // Reject pixel offsets beyond the input before allocating or processing the color table.

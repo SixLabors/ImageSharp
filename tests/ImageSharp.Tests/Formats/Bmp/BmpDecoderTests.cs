@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -692,5 +693,81 @@ public class BmpDecoderTests
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
         });
+    }
+
+    /// <summary>
+    /// Invalid RGB bit depths cannot define a pixel layout, even when image data errors are ignored.
+    /// </summary>
+    /// <param name="path">The stored bitmap with an unsupported RGB bit depth.</param>
+    [Theory]
+    [InlineData(InvalidRgbDepth0)]
+    [InlineData(InvalidRgbDepth3)]
+    [InlineData(InvalidRgbDepth7)]
+    [InlineData(InvalidRgbDepth12)]
+    [InlineData(InvalidRgbDepth33)]
+    public void BmpDecoder_InvalidUncompressedBitsPerPixel_ThrowsInvalidImageContentException(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+            Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Rejects dimensions that require more pixel data than the file contains before requesting pixel storage.
+    /// </summary>
+    /// <param name="path">The stored bitmap with incomplete RGB or bit-fields pixel data.</param>
+    [Theory]
+    [InlineData(TruncatedRgb24LargeImage)]
+    [InlineData(TruncatedRgb24WideRow)]
+    [InlineData(TruncatedBitFields16)]
+    [InlineData(TruncatedBitFields32)]
+    [InlineData(TruncatedAlphaBitFields32)]
+    [InlineData(TruncatedRgb32MaximumDimensions)]
+    public void BmpDecoder_PixelDataSmallerThanDeclared_ThrowsBeforeAllocatingPixelBuffer(string path)
+    {
+        byte[] data = TestFile.Create(path).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            // The allocator's group limit prevents a failed maximum-dimension regression from allocating that image.
+            TestMemoryAllocator allocator = new();
+            allocator.EnableNonThreadSafeLogging();
+            Configuration configuration = Configuration.Default.Clone();
+            configuration.MemoryAllocator = allocator;
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
+
+            InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+            });
+
+            // An allocation-limit exception is too late. No Rgba32 buffer, including a split buffer, may be requested.
+            Assert.Null(exception.InnerException);
+            Assert.DoesNotContain(allocator.AllocationLog, request => request.ElementType == typeof(Rgba32));
+        }
+    }
+
+    /// <summary>
+    /// Accepts a missing padding byte after the final stored row in either row order.
+    /// </summary>
+    /// <param name="path">The stored one-column bitmap with a red top pixel and a blue bottom pixel.</param>
+    [Theory]
+    [InlineData(MissingFinalRowPadding)]
+    [InlineData(MissingFinalRowPaddingTopDown)]
+    public void BmpDecoder_MissingLastRowPadding_Decodes(string path)
+    {
+        using Image<Rgb24> actual = Image.Load<Rgb24>(TestFile.Create(path).Bytes);
+
+        Assert.Equal(new Size(1, 2), actual.Size);
+        Assert.Equal(new Rgb24(255, 0, 0), actual[0, 0]);
+        Assert.Equal(new Rgb24(0, 0, 255), actual[0, 1]);
     }
 }

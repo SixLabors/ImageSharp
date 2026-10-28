@@ -545,9 +545,12 @@ internal static unsafe class QuantEnc
             // coeff = abs(in)
             Vector256<ushort> coeff0 = Avx2.Abs(input0);
 
-            // coeff = abs(in) + sharpen
+            // Each lane stores the magnitude of one input coefficient.
+            // Add its sharpening bias before quantization, as the scalar path does.
+            // A magnitude is at most 32768. Vp8Matrix.Expand limits each bias to 12.
+            // The sum fits in an unsigned 16-bit lane.
             Vector256<short> sharpen0 = Unsafe.As<short, Vector256<short>>(ref mtx.Sharpen[0]);
-            Avx2.Add(coeff0.AsInt16(), sharpen0);
+            coeff0 = Avx2.Add(coeff0.AsInt16(), sharpen0).AsUInt16();
 
             // out = (coeff * iQ + B) >> QFIX
             // doing calculations with 32b precision (QFIX=17)
@@ -648,11 +651,14 @@ internal static unsafe class QuantEnc
             Vector128<ushort> coeff0 = Ssse3.Abs(input0);
             Vector128<ushort> coeff8 = Ssse3.Abs(input8);
 
-            // coeff = abs(in) + sharpen
+            // coeff0 holds magnitudes for coefficients 0 through 7.
+            // coeff8 holds magnitudes for coefficients 8 through 15.
+            // Add each coefficient's sharpening bias before quantization.
+            // As in AVX2, each sum fits in an unsigned 16-bit lane.
             Vector128<short> sharpen0 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[0]);
             Vector128<short> sharpen8 = Unsafe.As<short, Vector128<short>>(ref mtx.Sharpen[8]);
-            Sse2.Add(coeff0.AsInt16(), sharpen0);
-            Sse2.Add(coeff8.AsInt16(), sharpen8);
+            coeff0 = Sse2.Add(coeff0.AsInt16(), sharpen0).AsUInt16();
+            coeff8 = Sse2.Add(coeff8.AsInt16(), sharpen8).AsUInt16();
 
             // out = (coeff * iQ + B) >> QFIX
             // doing calculations with 32b precision (QFIX=17)

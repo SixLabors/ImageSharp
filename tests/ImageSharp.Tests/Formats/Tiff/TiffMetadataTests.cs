@@ -137,6 +137,22 @@ public class TiffMetadataTests
         public int GetHashCode(Number obj) => obj.GetHashCode();
     }
 
+    /// <summary>
+    /// New image and frame metadata use eight-bit RGB, independently of the defaults for absent file tags.
+    /// </summary>
+    [Fact]
+    public void TiffMetadata_DefaultsToEightBitRgb()
+    {
+        TiffMetadata imageMetadata = new();
+        TiffFrameMetadata frameMetadata = new();
+        TiffBitsPerSample expected = new(8, 8, 8);
+
+        Assert.Equal(expected, imageMetadata.BitsPerSample);
+        Assert.Equal(expected, frameMetadata.BitsPerSample);
+        Assert.Equal(TiffBitsPerPixel.Bit24, imageMetadata.BitsPerPixel);
+        Assert.Equal(TiffBitsPerPixel.Bit24, frameMetadata.BitsPerPixel);
+    }
+
     [Fact]
     public void TiffMetadata_CloneIsDeep()
     {

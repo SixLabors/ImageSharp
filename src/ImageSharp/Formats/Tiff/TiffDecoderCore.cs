@@ -192,7 +192,6 @@ internal class TiffDecoderCore : ImageDecoderCore
                 }
             }
 
-            this.Dimensions = frames[0].Size;
             ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
             return new Image<TPixel>(this.configuration, metadata, frames);
         }
@@ -278,21 +277,32 @@ internal class TiffDecoderCore : ImageDecoderCore
         }
         else
         {
+            // Record the root size before allocation so allocation errors include the image dimensions.
             size = new Size(width, height);
+            this.Dimensions = size.Value;
         }
 
         ImageFrame<TPixel> frame = new(this.configuration, size.Value.Width, size.Value.Height, metadata.FrameMetadata);
 
-        if (isTiled)
+        try
         {
-            this.DecodeImageWithTiles(tags, frame, width, height, cancellationToken);
-        }
-        else
-        {
-            this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
-        }
+            if (isTiled)
+            {
+                this.DecodeImageWithTiles(tags, frame, width, height, cancellationToken);
+            }
+            else
+            {
+                this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
+            }
 
-        return frame;
+            return frame;
+        }
+        catch
+        {
+            // The caller owns the frame only after decoding succeeds.
+            frame.Dispose();
+            throw;
+        }
     }
 
     private (ImageFrameMetadata FrameMetadata, TiffFrameMetadata TiffMetadata) CreateFrameMetadata(ExifProfile tags)
@@ -341,14 +351,18 @@ internal class TiffDecoderCore : ImageDecoderCore
     private void DecodeImageWithStrips<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, int width, int height, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int rowsPerStrip;
+        // TIFF 6.0 defaults RowsPerStrip to 2^32 - 1 (page 39). A value at least as large as height describes one strip.
+        // Both layouts allocate storage for the rows that exist, not the larger declared strip height.
+        int rowsPerStrip = height;
         if (tags.TryGetValue(ExifTag.RowsPerStrip, out IExifValue<Number> value))
         {
-            rowsPerStrip = (int)value.Value;
+            rowsPerStrip = Math.Min((int)value.Value, height);
         }
-        else
+
+        // TIFF 6.0 requires at least one row per strip. Zero cannot define row offsets or a strip count.
+        if (rowsPerStrip <= 0)
         {
-            rowsPerStrip = TiffConstants.RowsPerStripInfinity;
+            TiffThrowHelper.ThrowImageFormatException("RowsPerStrip must be greater than zero.");
         }
 
         Array stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
@@ -463,12 +477,6 @@ internal class TiffDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // The default RowsPerStrip value denotes one strip per plane, not an allocation of that many rows.
-        if (rowsPerStrip == TiffConstants.RowsPerStripInfinity)
-        {
-            rowsPerStrip = height;
-        }
-
         int channels = this.BitsPerSample.Channels;
         int stripsPerPlane = stripOffsets.Length / channels;
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
@@ -480,10 +488,26 @@ internal class TiffDecoderCore : ImageDecoderCore
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, this.BitsPerPixel, frame.Metadata);
             using TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
 
+            // Uncompressed rows have fixed offsets. Stream them when a plane exceeds the allocator's single-buffer limit.
+            bool readRows = false;
+            if (decompressor is NoneTiffCompression && this.CanReadStripRows())
+            {
+                for (int channel = 0; channel < channels; channel++)
+                {
+                    if (this.CalculateStripBufferSize(width, rowsPerStrip, channel) > (ulong)this.memoryAllocator.SingleBufferAllocationLimitBytes)
+                    {
+                        readRows = true;
+                        break;
+                    }
+                }
+            }
+
+            int rowsPerRead = readRows ? 1 : rowsPerStrip;
+
             // Reuse one buffer per channel. Each plane's own bit depth determines its byte count.
             for (int channel = 0; channel < channels; channel++)
             {
-                ulong bufferSize = this.CalculateStripBufferSize(width, rowsPerStrip, channel);
+                ulong bufferSize = this.CalculateStripBufferSize(width, rowsPerRead, channel);
 
                 // Each channel buffer is exposed as a Span<byte>, so its length must fit in an int.
                 if (bufferSize > int.MaxValue)
@@ -498,25 +522,38 @@ internal class TiffDecoderCore : ImageDecoderCore
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int stripHeight = strip < stripsPerPlane - 1 || height % rowsPerStrip == 0 ? rowsPerStrip : height % rowsPerStrip;
-                int stripIndex = strip;
-
-                // TIFF groups offsets by plane. The same spatial strip in the next channel is stripsPerPlane entries later.
-                for (int channel = 0; channel < channels; channel++)
+                for (int row = 0; row < stripHeight; row += rowsPerRead)
                 {
-                    decompressor.Decompress<TPixel>(
-                        this.inputStream,
-                        stripOffsets[stripIndex],
-                        stripByteCounts[stripIndex],
-                        stripHeight,
-                        stripBuffers[channel].GetSpan(),
-                        default,
-                        cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int readHeight = Math.Min(rowsPerRead, stripHeight - row);
+                    int stripIndex = strip;
 
-                    stripIndex += stripsPerPlane;
+                    // Offsets are grouped by plane. Read all components before combining this spatial row or strip.
+                    for (int channel = 0; channel < channels; channel++)
+                    {
+                        ulong offset = stripOffsets[stripIndex];
+                        ulong byteCount = stripByteCounts[stripIndex];
+                        if (readRows)
+                        {
+                            ulong bytesPerRow = this.CalculateStripBufferSize(width, 1, channel);
+                            ulong rowStart = (ulong)row * bytesPerRow;
+                            offset += rowStart;
+                            byteCount = byteCount > rowStart ? Math.Min(byteCount - rowStart, bytesPerRow) : 0;
+                        }
+
+                        Span<byte> samples = stripBuffers[channel].GetSpan();
+                        if (decompressor is NoneTiffCompression)
+                        {
+                            // The final strip can be shorter than the reused buffer. File data excludes that unused storage.
+                            samples = samples[..(int)this.CalculateUncompressedDataSize(width, readHeight, channel)];
+                        }
+
+                        decompressor.Decompress<TPixel>(this.inputStream, offset, byteCount, readHeight, samples, default, cancellationToken);
+                        stripIndex += stripsPerPlane;
+                    }
+
+                    colorDecoder.Decode(stripBuffers, pixels, 0, (rowsPerStrip * strip) + row, width, readHeight);
                 }
-
-                // All channel planes are available now; the TIFF reader owns their color conversion and TPixel packing.
-                colorDecoder.Decode(stripBuffers, pixels, 0, rowsPerStrip * strip, width, stripHeight);
             }
         }
         finally
@@ -550,12 +587,6 @@ internal class TiffDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // An omitted RowsPerStrip tag means that one strip contains the entire image.
-        if (rowsPerStrip == TiffConstants.RowsPerStripInfinity)
-        {
-            rowsPerStrip = height;
-        }
-
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, this.BitsPerPixel, frame.Metadata);
         bool decodesPixels = decompressor.DecodesPixels;
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
@@ -573,8 +604,10 @@ internal class TiffDecoderCore : ImageDecoderCore
                 ulong bufferSize = this.CalculateStripBufferSize(width, rowsPerStrip);
 
                 // Only uncompressed strips can be read by row: each row has a known byte offset.
-                // This preserves support for strips larger than a Span can hold without allocating the entire strip.
-                readRows = decompressor is NoneTiffCompression && bufferSize > int.MaxValue;
+                // Stream strips that exceed the allocator's single-buffer limit without allocating the entire strip.
+                readRows = decompressor is NoneTiffCompression
+                    && bufferSize > (ulong)this.memoryAllocator.SingleBufferAllocationLimitBytes
+                    && this.CanReadStripRows();
                 if (readRows)
                 {
                     bufferSize = this.CalculateStripBufferSize(width, 1);
@@ -608,32 +641,35 @@ internal class TiffDecoderCore : ImageDecoderCore
 
                 if (readRows)
                 {
-                    // A short uncompressed strip must not read into the following strip. Retain the existing partial-image behavior.
-                    if (stripByteCounts[stripIndex] < (ulong)samples.Length * (ulong)stripHeight)
-                    {
-                        break;
-                    }
-
                     for (int row = 0; row < stripHeight; row++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        ulong offset = stripOffsets[stripIndex] + ((ulong)row * (ulong)samples.Length);
+                        ulong rowStart = (ulong)row * (ulong)samples.Length;
+                        ulong offset = stripOffsets[stripIndex] + rowStart;
+                        ulong available = stripByteCounts[stripIndex];
+                        ulong byteCount = available > rowStart ? Math.Min(available - rowStart, (ulong)samples.Length) : 0;
 
                         // The TIFF color reader packs each raw row; the decompressor does not write pixels on this path.
-                        decompressor.Decompress<TPixel>(this.inputStream, offset, (ulong)samples.Length, 1, samples, default, cancellationToken);
+                        decompressor.Decompress<TPixel>(this.inputStream, offset, byteCount, 1, samples, default, cancellationToken);
                         colorDecoder.Decode(samples, pixels, 0, top + row, width, 1);
                     }
                 }
                 else
                 {
+                    Span<byte> stripSamples = samples;
+                    if (decompressor is NoneTiffCompression)
+                    {
+                        stripSamples = stripSamples[..(int)this.CalculateUncompressedDataSize(width, stripHeight, -1)];
+                    }
+
                     Buffer2DRegion<TPixel> destination = pixels.GetRegion(0, top, width, stripHeight);
                     decompressor.Decompress(
-                        this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripHeight, samples, destination, cancellationToken);
+                        this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripHeight, stripSamples, destination, cancellationToken);
 
                     // Nested decoders already wrote TPixel. Only raw TIFF samples still require color conversion and packing.
                     if (!decodesPixels)
                     {
-                        colorDecoder.Decode(samples, pixels, 0, top, width, stripHeight);
+                        colorDecoder.Decode(stripSamples, pixels, 0, top, width, stripHeight);
                     }
                 }
             }
@@ -719,12 +755,18 @@ internal class TiffDecoderCore : ImageDecoderCore
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
+                        Span<byte> tileBuffer = tilesBuffers[channel].GetSpan();
+                        if (decompressor is NoneTiffCompression)
+                        {
+                            tileBuffer = tileBuffer[..(int)this.CalculateUncompressedDataSize(tileWidth, tileLength, channel)];
+                        }
+
                         decompressor.Decompress<TPixel>(
                             this.inputStream,
                             tileOffsets[planeTileIndex],
                             tileByteCounts[planeTileIndex],
                             tileLength,
-                            tilesBuffers[channel].GetSpan(),
+                            tileBuffer,
                             default,
                             cancellationToken);
 
@@ -992,6 +1034,12 @@ internal class TiffDecoderCore : ImageDecoderCore
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
         {
             DebugGuard.IsTrue(plane == -1, "Expected Chunky planar.");
+
+            if (this.CompressionType == TiffDecoderCompressionType.None && !this.CanReadStripRows())
+            {
+                return this.CalculateUncompressedDataSize(width, height, plane);
+            }
+
             bitsPerPixel = this.BitsPerPixel;
         }
         else
@@ -1018,6 +1066,45 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         ulong bytesPerRow = (((ulong)width * (ulong)bitsPerPixel) + 7) / 8;
         return bytesPerRow * (ulong)height;
+    }
+
+    /// <summary>
+    /// Calculates the encoded byte count for an uncompressed strip, tile, or individual row.
+    /// </summary>
+    /// <param name="width">The stored row width, including tile padding when applicable.</param>
+    /// <param name="height">The number of stored rows.</param>
+    /// <param name="plane">The planar component index, or -1 for chunky data.</param>
+    /// <returns>The number of encoded bytes required for these samples.</returns>
+    private ulong CalculateUncompressedDataSize(int width, int height, int plane)
+    {
+        if (this.CanReadStripRows())
+        {
+            return this.CalculateStripBufferSize(width, height, plane);
+        }
+
+        ulong horizontal = this.YcbcrSubSampling[0];
+        ulong vertical = this.YcbcrSubSampling[1];
+        ulong groupsAcross = ((ulong)width + horizontal - 1) / horizontal;
+        ulong groupsDown = ((ulong)height + vertical - 1) / vertical;
+
+        // Chunky YCbCr stores horizontal * vertical luminance samples, then one Cb and one Cr sample per group.
+        // Planar YCbCr stores full-resolution luminance and one sample per group in each separate chroma plane.
+        // Chroma expansion needs larger plane buffers, but those extra bytes are not required in the file.
+        return this.PlanarConfiguration == TiffPlanarConfiguration.Chunky
+            ? groupsAcross * groupsDown * ((horizontal * vertical) + 2)
+            : plane == 0 ? (ulong)width * (ulong)height : groupsAcross * groupsDown;
+    }
+
+    /// <summary>
+    /// Determines whether each uncompressed row can be read and decoded separately.
+    /// </summary>
+    /// <returns><see langword="true"/> if the rows of a strip can be decoded one at a time.</returns>
+    private bool CanReadStripRows()
+    {
+        // Subsampled YCbCr groups can span rows. Read the complete strip before expanding its chroma samples.
+        return this.PhotometricInterpretation != TiffPhotometricInterpretation.YCbCr
+            || this.YcbcrSubSampling is null
+            || (this.YcbcrSubSampling[0] == 1 && this.YcbcrSubSampling[1] == 1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

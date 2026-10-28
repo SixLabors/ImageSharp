@@ -1,13 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
-using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -49,8 +48,9 @@ public class WebpMetaDataTests
                     SegmentIntegrityHandling.IgnoreImageData
                 })
                 {
-                    yield return new object[] { chunkType, length, integrity, false };
-                    yield return new object[] { chunkType, length, integrity, true };
+                    string fileName = $"{TestImages.Webp.ContainerDirectory}{chunkType.Trim().ToLowerInvariant()}-trailing-{length:x8}.webp";
+                    yield return new object[] { fileName, integrity, false };
+                    yield return new object[] { fileName, integrity, true };
                 }
             }
         }
@@ -349,33 +349,19 @@ public class WebpMetaDataTests
     }
 
     [Theory]
-    [InlineData("ICCP", 0xFFFFFFFEU)]
-    [InlineData("EXIF", 0xFFFFFFFEU)]
-    [InlineData("XMP ", 0xFFFFFFFEU)]
-    [InlineData("ICCP", uint.MaxValue)]
-    [InlineData("EXIF", uint.MaxValue)]
-    [InlineData("XMP ", uint.MaxValue)]
+    [InlineData("iccp", 0x40000000U)]
+    [InlineData("exif", 0x40000000U)]
+    [InlineData("xmp", 0x40000000U)]
+    [InlineData("iccp", 0xFFFFFFFEU)]
+    [InlineData("exif", 0xFFFFFFFEU)]
+    [InlineData("xmp", 0xFFFFFFFEU)]
+    [InlineData("iccp", uint.MaxValue)]
+    [InlineData("exif", uint.MaxValue)]
+    [InlineData("xmp", uint.MaxValue)]
     public void Decode_WithOversizedMetadataChunk_ThrowsInvalidImageContentException(string chunkType, uint length)
     {
-        byte[] payload = Convert.FromHexString(
-            "524946462200000057454250565038580A0000002000000000000000000049434350FEFFFFFF01020304");
-        Encoding.ASCII.GetBytes(chunkType, payload.AsSpan(30, 4));
-        BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(34), length);
-        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-
-        Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
-        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
-    }
-
-    [Theory]
-    [InlineData("ICCP")]
-    [InlineData("EXIF")]
-    [InlineData("XMP ")]
-    public void Decode_WithMetadataChunkLargerThanRemainingData_ThrowsInStrictMode(string chunkType)
-    {
-        byte[] payload = Convert.FromHexString(
-            "524946460000000057454250565038580A00000020000000010000010000494343500000004000000000");
-        Encoding.ASCII.GetBytes(chunkType, payload.AsSpan(30, 4));
+        // The stored RIFF size covers the file. The metadata declaration itself exceeds that boundary.
+        byte[] payload = TestFile.Create($"{TestImages.Webp.ContainerDirectory}{chunkType}-oversized-{length:x8}.webp").Bytes;
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
@@ -384,9 +370,9 @@ public class WebpMetaDataTests
 
     [Theory]
     [MemberData(nameof(TruncatedMetadataOptions))]
-    public void Decode_TruncatedTrailingMetadata_RespectsOptions(string chunkType, uint length, SegmentIntegrityHandling integrity, bool skipMetadata)
+    public void Decode_TruncatedTrailingMetadata_RespectsOptions(string fileName, SegmentIntegrityHandling integrity, bool skipMetadata)
     {
-        byte[] payload = CreateWebpWithMetadata(chunkType, length, false, false);
+        byte[] payload = TestFile.Create(fileName).Bytes;
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         if (integrity is SegmentIntegrityHandling.Strict && !skipMetadata)
@@ -420,7 +406,7 @@ public class WebpMetaDataTests
     [MemberData(nameof(IccMetadataOptions))]
     public void Decode_InvalidIccPayload_RespectsOptionsAndReadsFollowingImage(SegmentIntegrityHandling integrity, bool skipMetadata, bool animated)
     {
-        byte[] payload = CreateWebpWithMetadata("ICCP", 4, true, animated);
+        byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + (animated ? "invalid-icc-animated.webp" : "invalid-icc.webp")).Bytes;
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         if (integrity is SegmentIntegrityHandling.Strict)
@@ -446,53 +432,75 @@ public class WebpMetaDataTests
     [MemberData(nameof(IccMetadataOptions))]
     public void Decode_TruncatedIccFraming_RemainsFatal(SegmentIntegrityHandling integrity, bool skipMetadata, bool animated)
     {
-        byte[] payload = CreateWebpWithMetadata("ICCP", 0x40000000, true, animated);
+        byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + (animated ? "truncated-icc-animated.webp" : "truncated-icc.webp")).Bytes;
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
     }
 
-    /// <summary>
-    /// Places a metadata declaration around a complete lossless image to test recovery independently of pixel truncation.
-    /// </summary>
-    private static byte[] CreateWebpWithMetadata(string chunkType, uint length, bool beforeImage, bool animated)
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Decode_OddLengthMetadataChunks_ReadsPayloadsWithoutPaddingByte(bool skipMetadata, bool animated)
     {
-        byte[] header = Convert.FromHexString(
-            "524946460000000057454250565038580A00000020000000010000010000494343500000004000000000");
-        header[20] = chunkType switch { "ICCP" => 0x20, "EXIF" => 0x08, _ => 0x04 };
-        Encoding.ASCII.GetBytes(chunkType, header.AsSpan(30, 4));
-        BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(34), length);
+        // Local libwebp extracts these exact odd-length payloads and decodes the same solid 2x2 image.
+        byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + (animated ? "odd-metadata-animated.webp" : "odd-metadata.webp")).Bytes;
+        byte[] icc = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd.icc").Bytes;
+        byte[] xmp = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd.xmp").Bytes;
 
-        using Image<Rgba32> source = new(2, 2, new Rgba32(17, 34, 51));
-        if (animated)
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = skipMetadata };
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+        // ICCP precedes ANIM. Entering the frame decoder must retain that profile, not replace its metadata owner.
+        Assert.Equal(animated ? 2 : 1, image.Frames.Count);
+        Assert.Equal(new Rgba32(17, 34, 51), image[0, 0]);
+        // ICC is required color metadata, including when optional metadata is skipped.
+        Assert.Equal(icc, image.Metadata.IccProfile.ToByteArray());
+
+        if (skipMetadata)
         {
-            header[20] |= 0x02;
-            using Image<Rgba32> secondFrame = new(2, 2, new Rgba32(51, 34, 17));
-            source.Frames.AddFrame(secondFrame.Frames.RootFrame);
+            Assert.Null(image.Metadata.ExifProfile);
+            Assert.Null(image.Metadata.XmpProfile);
         }
-
-        using MemoryStream encoded = new();
-        source.Save(encoded, new WebpEncoder { FileFormat = WebpFileFormatType.Lossless });
-        byte[] imageData = encoded.ToArray();
-        using MemoryStream combined = new();
-        combined.Write(header.AsSpan(0, 30));
-        if (beforeImage)
+        else
         {
-            combined.Write(header.AsSpan(30));
+            Assert.Equal("ImageSharp", image.Metadata.ExifProfile.GetValue(ExifTag.Software).Value);
+            Assert.Equal(xmp, image.Metadata.XmpProfile.ToByteArray());
         }
+    }
 
-        // Replace the encoder's extended header when present, keeping its complete
-        // image or animation chunks and the deliberately chosen metadata declaration.
-        int imageChunkOffset = imageData.AsSpan(12, 4).SequenceEqual("VP8X"u8) ? 30 : 12;
-        combined.Write(imageData.AsSpan(imageChunkOffset));
-        if (!beforeImage)
+    /// <summary>
+    /// Applies ancillary recovery only within RIFF and keeps incomplete ICC framing fatal.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Decode_MetadataOutsideRiff_RespectsIntegrity(bool skipMetadata)
+    {
+        // Complete metadata bytes exist in the physical file, but the RIFF declaration excludes part of them.
+        byte[] exif = TestFile.Create(TestImages.Webp.ContainerDirectory + "exif-crosses-riff.webp").Bytes;
+        byte[] icc = TestFile.Create(TestImages.Webp.ContainerDirectory + "icc-crosses-riff.webp").Bytes;
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            combined.Write(header.AsSpan(30));
-        }
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(options, icc));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, icc));
 
-        byte[] payload = combined.ToArray();
-        BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(4), (uint)payload.Length - 8);
-        return payload;
+            if (integrity == SegmentIntegrityHandling.Strict && !skipMetadata)
+            {
+                Assert.Throws<InvalidImageContentException>(() => Image.Load(options, exif));
+                Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, exif));
+            }
+            else
+            {
+                using Image<Rgba32> image = Image.Load<Rgba32>(options, exif);
+                Assert.Equal(new Rgba32(17, 34, 51), image[0, 0]);
+                Assert.Null(image.Metadata.ExifProfile);
+                Assert.Null(Image.Identify(options, exif).Metadata.ExifProfile);
+            }
+        }
     }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -591,9 +590,9 @@ public partial class WebpEncoderTests
     public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating point differences result in minor pixel differences affecting compression.
-        // Output have been manually verified.
-        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 64060 : 64020;
+        // All quantizer paths apply the same luma AC sharpening. This stored fixture therefore uses
+        // one size bound for the scalar, SSE4.1 and AVX2 paths.
+        const int expectedFileSize = 64060;
 
         WebpEncoder encoder = new()
         {
@@ -619,9 +618,9 @@ public partial class WebpEncoderTests
     public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating point differences result in minor pixel differences affecting compression.
-        // Output have been manually verified.
-        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 16240 : 16200;
+        // All quantizer paths apply the same luma AC sharpening. This stored fixture therefore uses
+        // one size bound for the scalar, SSE4.1 and AVX2 paths.
+        const int expectedFileSize = 16240;
 
         WebpEncoder encoder = new()
         {

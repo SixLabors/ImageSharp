@@ -120,66 +120,75 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         bool globalColorTableUsed = false;
         Color backgroundColor = Color.Transparent;
 
-        this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
-
-        // Loop though the respective gif parts and read the data.
-        int nextFlag = stream.ReadByte();
-        while (nextFlag != GifConstants.Terminator)
+        try
         {
-            if (nextFlag == GifConstants.ImageLabel)
+            this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
+
+            // Loop though the respective gif parts and read the data.
+            int nextFlag = stream.ReadByte();
+            while (nextFlag != GifConstants.Terminator)
             {
-                if (previousFrame != null && ++frameCount == this.maxFrames)
+                if (nextFlag == GifConstants.ImageLabel)
+                {
+                    if (previousFrame != null && ++frameCount == this.maxFrames)
+                    {
+                        break;
+                    }
+
+                    if (image is null)
+                    {
+                        this.ConvertGlobalColorTable<TPixel>(this.metadata, this.gifMetadata);
+                    }
+
+                    // Header parsing guarantees non-null GIF metadata; pass that contract explicitly into frame decoding.
+                    globalColorTableUsed |= this.ReadFrame(stream, ref image, ref previousFrame, ref previousDisposalMode, ref backgroundColor);
+
+                    // Reset per-frame state.
+                    this.imageDescriptor = default;
+                    this.graphicsControlExtension = default;
+                }
+                else if (nextFlag == GifConstants.ExtensionIntroducer)
+                {
+                    switch (stream.ReadByte())
+                    {
+                        case GifConstants.GraphicControlLabel:
+                            this.ReadGraphicalControlExtension(stream);
+                            break;
+                        case GifConstants.CommentLabel:
+                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
+                            break;
+                        case GifConstants.ApplicationExtensionLabel:
+                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
+                            break;
+                        case GifConstants.PlainTextLabel:
+                            SkipBlock(stream); // Not supported by any known decoder.
+                            break;
+                    }
+                }
+                else if (nextFlag == GifConstants.EndIntroducer)
                 {
                     break;
                 }
 
-                if (image is null)
+                nextFlag = stream.ReadByte();
+                if (nextFlag == -1)
                 {
-                    this.ConvertGlobalColorTable<TPixel>(this.metadata, this.gifMetadata);
-                }
-
-                // Header parsing guarantees non-null GIF metadata; pass that contract explicitly into frame decoding.
-                globalColorTableUsed |= this.ReadFrame(stream, ref image, ref previousFrame, ref previousDisposalMode, ref backgroundColor);
-
-                // Reset per-frame state.
-                this.imageDescriptor = default;
-                this.graphicsControlExtension = default;
-            }
-            else if (nextFlag == GifConstants.ExtensionIntroducer)
-            {
-                switch (stream.ReadByte())
-                {
-                    case GifConstants.GraphicControlLabel:
-                        this.ReadGraphicalControlExtension(stream);
-                        break;
-                    case GifConstants.CommentLabel:
-                        this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
-                        break;
-                    case GifConstants.ApplicationExtensionLabel:
-                        this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
-                        break;
-                    case GifConstants.PlainTextLabel:
-                        SkipBlock(stream); // Not supported by any known decoder.
-                        break;
+                    break;
                 }
             }
-            else if (nextFlag == GifConstants.EndIntroducer)
-            {
-                break;
-            }
 
-            nextFlag = stream.ReadByte();
-            if (nextFlag == -1)
+            // We cannot always trust the global GIF palette has actually been used.
+            // https://github.com/SixLabors/ImageSharp/issues/2866
+            if (!globalColorTableUsed)
             {
-                break;
+                this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
             }
         }
-
-        // We cannot always trust the global GIF palette has actually been used.
-        // https://github.com/SixLabors/ImageSharp/issues/2866
-        if (!globalColorTableUsed)
+        catch
         {
-            this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
+            // The caller owns the image only after decoding succeeds. Release partial frames on failure.
+            image?.Dispose();
+            throw;
         }
 
         if (image is null)
@@ -638,7 +647,15 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             }
         }
 
-        this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colors, backgroundColor.ToPixel<TPixel>());
+        try
+        {
+            this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colors, backgroundColor.ToPixel<TPixel>());
+        }
+        catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
+        {
+            // Keep completed rows. SkipBlock below consumes the rest of this frame so the next descriptor remains readable.
+            // Header and palette parsing stay outside this recovery boundary; structural errors remain fatal.
+        }
 
         // Update from newly decoded frame.
         FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
@@ -835,12 +852,14 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> indicesRowOwner = this.memoryAllocator.Allocate<byte>(descriptor.Width);
         Span<byte> indicesRow = indicesRowOwner.Memory.Span;
 
+        // A frame that starts at or beyond the right or bottom edge of the logical screen has nothing to draw.
+        // Its image data is then left to the caller, which skips the remaining data sub-blocks.
         int minCodeSize = stream.ReadByte();
-        if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
+        if (descriptorTop < imageHeight && descriptorLeft < imageWidth && LzwDecoder.IsValidMinCodeSize(minCodeSize))
         {
             using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
 
-            for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
+            for (int y = descriptorTop; y < descriptorBottom; y++)
             {
                 // Check if this image is interlaced.
                 int writeY; // the target y offset to write to
@@ -849,7 +868,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                     // If so then we read lines at predetermined offsets.
                     // When an entire image height worth of offset lines has been read we consider this a pass.
                     // With each pass the number of offset lines changes and the starting line changes.
-                    if (interlaceY >= descriptor.Height)
+                    // A frame shorter than 5 lines has passes without any lines, so keep advancing until a
+                    // pass has a line left. The four passes visit every frame line exactly once and the loop
+                    // runs once per frame line, so a pass with a line left always exists.
+                    while (interlaceY >= descriptor.Height)
                     {
                         interlacePass++;
                         switch (interlacePass)
@@ -868,12 +890,29 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         }
                     }
 
-                    writeY = Math.Min(interlaceY + descriptor.Top, image.Height);
+                    writeY = interlaceY + descriptorTop;
                     interlaceY += interlaceIncrement;
                 }
                 else
                 {
                     writeY = y;
+                }
+
+                // For a properly encoded gif the frame never extends below the logical screen. When it does
+                // the lines below the screen are dropped. Lines only move down within a pass, so once a line
+                // falls below the screen the rest of the pass is hidden too. A sequential frame is a single
+                // pass, so decoding can stop there. Before the last interlace pass, later passes still start
+                // at frame line 1, 2 or 4 and can reach the screen again unless it shows only frame line 0.
+                // The hidden lines in between must still be decoded and discarded to reach those lines.
+                if (writeY >= imageHeight)
+                {
+                    if (!descriptor.InterlaceFlag || interlacePass == 3 || imageHeight - descriptorTop < 2)
+                    {
+                        break;
+                    }
+
+                    lzwDecoder.SkipIndices(descriptor.Width);
+                    continue;
                 }
 
                 lzwDecoder.DecodePixelRow(indicesRow);
@@ -948,7 +987,15 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
         {
             using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
-            lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+
+            try
+            {
+                lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+            }
+            catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
+            {
+                // Identify still reads LZW codes. Use the same recovery policy and sub-block skipping as full decoding.
+            }
         }
 
         ImageFrameMetadata currentFrame = new();

@@ -1087,6 +1087,13 @@ public static class TestImages
         public const string WebpCompressedRgbTiled = "Tiff/rgbsmall_WEBP_tiled.tif";
         public const string WebpCompressedRgbaAlphaOmitted = "Tiff/rgbsmall_WEBP_RGBA_alpha_omitted.tif";
         public const string WebpCompressedLosslessRgbaOpaque = "Tiff/webp_lossless_rgba_alpha_fully_opaque.tif";
+
+        // ImageMagick 7.1.2-31 decoded these WebP sources once and wrote uncompressed 8-bit references.
+        // Their decoded RGBA bytes match the sources. All three rgbsmall WebP layouts share the same pixels.
+        public const string WebpCompressedReference = "Tiff/webp_compressed_reference.tiff";
+        public const string WebpCompressedRgbReference = "Tiff/rgbsmall_WEBP_reference.tiff";
+        public const string WebpCompressedLosslessRgbaOpaqueReference = "Tiff/webp_lossless_rgba_alpha_fully_opaque_reference.tiff";
+
         public const string Fax4CompressedMinIsBlack = "Tiff/CCITTGroup4_minisblack.tiff";
         public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
         public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";

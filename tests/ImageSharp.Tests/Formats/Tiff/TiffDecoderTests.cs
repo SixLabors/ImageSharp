@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [ValidateDisposedMemoryAllocations]
 public class TiffDecoderTests : TiffDecoderBaseTester
 {
+    /// <summary>
+    /// Pixel formats used to check nested WebP conversion, including associated alpha.
+    /// </summary>
+    private const PixelTypes WebpPixelTypes = PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP;
+
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     /// <summary>
@@ -1017,18 +1022,26 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     /// </summary>
     /// <typeparam name="TPixel">The requested output pixel format.</typeparam>
     /// <param name="provider">The real TIFF fixture.</param>
+    /// <param name="referencePath">The independent uncompressed TIFF with the same decoded RGBA samples.</param>
     [Theory]
-    [WithFile(WebpCompressed, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
-    [WithFile(WebpCompressedRgb, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
-    [WithFile(WebpCompressedRgbTiled, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
-    [WithFile(WebpCompressedRgbaAlphaOmitted, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
-    [WithFile(WebpCompressedLosslessRgbaOpaque, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
-    public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(WebpCompressed, WebpPixelTypes, WebpCompressedReference)]
+    [WithFile(WebpCompressedRgb, WebpPixelTypes, WebpCompressedRgbReference)]
+    [WithFile(WebpCompressedRgbTiled, WebpPixelTypes, WebpCompressedRgbReference)]
+    [WithFile(WebpCompressedRgbaAlphaOmitted, WebpPixelTypes, WebpCompressedRgbReference)]
+    [WithFile(WebpCompressedLosslessRgbaOpaque, WebpPixelTypes, WebpCompressedLosslessRgbaOpaqueReference)]
+    public void TiffDecoder_CanDecode_WebpCompressed<TPixel>(TestImageProvider<TPixel> provider, string referencePath)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // The fixtures cover multiple strips, cropped edge tiles and RGBA headers whose WebP data omits an opaque alpha plane.
         // Comparing the requested TPixel output catches RGB-only staging and incorrect copies of nested pixel bytes.
-        TestTiffDecoder(provider, useExactComparer: false);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+
+        // Some native libtiff builds omit WebP support. Read the fixed uncompressed reference through Magick
+        // so every platform still compares all pixels against an independent decoder in the requested TPixel.
+        using MemoryStream referenceStream = new(TestFile.Create(referencePath).Bytes);
+        using Image<TPixel> reference = ReferenceDecoder.Decode<TPixel>(DecoderOptions.Default, referenceStream);
+        ImageComparer.Tolerant(0.001F).VerifySimilarity(reference, image);
     }
 
     /// <summary>
@@ -1037,7 +1050,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     /// <typeparam name="TPixel">The requested output pixel format.</typeparam>
     /// <param name="provider">The profiled TIFF fixture.</param>
     [Theory]
-    [WithFile(Icc.PerceptualRgb8Webp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(Icc.PerceptualRgb8Webp, WebpPixelTypes)]
     public void Decode_WebpIcc_ConvertsOnce<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1054,7 +1067,11 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         image.DebugSave(provider);
 
         // The independent CMM can round eight-bit source colors differently. No pixel may exceed three byte codes in total.
-        image.CompareToOriginal(provider, ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)), ReferenceDecoder, options);
+        // Use the original uncompressed input for the independent CMM as well. Its RGB samples and ICC profile
+        // match the lossless WebP TIFF, and decoding it does not require native TIFF/WebP support.
+        using MemoryStream referenceStream = new(TestFile.Create(Icc.PerceptualRgb8).Bytes);
+        using Image<TPixel> reference = ReferenceDecoder.Decode<TPixel>(options, referenceStream);
+        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(reference, image);
 
         Assert.Null(image.Metadata.IccProfile);
         Assert.Null(image.Frames.RootFrame.Metadata.IccProfile);

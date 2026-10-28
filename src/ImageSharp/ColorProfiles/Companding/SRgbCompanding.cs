@@ -49,7 +49,7 @@ public static class SRgbCompanding
     /// </summary>
     /// <param name="vectors">The span of vectors.</param>
     public static void Expand(Span<Vector4> vectors)
-        => CompandingUtilities.Compand(vectors, CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction));
+        => CompandingUtilities.Compand(vectors, GetExpandLookupTable());
 
     /// <summary>
     /// Compresses the linear vector to its nonlinear equivalent with respect to the energy.
@@ -65,7 +65,14 @@ public static class SRgbCompanding
     /// <param name="vector">The vector.</param>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public static Vector4 Expand(Vector4 vector)
-        => CompandingUtilities.Compand(vector, CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction));
+        => CompandingUtilities.Compand(vector, GetExpandLookupTable());
+
+    /// <summary>
+    /// Gets the shared sRGB expansion table without allocating a table for each caller.
+    /// </summary>
+    /// <returns>The cached table used by the sRGB expansion methods.</returns>
+    internal static float[] GetExpandLookupTable()
+        => CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction);
 
     private class SRgbCompandingKey;
 }

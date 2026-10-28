@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Text;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
@@ -32,6 +33,88 @@ public class IptcProfileTests
 
         // assert
         Assert.True(profileBytes.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+    }
+
+    /// <summary>
+    /// Preserves the UTF-8 declaration when cloning creates a separate encoding instance.
+    /// </summary>
+    [Fact]
+    public void IptcProfile_DeepClone_WithUtf8Data_WritesEnvelopeRecord_Works()
+    {
+        // arrange
+        IptcProfile profile = new();
+        profile.SetValue(IptcTag.City, "ESPAÑA");
+        IptcProfile clone = profile.DeepClone();
+        byte[] expectedEnvelopeData = [28, 1, 90, 0, 3, 27, 37, 71];
+
+        // act
+        clone.UpdateData();
+
+        // assert
+        Assert.True(clone.Data.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+    }
+
+    /// <summary>
+    /// Declares UTF-8 for a caller-supplied encoding instance.
+    /// </summary>
+    [Fact]
+    public void IptcProfile_WithUtf8EncodingInstance_WritesEnvelopeRecord_Works()
+    {
+        // arrange
+        IptcProfile profile = new();
+        profile.SetValue(IptcTag.City, new UTF8Encoding(false), "ESPAÑA");
+        byte[] expectedEnvelopeData = [28, 1, 90, 0, 3, 27, 37, 71];
+
+        // act
+        profile.UpdateData();
+
+        // assert
+        Assert.True(profile.Data.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+    }
+
+    /// <summary>
+    /// Keeps a cloned Latin-1 value in its original encoding without a UTF-8 declaration.
+    /// </summary>
+    [Fact]
+    public void IptcProfile_DeepClone_WithLatin1Data_DoesNotWriteUtf8EnvelopeRecord()
+    {
+        IptcProfile profile = new();
+        profile.SetValue(IptcTag.City, Encoding.Latin1, "ESPAÑA");
+        IptcProfile clone = profile.DeepClone();
+
+        clone.UpdateData();
+
+        // Only the 2:90 City dataset is present. Latin-1 stores Ñ as D1, without a UTF-8 envelope.
+        byte[] expectedData = [28, 2, 90, 0, 6, 69, 83, 80, 65, 209, 65];
+        Assert.Equal(expectedData, clone.Data);
+    }
+
+    /// <summary>
+    /// Writes one UTF-8 declaration after repeated JPEG saves and image clones.
+    /// </summary>
+    [Fact]
+    public void WritingClonedImage_WithUtf8Data_WritesEnvelopeRecordOnce()
+    {
+        // arrange
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(TestImages.Png.TestPattern31x31).Bytes);
+        image.Metadata.IptcProfile = new IptcProfile();
+        image.Metadata.IptcProfile.SetValue(IptcTag.Caption, "ESPAÑA");
+
+        // 1:90 declares UTF-8. The 2:120 Caption dataset contains the seven UTF-8 bytes for ESPAÑA.
+        byte[] expectedData = [28, 1, 90, 0, 3, 27, 37, 71, 28, 2, 120, 0, 7, 69, 83, 80, 65, 195, 145, 65];
+
+        // act
+        using Image<Rgba32> firstClone = image.Clone();
+        using Image<Rgba32> once = WriteAndReadJpeg(firstClone);
+
+        using Image<Rgba32> secondClone = once.Clone();
+        using Image<Rgba32> twice = WriteAndReadJpeg(secondClone);
+
+        // assert
+        IptcProfile actual = twice.Metadata.IptcProfile;
+        Assert.Equal(expectedData, actual.Data);
+        IptcValue value = Assert.Single(actual.Values);
+        Assert.Equal("ESPAÑA", value.Value);
     }
 
     [Theory]
@@ -227,7 +310,7 @@ public class IptcProfileTests
     public void WritingImage_PreservesIptcProfile()
     {
         // arrange
-        using Image<Rgba32> image = new(1, 1);
+        using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(TestImages.Png.TestPattern31x31).Bytes);
         image.Metadata.IptcProfile = new IptcProfile();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
@@ -383,12 +466,16 @@ public class IptcProfileTests
         Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
     }
 
+    /// <summary>
+    /// Saves a JPEG and decodes it without disposing the caller's source image.
+    /// </summary>
+    /// <param name="image">The source image. The caller retains ownership.</param>
+    /// <returns>The decoded image. The caller must dispose it.</returns>
     private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)
     {
         using (MemoryStream memStream = new())
         {
             image.SaveAsJpeg(memStream);
-            image.Dispose();
 
             memStream.Position = 0;
             return Image.Load<Rgba32>(memStream);

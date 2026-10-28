@@ -116,7 +116,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_WideBinaryGrayscale_SamplesAreBigEndian()
     {
-        using Image<L16> image = Image.Load<L16>(TestFile.Create(SampleDirectory + "wide-gray.pgm").Bytes);
+        using Image<L16> image = Image.Load<L16>(TestFile.Create(WideGrayPgm).Bytes);
 
         Assert.Equal(0x8000, image[0, 0].PackedValue);
         Assert.Equal(0x0080, image[1, 0].PackedValue);
@@ -125,7 +125,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_WideBinaryRgb_SamplesAreBigEndian()
     {
-        using Image<Rgb48> image = Image.Load<Rgb48>(TestFile.Create(SampleDirectory + "wide-rgb.ppm").Bytes);
+        using Image<Rgb48> image = Image.Load<Rgb48>(TestFile.Create(WideRgbPpm).Bytes);
 
         Assert.Equal(new Rgb48(0x81B5, 0x8491, 0x8671), image[0, 0]);
     }
@@ -133,7 +133,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_NonStandardByteMaxPixelValue_UpscalesToFullRange()
     {
-        using Image<L8> image = Image.Load<L8>(TestFile.Create(SampleDirectory + "byte-white.pgm").Bytes);
+        using Image<L8> image = Image.Load<L8>(TestFile.Create(ByteWhitePgm).Bytes);
 
         Assert.Equal(255, image[0, 0].PackedValue);
     }
@@ -141,7 +141,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_NonStandardShortMaxPixelValue_UpscalesToFullRange()
     {
-        using Image<L16> image = Image.Load<L16>(TestFile.Create(SampleDirectory + "wide-white.pgm").Bytes);
+        using Image<L16> image = Image.Load<L16>(TestFile.Create(WideWhitePgm).Bytes);
 
         Assert.Equal(65535, image[0, 0].PackedValue);
     }
@@ -153,14 +153,14 @@ public class PbmDecoderTests
     /// <param name="maxPixelValue">The declared maximum sample value.</param>
     /// <param name="isRgb">True for three-channel samples.</param>
     [Theory]
-    [InlineData(SampleDirectory + "p2-max100.pgm", 100, false)]
-    [InlineData(SampleDirectory + "p3-max100.ppm", 100, true)]
-    [InlineData(SampleDirectory + "p5-max100.pgm", 100, false)]
-    [InlineData(SampleDirectory + "p6-max100.ppm", 100, true)]
-    [InlineData(SampleDirectory + "p2-max1000.pgm", 1000, false)]
-    [InlineData(SampleDirectory + "p3-max1000.ppm", 1000, true)]
-    [InlineData(SampleDirectory + "p5-max1000.pgm", 1000, false)]
-    [InlineData(SampleDirectory + "p6-max1000.ppm", 1000, true)]
+    [InlineData(P2Max100Pgm, 100, false)]
+    [InlineData(P3Max100Ppm, 100, true)]
+    [InlineData(P5Max100Pgm, 100, false)]
+    [InlineData(P6Max100Ppm, 100, true)]
+    [InlineData(P2Max1000Pgm, 1000, false)]
+    [InlineData(P3Max1000Ppm, 1000, true)]
+    [InlineData(P5Max1000Pgm, 1000, false)]
+    [InlineData(P6Max1000Ppm, 1000, true)]
     public void Decode_NonStandardMaxPixelValue_PreservesSamplePrecision(string imagePath, int maxPixelValue, bool isRgb)
     {
         // The six stored samples are 0, 7, Maxval/2, Maxval-1, Maxval and 3.
@@ -189,16 +189,16 @@ public class PbmDecoderTests
     /// </summary>
     /// <param name="imagePath">The stored input containing samples above Maxval.</param>
     [Theory]
-    [InlineData(SampleDirectory + "p2-above-max100.pgm")]
-    [InlineData(SampleDirectory + "p3-above-max100.ppm")]
-    [InlineData(SampleDirectory + "p5-above-max100.pgm")]
-    [InlineData(SampleDirectory + "p6-above-max100.ppm")]
-    [InlineData(SampleDirectory + "p2-above-max1000.pgm")]
-    [InlineData(SampleDirectory + "p3-above-max1000.ppm")]
-    [InlineData(SampleDirectory + "p5-above-max1000.pgm")]
-    [InlineData(SampleDirectory + "p6-above-max1000.ppm")]
-    [InlineData(SampleDirectory + "p2-decimal-overflow.pgm")]
-    [InlineData(SampleDirectory + "p3-decimal-overflow.ppm")]
+    [InlineData(P2AboveMax100Pgm)]
+    [InlineData(P3AboveMax100Ppm)]
+    [InlineData(P5AboveMax100Pgm)]
+    [InlineData(P6AboveMax100Ppm)]
+    [InlineData(P2AboveMax1000Pgm)]
+    [InlineData(P3AboveMax1000Ppm)]
+    [InlineData(P5AboveMax1000Pgm)]
+    [InlineData(P6AboveMax1000Ppm)]
+    [InlineData(P2DecimalOverflowPgm)]
+    [InlineData(P3DecimalOverflowPpm)]
     public void Decode_SamplesAboveMaxval_SaturateInEveryIntegrityMode(string imagePath)
     {
         byte[] data = TestFile.Create(imagePath).Bytes;
@@ -217,10 +217,10 @@ public class PbmDecoderTests
     /// <param name="imagePath">The truncated stored input.</param>
     /// <param name="isRgb">True for a truncated RGB pixel; false for a truncated grayscale row.</param>
     [Theory]
-    [InlineData(SampleDirectory + "p2-partial.pgm", false)]
-    [InlineData(SampleDirectory + "p5-partial.pgm", false)]
-    [InlineData(SampleDirectory + "p3-partial.ppm", true)]
-    [InlineData(SampleDirectory + "p6-partial.ppm", true)]
+    [InlineData(P2PartialPgm, false)]
+    [InlineData(P5PartialPgm, false)]
+    [InlineData(P3PartialPpm, true)]
+    [InlineData(P6PartialPpm, true)]
     public void Decode_PartialRaster_PreservesAvailableImageData(string imagePath, bool isRgb)
     {
         byte[] data = TestFile.Create(imagePath).Bytes;
@@ -247,8 +247,8 @@ public class PbmDecoderTests
     /// <param name="imagePath">The stored binary input.</param>
     /// <param name="isRgb">True for RGB samples.</param>
     [Theory]
-    [InlineData(SampleDirectory + "raster-whitespace.pgm", false)]
-    [InlineData(SampleDirectory + "raster-whitespace.ppm", true)]
+    [InlineData(RasterWhitespacePgm, false)]
+    [InlineData(RasterWhitespacePpm, true)]
     public void Decode_BinaryRaster_DoesNotSkipSampleBytes(string imagePath, bool isRgb)
     {
         // Stored magnitudes 9, 10, 13, 32 and 35 are TAB, LF, CR, space and '#'. They belong to the raster.
@@ -268,7 +268,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_BinaryBitmap_DoesNotSkipRasterByte()
     {
-        using Image<L8> image = Image.Load<L8>(TestFile.Create(SampleDirectory + "raster-whitespace.pbm").Bytes);
+        using Image<L8> image = Image.Load<L8>(TestFile.Create(RasterWhitespacePbm).Bytes);
 
         for (int x = 0; x < 8; x++)
         {
@@ -282,7 +282,7 @@ public class PbmDecoderTests
     [Fact]
     public void Decode_OverflowingHeader_RemainsFatal()
     {
-        byte[] data = TestFile.Create(SampleDirectory + "header-decimal-overflow.pgm").Bytes;
+        byte[] data = TestFile.Create(HeaderDecimalOverflowPgm).Bytes;
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
@@ -319,10 +319,10 @@ public class PbmDecoderTests
     }
 
     [Theory]
-    [InlineData(SampleDirectory + "p2-zero-max.pgm")]
-    [InlineData(SampleDirectory + "p3-zero-max.ppm")]
-    [InlineData(SampleDirectory + "p5-zero-max.pgm")]
-    [InlineData(SampleDirectory + "p6-zero-max.ppm")]
+    [InlineData(P2ZeroMaxPgm)]
+    [InlineData(P3ZeroMaxPpm)]
+    [InlineData(P5ZeroMaxPgm)]
+    [InlineData(P6ZeroMaxPpm)]
     public void Decode_MaxPixelValueZero_ThrowsInvalidImageContentException(string imagePath)
     {
         byte[] bytes = TestFile.Create(imagePath).Bytes;
@@ -334,7 +334,7 @@ public class PbmDecoderTests
     [Fact]
     public void PlainText_PrematureEof()
     {
-        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(SampleDirectory + "plain-eof.pbm");
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(PlainEofPbm);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
         Assert.Equal(new Size(100, 100), eofHitCounter.Image.Size);

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc;
 
@@ -18,6 +19,14 @@ public class IccProfileTests
     /// </summary>
     [Fact]
     public void IsCanonicalSrgbMatrixTrc_RecognizesExistingSrgbProfiles()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertCanonicalSrgbProfiles,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the existing sRGB encodings and the two stored JPEG profiles at each supported SIMD width.
+    /// </summary>
+    private static void AssertCanonicalSrgbProfiles()
     {
         Assert.True(TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2).IsCanonicalSrgbMatrixTrc());
         Assert.True(TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV4).IsCanonicalSrgbMatrixTrc());
@@ -30,6 +39,27 @@ public class IccProfileTests
 
         using Image<Rgb24> image = Image.Load<Rgb24>(TestFile.Create(TestImages.Jpeg.ICC.SRgb).Bytes);
         Assert.True(image.Metadata.IccProfile.IsCanonicalSrgbMatrixTrc());
+
+        // The 1024-point curve fits the one-stored-level bound. Float lookup rounding previously rejected node 957.
+        ImageInfo dense = Image.Identify(TestFile.Create(TestImages.Jpeg.Issues.BadSubSampling1076).Bytes);
+        Assert.True(dense.Metadata.IccProfile.IsCanonicalSrgbMatrixTrc());
+
+        // The 26-point c2 curve differs measurably from sRGB. Fixing coordinate rounding must not admit this profile.
+        ImageInfo sparse = Image.Identify(TestFile.Create(TestImages.Jpeg.Progressive.Fb).Bytes);
+        Assert.False(sparse.Metadata.IccProfile.IsCanonicalSrgbMatrixTrc());
+
+        // Change a node outside the five-point fingerprint in each channel of the independent profile.
+        // The channel curves still match each other, but the complete curve no longer matches sRGB.
+        foreach (IccTagDataEntry entry in sampled.Entries)
+        {
+            if (entry.TagSignature is IccProfileTag.RedTrc or IccProfileTag.GreenTrc or IccProfileTag.BlueTrc)
+            {
+                IccCurveTagDataEntry curve = Assert.IsType<IccCurveTagDataEntry>(entry);
+                curve.CurveData[curve.CurveData.Length / 3] += 4F / ushort.MaxValue;
+            }
+        }
+
+        Assert.False(sampled.IsCanonicalSrgbMatrixTrc());
     }
 
     /// <summary>

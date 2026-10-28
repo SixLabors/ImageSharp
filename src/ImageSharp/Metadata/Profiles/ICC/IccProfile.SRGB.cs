@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 
@@ -340,11 +341,14 @@ public sealed partial class IccProfile
                        this.d == other.d && this.e == other.e && this.f == other.f;
             }
 
-            // Compare the fingerprint first, then every sample. No sample array is copied.
+            // Compare the fingerprint first, then every stored sample. ICC decodes each unsigned
+            // sixteen-bit code to the same float bits, including positive zero. Byte comparison uses
+            // the runtime's SIMD sequence comparison; float SequenceEqual compares samples individually.
+            // These spans view the existing arrays. Neither curve is copied or converted.
             return this.n == other.n &&
                    this.g == other.g && this.a == other.a &&
                    this.b == other.b && this.c == other.c && this.d == other.d &&
-                   this.samples.AsSpan().SequenceEqual(other.samples);
+                   MemoryMarshal.AsBytes(this.samples.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(other.samples.AsSpan()));
         }
 
         /// <summary>
@@ -373,32 +377,52 @@ public sealed partial class IccProfile
                 return false;
             }
 
-            // Sampled ICC curves store unsigned sixteen-bit values. Check every node against the
-            // shared sRGB expansion path within one stored level. Its lookup table is reused, not
-            // allocated per profile. This work is profile selection, never a pixel-row operation.
-            // Keep the negated <= comparisons below: they also reject NaN. A > comparison would not.
-            const float sampleTolerance = 1F / ushort.MaxValue;
+            // ICC curve nodes are unsigned sixteen-bit codes. Compare rounded reference codes within
+            // one stored level, rather than allowing float lookup-coordinate rounding to decide the result.
+            // Midpoints are interpolated values, not stored codes: retain their continuous one-level error bound.
+            const float sampleScale = ushort.MaxValue;
+            const float sampleTolerance = 1F / sampleScale;
             float[] table = SRgbCompanding.GetExpandLookupTable();
+            ReadOnlySpan<float> samples = this.samples;
             float step = 1F / (this.n - 1);
 
-            for (int i = 0; i < this.n; i++)
+            // The bulk compander consumes Vector4 values and retains W. Place the node and preceding
+            // midpoint in X and Y; Z is unused. A 512-byte stack buffer batches 32 pairs through its existing
+            // AVX2 traversal. The same API selects the scalar fallback on other hardware. No profile data is copied.
+            Span<Vector4> coordinates = stackalloc Vector4[32];
+            for (int start = 0; start < this.n; start += coordinates.Length)
             {
-                // X checks the stored node. Y checks the midpoint of the preceding segment, so a
-                // sparse identity table [0,1] cannot pass just because both endpoints match sRGB.
-                // Obtain the shared table once above; this loop performs no cache lookups or powers.
-                Vector4 inputs = new(i * step, (i - 0.5F) * step, 0F, 0F);
-                Vector4 expected = CompandingUtilities.Compand(inputs, table);
-                if (!(MathF.Abs(this.samples![i] - expected.X) <= sampleTolerance))
+                int length = Math.Min(coordinates.Length, this.n - start);
+                Span<Vector4> values = coordinates[..length];
+                for (int i = 0; i < values.Length; i++)
                 {
-                    return false;
+                    int index = start + i;
+                    values[i] = new Vector4(index * step, (index - 0.5F) * step, 0F, 0F);
                 }
 
-                if (i > 0)
+                // Obtain the table once per profile, then use the shared bulk lookup for every block.
+                // Each block overwrites only stack-owned coordinates with the corresponding expanded values.
+                CompandingUtilities.Compand(values, table);
+
+                for (int i = 0; i < values.Length; i++)
                 {
-                    float interpolated = (this.samples[i - 1] + this.samples[i]) * 0.5F;
-                    if (!(MathF.Abs(interpolated - expected.Y) <= sampleTolerance))
+                    int index = start + i;
+                    Vector4 expected = values[i];
+                    float difference = MathF.Abs(MathF.Round(samples[index] * sampleScale) - MathF.Round(expected.X * sampleScale));
+                    if (!(difference <= 1F))
                     {
                         return false;
+                    }
+
+                    if (index > 0)
+                    {
+                        // Both endpoints must match, but so must the segment between them. This rejects
+                        // sparse tables such as linear [0,1], whose endpoints alone also match sRGB.
+                        float midpoint = (samples[index - 1] + samples[index]) * 0.5F;
+                        if (!(MathF.Abs(midpoint - expected.Y) <= sampleTolerance))
+                        {
+                            return false;
+                        }
                     }
                 }
             }

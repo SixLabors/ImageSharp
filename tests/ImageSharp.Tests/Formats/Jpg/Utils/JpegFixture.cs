@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
@@ -215,7 +216,7 @@ public class JpegFixture : MeasureFixture
     {
         byte[] bytes = TestFile.Create(testFileName).Bytes;
         using MemoryStream ms = new(bytes);
-        JpegDecoderOptions decoderOptions = new();
+        JpegDecoderOptions decoderOptions = new(new DecoderOptions(Configuration.Default));
         Configuration configuration = decoderOptions.GeneralOptions.Configuration;
         JpegDecoderCore decoder = new(decoderOptions);
         if (metaDataOnly)

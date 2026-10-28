@@ -30,6 +30,9 @@ public sealed class CropProcessor : CloningImageProcessor
     public Rectangle CropRectangle { get; }
 
     /// <inheritdoc />
-    public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+    public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(
+        Configuration configuration,
+        Image<TPixel> source,
+        Rectangle sourceRectangle)
         => new CropProcessor<TPixel>(configuration, this, source, sourceRectangle);
 }

@@ -50,7 +50,10 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     public Av1TemporalFilterWorkspace(Configuration configuration)
     {
         MemoryAllocator allocator = configuration.MemoryAllocator;
-        this.samples = allocator.Allocate<TSample>(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength + ZeroCount, AllocationOptions.Clean);
+        this.samples = allocator.Allocate<TSample>(
+            AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength + ZeroCount,
+            AllocationOptions.Clean);
+
         this.errors = allocator.Allocate<uint>(AllPlanePixels + (4 * BlockPixels) + ColumnCount, AllocationOptions.Clean);
         this.counts = allocator.Allocate<ushort>(AllPlanePixels);
         this.intermediate = allocator.Allocate<short>(Av1TemporalFilter.PredictionIntermediateLength);
@@ -58,6 +61,10 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
 
         // The L1 rate table never changes. The search sites depend on the frame stride, so each frame configures them again.
         Av1TemporalFilter.FillL1MotionCosts(this.MotionCosts);
+
+        // Zero marks unconfigured sites, as in the block workspace. Pooled memory can retain a matching stride from an unrelated allocation;
+        // without this initialization, Configure can skip writing the site geometry and use stale stage counts and sample offsets.
+        this.SearchSites[^1] = 0;
     }
 
     /// <summary>
@@ -73,7 +80,8 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
     /// <summary>
     /// Gets a row of zero samples, the reference of the source variance measurements.
     /// </summary>
-    public ReadOnlySpan<TSample> Zeros => this.samples!.Memory.Span.Slice(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength, ZeroCount);
+    public ReadOnlySpan<TSample> Zeros
+        => this.samples!.Memory.Span.Slice(AllPlanePixels + Av1TranslationalInterPredictor.SearchPredictionBufferLength, ZeroCount);
 
     /// <summary>
     /// Gets the weighted sums of all planes of one filter block.

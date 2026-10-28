@@ -166,6 +166,21 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Argb32 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Argb32 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Argb32 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Argb32 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromArgb32(this);
 
@@ -182,6 +197,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
         => PixelTypeInfo.Create<Argb32>(
             PixelComponentInfo.Create<Argb32>(4, 8, 8, 8, 8),
             PixelColorType.Alpha | PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -215,10 +231,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Argb32 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -334,7 +347,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
         return new Argb32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));

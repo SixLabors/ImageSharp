@@ -1,8 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -76,25 +75,36 @@ public static class ColorProfileConverterExtensionsRgbCieLab
 
         ColorConversionOptions options = converter.Options;
 
-        // Convert to input PCS.
-        using IMemoryOwner<Rgb> pcsFromAOwner = options.MemoryAllocator.Allocate<Rgb>(source.Length);
-        Span<Rgb> pcsFromA = pcsFromAOwner.GetSpan();
-        TFrom.ToProfileConnectionSpace(options, source, pcsFromA);
+        // Sixteen colors fill a 512-bit register per component. Reuse these stack blocks across the full input;
+        // callers that convert image rows do not rent three temporary buffers for each row.
+        InlineArray16<Rgb> inputStorage = default;
+        InlineArray16<CieXyz> connectionStorage = default;
+        InlineArray16<CieLab> outputStorage = default;
 
-        using IMemoryOwner<CieXyz> pcsFromBOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-        Span<CieXyz> pcsFromB = pcsFromBOwner.GetSpan();
-        Rgb.ToProfileConnectionSpace(options, pcsFromA, pcsFromB);
-
-        // Adapt to target white point
+        Span<Rgb> input = inputStorage;
+        Span<CieXyz> connection = connectionStorage;
+        Span<CieLab> output = outputStorage;
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        VonKriesChromaticAdaptation.Transform(pcsFromB, pcsFromB, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
 
-        // Convert between PCS.
-        using IMemoryOwner<CieLab> pcsToOwner = options.MemoryAllocator.Allocate<CieLab>(source.Length);
-        Span<CieLab> pcsTo = pcsToOwner.GetSpan();
-        CieLab.FromProfileConnectionSpace(options, pcsFromB, pcsTo);
+        while (!source.IsEmpty)
+        {
+            int count = Math.Min(source.Length, input.Length);
+            Span<Rgb> inputBlock = input[..count];
+            Span<CieXyz> connectionBlock = connection[..count];
+            Span<CieLab> outputBlock = output[..count];
 
-        // Convert to output from PCS
-        TTo.FromProfileConnectionSpace(options, pcsTo, destination);
+            // Read the entire block before writing its result, so matching input and output spans can share storage.
+            TFrom.ToProfileConnectionSpace(options, source[..count], inputBlock);
+            Rgb.ToProfileConnectionSpace(options, inputBlock, connectionBlock);
+
+            // Adapt XYZ from the RGB white point to the target Lab white point before computing Lab components.
+            VonKriesChromaticAdaptation.Transform(connectionBlock, connectionBlock, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
+
+            CieLab.FromProfileConnectionSpace(options, connectionBlock, outputBlock);
+            TTo.FromProfileConnectionSpace(options, outputBlock, destination[..count]);
+
+            source = source[count..];
+            destination = destination[count..];
+        }
     }
 }

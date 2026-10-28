@@ -3,11 +3,15 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -52,6 +56,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     private readonly BackgroundColorHandling backgroundColorHandling;
 
+    private readonly IccProfile? sourceIccProfile;
+
     /// <summary>
     /// The stream position where the RIFF payload ends. Chunk parsing stops here, so bytes after the payload are ignored.
     /// </summary>
@@ -62,6 +68,16 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public WebpDecoderCore(WebpDecoderOptions options)
+        : this(options, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class with the containing format's ICC profile.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="sourceIccProfile">The containing format's profile, or null to use the WebP profile.</param>
+    public WebpDecoderCore(WebpDecoderOptions options, IccProfile? sourceIccProfile)
         : base(options.GeneralOptions)
     {
         this.backgroundColorHandling = options.BackgroundColorHandling;
@@ -69,6 +85,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.sourceIccProfile = sourceIccProfile;
     }
 
     /// <inheritdoc />
@@ -77,13 +94,16 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         Image<TPixel>? image = null;
         try
         {
-            ImageMetadata metadata = new();
+            // The containing format's profile takes precedence. ICCP parsing already skips a second profile while consuming its chunk.
+            ImageMetadata metadata = new() { IccProfile = this.sourceIccProfile };
             Span<byte> buffer = stackalloc byte[4];
 
             this.ReadImageHeader(stream, buffer);
 
             using (this.webImageInfo = this.ReadVp8Info(stream, metadata))
             {
+                ColorProfileConverter? colorProfileConverter = WebpColorConverterBase.CreateIccConverter(this.configuration, metadata.IccProfile);
+
                 if (this.webImageInfo.Features is { Animation: true })
                 {
                     using WebpAnimationDecoder animationDecoder = new(
@@ -94,13 +114,10 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.backgroundColorHandling,
                         this.ExecuteAncillarySegmentAction);
 
-                    return animationDecoder.Decode<TPixel>(
-                        stream,
-                        this.webImageInfo.Features,
-                        this.webImageInfo.Width,
-                        this.webImageInfo.Height,
-                        metadata,
-                        this.riffEnd);
+                    image = animationDecoder.Decode<TPixel>(
+                        stream, metadata, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, this.riffEnd, colorProfileConverter);
+
+                    return image;
                 }
 
                 // A VP8X header alone describes a canvas, not decodable image data.
@@ -119,7 +136,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration);
 
-                    losslessDecoder.Decode(pixels, image.Width, image.Height);
+                    losslessDecoder.Decode(pixels, image.Width, image.Height, colorProfileConverter);
                 }
                 else
                 {
@@ -128,7 +145,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration);
 
-                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
+                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData, colorProfileConverter);
                 }
 
                 // There can be optional chunks after the image data, like EXIF and XMP.
@@ -137,7 +154,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.ParseOptionalChunks(stream, metadata, this.webImageInfo.Features, buffer);
                 }
 
-                _ = this.TryConvertIccProfile(image);
                 return image;
             }
         }
@@ -166,13 +182,21 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.backgroundColorHandling,
                     this.ExecuteAncillarySegmentAction);
 
-                return animationDecoder.Identify(
+                ImageInfo info = animationDecoder.Identify(
                     stream,
+                    metadata,
                     this.webImageInfo.Features,
                     this.webImageInfo.Width,
                     this.webImageInfo.Height,
-                    metadata,
                     this.riffEnd);
+
+                if (this.backgroundColorHandling != BackgroundColorHandling.Ignore && IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out _))
+                {
+                    // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+                    this.ConvertBackgroundColor<RgbaVector>(metadata);
+                }
+
+                return info;
             }
 
             return new ImageInfo(
@@ -182,7 +206,28 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     }
 
     /// <summary>
-    /// Reads and skips over the image header, and records where the RIFF payload ends.
+    /// Converts the retained animation background through its embedded ICC profile for the requested pixel format.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="metadata">The image metadata containing the ICC profile and background color.</param>
+    private void ConvertBackgroundColor<TPixel>(ImageMetadata metadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = metadata.IccProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = this.memoryAllocator
+        };
+
+        ColorProfileConverter converter = new(options);
+        WebpMetadata webpMetadata = metadata.GetWebpMetadata();
+
+        webpMetadata.BackgroundColor = converter.Convert<TPixel>(webpMetadata.BackgroundColor);
+    }
+
+    /// <summary>
+    /// Reads the image header and records the end of the RIFF payload.
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="buffer">Temporary buffer.</param>
@@ -346,7 +391,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 // precede the image data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction, this.riffEnd);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, this.ExecuteAncillarySegmentAction, this.riffEnd);
                 break;
 
             case WebpChunkType.Exif:

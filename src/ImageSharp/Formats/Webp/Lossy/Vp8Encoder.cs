@@ -3,12 +3,16 @@
 #nullable disable
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -130,9 +134,9 @@ internal class Vp8Encoder : IDisposable
         this.quality = Math.Min(quality, 100);
         this.skipMetadata = skipMetadata;
         this.method = method;
-        this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
-        this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
-        this.spatialNoiseShaping = Numerics.Clamp(spatialNoiseShaping, 0, 100);
+        this.entropyPasses = Math.Clamp(entropyPasses, 1, 10);
+        this.filterStrength = Math.Clamp(filterStrength, 0, 100);
+        this.spatialNoiseShaping = Math.Clamp(spatialNoiseShaping, 0, 100);
         this.alphaCompression = alphaCompression;
         if (method is WebpEncodingMethod.BestQuality)
         {
@@ -310,7 +314,26 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     private int MbHeaderLimit { get; }
 
-    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAlpha, bool hasAnimation)
+    /// <summary>
+    /// Writes the selected ICC profile and animation settings before lossy frame data.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The image supplying dimensions and optional metadata.</param>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="hasAlpha">Whether the encoded image includes alpha.</param>
+    /// <param name="hasAnimation">Whether animation frames follow.</param>
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="background">The resolved background in the encoded color space.</param>
+    /// <param name="repeatCount">The resolved animation repeat count.</param>
+    /// <returns>The extended header, if required.</returns>
+    public WebpVp8X EncodeHeader<TPixel>(
+        Image<TPixel> image,
+        Stream stream,
+        bool hasAlpha,
+        bool hasAnimation,
+        IccProfile iccProfile,
+        Color background,
+        ushort repeatCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bitwriter buffer to the stream.
@@ -324,14 +347,13 @@ internal class Vp8Encoder : IDisposable
             (uint)image.Height,
             exifProfile,
             xmpProfile,
-            metadata.IccProfile,
+            iccProfile,
             hasAlpha,
             hasAnimation);
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
+            BitWriterBase.WriteAnimationParameter(stream, background, repeatCount);
         }
 
         return vp8x;
@@ -359,10 +381,22 @@ internal class Vp8Encoder : IDisposable
     /// <param name="stream">The stream to encode the image data to.</param>
     /// <param name="bounds">The region of interest within the frame to encode.</param>
     /// <param name="frameMetadata">The frame metadata.</param>
+    /// <param name="iccProfile">The profile selected for the complete WebP resource.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
-    public bool EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream, Rectangle bounds, WebpFrameMetadata frameMetadata)
+    public bool EncodeAnimation<TPixel>(
+        ImageFrame<TPixel> frame,
+        Stream stream,
+        Rectangle bounds,
+        WebpFrameMetadata frameMetadata,
+        IccProfile iccProfile,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
-        => this.Encode(stream, frame, bounds, frameMetadata, true, null);
+        => this.Encode(stream, frame, bounds, frameMetadata, true, null, iccProfile, converter, vectors, rgb);
 
     /// <summary>
     /// Encodes the static image frame to the specified stream.
@@ -370,11 +404,21 @@ internal class Vp8Encoder : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The stream to encode the image data to.</param>
     /// <param name="image">The image to encode from.</param>
-    public void EncodeStatic<TPixel>(Stream stream, Image<TPixel> image)
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
+    public void EncodeStatic<TPixel>(
+        Stream stream,
+        Image<TPixel> image,
+        IccProfile iccProfile,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> frame = image.Frames.RootFrame;
-        this.Encode(stream, frame, image.Bounds, frame.Metadata.GetWebpMetadata(), false, image);
+        this.Encode(stream, frame, image.Bounds, frame.Metadata.GetWebpMetadata(), false, image, iccProfile, converter, vectors, rgb);
     }
 
     /// <summary>
@@ -387,6 +431,10 @@ internal class Vp8Encoder : IDisposable
     /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
     /// <param name="image">The image to encode from.</param>
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
     private bool Encode<TPixel>(
         Stream stream,
@@ -394,7 +442,11 @@ internal class Vp8Encoder : IDisposable
         Rectangle bounds,
         WebpFrameMetadata frameMetadata,
         bool hasAnimation,
-        Image<TPixel> image)
+        Image<TPixel> image,
+        IccProfile iccProfile,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = bounds.Width;
@@ -406,11 +458,13 @@ internal class Vp8Encoder : IDisposable
         Span<byte> v = this.V.GetSpan();
 
         Buffer2DRegion<TPixel> pixels = frame.PixelBuffer.GetRegion(bounds);
-        bool hasAlpha = YuvConversion.ConvertRgbToYuv(pixels, this.configuration, this.memoryAllocator, y, u, v);
+        WebpColorConverterBase colorConverter = WebpColorConverterBase.GetConverter(WebpColorType.Yuv);
+        bool hasAlpha = colorConverter.ConvertFromRgb(pixels, this.configuration, this.memoryAllocator, converter, vectors, rgb, y, u, v);
 
         if (!hasAnimation)
         {
-            this.EncodeHeader(image, stream, hasAlpha, false);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
+            this.EncodeHeader(image, stream, hasAlpha, false, iccProfile, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
 
         int yStride = width;
@@ -855,8 +909,8 @@ internal class Vp8Encoder : IDisposable
         {
             int alpha = 255 * (centers[n] - mid) / (max - min);
             int beta = 255 * (centers[n] - min) / (max - min);
-            dqm[n].Alpha = Numerics.Clamp(alpha, -127, 127);
-            dqm[n].Beta = Numerics.Clamp(beta, 0, 255);
+            dqm[n].Alpha = Math.Clamp(alpha, -127, 127);
+            dqm[n].Beta = Math.Clamp(beta, 0, 255);
         }
     }
 
@@ -873,7 +927,7 @@ internal class Vp8Encoder : IDisposable
             double expn = 1.0d - (amp * dqm[i].Alpha);
             double c = Math.Pow(cBase, expn);
             int q = (int)(127.0d * (1.0d - c));
-            dqm[i].Quant = Numerics.Clamp(q, 0, 127);
+            dqm[i].Quant = Math.Clamp(q, 0, 127);
         }
 
         // Purely indicative in the bitstream (except for the 1-segment case).
@@ -882,18 +936,19 @@ internal class Vp8Encoder : IDisposable
         // uvAlpha is normally spread around ~60. The useful range is
         // typically ~30 (quite bad) to ~100 (ok to decimate UV more).
         // We map it to the safe maximal range of MAX/MIN_DQ_UV for dq_uv.
-        this.DqUvAc = (this.uvAlpha - WebpConstants.QuantEncMidAlpha) * (WebpConstants.QuantEncMaxDqUv - WebpConstants.QuantEncMinDqUv) / (WebpConstants.QuantEncMaxAlpha - WebpConstants.QuantEncMinAlpha);
+        this.DqUvAc = (this.uvAlpha - WebpConstants.QuantEncMidAlpha) * (WebpConstants.QuantEncMaxDqUv - WebpConstants.QuantEncMinDqUv)
+            / (WebpConstants.QuantEncMaxAlpha - WebpConstants.QuantEncMinAlpha);
 
         // We rescale by the user-defined strength of adaptation.
         this.DqUvAc = this.DqUvAc * this.spatialNoiseShaping / 100;
 
         // and make it safe.
-        this.DqUvAc = Numerics.Clamp(this.DqUvAc, WebpConstants.QuantEncMinDqUv, WebpConstants.QuantEncMaxDqUv);
+        this.DqUvAc = Math.Clamp(this.DqUvAc, WebpConstants.QuantEncMinDqUv, WebpConstants.QuantEncMaxDqUv);
 
         // We also boost the dc-uv-quant a little, based on sns-strength, since
         // U/V channels are quite more reactive to high quants (flat DC-blocks tend to appear, and are unpleasant).
         this.DqUvDc = -4 * this.spatialNoiseShaping / 100;
-        this.DqUvDc = Numerics.Clamp(this.DqUvDc, -15, 15);   // 4bit-signed max allowed.
+        this.DqUvDc = Math.Clamp(this.DqUvDc, -15, 15);   // 4bit-signed max allowed.
 
         this.DqY1Dc = 0;
         this.DqY2Dc = 0;
@@ -917,7 +972,7 @@ internal class Vp8Encoder : IDisposable
             Vp8SegmentInfo m = this.SegmentInfos[i];
 
             // We focus on the quantization of AC coeffs.
-            int qstep = WebpLookupTables.AcTable[Numerics.Clamp(m.Quant, 0, 127)] >> 2;
+            int qstep = WebpLookupTables.AcTable[Math.Clamp(m.Quant, 0, 127)] >> 2;
             int baseStrength = FilterStrengthFromDelta(this.FilterHeader.Sharpness, qstep);
 
             // Segments with lower complexity ('beta') will be less filtered.
@@ -1003,14 +1058,14 @@ internal class Vp8Encoder : IDisposable
             Vp8SegmentInfo m = dqm[i];
             int q = m.Quant;
 
-            m.Y1.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqY1Dc, 0, 127)];
-            m.Y1.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q, 0, 127)];
+            m.Y1.Q[0] = WebpLookupTables.DcTable[Math.Clamp(q + this.DqY1Dc, 0, 127)];
+            m.Y1.Q[1] = WebpLookupTables.AcTable[Math.Clamp(q, 0, 127)];
 
-            m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqY2Dc, 0, 127)] * 2);
-            m.Y2.Q[1] = WebpLookupTables.AcTable2[Numerics.Clamp(q + this.DqY2Ac, 0, 127)];
+            m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Math.Clamp(q + this.DqY2Dc, 0, 127)] * 2);
+            m.Y2.Q[1] = WebpLookupTables.AcTable2[Math.Clamp(q + this.DqY2Ac, 0, 127)];
 
-            m.Uv.Q[0] = WebpLookupTables.DcTable[Numerics.Clamp(q + this.DqUvDc, 0, 117)];
-            m.Uv.Q[1] = WebpLookupTables.AcTable[Numerics.Clamp(q + this.DqUvAc, 0, 127)];
+            m.Uv.Q[0] = WebpLookupTables.DcTable[Math.Clamp(q + this.DqUvDc, 0, 117)];
+            m.Uv.Q[1] = WebpLookupTables.AcTable[Math.Clamp(q + this.DqUvAc, 0, 127)];
 
             int qi4 = m.Y1.Expand(0);
             int qi16 = m.Y2.Expand(1);
@@ -1036,7 +1091,17 @@ internal class Vp8Encoder : IDisposable
         }
     }
 
-    private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, Span<int> alphas, out int uvAlpha)
+    private int MacroBlockAnalysis(
+        int width,
+        int height,
+        Vp8EncIterator it,
+        Span<byte> y,
+        Span<byte> u,
+        Span<byte> v,
+        int yStride,
+        int uvStride,
+        Span<int> alphas,
+        out int uvAlpha)
     {
         int alpha = 0;
         uvAlpha = 0;
@@ -1115,7 +1180,13 @@ internal class Vp8Encoder : IDisposable
             // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
             // For method <= 1, we don't re-examine the decision but just go ahead with
             // quantization/reconstruction.
-            QuantEnc.RefineUsingDistortion(it, this.SegmentInfos, rd, this.method >= WebpEncodingMethod.Level2, this.method >= WebpEncodingMethod.Level1, this.MbHeaderLimit);
+            QuantEnc.RefineUsingDistortion(
+                it,
+                this.SegmentInfos,
+                rd,
+                this.method >= WebpEncodingMethod.Level2,
+                this.method >= WebpEncodingMethod.Level1,
+                this.MbHeaderLimit);
         }
 
         bool isSkipped = rd.Nz == 0;
@@ -1252,7 +1323,7 @@ internal class Vp8Encoder : IDisposable
     private static int FinalAlphaValue(int alpha)
     {
         alpha = WebpConstants.MaxAlpha - alpha;
-        return Numerics.Clamp(alpha, 0, WebpConstants.MaxAlpha);
+        return Math.Clamp(alpha, 0, WebpConstants.MaxAlpha);
     }
 
     /// <summary>

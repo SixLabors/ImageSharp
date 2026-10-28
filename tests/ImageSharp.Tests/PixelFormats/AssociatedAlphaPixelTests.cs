@@ -22,6 +22,11 @@ public abstract class AssociatedAlphaPixelTests<TPixel>
     /// </summary>
     protected virtual PixelColorType ExpectedColorType => PixelColorType.RGB | PixelColorType.Alpha;
 
+    /// <summary>
+    /// Gets the color range supported by the pixel format.
+    /// </summary>
+    protected virtual PixelColorRange ExpectedColorRange => PixelColorRange.Sdr;
+
     [Fact]
     public void PixelInformationDescribesAssociatedAlpha()
     {
@@ -32,6 +37,7 @@ public abstract class AssociatedAlphaPixelTests<TPixel>
         Assert.Equal(Unsafe.SizeOf<TPixel>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Associated, info.AlphaRepresentation);
         Assert.Equal(this.ExpectedColorType, info.ColorType);
+        Assert.Equal(this.ExpectedColorRange, info.ColorRange);
         Assert.Equal(4, componentInfo.ComponentCount);
         Assert.Equal(0, componentInfo.Padding);
 
@@ -113,6 +119,20 @@ public class Abgr32PTests : AssociatedAlphaPixelTests<Abgr32P>
 /// </summary>
 public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(uint.MaxValue)]
+    [InlineData(0xA17E_80FDU)]
+    public void Constructor_FromPackedValue(uint packed)
+    {
+        NormalizedByte4P pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void PackedValueMatchesNormalizedByte4ForAssociatedVector()
     {
@@ -165,7 +185,7 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
     {
         // Values immediately below, at, and above each vector width force every hardware regime through its vector body and scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<NormalizedByte4P> operations = (AssociatedAlphaPixelOperations<NormalizedByte4P>)PixelOperations<NormalizedByte4P>.Instance;
+        PixelOperations<NormalizedByte4P> operations = PixelOperations<NormalizedByte4P>.Instance;
 
         foreach (int length in lengths)
         {
@@ -183,7 +203,12 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 
             for (int i = 0; i < length; i++)
             {
-                pixels[i].PackedValue = (uint)((byte)(i * 37 + 128) | ((byte)(i * 73 + 64) << 8) | ((byte)(i * 109 + 192) << 16) | ((byte)(i * 151 + 128) << 24));
+                pixels[i].PackedValue = (uint)(
+                    (byte)(i * 37 + 128) |
+                    ((byte)(i * 73 + 64) << 8) |
+                    ((byte)(i * 109 + 192) << 16) |
+                    ((byte)(i * 151 + 128) << 24));
+
                 expectedNative[i] = pixels[i].ToVector4();
                 expectedAssociatedNative[i] = pixels[i].ToAssociatedVector4();
                 expectedAssociatedScaled[i] = pixels[i].ToAssociatedScaledVector4();
@@ -193,7 +218,8 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 
             if (length > 0)
             {
-                // PackedValue permits every signed byte pattern. Explicit -128 components ensure bulk sign extension matches scalar decoding even though the packer emits no -128 values.
+                // PackedValue accepts every signed-byte pattern. Explicit -128 components check sign extension,
+                // although packing never writes -128.
                 pixels[0].PackedValue = 0x80808080;
                 expectedNative[0] = pixels[0].ToVector4();
                 expectedAssociatedNative[0] = pixels[0].ToAssociatedVector4();
@@ -202,11 +228,11 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
                 expectedUnassociatedScaled[0] = pixels[0].ToUnassociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.None);
-            operations.ToVector4(Configuration.Default, pixels, actualAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToVector4(Configuration.Default, pixels, actualNative);
+            operations.ToAssociatedVector4(Configuration.Default, pixels, actualAssociatedNative);
+            operations.ToAssociatedScaledVector4(Configuration.Default, pixels, actualAssociatedScaled);
+            operations.ToUnassociatedVector4(Configuration.Default, pixels, actualUnassociatedNative);
+            operations.ToUnassociatedScaledVector4(Configuration.Default, pixels, actualUnassociatedScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedAssociatedNative, actualAssociatedNative);
@@ -247,10 +273,14 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
             Vector4[] unassociatedScaledSource = [.. unassociatedScaled];
             Vector4[] associatedScaledSource = [.. associatedScaled];
 
-            operations.FromVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.FromVector4Destructive(Configuration.Default, unassociatedScaledSource, actualFromUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.FromUnassociatedVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative);
+            operations.FromAssociatedVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative);
+            operations.FromUnassociatedScaledVector4Destructive(
+                Configuration.Default,
+                unassociatedScaledSource,
+                actualFromUnassociatedScaled);
+
+            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled);
 
             Assert.Equal(expectedFromUnassociatedNative, actualFromUnassociatedNative);
             Assert.Equal(expectedFromAssociatedNative, actualFromAssociatedNative);
@@ -271,8 +301,8 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
             Vector4[] actualNativeSource = [.. expectedNative];
             Vector4[] actualScaledSource = [.. expectedAssociatedScaled];
 
-            operations.FromVector4Destructive(Configuration.Default, actualNativeSource, actualFromNative, PixelConversionModifiers.None);
-            operations.FromVector4Destructive(Configuration.Default, actualScaledSource, actualFromScaled, PixelConversionModifiers.Scale);
+            operations.FromVector4Destructive(Configuration.Default, actualNativeSource, actualFromNative);
+            operations.FromScaledVector4Destructive(Configuration.Default, actualScaledSource, actualFromScaled);
 
             Assert.Equal(expectedFromNative, actualFromNative);
             Assert.Equal(expectedFromScaled, actualFromScaled);
@@ -285,6 +315,23 @@ public class NormalizedByte4PTests : AssociatedAlphaPixelTests<NormalizedByte4P>
 /// </summary>
 public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        HalfVector4P pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
+    /// <inheritdoc />
+    protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
+
     [Fact]
     public void PackedValueMatchesHalfVector4ForAssociatedVector()
     {
@@ -341,8 +388,8 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
             expectedScaled[i] = pixels[i].ToScaledVector4();
         }
 
-        PixelOperations<HalfVector4P>.Instance.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.None);
-        PixelOperations<HalfVector4P>.Instance.ToVector4(Configuration.Default, pixels, actualScaled, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector4P>.Instance.ToVector4(Configuration.Default, pixels, actualNative);
+        PixelOperations<HalfVector4P>.Instance.ToScaledVector4(Configuration.Default, pixels, actualScaled);
 
         AssertVectorBitsEqual(expectedNative, actualNative);
         AssertVectorBitsEqual(expectedScaled, actualScaled);
@@ -393,7 +440,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
 
         Vector4[] destructiveSource = [.. source];
 
-        PixelOperations<HalfVector4P>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actual, PixelConversionModifiers.None);
+        PixelOperations<HalfVector4P>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actual);
 
         for (int i = 0; i < expected.Length; i++)
         {
@@ -403,7 +450,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
                 ushort expectedBits = (ushort)(expected[i].PackedValue >> shift);
                 ushort actualBits = (ushort)(actual[i].PackedValue >> shift);
 
-                // Association performs floating-point arithmetic before packing. IEEE 754 requires a NaN result but does not specify which operand's payload survives that arithmetic.
+                // Association applies floating-point arithmetic before packing. IEEE 754 permits different NaN payloads after that arithmetic.
                 if (Half.IsNaN(BitConverter.UInt16BitsToHalf(expectedBits)))
                 {
                     Assert.True(Half.IsNaN(BitConverter.UInt16BitsToHalf(actualBits)), $"Pixel {i}, component {component} should be NaN.");
@@ -420,7 +467,7 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
     {
         // Values immediately below, at, and above each vector width force every hardware regime through its vector body and scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<HalfVector4P> operations = (AssociatedAlphaPixelOperations<HalfVector4P>)PixelOperations<HalfVector4P>.Instance;
+        PixelOperations<HalfVector4P> operations = PixelOperations<HalfVector4P>.Instance;
 
         foreach (int length in lengths)
         {
@@ -456,10 +503,14 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
             Vector4[] unassociatedScaledSource = [.. unassociatedScaled];
             Vector4[] associatedScaledSource = [.. associatedScaled];
 
-            operations.FromVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.FromVector4Destructive(Configuration.Default, unassociatedScaledSource, actualFromUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.FromUnassociatedVector4Destructive(Configuration.Default, unassociatedNativeSource, actualFromUnassociatedNative);
+            operations.FromAssociatedVector4Destructive(Configuration.Default, associatedNativeSource, actualFromAssociatedNative);
+            operations.FromUnassociatedScaledVector4Destructive(
+                Configuration.Default,
+                unassociatedScaledSource,
+                actualFromUnassociatedScaled);
+
+            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, associatedScaledSource, actualFromAssociatedScaled);
 
             Assert.Equal(expectedFromUnassociatedNative, actualFromUnassociatedNative);
             Assert.Equal(expectedFromAssociatedNative, actualFromAssociatedNative);
@@ -483,10 +534,10 @@ public class HalfVector4PTests : AssociatedAlphaPixelTests<HalfVector4P>
                 expectedUnassociatedScaled[i] = expectedFromAssociatedScaled[i].ToUnassociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedNative, PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedNative, PixelConversionModifiers.UnPremultiply);
-            operations.ToVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToAssociatedVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedNative);
+            operations.ToAssociatedScaledVector4(Configuration.Default, expectedFromAssociatedScaled, actualAssociatedScaled);
+            operations.ToUnassociatedVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedNative);
+            operations.ToUnassociatedScaledVector4(Configuration.Default, expectedFromAssociatedScaled, actualUnassociatedScaled);
 
             AssertVectorBitsEqual(expectedAssociatedNative, actualAssociatedNative);
             AssertVectorBitsEqual(expectedAssociatedScaled, actualAssociatedScaled);
@@ -587,10 +638,72 @@ public class AssociatedAlphaPackedPixelConversionTests
     private static void AssertBulkConversionsMatchScalar<TPixel>(Func<byte, byte, byte, byte, TPixel> createPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        AssertPackedLayoutConversions(createPixel);
         AssertScalarAndBulkAssociatedVectorsAreEqual(createPixel);
         AssertScalarAndBulkFromAssociatedVectorsAreEqual<TPixel>();
         AssertScalarAndBulkUnassociatedVectorsAreEqual(createPixel);
         AssertScalarAndBulkFromUnassociatedVectorsAreEqual<TPixel>();
+    }
+
+    /// <summary>
+    /// Checks all packed destination layouts using independently specified associated channel bytes.
+    /// </summary>
+    /// <typeparam name="TSourcePixel">The source byte layout.</typeparam>
+    /// <param name="createPixel">The constructor for the source layout.</param>
+    private static void AssertPackedLayoutConversions<TSourcePixel>(Func<byte, byte, byte, byte, TSourcePixel> createPixel)
+        where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+    {
+        // Distinct channel values expose incorrect shuffles. Include zero, partial and opaque alpha without changing association.
+        Rgba32P[] samples = [new(0, 0, 0, 0), new(1, 2, 3, 4), new(12, 23, 34, 64), new(37, 73, 109, 151), new(211, 89, 173, 255)];
+
+        // Four-byte pixels fill 128, 256 and 512 bits at 4, 8 and 16 pixels. Test both sides of each boundary and a longer tail.
+        int[] lengths = [0, 1, 3, 4, 5, 7, 8, 9, 15, 16, 17, 65];
+        TSourcePixel[] source = new TSourcePixel[lengths[^1]];
+        Vector4[] expected = new Vector4[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgba32P sample = samples[i % samples.Length];
+            source[i] = createPixel(sample.R, sample.G, sample.B, sample.A);
+            expected[i] = sample.ToAssociatedScaledVector4();
+        }
+
+        foreach (int length in lengths)
+        {
+            ReadOnlySpan<TSourcePixel> pixels = source.AsSpan(0, length);
+            ReadOnlySpan<Vector4> expectedPixels = expected.AsSpan(0, length);
+            AssertPackedLayoutDestination<TSourcePixel, Rgba32P>(pixels, expectedPixels);
+            AssertPackedLayoutDestination<TSourcePixel, Bgra32P>(pixels, expectedPixels);
+            AssertPackedLayoutDestination<TSourcePixel, Argb32P>(pixels, expectedPixels);
+            AssertPackedLayoutDestination<TSourcePixel, Abgr32P>(pixels, expectedPixels);
+        }
+    }
+
+    /// <summary>
+    /// Checks that bulk layout conversion retains each stored channel and leaves spare destination pixels untouched.
+    /// </summary>
+    /// <typeparam name="TSourcePixel">The source byte layout.</typeparam>
+    /// <typeparam name="TDestinationPixel">The destination byte layout.</typeparam>
+    /// <param name="source">The associated source pixels.</param>
+    /// <param name="expected">The expected associated channel values.</param>
+    private static void AssertPackedLayoutDestination<TSourcePixel, TDestinationPixel>(ReadOnlySpan<TSourcePixel> source, ReadOnlySpan<Vector4> expected)
+        where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+        where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
+    {
+        TDestinationPixel[] destination = new TDestinationPixel[source.Length + 1];
+
+        // A nonzero sentinel detects tail stores even when the converted pixel is transparent black.
+        TDestinationPixel sentinel = TDestinationPixel.FromRgba32P(new Rgba32P(19, 23, 29, 37));
+        destination[^1] = sentinel;
+        PixelOperations<TDestinationPixel>.Instance.From(Configuration.Default, source, destination);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Assert.Equal(expected[i], destination[i].ToAssociatedScaledVector4());
+        }
+
+        // The source length defines the conversion. A SIMD tail must not overwrite the extra destination pixel.
+        Assert.Equal(sentinel, destination[^1]);
     }
 
     private static void AssertLosslessRoundTrip<TIntermediate>()
@@ -632,7 +745,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         // Prefixes straddle every vector width; the final length also preserves exhaustive byte-component coverage and adds a scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259, byte.MaxValue * 4 + 5];
         TPixel[] source = new TPixel[lengths[^1]];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         for (int component = 0; component <= byte.MaxValue; component++)
         {
@@ -659,8 +772,8 @@ public class AssociatedAlphaPackedPixelConversionTests
                 expectedScaled[i] = pixels[i].ToAssociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.Premultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.ToAssociatedVector4(Configuration.Default, pixels, actualNative);
+            operations.ToAssociatedScaledVector4(Configuration.Default, pixels, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -673,7 +786,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         // Values immediately below, at, and above each vector width force every hardware regime through its vector body and scalar tail.
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
         Vector4[] source = new Vector4[lengths[^1]];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -698,8 +811,8 @@ public class AssociatedAlphaPackedPixelConversionTests
                 expectedScaled[i] = TPixel.FromAssociatedScaledVector4(scaledSource[i]);
             }
 
-            operations.FromVector4Destructive(Configuration.Default, nativeSource, actualNative, PixelConversionModifiers.Premultiply);
-            operations.FromVector4Destructive(Configuration.Default, scaledSource, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            operations.FromAssociatedVector4Destructive(Configuration.Default, nativeSource, actualNative);
+            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, scaledSource, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -710,7 +823,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         foreach (int length in lengths)
         {
@@ -730,14 +843,15 @@ public class AssociatedAlphaPackedPixelConversionTests
 
             if (length > 0)
             {
-                // A zero-alpha pixel with stored RGB verifies the converter's defined zero-divisor behavior outside the lossless straight-color round-trip domain.
+                // Stored RGB at zero alpha checks the defined zero-divisor behavior.
+                // Such samples cannot preserve straight RGB through a round trip.
                 pixels[0] = createPixel(37, 73, 109, 0);
                 expectedNative[0] = pixels[0].ToUnassociatedVector4();
                 expectedScaled[0] = pixels[0].ToUnassociatedScaledVector4();
             }
 
-            operations.ToVector4(Configuration.Default, pixels, actualNative, PixelConversionModifiers.UnPremultiply);
-            operations.ToVector4(Configuration.Default, pixels, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.ToUnassociatedVector4(Configuration.Default, pixels, actualNative);
+            operations.ToUnassociatedScaledVector4(Configuration.Default, pixels, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -748,7 +862,7 @@ public class AssociatedAlphaPackedPixelConversionTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        AssociatedAlphaPixelOperations<TPixel> operations = (AssociatedAlphaPixelOperations<TPixel>)PixelOperations<TPixel>.Instance;
+        PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         foreach (int length in lengths)
         {
@@ -769,8 +883,8 @@ public class AssociatedAlphaPackedPixelConversionTests
             Vector4[] nativeSource = [.. vectors];
             Vector4[] scaledSource = [.. vectors];
 
-            operations.FromVector4Destructive(Configuration.Default, nativeSource, actualNative, PixelConversionModifiers.UnPremultiply);
-            operations.FromVector4Destructive(Configuration.Default, scaledSource, actualScaled, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            operations.FromUnassociatedVector4Destructive(Configuration.Default, nativeSource, actualNative);
+            operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, scaledSource, actualScaled);
 
             Assert.Equal(expectedNative, actualNative);
             Assert.Equal(expectedScaled, actualScaled);
@@ -868,9 +982,16 @@ public class AssociatedToUnassociatedPackedPixelConversionTests
                 source[index] = new Rgba32((byte)unassociated, 0, 0, (byte)alpha);
                 expected[index++] = new HalfVector4P { PackedValue = associatedBits | (zeroComponentBits << 16) | (zeroComponentBits << 32) | alphaPacked };
                 source[index] = new Rgba32(0, (byte)unassociated, 0, (byte)alpha);
-                expected[index++] = new HalfVector4P { PackedValue = zeroComponentBits | ((ulong)associatedBits << 16) | (zeroComponentBits << 32) | alphaPacked };
+                expected[index++] = new HalfVector4P
+                {
+                    PackedValue = zeroComponentBits | ((ulong)associatedBits << 16) | (zeroComponentBits << 32) | alphaPacked
+                };
+
                 source[index] = new Rgba32(0, 0, (byte)unassociated, (byte)alpha);
-                expected[index++] = new HalfVector4P { PackedValue = zeroComponentBits | (zeroComponentBits << 16) | ((ulong)associatedBits << 32) | alphaPacked };
+                expected[index++] = new HalfVector4P
+                {
+                    PackedValue = zeroComponentBits | (zeroComponentBits << 16) | ((ulong)associatedBits << 32) | alphaPacked
+                };
             }
         }
 

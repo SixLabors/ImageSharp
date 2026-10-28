@@ -10,6 +10,14 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// The naming convention of each pixel format is to order the color components from least significant to most significant, reading from left to right.
 /// For example in the <see cref="Rgba32"/> pixel format the R component is the least significant byte, and the A component is the most significant.
 /// </summary>
+/// <remarks>
+/// Color-vector conversions clamp integer color components to the format's storage range and floating-point color components to [-65504,65504].
+/// Alpha is clamped to [0,1].
+/// NaN and negative infinity become the component's minimum value. Positive infinity becomes its maximum value.
+/// Floating-point formats preserve finite HDR color values within this color range and retain signed zero.
+/// Native floating-point vector conversions preserve NaN and infinity. Native half-precision packing follows the <see cref="Half"/> conversion rules.
+/// The selected method specifies whether the vector's RGB components are associated with alpha.
+/// </remarks>
 /// <typeparam name="TSelf">The type implementing this interface</typeparam>
 public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     where TSelf : unmanaged, IPixel<TSelf>
@@ -155,6 +163,34 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     /// <param name="source">The <see cref="Rgba64"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
     public static abstract TSelf FromRgba64(Rgba64 source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Abgr32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromAbgr32P(Abgr32P source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Argb32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromArgb32P(Argb32P source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Bgra32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromBgra32P(Bgra32P source);
+
+    /// <summary>
+    /// Initializes the pixel instance from an associated <see cref="Rgba32P"/> value.
+    /// </summary>
+    /// <param name="source">The associated source pixel.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    public static abstract TSelf FromRgba32P(Rgba32P source);
 }
 
 /// <summary>
@@ -173,6 +209,12 @@ public interface IPixel
     /// </summary>
     /// <returns>The <see cref="Rgba32"/></returns>
     public Rgba32 ToRgba32();
+
+    /// <summary>
+    /// Converts the pixel instance into an associated <see cref="Rgba32P"/> representation.
+    /// </summary>
+    /// <returns>The associated <see cref="Rgba32P"/>.</returns>
+    public Rgba32P ToRgba32P();
 
     /// <summary>
     /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> representation using the pixel type's native alpha representation.

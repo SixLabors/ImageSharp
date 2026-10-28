@@ -192,4 +192,38 @@ internal static partial class Av1Inverse2dTransformer
         public static Vector256<int> MultiplyRound(Vector256<int> value, int multiplier, int cosBit)
             => Av1Transform1dMath.MultiplyRound(value, multiplier, cosBit);
     }
+
+    /// <summary>
+    /// Transforms sixteen axes at a time.
+    /// </summary>
+    internal readonly struct Vector512LaneOperator : IAv1TransformLaneOperator<Vector512<int>>
+    {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> AddClamp(Vector512<int> left, Vector512<int> right, byte bitCount)
+            => Av1Transform1dMath.Clamp(left + right, bitCount);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> SubtractClamp(Vector512<int> left, Vector512<int> right, byte bitCount)
+            => Av1Transform1dMath.Clamp(left - right, bitCount);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> Clamp(Vector512<int> value, byte bitCount) => Av1Transform1dMath.Clamp(value, bitCount);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> Negate(Vector512<int> value) => -value;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> HalfButterfly(int weight0, Vector512<int> input0, int weight1, Vector512<int> input1, int cosBit)
+            => Av1Transform1dMath.HalfButterfly(weight0, input0, weight1, input1, cosBit);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> MultiplyRound(Vector512<int> value, int multiplier, int cosBit)
+            => Av1Transform1dMath.MultiplyRound(value, multiplier, cosBit);
+    }
 }

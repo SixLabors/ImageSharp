@@ -10,6 +10,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// <summary>
 /// Encoder for writing the data image to a stream in TIFF format.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Explicit TIFF options override each frame's TIFF metadata. Unset options use that metadata or the format defaults.
+/// Unsupported combinations use the encoder's supported sample layouts and compression methods.
+/// </para>
+/// <para>
+/// Each frame retains its ICC profile when the profile's data color space matches the output samples.
+/// Encoding converts sRGB pixels to that profile's color space. Incompatible profiles are omitted.
+/// ICC profiles are retained when <see cref="ImageEncoder.SkipMetadata"/> is true.
+/// The source pixels and metadata remain unchanged.
+/// </para>
+/// <para>
+/// For unassociated source pixels, <see cref="TransparentColorMode.Clear"/> clears RGB where alpha is zero.
+/// <see cref="TransparentColorMode.Preserve"/> does not clear those values. Color conversion still applies.
+/// JPEG-compressed output stores no alpha.
+/// </para>
+/// </remarks>
 public class TiffEncoder : QuantizingImageEncoder
 {
     /// <summary>
@@ -31,6 +48,10 @@ public class TiffEncoder : QuantizingImageEncoder
     /// <summary>
     /// Gets the compression type to use.
     /// </summary>
+    /// <remarks>
+    /// JPEG compression supports eight-bit samples: 8-bit BlackIsZero grayscale, 24-bit RGB or YCbCr, and 32-bit Separated CMYK.
+    /// Other sample layouts use the encoder's compression fallback.
+    /// </remarks>
     public TiffCompression? Compression { get; init; }
 
     /// <summary>
@@ -40,9 +61,15 @@ public class TiffEncoder : QuantizingImageEncoder
     public DeflateCompressionLevel? CompressionLevel { get; init; }
 
     /// <summary>
-    /// Gets the PhotometricInterpretation to use. Possible options are RGB, RGB with a color palette, gray or BiColor.
-    /// If no PhotometricInterpretation is specified or it is unsupported by the encoder, RGB will be used.
+    /// Gets the interpretation of the encoded color samples.
     /// </summary>
+    /// <remarks>
+    /// Supported layouts include RGB, palette, grayscale, bilevel, and CMYK with 4 ink samples of 8 or 16 bits each.
+    /// CIE Lab output uses 3 samples of 8 or 16 bits each and has no alpha sample.
+    /// YCbCr output uses 3 samples of 8 bits each with full-resolution chroma.
+    /// For JPEG compression, Rgb selects RGB, YCbCr selects full-resolution YCbCr, BlackIsZero selects grayscale, and Separated selects CMYK.
+    /// <see cref="BitsPerPixel"/> must also select a supported layout.
+    /// </remarks>
     public TiffPhotometricInterpretation? PhotometricInterpretation { get; init; }
 
     /// <summary>

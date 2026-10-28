@@ -52,7 +52,7 @@ public struct HexadecatreeQuantizer<TPixel> : IQuantizer<TPixel>
         this.Options = options;
 
         this.maxColors = this.Options.MaxColors;
-        this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
+        this.bitDepth = Math.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
         this.tree = new Hexadecatree(configuration, this.bitDepth, this.maxColors, this.Options.TransparencyThreshold);
         this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
         this.pixelMap = default;

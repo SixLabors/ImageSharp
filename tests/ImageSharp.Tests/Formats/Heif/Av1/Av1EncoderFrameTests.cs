@@ -49,7 +49,11 @@ public class Av1EncoderFrameTests
         RectangularIntraReferencesExtendTheLastAvailableSampleCase((int)TwelveBit, false, true, true);
     }
 
-    private static void RectangularIntraReferencesExtendTheLastAvailableSampleCase(int bitDepthValue, bool transpose, bool extensionAvailable, bool limitedExtent)
+    private static void RectangularIntraReferencesExtendTheLastAvailableSampleCase(
+        int bitDepthValue,
+        bool transpose,
+        bool extensionAvailable,
+        bool limitedExtent)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         if (bitDepth == Av1BitDepth.EightBit)
@@ -68,7 +72,7 @@ public class Av1EncoderFrameTests
         bool extensionAvailable,
         bool limitedExtent)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         int width = transpose ? 16 : 4;
         int height = transpose ? 4 : 16;
@@ -1541,7 +1545,7 @@ public class Av1EncoderFrameTests
         configuration.WriteFixedHeader(fixedHeader);
 
         Assert.Equal([0x81, expectedProfileAndLevel, expectedColorFlags, 0x00], fixedHeader);
-        Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions());
+        Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions(Configuration.Default));
         Assert.True(configuration.HasMatchingImageConfiguration(parsed));
         parsed.Validate(sequenceHeader);
     }

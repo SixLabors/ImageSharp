@@ -30,7 +30,14 @@ internal class Pxr24Compression : ExrBaseDecompressor
     /// <param name="width">The witdh of one row in pixels.</param>
     /// <param name="channelCount">The number of channels for a pixel.</param>
     /// <param name="pixelType">The pixel type.</param>
-    public Pxr24Compression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount, ExrPixelType pixelType)
+    public Pxr24Compression(
+        MemoryAllocator allocator,
+        uint bytesPerBlock,
+        uint bytesPerRow,
+        uint rowsPerBlock,
+        int width,
+        int channelCount,
+        ExrPixelType pixelType)
         : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);

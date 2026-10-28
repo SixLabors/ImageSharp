@@ -3,47 +3,37 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
-/// Provides optimized overrides for bulk operations.
+/// Selects the shared storage-family implementation.
 /// </content>
 public partial struct RgbaVector
 {
     /// <summary>
-    /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
+    /// Inherits the shared bulk conversions for this pixel's storage.
     /// </summary>
-    internal class PixelOperations : PixelOperations<RgbaVector>
+    internal partial class PixelOperations : RgbaVectorPixelOperations<RgbaVector>
     {
         /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<RgbaVector> destinationPixels,
-            PixelConversionModifiers modifiers)
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<RgbaVector> destination)
         {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
+            // RgbaVector stores straight RGBA floats in Vector4 order. Write into that final storage without a temporary row or copy.
+            Span<Vector4> vectors = MemoryMarshal.Cast<RgbaVector, Vector4>(destination);
+            PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
 
-            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
-
-            MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationPixels[..sourceVectors.Length]);
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<RgbaVector> sourcePixels,
-            Span<Vector4> destinationVectors,
-            PixelConversionModifiers modifiers)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
-
-            destinationVectors = destinationVectors[..sourcePixels.Length];
-            MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destinationVectors);
-
-            Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
+            if (TPixelFrom.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+            {
+                // The single-pixel associated conversions normalize stored channels before unassociation.
+                // Use the same order to preserve their rounding, with both bulk operations writing only destination storage.
+                sourceOperations.ToAssociatedScaledVector4(configuration, source, vectors);
+                PixelFormats.PixelOperations.UnPremultiply(vectors[..source.Length], vectors[..source.Length]);
+            }
+            else
+            {
+                sourceOperations.ToUnassociatedScaledVector4(configuration, source, vectors);
+            }
         }
     }
 }

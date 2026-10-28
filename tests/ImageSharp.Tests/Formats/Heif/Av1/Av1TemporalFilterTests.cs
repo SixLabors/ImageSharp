@@ -157,7 +157,21 @@ public class Av1TemporalFilterTests
         int strength = random.Next(0, 7);
         bool separateFactors = bitDepth > 8 && format == Av1ColorFormat.Yuv422;
         ReferenceApplyFilter(
-            planes, prediction, subsamplingX, subsamplingY, bitDepth, noise, vectors, errors, qFactor, strength, level, separateFactors, 64, expectedAccumulator, expectedCount);
+            planes,
+            prediction,
+            subsamplingX,
+            subsamplingY,
+            bitDepth,
+            noise,
+            vectors,
+            errors,
+            qFactor,
+            strength,
+            level,
+            separateFactors,
+            64,
+            expectedAccumulator,
+            expectedCount);
 
         Av1TemporalFilter.ApplyFilter<TSample, TOperator>(
             workspace,
@@ -268,8 +282,20 @@ public class Av1TemporalFilterTests
 
                     double expected = ReferenceNoise(samples, stride, width, height, bitDepth, Av1TemporalFilter.NoiseEdgeThreshold);
                     double actual = bitDepth == 8
-                        ? Av1TemporalFilter.EstimateNoise<byte, Av1TemporalFilter.ByteOperator>(ToBytes(samples), stride, width, height, bitDepth, Av1TemporalFilter.NoiseEdgeThreshold)
-                        : Av1TemporalFilter.EstimateNoise<ushort, Av1TemporalFilter.UInt16Operator>(samples, stride, width, height, bitDepth, Av1TemporalFilter.NoiseEdgeThreshold);
+                        ? Av1TemporalFilter.EstimateNoise<byte, Av1TemporalFilter.ByteOperator>(
+                            ToBytes(samples),
+                            stride,
+                            width,
+                            height,
+                            bitDepth,
+                            Av1TemporalFilter.NoiseEdgeThreshold)
+                        : Av1TemporalFilter.EstimateNoise<ushort, Av1TemporalFilter.UInt16Operator>(
+                            samples,
+                            stride,
+                            width,
+                            height,
+                            bitDepth,
+                            Av1TemporalFilter.NoiseEdgeThreshold);
 
                     Assert.Equal(expected, actual);
                 }
@@ -320,13 +346,42 @@ public class Av1TemporalFilterTests
 
                 int planeWidth = planeSize >> subsamplingX;
                 int planeHeight = planeSize >> subsamplingY;
-                int[] expected = ReferencePrediction(samples, stride, origin, planeWidth, planeHeight, y, x, subsamplingX, subsamplingY, vector, width, height, bitDepth);
+                int[] expected = ReferencePrediction(
+                    samples,
+                    stride,
+                    origin,
+                    planeWidth,
+                    planeHeight,
+                    y,
+                    x,
+                    subsamplingX,
+                    subsamplingY,
+                    vector,
+                    width,
+                    height,
+                    bitDepth);
+
                 Av1TemporalFilter.ConvolveTerms terms = new(bitDepth);
                 if (bitDepth == 8)
                 {
                     byte[] actual = new byte[width * height];
                     Av1TemporalFilter.PredictSubblock<byte, Av1TemporalFilter.ByteOperator>(
-                        bytes, stride, origin, planeWidth, planeHeight, y, x, subsamplingX, subsamplingY, vector, width, height, in terms, intermediate, actual, width);
+                        bytes,
+                        stride,
+                        origin,
+                        planeWidth,
+                        planeHeight,
+                        y,
+                        x,
+                        subsamplingX,
+                        subsamplingY,
+                        vector,
+                        width,
+                        height,
+                        in terms,
+                        intermediate,
+                        actual,
+                        width);
 
                     Assert.Equal(expected, Array.ConvertAll(actual, value => (int)value));
                 }
@@ -334,7 +389,22 @@ public class Av1TemporalFilterTests
                 {
                     ushort[] actual = new ushort[width * height];
                     Av1TemporalFilter.PredictSubblock<ushort, Av1TemporalFilter.UInt16Operator>(
-                        samples, stride, origin, planeWidth, planeHeight, y, x, subsamplingX, subsamplingY, vector, width, height, in terms, intermediate, actual, width);
+                        samples,
+                        stride,
+                        origin,
+                        planeWidth,
+                        planeHeight,
+                        y,
+                        x,
+                        subsamplingX,
+                        subsamplingY,
+                        vector,
+                        width,
+                        height,
+                        in terms,
+                        intermediate,
+                        actual,
+                        width);
 
                     Assert.Equal(expected, Array.ConvertAll(actual, value => (int)value));
                 }

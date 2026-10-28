@@ -205,7 +205,7 @@ public class PbmDecoderTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             using Image<Rgb48> image = Image.Load<Rgb48>(options, data);
             Assert.Equal(new Rgb48(65535, 65535, 65535), image[0, 0]);
         }
@@ -230,7 +230,7 @@ public class PbmDecoderTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
             Assert.Equal(isRgb ? new Size(2, 1) : new Size(3, 2), image.Size);
 
@@ -286,7 +286,7 @@ public class PbmDecoderTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
             Assert.Throws<InvalidImageContentException>(() =>
             {
@@ -301,7 +301,7 @@ public class PbmDecoderTests
     public void PbmDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };

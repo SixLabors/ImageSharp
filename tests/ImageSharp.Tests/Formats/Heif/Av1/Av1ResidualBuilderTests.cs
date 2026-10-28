@@ -465,7 +465,14 @@ public class Av1ResidualBuilderTests
         prediction[1] = byte.MaxValue;
     }
 
-    private static void FillUInt16Planes(Span<ushort> source, int sourceStride, Span<ushort> prediction, int predictionStride, int width, int height, int maximumSample)
+    private static void FillUInt16Planes(
+        Span<ushort> source,
+        int sourceStride,
+        Span<ushort> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        int maximumSample)
     {
         for (int y = 0; y < height; y++)
         {
@@ -590,7 +597,12 @@ public class Av1ResidualBuilderTests
                             {
                                 for (int x = 0; x < width; x++)
                                 {
-                                    int blended = CompoundBlendReference(prediction[(y * predictionStride) + x], second[(y * width) + x], mask, (y * width) + x);
+                                    int blended = CompoundBlendReference(
+                                        prediction[(y * predictionStride) + x],
+                                        second[(y * width) + x],
+                                        mask,
+                                        (y * width) + x);
+
                                     expectedSad += Math.Abs(source[(y * sourceStride) + x] - blended);
                                 }
                             }
@@ -623,7 +635,16 @@ public class Av1ResidualBuilderTests
                         if (bitDepth == 8)
                         {
                             Av1ResidualBuilder.GetCompoundMoments(
-                                ToBytes(source), sourceStride, ToBytes(prediction), predictionStride, ToBytes(second), mask, width, height, out actualSum, out actualSquares);
+                                ToBytes(source),
+                                sourceStride,
+                                ToBytes(prediction),
+                                predictionStride,
+                                ToBytes(second),
+                                mask,
+                                width,
+                                height,
+                                out actualSum,
+                                out actualSquares);
                         }
                         else
                         {

@@ -23,6 +23,134 @@ internal static class Vector128_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
+    /// Approximates base-two exponentials in single-precision SIMD lanes.
+    /// </summary>
+    /// <param name="value">The binary exponents.</param>
+    /// <returns>The powers of two, including the binary32 underflow and overflow ranges.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Exp2(Vector128<float> value)
+    {
+        const float SignificandScale = 1 << 23;
+        const float Offset = 121.274057500F;
+        const float Linear = 1.490129070F;
+        const float Numerator = 27.728023300F;
+        const float Denominator = 4.84252568F;
+        const float InfinityBits = 0x7F800000;
+        const float SubnormalScale = 1F / (1 << 24);
+
+        Vector128<float> normal = Vector128.GreaterThanOrEqual(value, Vector128.Create(-126F))
+            & Vector128.LessThanOrEqual(value, Vector128.Create(127F));
+        bool hasSpecial = normal.AsUInt32() != Vector128<uint>.AllBitsSet;
+        Vector128<float> exponent = value;
+        Vector128<float> low = default;
+        Vector128<float> high = default;
+        if (hasSpecial)
+        {
+            // Build small outputs at 2^24 times their magnitude and large outputs at half their magnitude.
+            // Scaling afterwards retains the float range without constructing invalid exponent bits.
+            low = Vector128.LessThan(value, Vector128.Create(-126F));
+            high = Vector128.GreaterThan(value, Vector128.Create(127F));
+            exponent += Vector128.ConditionalSelect(low, Vector128.Create(24F), Vector128<float>.Zero);
+            exponent -= Vector128.ConditionalSelect(high, Vector128<float>.One, Vector128<float>.Zero);
+        }
+
+        // Approximate exponent and mantissa bits together. Reinterpretation replaces a separate exponentiation step.
+        Vector128<float> fraction = exponent - Vector128.Floor(exponent);
+        Vector128<float> bits = exponent + Vector128.Create(Offset) - (Vector128.Create(Linear) * fraction);
+        bits += Vector128.Create(Numerator) / (Vector128.Create(Denominator) - fraction);
+        bits *= Vector128.Create(SignificandScale);
+        if (hasSpecial)
+        {
+            bits = Vector128.Clamp(bits, Vector128<float>.Zero, Vector128.Create(InfinityBits));
+        }
+
+        // The encoded bit range is within Int32, so native truncation needs no saturation fixups.
+        Vector128<float> result = Vector128.ConvertToInt32Native(bits).AsSingle();
+        if (hasSpecial)
+        {
+            result *= Vector128.ConditionalSelect(low, Vector128.Create(SubnormalScale), Vector128<float>.One);
+            result *= Vector128.ConditionalSelect(high, Vector128.Create(2F), Vector128<float>.One);
+            result = Vector128.ConditionalSelect(Vector128.LessThan(value, Vector128.Create(-150F)), Vector128<float>.Zero, result);
+            result = Vector128.ConditionalSelect(Vector128.GreaterThan(value, Vector128.Create(128F)), Vector128.Create(float.PositiveInfinity), result);
+            result = Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Approximates natural exponentials without widening float SIMD lanes.
+    /// </summary>
+    /// <param name="value">The natural logarithms of the outputs.</param>
+    /// <returns>The exponentials in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Exp(Vector128<float> value)
+    {
+        const float InverseLogTwo = 1.4426950408889634F;
+        return Exp2(value * Vector128.Create(InverseLogTwo));
+    }
+
+    /// <summary>
+    /// Raises nonnegative values to a nonzero finite power with single-precision SIMD log2 and exp2 approximations.
+    /// </summary>
+    /// <param name="value">The nonnegative bases.</param>
+    /// <param name="exponent">The nonzero finite exponent shared by every component.</param>
+    /// <returns>The powers in the original lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Pow(Vector128<float> value, float exponent)
+    {
+        const float ExponentScale = 1F / (1 << 23);
+        const float Offset = 124.225514990F;
+        const float Linear = 1.498030302F;
+        const float Numerator = 1.725879990F;
+        const float Denominator = 0.3520887068F;
+        const uint SmallestNormalBits = 0x00800000;
+        const float SubnormalScale = 1 << 24;
+
+        // Zero uses a safe logarithm input and is restored after exponentiation. Keep this rule in
+        // the shared helper so finite gamma stages do not need the general power dispatcher.
+        Vector128<float> zero = Vector128.Equals(value, Vector128<float>.Zero);
+        Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, value);
+        Vector128<uint> small = Vector128.LessThan(positive.AsUInt32(), Vector128.Create(SmallestNormalBits));
+        bool hasSmall = small != Vector128<uint>.Zero;
+
+        // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
+        Vector128<float> normalized = positive;
+        if (hasSmall)
+        {
+            normalized = Vector128.ConditionalSelect(small.AsSingle(), positive * Vector128.Create(SubnormalScale), positive);
+        }
+
+        // Keep the 23 mantissa bits and set exponent 126 to put the mantissa in [0.5,1).
+        // Combine the encoded exponent and the rational mantissa correction to approximate log2.
+        Vector128<int> bits = normalized.AsInt32();
+        Vector128<float> mantissa = ((bits & Vector128.Create(0x007FFFFF)) | Vector128.Create(0x3F000000)).AsSingle();
+        Vector128<float> logarithm = (Vector128.ConvertToSingle(bits) * Vector128.Create(ExponentScale)) - Vector128.Create(Offset);
+        logarithm -= Vector128.Create(Linear) * mantissa;
+        logarithm -= Vector128.Create(Numerator) / (Vector128.Create(Denominator) + mantissa);
+        if (hasSmall)
+        {
+            logarithm -= Vector128.ConditionalSelect(small.AsSingle(), Vector128.Create(24F), Vector128<float>.Zero);
+        }
+
+        Vector128<float> result = Exp2(logarithm * Vector128.Create(exponent));
+
+        // Exponent zero is handled before this helper. Other powers of zero give zero or positive infinity.
+        float zeroResult = exponent < 0F ? float.PositiveInfinity : 0F;
+        result = Vector128.ConditionalSelect(zero, Vector128.Create(zeroResult), result);
+
+        if (Vector128.EqualsAny(value, Vector128.Create(float.PositiveInfinity)))
+        {
+            float infinityResult = exponent < 0F ? 0F : float.PositiveInfinity;
+            result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128.Create(float.PositiveInfinity)), Vector128.Create(infinityResult), result);
+        }
+
+        // These selections also keep an exceptional neighbor from changing an ordinary lane's calculation.
+        result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128<float>.One), value, result);
+        return Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
+    }
+
+    /// <summary>
     /// Average packed unsigned 8-bit integers in <paramref name="left"/> and <paramref name="right"/>, and store the results.
     /// </summary>
     /// <param name="left">
@@ -1213,19 +1341,80 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Reads 4 unaligned 32-bit words at byte offsets while the caller keeps the table pinned.
+    /// </summary>
+    /// <param name="table">The pinned or unmanaged byte storage.</param>
+    /// <param name="byteOffsets">The start of each complete four-byte read.</param>
+    /// <returns>The gathered words in lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector128<int> Gather(byte* table, Vector128<int> byteOffsets)
+    {
+        // AVX2 provides 128-bit gathers too. Four-color remainders can use them after wider blocks have finished.
+        if (Avx2.IsSupported)
+        {
+            return Avx2.GatherVector128((int*)table, byteOffsets, 1);
+        }
+
+        // Store the four offsets once so each address can be calculated without repeated vector lane extraction.
+        InlineArray4<int> lanes = default;
+        ref int first = ref Unsafe.As<InlineArray4<int>, int>(ref lanes);
+        byteOffsets.StoreUnsafe(ref first);
+
+        if (AdvSimd.IsSupported)
+        {
+            // NEON has no indexed gather. Each LD1 reads one unaligned word directly into its constant result lane.
+            // All four lanes are overwritten; the words do not pass through scalar registers before insertion.
+            Vector128<int> result = Vector128<int>.Zero;
+            result = AdvSimd.LoadAndInsertScalar(result, 0, (int*)(table + Unsafe.Add(ref first, 0U)));
+            result = AdvSimd.LoadAndInsertScalar(result, 1, (int*)(table + Unsafe.Add(ref first, 1U)));
+            result = AdvSimd.LoadAndInsertScalar(result, 2, (int*)(table + Unsafe.Add(ref first, 2U)));
+            return AdvSimd.LoadAndInsertScalar(result, 3, (int*)(table + Unsafe.Add(ref first, 3U)));
+        }
+
+        return Vector128.Create(
+            Unsafe.ReadUnaligned<int>(table + Unsafe.Add(ref first, 0U)),
+            Unsafe.ReadUnaligned<int>(table + Unsafe.Add(ref first, 1U)),
+            Unsafe.ReadUnaligned<int>(table + Unsafe.Add(ref first, 2U)),
+            Unsafe.ReadUnaligned<int>(table + Unsafe.Add(ref first, 3U)));
+    }
+
+    /// <summary>
+    /// Reads 4 table values while the caller keeps the table's address stable.
+    /// </summary>
+    /// <param name="table">The pinned or unmanaged table address.</param>
+    /// <param name="indices">Element indices within the table, one per lane.</param>
+    /// <returns>The selected 32-bit values in lane order.</returns>
+    /// <remarks>
+    /// Managed storage must remain pinned until this call returns. This overload lets a caller
+    /// reuse one pin across several gathers instead of pinning the same table for every lookup.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Vector128<int> Gather(int* table, Vector128<int> indices)
+    {
+        // AVX2 provides 128-bit gathers too. Four-color remainders can use them after wider blocks have finished.
+        if (Avx2.IsSupported)
+        {
+            return Avx2.GatherVector128(table, indices, sizeof(int));
+        }
+
+        // The caller's pin also covers the portable fallback's individual reads.
+        return Gather(ref Unsafe.AsRef<int>(table), indices);
+    }
+
+    /// <summary>
     /// Reads four 32-bit values from a table, one per lane, at the given element indices.
     /// </summary>
     /// <param name="table">The first element of the table.</param>
     /// <param name="indices">The element index of each lane.</param>
     /// <returns>The <see cref="Vector128{Int32}"/>.</returns>
     /// <remarks>
-    /// A gather has no portable form, so every path other than AVX2 reads the four elements one at a time. The
-    /// indices are stored once and the result is built once. The caller is responsible for keeping every index
-    /// inside the table.
+    /// AVX2 gathers the four words. AdvSimd loads each word directly into its result lane; other targets use scalar reads.
+    /// The caller is responsible for keeping every index inside the table.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe Vector128<int> Gather(ref int table, Vector128<int> indices)
     {
+        // AVX2 provides 128-bit gathers too. Four-color remainders can use them after wider blocks have finished.
         if (Avx2.IsSupported)
         {
             fixed (int* pointer = &table)
@@ -1237,10 +1426,25 @@ internal static class Vector128_
         InlineArray4<int> lanes = default;
         ref int first = ref Unsafe.As<InlineArray4<int>, int>(ref lanes);
         indices.StoreUnsafe(ref first);
+
+        if (AdvSimd.IsSupported)
+        {
+            // Keep the managed table pinned across all four lane loads. Indices count words, not bytes.
+            // LD1 writes each word directly into its constant result lane, avoiding separate scalar-register inserts.
+            fixed (int* pointer = &table)
+            {
+                Vector128<int> result = Vector128<int>.Zero;
+                result = AdvSimd.LoadAndInsertScalar(result, 0, pointer + Unsafe.Add(ref first, 0U));
+                result = AdvSimd.LoadAndInsertScalar(result, 1, pointer + Unsafe.Add(ref first, 1U));
+                result = AdvSimd.LoadAndInsertScalar(result, 2, pointer + Unsafe.Add(ref first, 2U));
+                return AdvSimd.LoadAndInsertScalar(result, 3, pointer + Unsafe.Add(ref first, 3U));
+            }
+        }
+
         return Vector128.Create(
-            Unsafe.Add(ref table, Unsafe.Add(ref first, 0)),
-            Unsafe.Add(ref table, Unsafe.Add(ref first, 1)),
-            Unsafe.Add(ref table, Unsafe.Add(ref first, 2)),
-            Unsafe.Add(ref table, Unsafe.Add(ref first, 3)));
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 0U)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 1U)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 2U)),
+            Unsafe.Add(ref table, Unsafe.Add(ref first, 3U)));
     }
 }

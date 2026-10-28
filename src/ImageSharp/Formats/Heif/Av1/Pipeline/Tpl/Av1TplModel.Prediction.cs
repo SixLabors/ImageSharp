@@ -77,7 +77,18 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
             Span<TSample> destinationSamples = destination.Samples[destinationIndex..];
             if (!isInter)
             {
-                this.PredictIntra(input, plane, mode, destination, planeX, planeY, destinationSamples, destination.Stride, transformSize, modeInfoRow, modeInfoColumn);
+                this.PredictIntra(
+                    input,
+                    plane,
+                    mode,
+                    destination,
+                    planeX,
+                    planeY,
+                    destinationSamples,
+                    destination.Stride,
+                    transformSize,
+                    modeInfoRow,
+                    modeInfoColumn);
             }
             else if (compound)
             {
@@ -422,7 +433,16 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
 
             if (mode == Av1PredictionMode.DC)
             {
-                TSampleOperator.PredictDc(leftCount > 0, topCount > 0, destination, destinationStride, aboveRow, leftColumn, transformWidth, transformHeight, bitCount);
+                TSampleOperator.PredictDc(
+                    leftCount > 0,
+                    topCount > 0,
+                    destination,
+                    destinationStride,
+                    aboveRow,
+                    leftColumn,
+                    transformWidth,
+                    transformHeight,
+                    bitCount);
             }
             else
             {
@@ -447,11 +467,35 @@ internal sealed partial class Av1TplModel<TSample, TSearchOperator, TSampleOpera
         int blockColumn = (modeInfoColumn >> Av1TplModelConstants.BlockModeInfoLog2) << Av1TplModelConstants.BlockModeInfoLog2;
         Av1PartitionType partition = this.modeInfo.GetPartition(blockRow, blockColumn);
         int haveTopRight = needTopRight
-            ? (Av1IntraReferenceAvailability.HasTopRight(input.SuperblockSize, Av1BlockSize.Block16x16, modeInfoRow, modeInfoColumn, haveTop, rightAvailable, partition, transformSize, 0, 0, subX, subY) ? 1 : 0)
+            ? (Av1IntraReferenceAvailability.HasTopRight(
+                input.SuperblockSize,
+                Av1BlockSize.Block16x16,
+                modeInfoRow,
+                modeInfoColumn,
+                haveTop,
+                rightAvailable,
+                partition,
+                transformSize,
+                0,
+                0,
+                subX,
+                subY) ? 1 : 0)
             : -1;
 
         int haveBottomLeft = needBottomLeft
-            ? (Av1IntraReferenceAvailability.HasBottomLeft(input.SuperblockSize, Av1BlockSize.Block16x16, modeInfoRow, modeInfoColumn, bottomAvailable, haveLeft, partition, transformSize, 0, 0, subX, subY) ? 1 : 0)
+            ? (Av1IntraReferenceAvailability.HasBottomLeft(
+                input.SuperblockSize,
+                Av1BlockSize.Block16x16,
+                modeInfoRow,
+                modeInfoColumn,
+                bottomAvailable,
+                haveLeft,
+                partition,
+                transformSize,
+                0,
+                0,
+                subX,
+                subY) ? 1 : 0)
             : -1;
 
         // A smooth neighbor above or to the left selects the stronger edge filter. The neighbors are the records that the

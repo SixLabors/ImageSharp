@@ -58,7 +58,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Computes the gradients of the current superblock once for every block of its partition search, when the
@@ -75,22 +75,25 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> sourceBlue,
             Point superblockOrigin)
         {
-            this.lumaGradientsCached = false;
-            this.chromaGradientsCached = false;
-            this.gradientSuperblockOrigin = superblockOrigin;
+            this.State.LumaGradientsCached = false;
+            this.State.ChromaGradientsCached = false;
+            this.State.GradientSuperblockOrigin = superblockOrigin;
 
             // Caching pays only when the full partition search visits each sample many times. Inter frames gate
             // intra early, and a given partition searches few blocks, so both compute the gradients per block.
-            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
-            if (!this.picture.Parent.FrameHeader.IsIntra || UsesGivenPartition(this.picture))
+            Av1EncoderSpeedSettings speedSettings = this.State.Picture.Parent.SpeedSettings;
+            if (!this.State.Picture.Parent.FrameHeader.IsIntra || UsesGivenPartition(this.State.Picture))
             {
                 return;
             }
 
             // The blocks read the gradients inside the coded image only, which ends at the mode information grid.
-            int superblockSize = 1 << this.picture.Sequence.SequenceHeader.SuperblockSizeLog2;
-            int lumaRows = Math.Min(superblockSize, (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) - superblockOrigin.Y);
-            int lumaColumns = Math.Min(superblockSize, (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - superblockOrigin.X);
+            int superblockSize = 1 << this.State.Picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+            int lumaRows = Math.Min(superblockSize, (this.State.Picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) - superblockOrigin.Y);
+            int lumaColumns = Math.Min(
+                superblockSize,
+                (this.State.Picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - superblockOrigin.X);
+
             if (speedSettings.IntraHogPruningLevel != 0)
             {
                 CacheSuperblockGradients(
@@ -102,10 +105,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeWorkspace.GetGradientMagnitudes(Av1PlaneType.Y),
                     modeWorkspace.GetGradientBins(Av1PlaneType.Y));
 
-                this.lumaGradientsCached = true;
+                this.State.LumaGradientsCached = true;
             }
 
-            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            ObuColorConfig colorConfig = this.State.Picture.Sequence.SequenceHeader.ColorConfig;
             if (speedSettings.ChromaHogPruningLevel != 0 && !colorConfig.IsMonochrome)
             {
                 int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
@@ -119,7 +122,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeWorkspace.GetGradientMagnitudes(Av1PlaneType.Uv),
                     modeWorkspace.GetGradientBins(Av1PlaneType.Uv));
 
-                this.chromaGradientsCached = true;
+                this.State.ChromaGradientsCached = true;
             }
         }
 
@@ -129,7 +132,6 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="modeWorkspace">The mode decision buffers, which hold the gradient cache.</param>
         /// <param name="planeType">The luma or chroma plane type.</param>
-        /// <param name="source">The source component plane.</param>
         /// <param name="sourceSamples">The samples of the complete source plane, read once by the caller.</param>
         /// <param name="origin">The visible block origin in the plane.</param>
         /// <param name="rows">The visible row count.</param>
@@ -137,10 +139,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="histogramScale">The chroma subsampling area factor, or one for luma.</param>
         /// <param name="threshold">The speed-dependent neural score threshold.</param>
         /// <returns>A bit mask whose eight bits correspond to the contiguous directional prediction modes.</returns>
-        private readonly byte GetBlockDirectionalModeSkipMask(
+        public readonly byte GetBlockDirectionalModeSkipMask(
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
             Av1PlaneType planeType,
-            Av1PlaneRegion<TSample> source,
             ReadOnlySpan<TSample> sourceSamples,
             Point origin,
             int rows,
@@ -148,17 +149,19 @@ internal static partial class Av1IntraSuperblockEncoder
             int histogramScale,
             float threshold)
         {
-            bool cached = planeType == Av1PlaneType.Y ? this.lumaGradientsCached : this.chromaGradientsCached;
+            Av1PlaneRegion<TSample> source = this.source.GetPlane(planeType == Av1PlaneType.Y ? Av1Plane.Y : Av1Plane.U);
+
+            bool cached = planeType == Av1PlaneType.Y ? this.State.LumaGradientsCached : this.State.ChromaGradientsCached;
             if (!cached)
             {
                 return GetDirectionalModeSkipMask(source, sourceSamples, origin, rows, columns, histogramScale, threshold);
             }
 
             // The block origin relative to the superblock origin in the same plane locates the block in the cache.
-            int subsamplingX = planeType == Av1PlaneType.Y || !this.picture.Sequence.SequenceHeader.ColorConfig.SubSamplingX ? 0 : 1;
-            int subsamplingY = planeType == Av1PlaneType.Y || !this.picture.Sequence.SequenceHeader.ColorConfig.SubSamplingY ? 0 : 1;
-            int offsetX = origin.X - (this.gradientSuperblockOrigin.X >> subsamplingX);
-            int offsetY = origin.Y - (this.gradientSuperblockOrigin.Y >> subsamplingY);
+            int subsamplingX = planeType == Av1PlaneType.Y || !this.State.Picture.Sequence.SequenceHeader.ColorConfig.SubSamplingX ? 0 : 1;
+            int subsamplingY = planeType == Av1PlaneType.Y || !this.State.Picture.Sequence.SequenceHeader.ColorConfig.SubSamplingY ? 0 : 1;
+            int offsetX = origin.X - (this.State.GradientSuperblockOrigin.X >> subsamplingX);
+            int offsetY = origin.Y - (this.State.GradientSuperblockOrigin.Y >> subsamplingY);
             return GetCachedDirectionalModeSkipMask(
                 modeWorkspace.GetGradientMagnitudes(planeType),
                 modeWorkspace.GetGradientBins(planeType),

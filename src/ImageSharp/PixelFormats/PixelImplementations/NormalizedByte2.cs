@@ -39,6 +39,18 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// <param name="vector">The vector containing the component values.</param>
     public NormalizedByte2(Vector2 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Two's-complement X and Y codes occupy bits 0-7 and 8-15, respectively.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public NormalizedByte2(ushort packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ushort PackedValue { get; set; }
 
@@ -63,6 +75,21 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(NormalizedByte2 left, NormalizedByte2 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public static NormalizedByte2 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static NormalizedByte2 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static NormalizedByte2 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static NormalizedByte2 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,6 +119,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
         => PixelTypeInfo.Create<NormalizedByte2>(
             PixelComponentInfo.Create<NormalizedByte2>(2, 8, 8),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
@@ -120,11 +148,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static NormalizedByte2 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -240,7 +264,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector2 vector)
     {
-        vector = Numerics.Clamp(vector, MinusOne, Vector2.One) * Half;
+        vector = ColorNumerics.ClampToFinite(vector, MinusOne, Vector2.One) * Half;
 
         int byte2 = ((ushort)Convert.ToInt16(Math.Round(vector.X)) & 0xFF) << 0;
         int byte1 = ((ushort)Convert.ToInt16(Math.Round(vector.Y)) & 0xFF) << 8;

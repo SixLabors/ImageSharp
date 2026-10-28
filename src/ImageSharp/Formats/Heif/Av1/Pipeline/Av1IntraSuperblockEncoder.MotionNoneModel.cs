@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -157,7 +158,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Decides whether the completed unsplit candidate makes additional partition searches unnecessary.
@@ -180,7 +181,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="nodeIndex">The simple motion node of the block.</param>
         /// <param name="statistics">The rate and distortion of the unsplit block.</param>
         /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
-        private bool ShouldTerminateAfterMotionNone(
+        public bool ShouldTerminateAfterMotionNone(
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -193,6 +194,72 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> reconstructionLuma,
             Span<TSample> reconstructionBlue,
             Span<TSample> reconstructionRed,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            Av1RateDistortionStatistics statistics)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.ShouldTerminateAfterMotionNone(
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                modeInfoGrid,
+                modeInfoAllocation,
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                statistics);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Decides whether the completed unsplit candidate makes additional partition searches unnecessary.
+        /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="statistics">The rate and distortion of the unsplit block.</param>
+        /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
+        public bool ShouldTerminateAfterMotionNone(
+            Span<byte> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,

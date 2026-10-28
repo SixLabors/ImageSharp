@@ -20,10 +20,7 @@ public class LoadResizeSaveProfilingBenchmarks : MeasureFixture
         Configuration configuration = Configuration.CreateDefaultInstance();
         configuration.MaxDegreeOfParallelism = 1;
 
-        DecoderOptions options = new()
-        {
-            Configuration = configuration
-        };
+        DecoderOptions options = new(configuration);
 
         byte[] imageBytes = TestFile.Create(imagePath).Bytes;
 

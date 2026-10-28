@@ -191,7 +191,15 @@ public class LoadResizeSaveStressRunner
         graphics.CompositingMode = CompositingMode.SourceCopy;
         graphics.CompositingQuality = CompositingQuality.AssumeLinear;
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        graphics.DrawImage(image, System.Drawing.Rectangle.FromLTRB(0, 0, resized.Width, resized.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+        graphics.DrawImage(
+            image,
+            System.Drawing.Rectangle.FromLTRB(0, 0, resized.Width, resized.Height),
+            0,
+            0,
+            image.Width,
+            image.Height,
+            GraphicsUnit.Pixel,
+            attributes);
 
         // Save the results
         using EncoderParameters encoderParams = new(1);
@@ -206,7 +214,7 @@ public class LoadResizeSaveStressRunner
         using FileStream outputStream = File.Open(this.OutputPath(input), FileMode.Create);
 
         // Resize it to fit a 150x150 square
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
         };
@@ -229,7 +237,7 @@ public class LoadResizeSaveStressRunner
         await using FileStream output = File.Open(this.OutputPath(input), FileMode.Create);
 
         // Resize it to fit a 150x150 square.
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
         };

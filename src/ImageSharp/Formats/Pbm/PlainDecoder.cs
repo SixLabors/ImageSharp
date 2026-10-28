@@ -135,11 +135,10 @@ internal class PlainDecoder
             }
 
             // Do not copy the unused part of a pooled row after EOF. Earlier rows and available samples remain decoded.
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(
                 configuration,
                 vectorRow[..count],
-                pixels.DangerousGetRowSpan(y)[..count],
-                PixelConversionModifiers.Scale);
+                pixels.DangerousGetRowSpan(y)[..count]);
 
             if (!hasNext)
             {

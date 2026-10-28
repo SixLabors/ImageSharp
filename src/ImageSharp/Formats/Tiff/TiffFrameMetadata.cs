@@ -102,6 +102,19 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     public static TiffFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
     {
         TiffFrameMetadata frameMetadata = new();
+        if (metadata.PixelTypeInfo is PixelTypeInfo pixelType && TiffMetadata.TryGetLayout(
+            pixelType,
+            out TiffPhotometricInterpretation photometric,
+            out TiffBitsPerSample samples,
+            out TiffExtraSampleType? extraSample))
+        {
+            frameMetadata.PhotometricInterpretation = photometric;
+            frameMetadata.BitsPerSample = samples;
+            frameMetadata.BitsPerPixel = samples.BitsPerPixel();
+            frameMetadata.ExtraSampleType = extraSample;
+            frameMetadata.InkSet = photometric == TiffPhotometricInterpretation.Separated ? TiffInkSet.Cmyk : null;
+        }
+
         if (metadata.EncodingWidth.HasValue && metadata.EncodingHeight.HasValue)
         {
             frameMetadata.EncodingWidth = metadata.EncodingWidth.Value;
@@ -129,11 +142,14 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         bool isGrayscale = this.PhotometricInterpretation is TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero;
         PixelColorType colorType = this.PhotometricInterpretation switch
         {
-            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bitsPerPixel == 1 ? PixelColorType.Binary : PixelColorType.Luminance,
+            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bitsPerPixel == 1
+                ? PixelColorType.Binary
+                : PixelColorType.Luminance,
             TiffPhotometricInterpretation.PaletteColor => PixelColorType.Indexed,
             TiffPhotometricInterpretation.Rgb => PixelColorType.RGB,
             TiffPhotometricInterpretation.Separated => PixelColorType.CMYK,
             TiffPhotometricInterpretation.YCbCr => PixelColorType.YCbCr,
+            TiffPhotometricInterpretation.CieLab => PixelColorType.Lab,
             _ => PixelColorType.Other
         };
 

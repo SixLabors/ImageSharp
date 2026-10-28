@@ -10,7 +10,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Packed pixel type containing two IEEE 754 half-precision floating-point values.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions return the stored IEEE 754 half-precision values directly.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to [-65504,65504].
 /// The packed representation is
 /// binary-compatible with <c>DXGI_FORMAT_R16G16_FLOAT</c>.
 /// </remarks>
@@ -28,6 +29,18 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     /// </summary>
     /// <param name="vector">A vector containing the initial values for the components.</param>
     public HalfVector2(Vector2 vector) => this.PackedValue = Pack(vector.X, vector.Y);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HalfVector2"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Half-precision X and Y bit patterns occupy bits 0-15 and 16-31, respectively.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public HalfVector2(uint packed)
+        : this() => this.PackedValue = packed;
 
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
@@ -55,12 +68,28 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     public static bool operator !=(HalfVector2 left, HalfVector2 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static HalfVector2 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfVector2 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfVector2 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfVector2 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,6 +104,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
         => PixelTypeInfo.Create<HalfVector2>(
             PixelComponentInfo.Create<HalfVector2>(2, 16, 16),
             PixelColorType.Red | PixelColorType.Green,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
@@ -82,11 +112,13 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToAssociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,16 +130,13 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfVector2 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+    public static HalfVector2 FromUnassociatedScaledVector4(Vector4 source)
+        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfVector2 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,7 +152,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfVector2 FromScaledVector4(Vector4 source) => FromVector4(source);
+    public static HalfVector2 FromScaledVector4(Vector4 source) => FromUnassociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

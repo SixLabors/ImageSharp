@@ -14,6 +14,8 @@ internal class TestMemoryAllocator : MemoryAllocator
     private List<AllocationRequest> allocationLog;
     private List<ReturnRequest> returnLog;
     private int nextAllocationId;
+    private long liveBufferBytes;
+    private long peakBufferBytes;
 
     public TestMemoryAllocator(byte dirtyValue = 42)
     {
@@ -25,9 +27,20 @@ internal class TestMemoryAllocator : MemoryAllocator
     /// </summary>
     public byte DirtyValue { get; }
 
+    /// <summary>
+    /// Gets the live requested buffer bytes while non-thread-safe allocation logging is enabled.
+    /// </summary>
+    public long LiveBufferBytes => this.liveBufferBytes;
+
+    /// <summary>
+    /// Gets the largest live requested buffer total while allocation logging is enabled.
+    /// </summary>
+    public long PeakBufferBytes => this.peakBufferBytes;
+
     public int BufferCapacityInBytes { get; set; } = int.MaxValue;
 
-    public IReadOnlyList<AllocationRequest> AllocationLog => this.allocationLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
+    public IReadOnlyList<AllocationRequest> AllocationLog
+        => this.allocationLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 
     public IReadOnlyList<ReturnRequest> ReturnLog => this.returnLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 
@@ -51,6 +64,12 @@ internal class TestMemoryAllocator : MemoryAllocator
     {
         T[] array = new T[length + 42];
         this.allocationLog?.Add(AllocationRequest.Create<T>(options, length, array, allocationId));
+        if (this.allocationLog is not null)
+        {
+            // These counters share the existing logging contract: callers enable them only for serial diagnostics.
+            this.liveBufferBytes += (long)length * Unsafe.SizeOf<T>();
+            this.peakBufferBytes = Math.Max(this.peakBufferBytes, this.liveBufferBytes);
+        }
 
         if (options == AllocationOptions.None)
         {
@@ -65,6 +84,10 @@ internal class TestMemoryAllocator : MemoryAllocator
         where T : struct
     {
         this.returnLog?.Add(new ReturnRequest(buffer.AllocationId, buffer.Array.GetHashCode()));
+        if (this.returnLog is not null)
+        {
+            this.liveBufferBytes -= (long)buffer.Length * Unsafe.SizeOf<T>();
+        }
     }
 
     public struct AllocationRequest

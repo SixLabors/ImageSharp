@@ -22,8 +22,8 @@ internal readonly struct TgaFileHeader
         byte idLength,
         byte colorMapType,
         TgaImageType imageType,
-        short cMapStart,
-        short cMapLength,
+        ushort cMapStart,
+        ushort cMapLength,
         byte cMapDepth,
         short xOffset,
         short yOffset,
@@ -74,12 +74,12 @@ internal readonly struct TgaFileHeader
     /// This field and its sub-fields describe the color map (if any) used for the image. If the Color Map Type field
     /// is set to zero, indicating that no color map exists, then these 5 bytes should be set to zero.
     /// </summary>
-    public short CMapStart { get; }
+    public ushort CMapStart { get; }
 
     /// <summary>
     /// Gets the total number of color map entries included.
     /// </summary>
-    public short CMapLength { get; }
+    public ushort CMapLength { get; }
 
     /// <summary>
     /// Gets the number of bits per entry. Typically 15, 16, 24 or 32-bit values are used.

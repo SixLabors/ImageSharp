@@ -20,7 +20,7 @@ internal static class PbmSampleScaler
     {
         // Maxval is a validated positive integer. Division maps Maxval to exactly one, including the alpha lane.
         // Saturation is a numeric conversion rule and does not depend on SegmentIntegrityHandling.
-        value = Numerics.Clamp(value, Vector4.Zero, new Vector4(maxPixelValue));
+        value = ColorNumerics.ClampToFinite(value, Vector4.Zero, new Vector4(maxPixelValue));
         return value / maxPixelValue;
     }
 }

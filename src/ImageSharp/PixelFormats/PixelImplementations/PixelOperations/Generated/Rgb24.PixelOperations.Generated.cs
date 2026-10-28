@@ -17,7 +17,7 @@ public partial struct Rgb24
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgb24>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgb24>
     {
         /// <inheritdoc />
         public override void FromRgb24(Configuration configuration, ReadOnlySpan<Rgb24> source, Span<Rgb24> destination)
@@ -37,26 +37,6 @@ public partial struct Rgb24
             source.CopyTo(destination.Slice(0, source.Length));
         }
 
-        /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<Rgb24> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(PixelConversionModifiers.Scale));
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<Rgb24> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
-        }
-    
         /// <inheritdoc />
         public override void ToRgba32(
             Configuration configuration,
@@ -324,12 +304,12 @@ public partial struct Rgb24
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Rgb24> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToRgb24(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToRgb24(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

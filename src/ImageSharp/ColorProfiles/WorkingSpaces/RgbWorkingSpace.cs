@@ -102,6 +102,12 @@ public abstract class RgbWorkingSpace
     public override int GetHashCode()
         => HashCode.Combine(this.GetType(), this.WhitePoint, this.ChromaticityCoordinates);
 
+    /// <summary>
+    /// Builds the linear RGB-to-XYZ matrix from the primaries and reference white.
+    /// </summary>
+    /// <param name="referenceWhite">The XYZ value that RGB white must produce.</param>
+    /// <param name="chromaticityCoordinates">The xy chromaticities of the red, green and blue primaries.</param>
+    /// <returns>The matrix that transforms linear RGB in this working space to XYZ.</returns>
     private static Matrix4x4 CreateRgbToCieXyzMatrix(CieXyz referenceWhite, RgbPrimariesChromaticityCoordinates chromaticityCoordinates)
     {
         float xr = chromaticityCoordinates.R.X;
@@ -111,6 +117,7 @@ public abstract class RgbWorkingSpace
         float yg = chromaticityCoordinates.G.Y;
         float yb = chromaticityCoordinates.B.Y;
 
+        // Convert each xy primary to XYZ with unit luminance (Y = 1).
         float mXr = xr / yr;
         float mZr = (1 - xr - yr) / yr;
 
@@ -136,9 +143,10 @@ public abstract class RgbWorkingSpace
 
         Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
 
+        // Scale the three primaries so RGB white (1,1,1) maps to the reference white.
         Vector3 vector = Vector3.Transform(referenceWhite.AsVector3Unsafe(), inverseXyzMatrix);
 
-        // Use transposed Rows/Columns
+        // Each row stores one primary's contribution to X, Y and Z for Vector3.Transform.
         return new Matrix4x4
         {
             M11 = vector.X * mXr,

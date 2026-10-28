@@ -1000,7 +1000,11 @@ public class Av1ForwardTransformTests
     /// <param name="stride">The number of input samples between rows.</param>
     /// <param name="output">The destination reference coefficients.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
-    private static void DispatchReferenceRow<TColumnOperator>(ReadOnlySpan<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
+    private static void DispatchReferenceRow<TColumnOperator>(
+        ReadOnlySpan<short> input,
+        int stride,
+        Span<int> output,
+        ref Av1Transform2dFlipConfiguration config)
         where TColumnOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
         switch (config.TransformFunctionTypeRow)

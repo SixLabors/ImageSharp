@@ -18,9 +18,21 @@ public partial struct L8
         // Alpha is implicitly one, so both outward representations already contain associated color components.
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<L8> source, Span<Vector4> destination) => this.ToUnassociatedVector4(configuration, source, destination);
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<L8> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToUnassociatedVector4(configuration, source, destination);
+        }
 
         /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<L8> source, Span<Vector4> destination) => this.ToUnassociatedScaledVector4(configuration, source, destination);
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<L8> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToUnassociatedScaledVector4(configuration, source, destination);
+        }
     }
 }

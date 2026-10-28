@@ -20,7 +20,22 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
 {
     private Vector4 scaled;
 
-    public ScaledRgbaVectorP(Vector4 scaled) => this.scaled = Numerics.Clamp(scaled, Vector4.Zero, Vector4.One);
+    public ScaledRgbaVectorP(Vector4 scaled) => this.scaled = ColorNumerics.ClampToFinite(scaled, Vector4.Zero, Vector4.One);
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static ScaledRgbaVectorP FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
+
 
     public readonly Rgba32 ToRgba32()
     {
@@ -66,6 +81,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         => PixelTypeInfo.Create<ScaledRgbaVectorP>(
             PixelComponentInfo.Create<ScaledRgbaVectorP>(4, 32, 32, 32, 32),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Associated);
 
     public static PixelOperations<ScaledRgbaVectorP> CreatePixelOperations() => new ScaledPixelOperations();
@@ -82,7 +98,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     {
         // Clamp logical color before restoring association so out-of-range alpha cannot permanently darken it.
         Numerics.UnPremultiply(ref source);
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
         Numerics.Premultiply(ref source);
         return new ScaledRgbaVectorP(source);
     }
@@ -141,7 +157,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ScaledRgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
         Numerics.Premultiply(ref source);
         return new ScaledRgbaVectorP(source);
     }
@@ -149,10 +165,10 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     /// <summary>
     /// Provides representation-aware bulk operations for the floating-point test pixel.
     /// </summary>
-    private sealed class ScaledPixelOperations : AssociatedAlphaPixelOperations<ScaledRgbaVectorP>
+    private sealed class ScaledPixelOperations : PixelOperations<ScaledRgbaVectorP>
     {
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -170,7 +186,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -184,7 +200,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -194,7 +210,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<ScaledRgbaVectorP> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -202,39 +218,39 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             destination = destination[..source.Length];
             MapNativeToScaled(source);
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
+            ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
             Numerics.Premultiply(source);
             MemoryMarshal.Cast<Vector4, ScaledRgbaVectorP>(source).CopyTo(destination);
         }
 
         /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             destination = destination[..source.Length];
             MapNativeToScaled(source);
             Numerics.UnPremultiply(source);
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
+            ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
             Numerics.Premultiply(source);
             MemoryMarshal.Cast<Vector4, ScaledRgbaVectorP>(source).CopyTo(destination);
         }
 
         /// <inheritdoc />
-        protected override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             destination = destination[..source.Length];
 
             // This test format stores floating-point alpha without quantization, so clamping and premultiplication can use the shared SIMD span operations directly.
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
+            ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
             Numerics.Premultiply(source);
 
             // Source now matches the pixel's sole associated Vector4 field and can be copied without a scalar conversion loop.
@@ -242,7 +258,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         }
 
         /// <inheritdoc />
-        protected override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
+        public override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<ScaledRgbaVectorP> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -250,7 +266,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
 
             // Recovering the logical color before clamping preserves it when alpha lies outside the scaled range; premultiplication then restores the associated representation.
             Numerics.UnPremultiply(source);
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
+            ColorNumerics.ClampToFinite(MemoryMarshal.Cast<Vector4, float>(source), 0F, 1F);
             Numerics.Premultiply(source);
             MemoryMarshal.Cast<Vector4, ScaledRgbaVectorP>(source).CopyTo(destination);
         }

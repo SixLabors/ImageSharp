@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 public partial class JpegDecoderTests
 {
     [Theory]
-    [InlineData(1, 0, JpegColorSpace.Grayscale)]
+    [InlineData(1, 0, JpegColorSpace.Luminance)]
     [InlineData(3, JpegConstants.Adobe.ColorTransformUnknown, JpegColorSpace.RGB)]
     [InlineData(3, JpegConstants.Adobe.ColorTransformYCbCr, JpegColorSpace.YCbCr)]
     [InlineData(4, JpegConstants.Adobe.ColorTransformUnknown, JpegColorSpace.Cmyk)]
@@ -39,7 +39,7 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [InlineData(1, JpegColorSpace.Grayscale)]
+    [InlineData(1, JpegColorSpace.Luminance)]
     [InlineData(3, JpegColorSpace.YCbCr)]
     [InlineData(4, JpegColorSpace.Cmyk)]
     internal void DeduceJpegColorSpace_ShouldReturnValidColorSpace(byte componentCount, JpegColorSpace expectedColorSpace)

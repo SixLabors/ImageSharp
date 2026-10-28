@@ -12,9 +12,22 @@ public class Vp8EncodingTests
     private static void RunFTransform2Test()
     {
         // arrange
-        byte[] src = [154, 154, 151, 151, 149, 148, 151, 157, 163, 163, 154, 132, 102, 98, 104, 108, 107, 104, 104, 103, 101, 106, 123, 119, 170, 171, 172, 171, 168, 175, 171, 173, 151, 151, 149, 150, 147, 147, 146, 159, 164, 165, 154, 129, 92, 90, 101, 105, 104, 103, 104, 101, 100, 105, 123, 117, 172, 172, 172, 168, 170, 177, 170, 175, 151, 149, 150, 150, 147, 147, 156, 161, 161, 161, 151, 126, 93, 90, 102, 107, 104, 103, 104, 101, 104, 104, 122, 117, 172, 172, 170, 168, 170, 177, 172, 175, 150, 149, 152, 151, 148, 151, 160, 159, 157, 157, 148, 133, 96, 90, 103, 107, 104, 104, 101, 100, 102, 102, 121, 117, 170, 170, 169, 171, 171, 179, 173, 175
+        byte[] src =
+        [
+            154, 154, 151, 151, 149, 148, 151, 157, 163, 163, 154, 132, 102, 98, 104, 108, 107, 104, 104, 103, 101, 106, 123, 119, 170, 171, 172, 171, 168,
+            175, 171, 173, 151, 151, 149, 150, 147, 147, 146, 159, 164, 165, 154, 129, 92, 90, 101, 105, 104, 103, 104, 101, 100, 105, 123, 117, 172, 172, 172,
+            168, 170, 177, 170, 175, 151, 149, 150, 150, 147, 147, 156, 161, 161, 161, 151, 126, 93, 90, 102, 107, 104, 103, 104, 101, 104, 104, 122, 117, 172,
+            172, 170, 168, 170, 177, 172, 175, 150, 149, 152, 151, 148, 151, 160, 159, 157, 157, 148, 133, 96, 90, 103, 107, 104, 104, 101, 100, 102, 102, 121,
+            117, 170, 170, 169, 171, 171, 179, 173, 175
         ];
-        byte[] reference = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129
+
+        byte[] reference =
+        [
+            128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129,
+            129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129,
+            129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129, 129, 129, 129,
+            129, 129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 129, 129, 129, 129,
+            129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129
         ];
         short[] actualOutput1 = new short[16];
         short[] actualOutput2 = new short[16];
@@ -144,23 +157,29 @@ public class Vp8EncodingTests
     public void FTransform2_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransform2Test, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void FTransform2_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransform2Test, HwIntrinsics.DisableHWIntrinsic);
+    public void FTransform2_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransform2Test, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void FTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransformTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void FTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransformTest, HwIntrinsics.DisableHWIntrinsic);
+    public void FTransform_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransformTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void OneInverseTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunOneInverseTransformTest, HwIntrinsics.AllowAll);
+    public void OneInverseTransform_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunOneInverseTransformTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void OneInverseTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunOneInverseTransformTest, HwIntrinsics.DisableHWIntrinsic);
+    public void OneInverseTransform_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunOneInverseTransformTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void TwoInverseTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTwoInverseTransformTest, HwIntrinsics.AllowAll);
+    public void TwoInverseTransform_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTwoInverseTransformTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void TwoInverseTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTwoInverseTransformTest, HwIntrinsics.DisableHWIntrinsic);
+    public void TwoInverseTransform_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTwoInverseTransformTest, HwIntrinsics.DisableHWIntrinsic);
 }

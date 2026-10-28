@@ -18,7 +18,9 @@ internal static class ConditionalTestDiscoverer
     /// Evaluates skip conditions given an explicit callee type and condition member names.
     /// Used by attribute constructors in xunit v3 where discoverers are not needed.
     /// </summary>
-    internal static string EvaluateSkipConditions([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type calleeType, string[] conditionMemberNames)
+    internal static string EvaluateSkipConditions(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type calleeType,
+        string[] conditionMemberNames)
     {
         if (
             calleeType == null

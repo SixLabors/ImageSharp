@@ -22,32 +22,13 @@ public partial struct L16
         // Alpha is implicitly one, so both outward representations already contain associated color components.
 
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(
-            Configuration configuration,
-            ReadOnlySpan<L16> source,
-            Span<Vector4> destination)
-            => ConvertToVector4(source, destination);
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(
-            Configuration configuration,
-            ReadOnlySpan<L16> source,
-            Span<Vector4> destination)
-            => ConvertToVector4(source, destination);
-
-        /// <inheritdoc />
-        protected override void ToAssociatedVector4(
-            Configuration configuration,
-            ReadOnlySpan<L16> source,
-            Span<Vector4> destination)
-            => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(
-            Configuration configuration,
-            ReadOnlySpan<L16> source,
-            Span<Vector4> destination)
-            => this.ToUnassociatedScaledVector4(configuration, source, destination);
+            ConvertToVector4(source, destination);
+        }
 
         /// <summary>
         /// Expands packed luminance samples into normalized RGB vectors with opaque alpha.
@@ -73,7 +54,9 @@ public partial struct L16
                     (Vector512<uint> lower, Vector512<uint> upper) = Vector512.Widen(packed);
 
                     StoreLuminanceVectors(Vector512.ConvertToSingle(lower.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)i));
-                    StoreLuminanceVectors(Vector512.ConvertToSingle(upper.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
+                    StoreLuminanceVectors(
+                        Vector512.ConvertToSingle(upper.AsInt32()) / maximum,
+                        ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
                 }
             }
 
@@ -89,7 +72,9 @@ public partial struct L16
                     (Vector256<uint> lower, Vector256<uint> upper) = Vector256.Widen(packed);
 
                     StoreLuminanceVectors(Vector256.ConvertToSingle(lower.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)i));
-                    StoreLuminanceVectors(Vector256.ConvertToSingle(upper.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
+                    StoreLuminanceVectors(
+                        Vector256.ConvertToSingle(upper.AsInt32()) / maximum,
+                        ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
                 }
             }
 
@@ -105,7 +90,9 @@ public partial struct L16
                     (Vector128<uint> lower, Vector128<uint> upper) = Vector128.Widen(packed);
 
                     StoreLuminanceVectors(Vector128.ConvertToSingle(lower.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)i));
-                    StoreLuminanceVectors(Vector128.ConvertToSingle(upper.AsInt32()) / maximum, ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
+                    StoreLuminanceVectors(
+                        Vector128.ConvertToSingle(upper.AsInt32()) / maximum,
+                        ref Unsafe.Add(ref destinationBase, (uint)(i + (samplesPerVector / 2))));
                 }
             }
 

@@ -2,7 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
@@ -86,13 +87,23 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     [Theory]
     [MemberData(nameof(Palette4Data))]
     [MemberData(nameof(Palette8Data))]
-    public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
+    public void Decode_WritesPixelData(
+        byte[] inputData,
+        ushort bitsPerSample,
+        ushort[] colorMap,
+        int left,
+        int top,
+        int width,
+        int height,
+        Rgba32[][] expectedResult)
         => AssertDecode(expectedResult, pixels =>
             {
                 new PaletteTiffColor<Rgba32>(
                     new TiffBitsPerSample(bitsPerSample, 0, 0),
                     colorMap,
-                    TiffExtraSampleType.UnspecifiedData)
+                    TiffExtraSampleType.UnspecifiedData,
+                    new ImageFrameMetadata(),
+                    Configuration.Default)
                 .Decode(inputData, pixels, left, top, width, height);
             });
 

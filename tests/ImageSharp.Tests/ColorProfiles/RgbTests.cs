@@ -2,8 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
@@ -78,5 +80,64 @@ public class RgbTests
         Assert.Equal(r / 255F, rgb2.R);
         Assert.Equal(g / 255F, rgb2.G);
         Assert.Equal(b / 255F, rgb2.B);
+    }
+
+    /// <summary>
+    /// Checks complete SIMD groups, tails and destination boundaries against the single-color conversion contract.
+    /// </summary>
+    [Fact]
+    public void BulkScaledVectors_MatchSingleConversions() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckBulkScaledVectors,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies exact component bits and opaque expansion without clipping floating-point RGB.
+    /// </summary>
+    private static void CheckBulkScaledVectors()
+    {
+        ReadOnlySpan<int> lengths = [0, 1, 3, 4, 7, 8, 15, 16, 17, 31, 32, 33, 127, 128, 129];
+        Random random = new(42);
+
+        foreach (int length in lengths)
+        {
+            // Negative and HDR values detect clipping. Exceptional components must also pass through without arithmetic.
+            Vector4[] source = random.GenerateRandomVectorArray(length, -16F, 16F);
+            if (length > 0)
+            {
+                source[0] = new Vector4(-0F, float.PositiveInfinity, float.NaN, -0.5F);
+            }
+
+            Rgb[] expectedRgb = new Rgb[length];
+            Vector4[] expectedExpanded = new Vector4[length];
+            for (int i = 0; i < length; i++)
+            {
+                expectedRgb[i] = Rgb.FromScaledVector4(source[i]);
+                expectedExpanded[i] = expectedRgb[i].ToScaledVector4();
+            }
+
+            // Sentinels outside the generated range expose stores beyond the caller's converted prefix.
+            Rgb sentinelRgb = new(float.MinValue, float.MinValue, float.MinValue);
+            Vector4 sentinelVector = new(float.MinValue);
+            Rgb[] actualRgb = new Rgb[length + 1];
+            Vector4[] actualExpanded = new Vector4[length + 1];
+            Array.Fill(actualRgb, sentinelRgb);
+            Array.Fill(actualExpanded, sentinelVector);
+
+            Rgb.FromScaledVector4(source, actualRgb);
+
+            Assert.True(
+                MemoryMarshal.AsBytes(expectedRgb.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(actualRgb.AsSpan(0, length))),
+                $"RGB compaction changed component bits at length {length}.");
+
+            Assert.Equal(sentinelRgb, actualRgb[length]);
+
+            Rgb.ToScaledVector4(actualRgb.AsSpan(0, length), actualExpanded);
+
+            Assert.True(
+                MemoryMarshal.AsBytes(expectedExpanded.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(actualExpanded.AsSpan(0, length))),
+                $"RGB expansion changed component bits at length {length}.");
+
+            Assert.Equal(sentinelVector, actualExpanded[length]);
+        }
     }
 }

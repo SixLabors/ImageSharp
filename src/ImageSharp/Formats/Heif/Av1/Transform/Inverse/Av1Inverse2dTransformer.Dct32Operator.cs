@@ -42,6 +42,15 @@ internal static partial class Av1Inverse2dTransformer
             InlineArray12<byte> stageRange)
             => TransformLanes<Vector256<int>, Vector256LaneOperator>(ref input, ref output, ref step, cosBit, stageRange);
 
+        /// <inheritdoc/>
+        public static void Transform(
+            ref Av1TransformVector<Vector512<int>> input,
+            ref Av1TransformVector<Vector512<int>> output,
+            ref Av1TransformVector<Vector512<int>> step,
+            int cosBit,
+            InlineArray12<byte> stageRange)
+            => TransformLanes<Vector512<int>, Vector512LaneOperator>(ref input, ref output, ref step, cosBit, stageRange);
+
         /// <summary>
         /// Applies stages 6 to 9 of the 32-point inverse DCT to every lane. The sixteen-input sparse operator shares these stages.
         /// </summary>

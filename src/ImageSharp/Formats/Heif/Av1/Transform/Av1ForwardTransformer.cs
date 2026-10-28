@@ -201,7 +201,8 @@ internal static partial class Av1ForwardTransformer
     /// <returns>The widened samples.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> LoadFourSamples(ref short residual, int offset)
-        => Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residual, offset)))).AsInt16());
+        => Vector128.WidenLower(
+            Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref residual, offset)))).AsInt16());
 
     /// <summary>
     /// Applies the halving butterflies of one 4x4 Hadamard pass to four columns at once.
@@ -407,7 +408,15 @@ internal static partial class Av1ForwardTransformer
         Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, bitDepth);
         Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetRequiredLength(transformSize), nameof(workspace));
 
-        DispatchColumn(input, coefficients, stride, bitDepth, ref config, workspace);
+        // Select storage once for the whole block. Each axis then selects its own concrete operator, so row and column
+        // combinations share loading, transposition, and packing without indirect calls inside the transform loops.
+        if (bitDepth == 8 && Vector128.IsHardwareAccelerated)
+        {
+            TransformPacked(input, coefficients, stride, ref config, workspace);
+            return;
+        }
+
+        TransformExpanded(input, coefficients, stride, ref config, workspace);
     }
 
     /// <summary>
@@ -542,177 +551,19 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Selects the concrete column operator for a transform block.
-    /// </summary>
-    /// <param name="input">The spatial residual samples.</param>
-    /// <param name="coefficients">The destination transform coefficients.</param>
-    /// <param name="stride">The number of input samples between rows.</param>
-    /// <param name="bitDepth">The source sample bit depth.</param>
-    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
-    /// <param name="workspace">The reusable transform workspace.</param>
-    private static void DispatchColumn(
-        ReadOnlySpan<short> input,
-        Span<int> coefficients,
-        uint stride,
-        int bitDepth,
-        ref Av1Transform2dFlipConfiguration config,
-        Span<int> workspace)
-    {
-        switch (config.TransformFunctionTypeColumn)
-        {
-            case Av1TransformFunctionType.Dct4:
-                DispatchRow<Dct4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct8:
-                DispatchRow<Dct8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct16:
-                DispatchRow<Dct16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct32:
-                DispatchRow<Dct32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct64:
-                DispatchRow<Dct64Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Adst4:
-                DispatchRow<Adst4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Adst8:
-                DispatchRow<Adst8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Adst16:
-                DispatchRow<Adst16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity4:
-                DispatchRow<Identity4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity8:
-                DispatchRow<Identity8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity16:
-                DispatchRow<Identity16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity32:
-                DispatchRow<Identity32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            default:
-                throw new InvalidImageContentException($"The {config.TransformFunctionTypeColumn} column transform is not valid for {config.TransformSize}.");
-        }
-    }
-
-    /// <summary>
-    /// Selects the concrete row operator for the column operator that <see cref="DispatchColumn"/> selected.
-    /// </summary>
-    /// <typeparam name="TColumnOperator">The column transform operator selected for the block.</typeparam>
-    /// <param name="input">The spatial residual samples.</param>
-    /// <param name="coefficients">The destination transform coefficients.</param>
-    /// <param name="stride">The number of input samples between rows.</param>
-    /// <param name="bitDepth">The source sample bit depth.</param>
-    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
-    /// <param name="workspace">The reusable transform workspace.</param>
-    private static void DispatchRow<TColumnOperator>(
-        ReadOnlySpan<short> input,
-        Span<int> coefficients,
-        uint stride,
-        int bitDepth,
-        ref Av1Transform2dFlipConfiguration config,
-        Span<int> workspace)
-        where TColumnOperator : struct, IAv1ForwardTransform1dOperator
-    {
-        switch (config.TransformFunctionTypeRow)
-        {
-            case Av1TransformFunctionType.Dct4:
-                Transform2d<TColumnOperator, Dct4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct8:
-                Transform2d<TColumnOperator, Dct8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct16:
-                Transform2d<TColumnOperator, Dct16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct32:
-                Transform2d<TColumnOperator, Dct32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Dct64:
-                Transform2d<TColumnOperator, Dct64Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Adst4:
-                Transform2d<TColumnOperator, Adst4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Adst8:
-                Transform2d<TColumnOperator, Adst8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Adst16:
-                Transform2d<TColumnOperator, Adst16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity4:
-                Transform2d<TColumnOperator, Identity4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity8:
-                Transform2d<TColumnOperator, Identity8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity16:
-                Transform2d<TColumnOperator, Identity16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            case Av1TransformFunctionType.Identity32:
-                Transform2d<TColumnOperator, Identity32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
-                break;
-            default:
-                throw new InvalidImageContentException($"The {config.TransformFunctionTypeRow} row transform is not valid for {config.TransformSize}.");
-        }
-    }
-
-    /// <summary>
-    /// Applies the specialized operator pair using the sample representation selected for the coded bit depth.
-    /// </summary>
-    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
-    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
-    /// <param name="input">The spatial residual samples.</param>
-    /// <param name="coefficients">The destination transform coefficients.</param>
-    /// <param name="stride">The number of input samples between rows.</param>
-    /// <param name="bitDepth">The source sample bit depth.</param>
-    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
-    /// <param name="workspace">The reusable transform workspace.</param>
-    private static void Transform2d<TColumnOperator, TRowOperator>(
-        ReadOnlySpan<short> input,
-        Span<int> coefficients,
-        uint stride,
-        int bitDepth,
-        ref Av1Transform2dFlipConfiguration config,
-        Span<int> workspace)
-        where TColumnOperator : struct, IAv1ForwardTransform1dOperator
-        where TRowOperator : struct, IAv1ForwardTransform1dOperator
-    {
-        // The vector path keeps eight-bit transform stages in Int16 lanes. It promotes to Int32 only a padded block with one 64-sample side and at least 32
-        // samples on the other side. High bit depths and hardware without Vector128 acceleration use the Int32 path.
-        if (bitDepth == 8 && Vector128.IsHardwareAccelerated)
-        {
-            TransformPacked<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
-            return;
-        }
-
-        TransformExpanded<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
-    }
-
-    /// <summary>
     /// Applies the signed Int16 stage pipeline used for eight-bit residuals.
     /// </summary>
-    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
-    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="coefficients">The destination transform coefficients.</param>
     /// <param name="stride">The number of input samples between rows.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
-    private static void TransformPacked<TColumnOperator, TRowOperator>(
+    private static void TransformPacked(
         ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace)
-        where TColumnOperator : struct, IAv1ForwardTransform1dOperator
-        where TRowOperator : struct, IAv1ForwardTransform1dOperator
     {
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -733,7 +584,7 @@ internal static partial class Av1ForwardTransformer
         ref short buffer0Base = ref MemoryMarshal.GetReference(buffer0);
 
         LoadPacked(input, stride, ref buffer0Base, blockWidth, width, height, config.Shift0, config.FlipUpsideDown, config.FlipLeftToRight);
-        TransformPackedAxis<TColumnOperator>(buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
+        TransformPackedAxis(config.TransformFunctionTypeColumn, buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
 
         // A 64-point axis keeps only its 32 lowest frequencies, so the output holds at most 32 positions on each axis.
         int retainedHeight = Math.Min(height, 32);
@@ -759,7 +610,7 @@ internal static partial class Av1ForwardTransformer
 
             int rowOutputStride = width == 64 && height == 64 ? 32 : blockHeight;
 
-            TransformExpandedAxis<TRowOperator>(buffer1, retainedHeight, blockHeight, rowOutputStride, config.CosBitRow, workspace);
+            TransformExpandedAxis(config.TransformFunctionTypeRow, buffer1, retainedHeight, blockHeight, rowOutputStride, config.CosBitRow, workspace);
             ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
 
             TransposeExpanded(
@@ -792,7 +643,7 @@ internal static partial class Av1ForwardTransformer
             false,
             packedTransposeStorage);
 
-        TransformPackedAxis<TRowOperator>(buffer1Packed, height, blockHeight, blockHeight, config.CosBitRow, workspace);
+        TransformPackedAxis(config.TransformFunctionTypeRow, buffer1Packed, height, blockHeight, blockHeight, config.CosBitRow, workspace);
 
         // The second transform produces horizontal frequency in rows and vertical frequency in lanes. One more transpose changes this layout to the row-major
         // coefficient contract.
@@ -813,21 +664,17 @@ internal static partial class Av1ForwardTransformer
     /// <summary>
     /// Applies the signed Int32 stage pipeline used for high-bit-depth residuals and scalar fallback.
     /// </summary>
-    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
-    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
     /// <param name="input">The spatial residual samples.</param>
     /// <param name="coefficients">The destination transform coefficients.</param>
     /// <param name="stride">The number of input samples between rows.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
-    private static void TransformExpanded<TColumnOperator, TRowOperator>(
+    private static void TransformExpanded(
         ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace)
-        where TColumnOperator : struct, IAv1ForwardTransform1dOperator
-        where TRowOperator : struct, IAv1ForwardTransform1dOperator
     {
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -846,7 +693,7 @@ internal static partial class Av1ForwardTransformer
         ref int buffer1Base = ref MemoryMarshal.GetReference(buffer1);
 
         LoadExpanded(input, stride, ref buffer0Base, blockWidth, width, height, config.Shift0, config.FlipUpsideDown, config.FlipLeftToRight);
-        TransformExpandedAxis<TColumnOperator>(buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
+        TransformExpandedAxis(config.TransformFunctionTypeColumn, buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
 
         TransposeExpanded(
             ref buffer0Base,
@@ -863,7 +710,7 @@ internal static partial class Av1ForwardTransformer
         int retainedWidth = Math.Min(width, 32);
         int rowOutputStride = width == 64 && height == 64 ? 32 : blockHeight;
 
-        TransformExpandedAxis<TRowOperator>(buffer1, retainedHeight, blockHeight, rowOutputStride, config.CosBitRow, workspace);
+        TransformExpandedAxis(config.TransformFunctionTypeRow, buffer1, retainedHeight, blockHeight, rowOutputStride, config.CosBitRow, workspace);
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
 
@@ -1036,6 +883,132 @@ internal static partial class Av1ForwardTransformer
                 target = Unsafe.Add(ref source, sourceColumn) << shift;
                 target = ref Unsafe.Add(ref target, 1);
             }
+        }
+    }
+
+    /// <summary>
+    /// Selects the concrete operator for one packed transform axis.
+    /// </summary>
+    /// <param name="transform">The one-dimensional transform selected for this axis.</param>
+    /// <param name="buffer">The packed transform block.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of component values between input positions.</param>
+    /// <param name="outputStride">The number of component values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The reusable transform-stage workspace.</param>
+    private static void TransformPackedAxis(
+        Av1TransformFunctionType transform,
+        Span<short> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+    {
+        // Dispatch once per axis. The generic worker retains static operator calls and the existing SIMD width selection.
+        switch (transform)
+        {
+            case Av1TransformFunctionType.Dct4:
+                TransformPackedAxis<Dct4Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct8:
+                TransformPackedAxis<Dct8Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct16:
+                TransformPackedAxis<Dct16Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct32:
+                TransformPackedAxis<Dct32Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct64:
+                TransformPackedAxis<Dct64Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Adst4:
+                TransformPackedAxis<Adst4Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Adst8:
+                TransformPackedAxis<Adst8Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Adst16:
+                TransformPackedAxis<Adst16Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity4:
+                TransformPackedAxis<Identity4Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity8:
+                TransformPackedAxis<Identity8Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity16:
+                TransformPackedAxis<Identity16Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity32:
+                TransformPackedAxis<Identity32Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            default:
+                throw new InvalidImageContentException($"The {transform} forward transform is not valid.");
+        }
+    }
+
+    /// <summary>
+    /// Selects the concrete operator for one expanded transform axis.
+    /// </summary>
+    /// <param name="transform">The one-dimensional transform selected for this axis.</param>
+    /// <param name="buffer">The expanded transform block.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of component values between input positions.</param>
+    /// <param name="outputStride">The number of component values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The reusable transform-stage workspace.</param>
+    private static void TransformExpandedAxis(
+        Av1TransformFunctionType transform,
+        Span<int> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+    {
+        // Dispatch once per axis. The generic worker retains static operator calls and the existing SIMD width selection.
+        switch (transform)
+        {
+            case Av1TransformFunctionType.Dct4:
+                TransformExpandedAxis<Dct4Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct8:
+                TransformExpandedAxis<Dct8Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct16:
+                TransformExpandedAxis<Dct16Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct32:
+                TransformExpandedAxis<Dct32Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Dct64:
+                TransformExpandedAxis<Dct64Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Adst4:
+                TransformExpandedAxis<Adst4Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Adst8:
+                TransformExpandedAxis<Adst8Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Adst16:
+                TransformExpandedAxis<Adst16Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity4:
+                TransformExpandedAxis<Identity4Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity8:
+                TransformExpandedAxis<Identity8Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity16:
+                TransformExpandedAxis<Identity16Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            case Av1TransformFunctionType.Identity32:
+                TransformExpandedAxis<Identity32Operator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+                break;
+            default:
+                throw new InvalidImageContentException($"The {transform} forward transform is not valid.");
         }
     }
 

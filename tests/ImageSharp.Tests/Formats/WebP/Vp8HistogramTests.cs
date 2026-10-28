@@ -218,8 +218,10 @@ public class Vp8HistogramTests
     }
 
     [Fact]
-    public void CollectHistogramTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.AllowAll);
+    public void CollectHistogramTest_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void CollectHistogramTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.DisableHWIntrinsic);
+    public void CollectHistogramTest_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.DisableHWIntrinsic);
 }

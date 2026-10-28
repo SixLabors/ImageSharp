@@ -87,7 +87,11 @@ internal static partial class Av1ResidualBuilder
         /// <remarks>
         /// The split of either total across the lanes is not defined. Only the sum of all lanes is defined.
         /// </remarks>
-        public static abstract void AccumulateMoments(Vector128<TSample> source, Vector128<TSample> prediction, ref Vector128<int> sum, ref Vector128<int> squares);
+        public static abstract void AccumulateMoments(
+            Vector128<TSample> source,
+            Vector128<TSample> prediction,
+            ref Vector128<int> sum,
+            ref Vector128<int> squares);
 
         /// <summary>
         /// Adds the signed differences of thirty-two bytes, or sixteen words, and their squares, to two running totals.
@@ -96,7 +100,11 @@ internal static partial class Av1ResidualBuilder
         /// <param name="prediction">The prediction samples.</param>
         /// <param name="sum">The running signed total in 32-bit lanes.</param>
         /// <param name="squares">The running squared total in 32-bit lanes.</param>
-        public static abstract void AccumulateMoments(Vector256<TSample> source, Vector256<TSample> prediction, ref Vector256<int> sum, ref Vector256<int> squares);
+        public static abstract void AccumulateMoments(
+            Vector256<TSample> source,
+            Vector256<TSample> prediction,
+            ref Vector256<int> sum,
+            ref Vector256<int> squares);
 
         /// <summary>
         /// Adds the signed differences of sixty-four bytes, or thirty-two words, and their squares, to two running totals.
@@ -105,7 +113,11 @@ internal static partial class Av1ResidualBuilder
         /// <param name="prediction">The prediction samples.</param>
         /// <param name="sum">The running signed total in 32-bit lanes.</param>
         /// <param name="squares">The running squared total in 32-bit lanes.</param>
-        public static abstract void AccumulateMoments(Vector512<TSample> source, Vector512<TSample> prediction, ref Vector512<int> sum, ref Vector512<int> squares);
+        public static abstract void AccumulateMoments(
+            Vector512<TSample> source,
+            Vector512<TSample> prediction,
+            ref Vector512<int> sum,
+            ref Vector512<int> squares);
 
         /// <summary>
         /// Loads eight source and prediction samples and subtracts them.

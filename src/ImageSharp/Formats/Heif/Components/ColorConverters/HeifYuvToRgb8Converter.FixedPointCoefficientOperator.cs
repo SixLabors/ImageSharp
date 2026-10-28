@@ -33,7 +33,11 @@ internal static partial class HeifYuvToRgb8Converter
             cb -= fixedPoint.ChromaMidpoint;
             cr -= fixedPoint.ChromaMidpoint;
             r = Vector512.Clamp(y + (((fixedPoint.RedCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
-            g = Vector512.Clamp(y + (((fixedPoint.GreenCb * cb) + (fixedPoint.GreenCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
+            g = Vector512.Clamp(
+                y + (((fixedPoint.GreenCb * cb) + (fixedPoint.GreenCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift),
+                default,
+                fixedPoint.Maximum);
+
             b = Vector512.Clamp(y + (((fixedPoint.BlueCb * cb) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
         }
 
@@ -52,7 +56,11 @@ internal static partial class HeifYuvToRgb8Converter
             cb -= fixedPoint.ChromaMidpoint;
             cr -= fixedPoint.ChromaMidpoint;
             r = Vector256.Clamp(y + (((fixedPoint.RedCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
-            g = Vector256.Clamp(y + (((fixedPoint.GreenCb * cb) + (fixedPoint.GreenCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
+            g = Vector256.Clamp(
+                y + (((fixedPoint.GreenCb * cb) + (fixedPoint.GreenCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift),
+                default,
+                fixedPoint.Maximum);
+
             b = Vector256.Clamp(y + (((fixedPoint.BlueCb * cb) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
         }
 
@@ -71,7 +79,11 @@ internal static partial class HeifYuvToRgb8Converter
             cb -= fixedPoint.ChromaMidpoint;
             cr -= fixedPoint.ChromaMidpoint;
             r = Vector128.Clamp(y + (((fixedPoint.RedCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
-            g = Vector128.Clamp(y + (((fixedPoint.GreenCb * cb) + (fixedPoint.GreenCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
+            g = Vector128.Clamp(
+                y + (((fixedPoint.GreenCb * cb) + (fixedPoint.GreenCr * cr) + fixedPoint.RoundingBias) >> CoefficientShift),
+                default,
+                fixedPoint.Maximum);
+
             b = Vector128.Clamp(y + (((fixedPoint.BlueCb * cb) + fixedPoint.RoundingBias) >> CoefficientShift), default, fixedPoint.Maximum);
         }
 
@@ -89,9 +101,9 @@ internal static partial class HeifYuvToRgb8Converter
             int green = y + (((fixedPoint.GreenCb * centeredBlue) + (fixedPoint.GreenCr * centeredRed) + RoundingBias) >> CoefficientShift);
             int blue = y + (((fixedPoint.BlueCb * centeredBlue) + RoundingBias) >> CoefficientShift);
 
-            r = (byte)Numerics.Clamp(red, 0, byte.MaxValue);
-            g = (byte)Numerics.Clamp(green, 0, byte.MaxValue);
-            b = (byte)Numerics.Clamp(blue, 0, byte.MaxValue);
+            r = (byte)Math.Clamp(red, 0, byte.MaxValue);
+            g = (byte)Math.Clamp(green, 0, byte.MaxValue);
+            b = (byte)Math.Clamp(blue, 0, byte.MaxValue);
         }
     }
 }

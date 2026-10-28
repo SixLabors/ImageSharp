@@ -26,7 +26,7 @@ public class ExrDecoder : ImageDecoder
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        return new ExrDecoderCore(new ExrDecoderOptions { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
+        return new ExrDecoderCore(new ExrDecoderOptions(options)).Identify(options.Configuration, stream, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -35,7 +35,7 @@ public class ExrDecoder : ImageDecoder
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        ExrDecoderCore decoder = new(new ExrDecoderOptions { GeneralOptions = options });
+        ExrDecoderCore decoder = new(new ExrDecoderOptions(options));
         Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
         ScaleToTargetSize(options, image);

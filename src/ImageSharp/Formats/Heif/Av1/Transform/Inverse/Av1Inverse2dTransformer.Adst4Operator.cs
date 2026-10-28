@@ -45,6 +45,7 @@ internal static partial class Av1Inverse2dTransformer
             if ((x0 | x1 | x2 | x3) == 0)
             {
                 output[..4].Clear();
+
                 return;
             }
 
@@ -99,7 +100,17 @@ internal static partial class Av1Inverse2dTransformer
                 output.V0 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
                 output.V1 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
                 output.V2 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
-                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1] + sinpi[2], x0, -sinpi[3], x1, sinpi[4] - sinpi[1], x2, sinpi[2] - sinpi[4], x3, cosBit);
+                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(
+                    sinpi[1] + sinpi[2],
+                    x0,
+                    -sinpi[3],
+                    x1,
+                    sinpi[4] - sinpi[1],
+                    x2,
+                    sinpi[2] - sinpi[4],
+                    x3,
+                    cosBit);
+
                 return;
             }
 
@@ -132,7 +143,60 @@ internal static partial class Av1Inverse2dTransformer
                 output.V0 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
                 output.V1 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
                 output.V2 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
-                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1] + sinpi[2], x0, -sinpi[3], x1, sinpi[4] - sinpi[1], x2, sinpi[2] - sinpi[4], x3, cosBit);
+                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(
+                    sinpi[1] + sinpi[2],
+                    x0,
+                    -sinpi[3],
+                    x1,
+                    sinpi[4] - sinpi[1],
+                    x2,
+                    sinpi[2] - sinpi[4],
+                    x3,
+                    cosBit);
+
+                return;
+            }
+
+            output.V0 = Av1Transform1dMath.MultiplyAdd4(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
+            output.V1 = Av1Transform1dMath.MultiplyAdd4(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
+            output.V2 = Av1Transform1dMath.MultiplyAdd4(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
+            output.V3 = Av1Transform1dMath.MultiplyAdd4(sinpi[1] + sinpi[2], x0, -sinpi[3], x1, sinpi[4] - sinpi[1], x2, sinpi[2] - sinpi[4], x3, cosBit);
+
+            _ = step;
+        }
+
+        /// <inheritdoc/>
+        public static void Transform(
+            ref Av1TransformVector<Vector512<int>> input,
+            ref Av1TransformVector<Vector512<int>> output,
+            ref Av1TransformVector<Vector512<int>> step,
+            int cosBit,
+            InlineArray12<byte> stageRange)
+        {
+            bool widenedRound = stageRange[0] >= Av1Transform1dMath.WidenedIntermediateBitCount;
+
+            ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
+            Vector512<int> x0 = input.V0;
+            Vector512<int> x1 = input.V1;
+            Vector512<int> x2 = input.V2;
+            Vector512<int> x3 = input.V3;
+
+            if (widenedRound)
+            {
+                output.V0 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
+                output.V1 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
+                output.V2 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
+                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(
+                    sinpi[1] + sinpi[2],
+                    x0,
+                    -sinpi[3],
+                    x1,
+                    sinpi[4] - sinpi[1],
+                    x2,
+                    sinpi[2] - sinpi[4],
+                    x3,
+                    cosBit);
+
                 return;
             }
 

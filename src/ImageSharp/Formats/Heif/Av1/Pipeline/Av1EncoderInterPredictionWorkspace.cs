@@ -204,7 +204,7 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// </summary>
     /// <param name="index">The buffer index, less than <see cref="SampleBufferCount"/>.</param>
     /// <returns>The sample buffer of <see cref="MaximumSampleCount"/> samples.</returns>
-    private Span<TSample> GetSamples(int index)
+    public Span<TSample> GetSamples(int index)
         => this.samples.Slice(index * MaximumSampleCount, MaximumSampleCount);
 
     /// <summary>
@@ -214,4 +214,11 @@ internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     /// <returns>The coefficient buffer of <see cref="MaximumSampleCount"/> coefficients.</returns>
     private Span<int> GetCoefficients(int index)
         => this.coefficients.Slice(index * MaximumSampleCount, MaximumSampleCount);
+
+    /// <summary>Reuses the same aligned storage with the requested native sample view.</summary>
+    /// <typeparam name="TSampleTo">The sample storage selected by the caller.</typeparam>
+    /// <returns>A view over the same buffers. No samples are copied or converted.</returns>
+    public Av1EncoderInterPredictionWorkspace<TSampleTo> Cast<TSampleTo>()
+        where TSampleTo : unmanaged
+        => new(MemoryMarshal.Cast<TSample, TSampleTo>(this.samples), this.residual, this.filterRows, this.coefficients);
 }

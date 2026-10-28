@@ -5,7 +5,8 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -30,10 +31,12 @@ internal static class HorizontalPredictor
             case TiffColorType.BlackIsZero8:
             case TiffColorType.WhiteIsZero8:
             case TiffColorType.PaletteColor:
+            case TiffColorType.CieLabPlanar:
                 UndoGray8Bit(pixelBytes, width);
                 break;
             case TiffColorType.BlackIsZero16:
             case TiffColorType.WhiteIsZero16:
+            case TiffColorType.CieLab161616Planar:
                 UndoGray16Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.BlackIsZero32:
@@ -42,6 +45,7 @@ internal static class HorizontalPredictor
                 break;
             case TiffColorType.Rgb888:
             case TiffColorType.CieLab:
+            case TiffColorType.YCbCr:
                 UndoRgb24Bit(pixelBytes, width);
                 break;
             case TiffColorType.Rgba8888:
@@ -49,9 +53,12 @@ internal static class HorizontalPredictor
                 UndoRgba32Bit(pixelBytes, width);
                 break;
             case TiffColorType.Rgb161616:
+            case TiffColorType.CieLab161616:
                 UndoRgb48Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.Rgba16161616:
+            case TiffColorType.Cmyk16161616:
+                // Prediction treats all four words alike. The fourth CMYK word is K, but uses the same addition as RGBA alpha.
                 UndoRgba64Bit(pixelBytes, width, isBigEndian);
                 break;
             case TiffColorType.Rgb323232:
@@ -94,11 +101,13 @@ internal static class HorizontalPredictor
             case TiffColorType.BlackIsZero8:
             case TiffColorType.WhiteIsZero8:
             case TiffColorType.PaletteColor:
+            case TiffColorType.CieLabPlanar:
                 UndoGray8BitRow(pixelBytes, width, y);
                 break;
 
             case TiffColorType.BlackIsZero16:
             case TiffColorType.WhiteIsZero16:
+            case TiffColorType.CieLab161616Planar:
                 if (isBigEndian)
                 {
                     UndoGray16BitBigEndianRow(pixelBytes, width, y);
@@ -125,6 +134,7 @@ internal static class HorizontalPredictor
 
             case TiffColorType.Rgb888:
             case TiffColorType.CieLab:
+            case TiffColorType.YCbCr:
                 UndoRgb24BitRow(pixelBytes, width, y);
                 break;
 
@@ -134,6 +144,7 @@ internal static class HorizontalPredictor
                 break;
 
             case TiffColorType.Rgb161616:
+            case TiffColorType.CieLab161616:
                 if (isBigEndian)
                 {
                     UndoRgb48BitBigEndianRow(pixelBytes, width, y);
@@ -146,6 +157,8 @@ internal static class HorizontalPredictor
                 break;
 
             case TiffColorType.Rgba16161616:
+            case TiffColorType.Cmyk16161616:
+                // Tile rows use the same four-word prediction as strips, including carries within each 16-bit sample.
                 if (isBigEndian)
                 {
                     UndoRgb64BitBigEndianRow(pixelBytes, width, y);
@@ -183,137 +196,101 @@ internal static class HorizontalPredictor
         }
     }
 
+    /// <summary>
+    /// Subtracts each preceding pixel's components before compressing integer samples.
+    /// </summary>
+    /// <param name="rows">Complete rows in the file's native byte order.</param>
+    /// <param name="width">The row width in bytes.</param>
+    /// <param name="bitsPerPixel">The packed integer pixel depth.</param>
     public static void ApplyHorizontalPrediction(Span<byte> rows, int width, int bitsPerPixel)
     {
         if (bitsPerPixel == 8)
         {
-            ApplyHorizontalPrediction8Bit(rows, width);
+            ApplyHorizontalPrediction<byte>(rows, width, 1);
         }
         else if (bitsPerPixel == 16)
         {
-            ApplyHorizontalPrediction16Bit(rows, width, 1);
+            ApplyHorizontalPrediction<ushort>(rows, width, 1);
         }
-        else if (bitsPerPixel == 24)
+        else if (bitsPerPixel is 24 or 32)
         {
-            ApplyHorizontalPrediction24Bit(rows, width);
+            // RGB and CMYK differ in component count, not in the predictor's byte arithmetic.
+            ApplyHorizontalPrediction<byte>(rows, width, bitsPerPixel / 8);
         }
         else if (bitsPerPixel == 48 || bitsPerPixel == 64)
         {
-            ApplyHorizontalPrediction16Bit(rows, width, bitsPerPixel / 16);
+            ApplyHorizontalPrediction<ushort>(rows, width, bitsPerPixel / 16);
         }
         else if (bitsPerPixel == 96 || bitsPerPixel == 128)
         {
-            ApplyHorizontalPrediction32Bit(rows, width, bitsPerPixel / 32);
+            ApplyHorizontalPrediction<uint>(rows, width, bitsPerPixel / 32);
         }
     }
 
     /// <summary>
-    /// Applies horizontal differencing to each 32-bit component using the preceding pixel's component.
+    /// Differences unsigned integer samples without overwriting the preceding samples before they are read.
     /// </summary>
-    /// <param name="rows">The rows of native-endian 32-bit samples.</param>
+    /// <typeparam name="T">The unsigned stored sample type: byte, ushort or uint.</typeparam>
+    /// <param name="rows">Complete rows of native-endian samples.</param>
     /// <param name="width">The row width in bytes.</param>
     /// <param name="samplesPerPixel">The number of components in each pixel.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ApplyHorizontalPrediction32Bit(Span<byte> rows, int width, int samplesPerPixel)
+    private static void ApplyHorizontalPrediction<T>(Span<byte> rows, int width, int samplesPerPixel)
+        where T : unmanaged, IBinaryInteger<T>
     {
         DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equal");
         for (int row = 0; row < rows.Length; row += width)
         {
-            Span<uint> samples = MemoryMarshal.Cast<byte, uint>(rows.Slice(row, width));
+            Span<T> samples = MemoryMarshal.Cast<byte, T>(rows.Slice(row, width));
+            ref T first = ref MemoryMarshal.GetReference(samples);
+            int end = samples.Length;
 
-            // Predictor 2 subtracts the same component of the preceding pixel.
-            // Work backward so those preceding samples still have their original
-            // values. Load both vectors before writing because their spans can
-            // overlap when a pixel has three or four components. Unsigned vector
-            // subtraction wraps at 32 bits, as the scalar predictor does.
-            int i = samples.Length - 1;
-            if (Vector.IsHardwareAccelerated)
+            // Each lane subtracts the same component of the preceding pixel. Walk backward so earlier pixels stay intact.
+            // Both loads precede the store because the two vectors overlap. Subtraction wraps at the sample's stored width.
+            // The first pixel is unchanged because it has no preceding pixel in this row.
+            if (Vector512.IsHardwareAccelerated)
             {
-                for (; i >= samplesPerPixel + Vector<uint>.Count - 1; i -= Vector<uint>.Count)
+                nuint count = (end - samplesPerPixel).Vector512Count<T>();
+
+                for (nuint i = 0; i < count; i++)
                 {
-                    int first = i - Vector<uint>.Count + 1;
-                    Vector<uint> current = new(samples.Slice(first, Vector<uint>.Count));
-                    Vector<uint> previous = new(samples.Slice(first - samplesPerPixel, Vector<uint>.Count));
-                    (current - previous).CopyTo(samples.Slice(first, Vector<uint>.Count));
+                    end -= Vector512<T>.Count;
+                    Vector512<T> current = Vector512.LoadUnsafe(ref first, (uint)end);
+                    Vector512<T> previous = Vector512.LoadUnsafe(ref first, (uint)(end - samplesPerPixel));
+                    (current - previous).StoreUnsafe(ref first, (uint)end);
                 }
             }
 
-            for (; i >= samplesPerPixel; i--)
+            if (Vector256.IsHardwareAccelerated)
             {
-                samples[i] -= samples[i - samplesPerPixel];
+                nuint count = (end - samplesPerPixel).Vector256Count<T>();
+
+                for (nuint i = 0; i < count; i++)
+                {
+                    end -= Vector256<T>.Count;
+                    Vector256<T> current = Vector256.LoadUnsafe(ref first, (uint)end);
+                    Vector256<T> previous = Vector256.LoadUnsafe(ref first, (uint)(end - samplesPerPixel));
+                    (current - previous).StoreUnsafe(ref first, (uint)end);
+                }
             }
-        }
-    }
 
-    /// <summary>
-    /// Applies a horizontal predictor to the rgb row.
-    /// Make use of the fact that many continuous-tone images rarely vary much in pixel value from one pixel to the next.
-    /// In such images, if we replace the pixel values by differences between consecutive pixels, many of the differences should be 0, plus
-    /// or minus 1, and so on.This reduces the apparent information content and allows LZW to encode the data more compactly.
-    /// </summary>
-    /// <param name="rows">The rgb pixel rows.</param>
-    /// <param name="width">The width.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ApplyHorizontalPrediction24Bit(Span<byte> rows, int width)
-    {
-        DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
-        int height = rows.Length / width;
-        for (int y = 0; y < height; y++)
-        {
-            Span<byte> rowSpan = rows.Slice(y * width, width);
-            Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowSpan);
-
-            for (int x = rowRgb.Length - 1; x >= 1; x--)
+            if (Vector128.IsHardwareAccelerated)
             {
-                byte r = (byte)(rowRgb[x].R - rowRgb[x - 1].R);
-                byte g = (byte)(rowRgb[x].G - rowRgb[x - 1].G);
-                byte b = (byte)(rowRgb[x].B - rowRgb[x - 1].B);
-                rowRgb[x] = new Rgb24(r, g, b);
+                nuint count = (end - samplesPerPixel).Vector128Count<T>();
+
+                for (nuint i = 0; i < count; i++)
+                {
+                    end -= Vector128<T>.Count;
+                    Vector128<T> current = Vector128.LoadUnsafe(ref first, (uint)end);
+                    Vector128<T> previous = Vector128.LoadUnsafe(ref first, (uint)(end - samplesPerPixel));
+                    (current - previous).StoreUnsafe(ref first, (uint)end);
+                }
             }
-        }
-    }
 
-    /// <summary>
-    /// Applies horizontal differencing to each 16-bit component using the preceding pixel's corresponding component.
-    /// </summary>
-    /// <param name="rows">The rows of native-endian 16-bit samples.</param>
-    /// <param name="width">The width.</param>
-    /// <param name="samplesPerPixel">The number of 16-bit components in each pixel.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ApplyHorizontalPrediction16Bit(Span<byte> rows, int width, int samplesPerPixel)
-    {
-        DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
-        int height = rows.Length / width;
-        for (int y = 0; y < height; y++)
-        {
-            Span<byte> rowSpan = rows.Slice(y * width, width);
-            Span<ushort> samples = MemoryMarshal.Cast<byte, ushort>(rowSpan);
-
-            // TIFF Predictor 2 uses a one-pixel sample stride (libtiff horDiff16).
-            // Walk backward so every subtraction uses the original preceding sample.
-            for (int i = samples.Length - 1; i >= samplesPerPixel; i--)
+            // Finish the leading remainder in the same backward order, including wraparound for negative differences.
+            for (int i = end - 1; i >= samplesPerPixel; i--)
             {
-                samples[i] = (ushort)(samples[i] - samples[i - samplesPerPixel]);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Applies a horizontal predictor to a gray pixel row.
-    /// </summary>
-    /// <param name="rows">The gray pixel rows.</param>
-    /// <param name="width">The width.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ApplyHorizontalPrediction8Bit(Span<byte> rows, int width)
-    {
-        DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
-        int height = rows.Length / width;
-        for (int y = 0; y < height; y++)
-        {
-            Span<byte> rowSpan = rows.Slice(y * width, width);
-            for (int x = rowSpan.Length - 1; x >= 1; x--)
-            {
-                rowSpan[x] -= rowSpan[x - 1];
+                samples[i] = unchecked(samples[i] - samples[i - samplesPerPixel]);
             }
         }
     }

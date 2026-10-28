@@ -3,7 +3,6 @@
 #nullable disable
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
@@ -27,25 +26,16 @@ internal abstract partial class IccConverterBase
     }
 
     /// <summary>
-    /// Converts colors with the initially provided ICC profile
+    /// Converts one color using the configured profile transform.
     /// </summary>
-    /// <param name="value">The value to convert</param>
-    /// <returns>The converted value</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 Calculate(Vector4 value) => this.calculator.Calculate(value);
+    /// <param name="value">The profile input components.</param>
+    /// <returns>The profile output components.</returns>
+    public Vector4 Convert(Vector4 value) => this.calculator.Convert(value);
 
     /// <summary>
-    /// Converts colors with the initially provided ICC profile
+    /// Converts colors through the configured profile's SIMD traversal and scalar remainder.
     /// </summary>
-    /// <param name="source">The source colors</param>
-    /// <param name="destination">The destination colors</param>
-    public void Calculate(ReadOnlySpan<Vector4> source, Span<Vector4> destination)
-    {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-        for (int i = 0; i < source.Length; i++)
-        {
-            destination[i] = this.Calculate(source[i]);
-        }
-    }
+    /// <param name="source">The source components.</param>
+    /// <param name="destination">The destination components.</param>
+    public void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination) => this.calculator.Convert(source, destination);
 }

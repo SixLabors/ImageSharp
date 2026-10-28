@@ -263,7 +263,7 @@ internal sealed class HeifPlanarAlphaResizeWorker<TBuffer, TSample, TLoader> : H
             // lets that kernel operate on the planar row. The L16 round trip gives the same result as a resize of a full
             // L16 alpha image, but the worker does not allocate that image.
             HeifSampleConversion.PackL16(normalized, sourceAlpha);
-            PixelOperations<L16>.Instance.ToVector4(this.configuration, sourceAlpha, sourceVectors, PixelConversionModifiers.Scale);
+            PixelOperations<L16>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceAlpha, sourceVectors);
 
             // The source row is horizontally filtered once for every destination X and stored at [X][window Y]. A
             // vertical kernel can then reuse this first-pass row wherever adjacent destination kernels overlap it.

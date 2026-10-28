@@ -30,6 +30,7 @@ public partial class Config : ManualConfig
         this.SummaryStyle = SummaryStyle.Default.WithMaxParameterColumnWidth(50);
     }
 
+    // Jobs inherit the benchmark host runtime so generated runners match the project's selected target framework.
     public class Standard : Config
     {
         public Standard() => this.AddJob(

@@ -36,19 +36,19 @@ public enum TiffPhotometricInterpretation : ushort
 
     /// <summary>
     /// <para>Separated: usually CMYK (see Section 16 of the TIFF 6.0 specification).</para>
-    /// <para>Not supported by the TiffEncoder.</para>
+    /// <para>The encoder supports CMYK with eight-bit or sixteen-bit ink samples.</para>
     /// </summary>
     Separated = 5,
 
     /// <summary>
     /// <para>YCbCr (see Section 21 of the TIFF 6.0 specification).</para>
-    /// <para>Not supported by the TiffEncoder.</para>
+    /// <para>The encoder supports eight-bit samples with full-resolution chroma.</para>
     /// </summary>
     YCbCr = 6,
 
     /// <summary>
     /// <para>1976 CIE L*a*b* (see Section 23 of the TIFF 6.0 specification).</para>
-    /// <para>Not supported by the TiffEncoder.</para>
+    /// <para>The encoder supports three samples of eight or sixteen bits each.</para>
     /// </summary>
     CieLab = 8,
 

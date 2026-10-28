@@ -161,7 +161,7 @@ internal abstract partial class HeifColorConverterBase
     /// Converts an HEIF color model using one operator-driven traversal for all SIMD widths.
     /// </summary>
     /// <typeparam name="TOperator">The color-model-specific arithmetic.</typeparam>
-    internal sealed class HeifColorConverter<TOperator> : HeifColorConverterBase
+    internal sealed partial class HeifColorConverter<TOperator> : HeifColorConverterBase
         where TOperator : struct, IHeifColorOperator
     {
         /// <summary>
@@ -181,7 +181,7 @@ internal abstract partial class HeifColorConverterBase
         public override float ChromaBias => TOperator.ChromaUsesLumaRange ? this.Parameters.LumaBias : this.Parameters.ChromaBias;
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInPlace(Span<float> component0, Span<float> component1, Span<float> component2)
+        public override void ConvertToRgb(Span<float> component0, Span<float> component1, Span<float> component2)
         {
             HeifColorConversionParameters parameters = this.Parameters;
 
@@ -299,11 +299,7 @@ internal abstract partial class HeifColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertFromRgbInPlace(
-            Span<float> component0,
-            Span<float> component1,
-            Span<float> component2,
-            float maximumValue)
+        public override void ConvertFromRgb(Span<float> component0, Span<float> component1, Span<float> component2, float maximumValue)
         {
             HeifColorConversionParameters parameters = this.Parameters;
 

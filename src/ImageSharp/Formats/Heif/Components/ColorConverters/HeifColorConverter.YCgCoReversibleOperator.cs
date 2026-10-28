@@ -30,9 +30,9 @@ internal abstract partial class HeifColorConverterBase
             // Signed arithmetic shifts are part of the reversible lifting definition. In particular, they preserve
             // the specified floor division for negative odd Cg and Co values instead of truncating toward zero.
             int temporary = yCode - (cgCode >> 1);
-            int greenCode = Numerics.Clamp(temporary + cgCode, 0, (int)parameters.RgbSampleMaximum);
-            int blueCode = Numerics.Clamp(temporary - (coCode >> 1), 0, (int)parameters.RgbSampleMaximum);
-            int redCode = Numerics.Clamp(blueCode + coCode, 0, (int)parameters.RgbSampleMaximum);
+            int greenCode = Math.Clamp(temporary + cgCode, 0, (int)parameters.RgbSampleMaximum);
+            int blueCode = Math.Clamp(temporary - (coCode >> 1), 0, (int)parameters.RgbSampleMaximum);
+            int redCode = Math.Clamp(blueCode + coCode, 0, (int)parameters.RgbSampleMaximum);
             float inverseRgbScale = 1F / parameters.RgbScale;
             y = (redCode - parameters.RgbBias) * inverseRgbScale;
             cg = (greenCode - parameters.RgbBias) * inverseRgbScale;
@@ -47,6 +47,7 @@ internal abstract partial class HeifColorConverterBase
             ref Vector128<float> co,
             in HeifColorConversionParameters parameters)
         {
+            // Recover integer codes with floor(x + 0.5), as in the scalar path. Cg and Co can contain negative codes.
             Vector128<float> encodedMaximum = Vector128.Create(parameters.LumaSampleMaximum);
             Vector128<float> half = Vector128.Create(0.5F);
             Vector128<int> yCode = Vector128.ConvertToInt32(Vector128.Floor((y * encodedMaximum) + half));
@@ -76,6 +77,7 @@ internal abstract partial class HeifColorConverterBase
             ref Vector256<float> co,
             in HeifColorConversionParameters parameters)
         {
+            // Recover integer codes with floor(x + 0.5), as in the scalar path. Cg and Co can contain negative codes.
             Vector256<float> encodedMaximum = Vector256.Create(parameters.LumaSampleMaximum);
             Vector256<float> half = Vector256.Create(0.5F);
             Vector256<int> yCode = Vector256.ConvertToInt32(Vector256.Floor((y * encodedMaximum) + half));
@@ -102,6 +104,7 @@ internal abstract partial class HeifColorConverterBase
             ref Vector512<float> co,
             in HeifColorConversionParameters parameters)
         {
+            // Recover integer codes with floor(x + 0.5), as in the scalar path. Cg and Co can contain negative codes.
             Vector512<float> encodedMaximum = Vector512.Create(parameters.LumaSampleMaximum);
             Vector512<float> half = Vector512.Create(0.5F);
             Vector512<int> yCode = Vector512.ConvertToInt32(Vector512.Floor((y * encodedMaximum) + half));
@@ -155,11 +158,15 @@ internal abstract partial class HeifColorConverterBase
             out Vector128<float> cg,
             out Vector128<float> co)
         {
+            // Quantize each RGB plane once. Integer lifting retains arithmetic shifts of negative differences.
             Vector128<float> rgbScale = Vector128.Create(parameters.RgbScale);
             Vector128<float> quantizationOffset = Vector128.Create(parameters.RgbBias + 0.5F);
             Vector128<int> redCode = Vector128.ConvertToInt32(Vector128.Floor((red * rgbScale) + quantizationOffset));
             Vector128<int> greenCode = Vector128.ConvertToInt32(Vector128.Floor((green * rgbScale) + quantizationOffset));
             Vector128<int> blueCode = Vector128.ConvertToInt32(Vector128.Floor((blue * rgbScale) + quantizationOffset));
+
+            // Reverse the decoding steps: Co, the temporary blue term, Cg, then Y.
+            // Arithmetic right shifts implement floor division by two, including negative odd values.
             Vector128<int> coCode = redCode - blueCode;
             Vector128<int> temporary = blueCode + Vector128.ShiftRightArithmetic(coCode, 1);
             Vector128<int> cgCode = greenCode - temporary;
@@ -181,11 +188,15 @@ internal abstract partial class HeifColorConverterBase
             out Vector256<float> cg,
             out Vector256<float> co)
         {
+            // Quantize each RGB plane once. Integer lifting retains arithmetic shifts of negative differences.
             Vector256<float> rgbScale = Vector256.Create(parameters.RgbScale);
             Vector256<float> quantizationOffset = Vector256.Create(parameters.RgbBias + 0.5F);
             Vector256<int> redCode = Vector256.ConvertToInt32(Vector256.Floor((red * rgbScale) + quantizationOffset));
             Vector256<int> greenCode = Vector256.ConvertToInt32(Vector256.Floor((green * rgbScale) + quantizationOffset));
             Vector256<int> blueCode = Vector256.ConvertToInt32(Vector256.Floor((blue * rgbScale) + quantizationOffset));
+
+            // Reverse the decoding steps: Co, the temporary blue term, Cg, then Y.
+            // Arithmetic right shifts implement floor division by two, including negative odd values.
             Vector256<int> coCode = redCode - blueCode;
             Vector256<int> temporary = blueCode + Vector256.ShiftRightArithmetic(coCode, 1);
             Vector256<int> cgCode = greenCode - temporary;
@@ -207,11 +218,15 @@ internal abstract partial class HeifColorConverterBase
             out Vector512<float> cg,
             out Vector512<float> co)
         {
+            // Quantize each RGB plane once. Integer lifting retains arithmetic shifts of negative differences.
             Vector512<float> rgbScale = Vector512.Create(parameters.RgbScale);
             Vector512<float> quantizationOffset = Vector512.Create(parameters.RgbBias + 0.5F);
             Vector512<int> redCode = Vector512.ConvertToInt32(Vector512.Floor((red * rgbScale) + quantizationOffset));
             Vector512<int> greenCode = Vector512.ConvertToInt32(Vector512.Floor((green * rgbScale) + quantizationOffset));
             Vector512<int> blueCode = Vector512.ConvertToInt32(Vector512.Floor((blue * rgbScale) + quantizationOffset));
+
+            // Reverse the decoding steps: Co, the temporary blue term, Cg, then Y.
+            // Arithmetic right shifts implement floor division by two, including negative odd values.
             Vector512<int> coCode = redCode - blueCode;
             Vector512<int> temporary = blueCode + Vector512.ShiftRightArithmetic(coCode, 1);
             Vector512<int> cgCode = greenCode - temporary;

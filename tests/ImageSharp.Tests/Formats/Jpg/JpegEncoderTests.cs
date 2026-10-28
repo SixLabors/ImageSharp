@@ -47,18 +47,30 @@ public partial class JpegEncoderTests
         { JpegColorType.YCbCrRatio410, 40,  3.2911f / 100 },
     };
 
+    // These fixtures retain their CMYK profiles. The limits include ICC return loss and JPEG compression loss.
+    // External check, 15 October 2026: LittleCMS 2.19 converted the same sRGB input pixels to their original profiles,
+    // then libjpeg-turbo 3.1.91 encoded and decoded CMYK/YCCK at qualities 100, 80 and 40. LittleCMS returned RGB.
+    // Both ICC directions used relative colorimetric intent without black-point compensation. All four JPEG components
+    // used 1x1 sampling and luminance quantization table 0, as this encoder does. LibTIFF 4.7.2 stored RGB without conversion.
+    // Native image differences from the input, using this comparer's metric, were:
+    //                  Q100        Q80         Q40
+    // CMYK             0.11401%    0.39494%    0.65777%
+    // YCCK             0.21533%    0.24389%    0.33217%
+    // Round these independent measurements up to the next 0.01 percentage point for the limits below.
+    // The former limits predate ICC conversion. Without JPEG, both ICC implementations already change the CMYK fixture's
+    // RGB (3,35,45) to (21,39,46), and the YCCK fixture's RGB (9,167,86) to (23,167,85).
     public static readonly TheoryData<JpegColorType, int, float> CmykEncodingSetups = new()
     {
-        { JpegColorType.Cmyk, 100, 0.0164f / 100 },
-        { JpegColorType.Cmyk, 80,  0.3922f / 100 },
-        { JpegColorType.Cmyk, 40,  0.6488f / 100 },
+        { JpegColorType.Cmyk, 100, 0.12f / 100 },
+        { JpegColorType.Cmyk, 80,  0.40f / 100 },
+        { JpegColorType.Cmyk, 40,  0.66f / 100 },
     };
 
     public static readonly TheoryData<JpegColorType, int, float> YcckEncodingSetups = new()
     {
-        { JpegColorType.Ycck, 100, 0.0356f / 100 },
-        { JpegColorType.Ycck, 80,  0.1245f / 100 },
-        { JpegColorType.Ycck, 40,  0.2663f / 100 },
+        { JpegColorType.Ycck, 100, 0.22f / 100 },
+        { JpegColorType.Ycck, 80,  0.25f / 100 },
+        { JpegColorType.Ycck, 40,  0.34f / 100 },
     };
 
     public static readonly TheoryData<JpegColorType, int, float> LuminanceEncodingSetups = new()
@@ -86,6 +98,7 @@ public partial class JpegEncoderTests
     public void EncodeBaseline_NonInterleavedMode<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Retain the source profile so encoding exercises the return conversion as well as JPEG compression.
         using Image<TPixel> image = provider.GetImage();
 
         JpegEncoder encoder = new()
@@ -99,6 +112,7 @@ public partial class JpegEncoderTests
         ImageComparer comparer = new TolerantImageComparer(tolerance);
 
         // Does DebugSave & load reference CompareToReferenceInput():
+        image.DebugSave(provider, testOutputDetails: $"{info}_Input", extension: "png");
         image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
     }
 
@@ -121,7 +135,11 @@ public partial class JpegEncoderTests
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 24, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 46, 8, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 51, 7, PixelTypes.Rgb24)]
-    public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
+    public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(
+        TestImageProvider<TPixel> provider,
+        JpegColorType colorType,
+        int quality,
+        float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, ImageComparer.Tolerant(0.12f));
 
     [Theory]
@@ -141,7 +159,11 @@ public partial class JpegEncoderTests
 
     [Theory]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 48, PixelTypes.Rgb24 | PixelTypes.Bgr24)]
-    public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
+    public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(
+        TestImageProvider<TPixel> provider,
+        JpegColorType colorType,
+        int quality,
+        float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.06f));
 
     [Theory]
@@ -169,6 +191,7 @@ public partial class JpegEncoderTests
     public void EncodeProgressive_DefaultNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Retain the source profile so encoding exercises the return conversion as well as JPEG compression.
         using Image<TPixel> image = provider.GetImage();
 
         JpegEncoder encoder = new()
@@ -182,6 +205,7 @@ public partial class JpegEncoderTests
         ImageComparer comparer = new TolerantImageComparer(tolerance);
 
         // Does DebugSave & load reference CompareToReferenceInput():
+        image.DebugSave(provider, testOutputDetails: $"{info}_Input", extension: "png");
         image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
     }
 
@@ -192,8 +216,9 @@ public partial class JpegEncoderTests
     [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
     public void EncodeProgressive_CustomNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
-where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Preserve converts the source pixels to sRGB and retains the profile for the encoder's return conversion.
         using Image<TPixel> image = provider.GetImage();
 
         JpegEncoder encoder = new()
@@ -215,6 +240,7 @@ where TPixel : unmanaged, IPixel<TPixel>
         image2.DebugSave(provider, testOutputDetails: info, extension: "png");
 
         ImageComparer comparer = new TolerantImageComparer(tolerance);
+        image.DebugSave(provider, testOutputDetails: $"{info}_Input", extension: "png");
         image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
     }
 
@@ -305,6 +331,7 @@ where TPixel : unmanaged, IPixel<TPixel>
     private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, ImageComparer comparer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Retain the source profile so encoding exercises the return conversion as well as JPEG compression.
         using Image<TPixel> image = provider.GetImage();
 
         JpegEncoder encoder = new()
@@ -315,6 +342,7 @@ where TPixel : unmanaged, IPixel<TPixel>
         string info = $"{colorType}-Q{quality}";
 
         // Does DebugSave & load reference CompareToReferenceInput():
+        image.DebugSave(provider, testOutputDetails: $"{info}_Input", extension: "png");
         image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
     }
 }

@@ -7,9 +7,40 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 internal static partial class Av1IntraSuperblockEncoder
 {
+    /// <summary>
+    /// Returns the largest square size, from the requested size down, whose block fits the remaining rows and columns.
+    /// </summary>
+    /// <param name="blockSize">The requested square block size.</param>
+    /// <param name="rowsLeft">The 4x4 rows that remain to the bottom edge of the tile.</param>
+    /// <param name="columnsLeft">The 4x4 columns that remain to the right edge of the tile.</param>
+    /// <param name="height">Receives the 4x4 height of the last size tried. It keeps its value when no rows or columns remain.</param>
+    /// <param name="width">Receives the 4x4 width of the last size tried. It keeps its value when no rows or columns remain.</param>
+    /// <returns>The largest square size that fits, or at most 8x8 when no rows or columns remain.</returns>
+    private static Av1BlockSize FindPartitionSize(Av1BlockSize blockSize, int rowsLeft, int columnsLeft, ref int height, ref int width)
+    {
+        if (rowsLeft <= 0 || columnsLeft <= 0)
+        {
+            return blockSize < Av1BlockSize.Block8x8 ? blockSize : Av1BlockSize.Block8x8;
+        }
+
+        // Consecutive square sizes are three entries apart in the block size order.
+        int size = (int)blockSize;
+        for (; size > 0; size -= 3)
+        {
+            height = ((Av1BlockSize)size).Get4x4HighCount();
+            width = ((Av1BlockSize)size).Get4x4WideCount();
+            if (height <= rowsLeft && width <= columnsLeft)
+            {
+                break;
+            }
+        }
+
+        return (Av1BlockSize)size;
+    }
+
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Sets every block of the superblock to the fixed partition size. At the bottom and right edges of the tile, a block takes the
@@ -17,15 +48,59 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="tile">The tile that holds the superblock.</param>
         /// <param name="superblockOrigin">The luma origin of the superblock.</param>
-        private readonly void PrepareFixedPartitions(Av1TileInfo tile, Point superblockOrigin)
+        private void PrepareFixedPartitions(Av1TileInfo tile, Point superblockOrigin)
         {
-            Av1BlockSize superblockSize = this.picture.Sequence.SequenceHeader.SuperblockSize;
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.PrepareFixedPartitions(tile, superblockOrigin);
+        }
+
+        /// <summary>
+        /// Records the partition of a node inside the frame from the block sizes of the fixed partitioning. Then it records the
+        /// partitions of the split children. A node smaller than 8x8 always takes no partition.
+        /// </summary>
+        /// <param name="sizes">The block size at each 4x4 position of the superblock where a block starts.</param>
+        /// <param name="stride">The row stride of <paramref name="sizes"/>, in 4x4 units.</param>
+        /// <param name="superblockRow">The 4x4 row of the superblock in the frame.</param>
+        /// <param name="superblockColumn">The 4x4 column of the superblock in the frame.</param>
+        /// <param name="row">The 4x4 row of the node in the superblock.</param>
+        /// <param name="column">The 4x4 column of the node in the superblock.</param>
+        /// <param name="blockSize">The block size of the node.</param>
+        /// <param name="nodeIndex">The index of the node in the partition tree, where the children of node n start at 4n + 1.</param>
+        private void SetFixedPartitionTypes(
+            ReadOnlySpan<byte> sizes,
+            int stride,
+            int superblockRow,
+            int superblockColumn,
+            int row,
+            int column,
+            Av1BlockSize blockSize,
+            int nodeIndex)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.SetFixedPartitionTypes(sizes, stride, superblockRow, superblockColumn, row, column, blockSize, nodeIndex);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Sets every block of the superblock to the fixed partition size. At the bottom and right edges of the tile, a block takes the
+        /// largest square size that fits. Then the method records the partition that each node reads from those sizes.
+        /// </summary>
+        /// <param name="tile">The tile that holds the superblock.</param>
+        /// <param name="superblockOrigin">The luma origin of the superblock.</param>
+        public void PrepareFixedPartitions(Av1TileInfo tile, Point superblockOrigin)
+        {
+            Av1BlockSize superblockSize = this.state.Picture.Sequence.SequenceHeader.SuperblockSize;
             int superblockModeInfoSize = superblockSize.Get4x4WideCount();
             int modeInfoRow = superblockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int modeInfoColumn = superblockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             int rowsRemaining = tile.ModeInfoRowEnd - modeInfoRow;
             int columnsRemaining = tile.ModeInfoColumnEnd - modeInfoColumn;
-            Av1BlockSize fixedSize = this.picture.Parent.FixedPartitionSize;
+            Av1BlockSize fixedSize = this.state.Picture.Parent.FixedPartitionSize;
             int step = fixedSize.Get4x4WideCount();
 
             // A position where no block starts keeps an invalid size. The mode information grid holds an entry of an earlier frame there,
@@ -61,37 +136,6 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Returns the largest square size, from the requested size down, whose block fits the remaining rows and columns.
-        /// </summary>
-        /// <param name="blockSize">The requested square block size.</param>
-        /// <param name="rowsLeft">The 4x4 rows that remain to the bottom edge of the tile.</param>
-        /// <param name="columnsLeft">The 4x4 columns that remain to the right edge of the tile.</param>
-        /// <param name="height">Receives the 4x4 height of the last size tried. It keeps its value when no rows or columns remain.</param>
-        /// <param name="width">Receives the 4x4 width of the last size tried. It keeps its value when no rows or columns remain.</param>
-        /// <returns>The largest square size that fits, or at most 8x8 when no rows or columns remain.</returns>
-        private static Av1BlockSize FindPartitionSize(Av1BlockSize blockSize, int rowsLeft, int columnsLeft, ref int height, ref int width)
-        {
-            if (rowsLeft <= 0 || columnsLeft <= 0)
-            {
-                return blockSize < Av1BlockSize.Block8x8 ? blockSize : Av1BlockSize.Block8x8;
-            }
-
-            // Consecutive square sizes are three entries apart in the block size order.
-            int size = (int)blockSize;
-            for (; size > 0; size -= 3)
-            {
-                height = ((Av1BlockSize)size).Get4x4HighCount();
-                width = ((Av1BlockSize)size).Get4x4WideCount();
-                if (height <= rowsLeft && width <= columnsLeft)
-                {
-                    break;
-                }
-            }
-
-            return (Av1BlockSize)size;
-        }
-
-        /// <summary>
         /// Records the partition of a node inside the frame from the block sizes of the fixed partitioning. Then it records the
         /// partitions of the split children. A node smaller than 8x8 always takes no partition.
         /// </summary>
@@ -103,7 +147,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="column">The 4x4 column of the node in the superblock.</param>
         /// <param name="blockSize">The block size of the node.</param>
         /// <param name="nodeIndex">The index of the node in the partition tree, where the children of node n start at 4n + 1.</param>
-        private readonly void SetFixedPartitionTypes(
+        public void SetFixedPartitionTypes(
             ReadOnlySpan<byte> sizes,
             int stride,
             int superblockRow,
@@ -113,8 +157,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             int nodeIndex)
         {
-            int modeInfoRowCount = this.picture.Parent.Common.ModeInfoRowCount;
-            int modeInfoColumnCount = this.picture.Parent.Common.ModeInfoColumnCount;
+            int modeInfoRowCount = this.state.Picture.Parent.Common.ModeInfoRowCount;
+            int modeInfoColumnCount = this.state.Picture.Parent.Common.ModeInfoColumnCount;
             int modeInfoRow = superblockRow + row;
             int modeInfoColumn = superblockColumn + column;
             if (modeInfoRow >= modeInfoRowCount || modeInfoColumn >= modeInfoColumnCount)
@@ -122,7 +166,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            Span<byte> partitions = this.superblock.Workspace.PartitionSearchTypes;
+            Span<byte> partitions = this.state.Superblock.Workspace.PartitionSearchTypes;
             if (blockSize < Av1BlockSize.Block8x8)
             {
                 partitions[nodeIndex] = (byte)Av1PartitionType.None;

@@ -19,13 +19,37 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </content>
 internal static partial class Av1IntraSuperblockEncoder
 {
+    /// <summary>
+    /// Combines the two child moment sets belonging to a horizontal or vertical half.
+    /// </summary>
+    /// <param name="nodes">The complete moment tree.</param>
+    /// <param name="nodeIndex">The square parent's tree position.</param>
+    /// <param name="side">The parent width in samples.</param>
+    /// <param name="partition">The half orientation.</param>
+    /// <param name="half">Zero for the first half or one for the second.</param>
+    /// <returns>The centered variance of the selected half.</returns>
+    private static int GetPartitionHalfVariance(
+        ReadOnlySpan<VariancePartitionNode> nodes,
+        int nodeIndex,
+        int side,
+        Av1PartitionType partition,
+        int half)
+    {
+        bool horizontal = partition == Av1PartitionType.Horizontal;
+        int first = (nodeIndex * 4) + 1 + (horizontal ? half * 2 : half);
+        int second = first + (horizontal ? 1 : 2);
+        int countLog2 = (2 * (BitOperations.Log2((uint)side) - 3)) - 1;
+        return GetPartitionVariance(
+            nodes[first].Sum + nodes[second].Sum, nodes[first].SumSquares + nodes[second].SumSquares, countLog2);
+    }
+
     private static int GetPartitionVariance(int sum, uint sumSquares, int log2Count)
     {
         uint centeredSumSquares = sumSquares - (uint)(((long)sum * sum) >> log2Count);
         return (int)((256U * centeredSumSquares) >> log2Count);
     }
 
-    private struct VariancePartitionNode
+    internal struct VariancePartitionNode
     {
         public int Sum;
         public uint SumSquares;
@@ -35,7 +59,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Resolves inter partition thresholds from quantization, resolution, source activity, and frame role.
@@ -46,161 +70,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="thresholds">The 128x128, 64x64, 32x32, and 16x16 thresholds.</param>
         private void GetInterVarianceThresholds(ulong blockSad, bool boostedSegment, int quantizer, Span<long> thresholds)
         {
-            const int resolution288 = 352 * 288;
-            const int resolution480 = 640 * 480;
-            const int resolution720 = 1280 * 720;
-            const int resolution1080 = 1920 * 1080;
-            const int largeBlockQuantizer = 100;
-            Av1PictureParentControlSet parent = this.picture.Parent;
-            int speed = (int)parent.EncodingSpeed;
-            bool nonReferenceFrame = parent.FrameHeader.RefreshFrameFlags == 0;
-            int pixels = parent.FrameHeader.FrameSize.FrameWidth * parent.FrameHeader.FrameSize.FrameHeight;
-            int frameQuantizer = this.quantization.QIndex[0];
-            long basis = Av1QuantizationLookup.GetAcQuant(quantizer, 0, this.bitDepth);
+            SearchControl control = TOperator.CreateSearchControl(ref this);
 
-            // A noisy source that changed little raises the base threshold.
-            if (parent.NoiseEstimate is { Enabled: true } && this.sourceLowSumDifference && pixels > resolution480 &&
-                this.blockWorkspace.EncodedFrameCount > 60)
-            {
-                int noiseLevel = parent.RunningNoiseLevel;
-                if (noiseLevel == Av1NoiseEstimate.HighLevel)
-                {
-                    basis = (5 * basis) >> 1;
-                }
-                else if (noiseLevel == Av1NoiseEstimate.MediumLevel && parent.SpeedSettings.GetVariancePartitionPreference() == 0)
-                {
-                    basis = (5 * basis) >> 2;
-                }
-            }
-
-            if (nonReferenceFrame && parent.FrameSourceSad != 0)
-            {
-                basis = (3 * basis) >> 1;
-            }
-
-            if (speed >= 8)
-            {
-                basis = (5 * basis) >> 2;
-            }
-
-            int splitShift = speed >= 9 ? 9 : speed >= 8 ? 8 : 7;
-            thresholds[0] = basis >> 1;
-            thresholds[1] = basis;
-            thresholds[3] = basis << splitShift;
-            if (pixels >= resolution720)
-            {
-                thresholds[3] <<= 1;
-            }
-
-            if (pixels <= resolution288)
-            {
-                int low = speed >= 9 ? 200 : speed >= 8 ? 170 : 200;
-                int high = speed >= 9 ? 220 : speed >= 8 ? 220 : 210;
-                if (frameQuantizer >= high)
-                {
-                    basis = (5 * basis) >> 1;
-                    thresholds[1] = basis >> 3;
-                    thresholds[2] = basis << 2;
-                    thresholds[3] = basis << 5;
-                }
-                else if (frameQuantizer < low)
-                {
-                    thresholds[1] = basis >> 3;
-                    thresholds[2] = basis >> 1;
-                    thresholds[3] = basis << 3;
-                }
-                else
-                {
-                    long fromLow = frameQuantizer - low;
-                    long fromHigh = high - frameQuantizer;
-                    int interval = high - low;
-                    long highBasis = (5 * basis) >> 1;
-                    basis = ((fromLow * highBasis) + (fromHigh * basis)) / interval;
-                    thresholds[1] = basis >> 3;
-                    thresholds[2] = ((fromLow * basis) + (fromHigh * (basis >> 1))) / interval;
-                    thresholds[3] = ((fromLow * (basis << 5)) + (fromHigh * (basis << 3))) / interval;
-                }
-            }
-            else if (pixels < resolution720)
-            {
-                thresholds[2] = (5 * basis) >> 2;
-            }
-            else if (pixels < resolution1080)
-            {
-                thresholds[2] = basis << 1;
-            }
-            else
-            {
-                thresholds[2] = (speed > 7 ? 6 : 3) * basis;
-            }
-
-            int preference = parent.SpeedSettings.GetVariancePartitionPreference();
-            if (preference >= 3)
-            {
-                // These quantizer weights change in integer steps. Keeping the division integral
-                // preserves the threshold transitions at the ends of the quantizer window.
-                double weight = frameQuantizer < largeBlockQuantizer - 20 ? 1
-                    : frameQuantizer > largeBlockQuantizer + 20 ? 0
-                    : 1D - ((frameQuantizer - largeBlockQuantizer + 20) / 40);
-
-                if (pixels > resolution480)
-                {
-                    for (int index = 0; index < 4; index++)
-                    {
-                        thresholds[index] <<= 1;
-                    }
-                }
-
-                if (pixels <= resolution288)
-                {
-                    thresholds[3] = long.MaxValue;
-                    thresholds[1] <<= boostedSegment ? 1 : 2;
-                    thresholds[2] <<= boostedSegment ? 3 : this.sourceSadLevel <= Av1SourceSadLevel.Low ? 5 : 4;
-                    if (!boostedSegment && parent.AverageSourceSad < 25000 && blockSad > 25000 && blockSad < 50000 &&
-                        !this.sourceLightingChange)
-                    {
-                        thresholds[2] = (3 * thresholds[2]) >> 2;
-                        thresholds[3] = thresholds[2] << 3;
-                    }
-                }
-                else if (pixels > resolution480 && !boostedSegment &&
-                    (this.sourceSadLevel != Av1SourceSadLevel.High || parent.AverageSourceSad > 50000))
-                {
-                    thresholds[0] = (3 * thresholds[0]) >> 1;
-                    thresholds[3] = long.MaxValue;
-                    if (frameQuantizer > largeBlockQuantizer)
-                    {
-                        thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 1)) + (weight * thresholds[1]));
-                        thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 1)) + (weight * thresholds[2]));
-                    }
-                }
-                else if (frameQuantizer > largeBlockQuantizer && !boostedSegment &&
-                    (this.sourceSadLevel != Av1SourceSadLevel.High || parent.AverageSourceSad > 50000))
-                {
-                    thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 2)) + (weight * thresholds[1]));
-                    thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 4)) + (weight * thresholds[2]));
-                    thresholds[3] = long.MaxValue;
-                }
-            }
-            else if (preference >= 2)
-            {
-                if (this.sourceSadLevel <= Av1SourceSadLevel.Low)
-                {
-                    thresholds[1] <<= 2;
-                    thresholds[2] *= 3;
-                }
-            }
-            else if (preference >= 1)
-            {
-                int shift = this.sourceSadLevel <= Av1SourceSadLevel.Low ? 2 : 1;
-                double weight = frameQuantizer < largeBlockQuantizer - 45 ? 1
-                    : frameQuantizer > largeBlockQuantizer + 45 ? 0
-                    : 1D - ((frameQuantizer - largeBlockQuantizer + 45) / 90);
-
-                thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 1)) + (weight * thresholds[1]));
-                thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 1)) + (weight * thresholds[2]));
-                thresholds[3] = (int)(((1 - weight) * (thresholds[3] << shift)) + (weight * thresholds[3]));
-            }
+            control.GetInterVarianceThresholds(blockSad, boostedSegment, quantizer, thresholds);
         }
 
         /// <summary>
@@ -250,7 +122,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     node.SumSquares = (uint)(node.Sum * node.Sum);
                 }
 
-                this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)Av1PartitionType.None;
+                this.State.Superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)Av1PartitionType.None;
                 return;
             }
 
@@ -290,7 +162,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int countLog2 = 2 * (sizeLog2 - 3);
             node.Variance = GetPartitionVariance(node.Sum, node.SumSquares, countLog2);
             long threshold = thresholds[7 - sizeLog2];
-            Av1PictureParentControlSet parent = this.picture.Parent;
+            Av1PictureParentControlSet parent = this.State.Picture.Parent;
             int pixels = parent.FrameHeader.FrameSize.FrameWidth * parent.FrameHeader.FrameSize.FrameHeight;
             int preference = parent.SpeedSettings.GetVariancePartitionPreference();
 
@@ -308,7 +180,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (pixels <= 640 * 360)
                 {
                     node.ForceParentSplit |= (maximum - minimum > (threshold >> 1) && maximum > threshold) ||
-                        (preference != 0 && this.sourceSadLevel > Av1SourceSadLevel.Low && parent.FrameSourceSad < 20000 &&
+                        (preference != 0 && this.State.SourceSadLevel > Av1SourceSadLevel.Low && parent.FrameSourceSad < 20000 &&
                             maximum > (threshold >> 4) && maximum > (minimum << 2));
                 }
             }
@@ -332,7 +204,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rowsRequired = blockColumns;
             int verticalColumnsRequired = blockColumns >> 1;
             int horizontalRowsRequired = blockColumns >> 1;
-            if (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block64x64)
+            if (this.State.Picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block64x64)
             {
                 if (tile.ModeInfoColumnEnd == parent.Common.ModeInfoColumnCount)
                 {
@@ -383,7 +255,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)partition;
+            this.State.Superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)partition;
         }
 
         /// <summary>
@@ -394,97 +266,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="thresholds">The four square-size partition thresholds.</param>
         private void SetInterLowVarianceFlags(Point origin, ReadOnlySpan<VariancePartitionNode> nodes, ReadOnlySpan<long> thresholds)
         {
-            Span<byte> flags = this.superblock.Workspace.LowVarianceFlags;
-            flags.Clear();
-            ReadOnlySpan<byte> partitions = this.superblock.Workspace.PartitionSearchTypes;
-            int side = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
-            Av1PartitionType root = (Av1PartitionType)partitions[0];
-            if (root == Av1PartitionType.None)
-            {
-                flags[0] = (byte)(nodes[0].Variance < (thresholds[0] >> 1) ? 1 : 0);
-                return;
-            }
+            SearchControl control = TOperator.CreateSearchControl(ref this);
 
-            if (root is Av1PartitionType.Horizontal or Av1PartitionType.Vertical)
-            {
-                int start = root == Av1PartitionType.Horizontal ? 1 : 3;
-                for (int half = 0; half < 2; half++)
-                {
-                    int variance = GetPartitionHalfVariance(nodes, 0, side, root, half);
-                    flags[start + half] = (byte)(variance < (thresholds[0] >> 2) ? 1 : 0);
-                }
-
-                return;
-            }
-
-            bool small = side == 64;
-            int count64 = small ? 1 : 4;
-            int frameWidth = this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2;
-            int frameHeight = this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2;
-            for (int index64 = 0; index64 < count64; index64++)
-            {
-                Point origin64 = origin + new Size((index64 & 1) * 64, (index64 >> 1) * 64);
-                if (origin64.X >= frameWidth || origin64.Y >= frameHeight)
-                {
-                    continue;
-                }
-
-                int node64 = small ? 0 : 1 + index64;
-                Av1PartitionType partition64 = (Av1PartitionType)partitions[node64];
-                long threshold64 = (5 * thresholds[1]) >> 3;
-                if (!small && partition64 == Av1PartitionType.None)
-                {
-                    flags[5 + index64] = (byte)(nodes[node64].Variance < threshold64 ? 1 : 0);
-                    continue;
-                }
-
-                if (!small && partition64 is Av1PartitionType.Horizontal or Av1PartitionType.Vertical)
-                {
-                    int start = (partition64 == Av1PartitionType.Horizontal ? 9 : 17) + (index64 * 2);
-                    for (int half = 0; half < 2; half++)
-                    {
-                        int variance = GetPartitionHalfVariance(nodes, node64, 64, partition64, half);
-                        flags[start + half] = (byte)(variance < (threshold64 >> 1) ? 1 : 0);
-                    }
-
-                    continue;
-                }
-
-                for (int index32 = 0; index32 < 4; index32++)
-                {
-                    Point origin32 = origin64 + new Size((index32 & 1) * 32, (index32 >> 1) * 32);
-                    if (origin32.X >= frameWidth || origin32.Y >= frameHeight)
-                    {
-                        continue;
-                    }
-
-                    int node32 = (node64 * 4) + 1 + index32;
-                    Av1PartitionType partition32 = (Av1PartitionType)partitions[node32];
-                    if (partition32 == Av1PartitionType.None)
-                    {
-                        long threshold32 = (5 * thresholds[small ? 1 : 2]) >> 3;
-                        int flag = small ? 5 + index32 : 25 + (index64 * 4) + index32;
-                        flags[flag] = (byte)(nodes[node32].Variance < threshold32 ? 1 : 0);
-                    }
-                    else
-                    {
-                        int first16 = (node32 * 4) + 1;
-
-                        // The first leaf selects whether this 32x32 region uses sixteen-sample
-                        // activity flags. Rectangles consume the flag at their top-left 16x16 cell.
-                        if (partition32 is Av1PartitionType.Horizontal or Av1PartitionType.Vertical ||
-                            partitions[first16] == (byte)Av1PartitionType.None)
-                        {
-                            int start = small ? 9 + (index32 * 4) : 41 + (index64 * 16) + (index32 * 4);
-                            long threshold16 = thresholds[small ? 2 : 3] >> 8;
-                            for (int index16 = 0; index16 < 4; index16++)
-                            {
-                                flags[start + index16] = (byte)(nodes[first16 + index16].Variance < threshold16 ? 1 : 0);
-                            }
-                        }
-                    }
-                }
-            }
+            control.SetInterLowVarianceFlags(origin, nodes, thresholds);
         }
 
         /// <summary>
@@ -495,67 +279,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <returns>Whether the block can omit secondary-reference motion search.</returns>
         private bool HasLowTemporalVariance(Point origin, Av1BlockSize blockSize)
         {
-            ReadOnlySpan<byte> flags = this.superblock.Workspace.LowVarianceFlags;
-            int x = origin.X & 127;
-            int y = origin.Y & 127;
-            int index64 = ((y >> 6) * 2) + (x >> 6);
-            int index32 = (((y & 63) >> 5) * 2) + ((x & 63) >> 5);
-            int index16 = (((y & 31) >> 4) * 2) + ((x & 31) >> 4);
-            int index;
-            if (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block64x64)
-            {
-                index = blockSize switch
-                {
-                    Av1BlockSize.Block64x64 => 0,
-                    Av1BlockSize.Block64x32 => 1 + ((y & 63) >> 5),
-                    Av1BlockSize.Block32x64 => 3 + ((x & 63) >> 5),
-                    Av1BlockSize.Block32x32 => 5 + index32,
-                    Av1BlockSize.Block32x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block16x16 => 9 + (index32 * 4) + index16,
-                    _ => -1
-                };
-            }
-            else
-            {
-                index = blockSize switch
-                {
-                    Av1BlockSize.Block128x128 => 0,
-                    Av1BlockSize.Block128x64 => 1 + (y >> 6),
-                    Av1BlockSize.Block64x128 => 3 + (x >> 6),
-                    Av1BlockSize.Block64x64 => 5 + index64,
-                    Av1BlockSize.Block64x32 => 9 + (index64 * 2) + ((y & 63) >> 5),
-                    Av1BlockSize.Block32x64 => 17 + (index64 * 2) + ((x & 63) >> 5),
-                    Av1BlockSize.Block32x32 => 25 + (index64 * 4) + index32,
-                    Av1BlockSize.Block32x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block16x16
-                        => 41 + (index64 * 16) + (index32 * 4) + index16,
-                    _ => -1
-                };
-            }
+            SearchControl control = TOperator.CreateSearchControl(ref this);
 
-            return index >= 0 && flags[index] != 0;
-        }
-
-        /// <summary>
-        /// Combines the two child moment sets belonging to a horizontal or vertical half.
-        /// </summary>
-        /// <param name="nodes">The complete moment tree.</param>
-        /// <param name="nodeIndex">The square parent's tree position.</param>
-        /// <param name="side">The parent width in samples.</param>
-        /// <param name="partition">The half orientation.</param>
-        /// <param name="half">Zero for the first half or one for the second.</param>
-        /// <returns>The centered variance of the selected half.</returns>
-        private static int GetPartitionHalfVariance(
-            ReadOnlySpan<VariancePartitionNode> nodes,
-            int nodeIndex,
-            int side,
-            Av1PartitionType partition,
-            int half)
-        {
-            bool horizontal = partition == Av1PartitionType.Horizontal;
-            int first = (nodeIndex * 4) + 1 + (horizontal ? half * 2 : half);
-            int second = first + (horizontal ? 1 : 2);
-            int countLog2 = (2 * (BitOperations.Log2((uint)side) - 3)) - 1;
-            return GetPartitionVariance(
-                nodes[first].Sum + nodes[second].Sum, nodes[first].SumSquares + nodes[second].SumSquares, countLog2);
+            return control.HasLowTemporalVariance(origin, blockSize);
         }
 
         /// <summary>
@@ -594,8 +320,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Point origin,
             out int predictionStride)
         {
-            Av1PictureParentControlSet parent = this.picture.Parent;
-            Av1BlockSize blockSize = this.picture.Sequence.SequenceHeader.SuperblockSize;
+            Av1PictureParentControlSet parent = this.State.Picture.Parent;
+            Av1BlockSize blockSize = this.State.Picture.Sequence.SequenceHeader.SuperblockSize;
             int side = blockSize.GetWidth();
             Size frameSize = new(parent.FrameHeader.FrameSize.FrameWidth, parent.FrameHeader.FrameSize.FrameHeight);
             Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
@@ -603,12 +329,12 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> source = Av1TransformBlockEncoder.GetPlaneSpan(sourceLuma, sourcePlane, origin);
             ReadOnlySpan<TSample> lastStorage = lastPlane.Samples;
             int lastOrigin = ((lastPlane.Bounds.Y + origin.Y) * lastPlane.Stride) + lastPlane.Bounds.X + origin.X;
-            int precisionShift = this.bitDepth.GetBitCount() - 8;
-            uint spatialVariance = this.sourceSadLevel > Av1SourceSadLevel.Low ? (uint)this.GetSourceVariance(
+            int precisionShift = this.State.BitDepth.GetBitCount() - 8;
+            uint spatialVariance = this.State.SourceSadLevel > Av1SourceSadLevel.Low ? (uint)this.GetSourceVariance(
                 sourceLuma, sourceBlue, sourceRed, midpoint, origin, blockSize) : uint.MaxValue;
 
             uint goldenSad = uint.MaxValue;
-            if (this.hasDistinctGoldenReference && this.sourceSadLevel != Av1SourceSadLevel.Zero)
+            if (this.State.HasDistinctGoldenReference && this.State.SourceSadLevel != Av1SourceSadLevel.Zero)
             {
                 Av1PlaneRegion<TSample> golden = this.goldenReference.GetPlane(Av1Plane.Y);
                 goldenSad = (uint)TOperator.SumAbsoluteDifferences(
@@ -619,17 +345,17 @@ internal static partial class Av1IntraSuperblockEncoder
             uint alternateSad = uint.MaxValue;
             bool useAlternate = parent.SpeedSettings.UseEstimatedAlternateReference || parent.SpeedSettings.UseEstimatedCompound;
             if (useAlternate && (parent.AvailableReferenceMask & (1 << (int)Av1ReferenceFrameType.Alternate)) != 0 &&
-                this.sourceSadLevel != Av1SourceSadLevel.Zero)
+                this.State.SourceSadLevel != Av1SourceSadLevel.Zero)
             {
                 Av1PlaneRegion<TSample> alternate = this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView.GetPlane(Av1Plane.Y);
                 alternateSad = (uint)TOperator.SumAbsoluteDifferences(
                     source, sourcePlane.Stride, Av1TransformBlockEncoder.GetPlaneSpan(alternate, origin), alternate.Stride, side, side, 1) >> precisionShift;
             }
 
-            this.partitionMotion = default;
-            this.usePartitionMotion = false;
+            this.State.PartitionMotion = default;
+            this.State.UsePartitionMotion = false;
             int motionLevel = precisionShift != 0 ? 0 : parent.EncodingSpeed >= HeifEncodingSpeed.Level9 ? 3 : 2;
-            if (motionLevel > 2 && this.sourceSadLevel > Av1SourceSadLevel.Medium)
+            if (motionLevel > 2 && this.State.SourceSadLevel > Av1SourceSadLevel.Medium)
             {
                 motionLevel = 2;
             }
@@ -642,11 +368,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Rectangle integerBounds = default(Av1MotionVector).GetFullPixelSearchBounds(frameBounds);
             uint lastSad = uint.MaxValue;
             if (motionLevel == 2 && macroBlock.ToRightEdge >= 0 && macroBlock.ToBottomEdge >= 0 &&
-                spatialVariance > 100 && this.sourceSadLevel > Av1SourceSadLevel.Low)
+                spatialVariance > 100 && this.State.SourceSadLevel > Av1SourceSadLevel.Low)
             {
                 // A large search runs only for a large source change in a frame larger than 720p, so its range is
                 // always the widest one.
-                bool largeSearch = this.sourceSadLevel > Av1SourceSadLevel.Medium && (long)frameSize.Width * frameSize.Height > 1280 * 720;
+                bool largeSearch = this.State.SourceSadLevel > Av1SourceSadLevel.Medium && (long)frameSize.Width * frameSize.Height > 1280 * 720;
                 int horizontalRange = largeSearch ? 256 : side >> 1;
                 int verticalRange = largeSearch ? 256 : side >> 1;
                 if ((long)frameSize.Width * frameSize.Height >= 3840 * 2160)
@@ -670,16 +396,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     largeSearch,
                     integerBounds,
                     MemoryMarshal.Cast<int, short>(transformCoefficients),
-                    out this.partitionMotion,
+                    out this.State.PartitionMotion,
                     out uint zeroSad);
 
                 if (largeSearch)
                 {
-                    this.usePartitionMotion = lastSad < (zeroSad >> 1) && lastSad < (side == 128 ? 50000U : 20000U);
-                    this.superblockMotion = this.partitionMotion;
-                    if (!this.usePartitionMotion)
+                    this.State.UsePartitionMotion = lastSad < (zeroSad >> 1) && lastSad < (side == 128 ? 50000U : 20000U);
+                    this.State.SuperblockMotion = this.State.PartitionMotion;
+                    if (!this.State.UsePartitionMotion)
                     {
-                        this.partitionMotion = default;
+                        this.State.PartitionMotion = default;
                         lastSad = zeroSad;
                     }
                 }
@@ -721,7 +447,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     Point neighborPosition = position + (index == 0 ? new Size(0, -1) : new Size(-1, 0));
 
                     // The clamped vector rounds to the nearest full sample. A tie rounds away from zero.
-                    Av1MotionVector motion = this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
+                    Av1MotionVector motion = this.State.Picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
                     int row = Math.Clamp(motion.Row, fractionalBounds.Top, fractionalBounds.Bottom - 1);
                     int column = Math.Clamp(motion.Column, fractionalBounds.Left, fractionalBounds.Right - 1);
                     motion = new Av1MotionVector(
@@ -729,7 +455,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ((column + 3 + (column >= 0 ? 1 : 0)) >> 3) << 3);
 
                     neighbors[index] = motion;
-                    if (motion == this.partitionMotion || (index == 1 && motion == neighbors[0]))
+                    if (motion == this.State.PartitionMotion || (index == 1 && motion == neighbors[0]))
                     {
                         continue;
                     }
@@ -739,42 +465,42 @@ internal static partial class Av1IntraSuperblockEncoder
                         source, sourcePlane.Stride, lastStorage[offset..], lastPlane.Stride, side, side, 1) >> precisionShift;
                 }
 
-                uint multiplier = motionLevel > 2 && this.sourceSadLevel > Av1SourceSadLevel.Low ? 7U : 8U;
+                uint multiplier = motionLevel > 2 && this.State.SourceSadLevel > Av1SourceSadLevel.Low ? 7U : 8U;
                 if (errors[0] < ((multiplier * lastSad) >> 3) && errors[0] < errors[1])
                 {
                     lastSad = errors[0];
-                    this.partitionMotion = neighbors[0];
+                    this.State.PartitionMotion = neighbors[0];
                 }
 
                 if (errors[1] < ((multiplier * lastSad) >> 3) && errors[1] < errors[0])
                 {
                     lastSad = errors[1];
-                    this.partitionMotion = neighbors[1];
+                    this.State.PartitionMotion = neighbors[1];
                 }
             }
 
-            this.partitionReference = Av1ReferenceFrameType.Last;
-            this.estimatedReferencePruning = parent.SpeedSettings.GetEstimatedReferencePruningLevel();
+            this.State.PartitionReference = Av1ReferenceFrameType.Last;
+            this.State.EstimatedReferencePruning = parent.SpeedSettings.GetEstimatedReferencePruningLevel();
 
             // GOLDEN or ALTREF, whichever has the lower error, replaces LAST when its error is less than 0.9 of the LAST error.
             if (goldenSad < 0.9 * lastSad && goldenSad < alternateSad)
             {
-                this.partitionReference = Av1ReferenceFrameType.Golden;
+                this.State.PartitionReference = Av1ReferenceFrameType.Golden;
             }
             else if (alternateSad < 0.9 * lastSad && alternateSad < goldenSad)
             {
-                this.partitionReference = Av1ReferenceFrameType.Alternate;
+                this.State.PartitionReference = Av1ReferenceFrameType.Alternate;
             }
 
-            if (this.partitionReference != Av1ReferenceFrameType.Last)
+            if (this.State.PartitionReference != Av1ReferenceFrameType.Last)
             {
-                this.partitionMotion = default;
-                this.usePartitionMotion = false;
-                this.estimatedReferencePruning = 0;
+                this.State.PartitionMotion = default;
+                this.State.UsePartitionMotion = false;
+                this.State.EstimatedReferencePruning = 0;
             }
 
-            bool zeroMotion = this.partitionMotion.IsZero;
-            Av1EncoderFrame<TSample>.PlanarView selected = this.partitionReference switch
+            bool zeroMotion = this.State.PartitionMotion.IsZero;
+            Av1EncoderFrame<TSample>.PlanarView selected = this.State.PartitionReference switch
             {
                 Av1ReferenceFrameType.Golden => this.goldenReference,
                 Av1ReferenceFrameType.Alternate => this.searchReferences.Span[(int)Av1ReferenceFrameType.Alternate].CodedView,
@@ -793,11 +519,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         : planeIndex == 1 ? interWorkspace.BluePrediction : interWorkspace.RedPrediction;
 
                     this.PrepareInterPlanePrediction(
-                        this.partitionMotion,
+                        this.State.PartitionMotion,
                         default,
                         plane,
                         Av1PredictionMode.NearestMotionVector,
-                        this.partitionReference,
+                        this.State.PartitionReference,
                         Av1ReferenceFrameType.None,
                         false,
                         Av1CompoundType.Average,
@@ -827,9 +553,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.superblockColorSensitivity[..].Clear();
-            this.goldenColorSensitivity[..].Clear();
-            this.alternateColorSensitivity[..].Clear();
+            this.State.SuperblockColorSensitivity[..].Clear();
+            this.State.GoldenColorSensitivity[..].Clear();
+            this.State.AlternateColorSensitivity[..].Clear();
             if (!this.source.IsMonochrome)
             {
                 // The chroma check has no screen content branch. Those branches depend on a screen content tune that the encoder never
@@ -838,10 +564,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 int lowerShift = 3;
                 long pixels = (long)frameSize.Width * frameSize.Height;
                 int chromaFactor = pixels >= 1920 * 1080 ? 3 : 5;
-                if (this.sourceSadLevel >= Av1SourceSadLevel.Medium && spatialVariance > 500 && pixels >= 640 * 360)
+                if (this.State.SourceSadLevel >= Av1SourceSadLevel.Medium && spatialVariance > 500 && pixels >= 640 * 360)
                 {
                     upperShift = 2;
-                    lowerShift = this.sourceSadLevel > Av1SourceSadLevel.Medium ? 5 : 4;
+                    lowerShift = this.State.SourceSadLevel > Av1SourceSadLevel.Medium ? 5 : 4;
                 }
 
                 int subX = this.source.ChromaSubsamplingX;
@@ -872,7 +598,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         height,
                         1) >> precisionShift;
 
-                    this.superblockColorSensitivity[index] = (byte)(sad > (lastSad >> upperShift) ? 1 : sad < (lastSad >> lowerShift) ? 0 : 2);
+                    this.State.SuperblockColorSensitivity[index] = (byte)(sad > (lastSad >> upperShift) ? 1 : sad < (lastSad >> lowerShift) ? 0 : 2);
                     if (goldenSad != uint.MaxValue)
                     {
                         Av1PlaneRegion<TSample> golden = this.goldenReference.GetPlane(plane);
@@ -885,7 +611,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             height,
                             1) >> precisionShift;
 
-                        this.goldenColorSensitivity[index] = (byte)(sadGolden > goldenSad / chromaFactor ? 1 : 0);
+                        this.State.GoldenColorSensitivity[index] = (byte)(sadGolden > goldenSad / chromaFactor ? 1 : 0);
                     }
 
                     if (alternateSad != uint.MaxValue)
@@ -900,7 +626,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             height,
                             1) >> precisionShift;
 
-                        this.alternateColorSensitivity[index] = (byte)(sadAlternate > alternateSad / chromaFactor ? 1 : 0);
+                        this.State.AlternateColorSensitivity[index] = (byte)(sadAlternate > alternateSad / chromaFactor ? 1 : 0);
                     }
                 }
             }
@@ -950,7 +676,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (neighbor.ReferenceFrame > Av1ReferenceFrameType.Intra)
                     {
                         Point neighborPosition = position + (index == 0 ? new Size(0, -1) : new Size(-1, 0));
-                        Av1MotionVector vector = this.picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
+                        Av1MotionVector vector = this.State.Picture.GetDisplacementVector(modeInfoGrid, displacementVectors, neighborPosition);
                         if (Math.Abs(vector.Row) > 24 || Math.Abs(vector.Column) > 24)
                         {
                             return;
@@ -959,8 +685,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            Av1PictureParentControlSet parent = this.picture.Parent;
-            int side = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
+            Av1PictureParentControlSet parent = this.State.Picture.Parent;
+            int side = this.State.Picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
             Av1PlaneRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
             Av1PlaneRegion<byte> previousLuma = parent.PreviousSource.GetPlane(Av1Plane.Y);
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<TSample, byte>(
@@ -1084,7 +810,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
         /// <param name="macroBlock">The neighbor availability of the superblock.</param>
         /// <param name="superblockOrigin">The luma superblock origin.</param>
-        private void PrepareVariancePartitions(
+        public void PrepareVariancePartitions(
             Span<int> transformCoefficients,
             in Av1EncoderInterPredictionWorkspace<TSample> interWorkspace,
             Span<TSample> midpoint,
@@ -1103,15 +829,15 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MacroBlockD macroBlock,
             Point superblockOrigin)
         {
-            if (!this.picture.Parent.FrameHeader.IsIntra)
+            if (!this.State.Picture.Parent.FrameHeader.IsIntra)
             {
-                if (this.filterTemporalSource)
+                if (this.State.FilterTemporalSource)
                 {
                     this.FilterTemporalSource(
                         modeInfoGrid, modeInfoAllocation, displacementVectors, sourceLuma, sourceBlue, sourceRed, macroBlock, superblockOrigin);
                 }
 
-                Av1PictureParentControlSet parent = this.picture.Parent;
+                Av1PictureParentControlSet parent = this.State.Picture.Parent;
 
                 // When scene detection did not keep the 64x64 block errors, the source error is zero.
                 int columns = (parent.FrameHeader.FrameSize.FrameWidth + 63) >> 6;
@@ -1121,11 +847,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // The superblock takes its segment from the map. A boosted cyclic refresh superblock splits at the thresholds of its segment
                 // quantizer.
-                this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, superblockOrigin, this.picture.Sequence.SequenceHeader.SuperblockSize);
+                this.SetBlockSegment(encoderSegmentMap, previousSegmentMap, superblockOrigin, this.State.Picture.Sequence.SequenceHeader.SuperblockSize);
                 bool boostedSegment = this.IsCyclicRefreshBoosted;
                 int partitionQIndex = boostedSegment
-                    ? Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, this.blockSegmentId, this.superblockQIndex)
-                    : this.superblockQIndex;
+                    ? Av1QuantizationLookup.GetQIndex(parent.FrameHeader.SegmentationParameters, this.State.BlockSegmentId, this.State.SuperblockQIndex)
+                    : this.State.SuperblockQIndex;
 
                 InlineArray4<long> thresholdStorage = default;
                 Span<long> thresholds = thresholdStorage;
@@ -1158,14 +884,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     macroBlock,
                     superblockOrigin,
                     superblockOrigin,
-                    this.picture.Sequence.SequenceHeader.SuperblockSize,
+                    this.State.Picture.Sequence.SequenceHeader.SuperblockSize,
                     0,
                     prediction,
                     predictionStride,
                     thresholds,
                     temporalNodes);
 
-                if (parent.SpeedSettings.UseEstimatedLowTemporalVariance && this.partitionReference == Av1ReferenceFrameType.Last)
+                if (parent.SpeedSettings.UseEstimatedLowTemporalVariance && this.State.PartitionReference == Av1ReferenceFrameType.Last)
                 {
                     this.SetInterLowVarianceFlags(superblockOrigin, temporalNodes, thresholds);
                 }
@@ -1173,11 +899,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            int speed = (int)this.picture.Parent.EncodingSpeed;
-            int frameWidth = this.picture.Parent.FrameHeader.FrameSize.FrameWidth;
-            int frameHeight = this.picture.Parent.FrameHeader.FrameSize.FrameHeight;
-            long threshold = 120L * Av1QuantizationLookup.GetAcQuant(this.superblockQIndex, 0, this.bitDepth);
-            bool allIntra = this.picture.Parent.EncoderOptions.IsAllIntra;
+            int speed = (int)this.State.Picture.Parent.EncodingSpeed;
+            int frameWidth = this.State.Picture.Parent.FrameHeader.FrameSize.FrameWidth;
+            int frameHeight = this.State.Picture.Parent.FrameHeader.FrameSize.FrameHeight;
+            long threshold = 120L * Av1QuantizationLookup.GetAcQuant(this.State.SuperblockQIndex, 0, this.State.BitDepth);
+            bool allIntra = this.State.Picture.Parent.EncoderOptions.IsAllIntra;
             bool largePartitions = allIntra
                 ? speed >= 8 && Math.Min(frameWidth, frameHeight) >= 720
                 : speed >= 9 && Math.Min(frameWidth, frameHeight) < 720;
@@ -1205,7 +931,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.source.GetPlane(Av1Plane.Y),
                 macroBlock.Tile,
                 superblockOrigin,
-                this.picture.Sequence.SequenceHeader.SuperblockSize,
+                this.State.Picture.Sequence.SequenceHeader.SuperblockSize,
                 0,
                 nodes,
                 threshold32,
@@ -1266,7 +992,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 node.Variance = GetPartitionVariance(node.Sum, node.SumSquares, 2);
-                this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)Av1PartitionType.None;
+                this.State.Superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)Av1PartitionType.None;
                 return;
             }
 
@@ -1295,7 +1021,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Their moments cannot affect any surviving decision, so retain only their child partitions.
             if (width > 32)
             {
-                this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)Av1PartitionType.Split;
+                this.State.Superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)Av1PartitionType.Split;
                 node.ForceParentSplit = true;
                 return;
             }
@@ -1325,17 +1051,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int rowsRequired = blockColumns;
             int verticalColumnsRequired = blockColumns >> 1;
             int horizontalRowsRequired = blockColumns >> 1;
-            if (this.picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block64x64)
+            if (this.State.Picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block64x64)
             {
                 // At the outer frame edge a sixty-four-sized superblock permits leaves whose midpoint
                 // is present. Interior tile edges still require the whole leaf to fit within the tile.
-                if (tile.ModeInfoColumnEnd == this.picture.Parent.Common.ModeInfoColumnCount)
+                if (tile.ModeInfoColumnEnd == this.State.Picture.Parent.Common.ModeInfoColumnCount)
                 {
                     columnsRequired = (blockColumns >> 1) + 1;
                     verticalColumnsRequired = (blockColumns >> 2) + 1;
                 }
 
-                if (tile.ModeInfoRowEnd == this.picture.Parent.Common.ModeInfoRowCount)
+                if (tile.ModeInfoRowEnd == this.State.Picture.Parent.Common.ModeInfoRowCount)
                 {
                     rowsRequired = (blockColumns >> 1) + 1;
                     horizontalRowsRequired = (blockColumns >> 2) + 1;
@@ -1390,7 +1116,325 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)partition;
+            this.State.Superblock.Workspace.PartitionSearchTypes[nodeIndex] = (byte)partition;
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Resolves inter partition thresholds from quantization, resolution, source activity, and frame role.
+        /// </summary>
+        /// <param name="blockSad">The collocated 64x64 temporal source SAD.</param>
+        /// <param name="boostedSegment">Whether cyclic refresh boosts this superblock.</param>
+        /// <param name="quantizer">The superblock's effective quantizer index.</param>
+        /// <param name="thresholds">The 128x128, 64x64, 32x32, and 16x16 thresholds.</param>
+        public void GetInterVarianceThresholds(ulong blockSad, bool boostedSegment, int quantizer, Span<long> thresholds)
+        {
+            const int resolution288 = 352 * 288;
+            const int resolution480 = 640 * 480;
+            const int resolution720 = 1280 * 720;
+            const int resolution1080 = 1920 * 1080;
+            const int largeBlockQuantizer = 100;
+            Av1PictureParentControlSet parent = this.state.Picture.Parent;
+            int speed = (int)parent.EncodingSpeed;
+            bool nonReferenceFrame = parent.FrameHeader.RefreshFrameFlags == 0;
+            int pixels = parent.FrameHeader.FrameSize.FrameWidth * parent.FrameHeader.FrameSize.FrameHeight;
+            int frameQuantizer = this.state.Quantization.QIndex[0];
+            long basis = Av1QuantizationLookup.GetAcQuant(quantizer, 0, this.state.BitDepth);
+
+            // A noisy source that changed little raises the base threshold.
+            if (parent.NoiseEstimate is { Enabled: true } && this.state.SourceLowSumDifference && pixels > resolution480 &&
+                this.state.BlockWorkspace.EncodedFrameCount > 60)
+            {
+                int noiseLevel = parent.RunningNoiseLevel;
+                if (noiseLevel == Av1NoiseEstimate.HighLevel)
+                {
+                    basis = (5 * basis) >> 1;
+                }
+                else if (noiseLevel == Av1NoiseEstimate.MediumLevel && parent.SpeedSettings.GetVariancePartitionPreference() == 0)
+                {
+                    basis = (5 * basis) >> 2;
+                }
+            }
+
+            if (nonReferenceFrame && parent.FrameSourceSad != 0)
+            {
+                basis = (3 * basis) >> 1;
+            }
+
+            if (speed >= 8)
+            {
+                basis = (5 * basis) >> 2;
+            }
+
+            int splitShift = speed >= 9 ? 9 : speed >= 8 ? 8 : 7;
+            thresholds[0] = basis >> 1;
+            thresholds[1] = basis;
+            thresholds[3] = basis << splitShift;
+            if (pixels >= resolution720)
+            {
+                thresholds[3] <<= 1;
+            }
+
+            if (pixels <= resolution288)
+            {
+                int low = speed >= 9 ? 200 : speed >= 8 ? 170 : 200;
+                int high = speed >= 9 ? 220 : speed >= 8 ? 220 : 210;
+                if (frameQuantizer >= high)
+                {
+                    basis = (5 * basis) >> 1;
+                    thresholds[1] = basis >> 3;
+                    thresholds[2] = basis << 2;
+                    thresholds[3] = basis << 5;
+                }
+                else if (frameQuantizer < low)
+                {
+                    thresholds[1] = basis >> 3;
+                    thresholds[2] = basis >> 1;
+                    thresholds[3] = basis << 3;
+                }
+                else
+                {
+                    long fromLow = frameQuantizer - low;
+                    long fromHigh = high - frameQuantizer;
+                    int interval = high - low;
+                    long highBasis = (5 * basis) >> 1;
+                    basis = ((fromLow * highBasis) + (fromHigh * basis)) / interval;
+                    thresholds[1] = basis >> 3;
+                    thresholds[2] = ((fromLow * basis) + (fromHigh * (basis >> 1))) / interval;
+                    thresholds[3] = ((fromLow * (basis << 5)) + (fromHigh * (basis << 3))) / interval;
+                }
+            }
+            else if (pixels < resolution720)
+            {
+                thresholds[2] = (5 * basis) >> 2;
+            }
+            else if (pixels < resolution1080)
+            {
+                thresholds[2] = basis << 1;
+            }
+            else
+            {
+                thresholds[2] = (speed > 7 ? 6 : 3) * basis;
+            }
+
+            int preference = parent.SpeedSettings.GetVariancePartitionPreference();
+            if (preference >= 3)
+            {
+                // These quantizer weights change in integer steps. Keeping the division integral
+                // preserves the threshold transitions at the ends of the quantizer window.
+                double weight = frameQuantizer < largeBlockQuantizer - 20 ? 1
+                    : frameQuantizer > largeBlockQuantizer + 20 ? 0
+                    : 1D - ((frameQuantizer - largeBlockQuantizer + 20) / 40);
+
+                if (pixels > resolution480)
+                {
+                    for (int index = 0; index < 4; index++)
+                    {
+                        thresholds[index] <<= 1;
+                    }
+                }
+
+                if (pixels <= resolution288)
+                {
+                    thresholds[3] = long.MaxValue;
+                    thresholds[1] <<= boostedSegment ? 1 : 2;
+                    thresholds[2] <<= boostedSegment ? 3 : this.state.SourceSadLevel <= Av1SourceSadLevel.Low ? 5 : 4;
+                    if (!boostedSegment && parent.AverageSourceSad < 25000 && blockSad > 25000 && blockSad < 50000 &&
+                        !this.state.SourceLightingChange)
+                    {
+                        thresholds[2] = (3 * thresholds[2]) >> 2;
+                        thresholds[3] = thresholds[2] << 3;
+                    }
+                }
+                else if (pixels > resolution480 && !boostedSegment &&
+                    (this.state.SourceSadLevel != Av1SourceSadLevel.High || parent.AverageSourceSad > 50000))
+                {
+                    thresholds[0] = (3 * thresholds[0]) >> 1;
+                    thresholds[3] = long.MaxValue;
+                    if (frameQuantizer > largeBlockQuantizer)
+                    {
+                        thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 1)) + (weight * thresholds[1]));
+                        thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 1)) + (weight * thresholds[2]));
+                    }
+                }
+                else if (frameQuantizer > largeBlockQuantizer && !boostedSegment &&
+                    (this.state.SourceSadLevel != Av1SourceSadLevel.High || parent.AverageSourceSad > 50000))
+                {
+                    thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 2)) + (weight * thresholds[1]));
+                    thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 4)) + (weight * thresholds[2]));
+                    thresholds[3] = long.MaxValue;
+                }
+            }
+            else if (preference >= 2)
+            {
+                if (this.state.SourceSadLevel <= Av1SourceSadLevel.Low)
+                {
+                    thresholds[1] <<= 2;
+                    thresholds[2] *= 3;
+                }
+            }
+            else if (preference >= 1)
+            {
+                int shift = this.state.SourceSadLevel <= Av1SourceSadLevel.Low ? 2 : 1;
+                double weight = frameQuantizer < largeBlockQuantizer - 45 ? 1
+                    : frameQuantizer > largeBlockQuantizer + 45 ? 0
+                    : 1D - ((frameQuantizer - largeBlockQuantizer + 45) / 90);
+
+                thresholds[1] = (int)(((1 - weight) * (thresholds[1] << 1)) + (weight * thresholds[1]));
+                thresholds[2] = (int)(((1 - weight) * (thresholds[2] << 1)) + (weight * thresholds[2]));
+                thresholds[3] = (int)(((1 - weight) * (thresholds[3] << shift)) + (weight * thresholds[3]));
+            }
+        }
+
+        /// <summary>
+        /// Retains low temporal variance for the selected square and rectangular partition leaves.
+        /// </summary>
+        /// <param name="origin">The superblock's luma origin.</param>
+        /// <param name="nodes">The complete temporal moment tree.</param>
+        /// <param name="thresholds">The four square-size partition thresholds.</param>
+        public void SetInterLowVarianceFlags(Point origin, ReadOnlySpan<VariancePartitionNode> nodes, ReadOnlySpan<long> thresholds)
+        {
+            Span<byte> flags = this.state.Superblock.Workspace.LowVarianceFlags;
+            flags.Clear();
+            ReadOnlySpan<byte> partitions = this.state.Superblock.Workspace.PartitionSearchTypes;
+            int side = this.state.Picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
+            Av1PartitionType root = (Av1PartitionType)partitions[0];
+            if (root == Av1PartitionType.None)
+            {
+                flags[0] = (byte)(nodes[0].Variance < (thresholds[0] >> 1) ? 1 : 0);
+                return;
+            }
+
+            if (root is Av1PartitionType.Horizontal or Av1PartitionType.Vertical)
+            {
+                int start = root == Av1PartitionType.Horizontal ? 1 : 3;
+                for (int half = 0; half < 2; half++)
+                {
+                    int variance = GetPartitionHalfVariance(nodes, 0, side, root, half);
+                    flags[start + half] = (byte)(variance < (thresholds[0] >> 2) ? 1 : 0);
+                }
+
+                return;
+            }
+
+            bool small = side == 64;
+            int count64 = small ? 1 : 4;
+            int frameWidth = this.state.Picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2;
+            int frameHeight = this.state.Picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2;
+            for (int index64 = 0; index64 < count64; index64++)
+            {
+                Point origin64 = origin + new Size((index64 & 1) * 64, (index64 >> 1) * 64);
+                if (origin64.X >= frameWidth || origin64.Y >= frameHeight)
+                {
+                    continue;
+                }
+
+                int node64 = small ? 0 : 1 + index64;
+                Av1PartitionType partition64 = (Av1PartitionType)partitions[node64];
+                long threshold64 = (5 * thresholds[1]) >> 3;
+                if (!small && partition64 == Av1PartitionType.None)
+                {
+                    flags[5 + index64] = (byte)(nodes[node64].Variance < threshold64 ? 1 : 0);
+                    continue;
+                }
+
+                if (!small && partition64 is Av1PartitionType.Horizontal or Av1PartitionType.Vertical)
+                {
+                    int start = (partition64 == Av1PartitionType.Horizontal ? 9 : 17) + (index64 * 2);
+                    for (int half = 0; half < 2; half++)
+                    {
+                        int variance = GetPartitionHalfVariance(nodes, node64, 64, partition64, half);
+                        flags[start + half] = (byte)(variance < (threshold64 >> 1) ? 1 : 0);
+                    }
+
+                    continue;
+                }
+
+                for (int index32 = 0; index32 < 4; index32++)
+                {
+                    Point origin32 = origin64 + new Size((index32 & 1) * 32, (index32 >> 1) * 32);
+                    if (origin32.X >= frameWidth || origin32.Y >= frameHeight)
+                    {
+                        continue;
+                    }
+
+                    int node32 = (node64 * 4) + 1 + index32;
+                    Av1PartitionType partition32 = (Av1PartitionType)partitions[node32];
+                    if (partition32 == Av1PartitionType.None)
+                    {
+                        long threshold32 = (5 * thresholds[small ? 1 : 2]) >> 3;
+                        int flag = small ? 5 + index32 : 25 + (index64 * 4) + index32;
+                        flags[flag] = (byte)(nodes[node32].Variance < threshold32 ? 1 : 0);
+                    }
+                    else
+                    {
+                        int first16 = (node32 * 4) + 1;
+
+                        // The first leaf selects whether this 32x32 region uses sixteen-sample
+                        // activity flags. Rectangles consume the flag at their top-left 16x16 cell.
+                        if (partition32 is Av1PartitionType.Horizontal or Av1PartitionType.Vertical ||
+                            partitions[first16] == (byte)Av1PartitionType.None)
+                        {
+                            int start = small ? 9 + (index32 * 4) : 41 + (index64 * 16) + (index32 * 4);
+                            long threshold16 = thresholds[small ? 2 : 3] >> 8;
+                            for (int index16 = 0; index16 < 4; index16++)
+                            {
+                                flags[start + index16] = (byte)(nodes[first16 + index16].Variance < threshold16 ? 1 : 0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads the retained temporal-variance decision for one coding block.
+        /// </summary>
+        /// <param name="origin">The coding block's luma origin.</param>
+        /// <param name="blockSize">The selected coding-block size.</param>
+        /// <returns>Whether the block can omit secondary-reference motion search.</returns>
+        public bool HasLowTemporalVariance(Point origin, Av1BlockSize blockSize)
+        {
+            ReadOnlySpan<byte> flags = this.state.Superblock.Workspace.LowVarianceFlags;
+            int x = origin.X & 127;
+            int y = origin.Y & 127;
+            int index64 = ((y >> 6) * 2) + (x >> 6);
+            int index32 = (((y & 63) >> 5) * 2) + ((x & 63) >> 5);
+            int index16 = (((y & 31) >> 4) * 2) + ((x & 31) >> 4);
+            int index;
+            if (this.state.Picture.Sequence.SequenceHeader.SuperblockSize == Av1BlockSize.Block64x64)
+            {
+                index = blockSize switch
+                {
+                    Av1BlockSize.Block64x64 => 0,
+                    Av1BlockSize.Block64x32 => 1 + ((y & 63) >> 5),
+                    Av1BlockSize.Block32x64 => 3 + ((x & 63) >> 5),
+                    Av1BlockSize.Block32x32 => 5 + index32,
+                    Av1BlockSize.Block32x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block16x16 => 9 + (index32 * 4) + index16,
+                    _ => -1
+                };
+            }
+            else
+            {
+                index = blockSize switch
+                {
+                    Av1BlockSize.Block128x128 => 0,
+                    Av1BlockSize.Block128x64 => 1 + (y >> 6),
+                    Av1BlockSize.Block64x128 => 3 + (x >> 6),
+                    Av1BlockSize.Block64x64 => 5 + index64,
+                    Av1BlockSize.Block64x32 => 9 + (index64 * 2) + ((y & 63) >> 5),
+                    Av1BlockSize.Block32x64 => 17 + (index64 * 2) + ((x & 63) >> 5),
+                    Av1BlockSize.Block32x32 => 25 + (index64 * 4) + index32,
+                    Av1BlockSize.Block32x16 or Av1BlockSize.Block16x32 or Av1BlockSize.Block16x16
+                        => 41 + (index64 * 16) + (index32 * 4) + index16,
+                    _ => -1
+                };
+            }
+
+            return index >= 0 && flags[index] != 0;
         }
     }
 }

@@ -10,17 +10,35 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Packed pixel type containing a single IEEE 754 half-precision floating-point value.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions return the stored IEEE 754 half-precision value directly.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to [-65504,65504].
 /// The packed representation is binary-compatible with
 /// <c>DXGI_FORMAT_R16_FLOAT</c>.
 /// </remarks>
 public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="HalfSingle"/> struct.
+    /// Initializes a new instance of the <see cref="HalfSingle"/> struct by converting a numeric value to half precision.
     /// </summary>
+    /// <remarks>
+    /// Use a <see cref="float"/> argument, such as <c>1F</c>, for numeric conversion.
+    /// Integer constants in the <see cref="ushort"/> range select <see cref="HalfSingle(ushort)"/> and are treated as packed bits.
+    /// </remarks>
     /// <param name="value">The single component value.</param>
     public HalfSingle(float value) => this.PackedValue = HalfTypeHelper.Pack(value);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HalfSingle"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The half-precision component bit pattern occupies bits 0-15.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// Use <see cref="HalfSingle(float)"/> to convert a numeric value to half precision.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public HalfSingle(ushort packed)
+        : this() => this.PackedValue = packed;
 
     /// <inheritdoc/>
     public ushort PackedValue { get; set; }
@@ -48,12 +66,28 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     public static bool operator !=(HalfSingle left, HalfSingle right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static HalfSingle FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfSingle FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfSingle FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static HalfSingle FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -64,6 +98,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
         => PixelTypeInfo.Create<HalfSingle>(
             PixelComponentInfo.Create<HalfSingle>(1, 16),
             PixelColorType.Red,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
@@ -71,11 +106,13 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToAssociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,16 +124,13 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfSingle FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+    public static HalfSingle FromUnassociatedScaledVector4(Vector4 source)
+        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfSingle FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -112,7 +146,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfSingle FromScaledVector4(Vector4 source) => FromVector4(source);
+    public static HalfSingle FromScaledVector4(Vector4 source) => FromUnassociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

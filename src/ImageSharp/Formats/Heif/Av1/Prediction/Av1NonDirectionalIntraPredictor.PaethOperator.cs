@@ -38,17 +38,38 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<byte> Predict(Vector128<byte> top, Vector128<byte> left, Vector128<byte> topLeft, Vector128<byte> topRight, Vector128<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector128<byte> Predict(
+            Vector128<byte> top,
+            Vector128<byte> left,
+            Vector128<byte> topLeft,
+            Vector128<byte> topRight,
+            Vector128<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
             => PredictPaeth(top, left, topLeft);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<byte> Predict(Vector256<byte> top, Vector256<byte> left, Vector256<byte> topLeft, Vector256<byte> topRight, Vector256<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector256<byte> Predict(
+            Vector256<byte> top,
+            Vector256<byte> left,
+            Vector256<byte> topLeft,
+            Vector256<byte> topRight,
+            Vector256<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
             => PredictPaeth(top, left, topLeft);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<byte> Predict(Vector512<byte> top, Vector512<byte> left, Vector512<byte> topLeft, Vector512<byte> topRight, Vector512<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector512<byte> Predict(
+            Vector512<byte> top,
+            Vector512<byte> left,
+            Vector512<byte> topLeft,
+            Vector512<byte> topRight,
+            Vector512<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
             => PredictPaeth(top, left, topLeft);
 
         /// <inheritdoc/>
@@ -66,17 +87,38 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<short> Predict(Vector128<short> top, Vector128<short> left, Vector128<short> topLeft, Vector128<short> topRight, Vector128<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector128<short> Predict(
+            Vector128<short> top,
+            Vector128<short> left,
+            Vector128<short> topLeft,
+            Vector128<short> topRight,
+            Vector128<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
             => PredictPaeth(top, left, topLeft);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<short> Predict(Vector256<short> top, Vector256<short> left, Vector256<short> topLeft, Vector256<short> topRight, Vector256<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector256<short> Predict(
+            Vector256<short> top,
+            Vector256<short> left,
+            Vector256<short> topLeft,
+            Vector256<short> topRight,
+            Vector256<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
             => PredictPaeth(top, left, topLeft);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<short> Predict(Vector512<short> top, Vector512<short> left, Vector512<short> topLeft, Vector512<short> topRight, Vector512<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector512<short> Predict(
+            Vector512<short> top,
+            Vector512<short> left,
+            Vector512<short> topLeft,
+            Vector512<short> topRight,
+            Vector512<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
             => PredictPaeth(top, left, topLeft);
 
         /// <summary>
@@ -100,8 +142,13 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             // The top-left distance is |(top - topLeft) + (left - topLeft)|. If top and left are on the same side of topLeft, this sum is at least each other
             // distance, so topLeft cannot win. The mask then sets the distance to 255. Otherwise the distance is the absolute difference of the other two
             // distances. The selects keep the tie order left, top, top-left.
-            Vector128<byte> sameDirection = Vector128.Equals(Vector128.Equals(topMinusTopLeft, Vector128<byte>.Zero), Vector128.Equals(leftMinusTopLeft, Vector128<byte>.Zero));
-            Vector128<byte> distanceTopLeft = sameDirection | Vector128.SubtractSaturate(distanceTop, distanceLeft) | Vector128.SubtractSaturate(distanceLeft, distanceTop);
+            Vector128<byte> sameDirection = Vector128.Equals(
+                Vector128.Equals(topMinusTopLeft, Vector128<byte>.Zero),
+                Vector128.Equals(leftMinusTopLeft, Vector128<byte>.Zero));
+
+            Vector128<byte> distanceTopLeft = sameDirection | Vector128.SubtractSaturate(distanceTop, distanceLeft)
+                | Vector128.SubtractSaturate(distanceLeft, distanceTop);
+
             Vector128<byte> minimumTopTopLeft = Vector128.Min(distanceTopLeft, distanceTop);
             Vector128<byte> topOrTopLeft = Vector128.ConditionalSelect(Vector128.Equals(minimumTopTopLeft, distanceTop), top, topLeft);
             return Vector128.ConditionalSelect(Vector128.Equals(Vector128.Min(minimumTopTopLeft, distanceLeft), distanceLeft), left, topOrTopLeft);
@@ -121,8 +168,13 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             Vector256<byte> leftMinusTopLeft = Vector256.SubtractSaturate(left, topLeft);
             Vector256<byte> distanceLeft = Vector256.SubtractSaturate(topLeft, top) | topMinusTopLeft;
             Vector256<byte> distanceTop = Vector256.SubtractSaturate(topLeft, left) | leftMinusTopLeft;
-            Vector256<byte> sameDirection = Vector256.Equals(Vector256.Equals(topMinusTopLeft, Vector256<byte>.Zero), Vector256.Equals(leftMinusTopLeft, Vector256<byte>.Zero));
-            Vector256<byte> distanceTopLeft = sameDirection | Vector256.SubtractSaturate(distanceTop, distanceLeft) | Vector256.SubtractSaturate(distanceLeft, distanceTop);
+            Vector256<byte> sameDirection = Vector256.Equals(
+                Vector256.Equals(topMinusTopLeft, Vector256<byte>.Zero),
+                Vector256.Equals(leftMinusTopLeft, Vector256<byte>.Zero));
+
+            Vector256<byte> distanceTopLeft = sameDirection | Vector256.SubtractSaturate(distanceTop, distanceLeft)
+                | Vector256.SubtractSaturate(distanceLeft, distanceTop);
+
             Vector256<byte> minimumTopTopLeft = Vector256.Min(distanceTopLeft, distanceTop);
             Vector256<byte> topOrTopLeft = Vector256.ConditionalSelect(Vector256.Equals(minimumTopTopLeft, distanceTop), top, topLeft);
             return Vector256.ConditionalSelect(Vector256.Equals(Vector256.Min(minimumTopTopLeft, distanceLeft), distanceLeft), left, topOrTopLeft);
@@ -142,8 +194,13 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             Vector512<byte> leftMinusTopLeft = Vector512.SubtractSaturate(left, topLeft);
             Vector512<byte> distanceLeft = Vector512.SubtractSaturate(topLeft, top) | topMinusTopLeft;
             Vector512<byte> distanceTop = Vector512.SubtractSaturate(topLeft, left) | leftMinusTopLeft;
-            Vector512<byte> sameDirection = Vector512.Equals(Vector512.Equals(topMinusTopLeft, Vector512<byte>.Zero), Vector512.Equals(leftMinusTopLeft, Vector512<byte>.Zero));
-            Vector512<byte> distanceTopLeft = sameDirection | Vector512.SubtractSaturate(distanceTop, distanceLeft) | Vector512.SubtractSaturate(distanceLeft, distanceTop);
+            Vector512<byte> sameDirection = Vector512.Equals(
+                Vector512.Equals(topMinusTopLeft, Vector512<byte>.Zero),
+                Vector512.Equals(leftMinusTopLeft, Vector512<byte>.Zero));
+
+            Vector512<byte> distanceTopLeft = sameDirection | Vector512.SubtractSaturate(distanceTop, distanceLeft)
+                | Vector512.SubtractSaturate(distanceLeft, distanceTop);
+
             Vector512<byte> minimumTopTopLeft = Vector512.Min(distanceTopLeft, distanceTop);
             Vector512<byte> topOrTopLeft = Vector512.ConditionalSelect(Vector512.Equals(minimumTopTopLeft, distanceTop), top, topLeft);
             return Vector512.ConditionalSelect(Vector512.Equals(Vector512.Min(minimumTopTopLeft, distanceLeft), distanceLeft), left, topOrTopLeft);

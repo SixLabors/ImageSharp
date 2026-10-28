@@ -47,7 +47,7 @@ internal static class Av1TransformWorkspace
     /// The number of integers required for the largest supported inverse transform.
     /// </summary>
     public const int InverseMaximumLength =
-        (Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize) + (2 * Av1Constants.MaxTransformSize * 8);
+        (Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize) + (2 * Av1Constants.MaxTransformSize * 16);
 
     /// <summary>
     /// Gets the number of integers required for inverse transformation at a transform size.
@@ -61,8 +61,9 @@ internal static class Av1TransformWorkspace
 
         // The inverse transform reads the input coefficients before the stage exchange begins, so those two regions share storage. The length covers the widest
         // supported traversal for these dimensions, so the same workspace serves every hardware tier. Four-point axes use a four-lane traversal. All larger
-        // pairs can use eight lanes.
-        int lanes = width >= 8 && height >= 8 ? 8 : 4;
+        // pairs use eight lanes, or sixteen when both dimensions are at least sixteen.
+        int lanes = width >= 16 && height >= 16 ? 16 : width >= 8 && height >= 8 ? 8 : 4;
+
         return (2 * Math.Max(width, height) * lanes) + (width * height);
     }
 

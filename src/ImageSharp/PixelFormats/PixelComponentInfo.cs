@@ -39,7 +39,7 @@ public readonly struct PixelComponentInfo
     /// <param name="precision">The precision in bits of each component.</param>
     /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The component precision and index cannot exceed the component range.</exception>
-    public static PixelComponentInfo Create<TPixel>(int count, params int[] precision)
+    public static PixelComponentInfo Create<TPixel>(int count, params ReadOnlySpan<int> precision)
         where TPixel : unmanaged, IPixel<TPixel>
         => Create(count, Unsafe.SizeOf<TPixel>() * 8, precision);
 
@@ -51,11 +51,11 @@ public readonly struct PixelComponentInfo
     /// <param name="precision">The precision in bits of each component.</param>
     /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The component precision and index cannot exceed the component range.</exception>
-    public static PixelComponentInfo Create(int count, int bitsPerPixel, params int[] precision)
+    public static PixelComponentInfo Create(int count, int bitsPerPixel, params ReadOnlySpan<int> precision)
     {
         if (precision.Length < count || precision.Length > 16)
         {
-            throw new ArgumentOutOfRangeException(nameof(count), $"Count {count} must match the length of precision array and cannot exceed 16.");
+            throw new ArgumentOutOfRangeException(nameof(count), $"Count {count} must match the number of precision values and cannot exceed 16.");
         }
 
         long precisionData1 = 0;

@@ -451,6 +451,13 @@ internal sealed class ExifWriter
 
         if (exifValue.IsArray)
         {
+            if (value is byte[] bytes)
+            {
+                // Byte and Undefined arrays already contain their encoded bytes. Copy the span instead of
+                // enumerating Array as object, which boxes every byte of large payloads such as ICC profiles.
+                return Write(bytes, destination, offset);
+            }
+
             return WriteArray(exifValue, destination, offset);
         }
 

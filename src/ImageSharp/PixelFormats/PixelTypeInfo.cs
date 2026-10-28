@@ -36,8 +36,12 @@ public readonly struct PixelTypeInfo
     public PixelColorType ColorType { get; init; }
 
     /// <summary>
+    /// Gets the normalized RGB component range supported by the pixel format's color conversions.
+    /// </summary>
+    public PixelColorRange ColorRange { get; init; }
+
+    /// <summary>
     /// Gets the pixel alpha transparency behavior.
-    /// <see langword="null"/> means unknown, unspecified.
     /// </summary>
     public PixelAlphaRepresentation AlphaRepresentation { get; init; }
 
@@ -47,11 +51,13 @@ public readonly struct PixelTypeInfo
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="info">The pixel component info.</param>
     /// <param name="colorType">The pixel color type.</param>
+    /// <param name="colorRange">The color range supported by the pixel format.</param>
     /// <param name="alphaRepresentation">The pixel alpha representation.</param>
-    /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
+    /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
     public static PixelTypeInfo Create<TPixel>(
         PixelComponentInfo info,
         PixelColorType colorType,
+        PixelColorRange colorRange,
         PixelAlphaRepresentation alphaRepresentation)
         where TPixel : unmanaged, IPixel<TPixel>
         => new()
@@ -59,6 +65,7 @@ public readonly struct PixelTypeInfo
             BitsPerPixel = Unsafe.SizeOf<TPixel>() * 8,
             ComponentInfo = info,
             ColorType = colorType,
+            ColorRange = colorRange,
             AlphaRepresentation = alphaRepresentation
         };
 }

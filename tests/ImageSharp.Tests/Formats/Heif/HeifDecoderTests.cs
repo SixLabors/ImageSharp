@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -83,7 +84,7 @@ public class HeifDecoderTests
     public void Decode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
 
         if (image.Frames.Count == 1)
@@ -172,7 +173,7 @@ public class HeifDecoderTests
     public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfileBytes<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
 
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Heif.ParisIccExifXmpPng).Bytes);
@@ -185,25 +186,28 @@ public class HeifDecoderTests
     }
 
     /// <summary>
-    /// Verifies that AVIF decoding converts pixels from an embedded non-sRGB ICC profile to sRGB.
+    /// Verifies that Preserve and Convert produce the same sRGB pixels from a non-sRGB ICC profile.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
 
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
 
         Assert.NotNull(preserved.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
-        Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, converted));
 
         converted.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-        converted.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
+        converted.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     /// <summary>
@@ -214,8 +218,8 @@ public class HeifDecoderTests
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile_Grid<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
 
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
@@ -225,9 +229,12 @@ public class HeifDecoderTests
         IccProfile expectedIccProfile = Assert.IsType<IccProfile>(expectedPreserved.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
         Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
-        Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, converted));
         converted.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-        converted.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
+        converted.CompareToReferenceOutput(ImageComparer.Tolerant(0F, 3 * 257), provider);
     }
 
     /// <summary>
@@ -238,8 +245,8 @@ public class HeifDecoderTests
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile_Sequence<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
 
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
@@ -252,8 +259,17 @@ public class HeifDecoderTests
         Assert.Null(converted.Metadata.IccProfile);
         Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
 
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, converted));
+        foreach (ImageFrame<TPixel> frame in preserved.Frames)
+        {
+            Assert.Equal(preservedIccProfile.ToByteArray(), Assert.IsType<IccProfile>(frame.Metadata.IccProfile).ToByteArray());
+        }
+
         converted.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
-        converted.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+
+        // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
+        // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
+        converted.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0F, 3 * 257));
     }
 
     /// <summary>
@@ -264,8 +280,8 @@ public class HeifDecoderTests
     public void Decode_WhenColorProfileHandlingIsCompact_RemovesSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
-        DecoderOptions compactOptions = new() { ColorProfileHandling = ColorProfileHandling.Compact };
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions compactOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Compact };
 
         using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> compact = provider.GetImage(HeifDecoder.Instance, compactOptions);
@@ -278,32 +294,140 @@ public class HeifDecoderTests
     }
 
     /// <summary>
-    /// Verifies that metadata skipping omits the embedded AVIF ICC profile.
+    /// Verifies that skipping optional metadata retains ICC and does not change decoded pixels.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
-    public void Decode_WhenSkipMetadataIsTrue_OmitsIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
+    public void Decode_WhenSkipMetadataIsTrue_RetainsIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions options = new(Configuration.Default)
         {
             ColorProfileHandling = ColorProfileHandling.Preserve,
             SkipMetadata = true
         };
 
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
         using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
 
-        Assert.Null(image.Metadata.IccProfile);
-        if (image.Frames.Count == 1)
+        IccProfile preservedProfile = Assert.IsType<IccProfile>(preserved.Metadata.IccProfile);
+        Assert.Equal(preservedProfile.ToByteArray(), Assert.IsType<IccProfile>(image.Metadata.IccProfile).ToByteArray());
+        Assert.Null(image.Metadata.ExifProfile);
+        Assert.Null(image.Metadata.XmpProfile);
+        Assert.Null(image.Metadata.CicpProfile);
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, image));
+
+        for (int i = 0; i < image.Frames.Count; i++)
         {
-            image.DebugSave(provider, extension: "png", encoder: new PngEncoder());
-            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+            Assert.Equal(preserved.Frames[i].Metadata.IccProfile?.ToByteArray(), image.Frames[i].Metadata.IccProfile?.ToByteArray());
+            Assert.Null(image.Frames[i].Metadata.CicpProfile);
         }
-        else
+
+        image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+    }
+
+    /// <summary>
+    /// Verifies ICC conversion with auxiliary alpha for byte, high-depth, floating and associated destination pixels.
+    /// </summary>
+    [Theory]
+    [WithFile(
+        TestImages.Heif.DuckyRommIccAlphaAvif,
+        PixelTypes.Rgba32 | PixelTypes.Rgba64 | PixelTypes.RgbaVector | PixelTypes.Rgba32P | PixelTypes.RgbaVectorP)]
+    public void Decode_PreserveAndConvertHaveSamePixelsWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.True(preserved.Metadata.GetHeifMetadata().HasAlpha);
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, converted));
+
+        // The retained ICC describes the original ROMM space; CICP describes the decoded working sRGB pixels.
+        CicpProfile workingProfile = Assert.IsType<CicpProfile>(preserved.Metadata.CicpProfile);
+        Assert.Equal(CicpColorPrimaries.ItuRBt709_6, workingProfile.ColorPrimaries);
+        Assert.Equal(CicpTransferCharacteristics.Iec61966_2_1, workingProfile.TransferCharacteristics);
+        Assert.Equal(CicpMatrixCoefficients.Identity, workingProfile.MatrixCoefficients);
+        Assert.True(workingProfile.FullRange);
+
+        preserved.DebugSave(provider, appendPixelTypeToFileName: true);
+    }
+
+    /// <summary>
+    /// Verifies that Identify retains the encoded ICC profile while skipping optional metadata.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    public void Identify_WhenSkipMetadataIsTrue_RetainsIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions skipOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
+
+        ImageInfo preserved = Image.Identify(preserveOptions, file.Bytes);
+        ImageInfo skipped = Image.Identify(skipOptions, file.Bytes);
+
+        IccProfile preservedProfile = Assert.IsType<IccProfile>(preserved.Metadata.IccProfile);
+        Assert.Equal(preservedProfile.ToByteArray(), Assert.IsType<IccProfile>(skipped.Metadata.IccProfile).ToByteArray());
+        Assert.Null(skipped.Metadata.ExifProfile);
+        Assert.Null(skipped.Metadata.XmpProfile);
+        Assert.Equal(preserved.Size, skipped.Size);
+        Assert.Equal(preserved.FrameMetadataCollection.Count, skipped.FrameMetadataCollection.Count);
+
+        for (int i = 0; i < skipped.FrameMetadataCollection.Count; i++)
         {
-            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
-            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+            Assert.Equal(preserved.FrameMetadataCollection[i].IccProfile?.ToByteArray(), skipped.FrameMetadataCollection[i].IccProfile?.ToByteArray());
         }
+    }
+
+    /// <summary>
+    /// Verifies that item and track profiles use shared size validation and retain the ancillary-error policy.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    public void Identify_RejectsTruncatedIccProfileUnlessAncillaryErrorsAreIgnored<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        byte[] data = [.. TestFile.Create(provider.SourceFileOrDescription).Bytes];
+        ImageInfo original = Image.Identify(data);
+        byte[] profile = Assert.IsType<IccProfile>(original.Metadata.IccProfile).ToByteArray();
+        Span<byte> remaining = data;
+        int profileOffset = remaining.IndexOf(profile);
+        Assert.True(profileOffset >= 0);
+
+        // The sequence stores the same profile in its primary item and track. Corrupt each copy's size field
+        // so its declared last byte falls outside its color box payload; leave all box lengths unchanged.
+        while (profileOffset >= 0)
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(remaining[profileOffset..], (uint)profile.Length + 1);
+            remaining = remaining[(profileOffset + profile.Length)..];
+            profileOffset = remaining.IndexOf(profile);
+        }
+
+        DecoderOptions strictOptions = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict, SkipMetadata = true };
+
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(strictOptions, data));
+
+        // Ignoring the invalid ancillary profile must still reach the remaining properties and image dimensions.
+        DecoderOptions ignoreOptions = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary, SkipMetadata = true };
+        ImageInfo ignored = Image.Identify(ignoreOptions, data);
+
+        Assert.Null(ignored.Metadata.IccProfile);
+        Assert.Equal(original.Size, ignored.Size);
+        Assert.Equal(original.FrameCount, ignored.FrameCount);
     }
 
     [Fact]
@@ -334,7 +458,7 @@ public class HeifDecoderTests
         source.Save(stream, new HeifEncoder { Speed = HeifEncodingSpeed.Level9 });
         byte[] data = stream.ToArray();
         Size targetSize = new(17, 17);
-        DecoderOptions options = new() { TargetSize = targetSize };
+        DecoderOptions options = new(Configuration.Default) { TargetSize = targetSize };
 
         using Image<Rgba32> expected = Image.Load<Rgba32>(data);
         expected.Mutate(context => context.Resize(new ResizeOptions { Size = targetSize, Mode = ResizeMode.Max, Sampler = options.Sampler }));
@@ -359,7 +483,7 @@ public class HeifDecoderTests
         byte[] data = [.. TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes];
         uint alphaItemId = FindFirstItemReferenceSourceId(data, Heif4CharCode.Auxl);
         ClearItemPayload(data, alphaItemId);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
 
         Assert.ThrowsAny<InvalidImageContentException>(() =>
         {
@@ -378,7 +502,7 @@ public class HeifDecoderTests
         byte[] data = [.. source];
         uint alphaItemId = FindFirstItemReferenceSourceId(data, Heif4CharCode.Auxl);
         ClearItemPayload(data, alphaItemId);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
         using Image<Rgba32> expected = Image.Load<Rgba32>(source);
         using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
@@ -394,7 +518,7 @@ public class HeifDecoderTests
     {
         byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
         InvalidateFirstItemReferenceSource(data, Heif4CharCode.Cdsc);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidImageContentException>(() =>
         {
@@ -412,7 +536,7 @@ public class HeifDecoderTests
     {
         byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
         InvalidateFirstItemReferenceSource(data, Heif4CharCode.Cdsc);
-        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = handling };
 
         using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
 
@@ -435,7 +559,7 @@ public class HeifDecoderTests
     public void IdentifyRejectsMalformedAncillaryPropertyInStrictMode()
     {
         byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Pasp), false);
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
     }
@@ -543,7 +667,7 @@ public class HeifDecoderTests
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
-        DecoderOptions options = new() { Configuration = configuration };
+        DecoderOptions options = new(configuration);
 
         Assert.Throws<InvalidImageContentException>(() =>
         {
@@ -572,7 +696,7 @@ public class HeifDecoderTests
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
-        DecoderOptions options = new() { Configuration = configuration };
+        DecoderOptions options = new(configuration);
 
         Assert.Throws<InvalidImageContentException>(() =>
         {
@@ -656,7 +780,7 @@ public class HeifDecoderTests
         // The 480x640 image needs 1.2 MB of Rgba32 pixels, which exceeds the 1 MB allocation limit.
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = MemoryAllocator.Create(new MemoryAllocatorOptions { AllocationLimitMegabytes = 1 });
-        DecoderOptions options = new() { Configuration = configuration };
+        DecoderOptions options = new(configuration);
 
         Assert.Throws<InvalidImageContentException>(() =>
         {

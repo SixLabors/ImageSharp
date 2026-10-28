@@ -14,7 +14,9 @@ public sealed class ConditionalTheoryAttribute: TheoryAttribute
 
     public string[] ConditionMemberNames { get; private set; }
 
-    public ConditionalTheoryAttribute([DynamicallyAccessedMembers(StaticReflectionConstants.ConditionalMemberKinds)] Type calleeType, params string[] conditionMemberNames)
+    public ConditionalTheoryAttribute(
+        [DynamicallyAccessedMembers(StaticReflectionConstants.ConditionalMemberKinds)] Type calleeType,
+        params string[] conditionMemberNames)
     {
         this.CalleeType = calleeType;
         this.ConditionMemberNames = conditionMemberNames;
@@ -30,4 +32,3 @@ public sealed class ConditionalTheoryAttribute: TheoryAttribute
     [Obsolete("Use the overload that takes a Type parameter: ConditionalTheory(typeof(MyClass), nameof(MyCondition)).")]
     public ConditionalTheoryAttribute(params string[] conditionMemberNames) => this.ConditionMemberNames = conditionMemberNames;
 }
-

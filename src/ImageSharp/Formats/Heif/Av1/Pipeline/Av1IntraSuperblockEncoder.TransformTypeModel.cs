@@ -896,7 +896,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                Vector128<int> samples = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<long>(ref Unsafe.As<short, byte>(ref row))).AsInt16());
+                Vector128<int> samples = Vector128.WidenLower(
+                    Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<long>(ref Unsafe.As<short, byte>(ref row))).AsInt16());
+
                 cells = Vector256.Create(samples * samples, Vector128<int>.Zero);
             }
 

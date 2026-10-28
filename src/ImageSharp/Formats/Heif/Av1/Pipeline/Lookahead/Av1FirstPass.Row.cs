@@ -333,7 +333,14 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         int stride = frame.ReconstructionStride;
         Span<short> residual = this.residual.AsSpan(0, blockWidth * blockHeight);
         TOperator.Subtract(
-            frame.Source[sourceIndex..], frame.SourceStride, frame.Reconstruction[reconstructionIndex..], stride, residual, blockWidth, blockWidth, blockHeight);
+            frame.Source[sourceIndex..],
+            frame.SourceStride,
+            frame.Reconstruction[reconstructionIndex..],
+            stride,
+            residual,
+            blockWidth,
+            blockWidth,
+            blockHeight);
 
         this.PadBorderResidual(residual, blockWidth, blockWidth, blockHeight, 0, 0, blockWidth, blockHeight);
         for (int row = 0; row < blockHeight; row += 4)

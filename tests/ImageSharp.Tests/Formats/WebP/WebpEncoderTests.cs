@@ -20,7 +20,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 
 [Trait("Format", "Webp")]
-public class WebpEncoderTests
+public partial class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 
@@ -179,9 +179,11 @@ public class WebpEncoderTests
     }
 
     [Theory]
+
     // [WithFile(AlphaBlend, PixelTypes.Rgba32)]
     // [WithFile(AlphaBlend2, PixelTypes.Rgba32)]
     [WithFile(AlphaBlend3, PixelTypes.Rgba32)]
+
     // [WithFile(AlphaBlend4, PixelTypes.Rgba32)]
     public void Encode_AlphaBlended<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -705,10 +707,12 @@ public class WebpEncoderTests
     }
 
     [Fact]
-    public void RunEncodeLossy_WithPeakImage_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.AllowAll);
+    public void RunEncodeLossy_WithPeakImage_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
+    public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
 
     [Theory]
     [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]

@@ -50,9 +50,9 @@ public class BmpDecoderTests
             "0000000000000000000000000000000000000000000000000000000000000000" +
             "000000000000000000000000000000000000000000000000000000000000C800" +
             "00000000004000000000000000");
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrityHandling, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling, SkipMetadata = skipMetadata };
 
-        if (integrityHandling is SegmentIntegrityHandling.Strict && !skipMetadata)
+        if (integrityHandling is SegmentIntegrityHandling.Strict)
         {
             Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
@@ -60,11 +60,13 @@ public class BmpDecoderTests
         else
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
             Assert.Equal(new Size(1, 1), image.Size);
             Assert.Equal(new Rgba32(0, 0, 0), image[0, 0]);
             Assert.Null(image.Metadata.IccProfile);
 
             ImageInfo info = Image.Identify(options, payload);
+
             Assert.Equal(image.Size, info.Size);
             Assert.Null(info.Metadata.IccProfile);
         }
@@ -232,7 +234,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         RleSkippedPixelHandling skippedPixelHandling = RleSkippedPixelHandling.Black;
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = skippedPixelHandling };
 
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
@@ -245,7 +247,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = skippedPixelHandling };
 
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
@@ -260,7 +262,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_SystemDrawingRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         if (TestEnvironment.IsWindows)
@@ -275,7 +277,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
@@ -287,7 +289,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDeltaAndEOL_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
@@ -304,7 +306,7 @@ public class BmpDecoderTests
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
         }
 
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
@@ -321,7 +323,7 @@ public class BmpDecoderTests
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
         }
 
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
 
@@ -344,7 +346,7 @@ public class BmpDecoderTests
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
         }
 
-        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
+        BmpDecoderOptions options = new(new DecoderOptions(Configuration.Default)) { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
 
@@ -416,19 +418,8 @@ public class BmpDecoderTests
     }
 
     [Theory]
-    [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecodeLessThanFullPalette<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
-        image.DebugSave(provider);
-        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
-    }
-
-    [Theory]
-    [WithFile(OversizedPalette, PixelTypes.Rgba32)]
     [WithFile(Rgb24LargePalette, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecodeOversizedPalette<TPixel>(TestImageProvider<TPixel> provider)
+    public void BmpDecoder_CanDecodeLargeDirectColorPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
@@ -440,6 +431,12 @@ public class BmpDecoderTests
     }
 
     [Theory]
+
+    // This indexed palette declares 300 entries at 8 bpp, exceeding the format's 256-entry limit.
+    [WithFile(OversizedPalette, PixelTypes.Rgba32)]
+
+    // This 8-bit core-header palette contains only 252 entries instead of the full 256-entry table.
+    [WithFile(LessThanFullSizedPalette, PixelTypes.Rgba32)]
     [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
     public void BmpDecoder_ThrowsInvalidImageContentException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -714,7 +711,7 @@ public class BmpDecoderTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
             Assert.Throws<InvalidImageContentException>(() =>
             {
@@ -745,7 +742,7 @@ public class BmpDecoderTests
             allocator.EnableNonThreadSafeLogging();
             Configuration configuration = Configuration.Default.Clone();
             configuration.MemoryAllocator = allocator;
-            DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
 
             InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
             {

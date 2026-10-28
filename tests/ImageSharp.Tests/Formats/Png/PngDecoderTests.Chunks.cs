@@ -21,6 +21,7 @@ public partial class PngDecoderTests
     // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
     private static readonly byte[] Raw1X1PngIhdrAndpHYs =
     [
+
         // PNG Identifier
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
 
@@ -43,6 +44,7 @@ public partial class PngDecoderTests
     // Contains the png marker, IDAT and IEND chunks of a 1x1 pixel 32bit png 1 a single black pixel.
     private static readonly byte[] Raw1X1PngIdatAndIend =
     [
+
         // IDAT
         0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x18,
         0x57, 0x63, 0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x04,
@@ -134,7 +136,7 @@ public partial class PngDecoderTests
     public void DecodeAndIdentify_WithChunkRecovery_FollowIntegrityPolicy(SegmentIntegrityHandling integrity)
     {
         byte[] data = TestFile.Create(TestImages.Png.DuplicateHeaderChunkResync).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<La16>(options, data));
 
@@ -183,7 +185,7 @@ public partial class PngDecoderTests
         stream.Write(buffer);
         stream.Write(Raw1X1PngIdatAndIend);
         byte[] data = stream.ToArray();
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
 
         if (integrity == SegmentIntegrityHandling.Strict)
         {
@@ -313,7 +315,7 @@ public partial class PngDecoderTests
     public void Decode_CompressedDataSplitAcrossDataChunks_FollowsIntegrityPolicy(string path, SegmentIntegrityHandling integrity, bool hasInvalidCrc)
     {
         byte[] data = TestFile.Create(path).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
         if (hasInvalidCrc && integrity != SegmentIntegrityHandling.IgnoreImageData)
         {
             InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
@@ -347,7 +349,7 @@ public partial class PngDecoderTests
     public void Decode_EmptyFrameDataChunks_FollowsIntegrityPolicy(string path, SegmentIntegrityHandling integrity, bool hasInvalidCrc)
     {
         byte[] data = TestFile.Create(path).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
         if (hasInvalidCrc && integrity != SegmentIntegrityHandling.IgnoreImageData)
         {
             InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
@@ -382,7 +384,7 @@ public partial class PngDecoderTests
     public void DecodeAndIdentify_FrameDataWithoutSequenceNumber_ThrowsInvalidImageContentException(string path, SegmentIntegrityHandling integrity)
     {
         byte[] data = TestFile.Create(path).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
         InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
@@ -408,7 +410,7 @@ public partial class PngDecoderTests
     [InlineData(TestImages.Png.PaletteShort2, SegmentIntegrityHandling.IgnoreImageData)]
     public void Decode_PaletteChunkShorterThanOneEntry_ThrowsInvalidImageContentException(string path, SegmentIntegrityHandling integrity)
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> actual = Image.Load<Rgba32>(options, TestFile.Create(path).Bytes);

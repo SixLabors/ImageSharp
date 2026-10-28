@@ -201,7 +201,14 @@ internal static partial class Av1SelfGuidedFilter
                 for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
                     Project<TSample, Vector512<int>, Vector512LaneOperator>(
-                        ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
+                        ref sourceBase,
+                        sourceRowOffset + column,
+                        ref destinationBase,
+                        destinationRowOffset + column,
+                        ref filtered0Base,
+                        ref filtered1Base,
+                        filteredRowOffset + column,
+                        parameters);
                 }
             }
 
@@ -210,7 +217,14 @@ internal static partial class Av1SelfGuidedFilter
                 for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
                     Project<TSample, Vector256<int>, Vector256LaneOperator>(
-                        ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
+                        ref sourceBase,
+                        sourceRowOffset + column,
+                        ref destinationBase,
+                        destinationRowOffset + column,
+                        ref filtered0Base,
+                        ref filtered1Base,
+                        filteredRowOffset + column,
+                        parameters);
                 }
             }
 
@@ -219,14 +233,28 @@ internal static partial class Av1SelfGuidedFilter
                 for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
                 {
                     Project<TSample, Vector128<int>, Vector128LaneOperator>(
-                        ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
+                        ref sourceBase,
+                        sourceRowOffset + column,
+                        ref destinationBase,
+                        destinationRowOffset + column,
+                        ref filtered0Base,
+                        ref filtered1Base,
+                        filteredRowOffset + column,
+                        parameters);
                 }
             }
 
             for (; column < width; column++)
             {
                 Project<TSample, int, ScalarLaneOperator>(
-                    ref sourceBase, sourceRowOffset + column, ref destinationBase, destinationRowOffset + column, ref filtered0Base, ref filtered1Base, filteredRowOffset + column, parameters);
+                    ref sourceBase,
+                    sourceRowOffset + column,
+                    ref destinationBase,
+                    destinationRowOffset + column,
+                    ref filtered0Base,
+                    ref filtered1Base,
+                    filteredRowOffset + column,
+                    parameters);
             }
         }
     }
@@ -272,13 +300,37 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> scales = ParameterScales.Slice(parameterOffset, 2);
         if (radii[0] > 0)
         {
-            CalculateIntermediateCoefficients(width, height, bitDepth, radii[0], scales[0], true, bufferStride, squareIntegral, sumIntegral, blendFactors, localMeans);
+            CalculateIntermediateCoefficients(
+                width,
+                height,
+                bitDepth,
+                radii[0],
+                scales[0],
+                true,
+                bufferStride,
+                squareIntegral,
+                sumIntegral,
+                blendFactors,
+                localMeans);
+
             CalculateFilter(source, sourceStride, width, height, bufferStride, true, blendFactors, localMeans, filtered0);
         }
 
         if (radii[1] > 0)
         {
-            CalculateIntermediateCoefficients(width, height, bitDepth, radii[1], scales[1], false, bufferStride, squareIntegral, sumIntegral, blendFactors, localMeans);
+            CalculateIntermediateCoefficients(
+                width,
+                height,
+                bitDepth,
+                radii[1],
+                scales[1],
+                false,
+                bufferStride,
+                squareIntegral,
+                sumIntegral,
+                blendFactors,
+                localMeans);
+
             CalculateFilter(source, sourceStride, width, height, bufferStride, false, blendFactors, localMeans, filtered1);
         }
     }
@@ -326,7 +378,14 @@ internal static partial class Av1SelfGuidedFilter
             {
                 for (; column <= width - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
-                    AccumulateIntegral<TSample, Vector512<int>, Vector512LaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                    AccumulateIntegral<TSample, Vector512<int>, Vector512LaneOperator>(
+                        ref sourceBase,
+                        ref sumBase,
+                        ref squareBase,
+                        integralRow,
+                        column,
+                        ref sumCarry,
+                        ref squareCarry);
                 }
             }
 
@@ -334,7 +393,14 @@ internal static partial class Av1SelfGuidedFilter
             {
                 for (; column <= width - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
-                    AccumulateIntegral<TSample, Vector256<int>, Vector256LaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                    AccumulateIntegral<TSample, Vector256<int>, Vector256LaneOperator>(
+                        ref sourceBase,
+                        ref sumBase,
+                        ref squareBase,
+                        integralRow,
+                        column,
+                        ref sumCarry,
+                        ref squareCarry);
                 }
             }
 
@@ -342,13 +408,27 @@ internal static partial class Av1SelfGuidedFilter
             {
                 for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
                 {
-                    AccumulateIntegral<TSample, Vector128<int>, Vector128LaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                    AccumulateIntegral<TSample, Vector128<int>, Vector128LaneOperator>(
+                        ref sourceBase,
+                        ref sumBase,
+                        ref squareBase,
+                        integralRow,
+                        column,
+                        ref sumCarry,
+                        ref squareCarry);
                 }
             }
 
             for (; column < width; column++)
             {
-                AccumulateIntegral<TSample, int, ScalarLaneOperator>(ref sourceBase, ref sumBase, ref squareBase, integralRow, column, ref sumCarry, ref squareCarry);
+                AccumulateIntegral<TSample, int, ScalarLaneOperator>(
+                    ref sourceBase,
+                    ref sumBase,
+                    ref squareBase,
+                    integralRow,
+                    column,
+                    ref sumCarry,
+                    ref squareCarry);
             }
         }
     }
@@ -442,7 +522,13 @@ internal static partial class Av1SelfGuidedFilter
             {
                 for (; column <= end - Vector512<int>.Count; column += Vector512<int>.Count)
                 {
-                    CalculateCoefficients<Vector512<int>, Vector512LaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
+                    CalculateCoefficients<Vector512<int>, Vector512LaneOperator>(
+                        ref sumBase,
+                        ref squareBase,
+                        ref blendBase,
+                        ref meanBase,
+                        rowOffset + column,
+                        parameters);
                 }
             }
 
@@ -450,7 +536,13 @@ internal static partial class Av1SelfGuidedFilter
             {
                 for (; column <= end - Vector256<int>.Count; column += Vector256<int>.Count)
                 {
-                    CalculateCoefficients<Vector256<int>, Vector256LaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
+                    CalculateCoefficients<Vector256<int>, Vector256LaneOperator>(
+                        ref sumBase,
+                        ref squareBase,
+                        ref blendBase,
+                        ref meanBase,
+                        rowOffset + column,
+                        parameters);
                 }
             }
 
@@ -458,7 +550,13 @@ internal static partial class Av1SelfGuidedFilter
             {
                 for (; column <= end - Vector128<int>.Count; column += Vector128<int>.Count)
                 {
-                    CalculateCoefficients<Vector128<int>, Vector128LaneOperator>(ref sumBase, ref squareBase, ref blendBase, ref meanBase, rowOffset + column, parameters);
+                    CalculateCoefficients<Vector128<int>, Vector128LaneOperator>(
+                        ref sumBase,
+                        ref squareBase,
+                        ref blendBase,
+                        ref meanBase,
+                        rowOffset + column,
+                        parameters);
                 }
             }
 
@@ -685,7 +783,9 @@ internal static partial class Av1SelfGuidedFilter
         if (kind == FilterKind.RadiusTwoOdd)
         {
             TLanes center = TOperator.Load(ref buffer, (nuint)offset);
-            TLanes combined = TOperator.Add(TOperator.Add(TOperator.Load(ref buffer, (nuint)(offset - 1)), center), TOperator.Load(ref buffer, (nuint)(offset + 1)));
+            TLanes combined = TOperator.Add(
+                TOperator.Add(TOperator.Load(ref buffer, (nuint)(offset - 1)), center),
+                TOperator.Load(ref buffer, (nuint)(offset + 1)));
 
             // Five times the three entries plus one more center gives six for the center and five for the sides.
             return TOperator.Add(TOperator.Add(TOperator.ShiftLeft(combined, 2), combined), center);

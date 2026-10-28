@@ -13,7 +13,12 @@ internal sealed class DownScalingComponentProcessor2 : ComponentProcessor
 {
     private Block8x8F dequantizationTable;
 
-    public DownScalingComponentProcessor2(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
+    public DownScalingComponentProcessor2(
+        MemoryAllocator memoryAllocator,
+        JpegFrame frame,
+        IRawJpegData rawJpeg,
+        Size postProcessorBufferSize,
+        IJpegComponent component)
         : base(memoryAllocator, frame, postProcessorBufferSize, component, 4)
     {
         this.dequantizationTable = rawJpeg.QuantizationTables[component.QuantizationTableIndex];

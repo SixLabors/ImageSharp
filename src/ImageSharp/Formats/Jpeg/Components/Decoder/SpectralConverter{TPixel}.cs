@@ -3,6 +3,8 @@
 #nullable disable
 
 using System.Buffers;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Memory;
@@ -58,6 +60,11 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// The converter from <see cref="iccConverterProfile"/> to sRGB, created on the first stride with a profile.
     /// </summary>
     private ColorProfileConverter iccConverter;
+
+    /// <summary>
+    /// Reusable ICC output and scratch storage, allocated only when decoding with a profile.
+    /// </summary>
+    private IMemoryOwner<float> iccRowBuffer;
 
     /// <summary>
     /// The profile <see cref="iccConverter"/> was built for.
@@ -161,6 +168,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             });
 
             this.iccConverterProfile = iccProfile;
+
+            // Four floats per pixel fit every JPEG source model and the three-channel RGB result.
+            // The converter keeps grayscale input beyond the RGB destination and compacts four-channel input in place.
+            this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<float>(width * 4);
         }
 
         for (int yy = this.pixelRowCounter; yy < maxY; yy++)
@@ -169,13 +180,40 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
 
+            // Container formats can prepare their source samples before either eager or deferred JPEG ICC conversion.
+            this.PrepareColorComponents(in values, this.frame.Precision, iccProfile);
+
             if (iccProfile != null)
             {
-                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, this.iccConverter);
+                Span<float> row = this.iccRowBuffer.GetSpan();
+                Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(row[..(width * 3)]);
+                Span<float> scratch = row[..(width * 4)];
+
+                // Convert only visible samples. The explicit RGB destination also handles grayscale
+                // without writing through its aliased component planes.
+                this.colorConverter.ConvertToRgb(values.Slice(0, width), rgb, this.iccConverter, scratch);
+
+                // ICC can produce fractional RGB and values outside [0,1], even from bounded JPEG components.
+                // Let TPixel apply its own range and precision instead of clipping every destination through bytes.
+                // Sixteen vectors hold one full Vector512 batch. Separate stack storage protects the packed RGB row
+                // while RGB expands from three floats to four and the destructive pixel packer reuses its input.
+                InlineArray16<Vector4> storage = default;
+                Span<Vector4> vectors = storage;
+                Span<TPixel> pixelRow = this.pixelBuffer.DangerousGetRowSpan(yy);
+
+                for (int x = 0; x < width; x += vectors.Length)
+                {
+                    int count = Math.Min(vectors.Length, width - x);
+                    Span<Vector4> block = vectors[..count];
+                    Rgb.ToScaledVector4(rgb.Slice(x, count), block);
+                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.Configuration, block, pixelRow.Slice(x, count));
+                }
+
+                continue;
             }
             else
             {
-                this.colorConverter.ConvertToRgbInPlace(in values);
+                this.colorConverter.ConvertToRgb(in values);
             }
 
             values = values.Slice(0, width); // slice away Jpeg padding
@@ -204,6 +242,16 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         }
 
         this.pixelRowCounter += this.pixelRowsPerStep;
+    }
+
+    /// <summary>
+    /// Prepares source color components before JPEG color and ICC conversion.
+    /// </summary>
+    /// <param name="values">The source component planes for the current row.</param>
+    /// <param name="precision">The JPEG sample precision in bits.</param>
+    /// <param name="iccProfile">The selected source ICC profile, if present.</param>
+    protected virtual void PrepareColorComponents(in JpegColorConverterBase.ComponentValues values, int precision, IccProfile iccProfile)
+    {
     }
 
     /// <inheritdoc/>
@@ -300,6 +348,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             }
         }
 
+        this.iccRowBuffer?.Dispose();
         this.rgbBuffer?.Dispose();
         this.paddedProxyPixelRow?.Dispose();
         this.pixelBuffer?.Dispose();

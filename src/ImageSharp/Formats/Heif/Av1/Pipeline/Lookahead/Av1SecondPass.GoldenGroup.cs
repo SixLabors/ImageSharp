@@ -122,7 +122,11 @@ internal sealed partial class Av1SecondPass
     /// <param name="groupStatistics">The group measures.</param>
     /// <param name="frameWidth">The frame width.</param>
     /// <param name="frameHeight">The frame height.</param>
-    private static void AccumulateFrameMotionStatistics(Av1FirstPassStatistics frame, ref GroupStatistics groupStatistics, double frameWidth, double frameHeight)
+    private static void AccumulateFrameMotionStatistics(
+        Av1FirstPassStatistics frame,
+        ref GroupStatistics groupStatistics,
+        double frameWidth,
+        double frameHeight)
     {
         double percent = frame.PercentMotion;
 
@@ -511,7 +515,14 @@ internal sealed partial class Av1SecondPass
 
                 // The regions are indexed from the frame of their analysis, not from the key frame.
                 int offset = this.framesSinceKey;
-                currentLast = this.ShrinkGoldenInterval(statisticsBase, offset, currentStart, currentLast, activeMaximumInterval, activeMinimumInterval, minimumShrinkInterval);
+                currentLast = this.ShrinkGoldenInterval(
+                    statisticsBase,
+                    offset,
+                    currentStart,
+                    currentLast,
+                    activeMaximumInterval,
+                    activeMinimumInterval,
+                    minimumShrinkInterval);
 
                 cutPositions[countCuts] = currentLast;
                 countCuts++;

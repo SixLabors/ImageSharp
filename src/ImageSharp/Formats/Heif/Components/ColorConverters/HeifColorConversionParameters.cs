@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
@@ -500,10 +501,10 @@ internal readonly struct HeifConstantLuminanceScales
     /// <param name="kb">The blue luma coefficient.</param>
     public HeifConstantLuminanceScales(CicpTransferCharacteristics transferCharacteristics, float kr, float kb)
     {
-        this.NegativeBlue = HeifTransferFunctions.ToGamma(transferCharacteristics, 1F - kb);
-        this.PositiveBlue = 1F - HeifTransferFunctions.ToGamma(transferCharacteristics, kb);
-        this.NegativeRed = HeifTransferFunctions.ToGamma(transferCharacteristics, 1F - kr);
-        this.PositiveRed = 1F - HeifTransferFunctions.ToGamma(transferCharacteristics, kr);
+        this.NegativeBlue = CicpCompanding.ToGamma(transferCharacteristics, 1F - kb);
+        this.PositiveBlue = 1F - CicpCompanding.ToGamma(transferCharacteristics, kb);
+        this.NegativeRed = CicpCompanding.ToGamma(transferCharacteristics, 1F - kr);
+        this.PositiveRed = 1F - CicpCompanding.ToGamma(transferCharacteristics, kr);
     }
 
     /// <summary>

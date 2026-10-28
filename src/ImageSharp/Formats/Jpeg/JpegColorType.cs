@@ -4,59 +4,62 @@
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
 /// <summary>
-/// Provides enumeration of available JPEG color types.
+/// Describes JPEG output components and YCbCr chroma sampling.
 /// </summary>
+/// <remarks>
+/// YCbCr follows ITU-T T.871. The YCbCr values specify both the color model and the sampling ratio.
+/// CMYK and YCCK encoding use the Adobe JPEG sample conventions.
+/// </remarks>
 public enum JpegColorType : byte
 {
     /// <summary>
-    /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
-    /// Medium Quality - The horizontal sampling is halved and the Cb and Cr channels are only
-    /// sampled on each alternate line.
+    /// YCbCr with Cb and Cr sampled at half the horizontal and vertical resolution of Y.
     /// </summary>
     YCbCrRatio420 = 0,
 
     /// <summary>
-    /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
-    /// High Quality - Each of the three Y'CbCr components have the same sample rate,
-    /// thus there is no chroma subsampling.
+    /// YCbCr with Y, Cb and Cr sampled at the same resolution, without chroma subsampling.
     /// </summary>
     YCbCrRatio444 = 1,
 
     /// <summary>
-    /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
-    /// The two chroma components are sampled at half the horizontal sample rate of luma while vertically it has full resolution.
+    /// YCbCr with Cb and Cr sampled at half the horizontal resolution of Y and the same vertical resolution.
     /// </summary>
     YCbCrRatio422 = 2,
 
     /// <summary>
-    /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
-    /// In 4:1:1 chroma subsampling, the horizontal color resolution is quartered.
+    /// YCbCr with Cb and Cr sampled at one-quarter the horizontal resolution of Y and the same vertical resolution.
     /// </summary>
     YCbCrRatio411 = 3,
 
     /// <summary>
-    /// YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification.
-    /// This ratio uses half of the vertical and one-fourth the horizontal color resolutions.
+    /// YCbCr with Cb and Cr sampled at one-quarter the horizontal resolution of Y and half the vertical resolution.
     /// </summary>
     YCbCrRatio410 = 4,
 
     /// <summary>
-    /// Single channel, luminance.
+    /// One luminance component.
     /// </summary>
     Luminance = 5,
 
     /// <summary>
-    /// The pixel data will be preserved as RGB without any sub sampling.
+    /// Three red, green and blue components without chroma subsampling.
     /// </summary>
     Rgb = 6,
 
     /// <summary>
-    /// CMYK colorspace (cyan, magenta, yellow, and key black) intended for printing.
+    /// Four cyan, magenta, yellow and black components using the Adobe JPEG convention.
     /// </summary>
+    /// <remarks>
+    /// Stored ink values are inverted: zero means full ink and the maximum sample value means no ink.
+    /// </remarks>
     Cmyk = 7,
 
     /// <summary>
-    /// YCCK colorspace (Y, Cb, Cr, and key black).
+    /// Four Y, Cb, Cr and black components using the Adobe JPEG convention.
     /// </summary>
+    /// <remarks>
+    /// The stored black component is inverted: zero means full black ink and the maximum sample value means no black ink.
+    /// </remarks>
     Ycck = 8,
 }

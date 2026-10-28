@@ -100,7 +100,40 @@ internal static unsafe class LosslessUtils
             // The `255` values disable the write for alpha (A), since 0x80 is set in the control byte (high bit set).
             // Each byte index is within its respective 128-bit lane (0-15 and 16-31), so this is safe for per-lane shuffle.
             // The high bits are not set for the index bytes, and the values are always < 16 per lane, satisfying AVX2 lane rules.
-            Vector256<byte> addGreenToBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+            Vector256<byte> addGreenToBlueAndRedMask = Vector256.Create(
+                1,
+                255,
+                1,
+                255,
+                5,
+                255,
+                5,
+                255,
+                9,
+                255,
+                9,
+                255,
+                13,
+                255,
+                13,
+                255,
+                17,
+                255,
+                17,
+                255,
+                21,
+                255,
+                21,
+                255,
+                25,
+                255,
+                25,
+                255,
+                29,
+                255,
+                29,
+                255);
+
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
@@ -164,7 +197,40 @@ internal static unsafe class LosslessUtils
     {
         if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
-            Vector256<byte> subtractGreenFromBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+            Vector256<byte> subtractGreenFromBlueAndRedMask = Vector256.Create(
+                1,
+                255,
+                1,
+                255,
+                5,
+                255,
+                5,
+                255,
+                9,
+                255,
+                9,
+                255,
+                13,
+                255,
+                13,
+                255,
+                17,
+                255,
+                17,
+                255,
+                21,
+                255,
+                21,
+                255,
+                25,
+                255,
+                25,
+                255,
+                29,
+                255,
+                29,
+                255);
+
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
@@ -342,8 +408,74 @@ internal static unsafe class LosslessUtils
     {
         if (Avx2.IsSupported && numPixels >= 8)
         {
-            Vector256<byte> transformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-            Vector256<byte> transformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+            Vector256<byte> transformColorAlphaGreenMask256 = Vector256.Create(
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255);
+
+            Vector256<byte> transformColorRedBlueMask256 = Vector256.Create(
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0);
+
             Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
             Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
 
@@ -436,7 +568,40 @@ internal static unsafe class LosslessUtils
     {
         if (Avx2.IsSupported && pixelData.Length >= 8)
         {
-            Vector256<byte> transformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+            Vector256<byte> transformColorInverseAlphaGreenMask256 = Vector256.Create(
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255,
+                0,
+                255);
+
             Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
             Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
             nuint idx;

@@ -4,6 +4,8 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Formats.Exr;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -311,7 +313,20 @@ public class ResizeTests
     [WithTestPatternImages(50, 50, CommonNonDefaultPixelTypes)]
     public void Resize_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => provider.RunValidatingProcessorTest(x => x.Resize(x.GetCurrentSize() / 2), comparer: ValidatorComparer);
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(x.GetCurrentSize() / 2));
+
+        // Bicubic filtering can produce RGB and alpha outside 0..1. Float EXR retains these values; PNG clips them.
+        bool floatingPoint = typeof(TPixel) == typeof(RgbaVector);
+        string extension = floatingPoint ? "exr" : "png";
+        image.DebugSave(provider, extension: extension, encoder: floatingPoint ? new ExrEncoder { PixelType = ExrPixelType.Float } : null);
+
+        if (TestEnvironment.IsWindows)
+        {
+            image.CompareToReferenceOutput(ValidatorComparer, provider, extension: extension);
+        }
+    }
 
     [Theory]
     [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]

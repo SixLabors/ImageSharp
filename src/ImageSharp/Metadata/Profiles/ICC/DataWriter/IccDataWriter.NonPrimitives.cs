@@ -32,9 +32,9 @@ internal sealed partial class IccDataWriter
     /// <returns>the number of bytes written</returns>
     public int WriteVersionNumber(in IccVersion value)
     {
-        int major = Numerics.Clamp(value.Major, 0, byte.MaxValue);
-        int minor = Numerics.Clamp(value.Minor, 0, 15);
-        int bugfix = Numerics.Clamp(value.Patch, 0, 15);
+        int major = Math.Clamp(value.Major, 0, byte.MaxValue);
+        int minor = Math.Clamp(value.Minor, 0, 15);
+        int bugfix = Math.Clamp(value.Patch, 0, 15);
 
         int version = (major << 24) | (minor << 20) | (bugfix << 16);
         return this.WriteInt32(version);

@@ -11,7 +11,10 @@ namespace SixLabors.ImageSharp.Processing.Processors;
 public abstract class CloningImageProcessor : ICloningImageProcessor
 {
     /// <inheritdoc/>
-    public abstract ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+    public abstract ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(
+        Configuration configuration,
+        Image<TPixel> source,
+        Rectangle sourceRectangle)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <inheritdoc/>

@@ -13,7 +13,7 @@ internal static partial class Av1IntraSuperblockEncoder
 {
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Gets the Variance Boost quantizer index of the superblock at an origin, from the variances of its 8x8 luma blocks.
@@ -30,7 +30,7 @@ internal static partial class Av1IntraSuperblockEncoder
             zeros.Clear();
             Av1PlaneRegion<TSample> luma = this.source.GetPlane(Av1Plane.Y);
             ReadOnlySpan<TSample> lumaSamples = luma.Samples;
-            int shift = this.bitDepth.GetBitCount() - 8;
+            int shift = this.State.BitDepth.GetBitCount() - 8;
             int index = 0;
             for (int row = 0; row < Av1VarianceBoost.SuperblockSize; row += Av1VarianceBoost.SubblockSize)
             {
@@ -61,7 +61,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             uint blockVariance = Av1VarianceBoost.GetBlockVariance(variances);
-            return Av1VarianceBoost.GetSuperblockQIndex(blockVariance, baseQIndex, this.bitDepth);
+            return Av1VarianceBoost.GetSuperblockQIndex(blockVariance, baseQIndex, this.State.BitDepth);
         }
     }
 }

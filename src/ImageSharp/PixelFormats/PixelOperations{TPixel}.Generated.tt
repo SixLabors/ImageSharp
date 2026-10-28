@@ -23,7 +23,16 @@
     /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     public virtual void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+<# if (!pixelType.EndsWith("P")) { #>
+        // Associated storage converts through its explicit alpha API; straight storage keeps the direct scalar default.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.From(configuration, source, destination);
+
+            return;
+        }
+
+<# } #>        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         ref <#=pixelType#> sourceBase = ref MemoryMarshal.GetReference(source);
         ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -62,14 +71,28 @@
     /// <param name="destination">The destination span of <see cref="<#=pixelType#>"/> data.</param>
     public virtual void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<<#=pixelType#>> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+<# if (!pixelType.EndsWith("P")) { #>
+        // Associated storage converts through its explicit alpha API; straight storage keeps the direct scalar default.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            this.ConvertToUnassociated(configuration, source, destination);
+
+            return;
+        }
+
+<# } #>        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
         ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
         ref <#=pixelType#> destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
+<# if (pixelType.EndsWith("P")) { #>
+            // The single-pixel API packs associated RGBA once. The destination only changes byte order.
+            Unsafe.Add(ref destinationBase, i) = <#=pixelType#>.FromRgba32P(Unsafe.Add(ref sourceBase, i).ToRgba32P());
+<# } else { #>
             Unsafe.Add(ref destinationBase, i) = <#=pixelType#>.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
+<# } #>
         }
     }
 
@@ -140,5 +163,17 @@ GenerateToDestFormatMethods("Rgba64");
 
 GenerateFromMethods("Bgra5551");
 GenerateToDestFormatMethods("Bgra5551");
+
+GenerateFromMethods("Argb32P");
+GenerateToDestFormatMethods("Argb32P");
+
+GenerateFromMethods("Abgr32P");
+GenerateToDestFormatMethods("Abgr32P");
+
+GenerateFromMethods("Bgra32P");
+GenerateToDestFormatMethods("Bgra32P");
+
+GenerateFromMethods("Rgba32P");
+GenerateToDestFormatMethods("Rgba32P");
 
 #>}

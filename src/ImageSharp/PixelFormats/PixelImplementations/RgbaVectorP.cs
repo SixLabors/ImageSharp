@@ -9,7 +9,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Pixel type containing four associated IEEE 754 binary32 components.
-/// Native and scaled vector conversions preserve the stored floating-point values.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to [-65504,65504] and alpha to [0,1].
 /// </summary>
 /// <remarks>
 /// The component layout is binary-compatible with <c>DXGI_FORMAT_R32G32B32A32_FLOAT</c>.
@@ -69,22 +70,47 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static bool operator !=(RgbaVectorP left, RgbaVectorP right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static RgbaVectorP FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaVectorP FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaVectorP FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaVectorP FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4() => this.ToAssociatedScaledVector4();
 
     /// <inheritdoc />
     public readonly Vector4 ToVector4() => new(this.R, this.G, this.B, this.A);
 
     /// <inheritdoc />
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        // Storage already contains associated RGB. Color output only applies normalized component bounds.
+        return PixelOperations.ClampToPixelRange(this.ToVector4());
+    }
 
     /// <inheritdoc />
     public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
 
     /// <inheritdoc />
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToUnassociatedVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+    {
+        Vector4 source = this.ToVector4();
+        PixelOperations.UnPremultiply(ref source);
+
+        return source;
+    }
 
     /// <inheritdoc />
     public readonly Vector4 ToUnassociatedVector4()
@@ -99,25 +125,38 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
         => PixelTypeInfo.Create<RgbaVectorP>(
             PixelComponentInfo.Create<RgbaVectorP>(4, 32, 32, 32, 32),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />
     public static PixelOperations<RgbaVectorP> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc />
-    public static RgbaVectorP FromScaledVector4(Vector4 source) => FromAssociatedVector4(source);
+    public static RgbaVectorP FromScaledVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     public static RgbaVectorP FromVector4(Vector4 source) => FromAssociatedVector4(source);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromAssociatedScaledVector4(Vector4 source) => FromAssociatedVector4(source);
+    public static RgbaVectorP FromAssociatedScaledVector4(Vector4 source)
+    {
+        // RGB is already associated. Bound the supplied components; native packing rounds them independently.
+        source = PixelOperations.ClampToPixelRange(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     public static RgbaVectorP FromAssociatedVector4(Vector4 source) => new(source.X, source.Y, source.Z, source.W);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source) => FromUnassociatedVector4(source);
+    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
+    {
+        // Bound RGB and opacity before multiplication so association cannot overflow finite RGB.
+        source = PixelFormats.PixelOperations.Associate(source);
+
+        return FromAssociatedVector4(source);
+    }
 
     /// <inheritdoc />
     public static RgbaVectorP FromUnassociatedVector4(Vector4 source)

@@ -665,7 +665,9 @@ internal sealed class Av1RateControl
         int savedHeight = this.height;
         this.width = resizeSize.Width;
         this.height = resizeSize.Height;
-        int targetBitsPerMacroblock = (int)(((ulong)this.thisFrameTarget << BitsPerMacroblockShift) / (ulong)GetMacroblockCount(resizeSize.Width, resizeSize.Height));
+        int targetBitsPerMacroblock = (int)(((ulong)this.thisFrameTarget << BitsPerMacroblockShift)
+            / (ulong)GetMacroblockCount(resizeSize.Width, resizeSize.Height));
+
         int qIndex = this.RegulateQuantizer(previousFrameIntra, screenContent, in sourceSad, this.bestQuality, activeWorstQuality, targetBitsPerMacroblock);
         this.width = savedWidth;
         this.height = savedHeight;
@@ -885,7 +887,7 @@ internal sealed class Av1RateControl
         Av1PlaneRegion<TSample> lastReconstruction)
         where TSample : unmanaged
         where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
-        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlock>
     {
         Debug.Assert(this.realtime, "Only real-time coding picks through this entry.");
 
@@ -1235,7 +1237,7 @@ internal sealed class Av1RateControl
     private void MeasureReconstructionError<TSample, TMotion, TBlock>(Av1PlaneRegion<TSample> source, Av1PlaneRegion<TSample> lastReconstruction)
         where TSample : unmanaged
         where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
-        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlock>
     {
         int modeInfoColumns = Av1Math.AlignPowerOf2(this.width, 3) >> Av1Constants.ModeInfoSizeLog2;
         int modeInfoRows = Av1Math.AlignPowerOf2(this.height, 3) >> Av1Constants.ModeInfoSizeLog2;

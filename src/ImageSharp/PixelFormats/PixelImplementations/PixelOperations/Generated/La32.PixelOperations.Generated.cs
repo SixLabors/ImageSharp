@@ -8,6 +8,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
+using System.Runtime.Intrinsics;
+
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -36,6 +38,111 @@ public partial struct La32
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             source.CopyTo(destination.Slice(0, source.Length));
+        }
+
+        /// <inheritdoc />
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+        {
+            this.ToUnassociatedVector4(configuration, source, destination);
+
+            // Normalize before association, matching the single-pixel API's floating-point rounding.
+            Numerics.Premultiply(destination[..source.Length]);
+        }
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Each uint contains two consecutive ushort components: the first in bits 0..15 and the second in bits 16..31.
+            // Both supported layouts use this packed order. No staging array or intermediate pixel conversion is needed.
+            ref uint input = ref Unsafe.As<La32, uint>(ref MemoryMarshal.GetReference(source));
+            ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+            int i = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint groups = (source.Length - i).Vector512Count<uint>();
+                Vector512<uint> mask = Vector512.Create((uint)ushort.MaxValue);
+                Vector512<float> maximum = Vector512.Create((float)ushort.MaxValue);
+
+                // One register contains 16 pixels. Masking and shifting separate the two word components.
+                // Both values fit signed int, so conversion avoids the extra work needed for the full uint range.
+                // Divide by 65535 as the single-pixel API does. Multiplying by a rounded reciprocal can change the final float.
+                for (nuint group = 0; group < groups; group++, i += Vector512<uint>.Count)
+                {
+                    Vector512<uint> packed = Vector512.LoadUnsafe(ref input, (uint)i);
+                    Vector512<float> first = Vector512.ConvertToSingle((packed & mask).AsInt32()) / maximum;
+                    Vector512<float> second = Vector512.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
+
+                    // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
+                    SimdUtils.Interleave4(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint groups = (source.Length - i).Vector256Count<uint>();
+                Vector256<uint> mask = Vector256.Create((uint)ushort.MaxValue);
+                Vector256<float> maximum = Vector256.Create((float)ushort.MaxValue);
+
+                // One register contains 8 pixels. Masking and shifting separate the two word components.
+                // Both values fit signed int, so conversion avoids the extra work needed for the full uint range.
+                // Divide by 65535 as the single-pixel API does. Multiplying by a rounded reciprocal can change the final float.
+                for (nuint group = 0; group < groups; group++, i += Vector256<uint>.Count)
+                {
+                    Vector256<uint> packed = Vector256.LoadUnsafe(ref input, (uint)i);
+                    Vector256<float> first = Vector256.ConvertToSingle((packed & mask).AsInt32()) / maximum;
+                    Vector256<float> second = Vector256.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
+
+                    // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
+                    SimdUtils.Interleave4(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint groups = (source.Length - i).Vector128Count<uint>();
+                Vector128<uint> mask = Vector128.Create((uint)ushort.MaxValue);
+                Vector128<float> maximum = Vector128.Create((float)ushort.MaxValue);
+
+                // One register contains 4 pixels. Masking and shifting separate the two word components.
+                // Both values fit signed int, so conversion avoids the extra work needed for the full uint range.
+                // Divide by 65535 as the single-pixel API does. Multiplying by a rounded reciprocal can change the final float.
+                for (nuint group = 0; group < groups; group++, i += Vector128<uint>.Count)
+                {
+                    Vector128<uint> packed = Vector128.LoadUnsafe(ref input, (uint)i);
+                    Vector128<float> first = Vector128.ConvertToSingle((packed & mask).AsInt32()) / maximum;
+                    Vector128<float> second = Vector128.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
+
+                    // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
+                    SimdUtils.Interleave4(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                }
+            }
+
+            // Smaller vector widths consume complete groups left by wider paths. Only the final incomplete group is scalar.
+            // Call the single-pixel API so channel defaults and normalization retain exactly the same arithmetic.
+            for (; i < source.Length; i++)
+            {
+                destination[i] = source[i].ToUnassociatedVector4();
+            }
         }
 
         /// <inheritdoc />
@@ -255,12 +362,12 @@ public partial struct La32
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<La32> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToLa32(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToLa32(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

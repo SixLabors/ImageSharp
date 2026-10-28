@@ -33,8 +33,11 @@ public class BinaryThresholdTest
         Assert.Equal(RgbaVector.FromRgba32(Color.White.ToPixel<Rgba32>()), image[64, 0]);
     }
 
+    /// <summary>
+    /// Thresholding measures the finite RGB supplied by pixel conversion and does not discard transparent RGB.
+    /// </summary>
     [Fact]
-    public void LuminanceThreshold_NonfiniteMetricsSelectLower()
+    public void LuminanceThreshold_UsesFiniteConvertedComponents()
     {
         using Image<RgbaVector> image = new(65, 1);
         for (int x = 0; x < image.Width; x++)
@@ -50,12 +53,16 @@ public class BinaryThresholdTest
 
         image.Mutate(x => x.BinaryThreshold(.5F));
 
-        Assert.Equal(0F, image[0, 0].R);
+        // NaN and negative infinity become -65504; positive infinity becomes 65504.
+        // Ordinary positive RGB lies above the midpoint between the two converted red extremes and selects the upper color.
+        Assert.Equal(1F, image[0, 0].R);
         Assert.Equal(1F, image[30, 0].R);
         Assert.Equal(0F, image[31, 0].R);
-        Assert.Equal(0F, image[32, 0].R);
+        Assert.Equal(1F, image[32, 0].R);
         Assert.Equal(0F, image[33, 0].R);
-        Assert.Equal(0F, image[34, 0].R);
+
+        // Alpha becomes zero, but luminance still uses the finite RGB components.
+        Assert.Equal(1F, image[34, 0].R);
     }
 
     [Fact]
@@ -109,15 +116,19 @@ public class BinaryThresholdTest
         Assert.Equal(1F, image[64, 0].R);
     }
 
+    /// <summary>
+    /// Equal NaN inputs become equal finite minima, which follow the constant-range upper-color rule.
+    /// </summary>
     [Fact]
-    public void LuminanceThreshold_WithoutFiniteMetricsSelectsLower()
+    public void LuminanceThreshold_NonfiniteInputsBecomeConstantFiniteRange()
     {
         using Image<RgbaVector> image = new(65, 1, new RgbaVector(float.NaN, float.NaN, float.NaN));
 
         image.Mutate(x => x.BinaryThreshold(.5F));
 
-        Assert.Equal(0F, image[0, 0].R);
-        Assert.Equal(0F, image[64, 0].R);
+        // Pixel conversion replaces NaN before the processor measures the range.
+        Assert.Equal(1F, image[0, 0].R);
+        Assert.Equal(1F, image[64, 0].R);
     }
 
     public static readonly TheoryData<float> BinaryThresholdValues
@@ -237,7 +248,6 @@ public class BinaryThresholdTest
     {
         Vector4[] vectors = new Vector4[source.Width];
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
         float minimum = float.PositiveInfinity;
         float maximum = float.NegativeInfinity;
 
@@ -245,7 +255,10 @@ public class BinaryThresholdTest
         // the range and expected mask independently from the unmodified image.
         for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
-            operations.ToVector4(source.Configuration, source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y), vectors, modifiers);
+            operations.ToUnassociatedScaledVector4(
+                source.Configuration,
+                source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y),
+                vectors);
 
             for (int x = bounds.Left; x < bounds.Right; x++)
             {
@@ -261,7 +274,10 @@ public class BinaryThresholdTest
 
         for (int y = 0; y < source.Height; y++)
         {
-            operations.ToVector4(source.Configuration, source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y), vectors, modifiers);
+            operations.ToUnassociatedScaledVector4(
+                source.Configuration,
+                source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y),
+                vectors);
 
             for (int x = 0; x < source.Width; x++)
             {
@@ -272,7 +288,9 @@ public class BinaryThresholdTest
                 TPixel actualPixel = actual[x, y];
                 if (!expected.Equals(actualPixel))
                 {
-                    Assert.Fail($"({x}, {y}) source={source[x, y]} metric={GetReferenceMetric(vectors[x], mode)} threshold={threshold} expected={expected} actual={actualPixel}");
+                    Assert.Fail(
+                        $"({x}, {y}) source={source[x, y]} metric={GetReferenceMetric(vectors[x], mode)} " +
+                        $"threshold={threshold} expected={expected} actual={actualPixel}");
                 }
             }
         }

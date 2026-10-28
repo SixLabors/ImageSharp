@@ -8,7 +8,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 internal class ArithmeticDecodingComponent : JpegComponent
 {
-    public ArithmeticDecodingComponent(MemoryAllocator memoryAllocator, JpegFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+    public ArithmeticDecodingComponent(
+        MemoryAllocator memoryAllocator,
+        JpegFrame frame,
+        byte id,
+        int horizontalFactor,
+        int verticalFactor,
+        byte quantizationTableIndex,
+        int index)
         : base(memoryAllocator, frame, id, horizontalFactor, verticalFactor, quantizationTableIndex, index)
     {
     }

@@ -916,7 +916,15 @@ internal sealed class Av1PredictionDecoder
     /// <param name="above">The prepared top reference samples.</param>
     /// <param name="left">The prepared left reference samples.</param>
     /// <param name="bitDepth">The number of bits used to represent each sample.</param>
-    private static void DcPredictor<T>(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left, int bitDepth)
+    private static void DcPredictor<T>(
+        bool hasLeft,
+        bool hasAbove,
+        Av1TransformSize transformSize,
+        Span<T> destination,
+        nuint destinationStride,
+        Span<T> above,
+        Span<T> left,
+        int bitDepth)
         where T : unmanaged
     {
         int width = transformSize.GetWidth();
@@ -961,7 +969,13 @@ internal sealed class Av1PredictionDecoder
     /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
     /// <param name="above">The prepared top reference samples.</param>
     /// <param name="left">The prepared left reference samples.</param>
-    private static void GeneralPredictor<T>(Av1PredictionMode mode, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left)
+    private static void GeneralPredictor<T>(
+        Av1PredictionMode mode,
+        Av1TransformSize transformSize,
+        Span<T> destination,
+        nuint destinationStride,
+        Span<T> above,
+        Span<T> left)
         where T : unmanaged
     {
         int width = transformSize.GetWidth();

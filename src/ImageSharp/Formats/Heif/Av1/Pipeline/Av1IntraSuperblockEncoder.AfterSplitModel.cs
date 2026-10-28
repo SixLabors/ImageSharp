@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -593,7 +594,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
@@ -635,12 +636,98 @@ internal static partial class Av1IntraSuperblockEncoder
             long splitCost,
             ReadOnlySpan<long> childCosts)
         {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.ShouldTerminateAfterSplit(
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                bestCost,
+                noneCost,
+                splitCost,
+                childCosts);
+        }
+
+        /// <summary>
+        /// Finds the smallest selected width and height beneath a square, measured in log2 mode-information units.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="blockSize">The square block size of the partition node.</param>
+        /// <param name="nodeIndex">The partition tree node of the block.</param>
+        /// <param name="minimumWidth">The smallest width found so far, which the search lowers.</param>
+        /// <param name="minimumHeight">The smallest height found so far, which the search lowers.</param>
+        private void GetMinimumSimpleMotionBlockSize(
+            Span<int> workspaceStorage,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            ref int minimumWidth,
+            ref int minimumHeight)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.GetMinimumSimpleMotionBlockSize(workspaceStorage, blockSize, nodeIndex, ref minimumWidth, ref minimumHeight);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Combines completed child costs, selected geometry, and motion residuals into a stopping decision.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="bestCost">The best partition cost of the block.</param>
+        /// <param name="noneCost">The cost of the unsplit block.</param>
+        /// <param name="splitCost">The cost of the square split.</param>
+        /// <param name="childCosts">The costs of the four split children.</param>
+        /// <returns><see langword="true"/> when the remaining partition searches stop.</returns>
+        public bool ShouldTerminateAfterSplit(
+            Span<int> workspaceStorage,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
+            Span<byte> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            long bestCost,
+            long noneCost,
+            long splitCost,
+            ReadOnlySpan<long> childCosts)
+        {
             if (bestCost <= 0 || bestCost == long.MaxValue)
             {
                 return false;
             }
 
-            bool largeFrame = this.picture.Parent.SpeedSettings.FourStripPartitionResolutionIndex >= 1;
+            bool largeFrame = this.state.Picture.Parent.SpeedSettings.FourStripPartitionResolutionIndex >= 1;
             ReadOnlySpan<float> weights0;
             ReadOnlySpan<float> bias0;
             ReadOnlySpan<float> weights1;
@@ -681,7 +768,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     return false;
             }
 
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            Av1EncoderSpeedSettings settings = this.state.Picture.Parent.SpeedSettings;
             if (settings.AfterSplitTerminationLevel < 2)
             {
                 threshold -= 0.3F;
@@ -689,7 +776,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             InlineArray32<float> featureStorage = default;
             Span<float> features = featureStorage;
-            int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+            int dcStep = Av1QuantizationLookup.GetDcQuant(this.state.BlockQIndex, 0, this.state.BitDepth) >> (this.state.BitDepth.GetBitCount() - 8);
             int width = blockSize.GetWidth();
             features[0] = float.LogP1(dcStep / 4F);
             features[1] = float.LogP1((float)bestCost / width / width / 1024F);
@@ -734,7 +821,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 nodeIndex,
                 true);
 
-            Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
+            Span<Av1SimpleMotionData> nodes = this.state.BlockWorkspace.GetSimpleMotionData(workspaceStorage);
             features[featureIndex++] = float.LogP1(nodes[nodeIndex].Variance);
             for (int child = 0; child < 4; child++)
             {
@@ -759,7 +846,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="nodeIndex">The partition tree node of the block.</param>
         /// <param name="minimumWidth">The smallest width found so far, which the search lowers.</param>
         /// <param name="minimumHeight">The smallest height found so far, which the search lowers.</param>
-        private void GetMinimumSimpleMotionBlockSize(
+        public void GetMinimumSimpleMotionBlockSize(
             Span<int> workspaceStorage,
             Av1BlockSize blockSize,
             int nodeIndex,
@@ -773,7 +860,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            Av1PartitionType partition = this.blockWorkspace.GetSimpleMotionData(workspaceStorage)[nodeIndex].Partition;
+            Av1PartitionType partition = this.state.BlockWorkspace.GetSimpleMotionData(workspaceStorage)[nodeIndex].Partition;
             if (partition == Av1PartitionType.Split)
             {
                 Av1BlockSize childSize = partition.GetBlockSubSize(blockSize);

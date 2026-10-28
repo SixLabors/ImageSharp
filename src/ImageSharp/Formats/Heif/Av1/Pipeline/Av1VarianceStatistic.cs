@@ -178,7 +178,12 @@ internal static class Av1VarianceStatistic
     /// <param name="sum">The lane totals so far.</param>
     /// <returns>The lane totals with the eight columns added.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> AccumulateSquaredDifferences<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector128<int> sum)
+    private static Vector128<int> AccumulateSquaredDifferences<TSample, TOperator>(
+        ref TSample above,
+        ref TSample current,
+        ref TSample below,
+        nuint x,
+        Vector128<int> sum)
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
@@ -187,7 +192,9 @@ internal static class Av1VarianceStatistic
         Vector128<ushort> center = TOperator.Load(ref current, x, lanes);
         Vector128<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
         Vector128<ushort> middle = TOperator.Load(ref current, x - 1, lanes) + (center << 1) + TOperator.Load(ref current, x + 1, lanes);
-        Vector128<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1) + TOperator.Load(ref below, x + 1, lanes);
+        Vector128<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1)
+            + TOperator.Load(ref below, x + 1, lanes);
+
         Vector128<ushort> smoothed = (top + (middle << 1) + bottom) >>> 4;
 
         // The signed differences of the lower and upper four columns, squared in 32-bit lanes.
@@ -209,7 +216,12 @@ internal static class Av1VarianceStatistic
     /// <param name="sum">The lane totals so far.</param>
     /// <returns>The lane totals with the sixteen columns added.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<int> AccumulateSquaredDifferences<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector256<int> sum)
+    private static Vector256<int> AccumulateSquaredDifferences<TSample, TOperator>(
+        ref TSample above,
+        ref TSample current,
+        ref TSample below,
+        nuint x,
+        Vector256<int> sum)
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
@@ -218,7 +230,9 @@ internal static class Av1VarianceStatistic
         Vector256<ushort> center = TOperator.Load(ref current, x, lanes);
         Vector256<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
         Vector256<ushort> middle = TOperator.Load(ref current, x - 1, lanes) + (center << 1) + TOperator.Load(ref current, x + 1, lanes);
-        Vector256<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1) + TOperator.Load(ref below, x + 1, lanes);
+        Vector256<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1)
+            + TOperator.Load(ref below, x + 1, lanes);
+
         Vector256<ushort> smoothed = (top + (middle << 1) + bottom) >>> 4;
 
         // The signed differences of the lower and upper eight columns, squared in 32-bit lanes.
@@ -240,7 +254,12 @@ internal static class Av1VarianceStatistic
     /// <param name="sum">The lane totals so far.</param>
     /// <returns>The lane totals with the thirty-two columns added.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<int> AccumulateSquaredDifferences<TSample, TOperator>(ref TSample above, ref TSample current, ref TSample below, nuint x, Vector512<int> sum)
+    private static Vector512<int> AccumulateSquaredDifferences<TSample, TOperator>(
+        ref TSample above,
+        ref TSample current,
+        ref TSample below,
+        nuint x,
+        Vector512<int> sum)
         where TSample : unmanaged
         where TOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
     {
@@ -249,7 +268,9 @@ internal static class Av1VarianceStatistic
         Vector512<ushort> center = TOperator.Load(ref current, x, lanes);
         Vector512<ushort> top = TOperator.Load(ref above, x - 1, lanes) + (TOperator.Load(ref above, x, lanes) << 1) + TOperator.Load(ref above, x + 1, lanes);
         Vector512<ushort> middle = TOperator.Load(ref current, x - 1, lanes) + (center << 1) + TOperator.Load(ref current, x + 1, lanes);
-        Vector512<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1) + TOperator.Load(ref below, x + 1, lanes);
+        Vector512<ushort> bottom = TOperator.Load(ref below, x - 1, lanes) + (TOperator.Load(ref below, x, lanes) << 1)
+            + TOperator.Load(ref below, x + 1, lanes);
+
         Vector512<ushort> smoothed = (top + (middle << 1) + bottom) >>> 4;
 
         // The signed differences of the lower and upper sixteen columns, squared in 32-bit lanes.

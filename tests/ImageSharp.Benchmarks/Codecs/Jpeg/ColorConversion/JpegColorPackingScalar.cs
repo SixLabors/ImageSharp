@@ -20,7 +20,12 @@ internal static class JpegColorPackingScalar
     /// <param name="zLane">The planar Z components.</param>
     /// <param name="packed">The destination ordered as consecutive XYZ triples.</param>
     /// <param name="scale">The normalization factor applied to every component.</param>
-    public static void PackedNormalizeInterleave3(ReadOnlySpan<float> xLane, ReadOnlySpan<float> yLane, ReadOnlySpan<float> zLane, Span<float> packed, float scale)
+    public static void PackedNormalizeInterleave3(
+        ReadOnlySpan<float> xLane,
+        ReadOnlySpan<float> yLane,
+        ReadOnlySpan<float> zLane,
+        Span<float> packed,
+        float scale)
     {
         ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
         ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
@@ -68,7 +73,13 @@ internal static class JpegColorPackingScalar
     /// <param name="wLane">The planar W components.</param>
     /// <param name="packed">The destination ordered as consecutive XYZW groups.</param>
     /// <param name="maximumValue">The maximum component value used to normalize each component.</param>
-    public static void PackedNormalizeInterleave4(ReadOnlySpan<float> xLane, ReadOnlySpan<float> yLane, ReadOnlySpan<float> zLane, ReadOnlySpan<float> wLane, Span<float> packed, float maximumValue)
+    public static void PackedNormalizeInterleave4(
+        ReadOnlySpan<float> xLane,
+        ReadOnlySpan<float> yLane,
+        ReadOnlySpan<float> zLane,
+        ReadOnlySpan<float> wLane,
+        Span<float> packed,
+        float maximumValue)
     {
         float scale = 1F / maximumValue;
         ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
@@ -96,7 +107,13 @@ internal static class JpegColorPackingScalar
     /// <param name="wLane">The inverted planar W components.</param>
     /// <param name="packed">The destination ordered as consecutive conventional XYZW groups.</param>
     /// <param name="maximumValue">The maximum component value used for inversion and normalization.</param>
-    public static void PackedInvertNormalizeInterleave4(ReadOnlySpan<float> xLane, ReadOnlySpan<float> yLane, ReadOnlySpan<float> zLane, ReadOnlySpan<float> wLane, Span<float> packed, float maximumValue)
+    public static void PackedInvertNormalizeInterleave4(
+        ReadOnlySpan<float> xLane,
+        ReadOnlySpan<float> yLane,
+        ReadOnlySpan<float> zLane,
+        ReadOnlySpan<float> wLane,
+        Span<float> packed,
+        float maximumValue)
     {
         float scale = 1F / maximumValue;
         ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);

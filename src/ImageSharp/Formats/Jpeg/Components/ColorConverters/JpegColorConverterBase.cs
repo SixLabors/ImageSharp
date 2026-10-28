@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -78,16 +79,34 @@ internal abstract partial class JpegColorConverterBase
     /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place.
     /// </summary>
     /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct</param>
-    public abstract void ConvertToRgbInPlace(in ComponentValues values);
+    public abstract void ConvertToRgb(in ComponentValues values);
 
     /// <summary>
     /// Converts RGB lanes to jpeg component values.
     /// </summary>
-    /// <param name="values">Jpeg component values.</param>
-    /// <param name="rLane">Red colors lane.</param>
-    /// <param name="gLane">Green colors lane.</param>
-    /// <param name="bLane">Blue colors lane.</param>
-    public abstract void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane);
+    /// <param name="rLane">The source red components in the byte domain.</param>
+    /// <param name="gLane">The source green components in the byte domain.</param>
+    /// <param name="bLane">The source blue components in the byte domain.</param>
+    /// <param name="destination">The destination JPEG component planes.</param>
+    public abstract void ConvertFromRgb(ReadOnlySpan<float> rLane, ReadOnlySpan<float> gLane, ReadOnlySpan<float> bLane, in ComponentValues destination);
+
+    /// <summary>
+    /// Converts JPEG codes to straight sRGB through the source ICC profile without changing the source planes.
+    /// </summary>
+    /// <param name="source">The source JPEG component planes.</param>
+    /// <param name="destination">The straight sRGB output.</param>
+    /// <param name="profileConverter">The transform from the source profile to sRGB.</param>
+    /// <param name="scratch">Caller-owned storage for one to four normalized components per sample.</param>
+    public abstract void ConvertToRgb(in ComponentValues source, Span<Rgb> destination, ColorProfileConverter profileConverter, Span<float> scratch);
+
+    /// <summary>
+    /// Converts straight sRGB to JPEG codes through the destination ICC profile without changing the source colors.
+    /// </summary>
+    /// <param name="source">The straight sRGB input, including any right-edge padding.</param>
+    /// <param name="destination">The destination JPEG component planes.</param>
+    /// <param name="profileConverter">The transform from sRGB to the destination profile.</param>
+    /// <param name="scratch">Caller-owned storage for one to four normalized components per sample.</param>
+    public abstract void ConvertFromRgb(ReadOnlySpan<Rgb> source, in ComponentValues destination, ColorProfileConverter profileConverter, Span<float> scratch);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for all supported color spaces and precisions.

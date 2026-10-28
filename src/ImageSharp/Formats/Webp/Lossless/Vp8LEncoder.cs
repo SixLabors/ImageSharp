@@ -6,11 +6,14 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
+using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -123,7 +126,7 @@ internal class Vp8LEncoder : IDisposable
         this.method = method;
         this.transparentColorMode = transparentColorMode;
         this.nearLossless = nearLossless;
-        this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
+        this.nearLosslessQuality = Math.Clamp(nearLosslessQuality, 0, 100);
         this.bitWriter = new Vp8LBitWriter(initialSize);
         this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
         this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
@@ -226,7 +229,18 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation, ushort? repeatCount)
+    /// <summary>
+    /// Writes the selected ICC profile and animation settings before lossless frame data.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The image supplying dimensions and optional metadata.</param>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="hasAnimation">Whether animation frames follow.</param>
+    /// <param name="iccProfile">The profile matching the encoded RGB samples, or null.</param>
+    /// <param name="background">The resolved background in the encoded color space.</param>
+    /// <param name="repeatCount">The resolved animation repeat count.</param>
+    /// <returns>The extended header, if required.</returns>
+    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation, IccProfile iccProfile, Color background, ushort repeatCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bit-writer buffer to the stream.
@@ -241,14 +255,13 @@ internal class Vp8LEncoder : IDisposable
             (uint)image.Height,
             exifProfile,
             xmpProfile,
-            metadata.IccProfile,
+            iccProfile,
             false,
             hasAnimation);
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, repeatCount ?? webpMetadata.RepeatCount);
+            BitWriterBase.WriteAnimationParameter(stream, background, repeatCount);
         }
 
         return vp8x;
@@ -277,12 +290,23 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
-    public bool Encode<TPixel>(ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, Stream stream, bool hasAnimation)
+    public bool Encode<TPixel>(
+        ImageFrame<TPixel> frame,
+        Rectangle bounds,
+        WebpFrameMetadata frameMetadata,
+        Stream stream,
+        bool hasAnimation,
+        ColorProfileConverter converter,
+        Span<Vector4> vectors,
+        Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(frame.PixelBuffer.GetRegion(bounds));
+        bool hasAlpha = this.ConvertPixelsToBgra(frame.PixelBuffer.GetRegion(bounds), converter, vectors, rgb);
 
         // Write the image size.
         this.WriteImageSize(bounds.Width, bounds.Height);
@@ -338,7 +362,8 @@ internal class Vp8LEncoder : IDisposable
         int pixelCount = width * height;
 
         // Convert image pixels to bgra array.
-        this.ConvertPixelsToBgra(frame);
+        // ALPH stores coverage only; its lossless compression must not apply the image's RGB profile.
+        this.ConvertPixelsToBgra(frame, null, [], []);
 
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
         this.EncodeStream(width, height);
@@ -493,19 +518,34 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="pixels">The frame pixel buffer to convert.</param>
+    /// <param name="converter">The return transform from sRGB to the encoded profile, or null.</param>
+    /// <param name="vectors">Reusable straight RGBA row scratch.</param>
+    /// <param name="rgb">Reusable RGB transform scratch.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    public bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels)
+    public bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels, ColorProfileConverter converter, Span<Vector4> vectors, Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
         int widthBytes = pixels.Width * 4;
+        WebpColorConverterBase colorConverter = converter is null ? null : WebpColorConverterBase.GetConverter(WebpColorType.Rgba);
+
         for (int y = 0; y < pixels.Height; y++)
         {
             Span<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
             Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
-            PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, pixels.Width);
+            if (converter is null)
+            {
+                // Keep the direct byte conversion when no profile transform is required.
+                PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, pixels.Width);
+            }
+            else
+            {
+                // Transform the source precision before final BGRA byte packing; alpha uses the pixel API.
+                colorConverter.ConvertRgbRow<TPixel, Bgra32>(this.configuration, rowSpan, converter, vectors, rgb, MemoryMarshal.Cast<byte, Bgra32>(rowBytes));
+            }
+
             if (!nonOpaque)
             {
                 Span<Bgra32> rowBgra = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
@@ -794,7 +834,15 @@ internal class Vp8LEncoder : IDisposable
         this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
         this.bitWriter.PutBits((uint)(predBits - 2), 3);
 
-        this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality, lowEffort);
+        this.EncodeImageNoHuffman(
+            this.TransformData.GetSpan(),
+            this.HashChain,
+            this.Refs[0],
+            this.Refs[1],
+            transformWidth,
+            transformHeight,
+            this.quality,
+            lowEffort);
     }
 
     private void ApplyCrossColorFilter(int width, int height, bool lowEffort)
@@ -803,16 +851,39 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch);
+        PredictorEncoder.ColorSpaceTransform(
+            width,
+            height,
+            colorTransformBits,
+            this.quality,
+            this.EncodedData.GetSpan(),
+            this.TransformData.GetSpan(),
+            this.scratch);
 
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
         this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
         this.bitWriter.PutBits((uint)(colorTransformBits - 2), 3);
 
-        this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality, lowEffort);
+        this.EncodeImageNoHuffman(
+            this.TransformData.GetSpan(),
+            this.HashChain,
+            this.Refs[0],
+            this.Refs[1],
+            transformWidth,
+            transformHeight,
+            this.quality,
+            lowEffort);
     }
 
-    private void EncodeImageNoHuffman(ReadOnlySpan<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, uint quality, bool lowEffort)
+    private void EncodeImageNoHuffman(
+        ReadOnlySpan<uint> bgra,
+        Vp8LHashChain hashChain,
+        Vp8LBackwardRefs refsTmp1,
+        Vp8LBackwardRefs refsTmp2,
+        int width,
+        int height,
+        uint quality,
+        bool lowEffort)
     {
         int cacheBits = 0;
         ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
@@ -1118,7 +1189,14 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="transformBits">The transformation bits.</param>
     /// <param name="redAndBlueAlwaysZero">Indicates if red and blue are always zero.</param>
     /// <returns>The entropy mode to use.</returns>
-    private EntropyIx AnalyzeEntropy(ReadOnlySpan<uint> bgra, int width, int height, bool usePalette, int paletteSize, int transformBits, out bool redAndBlueAlwaysZero)
+    private EntropyIx AnalyzeEntropy(
+        ReadOnlySpan<uint> bgra,
+        int width,
+        int height,
+        bool usePalette,
+        int paletteSize,
+        int transformBits,
+        out bool redAndBlueAlwaysZero)
     {
         if (usePalette && paletteSize <= 16)
         {
@@ -1370,7 +1448,16 @@ internal class Vp8LEncoder : IDisposable
     /// We assume that all src[] values have a corresponding entry in the palette.
     /// Note: src[] can be the same as dst[]
     /// </summary>
-    private void ApplyPalette(Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<uint> palette, int paletteSize, int width, int height, int xBits)
+    private void ApplyPalette(
+        Span<uint> src,
+        int srcStride,
+        Span<uint> dst,
+        int dstStride,
+        Span<uint> palette,
+        int paletteSize,
+        int width,
+        int height,
+        int xBits)
     {
         using IMemoryOwner<byte> tmpRowBuffer = this.memoryAllocator.Allocate<byte>(width);
         Span<byte> tmpRow = tmpRowBuffer.GetSpan();
@@ -1457,7 +1544,18 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private static void ApplyPaletteFor(int width, int height, ReadOnlySpan<uint> palette, int hashIdx, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] buffer, int xBits)
+    private static void ApplyPaletteFor(
+        int width,
+        int height,
+        ReadOnlySpan<uint> palette,
+        int hashIdx,
+        Span<uint> src,
+        int srcStride,
+        Span<uint> dst,
+        int dstStride,
+        Span<byte> tmpRow,
+        uint[] buffer,
+        int xBits)
     {
         uint prevPix = palette[0];
         uint prevIdx = 0;
@@ -1494,7 +1592,19 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private static void ApplyPaletteForWithIdxMap(int width, int height, ReadOnlySpan<uint> palette, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] idxMap, int xBits, uint[] paletteSorted, int paletteSize)
+    private static void ApplyPaletteForWithIdxMap(
+        int width,
+        int height,
+        ReadOnlySpan<uint> palette,
+        Span<uint> src,
+        int srcStride,
+        Span<uint> dst,
+        int dstStride,
+        Span<byte> tmpRow,
+        uint[] idxMap,
+        int xBits,
+        uint[] paletteSorted,
+        int paletteSize)
     {
         uint prevPix = palette[0];
         uint prevIdx = 0;
@@ -1883,7 +1993,9 @@ internal class Vp8LEncoder : IDisposable
         // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
         // pixel in each, plus 2 regular scanlines of bytes.
         int bgraScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
-        int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
+        int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform
+            ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits)
+            : 0;
 
         this.BgraScratch = this.memoryAllocator.Allocate<uint>(bgraScratchSize);
         this.TransformData = this.memoryAllocator.Allocate<uint>(transformDataSize);

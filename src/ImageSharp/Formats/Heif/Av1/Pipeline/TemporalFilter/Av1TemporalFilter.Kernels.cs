@@ -167,7 +167,10 @@ internal static partial class Av1TemporalFilter
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
                     TemporalFilterLanes.SumLumaQuads(
-                        ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector512<uint>));
+                        ref Unsafe.Add(ref upper, column << 1),
+                        ref Unsafe.Add(ref lower, column << 1),
+                        ref Unsafe.Add(ref destinationRow, column),
+                        default(Vector512<uint>));
                 }
             }
 
@@ -176,7 +179,10 @@ internal static partial class Av1TemporalFilter
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
                     TemporalFilterLanes.SumLumaQuads(
-                        ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector256<uint>));
+                        ref Unsafe.Add(ref upper, column << 1),
+                        ref Unsafe.Add(ref lower, column << 1),
+                        ref Unsafe.Add(ref destinationRow, column),
+                        default(Vector256<uint>));
                 }
             }
 
@@ -185,7 +191,10 @@ internal static partial class Av1TemporalFilter
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
                     TemporalFilterLanes.SumLumaQuads(
-                        ref Unsafe.Add(ref upper, column << 1), ref Unsafe.Add(ref lower, column << 1), ref Unsafe.Add(ref destinationRow, column), default(Vector128<uint>));
+                        ref Unsafe.Add(ref upper, column << 1),
+                        ref Unsafe.Add(ref lower, column << 1),
+                        ref Unsafe.Add(ref destinationRow, column),
+                        default(Vector128<uint>));
                 }
             }
 
@@ -304,7 +313,11 @@ internal static partial class Av1TemporalFilter
                 for (; column <= width - Vector512<uint>.Count; column += Vector512<uint>.Count)
                 {
                     TemporalFilterLanes.SumWindow(
-                        ref Unsafe.Add(ref columnBase, column), ref Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column), default(Vector512<uint>));
+                        ref Unsafe.Add(ref columnBase, column),
+                        ref Unsafe.Add(ref lumaRow, column),
+                        shift,
+                        ref Unsafe.Add(ref destinationRow, column),
+                        default(Vector512<uint>));
                 }
             }
 
@@ -313,7 +326,11 @@ internal static partial class Av1TemporalFilter
                 for (; column <= width - Vector256<uint>.Count; column += Vector256<uint>.Count)
                 {
                     TemporalFilterLanes.SumWindow(
-                        ref Unsafe.Add(ref columnBase, column), ref Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column), default(Vector256<uint>));
+                        ref Unsafe.Add(ref columnBase, column),
+                        ref Unsafe.Add(ref lumaRow, column),
+                        shift,
+                        ref Unsafe.Add(ref destinationRow, column),
+                        default(Vector256<uint>));
                 }
             }
 
@@ -322,7 +339,11 @@ internal static partial class Av1TemporalFilter
                 for (; column <= width - Vector128<uint>.Count; column += Vector128<uint>.Count)
                 {
                     TemporalFilterLanes.SumWindow(
-                        ref Unsafe.Add(ref columnBase, column), ref Unsafe.Add(ref lumaRow, column), shift, ref Unsafe.Add(ref destinationRow, column), default(Vector128<uint>));
+                        ref Unsafe.Add(ref columnBase, column),
+                        ref Unsafe.Add(ref lumaRow, column),
+                        shift,
+                        ref Unsafe.Add(ref destinationRow, column),
+                        default(Vector128<uint>));
                 }
             }
 

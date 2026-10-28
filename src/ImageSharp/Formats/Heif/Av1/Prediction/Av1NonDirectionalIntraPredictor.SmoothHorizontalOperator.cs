@@ -40,7 +40,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<byte> Predict(Vector128<byte> top, Vector128<byte> left, Vector128<byte> topLeft, Vector128<byte> topRight, Vector128<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector128<byte> Predict(
+            Vector128<byte> top,
+            Vector128<byte> left,
+            Vector128<byte> topLeft,
+            Vector128<byte> topRight,
+            Vector128<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             int leftSample = left.GetElement(0);
             int topRightSample = topRight.GetElement(0);
@@ -56,7 +63,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<byte> Predict(Vector256<byte> top, Vector256<byte> left, Vector256<byte> topLeft, Vector256<byte> topRight, Vector256<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector256<byte> Predict(
+            Vector256<byte> top,
+            Vector256<byte> left,
+            Vector256<byte> topLeft,
+            Vector256<byte> topRight,
+            Vector256<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             int leftSample = left.GetElement(0);
             int topRightSample = topRight.GetElement(0);
@@ -72,7 +86,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<byte> Predict(Vector512<byte> top, Vector512<byte> left, Vector512<byte> topLeft, Vector512<byte> topRight, Vector512<byte> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector512<byte> Predict(
+            Vector512<byte> top,
+            Vector512<byte> left,
+            Vector512<byte> topLeft,
+            Vector512<byte> topRight,
+            Vector512<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             int leftSample = left.GetElement(0);
             int topRightSample = topRight.GetElement(0);
@@ -93,7 +114,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<short> Predict(Vector128<short> top, Vector128<short> left, Vector128<short> topLeft, Vector128<short> topRight, Vector128<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector128<short> Predict(
+            Vector128<short> top,
+            Vector128<short> left,
+            Vector128<short> topLeft,
+            Vector128<short> topRight,
+            Vector128<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             int leftSample = left.GetElement(0);
             int topRightSample = topRight.GetElement(0);
@@ -107,7 +135,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<short> Predict(Vector256<short> top, Vector256<short> left, Vector256<short> topLeft, Vector256<short> topRight, Vector256<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector256<short> Predict(
+            Vector256<short> top,
+            Vector256<short> left,
+            Vector256<short> topLeft,
+            Vector256<short> topRight,
+            Vector256<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             int leftSample = left.GetElement(0);
             int topRightSample = topRight.GetElement(0);
@@ -121,7 +156,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<short> Predict(Vector512<short> top, Vector512<short> left, Vector512<short> topLeft, Vector512<short> topRight, Vector512<short> bottomLeft, ref int columnWeights, int rowWeight)
+        public static Vector512<short> Predict(
+            Vector512<short> top,
+            Vector512<short> left,
+            Vector512<short> topLeft,
+            Vector512<short> topRight,
+            Vector512<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight)
         {
             int leftSample = left.GetElement(0);
             int topRightSample = topRight.GetElement(0);

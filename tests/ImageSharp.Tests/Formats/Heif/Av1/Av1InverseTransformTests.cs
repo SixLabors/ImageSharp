@@ -18,7 +18,8 @@ public class Av1InverseTransformTests
     /// <summary>
     /// The hardware configurations covering the native vector width and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics TransformConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics TransformConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies the DCT, ADST, identity, sparse, twelve-bit widened, and lossless Walsh-Hadamard operators against
@@ -59,6 +60,7 @@ public class Av1InverseTransformTests
         Av1InverseTransformOracle oracle = new();
         int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
         List<string> mismatches = [];
+
         foreach (ITheoryDataRow row in Av1ForwardTransformTests.ValidTransformCases)
         {
             object[] values = row.GetData();
@@ -103,6 +105,7 @@ public class Av1InverseTransformTests
 
         // Each sample of the prediction is random in the valid sample range, so the Clip1 clamp of reconstruction acts at both ends.
         int[] prediction = new int[readStride * height];
+
         for (int i = 0; i < prediction.Length; i++)
         {
             prediction[i] = random.Next(maximum + 1);
@@ -116,6 +119,7 @@ public class Av1InverseTransformTests
         short[] predictionShorts = new short[prediction.Length];
         byte[] actualBytes = new byte[writeStride * height];
         short[] actualShorts = new short[writeStride * height];
+
         for (int i = 0; i < prediction.Length; i++)
         {
             predictionBytes[i] = (byte)prediction[i];
@@ -135,9 +139,11 @@ public class Av1InverseTransformTests
             // conformance requirement of the transform is not valid input, so the coefficient magnitude halves until the block is
             // valid. The first try uses the full range, so blocks that stay valid at the range limits are tested at those limits.
             int amplitude = 1 << (7 + bitDepth);
+
             while (true)
             {
                 Array.Clear(coefficients);
+
                 for (int k = 0; k < eob; k++)
                 {
                     coefficients[scan[k]] = random.Next(-amplitude, amplitude);
@@ -174,6 +180,7 @@ public class Av1InverseTransformTests
             {
                 Array.Fill(actualBytes, byte.MaxValue);
                 Av1InverseTransformerFactory.InverseTransformAdd(coefficients, predictionBytes, readStride, actualBytes, writeStride, parameters, workspace);
+
                 for (int i = 0; i < actual.Length; i++)
                 {
                     actual[i] = actualBytes[i];
@@ -183,6 +190,7 @@ public class Av1InverseTransformTests
             {
                 Array.Fill(actualShorts, (short)-1);
                 Av1InverseTransformerFactory.InverseTransformAdd(coefficients, predictionShorts, readStride, actualShorts, writeStride, parameters, workspace);
+
                 for (int i = 0; i < actual.Length; i++)
                 {
                     actual[i] = actualShorts[i];
@@ -256,10 +264,13 @@ public class Av1InverseTransformTests
         Av1TransformVector<Vector128<int>> output128 = default;
         Av1TransformVector<Vector256<int>> input256 = default;
         Av1TransformVector<Vector256<int>> output256 = default;
+        Av1TransformVector<Vector512<int>> input512 = default;
+        Av1TransformVector<Vector512<int>> output512 = default;
 
         foreach (byte range in new byte[] { 16, 18, 20 })
         {
             InlineArray12<byte> stageRange = default;
+
             for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
             {
                 stageRange[index] = range;
@@ -277,16 +288,31 @@ public class Av1InverseTransformTests
                     GetInputValue(index, 6),
                     GetInputValue(index, 7));
 
+                input512[index] = Vector512.Create(
+                    input256[index],
+                    Vector256.Create(
+                        GetInputValue(index, 8),
+                        GetInputValue(index, 9),
+                        GetInputValue(index, 10),
+                        GetInputValue(index, 11),
+                        GetInputValue(index, 12),
+                        GetInputValue(index, 13),
+                        GetInputValue(index, 14),
+                        GetInputValue(index, 15)));
+
                 input128[index] = input256[index].GetLower();
                 output128[index] = Vector128.Create(int.MinValue);
                 output256[index] = Vector256.Create(int.MinValue);
+                output512[index] = Vector512.Create(int.MinValue);
             }
 
             // Unused input positions remain nonzero. Only the selected low-frequency prefix may affect the result,
             // and aliased input/stage storage exposes a network that overwrites a coefficient before consuming it.
             TSparse.Transform(ref input128, ref output128, ref input128, cosBit, stageRange);
             TSparse.Transform(ref input256, ref output256, ref input256, cosBit, stageRange);
-            for (int lane = 0; lane < Vector256<int>.Count; lane++)
+            TSparse.Transform(ref input512, ref output512, ref input512, cosBit, stageRange);
+
+            for (int lane = 0; lane < Vector512<int>.Count; lane++)
             {
                 for (int index = 0; index < length; index++)
                 {
@@ -295,6 +321,7 @@ public class Av1InverseTransformTests
 
                 Array.Fill(scalarStep, int.MinValue);
                 TFull.Transform(input, expected, scalarStep, cosBit, stageRange);
+
                 for (int index = TSparse.InputLength; index < length; index++)
                 {
                     input[index] = GetInputValue(index, lane);
@@ -303,9 +330,16 @@ public class Av1InverseTransformTests
                 Array.Fill(actual, int.MinValue);
                 TSparse.Transform(input, actual, input, cosBit, stageRange);
                 Assert.Equal(expected, actual);
+
                 for (int index = 0; index < length; index++)
                 {
-                    Assert.Equal(expected[index], output256[index].GetElement(lane));
+                    Assert.Equal(expected[index], output512[index].GetElement(lane));
+
+                    if (lane < Vector256<int>.Count)
+                    {
+                        Assert.Equal(expected[index], output256[index].GetElement(lane));
+                    }
+
                     if (lane < Vector128<int>.Count)
                     {
                         Assert.Equal(expected[index], output128[index].GetElement(lane));
@@ -355,6 +389,7 @@ public class Av1InverseTransformTests
     {
         const int cosBit = 12;
         InlineArray12<byte> stageRange = default;
+
         for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
         {
             stageRange[index] = 20;
@@ -374,20 +409,19 @@ public class Av1InverseTransformTests
         Av1TransformVector<Vector128<int>> adstStep128 = default;
         Av1TransformVector<Vector256<int>> adstOutput256 = default;
         Av1TransformVector<Vector256<int>> adstStep256 = default;
+        Av1TransformVector<Vector512<int>> adstInput512 = default;
+        adstInput512.V0 = Vector512.Create(adstInput256.V0, adstInput256.V0);
+        adstInput512.V1 = Vector512.Create(adstInput256.V1, adstInput256.V1);
+        adstInput512.V2 = adstInput512.V1;
+        adstInput512.V3 = adstInput512.V1;
+        Av1TransformVector<Vector512<int>> adstOutput512 = default;
+        Av1TransformVector<Vector512<int>> adstStep512 = default;
 
-        Av1Inverse2dTransformer.Adst4Operator.Transform(
-            ref adstInput128,
-            ref adstOutput128,
-            ref adstStep128,
-            cosBit,
-            stageRange);
+        Av1Inverse2dTransformer.Adst4Operator.Transform(ref adstInput128, ref adstOutput128, ref adstStep128, cosBit, stageRange);
 
-        Av1Inverse2dTransformer.Adst4Operator.Transform(
-            ref adstInput256,
-            ref adstOutput256,
-            ref adstStep256,
-            cosBit,
-            stageRange);
+        Av1Inverse2dTransformer.Adst4Operator.Transform(ref adstInput256, ref adstOutput256, ref adstStep256, cosBit, stageRange);
+
+        Av1Inverse2dTransformer.Adst4Operator.Transform(ref adstInput512, ref adstOutput512, ref adstStep512, cosBit, stageRange);
 
         // These are the exact outputs of the reference decoder's signed Int64 terminal round. The first positive lane has an
         // Int32 fixed-point sum of 2,147,482,471, so adding the 2,048 rounding bias in Int32 would wrap.
@@ -395,25 +429,22 @@ public class Av1InverseTransformTests
         Vector128<int> adstExpected1 = Vector128.Create(33_612, -33_612, 33_612, -33_612);
         Vector128<int> adstExpected2 = Vector128.Create(160_112, -160_112, 160_111, -160_111);
         Vector128<int> adstExpected3 = Vector128.Create(77_567, -77_567, 77_566, -77_566);
+
         Assert.Equal(adstExpected0, adstOutput128.V0);
         Assert.Equal(adstExpected1, adstOutput128.V1);
         Assert.Equal(adstExpected2, adstOutput128.V2);
         Assert.Equal(adstExpected3, adstOutput128.V3);
         Assert.Equal(Vector256.Create(adstExpected0, adstExpected0), adstOutput256.V0);
+        Assert.Equal(Vector512.Create(Vector256.Create(adstExpected0, adstExpected0), Vector256.Create(adstExpected0, adstExpected0)), adstOutput512.V0);
         Assert.Equal(Vector256.Create(adstExpected1, adstExpected1), adstOutput256.V1);
+        Assert.Equal(Vector512.Create(Vector256.Create(adstExpected1, adstExpected1), Vector256.Create(adstExpected1, adstExpected1)), adstOutput512.V1);
         Assert.Equal(Vector256.Create(adstExpected2, adstExpected2), adstOutput256.V2);
+        Assert.Equal(Vector512.Create(Vector256.Create(adstExpected2, adstExpected2), Vector256.Create(adstExpected2, adstExpected2)), adstOutput512.V2);
         Assert.Equal(Vector256.Create(adstExpected3, adstExpected3), adstOutput256.V3);
+        Assert.Equal(Vector512.Create(Vector256.Create(adstExpected3, adstExpected3), Vector256.Create(adstExpected3, adstExpected3)), adstOutput512.V3);
 
         Vector128<int> identityInput128 = Vector128.Create(524_287, -524_288, 524_286, -524_287);
-        Vector256<int> identityInput256 = Vector256.Create(
-            524_287,
-            -524_288,
-            524_286,
-            -524_287,
-            370_727,
-            -370_728,
-            262_143,
-            -262_144);
+        Vector256<int> identityInput256 = Vector256.Create(524_287, -524_288, 524_286, -524_287, 370_727, -370_728, 262_143, -262_144);
 
         AssertWidenedIdentityOperator<Av1Inverse2dTransformer.Identity4Operator>(
             4,
@@ -458,20 +489,26 @@ public class Av1InverseTransformTests
         Av1TransformVector<Vector256<int>> values256 = default;
         Av1TransformVector<Vector256<int>> output256 = default;
         Av1TransformVector<Vector256<int>> step256 = default;
+        Av1TransformVector<Vector512<int>> values512 = default;
+        Av1TransformVector<Vector512<int>> output512 = default;
+        Av1TransformVector<Vector512<int>> step512 = default;
 
         for (int index = 0; index < length; index++)
         {
             values128[index] = input128;
             values256[index] = input256;
+            values512[index] = Vector512.Create(input256, input256);
         }
 
         TOperator.Transform(ref values128, ref output128, ref step128, cosBit, stageRange);
         TOperator.Transform(ref values256, ref output256, ref step256, cosBit, stageRange);
+        TOperator.Transform(ref values512, ref output512, ref step512, cosBit, stageRange);
 
         for (int index = 0; index < length; index++)
         {
             Assert.Equal(expected128, output128[index]);
             Assert.Equal(expected256, output256[index]);
+            Assert.Equal(Vector512.Create(expected256, expected256), output512[index]);
         }
     }
 
@@ -491,10 +528,7 @@ public class Av1InverseTransformTests
         }
     }
 
-    private static void TwoDimensionalKernelsMatchReferenceCase(
-        int transformTypeValue,
-        int transformSizeValue,
-        int bitDepth)
+    private static void TwoDimensionalKernelsMatchReferenceCase(int transformTypeValue, int transformSizeValue, int bitDepth)
     {
         Av1TransformType transformType = (Av1TransformType)transformTypeValue;
         Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
@@ -586,6 +620,7 @@ public class Av1InverseTransformTests
 
         int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
         int maximum = (1 << bitDepth) - 1;
+
         for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
         {
             Av1TransformSize transformSize = (Av1TransformSize)size;
@@ -598,6 +633,7 @@ public class Av1InverseTransformTests
             short[] prediction = new short[readStride * height];
             short[] expected = new short[writeStride * height];
             short[] actual = new short[expected.Length];
+
             for (int i = 0; i < prediction.Length; i++)
             {
                 prediction[i] = (short)((i * 47) & maximum);
@@ -617,6 +653,7 @@ public class Av1InverseTransformTests
                 coefficients[0] = dc;
                 Array.Fill(expected, short.MinValue);
                 Array.Fill(actual, short.MinValue);
+
                 if (inPlace)
                 {
                     prediction.CopyTo(expected, 0);
@@ -626,10 +663,23 @@ public class Av1InverseTransformTests
                 // Include coefficients outside the input clamp as well as signed rounding boundaries. Sparse and
                 // full reconstruction must apply the same clamping even when the coded value saturates.
                 Av1Inverse2dTransformer.Transform2dAdd(
-                    coefficients, inPlace ? expected : prediction, readStride, expected, writeStride, ref config, workspace, bitDepth);
+                    coefficients,
+                    inPlace ? expected : prediction,
+                    readStride,
+                    expected,
+                    writeStride,
+                    ref config,
+                    workspace,
+                    bitDepth);
 
                 Av1InverseTransformerFactory.InverseTransformAdd(
-                    coefficients, inPlace ? actual : prediction, readStride, actual, writeStride, parameters, workspace);
+                    coefficients,
+                    inPlace ? actual : prediction,
+                    readStride,
+                    actual,
+                    writeStride,
+                    parameters,
+                    workspace);
 
                 Assert.Equal(expected, actual);
             }
@@ -727,6 +777,7 @@ public class Av1InverseTransformTests
         }
 
         int[] intermediateValues = new int[16];
+
         for (int row = 0; row < 4; row++)
         {
             int coefficientOffset = row * 4;
@@ -794,14 +845,12 @@ public class Av1InverseTransformTests
         Av1TransformVector<Vector128<int>> output128 = default;
         Av1TransformVector<Vector256<int>> input256 = default;
         Av1TransformVector<Vector256<int>> output256 = default;
+        Av1TransformVector<Vector512<int>> input512 = default;
+        Av1TransformVector<Vector512<int>> output512 = default;
 
         for (int index = 0; index < length; index++)
         {
-            input128[index] = Vector128.Create(
-                GetInputValue(index, 0),
-                GetInputValue(index, 1),
-                GetInputValue(index, 2),
-                GetInputValue(index, 3));
+            input128[index] = Vector128.Create(GetInputValue(index, 0), GetInputValue(index, 1), GetInputValue(index, 2), GetInputValue(index, 3));
 
             input256[index] = Vector256.Create(
                 GetInputValue(index, 0),
@@ -812,15 +861,28 @@ public class Av1InverseTransformTests
                 GetInputValue(index, 5),
                 GetInputValue(index, 6),
                 GetInputValue(index, 7));
+
+            input512[index] = Vector512.Create(
+                input256[index],
+                Vector256.Create(
+                    GetInputValue(index, 8),
+                    GetInputValue(index, 9),
+                    GetInputValue(index, 10),
+                    GetInputValue(index, 11),
+                    GetInputValue(index, 12),
+                    GetInputValue(index, 13),
+                    GetInputValue(index, 14),
+                    GetInputValue(index, 15)));
         }
 
         TOperator.Transform(ref input128, ref output128, ref input128, cosBit, stageRange);
         TOperator.Transform(ref input256, ref output256, ref input256, cosBit, stageRange);
+        TOperator.Transform(ref input512, ref output512, ref input512, cosBit, stageRange);
 
         int[] scalarInput = new int[length];
         int[] scalarOutput = new int[length];
 
-        for (int lane = 0; lane < Vector256<int>.Count; lane++)
+        for (int lane = 0; lane < Vector512<int>.Count; lane++)
         {
             for (int index = 0; index < length; index++)
             {
@@ -831,7 +893,12 @@ public class Av1InverseTransformTests
 
             for (int index = 0; index < length; index++)
             {
-                Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
+                Assert.Equal(scalarOutput[index], output512[index].GetElement(lane));
+
+                if (lane < Vector256<int>.Count)
+                {
+                    Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
+                }
 
                 if (lane < Vector128<int>.Count)
                 {
@@ -848,52 +915,61 @@ public class Av1InverseTransformTests
     /// <param name="transformSize">The transform-block dimensions.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="config">The inverse transform configuration.</param>
-    private static void DispatchColumn(
-        Av1TransformType transformType,
-        Av1TransformSize transformSize,
-        int bitDepth,
-        ref Av1Transform2dFlipConfiguration config)
+    private static void DispatchColumn(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth, ref Av1Transform2dFlipConfiguration config)
     {
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
                 DispatchRow<Av1Inverse2dTransformer.Dct4Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct8:
                 DispatchRow<Av1Inverse2dTransformer.Dct8Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct16:
                 DispatchRow<Av1Inverse2dTransformer.Dct16Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct32:
                 DispatchRow<Av1Inverse2dTransformer.Dct32Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct64:
                 DispatchRow<Av1Inverse2dTransformer.Dct64Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Adst4:
                 DispatchRow<Av1Inverse2dTransformer.Adst4Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Adst8:
                 DispatchRow<Av1Inverse2dTransformer.Adst8Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Adst16:
                 DispatchRow<Av1Inverse2dTransformer.Adst16Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity4:
                 DispatchRow<Av1Inverse2dTransformer.Identity4Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity8:
                 DispatchRow<Av1Inverse2dTransformer.Identity8Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity16:
                 DispatchRow<Av1Inverse2dTransformer.Identity16Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity32:
                 DispatchRow<Av1Inverse2dTransformer.Identity32Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             default:
                 Assert.Fail($"Unexpected column function {config.TransformFunctionTypeColumn} for {transformType} {transformSize}.");
+
                 break;
         }
     }
@@ -917,42 +993,55 @@ public class Av1InverseTransformTests
         {
             case Av1TransformFunctionType.Dct4:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct4Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct8:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct8Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct16:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct16Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct32:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct32Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Dct64:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct64Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Adst4:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Adst4Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Adst8:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Adst8Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Adst16:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Adst16Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity4:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity4Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity8:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity8Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity16:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity16Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             case Av1TransformFunctionType.Identity32:
                 AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity32Operator>(transformType, transformSize, bitDepth, ref config);
+
                 break;
             default:
                 Assert.Fail($"Unexpected row function {config.TransformFunctionTypeRow} for {transformType} {transformSize}.");
+
                 break;
         }
     }
@@ -1004,6 +1093,7 @@ public class Av1InverseTransformTests
         if (bitDepth == 8)
         {
             AssertByteTransform2dParity<TColumnOperator, TRowOperator>(coefficients, transformSize, ref config);
+
             return;
         }
 
@@ -1049,10 +1139,24 @@ public class Av1InverseTransformTests
         Array.Fill(vector128, byte.MaxValue);
 
         Av1Inverse2dTransformer.Transform2dScalar<byte, Av1InverseTransformer.ByteOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
+            coefficients,
+            prediction,
+            readStride,
+            scalar,
+            writeStride,
+            ref config,
+            scalarWorkspace,
+            bitDepth);
 
         Av1Inverse2dTransformer.Transform2dVector128<byte, Av1InverseTransformer.ByteOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
+            coefficients,
+            prediction,
+            readStride,
+            vector128,
+            writeStride,
+            ref config,
+            vector128Workspace,
+            bitDepth);
 
         Assert.Equal(scalar, vector128);
 
@@ -1063,9 +1167,35 @@ public class Av1InverseTransformTests
             Array.Fill(vector256, byte.MaxValue);
 
             Av1Inverse2dTransformer.Transform2dVector256<byte, Av1InverseTransformer.ByteOutputOperator, TColumnOperator, TRowOperator>(
-                coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
+                coefficients,
+                prediction,
+                readStride,
+                vector256,
+                writeStride,
+                ref config,
+                vector256Workspace,
+                bitDepth);
 
             Assert.Equal(scalar, vector256);
+        }
+
+        if (width >= Vector512<int>.Count && height >= Vector512<int>.Count)
+        {
+            byte[] vector512 = new byte[writeStride * height];
+            int[] vector512Workspace = new int[workspaceLength];
+            Array.Fill(vector512, byte.MaxValue);
+
+            Av1Inverse2dTransformer.Transform2dVector512<byte, Av1InverseTransformer.ByteOutputOperator, TColumnOperator, TRowOperator>(
+                coefficients,
+                prediction,
+                readStride,
+                vector512,
+                writeStride,
+                ref config,
+                vector512Workspace,
+                bitDepth);
+
+            Assert.Equal(scalar, vector512);
         }
 
         // Keep the complete scalar operator pair as the arithmetic oracle while the factory selects sparse pairs.
@@ -1086,6 +1216,7 @@ public class Av1InverseTransformTests
         {
             int raster = scan[eob - 1];
             sparseCoefficients[raster] = coefficients[raster] == 0 ? 1 : coefficients[raster];
+
             if (eob != 1 && eob != scan.Length &&
                 !BitOperations.IsPow2((uint)(eob - 1)) && !BitOperations.IsPow2((uint)eob) && !BitOperations.IsPow2((uint)(eob + 1)))
             {
@@ -1099,10 +1230,23 @@ public class Av1InverseTransformTests
             Array.Fill(sparseWorkspace, int.MaxValue);
 
             Av1Inverse2dTransformer.Transform2dScalar<byte, Av1InverseTransformer.ByteOutputOperator, TColumnOperator, TRowOperator>(
-                sparseCoefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
+                sparseCoefficients,
+                prediction,
+                readStride,
+                scalar,
+                writeStride,
+                ref config,
+                scalarWorkspace,
+                bitDepth);
 
             Av1InverseTransformerFactory.InverseTransformAdd(
-                sparseCoefficients, prediction, readStride, sparseOutput, writeStride, parameters, sparseWorkspace);
+                sparseCoefficients,
+                prediction,
+                readStride,
+                sparseOutput,
+                writeStride,
+                parameters,
+                sparseWorkspace);
 
             Assert.Equal(scalar, sparseOutput);
         }
@@ -1149,10 +1293,24 @@ public class Av1InverseTransformTests
         Array.Fill(vector128, short.MinValue);
 
         Av1Inverse2dTransformer.Transform2dScalar<short, Av1InverseTransformer.HighBitDepthOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
+            coefficients,
+            prediction,
+            readStride,
+            scalar,
+            writeStride,
+            ref config,
+            scalarWorkspace,
+            bitDepth);
 
         Av1Inverse2dTransformer.Transform2dVector128<short, Av1InverseTransformer.HighBitDepthOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
+            coefficients,
+            prediction,
+            readStride,
+            vector128,
+            writeStride,
+            ref config,
+            vector128Workspace,
+            bitDepth);
 
         Assert.Equal(scalar, vector128);
 
@@ -1163,9 +1321,35 @@ public class Av1InverseTransformTests
             Array.Fill(vector256, short.MinValue);
 
             Av1Inverse2dTransformer.Transform2dVector256<short, Av1InverseTransformer.HighBitDepthOutputOperator, TColumnOperator, TRowOperator>(
-                coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
+                coefficients,
+                prediction,
+                readStride,
+                vector256,
+                writeStride,
+                ref config,
+                vector256Workspace,
+                bitDepth);
 
             Assert.Equal(scalar, vector256);
+        }
+
+        if (width >= Vector512<int>.Count && height >= Vector512<int>.Count)
+        {
+            short[] vector512 = new short[writeStride * height];
+            int[] vector512Workspace = new int[workspaceLength];
+            Array.Fill(vector512, short.MinValue);
+
+            Av1Inverse2dTransformer.Transform2dVector512<short, Av1InverseTransformer.HighBitDepthOutputOperator, TColumnOperator, TRowOperator>(
+                coefficients,
+                prediction,
+                readStride,
+                vector512,
+                writeStride,
+                ref config,
+                vector512Workspace,
+                bitDepth);
+
+            Assert.Equal(scalar, vector512);
         }
 
         // Keep the complete scalar operator pair as the arithmetic oracle while the factory selects sparse pairs.
@@ -1186,6 +1370,7 @@ public class Av1InverseTransformTests
         {
             int raster = scan[eob - 1];
             sparseCoefficients[raster] = coefficients[raster] == 0 ? 1 : coefficients[raster];
+
             if (eob != 1 && eob != scan.Length &&
                 !BitOperations.IsPow2((uint)(eob - 1)) && !BitOperations.IsPow2((uint)eob) && !BitOperations.IsPow2((uint)(eob + 1)))
             {
@@ -1199,10 +1384,23 @@ public class Av1InverseTransformTests
             Array.Fill(sparseWorkspace, int.MaxValue);
 
             Av1Inverse2dTransformer.Transform2dScalar<short, Av1InverseTransformer.HighBitDepthOutputOperator, TColumnOperator, TRowOperator>(
-                sparseCoefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
+                sparseCoefficients,
+                prediction,
+                readStride,
+                scalar,
+                writeStride,
+                ref config,
+                scalarWorkspace,
+                bitDepth);
 
             Av1InverseTransformerFactory.InverseTransformAdd(
-                sparseCoefficients, prediction, readStride, sparseOutput, writeStride, parameters, sparseWorkspace);
+                sparseCoefficients,
+                prediction,
+                readStride,
+                sparseOutput,
+                writeStride,
+                parameters,
+                sparseWorkspace);
 
             Assert.Equal(scalar, sparseOutput);
         }

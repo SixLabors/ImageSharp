@@ -12,7 +12,8 @@ internal static class PngThrowHelper
     public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
 
     [DoesNotReturn]
-    public static void ThrowInvalidHeader() => throw new InvalidImageContentException("PNG Image must contain a header chunk and it must be located before any other chunks.");
+    public static void ThrowInvalidHeader()
+        => throw new InvalidImageContentException("PNG Image must contain a header chunk and it must be located before any other chunks.");
 
     [DoesNotReturn]
     public static void ThrowNoData() => throw new InvalidImageContentException("PNG Image does not contain a data chunk.");
@@ -21,7 +22,8 @@ internal static class PngThrowHelper
     public static void ThrowMissingDefaultData() => throw new InvalidImageContentException("APNG Image does not contain a default data chunk.");
 
     [DoesNotReturn]
-    public static void ThrowInvalidAnimationControl() => throw new InvalidImageContentException("APNG Image must contain a acTL chunk and it must be located before any IDAT and fdAT chunks.");
+    public static void ThrowInvalidAnimationControl()
+        => throw new InvalidImageContentException("APNG Image must contain a acTL chunk and it must be located before any IDAT and fdAT chunks.");
 
     [DoesNotReturn]
     public static void ThrowMissingFrameControl() => throw new InvalidImageContentException("One of APNG Image's frames do not have a frame control chunk.");
@@ -36,14 +38,20 @@ internal static class PngThrowHelper
     public static void ThrowInvalidChunkType(string message) => throw new InvalidImageContentException(message);
 
     [DoesNotReturn]
-    public static void ThrowInvalidChunkCrc(string chunkTypeName) => throw new InvalidImageContentException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
+    public static void ThrowInvalidChunkCrc(string chunkTypeName)
+        => throw new InvalidImageContentException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
 
     [DoesNotReturn]
     public static void ThrowInvalidParameter(object value, string message, [CallerArgumentExpression(nameof(value))] string name = "")
         => throw new NotSupportedException($"Invalid {name}. {message}. Was '{value}'.");
 
     [DoesNotReturn]
-    public static void ThrowInvalidParameter(object value1, object value2, string message, [CallerArgumentExpression(nameof(value1))] string name1 = "", [CallerArgumentExpression(nameof(value2))] string name2 = "")
+    public static void ThrowInvalidParameter(
+        object value1,
+        object value2,
+        string message,
+        [CallerArgumentExpression(nameof(value1))] string name1 = "",
+        [CallerArgumentExpression(nameof(value2))] string name2 = "")
         => throw new NotSupportedException($"Invalid {name1} or {name2}. {message}. Was '{value1}' and '{value2}'.");
 
     [DoesNotReturn]

@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers;
 public class ParallelRowIteratorTests
 {
     public delegate void BufferedRowAction<T>(int y, Span<T> span);
+
     public delegate void RowIntervalAction<T>(RowInterval rows, Span<T> span);
 
     private readonly ITestOutputHelper output;

@@ -995,107 +995,104 @@ internal static partial class Av1IntraSuperblockEncoder
         0.059317F, 0.418219F, 0.841294F, 0.402693F, -0.658522F, 0.723479F, 0.544264F, 1.035225F
     ];
 
-    internal partial struct ModeDecision<TSample, TOperator>
-        where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+    /// <summary>
+    /// Selects the asymmetric partition mask from the winning shape and preceding subblock costs.
+    /// </summary>
+    /// <param name="interSourceVariance">The variance left by the most recent coded block.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="winner">The partition type of the best candidate so far.</param>
+    /// <param name="bestCost">The best partition cost of the block.</param>
+    /// <param name="horizontalCosts">The costs of the two horizontal halves.</param>
+    /// <param name="verticalCosts">The costs of the two vertical halves.</param>
+    /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
+    /// <param name="currentMask">The asymmetric partitions that are allowed before the model runs.</param>
+    /// <returns>The asymmetric partitions that stay allowed, one bit per partition type.</returns>
+    private static int ClassifyAsymmetricPartitions(
+        int interSourceVariance,
+        Av1BlockSize blockSize,
+        Av1PartitionType winner,
+        long bestCost,
+        ReadOnlySpan<long> horizontalCosts,
+        ReadOnlySpan<long> verticalCosts,
+        ReadOnlySpan<long> splitNoneCosts,
+        int currentMask)
     {
-        /// <summary>
-        /// Selects the asymmetric partition mask from the winning shape and preceding subblock costs.
-        /// </summary>
-        /// <param name="blockSize">The block size.</param>
-        /// <param name="winner">The partition type of the best candidate so far.</param>
-        /// <param name="bestCost">The best partition cost of the block.</param>
-        /// <param name="horizontalCosts">The costs of the two horizontal halves.</param>
-        /// <param name="verticalCosts">The costs of the two vertical halves.</param>
-        /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
-        /// <param name="currentMask">The asymmetric partitions that are allowed before the model runs.</param>
-        /// <returns>The asymmetric partitions that stay allowed, one bit per partition type.</returns>
-        private int ClassifyAsymmetricPartitions(
-            Av1BlockSize blockSize,
-            Av1PartitionType winner,
-            long bestCost,
-            ReadOnlySpan<long> horizontalCosts,
-            ReadOnlySpan<long> verticalCosts,
-            ReadOnlySpan<long> splitNoneCosts,
-            int currentMask)
+        if (blockSize < Av1BlockSize.Block16x16 || bestCost >= 1000000000)
         {
-            if (blockSize < Av1BlockSize.Block16x16 || bestCost >= 1000000000)
-            {
-                return currentMask;
-            }
-
-            Span<float> features = stackalloc float[10];
-            features[0] = (int)winner;
-
-            // This feature describes the most recently evaluated coding block, whose mode context
-            // survives the rectangular stage. Keep it distinct from the parent block's variance.
-            features[1] = 32 - BitOperations.LeadingZeroCount((uint)this.interSourceVariance);
-            for (int index = 0; index < 8; index++)
-            {
-                long cost = index < 2 ? horizontalCosts[index] :
-                    index < 4 ? verticalCosts[index - 2] : splitNoneCosts[index - 4];
-                features[index + 2] = cost > 0 && cost < 1000000000 && cost < bestCost
-                    ? (float)cost / bestCost
-                    : 1F;
-            }
-
-            ReadOnlySpan<float> weights;
-            ReadOnlySpan<float> biases;
-            ReadOnlySpan<float> outputWeights;
-            ReadOnlySpan<float> outputBiases;
-            switch (blockSize)
-            {
-                case Av1BlockSize.Block16x16:
-                    weights = Asymmetric16Weights0;
-                    biases = Asymmetric16Bias0;
-                    outputWeights = Asymmetric16Weights1;
-                    outputBiases = Asymmetric16Bias1;
-                    break;
-                case Av1BlockSize.Block32x32:
-                    weights = Asymmetric32Weights0;
-                    biases = Asymmetric32Bias0;
-                    outputWeights = Asymmetric32Weights1;
-                    outputBiases = Asymmetric32Bias1;
-                    break;
-                case Av1BlockSize.Block64x64:
-                    weights = Asymmetric64Weights0;
-                    biases = Asymmetric64Bias0;
-                    outputWeights = Asymmetric64Weights1;
-                    outputBiases = Asymmetric64Bias1;
-                    break;
-                default:
-                    weights = Asymmetric128Weights0;
-                    biases = Asymmetric128Bias0;
-                    outputWeights = Asymmetric128Weights1;
-                    outputBiases = Asymmetric128Bias1;
-                    break;
-            }
-
-            // Each output encodes one four-bit partition mask.
-            InlineArray16<float> scoreStorage = default;
-            Span<float> scores = scoreStorage;
-            Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBiases, scores);
-
-            InlineArray16<int> integerScoreStorage = default;
-            Span<int> integerScores = integerScoreStorage;
-            int maximum = -1000;
-            for (int output = 0; output < 16; output++)
-            {
-                integerScores[output] = (int)(100 * scores[output]);
-                maximum = Math.Max(maximum, integerScores[output]);
-            }
-
-            int threshold = maximum - (blockSize == Av1BlockSize.Block16x16 ? 150 : blockSize == Av1BlockSize.Block32x32 ? 100 : 0);
-            int mask = 0;
-            for (int output = 0; output < 16; output++)
-            {
-                if (integerScores[output] >= threshold)
-                {
-                    mask |= output;
-                }
-            }
-
-            return mask;
+            return currentMask;
         }
+
+        Span<float> features = stackalloc float[10];
+        features[0] = (int)winner;
+
+        // This feature describes the most recently evaluated coding block, whose mode context
+        // survives the rectangular stage. Keep it distinct from the parent block's variance.
+        features[1] = 32 - BitOperations.LeadingZeroCount((uint)interSourceVariance);
+        for (int index = 0; index < 8; index++)
+        {
+            long cost = index < 2 ? horizontalCosts[index] :
+                index < 4 ? verticalCosts[index - 2] : splitNoneCosts[index - 4];
+            features[index + 2] = cost > 0 && cost < 1000000000 && cost < bestCost
+                ? (float)cost / bestCost
+                : 1F;
+        }
+
+        ReadOnlySpan<float> weights;
+        ReadOnlySpan<float> biases;
+        ReadOnlySpan<float> outputWeights;
+        ReadOnlySpan<float> outputBiases;
+        switch (blockSize)
+        {
+            case Av1BlockSize.Block16x16:
+                weights = Asymmetric16Weights0;
+                biases = Asymmetric16Bias0;
+                outputWeights = Asymmetric16Weights1;
+                outputBiases = Asymmetric16Bias1;
+                break;
+            case Av1BlockSize.Block32x32:
+                weights = Asymmetric32Weights0;
+                biases = Asymmetric32Bias0;
+                outputWeights = Asymmetric32Weights1;
+                outputBiases = Asymmetric32Bias1;
+                break;
+            case Av1BlockSize.Block64x64:
+                weights = Asymmetric64Weights0;
+                biases = Asymmetric64Bias0;
+                outputWeights = Asymmetric64Weights1;
+                outputBiases = Asymmetric64Bias1;
+                break;
+            default:
+                weights = Asymmetric128Weights0;
+                biases = Asymmetric128Bias0;
+                outputWeights = Asymmetric128Weights1;
+                outputBiases = Asymmetric128Bias1;
+                break;
+        }
+
+        // Each output encodes one four-bit partition mask.
+        InlineArray16<float> scoreStorage = default;
+        Span<float> scores = scoreStorage;
+        Av1NeuralNetwork.Predict(features, weights, biases, outputWeights, outputBiases, scores);
+
+        InlineArray16<int> integerScoreStorage = default;
+        Span<int> integerScores = integerScoreStorage;
+        int maximum = -1000;
+        for (int output = 0; output < 16; output++)
+        {
+            integerScores[output] = (int)(100 * scores[output]);
+            maximum = Math.Max(maximum, integerScores[output]);
+        }
+
+        int threshold = maximum - (blockSize == Av1BlockSize.Block16x16 ? 150 : blockSize == Av1BlockSize.Block32x32 ? 100 : 0);
+        int mask = 0;
+        for (int output = 0; output < 16; output++)
+        {
+            if (integerScores[output] >= threshold)
+            {
+                mask |= output;
+            }
+        }
+
+        return mask;
     }
 }

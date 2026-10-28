@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -15,9 +16,40 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </content>
 internal static partial class Av1IntraSuperblockEncoder
 {
+    /// <summary>
+    /// Spreads the indices of the visible samples of a block, packed with a stride of the visible width, to the full
+    /// block size, repeating the last visible column to the right and the last visible row below.
+    /// </summary>
+    /// <remarks>
+    /// The rows move from the last to the first, so that each packed row is read before a wider row overwrites it.
+    /// </remarks>
+    /// <param name="map">The contiguous map with a stride of <paramref name="width"/>.</param>
+    /// <param name="columns">The number of visible columns.</param>
+    /// <param name="rows">The number of visible rows.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    private static void ExtendPaletteColorMap(Span<byte> map, int columns, int rows, int width, int height)
+    {
+        if (columns < width)
+        {
+            for (int row = rows - 1; row >= 0; row--)
+            {
+                Span<byte> mapRow = map.Slice(row * width, width);
+                map.Slice(row * columns, columns).CopyTo(mapRow);
+                mapRow[columns..].Fill(mapRow[columns - 1]);
+            }
+        }
+
+        Span<byte> lastRow = map.Slice((rows - 1) * width, width);
+        for (int row = rows; row < height; row++)
+        {
+            lastRow.CopyTo(map.Slice(row * width, width));
+        }
+    }
+
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Clusters the luma colors of an intra block into palettes of each size, searches their transform sizes and
@@ -51,7 +83,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="paletteInfo">The palette of the block.</param>
         /// <param name="selectedTransformSize">The transform size of the best result.</param>
         /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
-        private bool SelectLumaPalette(
+        public bool SelectLumaPalette(
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
@@ -80,8 +112,263 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
         {
-            Av1EncoderPaletteWorkspace<TSample> workspace = modeWorkspace.Palette;
-            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.SelectLumaPalette(
+                writer,
+                in tables,
+                modeWorkspace.Cast<byte>(),
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
+                in transformEdges,
+                in paletteEdges,
+                in lumaCoefficientEdges,
+                modeInfoGrid,
+                modeInfoAllocation,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                retainedStates,
+                colorThreshold,
+                dcModeCost,
+                ref bestStatistics,
+                ref paletteInfo,
+                ref selectedTransformSize);
+        }
+
+        /// <summary>
+        /// Codes one luma palette candidate: snaps its colors to the neighbor cache, builds the color map, prices the
+        /// palette syntax and searches its transform sizes. The candidate replaces the best result if it costs less.
+        /// </summary>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block, which hold the palette buffers.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="search">The block values that every candidate of the palette search shares.</param>
+        /// <param name="centroids">The palette colors of the candidate, which this method sorts and compacts.</param>
+        /// <param name="headerPruneLevel">How strongly the palette syntax cost alone can reject the candidate.</param>
+        /// <param name="bestStatistics">The statistics of the best candidate so far.</param>
+        /// <param name="paletteInfo">The palette of the best candidate so far.</param>
+        /// <param name="selectedTransformSize">The transform size of the best candidate so far.</param>
+        /// <param name="headerBreakout">Whether the palette syntax cost alone rejected the candidate.</param>
+        /// <returns><see langword="true"/> if the candidate became the best result.</returns>
+        private bool EvaluateLumaPaletteCandidate(
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            in LumaPaletteSearch search,
+            Span<short> centroids,
+            int headerPruneLevel,
+            ref Av1RateDistortionStatistics bestStatistics,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            ref Av1TransformSize selectedTransformSize,
+            out bool headerBreakout)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.EvaluateLumaPaletteCandidate(
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                in tables,
+                modeWorkspace.Cast<byte>(),
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
+                in lumaCoefficientEdges,
+                in search,
+                centroids,
+                headerPruneLevel,
+                ref bestStatistics,
+                ref paletteInfo,
+                ref selectedTransformSize,
+                out headerBreakout);
+        }
+    }
+
+    /// <summary>
+    /// Holds the block values that every candidate of one luma palette search shares. The search builds it once
+    /// before it tries its palette sizes.
+    /// </summary>
+    internal readonly ref struct LumaPaletteSearch
+    {
+        /// <summary>
+        /// Gets the tile symbol encoder.
+        /// </summary>
+        public Av1SymbolEncoder Writer { get; init; }
+
+        /// <summary>
+        /// Gets the block and its neighbor availability.
+        /// </summary>
+        public Av1MacroBlockD MacroBlock { get; init; }
+
+        /// <summary>
+        /// Gets the luma block origin.
+        /// </summary>
+        public Point BlockOrigin { get; init; }
+
+        /// <summary>
+        /// Gets the block size.
+        /// </summary>
+        public Av1BlockSize BlockSize { get; init; }
+
+        /// <summary>
+        /// Gets the values of the block that depend only on the block and its neighbors.
+        /// </summary>
+        public LumaBlockState BlockState { get; init; }
+
+        /// <summary>
+        /// Gets the transform size context.
+        /// </summary>
+        public int TransformSizeContext { get; init; }
+
+        /// <summary>
+        /// Gets the source variance of the block.
+        /// </summary>
+        public int SourceVariance { get; init; }
+
+        /// <summary>
+        /// Gets the visible source samples of the block, row after row.
+        /// </summary>
+        public ReadOnlySpan<short> Samples { get; init; }
+
+        /// <summary>
+        /// Gets the number of visible rows.
+        /// </summary>
+        public int Rows { get; init; }
+
+        /// <summary>
+        /// Gets the number of visible columns.
+        /// </summary>
+        public int Columns { get; init; }
+
+        /// <summary>
+        /// Gets the palette colors of the neighbors.
+        /// </summary>
+        public ReadOnlySpan<ushort> ColorCache { get; init; }
+
+        /// <summary>
+        /// Gets the palette block size context.
+        /// </summary>
+        public int BlockSizeContext { get; init; }
+
+        /// <summary>
+        /// Gets the palette context from the neighbors.
+        /// </summary>
+        public int NeighborContext { get; init; }
+
+        /// <summary>
+        /// Gets the color map of the block.
+        /// </summary>
+        public Av1PlaneRegion<byte> ColorIndexMap { get; init; }
+
+        /// <summary>
+        /// Gets the transform block states of the best candidate.
+        /// </summary>
+        public Span<Av1EncoderTransformBlockState> RetainedStates { get; init; }
+
+        /// <summary>
+        /// Gets the rate of the DC mode that a palette block codes.
+        /// </summary>
+        public int DcModeCost { get; init; }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Clusters the luma colors of an intra block into palettes of each size, searches their transform sizes and
+        /// keeps a palette that costs less than the best result.
+        /// </summary>
+        /// <param name="writer">The symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables of the tile.</param>
+        /// <param name="modeWorkspace">The mode decision buffers of the block.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="transformEdges">The transform size context edges of the tile.</param>
+        /// <param name="paletteEdges">The palette color context edges of the tile.</param>
+        /// <param name="lumaCoefficientEdges">The luma coefficient context edges of the tile.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="retainedStates">The transform states of the luma winner.</param>
+        /// <param name="colorThreshold">The largest number of distinct colors that a palette search accepts.</param>
+        /// <param name="dcModeCost">The rate of the DC luma mode, which a palette block signals.</param>
+        /// <param name="bestStatistics">The rate and distortion of the best result.</param>
+        /// <param name="paletteInfo">The palette of the block.</param>
+        /// <param name="selectedTransformSize">The transform size of the best result.</param>
+        /// <returns><see langword="true"/> when a palette replaced the best result.</returns>
+        public bool SelectLumaPalette(
+            Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            in Av1EncoderModeDecisionWorkspace<byte> modeWorkspace,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            in Av1NeighborEdges<byte> transformEdges,
+            in Av1NeighborEdges<Av1EncoderPaletteInfo> paletteEdges,
+            in Av1NeighborEdges<byte> lumaCoefficientEdges,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Span<Av1EncoderTransformBlockState> retainedStates,
+            int colorThreshold,
+            int dcModeCost,
+            ref Av1RateDistortionStatistics bestStatistics,
+            ref Av1EncoderPaletteInfo paletteInfo,
+            ref Av1TransformSize selectedTransformSize)
+        {
+            Av1EncoderPaletteWorkspace<byte> workspace = modeWorkspace.Palette;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
 
@@ -89,10 +376,9 @@ internal static partial class Av1IntraSuperblockEncoder
             // repeat the final active sample when prediction later covers the whole coding block.
             int rows = blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
             int columns = blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
-            ReadOnlySpan<TSample> block = sourceLuma[sourcePlane.GetOffset(blockOrigin.X, blockOrigin.Y)..];
-            Span<int> counts = workspace.LumaColorCounts[..(1 << this.bitDepth.GetBitCount())];
-            int colorCount = this.CountPaletteColors(
-                block, sourcePlane.Stride, rows, columns, counts, out int occupiedBins, out short minimum, out short maximum);
+            Span<int> counts = workspace.LumaColorCounts[..(1 << this.state.BitDepth.GetBitCount())];
+            int colorCount = this.CountPlanePaletteColors(
+                Av1Plane.Y, sourceLuma, blockOrigin, rows, columns, counts, out int occupiedBins, out short minimum, out short maximum);
 
             if (occupiedBins <= 1 || occupiedBins > colorThreshold)
             {
@@ -101,7 +387,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Only a block that passes the color gate copies its samples for clustering.
             Span<short> samples = workspace.GetSamples(0)[..(rows * columns)];
-            TOperator.CopyPaletteSamples(block, sourcePlane.Stride, rows, columns, samples);
+            this.CopyPlanePaletteSamples(Av1Plane.Y, sourceLuma, blockOrigin, rows, columns, samples);
 
             int maximumPaletteSize = Math.Min(colorCount, Av1Constants.PaletteMaxSize);
             InlineArray8<short> dominantColorStorage = default;
@@ -137,7 +423,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int neighborContext = Av1TileWriter.GetPaletteYModeContext(in paletteEdges, macroBlock, blockOrigin);
             Span<ushort> colorCache = workspace.ColorCache;
             int colorCacheSize = Av1TileWriter.GetPaletteCache(in paletteEdges, macroBlock, blockOrigin, Av1Plane.Y, colorCache);
-            Av1PlaneRegion<byte> colorIndexMap = this.superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
+            Av1PlaneRegion<byte> colorIndexMap = this.state.Superblock.Workspace.GetPaletteMaps().GetMap(Av1PlaneType.Y, blockWidth, blockHeight);
             int transformSizeContext = Av1TileWriter.GetTransformSizeContext(
                 in transformEdges,
                 modeInfoGrid,
@@ -146,13 +432,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 blockSize);
 
-            Av1EncoderSpeedSettings speedSettings = this.picture.Parent.SpeedSettings;
+            Av1EncoderSpeedSettings speedSettings = this.state.Picture.Parent.SpeedSettings;
             int speed = (int)speedSettings.Speed;
             int searchLevel = speedSettings.PaletteSearchLevel;
             int headerPruneLevel = speedSettings.LumaPaletteHeaderPruneLevel;
 
             int sourceVariance = this.GetSourceVariance(
-                sourceLuma, sourceBlue, sourceRed, modeWorkspace.GetCandidateReconstruction(0), blockOrigin, blockSize);
+                sourceLuma, sourceBlue, sourceRed, this.GetCandidateReconstruction(in modeWorkspace, 0), blockOrigin, blockSize);
 
             bool selected = false;
 
@@ -325,15 +611,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="selectedTransformSize">The transform size of the best candidate so far.</param>
         /// <param name="headerBreakout">Whether the palette syntax cost alone rejected the candidate.</param>
         /// <returns><see langword="true"/> if the candidate became the best result.</returns>
-        private bool EvaluateLumaPaletteCandidate(
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
+        public bool EvaluateLumaPaletteCandidate(
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
             in Av1CoefficientTables tables,
-            in Av1EncoderModeDecisionWorkspace<TSample> modeWorkspace,
+            in Av1EncoderModeDecisionWorkspace<byte> modeWorkspace,
             Span<int> transformCoefficients,
             Span<int> dequantizedCoefficients,
             Span<int> transformWorkspace,
@@ -374,8 +660,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> retainedStates = search.RetainedStates;
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
-            Av1EncoderPaletteWorkspace<TSample> workspace = modeWorkspace.Palette;
-            int bitDepth = this.bitDepth.GetBitCount();
+            Av1EncoderPaletteWorkspace<byte> workspace = modeWorkspace.Palette;
+            int bitDepth = this.state.BitDepth.GetBitCount();
             int cacheThreshold = 4 << (bitDepth - 8);
 
             // Nearby colors snap to a coded-neighbor cache entry when the quantization error is bounded.
@@ -439,32 +725,30 @@ internal static partial class Av1IntraSuperblockEncoder
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
 
             // When the speed settings discount the color map, the search prices only the first map index. The rest of the map costs nothing.
-            rate += this.picture.Parent.SpeedSettings.DiscountPaletteColorCost
+            rate += this.state.Picture.Parent.SpeedSettings.DiscountPaletteColorCost
                 ? Av1SymbolEncoder.GetUniformCost(paletteSize, mapSamples[mapOrigin])
                 : writer.GetPaletteColorMapCost(paletteSize, Av1PlaneType.Y, rows, columns, colorIndexMap);
 
             if (headerPruneLevel != 0)
             {
-                long headerCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0);
-                if ((headerCost >> (headerPruneLevel == 1 ? 1 : 0)) > Math.Min(this.blockCostLimit, bestStatistics.Cost))
+                long headerCost = Av1RateDistortion.GetCost(this.state.RateMultiplier, rate, 0);
+                if ((headerCost >> (headerPruneLevel == 1 ? 1 : 0)) > Math.Min(this.state.BlockCostLimit, bestStatistics.Cost))
                 {
                     headerBreakout = true;
                     return false;
                 }
             }
 
-            Av1PlaneRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
-            Av1PlaneRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             bool lossless = this.BlockLossless;
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-            int maximumDepth = lossless || this.picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
-                (settings.DeferTransformSizeSearch && this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate)
+            Av1EncoderSpeedSettings settings = this.state.Picture.Parent.SpeedSettings;
+            int maximumDepth = lossless || this.state.Picture.Parent.FrameHeader.TransformMode != Av1TransformMode.Select ||
+                (settings.DeferTransformSizeSearch && this.state.BlockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate)
                     ? 0
                     : blockWidth == blockHeight ? settings.IntraSquareTransformSearchDepth : settings.IntraRectangularTransformSearchDepth;
 
             // The palette search bounds every depth by the best candidate so far. A depth is kept when its cost with the palette syntax
             // is less than the cost of that candidate.
-            long candidateLimit = Math.Min(this.blockCostLimit, bestStatistics.Cost);
+            long candidateLimit = Math.Min(this.state.BlockCostLimit, bestStatistics.Cost);
             Av1RateDistortionStatistics candidateStatistics = this.ChooseUniformTransformSize(
                 sourceLuma,
                 sourceBlue,
@@ -481,8 +765,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformTypeProbabilities,
                 in lumaCoefficientEdges,
                 macroBlock,
-                sourcePlane,
-                reconstructionPlane,
                 blockOrigin,
                 blockSize,
                 in blockState,
@@ -535,124 +817,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockSize);
 
             return selected;
-        }
-
-        /// <summary>
-        /// Spreads the indices of the visible samples of a block, packed with a stride of the visible width, to the full
-        /// block size, repeating the last visible column to the right and the last visible row below.
-        /// </summary>
-        /// <remarks>
-        /// The rows move from the last to the first, so that each packed row is read before a wider row overwrites it.
-        /// </remarks>
-        /// <param name="map">The contiguous map with a stride of <paramref name="width"/>.</param>
-        /// <param name="columns">The number of visible columns.</param>
-        /// <param name="rows">The number of visible rows.</param>
-        /// <param name="width">The block width.</param>
-        /// <param name="height">The block height.</param>
-        private static void ExtendPaletteColorMap(Span<byte> map, int columns, int rows, int width, int height)
-        {
-            if (columns < width)
-            {
-                for (int row = rows - 1; row >= 0; row--)
-                {
-                    Span<byte> mapRow = map.Slice(row * width, width);
-                    map.Slice(row * columns, columns).CopyTo(mapRow);
-                    mapRow[columns..].Fill(mapRow[columns - 1]);
-                }
-            }
-
-            Span<byte> lastRow = map.Slice((rows - 1) * width, width);
-            for (int row = rows; row < height; row++)
-            {
-                lastRow.CopyTo(map.Slice(row * width, width));
-            }
-        }
-
-        /// <summary>
-        /// Holds the block values that every candidate of one luma palette search shares. The search builds it once
-        /// before it tries its palette sizes.
-        /// </summary>
-        private readonly ref struct LumaPaletteSearch
-        {
-            /// <summary>
-            /// Gets the tile symbol encoder.
-            /// </summary>
-            public Av1SymbolEncoder Writer { get; init; }
-
-            /// <summary>
-            /// Gets the block and its neighbor availability.
-            /// </summary>
-            public Av1MacroBlockD MacroBlock { get; init; }
-
-            /// <summary>
-            /// Gets the luma block origin.
-            /// </summary>
-            public Point BlockOrigin { get; init; }
-
-            /// <summary>
-            /// Gets the block size.
-            /// </summary>
-            public Av1BlockSize BlockSize { get; init; }
-
-            /// <summary>
-            /// Gets the values of the block that depend only on the block and its neighbors.
-            /// </summary>
-            public LumaBlockState BlockState { get; init; }
-
-            /// <summary>
-            /// Gets the transform size context.
-            /// </summary>
-            public int TransformSizeContext { get; init; }
-
-            /// <summary>
-            /// Gets the source variance of the block.
-            /// </summary>
-            public int SourceVariance { get; init; }
-
-            /// <summary>
-            /// Gets the visible source samples of the block, row after row.
-            /// </summary>
-            public ReadOnlySpan<short> Samples { get; init; }
-
-            /// <summary>
-            /// Gets the number of visible rows.
-            /// </summary>
-            public int Rows { get; init; }
-
-            /// <summary>
-            /// Gets the number of visible columns.
-            /// </summary>
-            public int Columns { get; init; }
-
-            /// <summary>
-            /// Gets the palette colors of the neighbors.
-            /// </summary>
-            public ReadOnlySpan<ushort> ColorCache { get; init; }
-
-            /// <summary>
-            /// Gets the palette block size context.
-            /// </summary>
-            public int BlockSizeContext { get; init; }
-
-            /// <summary>
-            /// Gets the palette context from the neighbors.
-            /// </summary>
-            public int NeighborContext { get; init; }
-
-            /// <summary>
-            /// Gets the color map of the block.
-            /// </summary>
-            public Av1PlaneRegion<byte> ColorIndexMap { get; init; }
-
-            /// <summary>
-            /// Gets the transform block states of the best candidate.
-            /// </summary>
-            public Span<Av1EncoderTransformBlockState> RetainedStates { get; init; }
-
-            /// <summary>
-            /// Gets the rate of the DC mode that a palette block codes.
-            /// </summary>
-            public int DcModeCost { get; init; }
         }
     }
 }

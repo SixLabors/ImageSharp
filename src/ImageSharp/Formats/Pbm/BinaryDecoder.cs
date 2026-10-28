@@ -140,11 +140,10 @@ internal class BinaryDecoder
             }
 
             // Convert only complete pixels. A short final row must not copy unused pooled memory into the image.
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(
                 configuration,
                 vectorRow[..count],
-                pixels.DangerousGetRowSpan(y)[..count],
-                PixelConversionModifiers.Scale);
+                pixels.DangerousGetRowSpan(y)[..count]);
 
             if (count < width)
             {

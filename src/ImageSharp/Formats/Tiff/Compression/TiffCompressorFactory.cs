@@ -10,15 +10,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression;
 
 internal static class TiffCompressorFactory
 {
+    /// <summary>
+    /// Creates a strip compressor that uses the TIFF encoder's configuration and memory allocator.
+    /// </summary>
+    /// <param name="method">The strip compression method.</param>
+    /// <param name="output">The destination TIFF stream.</param>
+    /// <param name="configuration">The configuration shared with embedded codecs.</param>
+    /// <param name="width">The strip width in pixels.</param>
+    /// <param name="bitsPerPixel">The number of stored bits per pixel.</param>
+    /// <param name="compressionLevel">The Deflate compression level.</param>
+    /// <param name="predictor">The sample predictor.</param>
+    /// <returns>The compressor for the selected method.</returns>
     public static TiffBaseCompressor Create(
         TiffCompression method,
         Stream output,
-        MemoryAllocator allocator,
+        Configuration configuration,
         int width,
         int bitsPerPixel,
         DeflateCompressionLevel compressionLevel,
         TiffPredictor predictor)
     {
+        MemoryAllocator allocator = configuration.MemoryAllocator;
+
         switch (method)
         {
             // The following compression types are not implemented in the encoder and will default to no compression instead.
@@ -35,7 +48,7 @@ internal static class TiffCompressorFactory
             case TiffCompression.Jpeg:
                 DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new TiffJpegCompressor(output, allocator, width, bitsPerPixel);
+                return new TiffJpegCompressor(output, configuration, width, bitsPerPixel);
 
             case TiffCompression.PackBits:
                 DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");

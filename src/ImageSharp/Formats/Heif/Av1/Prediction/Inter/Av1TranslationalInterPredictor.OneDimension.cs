@@ -292,12 +292,31 @@ internal static partial class Av1TranslationalInterPredictor
             nuint vectorCount = Numerics.Vector128Count<ushort>(width - processedColumns);
             for (; vectorCount > 0; vectorCount--, processedColumns += Vector128<ushort>.Count)
             {
-                Convolve(ref sourceRow, tapStride, (nuint)processedColumns, ref coefficientBase, tapCount, initial, out Vector128<int> result0, out Vector128<int> result1);
+                Convolve(
+                    ref sourceRow,
+                    tapStride,
+                    (nuint)processedColumns,
+                    ref coefficientBase,
+                    tapCount,
+                    initial,
+                    out Vector128<int> result0,
+                    out Vector128<int> result1);
+
                 Round(ref result0, ref result1, firstRound, secondRound);
                 PackHighBitDepth(result0, result1, maximum).StoreUnsafe(ref destinationRow, (nuint)processedColumns);
             }
 
-            FilterDirectTail(ref sourceRowUnsigned, ref destinationRow, processedColumns, width, tapStride, ref coefficientBase, tapCount, firstRound, secondRound, maximum);
+            FilterDirectTail(
+                ref sourceRowUnsigned,
+                ref destinationRow,
+                processedColumns,
+                width,
+                tapStride,
+                ref coefficientBase,
+                tapCount,
+                firstRound,
+                secondRound,
+                maximum);
         }
     }
 
@@ -351,12 +370,31 @@ internal static partial class Av1TranslationalInterPredictor
 
             for (; processedColumns < vectorEnd; processedColumns += Vector256<ushort>.Count)
             {
-                Convolve(ref sourceRow, tapStride, (nuint)processedColumns, ref coefficientBase, tapCount, initial, out Vector256<int> result0, out Vector256<int> result1);
+                Convolve(
+                    ref sourceRow,
+                    tapStride,
+                    (nuint)processedColumns,
+                    ref coefficientBase,
+                    tapCount,
+                    initial,
+                    out Vector256<int> result0,
+                    out Vector256<int> result1);
+
                 Round(ref result0, ref result1, firstRound, secondRound);
                 PackHighBitDepth(result0, result1, maximum).StoreUnsafe(ref destinationRow, (nuint)processedColumns);
             }
 
-            FilterDirectTail(ref sourceRowUnsigned, ref destinationRow, processedColumns, width, tapStride, ref coefficientBase, tapCount, firstRound, secondRound, maximum);
+            FilterDirectTail(
+                ref sourceRowUnsigned,
+                ref destinationRow,
+                processedColumns,
+                width,
+                tapStride,
+                ref coefficientBase,
+                tapCount,
+                firstRound,
+                secondRound,
+                maximum);
         }
     }
 
@@ -410,12 +448,31 @@ internal static partial class Av1TranslationalInterPredictor
 
             for (; processedColumns < vectorEnd; processedColumns += Vector512<ushort>.Count)
             {
-                Convolve(ref sourceRow, tapStride, (nuint)processedColumns, ref coefficientBase, tapCount, initial, out Vector512<int> result0, out Vector512<int> result1);
+                Convolve(
+                    ref sourceRow,
+                    tapStride,
+                    (nuint)processedColumns,
+                    ref coefficientBase,
+                    tapCount,
+                    initial,
+                    out Vector512<int> result0,
+                    out Vector512<int> result1);
+
                 Round(ref result0, ref result1, firstRound, secondRound);
                 PackHighBitDepth(result0, result1, maximum).StoreUnsafe(ref destinationRow, (nuint)processedColumns);
             }
 
-            FilterDirectTail(ref sourceRowUnsigned, ref destinationRow, processedColumns, width, tapStride, ref coefficientBase, tapCount, firstRound, secondRound, maximum);
+            FilterDirectTail(
+                ref sourceRowUnsigned,
+                ref destinationRow,
+                processedColumns,
+                width,
+                tapStride,
+                ref coefficientBase,
+                tapCount,
+                firstRound,
+                secondRound,
+                maximum);
         }
     }
 
@@ -428,7 +485,13 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="result3">The fourth four sums, rounded in place.</param>
     /// <param name="firstRound">The first rounding shift.</param>
     /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
-    private static void Round(ref Vector128<int> result0, ref Vector128<int> result1, ref Vector128<int> result2, ref Vector128<int> result3, int firstRound, int secondRound)
+    private static void Round(
+        ref Vector128<int> result0,
+        ref Vector128<int> result1,
+        ref Vector128<int> result2,
+        ref Vector128<int> result3,
+        int firstRound,
+        int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
         result1 = RoundPowerOfTwo(RoundPowerOfTwo(result1, firstRound), secondRound);
@@ -445,7 +508,13 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="result3">The fourth eight sums, rounded in place.</param>
     /// <param name="firstRound">The first rounding shift.</param>
     /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
-    private static void Round(ref Vector256<int> result0, ref Vector256<int> result1, ref Vector256<int> result2, ref Vector256<int> result3, int firstRound, int secondRound)
+    private static void Round(
+        ref Vector256<int> result0,
+        ref Vector256<int> result1,
+        ref Vector256<int> result2,
+        ref Vector256<int> result3,
+        int firstRound,
+        int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
         result1 = RoundPowerOfTwo(RoundPowerOfTwo(result1, firstRound), secondRound);
@@ -462,7 +531,13 @@ internal static partial class Av1TranslationalInterPredictor
     /// <param name="result3">The fourth sixteen sums, rounded in place.</param>
     /// <param name="firstRound">The first rounding shift.</param>
     /// <param name="secondRound">The second rounding shift. Zero skips this rounding.</param>
-    private static void Round(ref Vector512<int> result0, ref Vector512<int> result1, ref Vector512<int> result2, ref Vector512<int> result3, int firstRound, int secondRound)
+    private static void Round(
+        ref Vector512<int> result0,
+        ref Vector512<int> result1,
+        ref Vector512<int> result2,
+        ref Vector512<int> result3,
+        int firstRound,
+        int secondRound)
     {
         result0 = RoundPowerOfTwo(RoundPowerOfTwo(result0, firstRound), secondRound);
         result1 = RoundPowerOfTwo(RoundPowerOfTwo(result1, firstRound), secondRound);

@@ -285,7 +285,16 @@ internal static class Av1ForwardTransformArithmetic<TValue>
             Vector128<short> left = As<TValue, Vector128<short>>(input0);
             Vector128<short> right = As<TValue, Vector128<short>>(input1);
 
-            Av1Transform1dMath.Butterfly(weight0, weight1, in left, in right, out Vector128<short> result0, out Vector128<short> result1, cosBit, in rounding.Vector128);
+            Av1Transform1dMath.Butterfly(
+                weight0,
+                weight1,
+                in left,
+                in right,
+                out Vector128<short> result0,
+                out Vector128<short> result1,
+                cosBit,
+                in rounding.Vector128);
+
             output0 = As<Vector128<short>, TValue>(result0);
             output1 = As<Vector128<short>, TValue>(result1);
             return;
@@ -296,7 +305,16 @@ internal static class Av1ForwardTransformArithmetic<TValue>
             Vector256<short> left = As<TValue, Vector256<short>>(input0);
             Vector256<short> right = As<TValue, Vector256<short>>(input1);
 
-            Av1Transform1dMath.Butterfly(weight0, weight1, in left, in right, out Vector256<short> result0, out Vector256<short> result1, cosBit, in rounding.Vector256);
+            Av1Transform1dMath.Butterfly(
+                weight0,
+                weight1,
+                in left,
+                in right,
+                out Vector256<short> result0,
+                out Vector256<short> result1,
+                cosBit,
+                in rounding.Vector256);
+
             output0 = As<Vector256<short>, TValue>(result0);
             output1 = As<Vector256<short>, TValue>(result1);
             return;
@@ -307,7 +325,16 @@ internal static class Av1ForwardTransformArithmetic<TValue>
             Vector512<short> left = As<TValue, Vector512<short>>(input0);
             Vector512<short> right = As<TValue, Vector512<short>>(input1);
 
-            Av1Transform1dMath.Butterfly(weight0, weight1, in left, in right, out Vector512<short> result0, out Vector512<short> result1, cosBit, in rounding.Vector512);
+            Av1Transform1dMath.Butterfly(
+                weight0,
+                weight1,
+                in left,
+                in right,
+                out Vector512<short> result0,
+                out Vector512<short> result1,
+                cosBit,
+                in rounding.Vector512);
+
             output0 = As<Vector512<short>, TValue>(result0);
             output1 = As<Vector512<short>, TValue>(result1);
             return;

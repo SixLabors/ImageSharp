@@ -231,7 +231,8 @@ internal sealed class Vp8LHashChain : IDisposable
                 // matching interval with the same maximum length. Then again, if the
                 // matching interval is as close as possible (best_distance == 1), we will
                 // never find anything better so let's continue.
-                if (bestLength == BackwardReferenceEncoder.MaxLength && bestDistance != 1 && basePosition + BackwardReferenceEncoder.MaxLength < maxBasePosition)
+                if (bestLength == BackwardReferenceEncoder.MaxLength && bestDistance != 1
+                    && basePosition + BackwardReferenceEncoder.MaxLength < maxBasePosition)
                 {
                     break;
                 }

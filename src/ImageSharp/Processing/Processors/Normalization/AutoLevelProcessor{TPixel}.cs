@@ -1,13 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Histograms;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization;
 
@@ -47,195 +47,99 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
     /// </summary>
     private bool SyncChannels { get; }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
-        int numberOfPixels = source.Width * source.Height;
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
+        Operation operation = new(source.Width * source.Height, this.LuminanceLevels, this.SyncChannels);
+        Vector3 weights = new(ColorNumerics.Bt709.X, ColorNumerics.Bt709.Y, ColorNumerics.Bt709.Z);
 
-        using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
-
-        // Build the histogram of the grayscale levels.
-        GrayscaleLevelsRowOperation<TPixel> grayscaleOperation = new(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
-        ParallelRowIterator.IterateRows<GrayscaleLevelsRowOperation<TPixel>, Vector4>(
+        Histogram.Apply<TPixel, Histogram.CountBin, Vector4, Operation>(
             this.Configuration,
-            interest,
-            in grayscaleOperation);
-
-        Span<int> histogram = histogramBuffer.GetSpan();
-        if (this.ClipHistogramEnabled)
-        {
-            this.ClipHistogram(histogram, this.ClipLimit);
-        }
-
-        using IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
-
-        // Calculate the cumulative distribution function, which will map each input pixel to a new value.
-        int cdfMin = CalculateCdf(
-            ref MemoryMarshal.GetReference(cdfBuffer.GetSpan()),
-            ref MemoryMarshal.GetReference(histogram),
-            histogram.Length - 1);
-
-        float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
-
-        if (this.SyncChannels)
-        {
-            SynchronizedChannelsRowOperation cdfOperation = new(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
-            ParallelRowIterator.IterateRows<SynchronizedChannelsRowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in cdfOperation);
-        }
-        else
-        {
-            SeperateChannelsRowOperation cdfOperation = new(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
-            ParallelRowIterator.IterateRows<SeperateChannelsRowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in cdfOperation);
-        }
+            source,
+            this.SourceRectangle,
+            this.LuminanceLevels,
+            weights,
+            this.ClipHistogramEnabled,
+            this.ClipLimit,
+            Histogram.Region.Global,
+            in operation);
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the cdf logic for synchronized color channels.
+    /// Calculates synchronized or independent channel levels from the shared cumulative histogram.
     /// </summary>
-    private readonly struct SynchronizedChannelsRowOperation : IRowOperation<Vector4>
+    /// <param name="area">The existing whole-frame normalization area.</param>
+    /// <param name="levels">The bounded measurement resolution.</param>
+    /// <param name="syncChannels">Whether RGB uses one luminance scaling factor.</param>
+    private readonly struct Operation(int area, int levels, bool syncChannels) : IHistogramOperation<Histogram.CountBin, Vector4>
     {
-        private readonly Configuration configuration;
-        private readonly Rectangle bounds;
-        private readonly IMemoryOwner<int> cdfBuffer;
-        private readonly Buffer2D<TPixel> source;
-        private readonly int luminanceLevels;
-        private readonly float numberOfPixelsMinusCdfMin;
+        /// <inheritdoc />
+        public static bool UsesCumulativeCounts => true;
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public SynchronizedChannelsRowOperation(
-            Configuration configuration,
-            Rectangle bounds,
-            IMemoryOwner<int> cdfBuffer,
-            Buffer2D<TPixel> source,
-            int luminanceLevels,
-            float numberOfPixelsMinusCdfMin)
+        /// <inheritdoc />
+        public Vector4 GetResult(ref Histogram<Histogram.CountBin>.Query histogram, Vector4 source, int index)
         {
-            this.configuration = configuration;
-            this.bounds = bounds;
-            this.cdfBuffer = cdfBuffer;
-            this.source = source;
-            this.luminanceLevels = luminanceLevels;
-            this.numberOfPixelsMinusCdfMin = numberOfPixelsMinusCdfMin;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetRequiredBufferLength(Rectangle bounds) => bounds.Width;
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y, Span<Vector4> span)
-        {
-            Span<Vector4> vectorBuffer = span[..this.bounds.Width];
-            ref Vector4 vectorRef = ref MemoryMarshal.GetReference(vectorBuffer);
-            ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-            PixelAccessor<TPixel> sourceAccess = new(this.source);
-            int levels = this.luminanceLevels;
-            float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
-
-            Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-
-            for (int x = 0; x < this.bounds.Width; x++)
+            if (syncChannels)
             {
-                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-
-                // Keep the CDF offset within the histogram even for HDR or nonfinite samples.
-                float boundedLuminance = Numerics.Clamp(ColorNumerics.GetBT709Luminance(vector), 0F, 1F);
-                int luminance = (int)MathF.Round(boundedLuminance * (levels - 1));
-                float scaledLuminance = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
-
-                // The first histogram bin maps to black; avoid dividing by its zero index.
-                if (luminance == 0)
+                Histogram.Cdf cdf = histogram.GetCdf(index);
+                float target = cdf.Cumulative / (float)(area - cdf.Minimum);
+                if (histogram.IsExtended)
                 {
-                    Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(0F, 0F, 0F, vector.W);
-                    continue;
+                    // Extended indices encode magnitude, rather than a linear brightness scale.
+                    // CDF output is at most one. Multiply before division to avoid rounding
+                    // a tiny reciprocal for large HDR samples. Zero luminance retains the black result.
+                    float luminance = ColorNumerics.GetBT709Luminance(source);
+                    Vector4 result = luminance == 0F ? Vector4.Zero : (source * target) / luminance;
+                    result.W = source.W;
+                    return result;
                 }
 
-                float scalingFactor = scaledLuminance * levels / luminance;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scalingFactor * vector.X, scalingFactor * vector.Y, scalingFactor * vector.Z, vector.W);
+                // Bounded input retains the original quantized luminance calculation.
+                // Its first index maps to black and must not be used as a divisor.
+                float factor = index == 0 ? 0F : target * levels / index;
+                Vector4 boundedResult = source * factor;
+                boundedResult.W = source.W;
+                return boundedResult;
             }
 
-            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-        }
-    }
+            Histogram.Cdf red = histogram.GetCdf(histogram.GetIndex(source.X));
+            Histogram.Cdf green = histogram.GetCdf(histogram.GetIndex(source.Y));
+            Histogram.Cdf blue = histogram.GetCdf(histogram.GetIndex(source.Z));
 
-    /// <summary>
-    /// A <see langword="struct"/> implementing the cdf logic for separate color channels.
-    /// </summary>
-    private readonly struct SeperateChannelsRowOperation : IRowOperation<Vector4>
-    {
-        private readonly Configuration configuration;
-        private readonly Rectangle bounds;
-        private readonly IMemoryOwner<int> cdfBuffer;
-        private readonly Buffer2D<TPixel> source;
-        private readonly int luminanceLevels;
-        private readonly float numberOfPixelsMinusCdfMin;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public SeperateChannelsRowOperation(
-            Configuration configuration,
-            Rectangle bounds,
-            IMemoryOwner<int> cdfBuffer,
-            Buffer2D<TPixel> source,
-            int luminanceLevels,
-            float numberOfPixelsMinusCdfMin)
-        {
-            this.configuration = configuration;
-            this.bounds = bounds;
-            this.cdfBuffer = cdfBuffer;
-            this.source = source;
-            this.luminanceLevels = luminanceLevels;
-            this.numberOfPixelsMinusCdfMin = numberOfPixelsMinusCdfMin;
+            // RGB shares the measured luminance distribution but queries each channel separately.
+            // Vector division applies their independent denominators; alpha bypasses the calculation.
+            Vector4 numerator = new(red.Cumulative, green.Cumulative, blue.Cumulative, 0F);
+            Vector4 denominator = new(area - red.Minimum, area - green.Minimum, area - blue.Minimum, 1F);
+            Vector4 output = numerator / denominator;
+            output.W = source.W;
+            return output;
         }
 
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public int GetRequiredBufferLength(Rectangle bounds) => bounds.Width;
+        /// <inheritdoc />
+        public Vector4 Invoke(Vector4 source, in Vector4 data) => data;
 
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y, Span<Vector4> span)
+        /// <inheritdoc />
+        public Vector128<float> Invoke(Vector128<float> source, ReadOnlySpan<Vector4> data)
         {
-            Span<Vector4> vectorBuffer = span[..this.bounds.Width];
-            ref Vector4 vectorRef = ref MemoryMarshal.GetReference(vectorBuffer);
-            ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-            PixelAccessor<TPixel> sourceAccess = new(this.source);
-            int levelsMinusOne = this.luminanceLevels - 1;
-            float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
+            // Each result already contains RGB and unchanged source alpha in RGBA order.
+            ref float first = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(data));
+            return Vector128.LoadUnsafe(ref first);
+        }
 
-            Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        /// <inheritdoc />
+        public Vector256<float> Invoke(Vector256<float> source, ReadOnlySpan<Vector4> data)
+        {
+            // Two contiguous RGBA results occupy the complete register.
+            ref float first = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(data));
+            return Vector256.LoadUnsafe(ref first);
+        }
 
-            for (int x = 0; x < this.bounds.Width; x++)
-            {
-                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-                float alpha = vector.W;
-
-                // Alpha is not a histogram component and must not be scaled into the CDF index range.
-                // The CDF lookup uses bounded indices; the source vector can still contain HDR values.
-                Vector4 indexValues = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * levelsMinusOne;
-
-                uint originalX = (uint)MathF.Round(indexValues.X);
-                float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;
-                uint originalY = (uint)MathF.Round(indexValues.Y);
-                float scaledY = Unsafe.Add(ref cdfBase, originalY) / noOfPixelsMinusCdfMin;
-                uint originalZ = (uint)MathF.Round(indexValues.Z);
-                float scaledZ = Unsafe.Add(ref cdfBase, originalZ) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, alpha);
-            }
-
-            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        /// <inheritdoc />
+        public Vector512<float> Invoke(Vector512<float> source, ReadOnlySpan<Vector4> data)
+        {
+            // Four contiguous RGBA results occupy the complete register.
+            ref float first = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(data));
+            return Vector512.LoadUnsafe(ref first);
         }
     }
 }

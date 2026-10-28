@@ -41,7 +41,13 @@ internal static partial class Av1CdefFilter
         {
             for (; index + 4 <= count; index += 4)
             {
-                FindDirectionsVector512(source, sourceOffsets.Slice(index, 4), sourceStride, coefficientShift, directions.Slice(index, 4), variances.Slice(index, 4));
+                FindDirectionsVector512(
+                    source,
+                    sourceOffsets.Slice(index, 4),
+                    sourceStride,
+                    coefficientShift,
+                    directions.Slice(index, 4),
+                    variances.Slice(index, 4));
             }
         }
 
@@ -112,8 +118,13 @@ internal static partial class Av1CdefFilter
         Vector128<int> diagonalWeights1 = Vector128.Create(140, 105, 105, 105);
         Vector512<int> packedFoldWeights0 = Vector512.Create(Vector256.Create(foldWeights0, foldWeights0), Vector256.Create(foldWeights0, foldWeights0));
         Vector512<int> packedFoldWeights1 = Vector512.Create(Vector256.Create(foldWeights1, foldWeights1), Vector256.Create(foldWeights1, foldWeights1));
-        Vector512<int> packedDiagonalWeights0 = Vector512.Create(Vector256.Create(diagonalWeights0, diagonalWeights0), Vector256.Create(diagonalWeights0, diagonalWeights0));
-        Vector512<int> packedDiagonalWeights1 = Vector512.Create(Vector256.Create(diagonalWeights1, diagonalWeights1), Vector256.Create(diagonalWeights1, diagonalWeights1));
+        Vector512<int> packedDiagonalWeights0 = Vector512.Create(
+            Vector256.Create(diagonalWeights0, diagonalWeights0),
+            Vector256.Create(diagonalWeights0, diagonalWeights0));
+
+        Vector512<int> packedDiagonalWeights1 = Vector512.Create(
+            Vector256.Create(diagonalWeights1, diagonalWeights1),
+            Vector256.Create(diagonalWeights1, diagonalWeights1));
 
         Vector512<int> direction47 = ComputeDirectionCosts(
             ref lines,
@@ -418,7 +429,12 @@ internal static partial class Av1CdefFilter
             int destinationIndex = destinationOffset + (row * destinationStride);
             int halfRows = rowsPerBatch >> 1;
             StoreRows<TSample, TOutputOperator>(ref destination, destinationIndex, destinationStride, filtered.GetLower(), blockWidth);
-            StoreRows<TSample, TOutputOperator>(ref destination, destinationIndex + (halfRows * destinationStride), destinationStride, filtered.GetUpper(), blockWidth);
+            StoreRows<TSample, TOutputOperator>(
+                ref destination,
+                destinationIndex + (halfRows * destinationStride),
+                destinationStride,
+                filtered.GetUpper(),
+                blockWidth);
         }
     }
 

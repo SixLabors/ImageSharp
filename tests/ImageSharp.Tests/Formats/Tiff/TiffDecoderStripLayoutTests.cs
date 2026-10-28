@@ -34,7 +34,7 @@ public class TiffDecoderStripLayoutTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             using Image<Rgb24> actual = Image.Load<Rgb24>(options, data);
 
             ImageComparer.Exact.VerifySimilarity(expected, actual);
@@ -61,7 +61,7 @@ public class TiffDecoderStripLayoutTests
         // The final strip in the multiple-strip inputs contains only the remaining 100 rows.
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
             using Image<Rgb48> actual = Image.Load<Rgb48>(options, data);
 
             ImageComparer.Exact.VerifySimilarity(expected, actual);
@@ -78,7 +78,7 @@ public class TiffDecoderStripLayoutTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
 
             // Y = 64 with neutral Cb and Cr = 128 represents gray 64 in every pixel.
@@ -106,7 +106,7 @@ public class TiffDecoderStripLayoutTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             Assert.Throws<ImageFormatException>(() =>
             {
                 using Image<Rgb24> image = Image.Load<Rgb24>(options, data);
@@ -135,7 +135,7 @@ public class TiffDecoderStripLayoutTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
             if (integrity != SegmentIntegrityHandling.IgnoreImageData)
             {
                 Assert.Throws<InvalidImageContentException>(() =>
@@ -167,7 +167,7 @@ public class TiffDecoderStripLayoutTests
         byte[] data = TestFile.Create(FrameAboveAllocationLimit).Bytes;
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = MemoryAllocator.Create(new MemoryAllocatorOptions { AllocationLimitMegabytes = 100 });
-        DecoderOptions options = new() { Configuration = configuration };
+        DecoderOptions options = new(configuration);
 
         InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() =>
         {
@@ -190,7 +190,7 @@ public class TiffDecoderStripLayoutTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             using Image<L8> image = Image.Load<L8>(options, data);
             ImageInfo info = Image.Identify(options, data);
 
@@ -227,7 +227,7 @@ public class TiffDecoderStripLayoutTests
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             ImageFormatException identifyError = Assert.Throws<ImageFormatException>(() => Image.Identify(options, data));
             ImageFormatException decodeError = Assert.Throws<ImageFormatException>(() =>
             {

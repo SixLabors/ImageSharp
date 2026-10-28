@@ -953,7 +953,15 @@ internal static class Av1Transform2dOperations
         Vector256<int> upperBottom7 = row15.GetUpper();
 
         Transpose(ref upperTop0, ref upperTop1, ref upperTop2, ref upperTop3, ref upperTop4, ref upperTop5, ref upperTop6, ref upperTop7);
-        Transpose(ref upperBottom0, ref upperBottom1, ref upperBottom2, ref upperBottom3, ref upperBottom4, ref upperBottom5, ref upperBottom6, ref upperBottom7);
+        Transpose(
+            ref upperBottom0,
+            ref upperBottom1,
+            ref upperBottom2,
+            ref upperBottom3,
+            ref upperBottom4,
+            ref upperBottom5,
+            ref upperBottom6,
+            ref upperBottom7);
 
         row8 = Vector512.Create(upperTop0, upperBottom0);
         row9 = Vector512.Create(upperTop1, upperBottom1);
@@ -974,7 +982,15 @@ internal static class Av1Transform2dOperations
         Vector256<int> lowerTop7 = row7.GetLower();
 
         Transpose(ref lowerTop0, ref lowerTop1, ref lowerTop2, ref lowerTop3, ref lowerTop4, ref lowerTop5, ref lowerTop6, ref lowerTop7);
-        Transpose(ref lowerBottom0, ref lowerBottom1, ref lowerBottom2, ref lowerBottom3, ref lowerBottom4, ref lowerBottom5, ref lowerBottom6, ref lowerBottom7);
+        Transpose(
+            ref lowerBottom0,
+            ref lowerBottom1,
+            ref lowerBottom2,
+            ref lowerBottom3,
+            ref lowerBottom4,
+            ref lowerBottom5,
+            ref lowerBottom6,
+            ref lowerBottom7);
 
         row0 = Vector512.Create(lowerTop0, lowerBottom0);
         row1 = Vector512.Create(lowerTop1, lowerBottom1);

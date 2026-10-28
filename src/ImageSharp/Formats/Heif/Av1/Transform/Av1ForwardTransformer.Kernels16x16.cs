@@ -160,7 +160,24 @@ internal static partial class Av1ForwardTransformer
             r15 = Vector256.LoadUnsafe(ref source, 15 * stride) << 2;
         }
 
-        TColumn.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, 13);
+        TColumn.Transform(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15,
+            13);
 
         // The second stage shift of -2 adds 2, half of the divisor 4, and then shifts right by 2. The addition saturates.
         Vector256<short> half = Vector256.Create((short)2);
@@ -181,18 +198,105 @@ internal static partial class Av1ForwardTransformer
         r14 = Vector256.AddSaturate(r14, half) >> 2;
         r15 = Vector256.AddSaturate(r15, half) >> 2;
 
-        Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+        Av1TransformKernels.Transpose16x16(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
         if (flipLeftToRight)
         {
             // After the transpose, each vector is one column. The reversed order mirrors the block horizontally.
-            TRow.Transform(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0, 12);
-            Av1TransformKernels.Transpose16x16(ref r15, ref r14, ref r13, ref r12, ref r11, ref r10, ref r9, ref r8, ref r7, ref r6, ref r5, ref r4, ref r3, ref r2, ref r1, ref r0);
+            TRow.Transform(
+                ref r15,
+                ref r14,
+                ref r13,
+                ref r12,
+                ref r11,
+                ref r10,
+                ref r9,
+                ref r8,
+                ref r7,
+                ref r6,
+                ref r5,
+                ref r4,
+                ref r3,
+                ref r2,
+                ref r1,
+                ref r0,
+                12);
+
+            Av1TransformKernels.Transpose16x16(
+                ref r15,
+                ref r14,
+                ref r13,
+                ref r12,
+                ref r11,
+                ref r10,
+                ref r9,
+                ref r8,
+                ref r7,
+                ref r6,
+                ref r5,
+                ref r4,
+                ref r3,
+                ref r2,
+                ref r1,
+                ref r0);
+
             Store16x16(r15, r14, r13, r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0, coefficients);
             return;
         }
 
-        TRow.Transform(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15, 12);
-        Av1TransformKernels.Transpose16x16(ref r0, ref r1, ref r2, ref r3, ref r4, ref r5, ref r6, ref r7, ref r8, ref r9, ref r10, ref r11, ref r12, ref r13, ref r14, ref r15);
+        TRow.Transform(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15,
+            12);
+
+        Av1TransformKernels.Transpose16x16(
+            ref r0,
+            ref r1,
+            ref r2,
+            ref r3,
+            ref r4,
+            ref r5,
+            ref r6,
+            ref r7,
+            ref r8,
+            ref r9,
+            ref r10,
+            ref r11,
+            ref r12,
+            ref r13,
+            ref r14,
+            ref r15);
+
         Store16x16(r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, coefficients);
     }
 
@@ -347,18 +451,59 @@ internal static partial class Av1ForwardTransformer
             Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide((short)-c48, (short)-c16), m16p48, ref x10, ref x13, rounding, cosBit);
 
             // stage 5
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c56, c8), Av1TransformKernels.PairWide((short)-c8, c56), ref x4, ref x7, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c24, c40), Av1TransformKernels.PairWide((short)-c40, c24), ref x5, ref x6, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c56, c8),
+                Av1TransformKernels.PairWide((short)-c8, c56),
+                ref x4,
+                ref x7,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c24, c40),
+                Av1TransformKernels.PairWide((short)-c40, c24),
+                ref x5,
+                ref x6,
+                rounding,
+                cosBit);
+
             Av1TransformKernels.AddSubtractWide(ref x8, ref x9);
             Av1TransformKernels.AddSubtractWide(ref x11, ref x10);
             Av1TransformKernels.AddSubtractWide(ref x12, ref x13);
             Av1TransformKernels.AddSubtractWide(ref x15, ref x14);
 
             // stage 6
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c60, c4), Av1TransformKernels.PairWide((short)-c4, c60), ref x8, ref x15, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c28, c36), Av1TransformKernels.PairWide((short)-c36, c28), ref x9, ref x14, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c44, c20), Av1TransformKernels.PairWide((short)-c20, c44), ref x10, ref x13, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c12, c52), Av1TransformKernels.PairWide((short)-c52, c12), ref x11, ref x12, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c60, c4),
+                Av1TransformKernels.PairWide((short)-c4, c60),
+                ref x8,
+                ref x15,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c28, c36),
+                Av1TransformKernels.PairWide((short)-c36, c28),
+                ref x9,
+                ref x14,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c44, c20),
+                Av1TransformKernels.PairWide((short)-c20, c44),
+                ref x10,
+                ref x13,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c12, c52),
+                Av1TransformKernels.PairWide((short)-c52, c12),
+                ref x11,
+                ref x12,
+                rounding,
+                cosBit);
 
             // stage 7
             in0 = x0;
@@ -507,14 +652,69 @@ internal static partial class Av1ForwardTransformer
             short c14 = (short)cospi[14];
             short c58 = (short)cospi[58];
             short c6 = (short)cospi[6];
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c2, c62), Av1TransformKernels.PairWide(c62, (short)-c2), ref x0, ref x1, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c10, c54), Av1TransformKernels.PairWide(c54, (short)-c10), ref x2, ref x3, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c18, c46), Av1TransformKernels.PairWide(c46, (short)-c18), ref x4, ref x5, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c26, c38), Av1TransformKernels.PairWide(c38, (short)-c26), ref x6, ref x7, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c34, c30), Av1TransformKernels.PairWide(c30, (short)-c34), ref x8, ref x9, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c42, c22), Av1TransformKernels.PairWide(c22, (short)-c42), ref x10, ref x11, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c50, c14), Av1TransformKernels.PairWide(c14, (short)-c50), ref x12, ref x13, rounding, cosBit);
-            Av1TransformKernels.ButterflyWide(Av1TransformKernels.PairWide(c58, c6), Av1TransformKernels.PairWide(c6, (short)-c58), ref x14, ref x15, rounding, cosBit);
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c2, c62),
+                Av1TransformKernels.PairWide(c62, (short)-c2),
+                ref x0,
+                ref x1,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c10, c54),
+                Av1TransformKernels.PairWide(c54, (short)-c10),
+                ref x2,
+                ref x3,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c18, c46),
+                Av1TransformKernels.PairWide(c46, (short)-c18),
+                ref x4,
+                ref x5,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c26, c38),
+                Av1TransformKernels.PairWide(c38, (short)-c26),
+                ref x6,
+                ref x7,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c34, c30),
+                Av1TransformKernels.PairWide(c30, (short)-c34),
+                ref x8,
+                ref x9,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c42, c22),
+                Av1TransformKernels.PairWide(c22, (short)-c42),
+                ref x10,
+                ref x11,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c50, c14),
+                Av1TransformKernels.PairWide(c14, (short)-c50),
+                ref x12,
+                ref x13,
+                rounding,
+                cosBit);
+
+            Av1TransformKernels.ButterflyWide(
+                Av1TransformKernels.PairWide(c58, c6),
+                Av1TransformKernels.PairWide(c6, (short)-c58),
+                ref x14,
+                ref x15,
+                rounding,
+                cosBit);
 
             // stage 9
             in0 = x1;

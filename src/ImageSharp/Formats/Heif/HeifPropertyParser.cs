@@ -33,26 +33,28 @@ internal static class HeifPropertyParser
     }
 
     /// <summary>
-    /// Parses and validates an embedded ICC profile.
+    /// Reads and validates an embedded ICC profile through the shared ICC reader.
     /// </summary>
-    /// <param name="data">The complete ICC profile bytes.</param>
+    /// <param name="stream">The stream positioned at the profile payload.</param>
+    /// <param name="length">The bounded payload length, excluding the color type.</param>
     /// <returns>The validated ICC profile.</returns>
-    public static IccProfile ParseIccProfile(byte[] data)
+    public static IccProfile ParseIccProfile(Stream stream, long length)
     {
-        if (data.Length == 0)
+        // Reject box lengths that would overflow the shared reader's 32-bit length parameter.
+        if (length > int.MaxValue)
         {
-            throw new InvalidImageContentException("The HEIF ICC color property contains an empty profile.");
+            throw new InvalidImageContentException("The HEIF ICC color property is too large.");
         }
 
-        // The HEIF parser allocates this exact array as the profile's final storage, so IccProfile can adopt it without
-        // copying the potentially large profile payload.
-        IccProfile profile = new(data);
-        if (!profile.CheckIsValid())
+        // Item and track boxes have the same ICC payload. The shared reader bounds storage before reading
+        // and validates the declared profile size and tag table before exposing the profile.
+        IccReader reader = new();
+        if (reader.Read(stream, (int)length) != length)
         {
-            throw new InvalidIccProfileException("Invalid HEIF ICC profile.");
+            throw new InvalidImageContentException("The HEIF ICC color property is truncated.");
         }
 
-        return profile;
+        return reader.ToProfile();
     }
 
     /// <summary>

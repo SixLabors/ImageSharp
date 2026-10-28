@@ -21,7 +21,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <param name="source">The source frame.</param>
     public static void SetSsimRateMultiplierScaling<TSample, TOperator>(Av1PictureControlSet picture, Av1EncoderFrame<TSample> source)
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         Av1PictureParentControlSet parent = picture.Parent;
         int modeInfoColumns = parent.Common.ModeInfoColumnCount;
@@ -57,7 +57,7 @@ internal static partial class Av1IntraSuperblockEncoder
         int modeInfoRows,
         Av1BitDepth bitDepth)
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         int columns = (modeInfoColumns + 3) / 4;
         int rows = (modeInfoRows + 3) / 4;
@@ -120,9 +120,45 @@ internal static partial class Av1IntraSuperblockEncoder
         }
     }
 
+    /// <summary>
+    /// Scales a rate multiplier by the geometric mean of the factors of the 16x16 blocks that a block covers.
+    /// </summary>
+    /// <param name="picture">The picture containing the shared SSIM factors.</param>
+    /// <param name="rateMultiplier">The rate multiplier.</param>
+    /// <param name="blockOrigin">The block origin in luma samples.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns>The scaled rate multiplier.</returns>
+    private static int ScaleSsimRateMultiplier(Av1PictureControlSet picture, int rateMultiplier, Point blockOrigin, Av1BlockSize blockSize)
+    {
+        double[] factors = picture.Parent.SsimRateMultiplierFactors!;
+        int modeInfoColumns = picture.Parent.Common.ModeInfoColumnCount;
+        int modeInfoRows = picture.Parent.Common.ModeInfoRowCount;
+        int columns = (modeInfoColumns + 3) / 4;
+        int rows = (modeInfoRows + 3) / 4;
+        int blockColumns = (blockSize.Get4x4WideCount() + 3) / 4;
+        int blockRows = (blockSize.Get4x4HighCount() + 3) / 4;
+        int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+        int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+        double count = 0.0;
+        double product = 1.0;
+
+        // Each step moves one 16x16 block, which is four 4x4 units on each axis.
+        for (int row = modeInfoRow / 4; row < rows && row < (modeInfoRow / 4) + blockRows; row++)
+        {
+            for (int column = modeInfoColumn / 4; column < columns && column < (modeInfoColumn / 4) + blockColumns; column++)
+            {
+                product *= factors[(row * columns) + column];
+                count += 1.0;
+            }
+        }
+
+        product = Math.Pow(product, 1.0 / count);
+        return Math.Max((int)((rateMultiplier * product) + 0.5), 0);
+    }
+
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Scales a rate multiplier by the geometric mean of the factors of the 16x16 blocks that a block covers.
@@ -131,32 +167,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="blockSize">The block size.</param>
         /// <returns>The scaled rate multiplier.</returns>
-        private readonly int ScaleSsimRateMultiplier(int rateMultiplier, Point blockOrigin, Av1BlockSize blockSize)
-        {
-            double[] factors = this.picture.Parent.SsimRateMultiplierFactors!;
-            int modeInfoColumns = this.picture.Parent.Common.ModeInfoColumnCount;
-            int modeInfoRows = this.picture.Parent.Common.ModeInfoRowCount;
-            int columns = (modeInfoColumns + 3) / 4;
-            int rows = (modeInfoRows + 3) / 4;
-            int blockColumns = (blockSize.Get4x4WideCount() + 3) / 4;
-            int blockRows = (blockSize.Get4x4HighCount() + 3) / 4;
-            int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
-            int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
-            double count = 0.0;
-            double product = 1.0;
-
-            // Each step moves one 16x16 block, which is four 4x4 units on each axis.
-            for (int row = modeInfoRow / 4; row < rows && row < (modeInfoRow / 4) + blockRows; row++)
-            {
-                for (int column = modeInfoColumn / 4; column < columns && column < (modeInfoColumn / 4) + blockColumns; column++)
-                {
-                    product *= factors[(row * columns) + column];
-                    count += 1.0;
-                }
-            }
-
-            product = Math.Pow(product, 1.0 / count);
-            return Math.Max((int)((rateMultiplier * product) + 0.5), 0);
-        }
+        public readonly int ScaleSsimRateMultiplier(int rateMultiplier, Point blockOrigin, Av1BlockSize blockSize)
+            => Av1IntraSuperblockEncoder.ScaleSsimRateMultiplier(this.State.Picture, rateMultiplier, blockOrigin, blockSize);
     }
-}
+    }

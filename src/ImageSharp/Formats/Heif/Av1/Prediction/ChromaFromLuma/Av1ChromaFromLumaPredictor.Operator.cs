@@ -293,7 +293,8 @@ internal static partial class Av1ChromaFromLumaPredictor
                     nuint vectorCount = Numerics.Vector512Count<short>(width - column);
                     for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                     {
-                        TOperator.Predict(Vector512.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum).StoreUnsafe(ref destinationRow, (nuint)column);
+                        TOperator.Predict(Vector512.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum)
+                            .StoreUnsafe(ref destinationRow, (nuint)column);
                     }
                 }
 
@@ -302,7 +303,8 @@ internal static partial class Av1ChromaFromLumaPredictor
                     nuint vectorCount = Numerics.Vector256Count<short>(width - column);
                     for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                     {
-                        TOperator.Predict(Vector256.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum).StoreUnsafe(ref destinationRow, (nuint)column);
+                        TOperator.Predict(Vector256.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum)
+                            .StoreUnsafe(ref destinationRow, (nuint)column);
                     }
                 }
 
@@ -311,7 +313,8 @@ internal static partial class Av1ChromaFromLumaPredictor
                     nuint vectorCount = Numerics.Vector128Count<short>(width - column);
                     for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                     {
-                        TOperator.Predict(Vector128.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum).StoreUnsafe(ref destinationRow, (nuint)column);
+                        TOperator.Predict(Vector128.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum)
+                            .StoreUnsafe(ref destinationRow, (nuint)column);
                     }
 
                     if (width - column >= 4)

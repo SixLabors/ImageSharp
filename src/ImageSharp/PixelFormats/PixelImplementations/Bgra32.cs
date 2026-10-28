@@ -74,6 +74,50 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from normalized components.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    /// <param name="a">The alpha component.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(float r, float g, float b, float a = 1)
+        : this(new Vector4(r, g, b, a))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from normalized RGB components with opaque alpha.
+    /// </summary>
+    /// <param name="vector">The red, green, and blue components.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(Vector3 vector)
+        : this(new Vector4(vector, 1F))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from normalized RGBA components.
+    /// </summary>
+    /// <param name="vector">The red, green, blue, and alpha components.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(Vector4 vector)
+        : this() => this = Pack(vector);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra32"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The bytes use B, G, R, A memory order. Integer interpretation follows the platform byte order.
+    /// On little-endian systems, the integer layout is <c>0xAARRGGBB</c>.
+    /// This constructor copies the stored bits without color conversion or alpha association.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra32(uint packed)
+        : this() => this.PackedValue = packed;
+
+    /// <summary>
     /// Gets or sets the packed representation of the Bgra32 struct.
     /// </summary>
     public uint Bgra
@@ -115,6 +159,21 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     public static bool operator !=(Bgra32 left, Bgra32 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Bgra32 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgra32 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgra32 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgra32 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromBgra32(this);
 
@@ -131,6 +190,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
         => PixelTypeInfo.Create<Bgra32>(
             PixelComponentInfo.Create<Bgra32>(4, 8, 8, 8, 8),
             PixelColorType.BGR | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>
@@ -164,10 +224,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgra32 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -280,7 +337,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
         return new Bgra32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));

@@ -32,13 +32,14 @@ public class AutoLevelProcessorTests
     }
 
     /// <summary>
-    /// Separate-channel CDF lookups use the same endpoint bins for out-of-range and nonfinite samples.
+    /// Separate-channel levels preserve histogram order when distinct extended samples are doubled.
     /// </summary>
     [Fact]
-    public void SeparateChannels_FloatingSamplesMatchBoundedIndexReference()
+    public void SeparateChannels_ExtendedSamplesPreserveRankOrder()
     {
-        float[] samples = [float.NaN, float.NegativeInfinity, -1F, 0F, 0.25F, 0.75F, 2F, float.PositiveInfinity];
-        float[] bounded = [0F, 0F, 0F, 0F, 0.25F, 0.75F, 1F, 1F];
+        // Doubling these distinct magnitudes preserves their order and histogram counts.
+        // A clipped SDR mapping merges different entries and does not satisfy this property.
+        float[] samples = [-8F, -2F, 0F, 0.125F, 0.5F, 1F, 2F, 4F];
         using Image<RgbaVector> actual = new(17, 17);
         using Image<RgbaVector> reference = new(17, 17);
 
@@ -48,7 +49,7 @@ public class AutoLevelProcessorTests
             {
                 int sample = (x + y) % samples.Length;
                 actual[x, y] = new RgbaVector(samples[sample], samples[sample], samples[sample], 0.625F);
-                reference[x, y] = new RgbaVector(bounded[sample], bounded[sample], bounded[sample], 0.625F);
+                reference[x, y] = new RgbaVector(samples[sample] * 2F, samples[sample] * 2F, samples[sample] * 2F, 0.625F);
             }
         }
 
@@ -57,20 +58,14 @@ public class AutoLevelProcessorTests
         actual.Mutate(ctx => ctx.ApplyProcessor(processor));
         reference.Mutate(ctx => ctx.ApplyProcessor(processor));
 
-        for (int y = 0; y < actual.Height; y++)
-        {
-            for (int x = 0; x < actual.Width; x++)
-            {
-                Assert.Equal(reference[x, y], actual[x, y]);
-            }
-        }
+        ImageComparer.Exact.VerifySimilarity(reference, actual);
     }
 
     /// <summary>
-    /// Synchronized AutoLevel uses the endpoint CDF entry while retaining the original HDR color for scaling.
+    /// Synchronized levels use distinct HDR bins and the pixel API's finite nonfinite-input endpoints.
     /// </summary>
     [Fact]
-    public void SynchronizedChannels_UsesEndpointIndexWithoutClampingHdrColor()
+    public void SynchronizedChannels_UsesExtendedBinsAndFinitePixelEndpoints()
     {
         float[] samples = [float.NaN, float.NegativeInfinity, 0.25F, 0.5F, 0.75F, 2F, float.PositiveInfinity];
         using Image<RgbaVector> image = new(samples.Length, 1);
@@ -82,12 +77,14 @@ public class AutoLevelProcessorTests
 
         image.Mutate(ctx => ctx.ApplyProcessor(new AutoLevelProcessor(5, false, 350, true)));
 
-        Assert.Equal(new RgbaVector(2.5F, 2.5F, 2.5F, 0.625F), image[5, 0]);
-        Assert.True(float.IsPositiveInfinity(image[6, 0].ToVector4().X));
+        // Two inputs share the finite minimum. Subtracting their count leaves five samples:
+        // the 2.0 sample has cumulative count four and the finite maximum has count five.
+        Assert.Equal(new RgbaVector(0.8F, 0.8F, 0.8F, 0.625F), image[5, 0]);
+        Assert.Equal(new RgbaVector(1F, 1F, 1F, 0.625F), image[6, 0]);
     }
 
     /// <summary>
-    /// Synchronized AutoLevel maps black without division and scales HDR color from the endpoint CDF entry.
+    /// Synchronized levels map three distinct gray samples to cumulative values zero, one half and one.
     /// </summary>
     [Fact]
     public void SynchronizedChannels_MapsBlackAndHdrColor()
@@ -100,15 +97,15 @@ public class AutoLevelProcessorTests
         image.Mutate(ctx => ctx.ApplyProcessor(new AutoLevelProcessor(5, false, 350, true)));
 
         Assert.Equal(new RgbaVector(0F, 0F, 0F, 0.625F), image[0, 0]);
-        Assert.Equal(new RgbaVector(0.625F, 0.625F, 0.625F, 0.625F), image[1, 0]);
-        Assert.Equal(new RgbaVector(2.5F, 2.5F, 2.5F, 0.625F), image[2, 0]);
+        Assert.Equal(new RgbaVector(0.5F, 0.5F, 0.5F, 0.625F), image[1, 0]);
+        Assert.Equal(new RgbaVector(1F, 1F, 1F, 0.625F), image[2, 0]);
     }
 
     /// <summary>
-    /// Separate-channel AutoLevel uses the endpoint CDF entry for HDR component values.
+    /// Separate-channel levels use the distinct HDR sample's cumulative count.
     /// </summary>
     [Fact]
-    public void SeparateChannels_MapsHdrComponentsToEndpointBin()
+    public void SeparateChannels_MapsDistinctHdrComponents()
     {
         using Image<RgbaVector> image = new(3, 1);
         image[0, 0] = new RgbaVector(0F, 0F, 0F, 0.625F);

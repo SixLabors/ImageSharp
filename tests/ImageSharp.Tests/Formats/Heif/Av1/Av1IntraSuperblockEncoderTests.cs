@@ -138,14 +138,19 @@ public class Av1IntraSuperblockEncoderTests
         colorConfig.MatrixCoefficients = ObuMatrixCoefficients.Bt709;
         using (Image<Rgba32> image = TestFile.Create(TestImages.Png.Bike).CreateRgba32Image())
         {
-            HeifColorConversionParameters parameters = Av1YuvConverter.GetConversionParameters(colorConfig, colorConfig.ColorRange, out HeifColorConversionMode mode);
+            HeifColorConversionParameters parameters = Av1YuvConverter.GetConversionParameters(
+                colorConfig,
+                colorConfig.ColorRange,
+                out HeifColorConversionMode mode);
+
             HeifPlanarColorConverter.ConvertFromRgb<Rgba32, Av1EncoderFrame<TSample>.PlanarView, TSample, TConverter>(
                 Configuration.Default,
                 image.Frames.RootFrame,
                 new Rectangle(0, 0, width, Height),
                 source.Frame.View,
                 in parameters,
-                mode);
+                mode,
+                null);
         }
 
         source.Frame.ExtendBorders();
@@ -158,7 +163,13 @@ public class Av1IntraSuperblockEncoderTests
         header.FrameSize.SuperResolutionDenominator = Av1Constants.ScaleNumerator;
         template.Sequence.SequenceHeader.EnableRestoration = enableRestoration;
         using Av1EncoderPictureBuffer picture = new(
-            Configuration.Default, template.Sequence.SequenceHeader, header, width, Height, 1 << template.Sequence.SequenceHeader.SuperblockSizeLog2, disallow4x4AllFrames: false);
+            Configuration.Default,
+            template.Sequence.SequenceHeader,
+            header,
+            width,
+            Height,
+            1 << template.Sequence.SequenceHeader.SuperblockSizeLog2,
+            disallow4x4AllFrames: false);
 
         using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);

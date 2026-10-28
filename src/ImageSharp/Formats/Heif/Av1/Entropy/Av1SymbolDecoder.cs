@@ -1239,7 +1239,19 @@ internal ref struct Av1SymbolDecoder
                 transformInfo.Type = Av1TransformType.DctDct;
             }
 
-            UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+            UpdateCoefficientContext(
+                aboveContexts,
+                leftContexts,
+                blocksWide,
+                blocksHigh,
+                transformSize,
+                blockPosition,
+                aboveOffset,
+                leftOffset,
+                culLevel,
+                modeBlocksToRightEdge,
+                modeBlocksToBottomEdge);
+
             return 0;
         }
 
@@ -1306,7 +1318,18 @@ internal ref struct Av1SymbolDecoder
             quantization,
             out int maximumCoefficientIndex);
 
-        UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+        UpdateCoefficientContext(
+            aboveContexts,
+            leftContexts,
+            blocksWide,
+            blocksHigh,
+            transformSize,
+            blockPosition,
+            aboveOffset,
+            leftOffset,
+            culLevel,
+            modeBlocksToRightEdge,
+            modeBlocksToBottomEdge);
 
         transformInfo.EndOfBlock = (ushort)endOfBlock;
         transformInfo.MaximumCoefficientIndex = (ushort)maximumCoefficientIndex;
@@ -1321,7 +1344,11 @@ internal ref struct Av1SymbolDecoder
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
     /// <returns>The one-based end-of-block coefficient position.</returns>
-    public int ReadEndOfBlockPosition(Av1TransformSize transformSize, Av1TransformClass transformClass, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public int ReadEndOfBlockPosition(
+        Av1TransformSize transformSize,
+        Av1TransformClass transformClass,
+        Av1TransformSize transformSizeContext,
+        Av1PlaneType planeType)
     {
         ref Av1SymbolReader r = ref this.reader;
         int endOfBlockExtra = 0;

@@ -627,6 +627,9 @@ public static class TestImages
         public const string Bit18RGBCube = "Gif/18-bit_RGB_Cube.gif";
         public const string Global256NoTrans = "Gif/global-256-no-trans.gif";
 
+        public const string ExifToolIcc = "Gif/exiftool-icc.gif";
+        public const string AdobeRgbIcc = "Gif/adobe-rgb-icc.gif";
+
         // Test images from: https://github.com/peterdn/gif-test-suite.git
         // Animated gif with 4 frames, looping forever, no transparency.
         public const string AnimatedLoop = "Gif/animated_loop.gif";
@@ -730,6 +733,7 @@ public static class TestImages
         public const string Bit16PalRle = "Tga/ccm8.tga";
         public const string Bit16RleBottomLeft = "Tga/targa_16bit_rle.tga";
         public const string Bit16PalBottomLeft = "Tga/targa_16bit_pal.tga";
+        public const string ColorMapOffset = "Tga/cmap_offset.tga";
 
         public const string Gray16BitTopLeft = "Tga/grayscale_a_UL.tga";
         public const string Gray16BitBottomLeft = "Tga/grayscale_a_LL.tga";
@@ -822,6 +826,7 @@ public static class TestImages
             public const string Alpha = "Webp/lossless_alpha_small.webp";
             public const string WithExif = "Webp/exif_lossless.webp";
             public const string WithIccp = "Webp/lossless_with_iccp.webp";
+            public const string WithIccpAndAlpha = "Webp/webp-color-profile-lossless.webp";
             public const string NoTransform1 = "Webp/lossless_vec_1_0.webp";
             public const string NoTransform2 = "Webp/lossless_vec_2_0.webp";
             public const string GreenTransform1 = "Webp/lossless1.webp";
@@ -894,9 +899,11 @@ public static class TestImages
             public const string WithExif = "Webp/exif_lossy.webp";
             public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
             public const string WithIccp = "Webp/lossy_with_iccp.webp";
+            public const string WithIccpAndAlpha = "Webp/webp-color-profile-lossy-alpha.webp";
             public const string WithXmp = "Webp/xmp_lossy.webp";
             public const string BikeSmall = "Webp/bike_lossy_small.webp";
             public const string Animated = "Webp/leo_animated_lossy.webp";
+            public const string AnimatedWithIccp = "Webp/chromium_animated_icc_xmp.webp";
             public const string AnimatedIssue2528 = "Webp/issues/Issue2528.webp";
 
             // Lossy images without macroblock filtering.
@@ -1076,6 +1083,17 @@ public static class TestImages
         public const string Fax4Compressed2 = "Tiff/CCITTGroup4.tiff";
         public const string Fax4CompressedLowerOrderBitsFirst = "Tiff/basi3p02_fax4_lowerOrderBitsFirst.tiff";
         public const string WebpCompressed = "Tiff/webp_compressed.tiff";
+        public const string WebpCompressedRgb = "Tiff/rgbsmall_WEBP.tif";
+        public const string WebpCompressedRgbTiled = "Tiff/rgbsmall_WEBP_tiled.tif";
+        public const string WebpCompressedRgbaAlphaOmitted = "Tiff/rgbsmall_WEBP_RGBA_alpha_omitted.tif";
+        public const string WebpCompressedLosslessRgbaOpaque = "Tiff/webp_lossless_rgba_alpha_fully_opaque.tif";
+
+        // ImageMagick 7.1.2-31 decoded these WebP sources once and wrote uncompressed 8-bit references.
+        // Their decoded RGBA bytes match the sources. All three rgbsmall WebP layouts share the same pixels.
+        public const string WebpCompressedReference = "Tiff/webp_compressed_reference.tiff";
+        public const string WebpCompressedRgbReference = "Tiff/rgbsmall_WEBP_reference.tiff";
+        public const string WebpCompressedLosslessRgbaOpaqueReference = "Tiff/webp_lossless_rgba_alpha_fully_opaque_reference.tiff";
+
         public const string Fax4CompressedMinIsBlack = "Tiff/CCITTGroup4_minisblack.tiff";
         public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
         public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
@@ -1205,7 +1223,9 @@ public static class TestImages
         public const string TiledRgba64BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_64bit_big_endian_deflate_compressed_predictor.tiff";
         public const string TiledRgb96BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_96bit_little_endian_deflate_compressed_predictor.tiff";
         public const string TiledRgb96BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_96bit_big_endian_deflate_compressed_predictor.tiff";
-        public const string TiledRgba128BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_128bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba128BitLittleEndianDeflateCompressedWithPredictor
+            = "Tiff/tiled_rgba_128bit_little_endian_deflate_compressed_predictor.tiff";
+
         public const string TiledRgba128BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_128bit_big_endian_deflate_compressed_predictor.tiff";
         public const string TiledRgbaLzwCompressedWithPredictor = "Tiff/tiled_rgba_lzw_compressed_predictor.tiff";
         public const string TiledRgbLzwCompressedWithPredictor = "Tiff/tiled_rgb_lzw_compressed_predictor.tiff";
@@ -1273,6 +1293,39 @@ public static class TestImages
         public const string CieLabPlanar = "Tiff/CieLabPlanar.tiff";
         public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
 
+        // Libtiff-generated color conversion fixtures: 65-pixel rows fill SIMD groups and leave one pixel for the remainder.
+        public const string Lab8Contiguous65X3 = "Tiff/ColorConversion/lab8-contig-65x3.tiff";
+        public const string Lab8Planar65X3 = "Tiff/ColorConversion/lab8-planar-65x3.tiff";
+        public const string Lab16LittleEndianContiguous65X3 = "Tiff/ColorConversion/lab16-le-contig-65x3.tiff";
+        public const string Lab16LittleEndianPlanar65X3 = "Tiff/ColorConversion/lab16-le-planar-65x3.tiff";
+        public const string Lab16BigEndianContiguous65X3 = "Tiff/ColorConversion/lab16-be-contig-65x3.tiff";
+        public const string Lab16BigEndianPlanar65X3 = "Tiff/ColorConversion/lab16-be-planar-65x3.tiff";
+        public const string Lab8Contiguous65X3LcmsRgb = "Tiff/ColorConversion/lab8-contig-65x3-lcms-rgb.tiff";
+        public const string Lab8Planar65X3LcmsRgb = "Tiff/ColorConversion/lab8-planar-65x3-lcms-rgb.tiff";
+        public const string Lab16LittleEndianContiguous65X3LcmsRgb = "Tiff/ColorConversion/lab16-le-contig-65x3-lcms-rgb.tiff";
+        public const string Lab16LittleEndianPlanar65X3LcmsRgb = "Tiff/ColorConversion/lab16-le-planar-65x3-lcms-rgb.tiff";
+        public const string Lab16BigEndianContiguous65X3LcmsRgb = "Tiff/ColorConversion/lab16-be-contig-65x3-lcms-rgb.tiff";
+        public const string Lab16BigEndianPlanar65X3LcmsRgb = "Tiff/ColorConversion/lab16-be-planar-65x3-lcms-rgb.tiff";
+        public const string Rgb44465X3 = "Tiff/ColorConversion/rgb444-65x3.tiff";
+        public const string Rgba4444Straight65X3 = "Tiff/ColorConversion/rgba4444-straight-65x3.tiff";
+        public const string Rgba4444Associated65X3 = "Tiff/ColorConversion/rgba4444-associated-65x3.tiff";
+        public const string FlowerRgb24ContiguousReference = "Tiff/ColorConversion/flower-rgb-contig-24-ref8.tiff";
+        public const string FlowerRgb24ContiguousLittleEndianReference = "Tiff/ColorConversion/flower-rgb-contig-24-lsb-ref8.tiff";
+        public const string FlowerRgb24PlanarReference = "Tiff/ColorConversion/flower-rgb-planar-24-ref8.tiff";
+        public const string FlowerRgb24PlanarLittleEndianReference = "Tiff/ColorConversion/flower-rgb-planar-24-lsb-ref8.tiff";
+        public const string FlowerRgb32ContiguousReference = "Tiff/ColorConversion/flower-rgb-contig-32-ref8.tiff";
+        public const string FlowerRgb32ContiguousLittleEndianReference = "Tiff/ColorConversion/flower-rgb-contig-32-lsb-ref8.tiff";
+        public const string FlowerRgb32PlanarReference = "Tiff/ColorConversion/flower-rgb-planar-32-ref8.tiff";
+        public const string FlowerRgb32PlanarLittleEndianReference = "Tiff/ColorConversion/flower-rgb-planar-32-lsb-ref8.tiff";
+        public const string Rgba24BigEndianReference = "Tiff/ColorConversion/rgba24-msb-ref8.tiff";
+        public const string Rgba24LittleEndianReference = "Tiff/ColorConversion/rgba24-lsb-ref8.tiff";
+        public const string Rgba24PlanarBigEndianReference = "Tiff/ColorConversion/rgba24-planar-msb-ref8.tiff";
+        public const string Rgba24PlanarLittleEndianReference = "Tiff/ColorConversion/rgba24-planar-lsb-ref8.tiff";
+        public const string Rgba32BigEndianReference = "Tiff/ColorConversion/rgba32-msb-ref8.tiff";
+        public const string Rgba32LittleEndianReference = "Tiff/ColorConversion/rgba32-lsb-ref8.tiff";
+        public const string Rgba32PlanarBigEndianReference = "Tiff/ColorConversion/rgba32-planar-msb-ref8.tiff";
+        public const string Rgba32PlanarLittleEndianReference = "Tiff/ColorConversion/rgba32-planar-lsb-ref8.tiff";
+
         public const string Cmyk = "Tiff/Cmyk.tiff";
         public const string Cmyk64BitDeflate = "Tiff/cmyk_deflate_64bit.tiff";
         public const string CmykLzwPredictor = "Tiff/Cmyk-lzw-predictor.tiff";
@@ -1321,16 +1374,21 @@ public static class TestImages
         public const string Issue3182ColorMap16Bit = "Tiff/Issues/Issue3182ColorMap16Bit.tiff";
         public const string Issue3198 = "Tiff/Issues/Issue3198.tiff";
 
-        public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
+        public static readonly string[] Multiframes
+            = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
         ];
 
         public static readonly string[] Metadata = [SampleMetadata];
 
         public static class Icc
         {
+            // PerceptualRgb8 with only the ICC header's size changed to 127, shorter than the 128-byte ICC header.
+            public const string InvalidProfileSize = "Tiff/icc-profiles/invalid-profile-size.tiff";
+
             public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
             public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
             public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";
+            public const string PerceptualRgb8Webp = "Tiff/icc-profiles/Perceptual_RGB8_Webp.tiff";
             public const string PerceptualRgb16 = "Tiff/icc-profiles/Perceptual_RGB16.tiff";
         }
     }
@@ -1506,6 +1564,7 @@ public static class TestImages
 
     public static class Ico
     {
+        public const string PillowWithIcc = "Icon/pillow.ico";
         public const string Flutter = "Icon/flutter.ico";
         public const string Bpp1Size15x15 = "Icon/1bpp_size_15x15.ico";
         public const string Bpp1Size16x16 = "Icon/1bpp_size_16x16.ico";

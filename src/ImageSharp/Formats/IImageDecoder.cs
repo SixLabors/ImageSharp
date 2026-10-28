@@ -11,8 +11,12 @@ namespace SixLabors.ImageSharp.Formats;
 public interface IImageDecoder
 {
     /// <summary>
-    /// Reads the raw image information from the specified stream.
+    /// Reads image information from the specified stream.
     /// </summary>
+    /// <remarks>
+    /// When an embedded ICC profile requires conversion, identified palette and background colors use sRGB.
+    /// These colors use unassociated floating-point values. Decoding to a specific pixel type can change their precision and alpha representation.
+    /// </remarks>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <returns>The <see cref="ImageInfo"/> object.</returns>
@@ -20,8 +24,12 @@ public interface IImageDecoder
     public ImageInfo Identify(DecoderOptions options, Stream stream);
 
     /// <summary>
-    /// Reads the raw image information from the specified stream.
+    /// Reads image information from the specified stream.
     /// </summary>
+    /// <remarks>
+    /// When an embedded ICC profile requires conversion, identified palette and background colors use sRGB.
+    /// These colors use unassociated floating-point values. Decoding to a specific pixel type can change their precision and alpha representation.
+    /// </remarks>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

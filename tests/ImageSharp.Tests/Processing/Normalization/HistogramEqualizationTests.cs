@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Histograms;
 using SixLabors.ImageSharp.Processing.Processors.Normalization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -15,34 +16,68 @@ public class HistogramEqualizationTests
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
 
     /// <summary>
-    /// Histogram indices saturate before they address a bounded CDF.
+    /// Runs the published positive-infinity TIFF reproduction and its finite control through the public APIs.
     /// </summary>
-    /// <param name="sample">The floating-point sample.</param>
+    /// <remarks>
+    /// Regression for <see href="https://github.com/SixLabors/ImageSharp/security/advisories/GHSA-j3p4-wp97-rph4">CVE-2026-106113</see>.
+    /// The advisory's TIFF samples caused an unsafe histogram access after decoding into HalfVector4.
+    /// Keep both decoding and histogram equalization in this test: pixel conversion tests do not cover the complete crash path.
+    /// </remarks>
+    /// <param name="hex">The TIFF bytes produced by the advisory's reproduction or its 0.5 control.</param>
+    [Theory]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+        "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+        "000020000000530103000100000003000000000000000000807F0000807F0000807F0000807F0000807F0000807F0000807F0000807F")]
+    [InlineData(
+        "49492A00080000000A0000010400010000000800000001010400010000000100000002010300010000002000000003010300010000000100" +
+        "0000060103000100000001000000110104000100000086000000150103000100000001000000160104000100000001000000170104000100" +
+        "000020000000530103000100000003000000000000000000003F0000003F0000003F0000003F0000003F0000003F0000003F0000003F")]
+    public void GlobalHistogramEqualization_Cve2026106113(string hex)
+    {
+        byte[] data = Convert.FromHexString(hex);
+        using Image<HalfVector4> image = Image.Load<HalfVector4>(data);
+
+        // This call terminated the process in the vulnerable releases. Do not replace it with an internal index test.
+        image.Mutate(x => x.HistogramEqualization());
+
+        Assert.Equal(new Size(8, 1), image.Size);
+    }
+
+    /// <summary>
+    /// SDR measurements map to equal bin intervals, with midpoint ties rounded to the nearest even index.
+    /// </summary>
+    /// <param name="sample">The finite SDR measurement in [0,1].</param>
     /// <param name="expectedIndex">The expected index in a five-bin histogram.</param>
     [Theory]
-    [InlineData(float.NaN, 0)]
-    [InlineData(float.NegativeInfinity, 0)]
-    [InlineData(-1F, 0)]
+    [InlineData(0F, 0)]
+    [InlineData(0.125F, 0)]
     [InlineData(0.25F, 1)]
+    [InlineData(0.375F, 2)]
+    [InlineData(0.625F, 2)]
     [InlineData(0.75F, 3)]
-    [InlineData(2F, 4)]
-    [InlineData(float.PositiveInfinity, 4)]
-    public void FloatingLuminance_UsesBoundedHistogramIndex(float sample, int expectedIndex)
+    [InlineData(0.875F, 4)]
+    [InlineData(1F, 4)]
+    public void SdrLuminance_UsesLinearHistogramIndex(float sample, int expectedIndex)
     {
-        RgbaVector pixel = new(sample, sample, sample);
-        int index = HistogramEqualizationProcessor<RgbaVector>.GetLuminance(pixel, 5);
+        HistogramIndexMapping mapping = new(5, -1);
+        int index = mapping.Invoke(sample);
 
         Assert.Equal(expectedIndex, index);
     }
 
     /// <summary>
-    /// Global equalization places out-of-range and nonfinite samples in the endpoint bins.
+    /// Global equalization retains distinct extended magnitudes and uses finite pixel endpoints for nonfinite input.
     /// </summary>
     [Fact]
-    public void GlobalFloatingSamples_UseEndpointBins()
+    public void GlobalFloatingSamples_UseDistinctExtendedBins()
     {
         float[] samples = [float.NaN, float.NegativeInfinity, -1F, 0.25F, 0.75F, 2F, float.PositiveInfinity];
-        float[] expected = [0F, 0F, 0F, 0.25F, 0.5F, 1F, 1F];
+
+        // NaN and negative infinity become the same finite minimum through the pixel API.
+        // Its count is two; the five remaining values occupy distinct bins. Subtracting that
+        // first count leaves cumulative values 0..5 divided by the remaining five samples.
+        float[] expected = [0F, 0F, 0.2F, 0.4F, 0.6F, 0.8F, 1F];
         using Image<RgbaVector> image = new(samples.Length, 1);
 
         for (int x = 0; x < samples.Length; x++)
@@ -63,16 +98,17 @@ public class HistogramEqualizationTests
     }
 
     /// <summary>
-    /// Adaptive CDF lookups produce the same pixels when their input indices match.
+    /// Adaptive equalization preserves rank order when distinct extended input magnitudes are doubled.
     /// </summary>
     /// <param name="method">The equalization method.</param>
     [Theory]
     [InlineData(HistogramEqualizationMethod.AdaptiveTileInterpolation)]
     [InlineData(HistogramEqualizationMethod.AdaptiveSlidingWindow)]
-    public void FloatingSamples_MatchBoundedIndexReference(HistogramEqualizationMethod method)
+    public void FloatingSamples_PreserveExtendedRankOrder(HistogramEqualizationMethod method)
     {
-        float[] samples = [float.NaN, float.NegativeInfinity, -1F, 0F, 0.25F, 0.75F, 2F, float.PositiveInfinity];
-        float[] bounded = [0F, 0F, 0F, 0F, 0.25F, 0.75F, 1F, 1F];
+        // Doubling these distinct magnitudes preserves their order and histogram counts.
+        // A clipped SDR mapping merges different entries and does not satisfy this property.
+        float[] samples = [-8F, -2F, 0F, 0.125F, 0.5F, 1F, 2F, 4F];
         using Image<RgbaVector> actual = new(17, 17);
         using Image<RgbaVector> reference = new(17, 17);
 
@@ -82,7 +118,7 @@ public class HistogramEqualizationTests
             {
                 int sample = (x + y) % samples.Length;
                 actual[x, y] = new RgbaVector(samples[sample], samples[sample], samples[sample], 0.625F);
-                reference[x, y] = new RgbaVector(bounded[sample], bounded[sample], bounded[sample], 0.625F);
+                reference[x, y] = new RgbaVector(samples[sample] * 2F, samples[sample] * 2F, samples[sample] * 2F, 0.625F);
             }
         }
 
@@ -96,13 +132,7 @@ public class HistogramEqualizationTests
         actual.Mutate(ctx => ctx.HistogramEqualization(options));
         reference.Mutate(ctx => ctx.HistogramEqualization(options));
 
-        for (int y = 0; y < actual.Height; y++)
-        {
-            for (int x = 0; x < actual.Width; x++)
-            {
-                Assert.Equal(reference[x, y], actual[x, y]);
-            }
-        }
+        ImageComparer.Exact.VerifySimilarity(reference, actual);
     }
 
     [Theory]

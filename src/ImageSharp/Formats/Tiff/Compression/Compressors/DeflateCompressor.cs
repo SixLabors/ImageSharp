@@ -12,7 +12,13 @@ internal sealed class DeflateCompressor : TiffBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
 
-    public DeflateCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor, DeflateCompressionLevel compressionLevel)
+    public DeflateCompressor(
+        Stream output,
+        MemoryAllocator allocator,
+        int width,
+        int bitsPerPixel,
+        TiffPredictor predictor,
+        DeflateCompressionLevel compressionLevel)
         : base(output, allocator, width, bitsPerPixel, predictor)
         => this.compressionLevel = compressionLevel;
 

@@ -1694,7 +1694,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                         // directly after applying the plane's chroma subsampling.
                         int unitHeight = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksHigh + row, maxBlocksHigh), 0);
                         int unitWidth = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksWide + column, maxBlocksWide), 0);
-                        DebugGuard.IsTrue(transformInfoSpan[transformInfoIndex].Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
+                        DebugGuard.IsTrue(
+                            transformInfoSpan[transformInfoIndex].Size == Av1TransformSize.Size4x4,
+                            "Lossless frame shall have transform units of size 4x4.");
+
                         transformUnitCount = ((unitWidth - column) * (unitHeight - row)) >> (subX + subY);
                     }
                     else
@@ -2698,7 +2701,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int subX = this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
             int subY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
             Point position = modeInfo.PositionInSuperblock;
-            Rectangle bounds = new((position.X << Av1Constants.ModeInfoSizeLog2) >> subX, (position.Y << Av1Constants.ModeInfoSizeLog2) >> subY, planeWidth, planeHeight);
+            Rectangle bounds = new(
+                (position.X << Av1Constants.ModeInfoSizeLog2) >> subX,
+                (position.Y << Av1Constants.ModeInfoSizeLog2) >> subY,
+                planeWidth,
+                planeHeight);
+
             Av1PlaneRegion<byte> colorIndexMap = this.chromaPaletteColorIndexMap.GetSubRegion(bounds);
 
             DecodePaletteColorMap(
@@ -3815,7 +3823,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int frameLoopFilterCount = 1;
             if (this.FrameHeader.DeltaLoopFilterParameters.IsMulti)
             {
-                frameLoopFilterCount = this.SequenceHeader.ColorConfig.PlaneCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
+                frameLoopFilterCount = this.SequenceHeader.ColorConfig.PlaneCount > 1
+                    ? Av1Constants.FrameLoopFilterCount
+                    : Av1Constants.FrameLoopFilterCount - 2;
             }
 
             Span<int> currentDeltaLoopFilter = this.currentDeltaLoopFilter;

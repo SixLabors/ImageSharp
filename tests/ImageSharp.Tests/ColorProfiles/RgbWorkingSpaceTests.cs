@@ -15,6 +15,9 @@ public class RgbWorkingSpaceTests
 {
     private static readonly ApproximateFloatComparer TolerantComparer = new(1e-5F);
 
+    // A round trip evaluates two approximate transfer functions. Scalar/bulk agreement keeps the tighter comparer above.
+    private static readonly ApproximateFloatComparer RoundTripComparer = new(2F * 5E-4F);
+
     public static readonly TheoryData<RgbWorkingSpace> WorkingSpaces = new()
     {
         KnownRgbWorkingSpaces.SRgb,
@@ -107,7 +110,9 @@ public class RgbWorkingSpaceTests
 
             expectedCompressed[i] = compressed;
 
-            Assert.Equal(linear[i], expanded, TolerantComparer);
+            Assert.Equal(linear[i], expanded, RoundTripComparer);
+            Assert.Equal(linear[i].W, compressed.W);
+            Assert.Equal(linear[i].W, expanded.W);
         }
 
         Vector4[] actualCompressed = [.. linear];
@@ -117,6 +122,11 @@ public class RgbWorkingSpaceTests
 
         workingSpace.Expand(actualCompressed);
 
-        Assert.Equal(linear, actualCompressed, TolerantComparer);
+        Assert.Equal(linear, actualCompressed, RoundTripComparer);
+
+        for (int i = 0; i < linear.Length; i++)
+        {
+            Assert.Equal(linear[i].W, actualCompressed[i].W);
+        }
     }
 }

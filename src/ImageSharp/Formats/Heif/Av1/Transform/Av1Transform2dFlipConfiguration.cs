@@ -14,14 +14,14 @@ internal ref struct Av1Transform2dFlipConfiguration
     public const int MaxStageNumber = 12;
 
     /// <summary>
+    /// The fixed-point cosine precision used by every inverse transform.
+    /// </summary>
+    public const int InverseCosBit = 12;
+
+    /// <summary>
     /// The base-two logarithm of the smallest supported transform dimension.
     /// </summary>
     private const int SmallestTransformSizeLog2 = 2;
-
-    /// <summary>
-    /// The fixed-point cosine precision used by every inverse transform.
-    /// </summary>
-    private const int InverseCosBit = 12;
 
     /// <summary>
     /// The fixed-point shifts applied between successive stages of the configured transform pipeline.
@@ -313,7 +313,10 @@ internal ref struct Av1Transform2dFlipConfiguration
         int transformHeightIndex = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
         this.TransformFunctionTypeColumn = TransformFunctionTypeMap[(transformHeightIndex * 4) + (int)this.TransformTypeColumn];
         this.TransformFunctionTypeRow = TransformFunctionTypeMap[(transformWidthIndex * 4) + (int)this.TransformTypeRow];
-        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
+        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid
+            ? StageNumberList[(int)this.TransformFunctionTypeColumn]
+            : -1;
+
         this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
 
         if (isForward)

@@ -842,7 +842,15 @@ internal static class LossyUtils
         // a20 a21 a22 a23   b20 b21 b22 b23
         // a30 a31 a32 a33   b30 b31 b32 b33
         // Transpose the two 4x4.
-        Vp8Transpose_2_4x4_16bVector128(b0, b1, b2, b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3);
+        Vp8Transpose_2_4x4_16bVector128(
+            b0,
+            b1,
+            b2,
+            b3,
+            out Vector128<long> output0,
+            out Vector128<long> output1,
+            out Vector128<long> output2,
+            out Vector128<long> output3);
 
         // a00 a10 a20 a30   b00 b10 b20 b30
         // a01 a11 a21 a31   b01 b11 b21 b31
@@ -889,7 +897,15 @@ internal static class LossyUtils
 
     // Transpose two 4x4 16b matrices horizontally stored in registers.
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static void Vp8Transpose_2_4x4_16bVector128(Vector128<short> b0, Vector128<short> b1, Vector128<short> b2, Vector128<short> b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3)
+    public static void Vp8Transpose_2_4x4_16bVector128(
+        Vector128<short> b0,
+        Vector128<short> b1,
+        Vector128<short> b2,
+        Vector128<short> b3,
+        out Vector128<long> output0,
+        out Vector128<long> output1,
+        out Vector128<long> output2,
+        out Vector128<long> output3)
     {
         // Transpose the two 4x4.
         // a00 a01 a02 a03   b00 b01 b02 b03
@@ -1004,7 +1020,15 @@ internal static class LossyUtils
             Vector128<short> tmp3 = a.AsInt16() - d;
 
             // Transpose the two 4x4.
-            Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            Vp8Transpose_2_4x4_16bVector128(
+                tmp0,
+                tmp1,
+                tmp2,
+                tmp3,
+                out Vector128<long> t0,
+                out Vector128<long> t1,
+                out Vector128<long> t2,
+                out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
@@ -1126,7 +1150,15 @@ internal static class LossyUtils
             Vector128<short> tmp3 = a.AsInt16() - d;
 
             // Transpose the two 4x4.
-            Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            Vp8Transpose_2_4x4_16bVector128(
+                tmp0,
+                tmp1,
+                tmp2,
+                tmp3,
+                out Vector128<long> t0,
+                out Vector128<long> t1,
+                out Vector128<long> t2,
+                out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
@@ -1345,7 +1377,15 @@ internal static class LossyUtils
             // Beginning of p1
             ref byte pRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(p), (uint)(offset - 2));
 
-            Load16x4Vector128(ref pRef, ref Unsafe.Add(ref pRef, 8 * (uint)stride), stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1);
+            Load16x4Vector128(
+                ref pRef,
+                ref Unsafe.Add(ref pRef, 8 * (uint)stride),
+                stride,
+                out Vector128<byte> p1,
+                out Vector128<byte> p0,
+                out Vector128<byte> q0,
+                out Vector128<byte> q1);
+
             DoFilter2Vector128(ref p1, ref p0, ref q0, ref q1, thresh);
             Store16x4Vector128(p1, p0, q0, q1, ref pRef, ref Unsafe.Add(ref pRef, 8 * (uint)stride), stride);
         }
@@ -1453,13 +1493,27 @@ internal static class LossyUtils
         {
             ref byte pRef = ref MemoryMarshal.GetReference(p);
             ref byte bRef = ref Unsafe.Add(ref pRef, (uint)offset - 4);
-            Load16x4Vector128(ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(
+                ref bRef,
+                ref Unsafe.Add(ref bRef, 8 * (uint)stride),
+                stride,
+                out Vector128<byte> p3,
+                out Vector128<byte> p2,
+                out Vector128<byte> p1,
+                out Vector128<byte> p0);
 
             Vector128<byte> mask = AbsVector128(p1, p0);
             mask = Vector128.Max(mask, AbsVector128(p3, p2));
             mask = Vector128.Max(mask, AbsVector128(p2, p1));
 
-            Load16x4Vector128(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+            Load16x4Vector128(
+                ref Unsafe.Add(ref pRef, (uint)offset),
+                ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))),
+                stride,
+                out Vector128<byte> q0,
+                out Vector128<byte> q1,
+                out Vector128<byte> q2,
+                out Vector128<byte> q3);
 
             mask = Vector128.Max(mask, AbsVector128(q1, q0));
             mask = Vector128.Max(mask, AbsVector128(q3, q2));
@@ -1538,7 +1592,14 @@ internal static class LossyUtils
         if (Vector128.IsHardwareAccelerated)
         {
             ref byte pRef = ref MemoryMarshal.GetReference(p);
-            Load16x4Vector128(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(
+                ref Unsafe.Add(ref pRef, (uint)offset),
+                ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))),
+                stride,
+                out Vector128<byte> p3,
+                out Vector128<byte> p2,
+                out Vector128<byte> p1,
+                out Vector128<byte> p0);
 
             Vector128<byte> mask;
             for (int k = 3; k > 0; k--)
@@ -1554,7 +1615,14 @@ internal static class LossyUtils
                 mask = Vector128.Max(mask, AbsVector128(p3, p2));
                 mask = Vector128.Max(mask, AbsVector128(p2, p1));
 
-                Load16x4Vector128(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out p3, out p2, out Vector128<byte> tmp1, out Vector128<byte> tmp2);
+                Load16x4Vector128(
+                    ref Unsafe.Add(ref pRef, (uint)offset),
+                    ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))),
+                    stride,
+                    out p3,
+                    out p2,
+                    out Vector128<byte> tmp1,
+                    out Vector128<byte> tmp2);
 
                 mask = Vector128.Max(mask, AbsVector128(tmp1, tmp2));
                 mask = Vector128.Max(mask, AbsVector128(p3, p2));
@@ -1632,13 +1700,27 @@ internal static class LossyUtils
         {
             ref byte uRef = ref MemoryMarshal.GetReference(u);
             ref byte vRef = ref MemoryMarshal.GetReference(v);
-            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset - 4), ref Unsafe.Add(ref vRef, (uint)offset - 4), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(
+                ref Unsafe.Add(ref uRef, (uint)offset - 4),
+                ref Unsafe.Add(ref vRef, (uint)offset - 4),
+                stride,
+                out Vector128<byte> p3,
+                out Vector128<byte> p2,
+                out Vector128<byte> p1,
+                out Vector128<byte> p0);
 
             Vector128<byte> mask = AbsVector128(p1, p0);
             mask = Vector128.Max(mask, AbsVector128(p3, p2));
             mask = Vector128.Max(mask, AbsVector128(p2, p1));
 
-            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+            Load16x4Vector128(
+                ref Unsafe.Add(ref uRef, (uint)offset),
+                ref Unsafe.Add(ref vRef, (uint)offset),
+                stride,
+                out Vector128<byte> q0,
+                out Vector128<byte> q1,
+                out Vector128<byte> q2,
+                out Vector128<byte> q3);
 
             mask = Vector128.Max(mask, AbsVector128(q1, q0));
             mask = Vector128.Max(mask, AbsVector128(q3, q2));
@@ -1709,7 +1791,14 @@ internal static class LossyUtils
         {
             ref byte uRef = ref MemoryMarshal.GetReference(u);
             ref byte vRef = ref MemoryMarshal.GetReference(v);
-            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> t2, out Vector128<byte> t1, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(
+                ref Unsafe.Add(ref uRef, (uint)offset),
+                ref Unsafe.Add(ref vRef, (uint)offset),
+                stride,
+                out Vector128<byte> t2,
+                out Vector128<byte> t1,
+                out Vector128<byte> p1,
+                out Vector128<byte> p0);
 
             Vector128<byte> mask = AbsVector128(p1, p0);
             mask = Vector128.Max(mask, AbsVector128(t2, t1));
@@ -1718,7 +1807,14 @@ internal static class LossyUtils
             // Beginning of q0.
             offset += 4;
 
-            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out t1, out t2);
+            Load16x4Vector128(
+                ref Unsafe.Add(ref uRef, (uint)offset),
+                ref Unsafe.Add(ref vRef, (uint)offset),
+                stride,
+                out Vector128<byte> q0,
+                out Vector128<byte> q1,
+                out t1,
+                out t2);
 
             mask = Vector128.Max(mask, AbsVector128(q1, q0));
             mask = Vector128.Max(mask, AbsVector128(t2, t1));
@@ -1972,7 +2068,13 @@ internal static class LossyUtils
     }
 
     // Applies filter on 4 pixels (p1, p0, q0 and q1)
-    private static void DoFilter4Vector128(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, Vector128<byte> mask, int tresh)
+    private static void DoFilter4Vector128(
+        ref Vector128<byte> p1,
+        ref Vector128<byte> p0,
+        ref Vector128<byte> q0,
+        ref Vector128<byte> q1,
+        Vector128<byte> mask,
+        int tresh)
     {
         // Compute hev mask.
         Vector128<byte> notHev = GetNotHevVector128(ref p1, ref p0, ref q0, ref q1, tresh);
@@ -2015,7 +2117,15 @@ internal static class LossyUtils
     }
 
     // Applies filter on 6 pixels (p2, p1, p0, q0, q1 and q2)
-    private static void DoFilter6Vector128(ref Vector128<byte> p2, ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, ref Vector128<byte> q2, Vector128<byte> mask, int tresh)
+    private static void DoFilter6Vector128(
+        ref Vector128<byte> p2,
+        ref Vector128<byte> p1,
+        ref Vector128<byte> p0,
+        ref Vector128<byte> q0,
+        ref Vector128<byte> q1,
+        ref Vector128<byte> q2,
+        Vector128<byte> mask,
+        int tresh)
     {
         // Compute hev mask.
         Vector128<byte> notHev = GetNotHevVector128(ref p1, ref p0, ref q0, ref q1, tresh);
@@ -2072,7 +2182,12 @@ internal static class LossyUtils
         p0 = Vector128.AddSaturate(p0.AsSByte(), v3).AsByte(); // p0 += v3
     }
 
-    private static Vector128<byte> GetNotHevVector128(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int hevThresh)
+    private static Vector128<byte> GetNotHevVector128(
+        ref Vector128<byte> p1,
+        ref Vector128<byte> p0,
+        ref Vector128<byte> q0,
+        ref Vector128<byte> q1,
+        int hevThresh)
     {
         Vector128<byte> t1 = AbsVector128(p1, p0);
         Vector128<byte> t2 = AbsVector128(q1, q0);
@@ -2181,7 +2296,14 @@ internal static class LossyUtils
         return Vector128.Equals(t7, Vector128<byte>.Zero);
     }
 
-    private static void Load16x4Vector128(ref byte r0, ref byte r8, int stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1)
+    private static void Load16x4Vector128(
+        ref byte r0,
+        ref byte r8,
+        int stride,
+        out Vector128<byte> p1,
+        out Vector128<byte> p0,
+        out Vector128<byte> q0,
+        out Vector128<byte> q1)
     {
         // Assume the pixels around the edge (|) are numbered as follows
         //                00 01 | 02 03
@@ -2244,7 +2366,14 @@ internal static class LossyUtils
     }
 
     // Transpose back and store
-    private static void Store16x4Vector128(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, ref byte r0Ref, ref byte r8Ref, int stride)
+    private static void Store16x4Vector128(
+        Vector128<byte> p1,
+        Vector128<byte> p0,
+        Vector128<byte> q0,
+        Vector128<byte> q1,
+        ref byte r0Ref,
+        ref byte r8Ref,
+        int stride)
     {
         // p0 = 71 70 61 60 51 50 41 40 31 30 21 20 11 10 01 00
         // p1 = f1 f0 e1 e0 d1 d0 c1 c0 b1 b0 a1 a0 91 90 81 80
@@ -2310,7 +2439,14 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ComplexMaskVector128(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh, int ithresh, ref Vector128<byte> mask)
+    private static void ComplexMaskVector128(
+        Vector128<byte> p1,
+        Vector128<byte> p0,
+        Vector128<byte> q0,
+        Vector128<byte> q1,
+        int thresh,
+        int ithresh,
+        ref Vector128<byte> mask)
     {
         Vector128<byte> it = Vector128.Create((byte)ithresh);
         Vector128<byte> diff = Vector128.SubtractSaturate(mask, it);
@@ -2403,5 +2539,5 @@ internal static class LossyUtils
     private static void Memset(Span<byte> dst, byte value, int startIdx, int count) => dst.Slice(startIdx, count).Fill(value);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int Clamp255(int x) => Numerics.Clamp(x, 0, 255);
+    private static int Clamp255(int x) => Math.Clamp(x, 0, 255);
 }

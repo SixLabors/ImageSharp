@@ -44,7 +44,10 @@ public static class AdvancedImageExtensions
         if (encoder is null)
         {
             StringBuilder sb = new();
-            sb = sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
+            sb = sb.AppendLine(
+                CultureInfo.InvariantCulture,
+                $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
+
             foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.Configuration.ImageFormatsManager.ImageEncoders)
             {
                 sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);

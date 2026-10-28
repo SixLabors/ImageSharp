@@ -4,6 +4,8 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
+using SixLabors.ImageSharp.ColorProfiles.Companding;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
@@ -29,12 +31,12 @@ internal abstract partial class HeifColorConverterBase
             // red and blue first, then solve for green in linear light using the signaled transfer curve.
             float nonlinearBlue = y + (2F * (cb <= 0F ? scales.NegativeBlue : scales.PositiveBlue) * cb);
             float nonlinearRed = y + (2F * (cr <= 0F ? scales.NegativeRed : scales.PositiveRed) * cr);
-            float linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
-            float linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
-            float linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
+            float linearY = CicpCompanding.ToLinear(parameters.TransferCharacteristics, y);
+            float linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
+            float linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
             float linearGreen = (linearY - (parameters.Kr * linearRed) - (parameters.Kb * linearBlue)) / parameters.Kg;
             y = nonlinearRed;
-            cb = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            cb = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cr = nonlinearBlue;
         }
 
@@ -53,17 +55,19 @@ internal abstract partial class HeifColorConverterBase
                 Vector128.Create(scales.NegativeRed),
                 Vector128.Create(scales.PositiveRed));
 
+            // Each lane is one pixel. Its Cb and Cr signs select their own scale; neighboring pixels can use different scales.
+            // Chroma reconstructs nonlinear red and blue. The luma equation must use linear values to recover green.
             Vector128<float> nonlinearBlue = Vector128.MultiplyAddEstimate(Vector128.Create(2F) * blueScale, cb, y);
             Vector128<float> nonlinearRed = Vector128.MultiplyAddEstimate(Vector128.Create(2F) * redScale, cr, y);
-            Vector128<float> linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
-            Vector128<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
-            Vector128<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
+            Vector128<float> linearY = CicpCompanding.ToLinear(parameters.TransferCharacteristics, y);
+            Vector128<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
+            Vector128<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
             Vector128<float> linearGreen = (
                 linearY - (Vector128.Create(parameters.Kr) * linearRed) - (Vector128.Create(parameters.Kb) * linearBlue))
                 / Vector128.Create(parameters.Kg);
 
             y = nonlinearRed;
-            cb = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            cb = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cr = nonlinearBlue;
         }
 
@@ -82,17 +86,19 @@ internal abstract partial class HeifColorConverterBase
                 Vector256.Create(scales.NegativeRed),
                 Vector256.Create(scales.PositiveRed));
 
+            // Each lane is one pixel. Its Cb and Cr signs select their own scale; neighboring pixels can use different scales.
+            // Chroma reconstructs nonlinear red and blue. The luma equation must use linear values to recover green.
             Vector256<float> nonlinearBlue = Vector256.MultiplyAddEstimate(Vector256.Create(2F) * blueScale, cb, y);
             Vector256<float> nonlinearRed = Vector256.MultiplyAddEstimate(Vector256.Create(2F) * redScale, cr, y);
-            Vector256<float> linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
-            Vector256<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
-            Vector256<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
+            Vector256<float> linearY = CicpCompanding.ToLinear(parameters.TransferCharacteristics, y);
+            Vector256<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
+            Vector256<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
             Vector256<float> linearGreen = (
                 linearY - (Vector256.Create(parameters.Kr) * linearRed) - (Vector256.Create(parameters.Kb) * linearBlue))
                 / Vector256.Create(parameters.Kg);
 
             y = nonlinearRed;
-            cb = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            cb = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cr = nonlinearBlue;
         }
 
@@ -111,17 +117,19 @@ internal abstract partial class HeifColorConverterBase
                 Vector512.Create(scales.NegativeRed),
                 Vector512.Create(scales.PositiveRed));
 
+            // Each lane is one pixel. Its Cb and Cr signs select their own scale; neighboring pixels can use different scales.
+            // Chroma reconstructs nonlinear red and blue. The luma equation must use linear values to recover green.
             Vector512<float> nonlinearBlue = Vector512.MultiplyAddEstimate(Vector512.Create(2F) * blueScale, cb, y);
             Vector512<float> nonlinearRed = Vector512.MultiplyAddEstimate(Vector512.Create(2F) * redScale, cr, y);
-            Vector512<float> linearY = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, y);
-            Vector512<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
-            Vector512<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
+            Vector512<float> linearY = CicpCompanding.ToLinear(parameters.TransferCharacteristics, y);
+            Vector512<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearBlue);
+            Vector512<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, nonlinearRed);
             Vector512<float> linearGreen = (
                 linearY - (Vector512.Create(parameters.Kr) * linearRed) - (Vector512.Create(parameters.Kb) * linearBlue))
                 / Vector512.Create(parameters.Kg);
 
             y = nonlinearRed;
-            cb = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            cb = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearGreen);
             cr = nonlinearBlue;
         }
 
@@ -138,11 +146,11 @@ internal abstract partial class HeifColorConverterBase
         {
             // Luma is formed in linear light. The nonlinear red and blue differences then choose the
             // sign-dependent denominators that define constant-luminance Cb and Cr.
-            float linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, r);
-            float linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, g);
-            float linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, b);
+            float linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, r);
+            float linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, g);
+            float linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, b);
             float linearY = (parameters.Kr * linearRed) + (parameters.Kg * linearGreen) + (parameters.Kb * linearBlue);
-            y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
+            y = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearY);
             float blueDifference = b - y;
             float redDifference = r - y;
             HeifConstantLuminanceScales scales = parameters.ConstantLuminanceScales;
@@ -161,15 +169,18 @@ internal abstract partial class HeifColorConverterBase
             out Vector128<float> cb,
             out Vector128<float> cr)
         {
-            Vector128<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, r);
-            Vector128<float> linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, g);
-            Vector128<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, b);
+            // Remove the transfer curve before forming luma. A weighted sum of nonlinear RGB would define a different transform.
+            Vector128<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, r);
+            Vector128<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, g);
+            Vector128<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, b);
             Vector128<float> linearY = Vector128.MultiplyAddEstimate(
                 Vector128.Create(parameters.Kr),
                 linearRed,
                 Vector128.MultiplyAddEstimate(Vector128.Create(parameters.Kg), linearGreen, Vector128.Create(parameters.Kb) * linearBlue));
 
-            y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
+            y = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearY);
+
+            // Return to nonlinear luma before measuring chroma. Select each divisor from that difference's sign.
             Vector128<float> blueDifference = b - y;
             Vector128<float> redDifference = r - y;
             HeifConstantLuminanceScales scales = parameters.ConstantLuminanceScales;
@@ -198,15 +209,18 @@ internal abstract partial class HeifColorConverterBase
             out Vector256<float> cb,
             out Vector256<float> cr)
         {
-            Vector256<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, r);
-            Vector256<float> linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, g);
-            Vector256<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, b);
+            // Remove the transfer curve before forming luma. A weighted sum of nonlinear RGB would define a different transform.
+            Vector256<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, r);
+            Vector256<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, g);
+            Vector256<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, b);
             Vector256<float> linearY = Vector256.MultiplyAddEstimate(
                 Vector256.Create(parameters.Kr),
                 linearRed,
                 Vector256.MultiplyAddEstimate(Vector256.Create(parameters.Kg), linearGreen, Vector256.Create(parameters.Kb) * linearBlue));
 
-            y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
+            y = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearY);
+
+            // Return to nonlinear luma before measuring chroma. Select each divisor from that difference's sign.
             Vector256<float> blueDifference = b - y;
             Vector256<float> redDifference = r - y;
             HeifConstantLuminanceScales scales = parameters.ConstantLuminanceScales;
@@ -235,15 +249,18 @@ internal abstract partial class HeifColorConverterBase
             out Vector512<float> cb,
             out Vector512<float> cr)
         {
-            Vector512<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, r);
-            Vector512<float> linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, g);
-            Vector512<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, b);
+            // Remove the transfer curve before forming luma. A weighted sum of nonlinear RGB would define a different transform.
+            Vector512<float> linearRed = CicpCompanding.ToLinear(parameters.TransferCharacteristics, r);
+            Vector512<float> linearGreen = CicpCompanding.ToLinear(parameters.TransferCharacteristics, g);
+            Vector512<float> linearBlue = CicpCompanding.ToLinear(parameters.TransferCharacteristics, b);
             Vector512<float> linearY = Vector512.MultiplyAddEstimate(
                 Vector512.Create(parameters.Kr),
                 linearRed,
                 Vector512.MultiplyAddEstimate(Vector512.Create(parameters.Kg), linearGreen, Vector512.Create(parameters.Kb) * linearBlue));
 
-            y = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearY);
+            y = CicpCompanding.ToGamma(parameters.TransferCharacteristics, linearY);
+
+            // Return to nonlinear luma before measuring chroma. Select each divisor from that difference's sign.
             Vector512<float> blueDifference = b - y;
             Vector512<float> redDifference = r - y;
             HeifConstantLuminanceScales scales = parameters.ConstantLuminanceScales;

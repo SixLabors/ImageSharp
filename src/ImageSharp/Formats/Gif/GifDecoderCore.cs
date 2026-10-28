@@ -6,9 +6,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -27,17 +30,17 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <summary>
     /// The global color table.
     /// </summary>
-    private IMemoryOwner<byte>? globalColorTable;
+    private Color[]? globalColorTable;
 
     /// <summary>
     /// The current local color table.
     /// </summary>
-    private IMemoryOwner<byte>? currentLocalColorTable;
+    private Color[]? currentLocalColorTable;
 
     /// <summary>
-    /// Gets the size in bytes of the current local color table.
+    /// Converts encoded RGB palette entries with the image-level source profile.
     /// </summary>
-    private int currentLocalColorTableSize;
+    private ColorProfileConverter? colorProfileConverter;
 
     /// <summary>
     /// The area to restore.
@@ -132,6 +135,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         break;
                     }
 
+                    if (image is null)
+                    {
+                        this.ConvertGlobalColorTable<TPixel>(this.metadata, this.gifMetadata);
+                    }
+
+                    // Header parsing guarantees non-null GIF metadata; pass that contract explicitly into frame decoding.
                     globalColorTableUsed |= this.ReadFrame(stream, ref image, ref previousFrame, ref previousDisposalMode, ref backgroundColor);
 
                     // Reset per-frame state.
@@ -149,7 +158,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
                             break;
                         case GifConstants.ApplicationExtensionLabel:
-                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream));
+                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
                             break;
                         case GifConstants.PlainTextLabel:
                             SkipBlock(stream); // Not supported by any known decoder.
@@ -177,14 +186,9 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
         catch
         {
-            // Ownership transfers to the caller only after decoding succeeds. Dispose a partially decoded image on failure.
+            // The caller owns the image only after decoding succeeds. Release partial frames on failure.
             image?.Dispose();
             throw;
-        }
-        finally
-        {
-            this.globalColorTable?.Dispose();
-            this.currentLocalColorTable?.Dispose();
         }
 
         if (image is null)
@@ -203,68 +207,66 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         List<ImageFrameMetadata> framesMetadata = [];
         bool globalColorTableUsed = false;
 
-        try
+        this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
+
+        // Loop though the respective gif parts and read the data.
+        int nextFlag = stream.ReadByte();
+        while (nextFlag != GifConstants.Terminator)
         {
-            this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
-
-            // Loop though the respective gif parts and read the data.
-            int nextFlag = stream.ReadByte();
-            while (nextFlag != GifConstants.Terminator)
+            if (nextFlag == GifConstants.ImageLabel)
             {
-                if (nextFlag == GifConstants.ImageLabel)
+                if (previousFrame != null && ++frameCount == this.maxFrames)
                 {
-                    if (previousFrame != null && ++frameCount == this.maxFrames)
-                    {
+                    break;
+                }
+
+                if (previousFrame is null)
+                {
+                    // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+                    this.ConvertGlobalColorTable<RgbaVector>(this.metadata, this.gifMetadata);
+                }
+
+                globalColorTableUsed |= this.ReadFrameMetadata(stream, framesMetadata, ref previousFrame);
+
+                // Reset per-frame state.
+                this.imageDescriptor = default;
+                this.graphicsControlExtension = default;
+            }
+            else if (nextFlag == GifConstants.ExtensionIntroducer)
+            {
+                switch (stream.ReadByte())
+                {
+                    case GifConstants.GraphicControlLabel:
+                        this.ReadGraphicalControlExtension(stream);
                         break;
-                    }
-
-                    globalColorTableUsed |= this.ReadFrameMetadata(stream, framesMetadata, ref previousFrame);
-
-                    // Reset per-frame state.
-                    this.imageDescriptor = default;
-                    this.graphicsControlExtension = default;
-                }
-                else if (nextFlag == GifConstants.ExtensionIntroducer)
-                {
-                    switch (stream.ReadByte())
-                    {
-                        case GifConstants.GraphicControlLabel:
-                            this.ReadGraphicalControlExtension(stream);
-                            break;
-                        case GifConstants.CommentLabel:
-                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
-                            break;
-                        case GifConstants.ApplicationExtensionLabel:
-                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream));
-                            break;
-                        case GifConstants.PlainTextLabel:
-                            SkipBlock(stream); // Not supported by any known decoder.
-                            break;
-                    }
-                }
-                else if (nextFlag == GifConstants.EndIntroducer)
-                {
-                    break;
-                }
-
-                nextFlag = stream.ReadByte();
-                if (nextFlag == -1)
-                {
-                    break;
+                    case GifConstants.CommentLabel:
+                        this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
+                        break;
+                    case GifConstants.ApplicationExtensionLabel:
+                        this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream, this.metadata));
+                        break;
+                    case GifConstants.PlainTextLabel:
+                        SkipBlock(stream); // Not supported by any known decoder.
+                        break;
                 }
             }
-
-            // We cannot always trust the global GIF palette has actually been used.
-            // https://github.com/SixLabors/ImageSharp/issues/2866
-            if (!globalColorTableUsed)
+            else if (nextFlag == GifConstants.EndIntroducer)
             {
-                this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
+                break;
+            }
+
+            nextFlag = stream.ReadByte();
+            if (nextFlag == -1)
+            {
+                break;
             }
         }
-        finally
+
+        // We cannot always trust the global GIF palette has actually been used.
+        // https://github.com/SixLabors/ImageSharp/issues/2866
+        if (!globalColorTableUsed)
         {
-            this.globalColorTable?.Dispose();
-            this.currentLocalColorTable?.Dispose();
+            this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
         }
 
         // Ignoring a malformed ancillary extension must not let identify succeed for a file
@@ -336,11 +338,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads the application extension block parsing any animation or XMP information
+    /// Reads the application extension block parsing ICC, animation or XMP information
     /// if present.
     /// </summary>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    private void ReadApplicationExtension(BufferedReadStream stream)
+    /// <param name="metadata">The image metadata initialized by header parsing.</param>
+    private void ReadApplicationExtension(BufferedReadStream stream, ImageMetadata metadata)
     {
         int appLength = stream.ReadByte();
         if (appLength == -1)
@@ -355,8 +358,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             return;
         }
 
-        // If the length is 11 then it's a valid extension and most likely
-        // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
+        // The identifier and authentication code occupy the 11-byte application header.
         long position = stream.Position;
         int bytesRead = stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
         if (bytesRead != GifConstants.ApplicationBlockSize)
@@ -365,6 +367,21 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         bool isXmp = ((ReadOnlySpan<byte>)this.buffer).StartsWith(GifConstants.XmpApplicationIdentificationBytes);
+        bool isIcc = ((ReadOnlySpan<byte>)this.buffer).StartsWith(GifConstants.IccApplicationIdentificationBytes);
+        if (isIcc)
+        {
+            if (metadata.IccProfile is null)
+            {
+                ReadIccApplicationExtension(stream, metadata);
+            }
+            else
+            {
+                SkipBlock(stream);
+            }
+
+            return;
+        }
+
         if (isXmp)
         {
             this.ReadXmpApplicationExtension(stream, position, appLength);
@@ -388,6 +405,44 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         // Could be something else not supported yet.
         // Skip the subblock and terminator.
         SkipBlock(stream, subBlockSize);
+    }
+
+    /// <summary>
+    /// Reads the complete ICC payload from ordinary GIF application data subblocks.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the first data subblock.</param>
+    /// <param name="metadata">The image metadata initialized by header parsing.</param>
+    private static void ReadIccApplicationExtension(BufferedReadStream stream, ImageMetadata metadata)
+    {
+        // Keep GIF subblock framing here while the shared reader owns ICC size and validity checks.
+        IccReader reader = new();
+
+        int length = stream.ReadByte();
+        while (length > 0)
+        {
+            try
+            {
+                if (reader.Read(stream, length) != length)
+                {
+                    GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif ICC profile");
+                }
+            }
+            catch (InvalidIccProfileException)
+            {
+                // The reader rejects oversized segments before consuming them; drain through the extension terminator.
+                SkipBlock(stream, length);
+                throw;
+            }
+
+            length = stream.ReadByte();
+        }
+
+        if (length < 0)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif ICC profile");
+        }
+
+        metadata.IccProfile = reader.ToProfile();
     }
 
     /// <summary>
@@ -500,7 +555,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         {
             if (length > GifConstants.MaxCommentSubBlockLength)
             {
-                GifThrowHelper.ThrowInvalidImageContentException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
+                GifThrowHelper.ThrowInvalidImageContentException(
+                    $"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
             }
 
             if (length == -1)
@@ -555,28 +611,24 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
         bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
-        Span<byte> rawColorTable = default;
+        Color[]? colorTable = this.globalColorTable;
         if (hasLocalColorTable)
         {
-            // Read and store the local color table. We allocate the maximum possible size and slice to match.
-            int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
-            this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
-            stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
-            rawColorTable = this.currentLocalColorTable.GetSpan()[..length];
-        }
-        else if (this.globalColorTable != null)
-        {
-            rawColorTable = this.globalColorTable.GetSpan();
+            colorTable = this.ReadLocalColorTable<TPixel>(stream);
+            this.currentLocalColorTable = colorTable;
         }
 
-        ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
+        ReadOnlySpan<Color> colors = colorTable;
 
         // First frame
         if (image is null)
         {
-            if (this.backgroundColorIndex < colorTable.Length)
+            // GIF89a section 18(c)(vii) defines Background Color Index against the global table,
+            // even when this frame uses a local table. Without a global table the index is ignored;
+            // retain the decoder's transparent fallback when no valid background entry exists.
+            if (this.globalColorTable is not null && this.backgroundColorIndex < this.globalColorTable.Length)
             {
-                backgroundColor = Color.FromPixel(colorTable[this.backgroundColorIndex]);
+                backgroundColor = this.globalColorTable[this.backgroundColorIndex];
             }
             else
             {
@@ -597,7 +649,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         try
         {
-            this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colorTable, backgroundColor.ToPixel<TPixel>());
+            this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colors, backgroundColor.ToPixel<TPixel>());
         }
         catch (InvalidImageContentException) when (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData)
         {
@@ -609,14 +661,9 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
         if (disposalMethod != FrameDisposalMode.RestoreToPrevious)
         {
-            // Do not key this on the transparency flag. Disposal handling is determined by
-            // the previous frame's disposal, not by whether the current frame declares a transparent
-            // index. For editing we carry a transparent background so that RestoreToBackground clears
-            // remove pixels to transparent rather than painting an opaque matte. The LSD background
-            // color is display advice and should be used only when explicitly flattening or when
-            // rendering with an option to honor it.
-            backgroundColor = (this.backgroundColorIndex < colorTable.Length)
-                ? Color.FromPixel(colorTable[this.backgroundColorIndex]).WithAlpha(0)
+            // Transparent disposal retains RGB from the active frame table, distinct from the LSD background.
+            backgroundColor = this.backgroundColorIndex < colors.Length
+                ? colors[this.backgroundColorIndex].WithAlpha(0)
                 : Color.Transparent;
         }
 
@@ -624,6 +671,74 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         SkipBlock(stream);
 
         return !hasLocalColorTable;
+    }
+
+    /// <summary>
+    /// Configures ICC conversion for GIF palettes and converts the global color table and its background color.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format for converted colors.</typeparam>
+    /// <param name="metadata">The image metadata containing the source ICC profile.</param>
+    /// <param name="gifMetadata">The GIF metadata sharing the global color table.</param>
+    private void ConvertGlobalColorTable<TPixel>(ImageMetadata metadata, GifMetadata gifMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (!IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? sourceProfile))
+        {
+            return;
+        }
+
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = sourceProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = this.memoryAllocator
+        };
+
+        this.colorProfileConverter = new ColorProfileConverter(options);
+
+        // The global table was read before the ICC extension; metadata and frames share this converted array.
+        if (this.globalColorTable is not null)
+        {
+            this.colorProfileConverter.Convert<TPixel>(this.globalColorTable);
+
+            if (this.backgroundColorIndex < this.globalColorTable.Length)
+            {
+                gifMetadata.BackgroundColor = this.globalColorTable[this.backgroundColorIndex];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads and converts the current frame's local color table for pixels and frame metadata.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format for converted colors.</typeparam>
+    /// <param name="stream">The stream containing the local color table.</param>
+    /// <returns>The local color table.</returns>
+    private Color[] ReadLocalColorTable<TPixel>(BufferedReadStream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // The descriptor derives the entry count from three packed bits (2..256), so RGB table data is bounded to 6..768 bytes.
+        int length = this.imageDescriptor.LocalColorTableSize * 3;
+
+        // GIF bounds a local table to 256 RGB entries, so typed stack storage covers it without a pooled buffer.
+        InlineArray256<Rgb24> colorTableStorage = default;
+        Span<Rgb24> rgbTable = colorTableStorage[..this.imageDescriptor.LocalColorTableSize];
+
+        if (stream.Read(MemoryMarshal.AsBytes(rgbTable)) != length)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the local color table");
+        }
+
+        // The same Color array supplies frame metadata and decoded pixel indices.
+        Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
+        Color.FromPixel(rgbTable, colorTable);
+
+        if (this.colorProfileConverter is not null)
+        {
+            this.colorProfileConverter.Convert<TPixel>(colorTable);
+        }
+
+        return colorTable;
     }
 
     /// <summary>
@@ -641,7 +756,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         ref Image<TPixel>? image,
         ref ImageFrame<TPixel>? previousFrame,
         ref FrameDisposalMode? previousDisposalMode,
-        ReadOnlySpan<Rgb24> colorTable,
+        ReadOnlySpan<Color> colorTable,
         TPixel backgroundPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -818,10 +933,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         // Treat any out of bounds values as background.
                         if (index > colorTableMaxIdx)
                         {
-                            index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+                            index = Math.Clamp(index, 0, colorTableMaxIdx);
                         }
 
-                        row[x] = TPixel.FromRgb24(colorTable[index]);
+                        row[x] = colorTable[index].ToPixel<TPixel>();
                     }
                 }
                 else
@@ -838,7 +953,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             continue;
                         }
 
-                        row[x] = TPixel.FromRgb24(colorTable[index]);
+                        row[x] = colorTable[index].ToPixel<TPixel>();
                     }
                 }
             }
@@ -856,18 +971,14 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     {
         this.ReadImageDescriptor(stream);
 
-        // Skip the color table for this frame if local.
+        // Retain the frame's local table while skipping its compressed pixel indices.
         if (this.imageDescriptor.LocalColorTableFlag)
         {
-            // Read and store the local color table. We allocate the maximum possible size and slice to match.
-            int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
-            this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
-            stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
+            this.currentLocalColorTable = this.ReadLocalColorTable<RgbaVector>(stream);
         }
         else
         {
             this.currentLocalColorTable = null;
-            this.currentLocalColorTableSize = 0;
         }
 
         // Skip the frame indices. Pixels length + mincode size.
@@ -948,11 +1059,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
             gifMeta.ColorTableMode = FrameColorTableMode.Local;
 
-            Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
-            ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
-            Color.FromPixel(rgbTable, colorTable);
-
-            gifMeta.LocalColorTable = colorTable;
+            gifMeta.LocalColorTable = this.currentLocalColorTable;
         }
 
         // Graphics control extensions is optional.
@@ -967,7 +1074,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads the logical screen descriptor and global color table blocks
+    /// Reads the logical screen descriptor and global color table blocks.
     /// </summary>
     /// <param name="stream">The stream containing image data. </param>
     [MemberNotNull(nameof(metadata))]
@@ -1012,22 +1119,28 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             ? FrameColorTableMode.Global
             : FrameColorTableMode.Local;
 
+        int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableFlag
+            ? this.logicalScreenDescriptor.GlobalColorTableSize * 3
+            : 0;
+
         if (this.logicalScreenDescriptor.GlobalColorTableFlag)
         {
-            int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
             if (globalColorTableLength > 0)
             {
-                this.globalColorTable = this.memoryAllocator.Allocate<byte>(globalColorTableLength, AllocationOptions.Clean);
+                // A GIF palette contains at most 256 RGB entries, so typed stack storage covers the full table.
+                InlineArray256<Rgb24> colorTableStorage = default;
+                Span<Rgb24> rgbTable = colorTableStorage[..this.logicalScreenDescriptor.GlobalColorTableSize];
 
-                // Read the global color table data from the stream and preserve it in the gif metadata
-                Span<byte> globalColorTableSpan = this.globalColorTable.GetSpan();
-                stream.Read(globalColorTableSpan);
+                if (stream.Read(MemoryMarshal.AsBytes(rgbTable)) != globalColorTableLength)
+                {
+                    GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the global color table");
+                }
 
-                Color[] colorTable = new Color[this.logicalScreenDescriptor.GlobalColorTableSize];
-                ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(globalColorTableSpan);
-                Color.FromPixel(rgbTable, colorTable);
+                // Retain encoded entries until the first frame, after application extensions can supply an ICC profile.
+                this.globalColorTable = new Color[this.logicalScreenDescriptor.GlobalColorTableSize];
+                Color.FromPixel(rgbTable, this.globalColorTable);
 
-                this.gifMetadata.GlobalColorTable = colorTable;
+                this.gifMetadata.GlobalColorTable = this.globalColorTable;
             }
         }
 

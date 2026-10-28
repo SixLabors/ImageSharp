@@ -126,9 +126,12 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <inheritdoc/>
     public static Hsv FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        float r = source.R;
-        float g = source.G;
-        float b = source.B;
+        // HSV stores bounded SDR colors. Limit RGB here so extended components do not
+        // change hue and saturation before the bounded HSV result is constructed.
+        Vector3 rgb = ColorNumerics.ClampToFinite(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One);
+        float r = rgb.X;
+        float g = rgb.Y;
+        float b = rgb.Z;
 
         float max = MathF.Max(r, MathF.Max(g, b));
         float min = MathF.Min(r, MathF.Min(g, b));

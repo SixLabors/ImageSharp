@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class NormalizedByte2Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData(ushort.MaxValue)]
+    [InlineData((ushort)0xA53C)]
+    public void Constructor_FromPackedValue(ushort packed)
+    {
+        NormalizedByte2 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void NormalizedByte2_PackedValue()
     {
@@ -51,7 +65,7 @@ public class NormalizedByte2Tests
         Array.Fill(source, pixel);
 
         PixelOperations<NormalizedByte2>.Instance.ToVector4(Configuration.Default, source, native);
-        PixelOperations<NormalizedByte2>.Instance.ToVector4(Configuration.Default, source, scaled, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedByte2>.Instance.ToScaledVector4(Configuration.Default, source, scaled);
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -62,7 +76,7 @@ public class NormalizedByte2Tests
         Vector4[] destructiveSource = new Vector4[source.Length];
         Array.Fill(destructiveSource, expectedScaled);
         NormalizedByte2[] actualPixels = new NormalizedByte2[source.Length];
-        PixelOperations<NormalizedByte2>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedByte2>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.All(actualPixels, actual => Assert.Equal((ushort)0x8181, actual.PackedValue));
     }
 
@@ -125,6 +139,7 @@ public class NormalizedByte2Tests
         Assert.Equal(Unsafe.SizeOf<NormalizedByte2>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(2, componentInfo.ComponentCount);

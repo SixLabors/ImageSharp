@@ -31,7 +31,7 @@ public class ExrZipDecoderTests
     public void Decode_InvalidInflatedBlock_Throws(int length, SegmentIntegrityHandling integrity)
     {
         byte[] data = BuildExr(ZlibCompress(new byte[length]), ExrPixelType.Float, 2, 0);
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(options, data));
     }
@@ -56,7 +56,7 @@ public class ExrZipDecoderTests
         byte[] data = BuildExr(ZlibCompress(new byte[length]), pixelType, 2, 0);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
-        DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
         using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
         Assert.Equal(new Size(256, 1), image.Size);
@@ -85,7 +85,7 @@ public class ExrZipDecoderTests
         byte[] data = BuildExr(header[..length], ExrPixelType.Float, 2, 0);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
-        DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = integrity };
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
 
         if (integrity == SegmentIntegrityHandling.IgnoreImageData)
         {
@@ -131,7 +131,7 @@ public class ExrZipDecoderTests
         byte[] data = BuildExr(ZlibCompress(predicted), pixelType, compression, yMin);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
-        DecoderOptions options = new() { Configuration = configuration };
+        DecoderOptions options = new(configuration);
 
         using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
         Assert.Equal(new Size(256, 1), image.Size);

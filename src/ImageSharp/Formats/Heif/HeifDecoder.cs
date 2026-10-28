@@ -28,7 +28,7 @@ public sealed class HeifDecoder : SpecializedImageDecoder<HeifDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        return new HeifDecoderCore(new HeifDecoderOptions { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
+        return new HeifDecoderCore(new HeifDecoderOptions(options)).Identify(options.Configuration, stream, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -50,5 +50,5 @@ public sealed class HeifDecoder : SpecializedImageDecoder<HeifDecoderOptions>
 
     /// <inheritdoc/>
     protected override HeifDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-        => new() { GeneralOptions = options };
+        => new(options);
 }

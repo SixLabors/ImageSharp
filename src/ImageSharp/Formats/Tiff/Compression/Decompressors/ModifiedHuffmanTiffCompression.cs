@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 
@@ -24,7 +25,12 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The number of bits per pixel.</param>
     /// <param name="photometricInterpretation">The photometric interpretation.</param>
-    public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffFillOrder fillOrder, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
+    public ModifiedHuffmanTiffCompression(
+        MemoryAllocator allocator,
+        TiffFillOrder fillOrder,
+        int width,
+        int bitsPerPixel,
+        TiffPhotometricInterpretation photometricInterpretation)
         : base(allocator, width, bitsPerPixel)
     {
         this.FillOrder = fillOrder;
@@ -39,7 +45,8 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     private TiffFillOrder FillOrder { get; }
 
     /// <inheritdoc/>
-    protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
+    protected override void Decompress<TPixel>(
+        BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         ModifiedHuffmanBitReader bitReader = new(stream, this.FillOrder, byteCount);
 

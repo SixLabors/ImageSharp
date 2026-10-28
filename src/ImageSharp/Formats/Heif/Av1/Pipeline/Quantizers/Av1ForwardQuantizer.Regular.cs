@@ -44,7 +44,19 @@ internal static partial class Av1ForwardQuantizer
         if (!weights.IsEmpty)
         {
             return QuantizeWithMatrix(
-                coefficients, quantizedCoefficients, dequantizedCoefficients, transformSize, transformType, qIndex, dcDeltaQ, acDeltaQ, bitDepth, sharpness, weights, inverseWeights, regular: true);
+                coefficients,
+                quantizedCoefficients,
+                dequantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth,
+                sharpness,
+                weights,
+                inverseWeights,
+                regular: true);
         }
 
         if (bitDepth != Av1BitDepth.EightBit)

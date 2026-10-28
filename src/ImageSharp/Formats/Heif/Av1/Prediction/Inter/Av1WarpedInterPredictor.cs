@@ -892,8 +892,14 @@ internal static partial class Av1WarpedInterPredictor
     private static Vector128<int> ConvolveWarpedVector512<TOperator>(ref ushort source, int sourceStride, int phase, int phaseStep)
         where TOperator : struct, IAv1WarpedPredictionOperator
     {
-        Vector256<ushort> sampleLower = Vector256.Create(LoadWarpedWindow(ref source, sourceStride), LoadWarpedWindow(ref Unsafe.Add(ref source, 1), sourceStride));
-        Vector256<ushort> sampleUpper = Vector256.Create(LoadWarpedWindow(ref Unsafe.Add(ref source, 2), sourceStride), LoadWarpedWindow(ref Unsafe.Add(ref source, 3), sourceStride));
+        Vector256<ushort> sampleLower = Vector256.Create(
+            LoadWarpedWindow(ref source, sourceStride),
+            LoadWarpedWindow(ref Unsafe.Add(ref source, 1), sourceStride));
+
+        Vector256<ushort> sampleUpper = Vector256.Create(
+            LoadWarpedWindow(ref Unsafe.Add(ref source, 2), sourceStride),
+            LoadWarpedWindow(ref Unsafe.Add(ref source, 3), sourceStride));
+
         Vector256<short> coefficientLower = Vector256.Create(LoadWarpedCoefficients(phase), LoadWarpedCoefficients(phase + phaseStep));
         Vector256<short> coefficientUpper = Vector256.Create(LoadWarpedCoefficients(phase + (2 * phaseStep)), LoadWarpedCoefficients(phase + (3 * phaseStep)));
         return TOperator.Convolve(Vector512.Create(sampleLower, sampleUpper), Vector512.Create(coefficientLower, coefficientUpper));

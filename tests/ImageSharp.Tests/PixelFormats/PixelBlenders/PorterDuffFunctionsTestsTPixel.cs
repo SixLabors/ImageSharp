@@ -56,7 +56,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.NormalSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.NormalSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -101,7 +102,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.MultiplySrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.MultiplySrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -156,7 +158,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.AddSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.AddSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -201,7 +204,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.SubtractSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.SubtractSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -246,7 +250,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.ScreenSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.ScreenSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -291,7 +296,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.DarkenSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.DarkenSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -336,7 +342,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.LightenSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.LightenSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -381,7 +388,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.OverlaySrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.OverlaySrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
@@ -426,7 +434,8 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel[] dest = new TPixel[BulkBlendCount];
-        DefaultPixelBlenders<TPixel>.HardLightSrcOver.Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
+        DefaultPixelBlenders<TPixel>.HardLightSrcOver
+            .Blend(this.Configuration, dest, CreateFilledArray(back.AsPixel()), CreateFilledArray(source.AsPixel()), CreateFilledArray(amount));
 
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)

@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -97,27 +98,29 @@ internal class WebpAnimationDecoder : IDisposable
     /// Reads the animated webp image information from the specified stream.
     /// </summary>
     /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
+    /// <param name="metadata">The image metadata populated before the animation chunk.</param>
     /// <param name="features">The webp features.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="metadata">The metadata already read before the ANIM chunk.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
     public ImageInfo Identify(
         BufferedReadStream stream,
+        ImageMetadata metadata,
         WebpFeatures features,
         uint width,
         uint height,
-        ImageMetadata metadata,
         long containerEnd)
     {
         List<ImageFrameMetadata> framesMetadata = [];
+
+        // Keep ICCP and other chunks parsed before ANIM on the metadata returned by Identify.
         this.metadata = metadata;
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
         this.webpMetadata.BackgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
             ? Color.Transparent
-            : features.AnimationBackgroundColor!.Value;
+            : features.AnimationBackgroundColor;
 
         bool ignoreMetadata = this.skipMetadata;
         Span<byte> buffer = stackalloc byte[4];
@@ -161,31 +164,38 @@ internal class WebpAnimationDecoder : IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
+    /// <param name="metadata">The image metadata populated before the animation chunk.</param>
     /// <param name="features">The webp features.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
-    /// <param name="metadata">The metadata already read before the ANIM chunk.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
+    /// <param name="colorProfileConverter">The optional ICC converter applied to each decoded frame.</param>
     public Image<TPixel> Decode<TPixel>(
         BufferedReadStream stream,
+        ImageMetadata metadata,
         WebpFeatures features,
         uint width,
         uint height,
-        ImageMetadata metadata,
-        long containerEnd)
+        long containerEnd,
+        ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel>? image = null;
-        ImageFrame<TPixel>? previousFrame = null;
         WebpFrameData? prevFrameData = null;
 
+        // Frame creation and later optional chunks must share the pre-ANIM ICC metadata.
         this.metadata = metadata;
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
         Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
             ? Color.Transparent
-            : features.AnimationBackgroundColor!.Value;
+            : features.AnimationBackgroundColor;
+
+        if (colorProfileConverter is not null && this.backgroundColorHandling != BackgroundColorHandling.Ignore)
+        {
+            backgroundColor = colorProfileConverter.Convert<TPixel>(backgroundColor);
+        }
 
         this.webpMetadata.BackgroundColor = backgroundColor;
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
@@ -202,15 +212,7 @@ internal class WebpAnimationDecoder : IDisposable
                 {
                     case WebpChunkType.FrameData:
 
-                        this.ReadFrame(
-                            stream,
-                            ref image,
-                            ref previousFrame,
-                            ref prevFrameData,
-                            width,
-                            height,
-                            backgroundPixel,
-                            containerEnd);
+                        this.ReadFrame(stream, ref image, ref prevFrameData, width, height, backgroundPixel, colorProfileConverter, containerEnd);
 
                         frameCount++;
                         break;
@@ -234,7 +236,7 @@ internal class WebpAnimationDecoder : IDisposable
 
             if (image is null)
             {
-                WebpThrowHelper.ThrowInvalidImageContentException("Missing WebP animation frame data.");
+                WebpThrowHelper.ThrowInvalidImageContentException("Animated WebP contains no frames.");
             }
 
             return image;
@@ -270,20 +272,20 @@ internal class WebpAnimationDecoder : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
     /// <param name="image">The image to decode the information to.</param>
-    /// <param name="previousFrame">The previous frame.</param>
     /// <param name="prevFrameData">The previous frame data.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="backgroundColor">The default background color of the canvas in.</param>
+    /// <param name="colorProfileConverter">The optional converter for the embedded ICC profile.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
     private void ReadFrame<TPixel>(
         BufferedReadStream stream,
         ref Image<TPixel>? image,
-        ref ImageFrame<TPixel>? previousFrame,
         ref WebpFrameData? prevFrameData,
         uint width,
         uint height,
         TPixel backgroundColor,
+        ColorProfileConverter? colorProfileConverter,
         long containerEnd)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -342,7 +344,8 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         ImageFrame<TPixel> currentFrame;
-        if (previousFrame is null)
+        bool hasPreviousFrame = image is not null;
+        if (image is null)
         {
             image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor, this.metadata);
 
@@ -351,18 +354,20 @@ internal class WebpAnimationDecoder : IDisposable
         }
         else
         {
+            ImageFrame<TPixel> previousFrame = image.Frames[image.Frames.Count - 1];
+
             // If the frame is a key frame we do not need to clone the frame or clear it.
             bool isKeyFrame = prevFrameData?.DisposalMethod is FrameDisposalMode.RestoreToBackground
-                 && this.restoreArea == image!.Bounds;
+                 && this.restoreArea == image.Bounds;
 
             if (isKeyFrame)
             {
-                currentFrame = image!.Frames.CreateFrame(backgroundColor);
+                currentFrame = image.Frames.CreateFrame(backgroundColor);
             }
             else
             {
                 // This clones the frame and adds it the collection.
-                currentFrame = image!.Frames.AddFrame(previousFrame);
+                currentFrame = image.Frames.AddFrame(previousFrame);
                 if (prevFrameData?.DisposalMethod is FrameDisposalMode.RestoreToBackground)
                 {
                     this.RestoreToBackground(currentFrame, backgroundColor);
@@ -373,11 +378,10 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         Rectangle interest = frameData.Bounds;
-        bool blend = previousFrame != null && frameData.BlendingMethod == FrameBlendMode.Over;
-        using Buffer2D<TPixel> pixelData = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
+        bool blend = hasPreviousFrame && frameData.BlendingMethod == FrameBlendMode.Over;
+        using Buffer2D<TPixel> pixelData = this.DecodeImageFrameData<TPixel>(frameData, webpInfo, colorProfileConverter);
         DrawDecodedImageFrameOnCanvas(pixelData, currentFrame, interest, blend);
 
-        previousFrame = currentFrame;
         prevFrameData = frameData;
 
         if (frameData.DisposalMethod is FrameDisposalMode.RestoreToBackground)
@@ -424,7 +428,7 @@ internal class WebpAnimationDecoder : IDisposable
                 // precede the frame data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, ignoreMetadata, this.executeAncillarySegmentAction, containerEnd);
+                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, this.executeAncillarySegmentAction, containerEnd);
                 break;
             case WebpChunkType.Exif:
                 this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata, containerEnd));
@@ -467,8 +471,9 @@ internal class WebpAnimationDecoder : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="frameData">The frame data.</param>
     /// <param name="webpInfo">The webp information.</param>
+    /// <param name="colorProfileConverter">The optional converter for the embedded ICC profile.</param>
     /// <returns>A decoded image.</returns>
-    private Buffer2D<TPixel> DecodeImageFrameData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
+    private Buffer2D<TPixel> DecodeImageFrameData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo, ColorProfileConverter? colorProfileConverter)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> decodedFrame = new(this.configuration, (int)frameData.Width, (int)frameData.Height);
@@ -479,13 +484,13 @@ internal class WebpAnimationDecoder : IDisposable
             if (webpInfo.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
-                losslessDecoder.Decode(decodeBuffer, (int)webpInfo.Width, (int)webpInfo.Height);
+                losslessDecoder.Decode(decodeBuffer, (int)webpInfo.Width, (int)webpInfo.Height, colorProfileConverter);
             }
             else
             {
                 WebpLossyDecoder lossyDecoder =
                     new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                lossyDecoder.Decode(decodeBuffer, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData);
+                lossyDecoder.Decode(decodeBuffer, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData, colorProfileConverter);
             }
 
             return decodeBuffer;
@@ -519,9 +524,7 @@ internal class WebpAnimationDecoder : IDisposable
             // The destination frame has already been prepopulated with the pixel data from the previous frame
             // so blending will leave the desired result which takes into consideration restoration to the
             // background color within the restore area.
-            PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(
-                PixelColorBlendingMode.Normal,
-                PixelAlphaCompositionMode.SrcOver);
+            PixelBlender<TPixel> blender = PixelBlenders<TPixel>.NormalSrcOver;
 
             // By using a dedicated vector span we can avoid per-row pool allocations in PixelBlender.Blend
             // We need 3 Vector4 values per pixel to store the background, foreground, and result pixels for blending.

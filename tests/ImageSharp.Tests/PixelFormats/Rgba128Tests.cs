@@ -297,6 +297,7 @@ public class Rgba128Tests
         Assert.Equal(Unsafe.SizeOf<Rgba128>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo? maybeComponentInfo = info.ComponentInfo;
         Assert.NotNull(maybeComponentInfo);

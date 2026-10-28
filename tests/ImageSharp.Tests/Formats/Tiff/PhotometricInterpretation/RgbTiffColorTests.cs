@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
@@ -170,13 +170,20 @@ public class RgbTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new RgbTiffColor<Rgba32>(bitsPerSample).Decode(inputData, pixels, left, top, width, height);
+                new RgbTiffColor<Rgba32>(Configuration.Default, bitsPerSample).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
     [Theory]
     [MemberData(nameof(Rgb8Data))]
-    public void Decode_WritesPixelData_8Bit(byte[] inputData, TiffBitsPerSample bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+    public void Decode_WritesPixelData_8Bit(
+        byte[] inputData,
+        TiffBitsPerSample bitsPerSample,
+        int left,
+        int top,
+        int width,
+        int height,
+        Rgba32[][] expectedResult)
     {
         AssertDecode(expectedResult, pixels =>
             {

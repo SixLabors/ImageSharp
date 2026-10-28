@@ -1513,7 +1513,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Computes convolution features once per 64x64 parent and applies the selected block-size classifier.
@@ -1529,7 +1529,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="allowSplit">Whether the split candidate is searched, which the classifier can change.</param>
         /// <param name="allowRectangles">Whether the rectangular candidates are searched, which the classifier can change.</param>
         /// <returns><see langword="true"/> when the classifier keeps only the square partitions.</returns>
-        private bool PruneIntraPartitions(
+        public bool PruneIntraPartitions(
             Span<int> workspaceStorage,
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
@@ -1541,14 +1541,14 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool allowSplit,
             ref bool allowRectangles)
         {
-            Span<float> retained = this.blockWorkspace.GetIntraPartitionFeatures(workspaceStorage);
+            Span<float> retained = this.State.BlockWorkspace.GetIntraPartitionFeatures(workspaceStorage);
             if (blockSize == Av1BlockSize.Block64x64)
             {
                 Span<float> convolutionStorage = Av1EncoderBlockWorkspace.GetIntraPartitionConvolutionStorage(workspaceStorage);
                 Span<float> input = convolutionStorage[..(65 * 65)];
                 Span<float> firstLayer = convolutionStorage[(65 * 65)..];
                 Av1PlaneRegion<TSample> source = this.source.GetPlane(Av1Plane.Y);
-                float maximum = (1 << this.bitDepth.GetBitCount()) - 1;
+                float maximum = (1 << this.State.BitDepth.GetBitCount()) - 1;
 
                 // The input includes the padded source row above and the padded source column to the left. The partition controller
                 // checked the complete 64x64 parent. The frame owner supplies the physical border.
@@ -1572,12 +1572,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1NeuralNetwork.Convolve(retained[356..], 8, 20, 2, 2, IntraPartitionCnnLayer2Kernel, IntraPartitionCnnLayer2Bias, retained[36..356]);
                 Av1NeuralNetwork.Convolve(retained[36..356], 4, 20, 2, 2, IntraPartitionCnnLayer3Kernel, IntraPartitionCnnLayer3Bias, retained[20..36]);
                 Av1NeuralNetwork.Convolve(retained[20..36], 2, 4, 2, 2, IntraPartitionCnnLayer4Kernel, IntraPartitionCnnLayer4Bias, retained[..20]);
-                int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
-                this.intraPartitionLogQuantizer = (float.LogP1((dcStep * dcStep) / 256F) - IntraPartitionMean[0]) / IntraPartitionStd[0];
-                this.intraPartitionFeaturesValid = true;
+
+                // Normalize the DC step to 8-bit units before squaring. Each supported depth has a maximum of 1336,
+                // so the square is at most 1,784,896. Float multiplication preserves this exact result without an integer product.
+                int dcStep = Av1QuantizationLookup.GetDcQuant(this.State.BlockQIndex, 0, this.State.BitDepth) >> (this.State.BitDepth.GetBitCount() - 8);
+                this.State.IntraPartitionLogQuantizer = (float.LogP1(((float)dcStep * dcStep) / 256F) - IntraPartitionMean[0]) / IntraPartitionStd[0];
+                this.State.IntraPartitionFeaturesValid = true;
             }
 
-            if (!this.intraPartitionFeaturesValid)
+            if (!this.State.IntraPartitionFeaturesValid)
             {
                 return false;
             }
@@ -1674,11 +1677,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     return false;
             }
 
-            features[featureCount++] = this.intraPartitionLogQuantizer;
+            features[featureCount++] = this.State.IntraPartitionLogQuantizer;
             float score = 0F;
             Av1NeuralNetwork.Predict(features[..featureCount], weights0, bias0, weights1, bias1, outputWeights, outputBias, new Span<float>(ref score));
             int sizeIndex = ((int)Av1BlockSize.Block128x128 - (int)blockSize) / 3;
-            int resolution = this.picture.Parent.SpeedSettings.FourStripPartitionResolutionIndex;
+            int resolution = this.State.Picture.Parent.SpeedSettings.FourStripPartitionResolutionIndex;
             float splitThreshold = resolution == 2 ? IntraPartitionSplitThreshHdres[sizeIndex]
                 : resolution == 1 ? IntraPartitionSplitThreshMidres[sizeIndex] : IntraPartitionSplitThreshLowres[sizeIndex];
 

@@ -104,7 +104,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         /// <param name="columnWeights">The first horizontal Q8 smooth weight for these lanes.</param>
         /// <param name="rowWeight">The vertical Q8 smooth weight.</param>
         /// <returns>The predicted samples.</returns>
-        public static abstract Vector128<byte> Predict(Vector128<byte> top, Vector128<byte> left, Vector128<byte> topLeft, Vector128<byte> topRight, Vector128<byte> bottomLeft, ref int columnWeights, int rowWeight);
+        public static abstract Vector128<byte> Predict(
+            Vector128<byte> top,
+            Vector128<byte> left,
+            Vector128<byte> topLeft,
+            Vector128<byte> topRight,
+            Vector128<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight);
 
         /// <summary>
         /// Predicts thirty-two 8-bit samples in parallel.
@@ -117,7 +124,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         /// <param name="columnWeights">The first horizontal Q8 smooth weight for these lanes.</param>
         /// <param name="rowWeight">The vertical Q8 smooth weight.</param>
         /// <returns>The predicted samples.</returns>
-        public static abstract Vector256<byte> Predict(Vector256<byte> top, Vector256<byte> left, Vector256<byte> topLeft, Vector256<byte> topRight, Vector256<byte> bottomLeft, ref int columnWeights, int rowWeight);
+        public static abstract Vector256<byte> Predict(
+            Vector256<byte> top,
+            Vector256<byte> left,
+            Vector256<byte> topLeft,
+            Vector256<byte> topRight,
+            Vector256<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight);
 
         /// <summary>
         /// Predicts sixty-four 8-bit samples in parallel.
@@ -130,7 +144,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         /// <param name="columnWeights">The first horizontal Q8 smooth weight for these lanes.</param>
         /// <param name="rowWeight">The vertical Q8 smooth weight.</param>
         /// <returns>The predicted samples.</returns>
-        public static abstract Vector512<byte> Predict(Vector512<byte> top, Vector512<byte> left, Vector512<byte> topLeft, Vector512<byte> topRight, Vector512<byte> bottomLeft, ref int columnWeights, int rowWeight);
+        public static abstract Vector512<byte> Predict(
+            Vector512<byte> top,
+            Vector512<byte> left,
+            Vector512<byte> topLeft,
+            Vector512<byte> topRight,
+            Vector512<byte> bottomLeft,
+            ref int columnWeights,
+            int rowWeight);
 
         /// <summary>
         /// Predicts one high-bit-depth sample when hardware vectorization is unavailable.
@@ -156,7 +177,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         /// <param name="columnWeights">The first horizontal Q8 smooth weight for these lanes.</param>
         /// <param name="rowWeight">The vertical Q8 smooth weight.</param>
         /// <returns>The predicted samples.</returns>
-        public static abstract Vector128<short> Predict(Vector128<short> top, Vector128<short> left, Vector128<short> topLeft, Vector128<short> topRight, Vector128<short> bottomLeft, ref int columnWeights, int rowWeight);
+        public static abstract Vector128<short> Predict(
+            Vector128<short> top,
+            Vector128<short> left,
+            Vector128<short> topLeft,
+            Vector128<short> topRight,
+            Vector128<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight);
 
         /// <summary>
         /// Predicts sixteen high-bit-depth samples in parallel.
@@ -169,7 +197,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         /// <param name="columnWeights">The first horizontal Q8 smooth weight for these lanes.</param>
         /// <param name="rowWeight">The vertical Q8 smooth weight.</param>
         /// <returns>The predicted samples.</returns>
-        public static abstract Vector256<short> Predict(Vector256<short> top, Vector256<short> left, Vector256<short> topLeft, Vector256<short> topRight, Vector256<short> bottomLeft, ref int columnWeights, int rowWeight);
+        public static abstract Vector256<short> Predict(
+            Vector256<short> top,
+            Vector256<short> left,
+            Vector256<short> topLeft,
+            Vector256<short> topRight,
+            Vector256<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight);
 
         /// <summary>
         /// Predicts thirty-two high-bit-depth samples in parallel.
@@ -182,7 +217,14 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         /// <param name="columnWeights">The first horizontal Q8 smooth weight for these lanes.</param>
         /// <param name="rowWeight">The vertical Q8 smooth weight.</param>
         /// <returns>The predicted samples.</returns>
-        public static abstract Vector512<short> Predict(Vector512<short> top, Vector512<short> left, Vector512<short> topLeft, Vector512<short> topRight, Vector512<short> bottomLeft, ref int columnWeights, int rowWeight);
+        public static abstract Vector512<short> Predict(
+            Vector512<short> top,
+            Vector512<short> left,
+            Vector512<short> topLeft,
+            Vector512<short> topRight,
+            Vector512<short> bottomLeft,
+            ref int columnWeights,
+            int rowWeight);
     }
 
     /// <summary>
@@ -252,7 +294,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                         {
                             Vector512<byte> top = usesTop ? Vector512.LoadUnsafe(ref topBase, (nuint)column) : default;
                             ref int columnWeights = ref usesColumnWeight ? ref Unsafe.Add(ref columnWeightBase, column) : ref columnWeightBase;
-                            Vector512<byte> prediction = TOperator.Predict(top, leftVector, topLeftVector, topRightVector, bottomLeftVector, ref columnWeights, rowWeight);
+                            Vector512<byte> prediction = TOperator.Predict(
+                                top,
+                                leftVector,
+                                topLeftVector,
+                                topRightVector,
+                                bottomLeftVector,
+                                ref columnWeights,
+                                rowWeight);
+
                             prediction.StoreUnsafe(ref destinationRow, (nuint)column);
                         }
                     }
@@ -282,7 +332,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                         {
                             Vector256<byte> top = usesTop ? Vector256.LoadUnsafe(ref topBase, (nuint)column) : default;
                             ref int columnWeights = ref usesColumnWeight ? ref Unsafe.Add(ref columnWeightBase, column) : ref columnWeightBase;
-                            Vector256<byte> prediction = TOperator.Predict(top, leftVector, topLeftVector, topRightVector, bottomLeftVector, ref columnWeights, rowWeight);
+                            Vector256<byte> prediction = TOperator.Predict(
+                                top,
+                                leftVector,
+                                topLeftVector,
+                                topRightVector,
+                                bottomLeftVector,
+                                ref columnWeights,
+                                rowWeight);
+
                             prediction.StoreUnsafe(ref destinationRow, (nuint)column);
                         }
                     }
@@ -312,7 +370,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                         {
                             Vector128<byte> top = usesTop ? Vector128.LoadUnsafe(ref topBase, (nuint)column) : default;
                             ref int columnWeights = ref usesColumnWeight ? ref Unsafe.Add(ref columnWeightBase, column) : ref columnWeightBase;
-                            Vector128<byte> prediction = TOperator.Predict(top, leftVector, topLeftVector, topRightVector, bottomLeftVector, ref columnWeights, rowWeight);
+                            Vector128<byte> prediction = TOperator.Predict(
+                                top,
+                                leftVector,
+                                topLeftVector,
+                                topRightVector,
+                                bottomLeftVector,
+                                ref columnWeights,
+                                rowWeight);
+
                             prediction.StoreUnsafe(ref destinationRow, (nuint)column);
                         }
                     }
@@ -445,7 +511,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                         {
                             Vector512<short> top = usesTop ? Vector512.LoadUnsafe(ref topBase, (nuint)column) : default;
                             ref int columnWeights = ref usesColumnWeight ? ref Unsafe.Add(ref columnWeightBase, column) : ref columnWeightBase;
-                            Vector512<short> prediction = TOperator.Predict(top, leftVector, topLeftVector, topRightVector, bottomLeftVector, ref columnWeights, rowWeight);
+                            Vector512<short> prediction = TOperator.Predict(
+                                top,
+                                leftVector,
+                                topLeftVector,
+                                topRightVector,
+                                bottomLeftVector,
+                                ref columnWeights,
+                                rowWeight);
+
                             prediction.StoreUnsafe(ref destinationRow, (nuint)column);
                         }
                     }
@@ -475,7 +549,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                         {
                             Vector256<short> top = usesTop ? Vector256.LoadUnsafe(ref topBase, (nuint)column) : default;
                             ref int columnWeights = ref usesColumnWeight ? ref Unsafe.Add(ref columnWeightBase, column) : ref columnWeightBase;
-                            Vector256<short> prediction = TOperator.Predict(top, leftVector, topLeftVector, topRightVector, bottomLeftVector, ref columnWeights, rowWeight);
+                            Vector256<short> prediction = TOperator.Predict(
+                                top,
+                                leftVector,
+                                topLeftVector,
+                                topRightVector,
+                                bottomLeftVector,
+                                ref columnWeights,
+                                rowWeight);
+
                             prediction.StoreUnsafe(ref destinationRow, (nuint)column);
                         }
                     }
@@ -505,7 +587,15 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
                         {
                             Vector128<short> top = usesTop ? Vector128.LoadUnsafe(ref topBase, (nuint)column) : default;
                             ref int columnWeights = ref usesColumnWeight ? ref Unsafe.Add(ref columnWeightBase, column) : ref columnWeightBase;
-                            Vector128<short> prediction = TOperator.Predict(top, leftVector, topLeftVector, topRightVector, bottomLeftVector, ref columnWeights, rowWeight);
+                            Vector128<short> prediction = TOperator.Predict(
+                                top,
+                                leftVector,
+                                topLeftVector,
+                                topRightVector,
+                                bottomLeftVector,
+                                ref columnWeights,
+                                rowWeight);
+
                             prediction.StoreUnsafe(ref destinationRow, (nuint)column);
                         }
                     }
@@ -532,7 +622,13 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         }
 
         /// <inheritdoc/>
-        public override void PredictScalar(Span<byte> destination, int destinationStride, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height)
+        public override void PredictScalar(
+            Span<byte> destination,
+            int destinationStride,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            int width,
+            int height)
         {
             ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
             ref byte topBase = ref MemoryMarshal.GetReference(above);
@@ -567,7 +663,13 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
         }
 
         /// <inheritdoc/>
-        public override void PredictScalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height)
+        public override void PredictScalar(
+            Span<short> destination,
+            int destinationStride,
+            ReadOnlySpan<short> above,
+            ReadOnlySpan<short> left,
+            int width,
+            int height)
         {
             ref short destinationBase = ref MemoryMarshal.GetReference(destination);
             ref short topBase = ref MemoryMarshal.GetReference(above);

@@ -4,12 +4,14 @@
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
-/// Provides optimized overrides for bulk operations.
+/// Selects the shared storage-family implementation.
 /// </content>
 public partial struct Rgba64
 {
     /// <summary>
-    /// Provides optimized overrides for bulk operations.
+    /// Inherits the shared bulk conversions for this pixel's storage.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgba64>;
+    internal partial class PixelOperations : Rgba64CompatiblePixelOperations<Rgba64>
+    {
+    }
 }

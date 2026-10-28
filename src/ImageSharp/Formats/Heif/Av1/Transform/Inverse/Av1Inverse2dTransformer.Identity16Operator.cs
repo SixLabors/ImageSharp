@@ -83,5 +83,26 @@ internal static partial class Av1Inverse2dTransformer
             _ = step;
             _ = cosBit;
         }
+
+        /// <inheritdoc/>
+        public static void Transform(
+            ref Av1TransformVector<Vector512<int>> input,
+            ref Av1TransformVector<Vector512<int>> output,
+            ref Av1TransformVector<Vector512<int>> step,
+            int cosBit,
+            InlineArray12<byte> stageRange)
+        {
+            if (stageRange[0] >= Av1Transform1dMath.WidenedIntermediateBitCount)
+            {
+                Av1IdentityTransform1d.TransformWidened(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+            else
+            {
+                Av1IdentityTransform1d.Transform(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+
+            _ = step;
+            _ = cosBit;
+        }
     }
 }

@@ -203,6 +203,7 @@ public class RgbaVectorTests
         Assert.Equal(Unsafe.SizeOf<RgbaVector>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);
@@ -213,4 +214,13 @@ public class RgbaVectorTests
         Assert.Equal(32, componentInfo.GetComponentPrecision(3));
         Assert.Equal(32, componentInfo.GetMaximumComponentPrecision());
     }
+}
+
+/// <summary>
+/// Tests the metadata of the associated floating-point RGBA pixel format.
+/// </summary>
+public class RgbaVectorPTests : AssociatedAlphaPixelTests<RgbaVectorP>
+{
+    /// <inheritdoc />
+    protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
 }

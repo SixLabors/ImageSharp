@@ -10,6 +10,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class Rg32Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(uint.MaxValue)]
+    [InlineData(0xA17E_80FDU)]
+    public void Constructor_FromPackedValue(uint packed)
+    {
+        Rg32 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void Rg32_PackedValues()
     {
@@ -90,6 +104,7 @@ public class Rg32Tests
         Assert.Equal(Unsafe.SizeOf<Rg32>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(2, componentInfo.ComponentCount);

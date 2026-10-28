@@ -147,6 +147,21 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba64.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rg32.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Rg32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\RgbaVector.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RgbaVector.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders{TPixel}.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PixelBlenders{TPixel}.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -242,8 +257,20 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba64.PixelOperations.Generated.cs</LastGenOutput>
     </None>
+    <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rg32.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Rg32.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\RgbaVector.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RgbaVector.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
     <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
       <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders{TPixel}.Generated.tt">
+      <LastGenOutput>PixelBlenders{TPixel}.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">

@@ -111,7 +111,8 @@ internal abstract class BitWriterBase
 
             if (iccProfile != null)
             {
-                RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Iccp, iccProfile.ToByteArray());
+                // RIFF writes this read-only payload directly; the profile retains its storage for the complete write.
+                RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Iccp, iccProfile.GetData().Span);
             }
         }
 
@@ -204,7 +205,15 @@ internal abstract class BitWriterBase
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    protected static WebpVp8X WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha, bool hasAnimation)
+    protected static WebpVp8X WriteVp8XHeader(
+        Stream stream,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        IccProfile? iccProfile,
+        uint width,
+        uint height,
+        bool hasAlpha,
+        bool hasAnimation)
     {
         WebpVp8X chunk = new(hasAnimation, xmpProfile != null, exifProfile != null, hasAlpha, iccProfile != null, width, height);
 

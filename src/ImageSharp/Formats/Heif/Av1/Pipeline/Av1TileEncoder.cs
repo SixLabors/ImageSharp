@@ -767,7 +767,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         Av1PictureParentControlSet parent = picture.Parent;
         PrepareFrame(picture, new Size(source.Width, source.Height), blockWorkspace);
@@ -826,7 +826,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
@@ -885,7 +885,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
@@ -999,7 +999,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts from the same entropy edges and probabilities
         // while the completed frame decisions remain available. A frame packed before to measure its size counts its selections again.
@@ -1076,7 +1076,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderBlockWorkspace blockWorkspace,
         bool switchableBeforeFix)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
@@ -1168,7 +1168,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Av1EncoderTileWorkspace tileWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         where TSymbolOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;

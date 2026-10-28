@@ -232,8 +232,8 @@ internal sealed class HeifItem
         if (this.serializedIccProfile.IsEmpty && this.iccProfile is not null)
         {
             // The container writer asks for the payload length before it copies the payload. Keep the serialized
-            // bytes on this item, so the profile is serialized once for both passes.
-            this.serializedIccProfile = this.iccProfile.ToByteArray();
+            // view on this item, so both passes use the same bytes. Entry-based profiles are serialized only once.
+            this.serializedIccProfile = this.iccProfile.GetData();
         }
 
         return this.serializedIccProfile;

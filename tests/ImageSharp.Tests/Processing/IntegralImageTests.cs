@@ -137,6 +137,11 @@ public class IntegralImageTests : BaseImageOperationsExtensionTest
         pixelValues += getPixel(image[image.Width - 1, image.Height - 1]);
 
         // Check bottom-right 3x3 pixels
-        Assert.Equal(pixelValues, integralBuffer[image.Width - 1, image.Height - 1] + integralBuffer[image.Width - 4, image.Height - 4] - integralBuffer[image.Width - 1, image.Height - 4] - integralBuffer[image.Width - 4, image.Height - 1]);
+        ulong actual = integralBuffer[image.Width - 1, image.Height - 1]
+            + integralBuffer[image.Width - 4, image.Height - 4]
+            - integralBuffer[image.Width - 1, image.Height - 4]
+            - integralBuffer[image.Width - 4, image.Height - 1];
+
+        Assert.Equal(pixelValues, actual);
     }
 }

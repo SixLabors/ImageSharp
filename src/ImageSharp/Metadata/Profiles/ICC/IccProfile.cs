@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 public sealed partial class IccProfile : IDeepCloneable<IccProfile>
 {
     /// <summary>
+    /// The exclusive maximum declared ICC profile size accepted during validation.
+    /// </summary>
+    internal const int MaxProfileSize = 50_000_000;
+
+    /// <summary>
     /// The byte array to read the ICC profile from
     /// </summary>
     private readonly byte[] data;
@@ -145,8 +150,6 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
     public bool CheckIsValid()
     {
         const int minSize = 128;
-        const int maxSize = 50_000_000; // it's unlikely there is a profile bigger than 50MB
-
         bool arrayValid = true;
         if (this.data != null)
         {
@@ -158,7 +161,7 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
                Enum.IsDefined(this.Header.DataColorSpace) &&
                Enum.IsDefined(this.Header.ProfileConnectionSpace) &&
                Enum.IsDefined(this.Header.RenderingIntent) &&
-               this.Header.Size is >= minSize and < maxSize;
+               this.Header.Size is >= minSize and < MaxProfileSize;
     }
 
     /// <summary>
@@ -175,6 +178,17 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
         }
 
         return IccWriter.Write(this);
+    }
+
+    /// <summary>
+    /// Gets encoded profile bytes for consumers that only read them.
+    /// </summary>
+    /// <returns>The retained bytes, or a new serialization when the profile was constructed from entries.</returns>
+    internal ReadOnlyMemory<byte> GetData()
+    {
+        // Decoded profiles own their encoded bytes. A read-only view keeps those bytes alive without copying them.
+        // Entry-based profiles must be serialized on each request because callers can change their header and entries.
+        return this.data ?? IccWriter.Write(this);
     }
 
     private void InitializeHeader()

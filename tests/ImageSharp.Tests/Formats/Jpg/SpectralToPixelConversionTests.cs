@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 
@@ -36,7 +38,7 @@ public class SpectralToPixelConversionTests
         using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // Decoding
-        JpegDecoderOptions options = new();
+        JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default));
         using SpectralConverter<TPixel> converter = new(Configuration.Default);
         using JpegDecoderCore decoder = new(options);
         HuffmanScanDecoder scanDecoder = new(bufferedStream, converter, cancellationToken: default);
@@ -48,7 +50,10 @@ public class SpectralToPixelConversionTests
 
         // Comparison
         using Image<TPixel> image = new(Configuration.Default, converter.GetPixelBuffer(null, CancellationToken.None), new ImageMetadata());
-        using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+        using Image<TPixel> referenceImage = decoder.Metadata.IccProfile is not null
+            ? provider.GetImage(MagickReferenceDecoder.Jpeg)
+            : provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
+
         ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
         this.Output.WriteLine($"*** {provider.SourceFileOrDescription} ***");

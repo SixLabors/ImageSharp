@@ -12,7 +12,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// The color components are stored in red, green, blue, and alpha order.
 /// </summary>
 /// <remarks>
-/// Native and scaled vector conversions return the stored floating-point values.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to [-65504,65504] and alpha to [0,1].
 /// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
@@ -73,6 +74,18 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbaHalf"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The half-precision words use R, G, B, A memory order. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public RgbaHalf(ulong packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc />
     public ulong PackedValue
     {
@@ -100,12 +113,28 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
     public static bool operator !=(RgbaHalf left, RgbaHalf right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static RgbaHalf FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaHalf FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaHalf FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaHalf FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -116,6 +145,7 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
         => PixelTypeInfo.Create<RgbaHalf>(
             PixelComponentInfo.Create<RgbaHalf>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -123,15 +153,14 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToUnassociatedScaledVector4()
+        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
     {
-        Vector4 vector = this.ToScaledVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
+        return PixelFormats.PixelOperations.Associate(this.ToVector4());
     }
 
     /// <inheritdoc />
@@ -149,15 +178,13 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalf FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+    public static RgbaHalf FromUnassociatedScaledVector4(Vector4 source)
+        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaHalf FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -173,7 +200,7 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalf FromScaledVector4(Vector4 source) => FromVector4(source);
+    public static RgbaHalf FromScaledVector4(Vector4 source) => FromUnassociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -228,5 +255,6 @@ public partial struct RgbaHalf : IPixel<RgbaHalf>, IPackedVector<ulong>
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
-    public override readonly string ToString() => FormattableString.Invariant($"RgbaHalf({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
+    public override readonly string ToString()
+        => FormattableString.Invariant($"RgbaHalf({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
 }

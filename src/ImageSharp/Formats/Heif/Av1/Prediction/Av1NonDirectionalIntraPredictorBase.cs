@@ -128,5 +128,11 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// <param name="left">The prepared left reference.</param>
     /// <param name="width">The block width in samples.</param>
     /// <param name="height">The block height in samples.</param>
-    public abstract void PredictScalar(Span<short> destination, int destinationStride, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height);
+    public abstract void PredictScalar(
+        Span<short> destination,
+        int destinationStride,
+        ReadOnlySpan<short> above,
+        ReadOnlySpan<short> left,
+        int width,
+        int height);
 }

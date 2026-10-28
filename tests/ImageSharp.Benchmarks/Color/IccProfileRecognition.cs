@@ -29,7 +29,7 @@ public class IccProfileRecognition
         this.knownProfile = new IccProfile(File.ReadAllBytes(profilePath));
         this.sampledProfile = new IccProfile(this.knownProfile.ToByteArray());
         this.sampledProfile.Header.Id = default;
-        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve };
         using Image<Rgb24> image = Image.Load<Rgb24>(options, Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Icc.LinearRgb));
         this.linearProfile = image.Metadata.IccProfile;
 
@@ -64,9 +64,9 @@ public class IccProfileRecognition
 
 /* Measured 2026-10-28, .NET 10.0.14. Profile parsing and shared-table initialization are outside measurement.
 
-| Method                  |         Mean |      Error |     StdDev | Allocated |
-| ----------------------- | -----------: | ---------: | ---------: | --------: |
-| KnownProfileId          |     4.177 ns |   2.982 ns |  0.1635 ns |         - |
-| ParametricLinearProfile |    31.756 ns |  27.680 ns |  1.5172 ns |         - |
-| SampledSrgbProfile      | 6,136.412 ns | 951.687 ns | 52.1652 ns |         - |
+| Method                  |         Mean |      Error |    StdDev | Allocated |
+| ----------------------- | -----------: | ---------: | --------: | --------: |
+| KnownProfileId          |     3.706 ns |  0.4679 ns | 0.0256 ns |         - |
+| ParametricLinearProfile |    32.536 ns |  6.9320 ns | 0.3800 ns |         - |
+| SampledSrgbProfile      | 2,055.693 ns | 38.2476 ns | 2.0965 ns |         - |
 */

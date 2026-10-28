@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
@@ -17,7 +18,12 @@ public class WebpMetaDataTests
 {
     public static IEnumerable<object[]> IccMetadataOptions()
     {
-        foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary, SegmentIntegrityHandling.IgnoreImageData })
+        foreach (SegmentIntegrityHandling integrity in new[]
+        {
+            SegmentIntegrityHandling.Strict,
+            SegmentIntegrityHandling.IgnoreAncillary,
+            SegmentIntegrityHandling.IgnoreImageData
+        })
         {
             foreach (bool skipMetadata in new[] { false, true })
             {
@@ -35,7 +41,12 @@ public class WebpMetaDataTests
         {
             foreach (uint length in new[] { 0x40000000U, 0xFFFFFFFEU, uint.MaxValue })
             {
-                foreach (SegmentIntegrityHandling integrity in new[] { SegmentIntegrityHandling.Strict, SegmentIntegrityHandling.IgnoreAncillary, SegmentIntegrityHandling.IgnoreImageData })
+                foreach (SegmentIntegrityHandling integrity in new[]
+                {
+                    SegmentIntegrityHandling.Strict,
+                    SegmentIntegrityHandling.IgnoreAncillary,
+                    SegmentIntegrityHandling.IgnoreImageData
+                })
                 {
                     string fileName = $"{TestImages.Webp.ContainerDirectory}{chunkType.Trim().ToLowerInvariant()}-trailing-{length:x8}.webp";
                     yield return new object[] { fileName, integrity, false };
@@ -51,7 +62,7 @@ public class WebpMetaDataTests
     public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLossyImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         if (ignoreMetadata)
         {
@@ -72,7 +83,7 @@ public class WebpMetaDataTests
     public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLosslessImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         if (ignoreMetadata)
         {
@@ -94,20 +105,96 @@ public class WebpMetaDataTests
     [WithFile(TestImages.Webp.Lossy.WithIccp, PixelTypes.Rgba32, true)]
     [WithFile(TestImages.Webp.Lossless.WithIccp, PixelTypes.Rgba32, false)]
     [WithFile(TestImages.Webp.Lossless.WithIccp, PixelTypes.Rgba32, true)]
-    public void IgnoreMetadata_ControlsWhetherIccpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
+    public void IgnoreMetadata_PreservesIccp<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
-        if (ignoreMetadata)
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        Assert.NotEmpty(image.Metadata.IccProfile.Entries);
+
+        ImageInfo info = Image.Identify(options, TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        Assert.Equal(image.Metadata.IccProfile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
+    }
+
+    /// <summary>
+    /// Checks ICC retention and identical working pixels when animation decoding stops at the requested frame count.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The animated source image.</param>
+    /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+    /// <param name="maxFrames">The number of frames to decode or identify.</param>
+    [Theory]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, false, 13)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, true, 13)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, false, 1)]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP, true, 1)]
+    public void AnimatedIccp_PreservedThroughDecodeAndIdentify<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata, int maxFrames)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new(Configuration.Default)
         {
-            Assert.Null(image.Metadata.IccProfile);
-        }
-        else
+            ColorProfileHandling = ColorProfileHandling.Preserve,
+            SkipMetadata = skipMetadata,
+            MaxFrames = (uint)maxFrames
+        };
+
+        DecoderOptions convertOptions = new(Configuration.Default)
         {
-            Assert.NotNull(image.Metadata.IccProfile);
-            Assert.NotEmpty(image.Metadata.IccProfile.Entries);
-        }
+            ColorProfileHandling = ColorProfileHandling.Convert,
+            SkipMetadata = skipMetadata,
+            MaxFrames = (uint)maxFrames
+        };
+
+        byte[] source = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+        using Image<TPixel> preserved = provider.GetImage(WebpDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(WebpDecoder.Instance, convertOptions);
+        ImageInfo preservedInfo = Image.Identify(preserveOptions, source);
+        ImageInfo convertedInfo = Image.Identify(convertOptions, source);
+
+        // Chromium's unmodified fixture stores ColorSpin before ANIM: 12 RIFF bytes + 18 VP8X bytes
+        // + 8 ICCP header bytes place the 474-byte profile at offset 38.
+        byte[] sourceProfile = source.AsSpan(38, 474).ToArray();
+
+        Assert.Equal(maxFrames, preserved.Frames.Count);
+        Assert.Equal(maxFrames, converted.Frames.Count);
+        Assert.Equal(maxFrames, preservedInfo.FrameCount);
+        Assert.Equal(maxFrames, convertedInfo.FrameCount);
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.NotNull(preservedInfo.Metadata.IccProfile);
+        Assert.Equal(sourceProfile, preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(sourceProfile, preservedInfo.Metadata.IccProfile.ToByteArray());
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Null(convertedInfo.Metadata.IccProfile);
+
+        // Preserve and Convert differ only in profile retention; both must produce the same sRGB animation frames.
+        ImageComparer.Exact.VerifySimilarity(converted, preserved);
+    }
+
+    /// <summary>
+    /// Checks that an embedded ICC profile does not change the requested transparent animation background.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The animated source image.</param>
+    [Theory]
+    [WithFile(TestImages.Webp.Lossy.AnimatedWithIccp, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void AnimatedIccp_IgnoreBackgroundColor<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpDecoderOptions options = new(new DecoderOptions(Configuration.Default) { MaxFrames = 1 })
+        {
+            BackgroundColorHandling = BackgroundColorHandling.Ignore
+        };
+
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
+
+        // Ignore replaces the file's white background with transparent black before ICC conversion.
+        Assert.Equal(Color.Transparent, image.Metadata.GetWebpMetadata().BackgroundColor);
+        Assert.Single(image.Frames);
+        Assert.NotNull(image.Metadata.IccProfile);
     }
 
     [Theory]
@@ -116,7 +203,7 @@ public class WebpMetaDataTests
     public async Task IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = ignoreMetadata };
         using Image<TPixel> image = await provider.GetImageAsync(WebpDecoder.Instance, options);
         if (ignoreMetadata)
         {
@@ -245,7 +332,7 @@ public class WebpMetaDataTests
     [Fact]
     public void Identify_InvalidExifChunk_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
     }
@@ -253,7 +340,7 @@ public class WebpMetaDataTests
     [Fact]
     public void Decode_InvalidExifChunk_ThrowsWithStrict()
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
         Assert.Throws<InvalidImageContentException>(() =>
         {
@@ -275,7 +362,7 @@ public class WebpMetaDataTests
     {
         // The stored RIFF size covers the file. The metadata declaration itself exceeds that boundary.
         byte[] payload = TestFile.Create($"{TestImages.Webp.ContainerDirectory}{chunkType}-oversized-{length:x8}.webp").Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
@@ -286,7 +373,7 @@ public class WebpMetaDataTests
     public void Decode_TruncatedTrailingMetadata_RespectsOptions(string fileName, SegmentIntegrityHandling integrity, bool skipMetadata)
     {
         byte[] payload = TestFile.Create(fileName).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         if (integrity is SegmentIntegrityHandling.Strict && !skipMetadata)
         {
@@ -320,9 +407,9 @@ public class WebpMetaDataTests
     public void Decode_InvalidIccPayload_RespectsOptionsAndReadsFollowingImage(SegmentIntegrityHandling integrity, bool skipMetadata, bool animated)
     {
         byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + (animated ? "invalid-icc-animated.webp" : "invalid-icc.webp")).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
-        if (integrity is SegmentIntegrityHandling.Strict && !skipMetadata)
+        if (integrity is SegmentIntegrityHandling.Strict)
         {
             Assert.Throws<InvalidIccProfileException>(() => Image.Load(options, payload));
             Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, payload));
@@ -346,7 +433,7 @@ public class WebpMetaDataTests
     public void Decode_TruncatedIccFraming_RemainsFatal(SegmentIntegrityHandling integrity, bool skipMetadata, bool animated)
     {
         byte[] payload = TestFile.Create(TestImages.Webp.ContainerDirectory + (animated ? "truncated-icc-animated.webp" : "truncated-icc.webp")).Bytes;
-        DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
@@ -364,21 +451,22 @@ public class WebpMetaDataTests
         byte[] icc = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd.icc").Bytes;
         byte[] xmp = TestFile.Create(TestImages.Webp.ContainerDirectory + "odd.xmp").Bytes;
 
-        DecoderOptions options = new() { SkipMetadata = skipMetadata };
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = skipMetadata };
         using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
 
         // ICCP precedes ANIM. Entering the frame decoder must retain that profile, not replace its metadata owner.
         Assert.Equal(animated ? 2 : 1, image.Frames.Count);
         Assert.Equal(new Rgba32(17, 34, 51), image[0, 0]);
+        // ICC is required color metadata, including when optional metadata is skipped.
+        Assert.Equal(icc, image.Metadata.IccProfile.ToByteArray());
+
         if (skipMetadata)
         {
-            Assert.Null(image.Metadata.IccProfile);
             Assert.Null(image.Metadata.ExifProfile);
             Assert.Null(image.Metadata.XmpProfile);
         }
         else
         {
-            Assert.Equal(icc, image.Metadata.IccProfile.ToByteArray());
             Assert.Equal("ImageSharp", image.Metadata.ExifProfile.GetValue(ExifTag.Software).Value);
             Assert.Equal(xmp, image.Metadata.XmpProfile.ToByteArray());
         }
@@ -397,7 +485,7 @@ public class WebpMetaDataTests
         byte[] icc = TestFile.Create(TestImages.Webp.ContainerDirectory + "icc-crosses-riff.webp").Bytes;
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity, SkipMetadata = skipMetadata };
             Assert.Throws<InvalidImageContentException>(() => Image.Load(options, icc));
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, icc));
 

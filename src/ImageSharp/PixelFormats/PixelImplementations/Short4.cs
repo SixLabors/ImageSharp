@@ -45,6 +45,18 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// <param name="vector">A vector containing the initial values for the components.</param>
     public Short4(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Short4"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Two's-complement X, Y, Z, and W codes occupy consecutive 16-bit fields, from least to most significant.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Short4(ulong packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ulong PackedValue { get; set; }
 
@@ -69,6 +81,21 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Short4 left, Short4 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public static Short4 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Short4 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Short4 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Short4 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,6 +125,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
         => PixelTypeInfo.Create<Short4>(
             PixelComponentInfo.Create<Short4>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -127,9 +155,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
         Vector4 vector = this.ToAssociatedScaledVector4();
 
         // Native components use the full asymmetric signed range, so scaled zero must map to -32768 rather than -32767.
-        vector *= Range;
-        vector += Min;
-        return vector;
+        return Vector4.MultiplyAddEstimate(vector, new Vector4(Range), Min);
     }
 
     /// <inheritdoc />
@@ -139,10 +165,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Short4 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -246,7 +269,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     private static ulong Pack(Vector4 vector)
     {
         // Clamp the value between min and max values
-        vector = Numerics.Clamp(vector, Min, Max);
+        vector = ColorNumerics.ClampToFinite(vector, Min, Max);
         ulong word4 = ((ulong)Convert.ToInt32(Math.Round(vector.X)) & 0xFFFF) << 0x00;
         ulong word3 = ((ulong)Convert.ToInt32(Math.Round(vector.Y)) & 0xFFFF) << 0x10;
         ulong word2 = ((ulong)Convert.ToInt32(Math.Round(vector.Z)) & 0xFFFF) << 0x20;

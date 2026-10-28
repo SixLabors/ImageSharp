@@ -116,7 +116,33 @@ public partial class SimdUtilsTests
     public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new() { 0, 32, 512 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy64 = new() { 0, 64, 512 };
 
-    public static readonly TheoryData<int> ArbitraryArraySizes = new() { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520 };
+    public static readonly TheoryData<int> ArbitraryArraySizes = new()
+    {
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        15,
+        16,
+        17,
+        63,
+        64,
+        255,
+        511,
+        512,
+        513,
+        514,
+        515,
+        516,
+        517,
+        518,
+        519,
+        520
+    };
 
     [Theory]
     [MemberData(nameof(ArraySizesDivisibleBy64))]
@@ -172,6 +198,7 @@ public partial class SimdUtilsTests
     {
         byte[] source = [.. Enumerable.Range(0, count).Select(i => (byte)i)];
         float[] result = new float[count];
+
         // A double-precision oracle keeps this expectation independent from either production implementation.
         float[] expected = [.. source.Select(b => (float)(b / (double)byte.MaxValue))];
 
@@ -270,6 +297,78 @@ public partial class SimdUtilsTests
             count,
             (r, g, b, actual) =>
                 SimdUtils.PackFromRgbPlanes(r, g, b, actual));
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(31)]
+    [InlineData(32)]
+    [InlineData(33)]
+    public void PackFromRgbPlanes_Rgba32_DoesNotReadOrWritePadding(int count)
+    {
+        byte[] red = new byte[count + 3];
+        byte[] green = new byte[count + 3];
+        byte[] blue = new byte[count + 3];
+        Rgba32 sentinel = new(17, 18, 19, 20);
+        Rgba32[] destination = new Rgba32[count + 3];
+        Array.Fill(destination, sentinel);
+
+        for (int i = 0; i < count; i++)
+        {
+            red[i] = (byte)i;
+            green[i] = (byte)(i + 40);
+            blue[i] = (byte)(i + 80);
+        }
+
+        // Backing arrays extend past the passed source slices, so a stray read stays addressable
+        // and becomes visible in the output instead of relying on a memory fault.
+        SimdUtils.PackFromRgbPlanes(red.AsSpan(0, count), green.AsSpan(0, count), blue.AsSpan(0, count), destination);
+
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(new Rgba32(red[i], green[i], blue[i]), destination[i]);
+        }
+
+        for (int i = count; i < destination.Length; i++)
+        {
+            Assert.Equal(sentinel, destination[i]);
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(31)]
+    public void PackFromRgbPlanes_Rgb24_ScalarRemainderStopsAtSourceLength(int count)
+    {
+        byte[] red = new byte[count + 3];
+        byte[] green = new byte[count + 3];
+        byte[] blue = new byte[count + 3];
+        Rgb24 sentinel = new(17, 18, 19);
+        Rgb24[] destination = new Rgb24[count + 3];
+        Array.Fill(destination, sentinel);
+
+        for (int i = 0; i < count; i++)
+        {
+            red[i] = (byte)i;
+            green[i] = (byte)(i + 40);
+            blue[i] = (byte)(i + 80);
+        }
+
+        // All counts stay below the AVX2 group of 32, whose stores legitimately use
+        // the three destination padding pixels; only the scalar remainder runs here.
+        SimdUtils.PackFromRgbPlanes(red.AsSpan(0, count), green.AsSpan(0, count), blue.AsSpan(0, count), destination);
+
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(new Rgb24(red[i], green[i], blue[i]), destination[i]);
+        }
+
+        for (int i = count; i < destination.Length; i++)
+        {
+            Assert.Equal(sentinel, destination[i]);
+        }
+    }
 
     [Fact]
     public void PackFromRgbPlanesReduce_Rgb24()

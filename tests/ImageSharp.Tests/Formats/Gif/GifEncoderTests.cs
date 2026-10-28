@@ -16,7 +16,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 namespace SixLabors.ImageSharp.Tests.Formats.Gif;
 
 [Trait("Format", "Gif")]
-public class GifEncoderTests
+public partial class GifEncoderTests
 {
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0015F);
@@ -24,7 +24,12 @@ public class GifEncoderTests
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
     {
-        { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
+        {
+            TestImages.Gif.Rings,
+            (int)ImageMetadata.DefaultHorizontalResolution,
+            (int)ImageMetadata.DefaultVerticalResolution,
+            PixelResolutionUnit.PixelsPerInch
+        },
         { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
         { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
     };

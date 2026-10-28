@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -178,8 +178,6 @@ internal sealed class ExrEncoderCore
             throw new ImageFormatException("Image is too large to encode in EXR format.");
         }
 
-        PixelConversionModifiers modifiers = PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale;
-
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan()[..width];
@@ -187,7 +185,14 @@ internal sealed class ExrEncoderCore
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, (uint)bytesPerBlock, (uint)bytesPerRow, rowsPerBlock, width);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
+            compression,
+            this.memoryAllocator,
+            stream,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
+            rowsPerBlock,
+            width);
 
         ulong[] rowOffsets = new ulong[height];
         for (uint y = 0; y < height; y += rowsPerBlock)
@@ -206,14 +211,13 @@ internal sealed class ExrEncoderCore
             for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                PixelOperations<TPixel>.Instance.UnpackToFloatPlanes(
+                PixelOperations<TPixel>.Instance.UnpackToAssociatedScaledFloatPlanes(
                     this.configuration,
                     pixelRowSpan,
                     redBuffer,
                     greenBuffer,
                     blueBuffer,
-                    alphaBuffer,
-                    modifiers);
+                    alphaBuffer);
 
                 // Write pixel data to row block buffer.
                 Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
@@ -283,7 +287,14 @@ internal sealed class ExrEncoderCore
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, (uint)bytesPerBlock, (uint)bytesPerRow, rowsPerBlock, width);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
+            compression,
+            this.memoryAllocator,
+            stream,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
+            rowsPerBlock,
+            width);
 
         Rgba128 rgb = default;
         ulong[] rowOffsets = new ulong[height];
@@ -366,7 +377,13 @@ internal sealed class ExrEncoderCore
     /// <param name="blueBuffer">The blue channel buffer.</param>
     /// <param name="greenBuffer">The green channel buffer.</param>
     /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteSingleRow(Span<byte> buffer, int width, ReadOnlySpan<float> alphaBuffer, ReadOnlySpan<float> blueBuffer, ReadOnlySpan<float> greenBuffer, ReadOnlySpan<float> redBuffer)
+    private static void WriteSingleRow(
+        Span<byte> buffer,
+        int width,
+        ReadOnlySpan<float> alphaBuffer,
+        ReadOnlySpan<float> blueBuffer,
+        ReadOnlySpan<float> greenBuffer,
+        ReadOnlySpan<float> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -403,7 +420,13 @@ internal sealed class ExrEncoderCore
     /// <param name="blueBuffer">The blue channel buffer.</param>
     /// <param name="greenBuffer">The green channel buffer.</param>
     /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteHalfSingleRow(Span<byte> buffer, int width, ReadOnlySpan<float> alphaBuffer, ReadOnlySpan<float> blueBuffer, ReadOnlySpan<float> greenBuffer, ReadOnlySpan<float> redBuffer)
+    private static void WriteHalfSingleRow(
+        Span<byte> buffer,
+        int width,
+        ReadOnlySpan<float> alphaBuffer,
+        ReadOnlySpan<float> blueBuffer,
+        ReadOnlySpan<float> greenBuffer,
+        ReadOnlySpan<float> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -440,7 +463,13 @@ internal sealed class ExrEncoderCore
     /// <param name="blueBuffer">The blue channel buffer.</param>
     /// <param name="greenBuffer">The green channel buffer.</param>
     /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteUnsignedIntRow(Span<byte> buffer, int width, ReadOnlySpan<uint> alphaBuffer, ReadOnlySpan<uint> blueBuffer, ReadOnlySpan<uint> greenBuffer, ReadOnlySpan<uint> redBuffer)
+    private static void WriteUnsignedIntRow(
+        Span<byte> buffer,
+        int width,
+        ReadOnlySpan<uint> alphaBuffer,
+        ReadOnlySpan<uint> blueBuffer,
+        ReadOnlySpan<uint> greenBuffer,
+        ReadOnlySpan<uint> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)

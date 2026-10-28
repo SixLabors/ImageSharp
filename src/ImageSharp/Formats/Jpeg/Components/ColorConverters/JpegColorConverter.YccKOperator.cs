@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -19,6 +19,176 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         public static int ComponentCount => 4;
+
+        /// <inheritdoc/>
+        public static float GetProfileChromaOffset(float maximumValue, float halfValue)
+        {
+            // Adobe inversion also reflects Cb and Cr. Use the complementary offset to retain the integer JPEG midpoint.
+            return (maximumValue - halfValue) / maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores the matrix of CMY ink values and the complement of K.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+            c3 = 1F - (c3 * scale);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores the matrix of CMY ink values and the complement of K.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+            c3 = Vector128<float>.One - (c3 * scale);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores the matrix of CMY ink values and the complement of K.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+            c3 = Vector256<float>.One - (c3 * scale);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores the matrix of CMY ink values and the complement of K.
+            YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+            c0 *= scale;
+            c1 *= scale;
+            c2 *= scale;
+            c3 = Vector512<float>.One - (c3 * scale);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            YCbCrOperator.ConvertFromRgb(1F - c0, 1F - c1, 1F - c2, 1F, halfValue, 1F, out c0, out c1, out c2, out _);
+            c0 = (c0 - 1F) * -maximumValue;
+            c1 = (c1 - 1F) * -maximumValue;
+            c2 = (c2 - 1F) * -maximumValue;
+            c3 = (c3 - 1F) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector128<float> one = Vector128<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 = (c0 - Vector128<float>.One) * -maximumValue;
+            c1 = (c1 - Vector128<float>.One) * -maximumValue;
+            c2 = (c2 - Vector128<float>.One) * -maximumValue;
+            c3 = (c3 - Vector128<float>.One) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector256<float> one = Vector256<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 = (c0 - Vector256<float>.One) * -maximumValue;
+            c1 = (c1 - Vector256<float>.One) * -maximumValue;
+            c2 = (c2 - Vector256<float>.One) * -maximumValue;
+            c3 = (c3 - Vector256<float>.One) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
+            Vector512<float> one = Vector512<float>.One;
+            YCbCrOperator.ConvertFromRgb(one - c0, one - c1, one - c2, one, halfValue, one, out c0, out c1, out c2, out _);
+            c0 = (c0 - Vector512<float>.One) * -maximumValue;
+            c1 = (c1 - Vector512<float>.One) * -maximumValue;
+            c2 = (c2 - Vector512<float>.One) * -maximumValue;
+            c3 = (c3 - Vector512<float>.One) * -maximumValue;
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -38,7 +208,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, Vector128<float> c3, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale)
+        public static void ConvertToRgb(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
         {
             Vector128<float> y = c0;
             Vector128<float> cb = c1 - halfValue;
@@ -47,7 +224,11 @@ internal abstract partial class JpegColorConverterBase
 
             // Four lanes reconstruct YCbCr concurrently; each rounded result is inverted and modulated by its K lane.
             Vector128<float> r = Vector128.MultiplyAddEstimate(cr, Vector128.Create(YCbCrOperator.RCrMult), y);
-            Vector128<float> g = Vector128.MultiplyAddEstimate(cr, Vector128.Create(-YCbCrOperator.GCrMult), Vector128.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrOperator.GCbMult), y));
+            Vector128<float> g = Vector128.MultiplyAddEstimate(
+                cr,
+                Vector128.Create(-YCbCrOperator.GCrMult),
+                Vector128.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrOperator.GCbMult), y));
+
             Vector128<float> b = Vector128.MultiplyAddEstimate(cb, Vector128.Create(YCbCrOperator.BCbMult), y);
             c0 = (maximumValue - Vector128.Round(r)) * scaledK;
             c1 = (maximumValue - Vector128.Round(g)) * scaledK;
@@ -56,7 +237,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, Vector256<float> c3, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale)
+        public static void ConvertToRgb(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
         {
             Vector256<float> y = c0;
             Vector256<float> cb = c1 - halfValue;
@@ -65,7 +253,11 @@ internal abstract partial class JpegColorConverterBase
 
             // Eight lanes retain planar alignment from Y/Cb/Cr/K through normalized RGB.
             Vector256<float> r = Vector256.MultiplyAddEstimate(cr, Vector256.Create(YCbCrOperator.RCrMult), y);
-            Vector256<float> g = Vector256.MultiplyAddEstimate(cr, Vector256.Create(-YCbCrOperator.GCrMult), Vector256.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrOperator.GCbMult), y));
+            Vector256<float> g = Vector256.MultiplyAddEstimate(
+                cr,
+                Vector256.Create(-YCbCrOperator.GCrMult),
+                Vector256.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrOperator.GCbMult), y));
+
             Vector256<float> b = Vector256.MultiplyAddEstimate(cb, Vector256.Create(YCbCrOperator.BCbMult), y);
             c0 = (maximumValue - Vector256.Round(r)) * scaledK;
             c1 = (maximumValue - Vector256.Round(g)) * scaledK;
@@ -74,7 +266,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, Vector512<float> c3, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale)
+        public static void ConvertToRgb(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
         {
             Vector512<float> y = c0;
             Vector512<float> cb = c1 - halfValue;
@@ -83,7 +282,11 @@ internal abstract partial class JpegColorConverterBase
 
             // Sixteen lanes use the same matrix, rounding, inversion, and K modulation order as scalar code.
             Vector512<float> r = Vector512.MultiplyAddEstimate(cr, Vector512.Create(YCbCrOperator.RCrMult), y);
-            Vector512<float> g = Vector512.MultiplyAddEstimate(cr, Vector512.Create(-YCbCrOperator.GCrMult), Vector512.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrOperator.GCbMult), y));
+            Vector512<float> g = Vector512.MultiplyAddEstimate(
+                cr,
+                Vector512.Create(-YCbCrOperator.GCrMult),
+                Vector512.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrOperator.GCbMult), y));
+
             Vector512<float> b = Vector512.MultiplyAddEstimate(cb, Vector512.Create(YCbCrOperator.BCbMult), y);
             c0 = (maximumValue - Vector512.Round(r)) * scaledK;
             c1 = (maximumValue - Vector512.Round(g)) * scaledK;
@@ -92,7 +295,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(float r, float g, float b, float maximumValue, float halfValue, float scale, out float c0, out float c1, out float c2, out float c3)
+        public static void ConvertFromRgb(
+            float r,
+            float g,
+            float b,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            out float c0,
+            out float c1,
+            out float c2,
+            out float c3)
         {
             // CMYK extraction supplies inverted chromatic samples and K. Reflecting the first three results
             // reconstructs the chromatic RGB that YCbCr encodes, while K passes through untouched.
@@ -103,30 +316,90 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector128<float> r, Vector128<float> g, Vector128<float> b, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+        public static void ConvertFromRgb(
+            Vector128<float> r,
+            Vector128<float> g,
+            Vector128<float> b,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            out Vector128<float> c0,
+            out Vector128<float> c1,
+            out Vector128<float> c2,
+            out Vector128<float> c3)
         {
             // Static constrained calls inline both stages, keeping four pixels in registers without materializing CMYK planes.
-            CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out Vector128<float> c, out Vector128<float> m, out Vector128<float> y, out c3);
+            CmykOperator.ConvertFromRgb(
+                r,
+                g,
+                b,
+                maximumValue,
+                halfValue,
+                scale,
+                out Vector128<float> c,
+                out Vector128<float> m,
+                out Vector128<float> y,
+                out c3);
 
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector256<float> r, Vector256<float> g, Vector256<float> b, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+        public static void ConvertFromRgb(
+            Vector256<float> r,
+            Vector256<float> g,
+            Vector256<float> b,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            out Vector256<float> c0,
+            out Vector256<float> c1,
+            out Vector256<float> c2,
+            out Vector256<float> c3)
         {
             // Eight pixels flow through CMYK extraction and YCbCr projection entirely in YMM registers.
-            CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out Vector256<float> c, out Vector256<float> m, out Vector256<float> y, out c3);
+            CmykOperator.ConvertFromRgb(
+                r,
+                g,
+                b,
+                maximumValue,
+                halfValue,
+                scale,
+                out Vector256<float> c,
+                out Vector256<float> m,
+                out Vector256<float> y,
+                out c3);
 
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector512<float> r, Vector512<float> g, Vector512<float> b, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+        public static void ConvertFromRgb(
+            Vector512<float> r,
+            Vector512<float> g,
+            Vector512<float> b,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            out Vector512<float> c0,
+            out Vector512<float> c1,
+            out Vector512<float> c2,
+            out Vector512<float> c3)
         {
             // Sixteen pixels flow through both mathematical stages in registers without materializing intermediate planes.
-            CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out Vector512<float> c, out Vector512<float> m, out Vector512<float> y, out c3);
+            CmykOperator.ConvertFromRgb(
+                r,
+                g,
+                b,
+                maximumValue,
+                halfValue,
+                scale,
+                out Vector512<float> c,
+                out Vector512<float> m,
+                out Vector512<float> y,
+                out c3);
 
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }

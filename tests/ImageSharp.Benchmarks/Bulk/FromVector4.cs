@@ -65,7 +65,7 @@ public abstract class FromVector4<TPixel>
 public class FromVector4Rgba32 : FromVector4<Rgba32>
 {
     /// <summary>
-    /// Measures the raw SIMD kernel that converts normalized RGBA vector components to bytes.
+    /// Measures the raw SIMD kernel that converts normalized pixel vector components to bytes.
     /// </summary>
     [Benchmark]
     public void UseHwIntrinsics()
@@ -79,7 +79,8 @@ public class FromVector4Rgba32 : FromVector4<Rgba32>
         SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
     }
 
-    private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => [0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0
+    private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32
+        => [0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0
     ];
 
     [Benchmark]

@@ -119,9 +119,11 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
 
     public override void Write(byte[] buffer, int offset, int count) => this.Await(() => base.Write(buffer, offset, count));
 
-    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => base.ReadAsync(buffer, offset, count, cancellationToken));
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        => this.Await(() => base.ReadAsync(buffer, offset, count, cancellationToken));
 
-    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => base.WriteAsync(buffer, offset, count, cancellationToken));
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        => this.Await(() => base.WriteAsync(buffer, offset, count, cancellationToken));
 
     public override void WriteByte(byte value) => this.Await(() => base.WriteByte(value));
 
@@ -151,7 +153,8 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
         return base.Read(buffer);
     }
 
-    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => base.ReadAsync(buffer, cancellationToken));
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        => this.Await(() => base.ReadAsync(buffer, cancellationToken));
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
@@ -159,5 +162,6 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
         base.Write(buffer);
     }
 
-    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => base.WriteAsync(buffer, cancellationToken));
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        => this.Await(() => base.WriteAsync(buffer, cancellationToken));
 }

@@ -26,11 +26,23 @@ internal static partial class Av1IntraSuperblockEncoder
     /// Defines type-specific block encoding without coupling traversal to sample storage width.
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
-    internal interface IBlockEncodingOperator<TSample> :
+    /// <typeparam name="TOperator">The native sample operator and worker selector.</typeparam>
+    internal interface IBlockEncodingOperator<TSample, TOperator> :
         Av1IntraBlockCopySearchIndex.ISearchOperation<TSample>,
         Av1MotionSearchBase.IMotionSearchOperator<TSample>
         where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
+        /// <summary>References the existing typed worker for shared search control.</summary>
+        /// <param name="worker">The active typed worker.</param>
+        /// <returns>A stack-only view over the worker and its search state.</returns>
+        public static abstract SearchControl CreateSearchControl(ref ModeDecision<TSample, TOperator> worker);
+
+        /// <summary>Retains the existing typed motion search for the shared candidate controller.</summary>
+        /// <param name="search">The native motion-search view.</param>
+        /// <returns>A view over the same search and storage.</returns>
+        public static abstract SingleReferenceMotionSearch CreateReferenceMotionSearch(Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> search);
+
         /// <summary>
         /// Converts a valid sample value to the native plane storage type.
         /// </summary>
@@ -544,7 +556,7 @@ internal static partial class Av1IntraSuperblockEncoder
         Span<short> filterRows,
         Av1BitDepth bitDepth)
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         // The origin indexes the complete padded plane, so the plane bounds move the prediction origin into it.
         Rectangle referenceBounds = reference.Bounds;
@@ -606,7 +618,7 @@ internal static partial class Av1IntraSuperblockEncoder
         Av1BlockSize predictionSize,
         Av1BitDepth bitDepth)
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         int width = predictionSize.GetWidth();
         int height = predictionSize.GetHeight();
@@ -708,7 +720,7 @@ internal static partial class Av1IntraSuperblockEncoder
         bool primaryPrepared,
         bool secondaryPrepared)
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         // The prediction, the residual and both intermediates are packed at the block width.
         int width = predictionSize.GetWidth();
@@ -820,8 +832,15 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Encodes blocks stored as eight-bit samples.
     /// </summary>
-    internal readonly struct ByteOperator : IBlockEncodingOperator<byte>
+    internal readonly struct ByteOperator : IBlockEncodingOperator<byte, ByteOperator>
     {
+        /// <inheritdoc />
+        public static SearchControl CreateSearchControl(ref ModeDecision<byte, ByteOperator> worker) => new(ref worker);
+
+        /// <inheritdoc />
+        public static SingleReferenceMotionSearch CreateReferenceMotionSearch(Av1MotionSearchBase.SingleReferenceSearch<byte, ByteOperator> search)
+            => new(search);
+
         /// <inheritdoc/>
         public static void BuildPrediction(
             ReadOnlySpan<byte> reference,
@@ -1060,7 +1079,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<uint> LoadHashBytes(ref byte source, nuint offset, Vector256<uint> lanes)
-            => Vector256.WidenLower(Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, offset))).AsByte()).ToVector256Unsafe());
+            => Vector256.WidenLower(
+                Vector128.WidenLower(
+                    Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, offset))).AsByte()).ToVector256Unsafe());
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1513,8 +1534,15 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Encodes blocks stored as high-bit-depth samples.
     /// </summary>
-    internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
+    internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort, UInt16Operator>
     {
+        /// <inheritdoc />
+        public static SearchControl CreateSearchControl(ref ModeDecision<ushort, UInt16Operator> worker) => new(ref worker);
+
+        /// <inheritdoc />
+        public static SingleReferenceMotionSearch CreateReferenceMotionSearch(Av1MotionSearchBase.SingleReferenceSearch<ushort, UInt16Operator> search)
+            => new(search);
+
         /// <inheritdoc/>
         public static void BuildPrediction(
             ReadOnlySpan<ushort> reference,
@@ -1747,7 +1775,9 @@ internal static partial class Av1IntraSuperblockEncoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> LoadHashBytes(ref ushort source, nuint offset, Vector128<uint> lanes)
         {
-            Vector128<ushort> samples = Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, offset)))).AsUInt16();
+            Vector128<ushort> samples = Vector128.CreateScalarUnsafe(
+                Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, offset)))).AsUInt16();
+
             return Vector128.WidenLower((samples ^ (samples >>> 8)) & Vector128.Create((ushort)255));
         }
 

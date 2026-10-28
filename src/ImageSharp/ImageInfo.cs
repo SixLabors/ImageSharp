@@ -38,7 +38,7 @@ public class ImageInfo
         this.Metadata = metadata;
 
         // PixelTpe is normally set following decoding
-        // See ImageDecoder.SetDecoderFormat(Configuration configuration, ImageInfo info).
+        // See ImageDecoder.SetDecoderMetadata(DecoderOptions options, ImageInfo info).
         if (metadata.DecodedImageFormat is not null)
         {
             this.PixelType = metadata.GetDecodedPixelTypeInfo();

@@ -1,13 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Histograms;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects;
 
@@ -30,162 +30,133 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
     public OilPaintingProcessor(Configuration configuration, OilPaintingProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
         : base(configuration, source, sourceRectangle)
-        => this.definition = definition;
+    {
+        this.definition = definition;
+    }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        int levels = Math.Clamp(this.definition.Levels, 1, 255);
         int brushSize = Math.Clamp(this.definition.BrushSize, 1, Math.Min(source.Width, source.Height));
 
-        using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size);
+        OilPaintingOperation operation = default;
 
-        source.CopyTo(targetPixels);
+        // Multiply each channel by one third before summing, so finite HDR components do not overflow their mean.
+        Vector3 weights = new(1F / 3F);
 
-        RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, levels);
         try
         {
-            ParallelRowIterator.IterateRowIntervals(
-            this.Configuration,
-            this.SourceRectangle,
-            in operation);
+            Histogram.Apply<TPixel, OilPaintingBin, OilPaintingBin, OilPaintingOperation>(
+                this.Configuration,
+                source,
+                this.SourceRectangle,
+                Math.Clamp(this.definition.Levels, 1, 255),
+                weights,
+                false,
+                0,
+                Histogram.Region.Neighborhood(brushSize >> 1),
+                in operation);
         }
         catch (Exception ex)
         {
-            throw new ImageProcessingException("The OilPaintProcessor failed. The most likely reason is that a pixel component was outside of its' allowed range.", ex);
+            throw new ImageProcessingException(
+                "The OilPaintProcessor failed. The most likely reason is that a pixel component was outside of its' allowed range.",
+                ex);
         }
-
-        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the convolution logic for <see cref="OilPaintingProcessor{T}"/>.
+    /// Accumulates counts and RGB sums, then averages the selected bin without changing alpha.
     /// </summary>
-    private readonly struct RowIntervalOperation : IRowIntervalOperation
+    private readonly struct OilPaintingOperation : IHistogramOperation<OilPaintingBin, OilPaintingBin>
     {
-        private readonly Rectangle bounds;
-        private readonly Buffer2D<TPixel> targetPixels;
-        private readonly Buffer2D<TPixel> source;
-        private readonly Configuration configuration;
-        private readonly int radius;
-        private readonly int levels;
+        /// <inheritdoc />
+        public OilPaintingBin GetResult(ref Histogram<OilPaintingBin>.Query histogram, Vector4 source, int index) => histogram.GetMostFrequent();
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public RowIntervalOperation(
-            Rectangle bounds,
-            Buffer2D<TPixel> targetPixels,
-            Buffer2D<TPixel> source,
-            Configuration configuration,
-            int radius,
-            int levels)
+        /// <inheritdoc />
+        public Vector4 Invoke(Vector4 source, in OilPaintingBin data)
+            => new(data.Red / data.Count, data.Green / data.Count, data.Blue / data.Count, source.W);
+
+        /// <inheritdoc />
+        public Vector128<float> Invoke(Vector128<float> source, ReadOnlySpan<OilPaintingBin> data)
         {
-            this.bounds = bounds;
-            this.targetPixels = targetPixels;
-            this.source = source;
-            this.configuration = configuration;
-            this.radius = radius;
-            this.levels = levels;
+            // Each bin stores [integer count, red sum, green sum, blue sum] in one 128-bit lane.
+            ref float first = ref Unsafe.As<OilPaintingBin, float>(ref MemoryMarshal.GetReference(data));
+            Vector128<float> bins = Vector128.LoadUnsafe(ref first);
+            Vector128<float> counts = Vector128.ConvertToSingle(Vector128_.ShuffleNative(bins, SimdUtils.Shuffle.MMShuffle0000).AsInt32());
+
+            // Rotate each bin's RGB sums into RGBA positions, then restore the source alpha after division.
+            Vector128<float> sums = Vector128_.ShuffleNative(bins, SimdUtils.Shuffle.MMShuffle0321);
+            Vector128<float> alpha = Vector128.Create(0, 0, 0, -1).AsSingle();
+            return Vector128.ConditionalSelect(alpha, source, sums / counts);
         }
 
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(in RowInterval rows)
+        /// <inheritdoc />
+        public Vector256<float> Invoke(Vector256<float> source, ReadOnlySpan<OilPaintingBin> data)
         {
-            int maxY = this.bounds.Bottom - 1;
-            int maxX = this.bounds.Right - 1;
+            // Each bin stores [integer count, red sum, green sum, blue sum] in one 128-bit lane.
+            ref float first = ref Unsafe.As<OilPaintingBin, float>(ref MemoryMarshal.GetReference(data));
+            Vector256<float> bins = Vector256.LoadUnsafe(ref first);
+            Vector256<float> counts = Vector256.ConvertToSingle(Vector256_.ShuffleNative(bins, SimdUtils.Shuffle.MMShuffle0000).AsInt32());
 
-            /* Allocate the two temporary Vector4 buffers, one for the source row and one for the target row.
-             * The ParallelHelper.IterateRowsWithTempBuffers overload is not used in this case because
-             * the two allocated buffers have a length equal to the width of the source image,
-             * and not just equal to the width of the target rectangle to process.
-             * Furthermore, there are two buffers being allocated in this case, so using that overload would
-             * have still required the explicit allocation of the secondary buffer.
-             * Similarly, one temporary float buffer is also allocated from the pool, and that is used
-             * to create the target bins for all the color channels being processed.
-             * This buffer is only rented once outside of the main processing loop, and its contents
-             * are cleared for each loop iteration, to avoid the repeated allocation for each processed pixel. */
-            using IMemoryOwner<Vector4> sourceRowBuffer = this.configuration.MemoryAllocator.Allocate<Vector4>(this.source.Width);
-            using IMemoryOwner<Vector4> targetRowBuffer = this.configuration.MemoryAllocator.Allocate<Vector4>(this.source.Width);
-            using IMemoryOwner<float> bins = this.configuration.MemoryAllocator.Allocate<float>(this.levels * 4);
+            // Rotate each bin's RGB sums into RGBA positions, then restore the source alpha after division.
+            Vector256<float> sums = Vector256_.ShuffleNative(bins, SimdUtils.Shuffle.MMShuffle0321);
+            Vector256<float> alpha = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+            return Vector256.ConditionalSelect(alpha, source, sums / counts);
+        }
 
-            Span<Vector4> sourceRowVector4Span = sourceRowBuffer.Memory.Span;
-            Span<Vector4> sourceRowAreaVector4Span = sourceRowVector4Span.Slice(this.bounds.X, this.bounds.Width);
+        /// <inheritdoc />
+        public Vector512<float> Invoke(Vector512<float> source, ReadOnlySpan<OilPaintingBin> data)
+        {
+            // Each bin stores [integer count, red sum, green sum, blue sum] in one 128-bit lane.
+            ref float first = ref Unsafe.As<OilPaintingBin, float>(ref MemoryMarshal.GetReference(data));
+            Vector512<float> bins = Vector512.LoadUnsafe(ref first);
+            Vector512<float> counts = Vector512.ConvertToSingle(Vector512_.ShuffleNative(bins, SimdUtils.Shuffle.MMShuffle0000).AsInt32());
 
-            Span<Vector4> targetRowVector4Span = targetRowBuffer.Memory.Span;
-            Span<Vector4> targetRowAreaVector4Span = targetRowVector4Span.Slice(this.bounds.X, this.bounds.Width);
+            // Rotate each bin's RGB sums into RGBA positions, then restore the source alpha after division.
+            Vector512<float> sums = Vector512_.ShuffleNative(bins, SimdUtils.Shuffle.MMShuffle0321);
+            Vector512<float> alpha = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+            return Vector512.ConditionalSelect(alpha, source, sums / counts);
+        }
+    }
 
-            Span<float> binsSpan = bins.GetSpan();
-            Span<int> intensityBinsSpan = MemoryMarshal.Cast<float, int>(binsSpan);
-            Span<float> redBinSpan = binsSpan[this.levels..];
-            Span<float> blueBinSpan = redBinSpan[this.levels..];
-            Span<float> greenBinSpan = blueBinSpan[this.levels..];
-            PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+    /// <summary>
+    /// Stores a neighborhood's count and original channel sums together in each bin.
+    /// </summary>
+    private struct OilPaintingBin : IHistogramBin<OilPaintingBin>
+    {
+        public int Count;
+        public float Red;
+        public float Green;
+        public float Blue;
 
-            for (int y = rows.Min; y < rows.Max; y++)
-            {
-                Span<TPixel> sourceRowPixelSpan = this.source.DangerousGetRowSpan(y);
-                Span<TPixel> sourceRowAreaPixelSpan = sourceRowPixelSpan.Slice(this.bounds.X, this.bounds.Width);
+        /// <inheritdoc />
+        public static bool RequiresSamples => true;
 
-                // Intensity bins and channel averages describe logical colors, so they must not depend on the pixel storage association.
-                pixelOperations.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        /// <inheritdoc />
+        int IHistogramBin<OilPaintingBin>.Count
+        {
+            get => this.Count;
+            set => this.Count = value;
+        }
 
-                for (int x = this.bounds.X; x < this.bounds.Right; x++)
-                {
-                    int maxIntensity = 0;
-                    int maxIndex = 0;
+        /// <inheritdoc />
+        public void Merge(in OilPaintingBin source)
+        {
+            this.Count += source.Count;
+            this.Red += source.Red;
+            this.Green += source.Green;
+            this.Blue += source.Blue;
+        }
 
-                    // Clear the current shared buffer before processing each target pixel
-                    bins.Memory.Span.Clear();
-
-                    for (int fy = 0; fy <= this.radius; fy++)
-                    {
-                        int fyr = fy - this.radius;
-                        int offsetY = y + fyr;
-                        offsetY = Numerics.Clamp(offsetY, 0, maxY);
-
-                        Span<TPixel> sourceOffsetRow = this.source.DangerousGetRowSpan(offsetY);
-
-                        for (int fx = 0; fx <= this.radius; fx++)
-                        {
-                            int fxr = fx - this.radius;
-                            int offsetX = x + fxr;
-                            offsetX = Numerics.Clamp(offsetX, 0, maxX);
-
-                            Vector4 vector = sourceOffsetRow[offsetX].ToUnassociatedScaledVector4();
-
-                            float sourceRed = vector.X;
-                            float sourceBlue = vector.Z;
-                            float sourceGreen = vector.Y;
-
-                            // The computed intensity can be nonfinite or outside [0, 1], so bound it before indexing the bins.
-                            float intensity = Numerics.Clamp((sourceBlue + sourceGreen + sourceRed) / 3F, 0F, 1F);
-                            int currentIntensity = (int)MathF.Round(intensity * (this.levels - 1));
-
-                            intensityBinsSpan[currentIntensity]++;
-                            redBinSpan[currentIntensity] += sourceRed;
-                            blueBinSpan[currentIntensity] += sourceBlue;
-                            greenBinSpan[currentIntensity] += sourceGreen;
-
-                            if (intensityBinsSpan[currentIntensity] > maxIntensity)
-                            {
-                                maxIntensity = intensityBinsSpan[currentIntensity];
-                                maxIndex = currentIntensity;
-                            }
-                        }
-
-                        float red = redBinSpan[maxIndex] / maxIntensity;
-                        float blue = blueBinSpan[maxIndex] / maxIntensity;
-                        float green = greenBinSpan[maxIndex] / maxIntensity;
-                        float alpha = sourceRowVector4Span[x].W;
-
-                        targetRowVector4Span[x] = new Vector4(red, green, blue, alpha);
-                    }
-                }
-
-                Span<TPixel> targetRowAreaPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-
-                pixelOperations.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-            }
+        /// <inheritdoc />
+        public int Add(Vector4 sample, int delta)
+        {
+            this.Count += delta;
+            this.Red += sample.X * delta;
+            this.Blue += sample.Z * delta;
+            this.Green += sample.Y * delta;
+            return this.Count;
         }
     }
 }

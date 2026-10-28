@@ -26,8 +26,14 @@ public sealed class CicpProfile : IDeepCloneable<CicpProfile>
     public CicpProfile(byte colorPrimaries, byte transferCharacteristics, byte matrixCoefficients, bool? fullRange)
     {
         this.ColorPrimaries = Enum.IsDefined(typeof(CicpColorPrimaries), colorPrimaries) ? (CicpColorPrimaries)colorPrimaries : CicpColorPrimaries.Unspecified;
-        this.TransferCharacteristics = Enum.IsDefined(typeof(CicpTransferCharacteristics), transferCharacteristics) ? (CicpTransferCharacteristics)transferCharacteristics : CicpTransferCharacteristics.Unspecified;
-        this.MatrixCoefficients = Enum.IsDefined(typeof(CicpMatrixCoefficients), matrixCoefficients) ? (CicpMatrixCoefficients)matrixCoefficients : CicpMatrixCoefficients.Unspecified;
+        this.TransferCharacteristics = Enum.IsDefined(typeof(CicpTransferCharacteristics), transferCharacteristics)
+            ? (CicpTransferCharacteristics)transferCharacteristics
+            : CicpTransferCharacteristics.Unspecified;
+
+        this.MatrixCoefficients = Enum.IsDefined(typeof(CicpMatrixCoefficients), matrixCoefficients)
+            ? (CicpMatrixCoefficients)matrixCoefficients
+            : CicpMatrixCoefficients.Unspecified;
+
         this.FullRange = fullRange ?? (this.MatrixCoefficients == CicpMatrixCoefficients.Identity);
     }
 

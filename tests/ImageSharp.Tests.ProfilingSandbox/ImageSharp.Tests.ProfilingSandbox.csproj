@@ -34,7 +34,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" />
+    <!-- Match the HDRI assembly referenced by ImageSharp.Tests to avoid duplicate Magick types. -->
+    <PackageReference Include="Magick.NET-Q16-HDRI-AnyCPU" Version="14.16.0" />
     <PackageReference Include="Moq" />
     <PackageReference Include="NetVips" />
     <PackageReference Include="NetVips.Native" />

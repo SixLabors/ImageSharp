@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
@@ -12,6 +13,10 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Writers;
 
+/// <summary>
+/// Dithers an encoder-owned working image before packing bilevel strips.
+/// </summary>
+/// <typeparam name="TPixel">The source pixel format.</typeparam>
 internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -21,16 +26,36 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
 
     private IMemoryOwner<byte> bitStrip;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TiffBiColorWriter{TPixel}"/> class.
+    /// </summary>
+    /// <param name="image">The source frame.</param>
+    /// <param name="encodingSize">The encoded region size.</param>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="configuration">The pixel conversion configuration.</param>
+    /// <param name="entriesCollector">The directory entries.</param>
+    /// <param name="converter">The converter from sRGB to the retained grayscale profile, or null when no ICC conversion is required.</param>
+    /// <param name="clearTransparentPixels">Whether to set RGB to zero where alpha is zero before dithering.</param>
     public TiffBiColorWriter(
         ImageFrame<TPixel> image,
         Size encodingSize,
         MemoryAllocator memoryAllocator,
         Configuration configuration,
-        TiffEncoderEntriesCollector entriesCollector)
+        TiffEncoderEntriesCollector entriesCollector,
+        ColorProfileConverter converter,
+        bool clearTransparentPixels)
         : base(image, encodingSize, memoryAllocator, configuration, entriesCollector)
     {
-        // Convert image to black and white.
+        // Floyd-Steinberg dithering changes pixels and carries error between rows. Retain its working image without changing the source frame.
         this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), [image.Clone()]);
+
+        // Convert the copy to the retained grayscale profile before dithering. TPixel keeps the source's precision and alpha rules.
+        converter?.Convert(this.imageBlackWhite);
+        if (clearTransparentPixels)
+        {
+            EncodingUtilities.ReplaceTransparentPixels(this.imageBlackWhite.Frames.RootFrame);
+        }
+
         this.imageBlackWhite.Mutate(img => img.BinaryDither(KnownDitherings.FloydSteinberg));
     }
 
@@ -44,7 +69,8 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
 
         if (compressor.Method is TiffCompression.CcittGroup3Fax or TiffCompression.Ccitt1D or TiffCompression.CcittGroup4Fax)
         {
-            // Special case for T4BitCompressor.
+            // CCITT compressors find black and white runs in one byte per pixel (0 or 255).
+            // Supply those samples directly; bit packing belongs to the compressor, not this writer.
             int stripPixels = width * height;
             this.pixelsAsGray ??= this.MemoryAllocator.Allocate<byte>(stripPixels);
             this.imageBlackWhite.ProcessPixelRows(accessor =>
@@ -65,13 +91,15 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
         }
         else
         {
-            // Write uncompressed image.
+            // Other compressors consume packed one-bit samples. Reuse one strip and one grayscale row across calls.
             int bytesPerStrip = this.BytesPerRow * height;
             this.bitStrip ??= this.MemoryAllocator.Allocate<byte>(bytesPerStrip);
             this.pixelsAsGray ??= this.MemoryAllocator.Allocate<byte>(width);
             Span<byte> pixelAsGraySpan = this.pixelsAsGray.GetSpan();
 
             Span<byte> rows = this.bitStrip.Slice(0, bytesPerStrip);
+
+            // Bits are set below with OR. Clearing also leaves unused bits in each row's final byte at zero.
             rows.Clear();
             Buffer2D<TPixel> blackWhiteBuffer = this.imageBlackWhite.Frames.RootFrame.PixelBuffer;
 
@@ -84,6 +112,8 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
                 Span<byte> outputRow = rows[(outputRowIdx * this.BytesPerRow)..];
                 Span<TPixel> pixelsBlackWhiteRow = blackWhiteBuffer.DangerousGetRowSpan(row)[..width];
                 PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixelsBlackWhiteRow, pixelAsGraySpan, width);
+
+                // TIFF stores the leftmost pixel in the high bit. Advance to the next byte after eight dithered samples.
                 for (int x = 0; x < this.Width; x++)
                 {
                     int shift = 7 - bitIndex;

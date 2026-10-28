@@ -170,7 +170,13 @@ internal static partial class Av1TemporalFilter
         /// <param name="terms">The sub-block error terms.</param>
         /// <param name="lanes">The overload-selection value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateWeights(Vector128<uint> errors, Vector128<uint> predictions, ref uint accumulator, ref ushort count, in WeightTerms terms, Vector128<double> lanes)
+        public static void AccumulateWeights(
+            Vector128<uint> errors,
+            Vector128<uint> predictions,
+            ref uint accumulator,
+            ref ushort count,
+            in WeightTerms terms,
+            Vector128<double> lanes)
         {
             Vector128<double> lower = ScaleErrors(ToDouble(Vector128.WidenLower(errors)), in terms);
             Vector128<double> upper = ScaleErrors(ToDouble(Vector128.WidenUpper(errors)), in terms);
@@ -189,7 +195,13 @@ internal static partial class Av1TemporalFilter
         /// <param name="terms">The sub-block error terms.</param>
         /// <param name="lanes">The overload-selection value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AccumulateWeights(Vector128<uint> errors, Vector128<uint> predictions, ref uint accumulator, ref ushort count, in WeightTerms terms, Vector256<double> lanes)
+        public static void AccumulateWeights(
+            Vector128<uint> errors,
+            Vector128<uint> predictions,
+            ref uint accumulator,
+            ref ushort count,
+            in WeightTerms terms,
+            Vector256<double> lanes)
         {
             Vector256<double> scaled = ScaleErrors(ToDouble(Vector256.WidenLower(errors.ToVector256Unsafe())), in terms);
             AddWeights(GetWeights(Vector128.Narrow(scaled.GetLower(), scaled.GetUpper())), predictions, ref accumulator, ref count);
@@ -257,7 +269,9 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> Normalize(ref uint accumulator, ref ushort count, Vector128<double> lanes)
         {
-            Vector128<uint> counts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref count))).AsUInt16());
+            Vector128<uint> counts = Vector128.WidenLower(
+                Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref count))).AsUInt16());
+
             Vector128<uint> numerators = Vector128.LoadUnsafe(ref accumulator) + Vector128.ShiftRightLogical(counts, 1);
             Vector128<ulong> lower = Divide(ToDouble(Vector128.WidenLower(numerators)), ToDouble(Vector128.WidenLower(counts)));
             Vector128<ulong> upper = Divide(ToDouble(Vector128.WidenUpper(numerators)), ToDouble(Vector128.WidenUpper(counts)));
@@ -274,7 +288,9 @@ internal static partial class Av1TemporalFilter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<uint> Normalize(ref uint accumulator, ref ushort count, Vector256<double> lanes)
         {
-            Vector128<uint> counts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref count))).AsUInt16());
+            Vector128<uint> counts = Vector128.WidenLower(
+                Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref count))).AsUInt16());
+
             Vector128<uint> numerators = Vector128.LoadUnsafe(ref accumulator) + Vector128.ShiftRightLogical(counts, 1);
             Vector256<ulong> quotients = Divide(
                 ToDouble(Vector256.WidenLower(numerators.ToVector256Unsafe())),

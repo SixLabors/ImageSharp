@@ -463,7 +463,9 @@ public class IptcProfileTests
     private static void ContainsIptcValue(List<IptcValue> values, IptcTag tag, string value)
     {
         Assert.True(values.Any(val => val.Tag == tag), $"Missing iptc tag {tag}");
-        Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
+        Assert.True(
+            values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value), false)),
+            $"expected iptc value '{value}' was not found for tag '{tag}'");
     }
 
     /// <summary>

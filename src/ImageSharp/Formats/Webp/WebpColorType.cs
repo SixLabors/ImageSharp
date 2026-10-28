@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 public enum WebpColorType
 {
     /// <summary>
-    /// Yuv (luminance, blue chroma, red chroma) as defined in the ITU-R Rec. BT.709 specification.
+    /// Y′CbCr (luma, blue-difference chroma, red-difference chroma) as defined in ITU-R BT.601.
     /// </summary>
     Yuv,
 

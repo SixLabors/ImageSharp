@@ -1,9 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -21,6 +25,30 @@ public sealed partial class IccProfile
 
     // Compact sRGB v4 working profile. Its fitted coefficients differ from the rounded IEC coefficients.
     private static readonly IccProfileId CompactRgbV4 = new(0xA3B2ABDF, 0x5CA70312, 0xA855A4EC, 0x357AD1F3);
+
+    /// <summary>
+    /// Gets the supplied profile when conversion between its color space and sRGB is required.
+    /// </summary>
+    /// <param name="profile">The profile to check.</param>
+    /// <param name="value">The supplied profile when conversion is required; otherwise, <see langword="null"/>.</param>
+    /// <returns>Whether the profile is present and is not a canonical sRGB matrix-TRC profile.</returns>
+    internal static bool TryGetIccProfileForColorConversion(IccProfile? profile, [NotNullWhen(true)] out IccProfile? value)
+    {
+        value = null;
+
+        if (profile is null)
+        {
+            return false;
+        }
+
+        if (profile.IsCanonicalSrgbMatrixTrc())
+        {
+            return false;
+        }
+
+        value = profile;
+        return true;
+    }
 
     /// <summary>
     /// Detects canonical sRGB matrix+TRC profiles quickly and safely.
@@ -341,11 +369,14 @@ public sealed partial class IccProfile
                        this.d == other.d && this.e == other.e && this.f == other.f;
             }
 
-            // Compare the fingerprint first, then every sample. No sample array is copied.
+            // Compare the fingerprint first, then every stored sample. ICC decodes each unsigned
+            // sixteen-bit code to the same float bits, including positive zero. Byte comparison uses
+            // the runtime's SIMD sequence comparison; float SequenceEqual compares samples individually.
+            // These spans view the existing arrays. Neither curve is copied or converted.
             return this.n == other.n &&
                    this.g == other.g && this.a == other.a &&
                    this.b == other.b && this.c == other.c && this.d == other.d &&
-                   this.samples.AsSpan().SequenceEqual(other.samples);
+                   MemoryMarshal.AsBytes(this.samples.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(other.samples.AsSpan()));
         }
 
         /// <summary>
@@ -374,33 +405,122 @@ public sealed partial class IccProfile
                 return false;
             }
 
-            // Sampled ICC curves store unsigned sixteen-bit values. Check every node against the
-            // shared sRGB expansion path within one stored level. Its lookup table is reused, not
-            // allocated per profile. This work is profile selection, never a pixel-row operation.
-            // Keep the negated <= comparisons below: they also reject NaN. A > comparison would not.
-            const float sampleTolerance = 1F / ushort.MaxValue;
+            // ICC curve nodes are unsigned sixteen-bit codes. Compare rounded reference codes within
+            // one stored level, rather than allowing float lookup-coordinate rounding to decide the result.
+            // Midpoints are interpolated values, not stored codes: retain their continuous one-level error bound.
+            const float sampleScale = ushort.MaxValue;
+            const float sampleTolerance = 1F / sampleScale;
             float[] table = SRgbCompanding.GetExpandLookupTable();
+            LutOperator lookup = new(table, false, table.Length - 1);
+            ReadOnlySpan<float> samples = this.samples;
+            ref float first = ref MemoryMarshal.GetReference(samples);
             float step = 1F / (this.n - 1);
 
-            for (int i = 0; i < this.n; i++)
+            // Check the first endpoint separately. Every remaining node owns the segment immediately before it.
+            if (!(MathF.Abs(MathF.Round(samples[0] * sampleScale) - MathF.Round(table[0] * sampleScale)) <= 1F))
             {
-                // X checks the stored node. Y checks the midpoint of the preceding segment, so a
-                // sparse identity table [0,1] cannot pass just because both endpoints match sRGB.
-                // Obtain the shared table once above; this loop performs no cache lookups or powers.
-                Vector4 inputs = new(i * step, (i - 0.5F) * step, 0F, 0F);
-                Vector4 expected = CompandingUtilities.Compand(inputs, table);
-                if (!(MathF.Abs(this.samples![i] - expected.X) <= sampleTolerance))
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                if (i > 0)
+            int i = 1;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint count = (this.n - i).Vector512Count<float>();
+                Vector512<float> offsets = Vector512.Create(0F, 1F, 2F, 3F, 4F, 5F, 6F, 7F, 8F, 9F, 10F, 11F, 12F, 13F, 14F, 15F);
+                Vector512<float> stepVector = Vector512.Create(step);
+                Vector512<float> scale = Vector512.Create(sampleScale);
+                Vector512<float> tolerance = Vector512.Create(sampleTolerance);
+
+                // Each lane checks one node and its preceding segment. Unaligned loads keep both arrays in lane order.
+                // Recreate integer coordinates for each block so repeated addition cannot accumulate input drift.
+                for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
                 {
-                    float interpolated = (this.samples[i - 1] + this.samples[i]) * 0.5F;
-                    if (!(MathF.Abs(interpolated - expected.Y) <= sampleTolerance))
+                    Vector512<float> indices = Vector512.Create((float)i) + offsets;
+                    Vector512<float> current = Vector512.LoadUnsafe(ref first, (uint)i);
+                    Vector512<float> previous = Vector512.LoadUnsafe(ref first, (uint)(i - 1));
+                    Vector512<float> expected = lookup.ConvertForward(indices * stepVector);
+                    Vector512<float> difference = Vector512.Abs(Vector512.Round(current * scale) - Vector512.Round(expected * scale));
+                    Vector512<float> midpoint = (previous + current) * Vector512.Create(0.5F);
+                    Vector512<float> expectedMidpoint = lookup.ConvertForward((indices - Vector512.Create(0.5F)) * stepVector);
+
+                    // Ordered comparisons also reject invalid NaN samples. No profile samples or shared table entries are changed.
+                    if (!Vector512.LessThanOrEqualAll(difference, Vector512<float>.One) ||
+                        !Vector512.LessThanOrEqualAll(Vector512.Abs(midpoint - expectedMidpoint), tolerance))
                     {
                         return false;
                     }
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint count = (this.n - i).Vector256Count<float>();
+                Vector256<float> offsets = Vector256.Create(0F, 1F, 2F, 3F, 4F, 5F, 6F, 7F);
+                Vector256<float> stepVector = Vector256.Create(step);
+                Vector256<float> scale = Vector256.Create(sampleScale);
+                Vector256<float> tolerance = Vector256.Create(sampleTolerance);
+
+                // Each lane checks one node and its preceding segment. Unaligned loads keep both arrays in lane order.
+                // Recreate integer coordinates for each block so repeated addition cannot accumulate input drift.
+                for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
+                {
+                    Vector256<float> indices = Vector256.Create((float)i) + offsets;
+                    Vector256<float> current = Vector256.LoadUnsafe(ref first, (uint)i);
+                    Vector256<float> previous = Vector256.LoadUnsafe(ref first, (uint)(i - 1));
+                    Vector256<float> expected = lookup.ConvertForward(indices * stepVector);
+                    Vector256<float> difference = Vector256.Abs(Vector256.Round(current * scale) - Vector256.Round(expected * scale));
+                    Vector256<float> midpoint = (previous + current) * Vector256.Create(0.5F);
+                    Vector256<float> expectedMidpoint = lookup.ConvertForward((indices - Vector256.Create(0.5F)) * stepVector);
+
+                    // Ordered comparisons also reject invalid NaN samples. No profile samples or shared table entries are changed.
+                    if (!Vector256.LessThanOrEqualAll(difference, Vector256<float>.One) ||
+                        !Vector256.LessThanOrEqualAll(Vector256.Abs(midpoint - expectedMidpoint), tolerance))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint count = (this.n - i).Vector128Count<float>();
+                Vector128<float> offsets = Vector128.Create(0F, 1F, 2F, 3F);
+                Vector128<float> stepVector = Vector128.Create(step);
+                Vector128<float> scale = Vector128.Create(sampleScale);
+                Vector128<float> tolerance = Vector128.Create(sampleTolerance);
+
+                // Each lane checks one node and its preceding segment. Unaligned loads keep both arrays in lane order.
+                // Recreate integer coordinates for each block so repeated addition cannot accumulate input drift.
+                for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+                {
+                    Vector128<float> indices = Vector128.Create((float)i) + offsets;
+                    Vector128<float> current = Vector128.LoadUnsafe(ref first, (uint)i);
+                    Vector128<float> previous = Vector128.LoadUnsafe(ref first, (uint)(i - 1));
+                    Vector128<float> expected = lookup.ConvertForward(indices * stepVector);
+                    Vector128<float> difference = Vector128.Abs(Vector128.Round(current * scale) - Vector128.Round(expected * scale));
+                    Vector128<float> midpoint = (previous + current) * Vector128.Create(0.5F);
+                    Vector128<float> expectedMidpoint = lookup.ConvertForward((indices - Vector128.Create(0.5F)) * stepVector);
+
+                    // Ordered comparisons also reject invalid NaN samples. No profile samples or shared table entries are changed.
+                    if (!Vector128.LessThanOrEqualAll(difference, Vector128<float>.One) ||
+                        !Vector128.LessThanOrEqualAll(Vector128.Abs(midpoint - expectedMidpoint), tolerance))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            // Narrower loops process only the remainder. With hardware intrinsics disabled, use these same comparisons for every node.
+            for (; i < this.n; i++)
+            {
+                float expected = lookup.ConvertForward(i * step);
+                float difference = MathF.Abs(MathF.Round(samples[i] * sampleScale) - MathF.Round(expected * sampleScale));
+                float midpoint = (samples[i - 1] + samples[i]) * 0.5F;
+                float expectedMidpoint = lookup.ConvertForward((i - 0.5F) * step);
+                if (!(difference <= 1F) || !(MathF.Abs(midpoint - expectedMidpoint) <= sampleTolerance))
+                {
+                    return false;
                 }
             }
 

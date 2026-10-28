@@ -76,6 +76,21 @@ public partial struct Bgr24 : IPixel<Bgr24>
     public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Bgr24 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgr24 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgr24 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgr24 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromBgr24(this);
 
@@ -92,6 +107,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
         => PixelTypeInfo.Create<Bgr24>(
             PixelComponentInfo.Create<Bgr24>(3, 8, 8, 8),
             PixelColorType.BGR,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
@@ -120,11 +136,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgr24 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -132,12 +144,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Bgr24 FromAssociatedVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static Bgr24 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -149,7 +156,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     {
         source *= MaxBytes;
         source += Half;
-        source = Numerics.Clamp(source, Vector4.Zero, MaxBytes);
+        source = ColorNumerics.ClampToFinite(source, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(source.AsVector128()).AsByte();
         return new Bgr24(result.GetElement(0), result.GetElement(4), result.GetElement(8));

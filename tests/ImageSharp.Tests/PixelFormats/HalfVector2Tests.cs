@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class HalfVector2Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(uint.MaxValue)]
+    [InlineData(0xA17E_80FDU)]
+    public void Constructor_FromPackedValue(uint packed)
+    {
+        HalfVector2 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void HalfVector2_PackedValue()
     {
@@ -76,12 +90,12 @@ public class HalfVector2Tests
         Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, (float)Half.MaxValue, 0F, 1F));
 
         Vector4[] actualVectors = new Vector4[source.Length];
-        PixelOperations<HalfVector2>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector2>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         Vector4[] destructiveSource = [.. expectedVectors];
         HalfVector2[] actualPixels = new HalfVector2[source.Length];
-        PixelOperations<HalfVector2>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector2>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.Equal(source, actualPixels);
     }
 
@@ -120,6 +134,7 @@ public class HalfVector2Tests
         Assert.Equal(Unsafe.SizeOf<HalfVector2>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(2, componentInfo.ComponentCount);

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
@@ -43,7 +44,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Estimates one luma transform without inverse reconstruction or coefficient refinement.
@@ -79,46 +80,23 @@ internal static partial class Av1IntraSuperblockEncoder
             bool isInter,
             Span<int> quantized)
         {
-            int count = size.GetAdjusted().GetSize2d();
-            Span<int> transformed = transformCoefficients[..count];
-            Span<int> dequantized = dequantizedCoefficients[..count];
-            Av1ForwardTransformer.Transform2d(
-                residual, transformed, (uint)stride, type, size, this.bitDepth.GetBitCount(), transformWorkspace);
+            SearchControl control = TOperator.CreateSearchControl(ref this);
 
-            ushort endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
-                transformed,
-                quantized[..count],
-                dequantized,
-                size,
-                type,
-                this.blockQIndex,
-                this.quantization.DeltaQDc[0],
-                this.quantization.DeltaQAc[0],
-                this.bitDepth,
-                this.blockWorkspace.EncoderOptions.Sharpness,
-                this.blockWorkspace.GetQuantizationMatrix(Av1ComponentType.Luminance, size, type),
-                this.blockWorkspace.GetInverseQuantizationMatrix(Av1ComponentType.Luminance, size, type));
-
-            int rate = Av1SymbolEncoder.EstimateLumaCoefficientRate(
+            return control.EstimateTransformTypeCost(
                 modeCosts,
                 coefficientCosts,
-                quantized,
-                endOfBlock,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                residual,
+                stride,
                 size,
                 type,
                 context,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                filterMode,
                 mode,
+                filterMode,
                 isInter,
-                this.BlockLossless);
-
-            // The squared error is normalized to eight-bit precision with rounding, then loses the transform
-            // scale, so it has the same four fractional bits as pixel-domain distortion.
-            long error = Av1TransformBlockEncoder.GetTransformError(
-                this.blockWorkspace, Av1ComponentType.Luminance, transformed, dequantized, size, type, this.bitDepth, out _, useMatrix: true);
-
-            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, error);
+                quantized);
         }
 
         /// <summary>
@@ -143,6 +121,340 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="order">The search order, which the estimates sort by cost.</param>
         /// <returns>The transform types that remain after the pruning.</returns>
         private ushort PruneTransformTypesByEstimatedCost(
+            Av1ModeCosts modeCosts,
+            Av1CoefficientCosts coefficientCosts,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<short> residual,
+            int stride,
+            Av1TransformSize size,
+            Av1TransformBlockContext context,
+            Av1PredictionMode mode,
+            Av1FilterIntraMode filterMode,
+            bool isInter,
+            ushort allowedMask,
+            int pruningLevel,
+            long bestCost,
+            Span<int> quantized,
+            Span<Av1TransformType> order)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.PruneTransformTypesByEstimatedCost(
+                modeCosts,
+                coefficientCosts,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                residual,
+                stride,
+                size,
+                context,
+                mode,
+                filterMode,
+                isInter,
+                allowedMask,
+                pruningLevel,
+                bestCost,
+                quantized,
+                order);
+        }
+
+        /// <summary>
+        /// Selects the transform types that one transform block searches. The mode evaluation can restrict intra luma to its default or
+        /// derived types, and inter luma to a type that the frame statistics make likely. A chroma block keeps the type that it derives.
+        /// The type statistics of the frame prune a full search first. Then the estimated costs prune it, or the separable type model
+        /// for an inter block.
+        /// </summary>
+        /// <param name="writer">The tile symbol encoder that prices the estimates.</param>
+        /// <param name="modeCosts">The mode rates that the caller read once.</param>
+        /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="plane">The plane of the transform block.</param>
+        /// <param name="isInter">Whether the block is inter predicted.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="mode">The prediction mode of the block.</param>
+        /// <param name="filterIntraMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+        /// <param name="derivedTransformType">The type that a chroma block derives.</param>
+        /// <param name="blockContext">The coefficient contexts of the transform block.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="residualStride">The number of residual samples between rows.</param>
+        /// <param name="costLimit">The budget left for the transform block.</param>
+        /// <param name="coefficients">The storage that the estimates quantize into.</param>
+        /// <param name="transformOrder">The search order, which the estimates sort by cost.</param>
+        /// <param name="singleTypeAllowed">Whether only one type is allowed.</param>
+        /// <returns>The types to search.</returns>
+        private ushort GetTransformMask(
+            Av1SymbolEncoder writer,
+            Av1ModeCosts modeCosts,
+            Av1CoefficientCosts coefficientCosts,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Av1Plane plane,
+            bool isInter,
+            Av1TransformSize transformSize,
+            Av1PredictionMode mode,
+            Av1FilterIntraMode filterIntraMode,
+            Av1TransformType derivedTransformType,
+            Av1TransformBlockContext blockContext,
+            ReadOnlySpan<short> residual,
+            int residualStride,
+            long costLimit,
+            Span<int> coefficients,
+            Span<Av1TransformType> transformOrder,
+            out bool singleTypeAllowed)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.GetTransformMask(
+                writer,
+                modeCosts,
+                coefficientCosts,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
+                plane,
+                isInter,
+                transformSize,
+                mode,
+                filterIntraMode,
+                derivedTransformType,
+                blockContext,
+                residual,
+                residualStride,
+                costLimit,
+                coefficients,
+                transformOrder,
+                out singleTypeAllowed);
+        }
+
+        /// <summary>
+        /// Searches the transform types of one transform block and keeps the best one. The block statistics decide first. A residual
+        /// that cannot survive quantization is settled as empty without a search. A low-variance block searches DCT_DCT alone, with
+        /// its mean as the DC coefficient. Each remaining type is quantized and priced. A type whose rate alone costs more than the
+        /// winner is not measured. The distortion domain follows the speed policy of the current evaluation stage. Policy 1 measures
+        /// the candidates in the transform domain and the winner again in the pixel domain. Policy 2 uses the transform domain for all.
+        /// </summary>
+        /// <remarks>
+        /// The candidate and best buffers swap on each improvement, so the winner is never copied inside the loop.
+        /// On return the best span arguments hold the winner. The best reconstruction is valid only when the winner has coefficients and
+        /// either <paramref name="winnerDestination"/> is not empty or the search measured the winner in pixels, and the winner is not in
+        /// <paramref name="winnerDestination"/> instead (<see cref="TransformTypeSearchResult.WinnerInDestination"/>).
+        /// </remarks>
+        /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
+        /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer of the type estimates.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="transformTypeProbabilities">The transform type probabilities of every update type and size.</param>
+        /// <param name="plane">The plane of the transform block.</param>
+        /// <param name="isInter">Whether the block is inter predicted, which selects the transform set and the trellis weights.</param>
+        /// <param name="blockContext">The coefficient contexts of the transform block.</param>
+        /// <param name="originContext">The coefficient contexts at the origin of the coding block, which price a predicted empty block.</param>
+        /// <param name="source">The source transform block, from its top-left sample.</param>
+        /// <param name="sourceStride">The number of samples between rows of <paramref name="source"/>.</param>
+        /// <param name="transformOrigin">The transform block origin in plane samples.</param>
+        /// <param name="transformSize">The transform size.</param>
+        /// <param name="mode">The prediction mode that selects the transform-type context.</param>
+        /// <param name="filterIntraMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+        /// <param name="derivedTransformType">The type that a chroma block derives, which it searches alone.</param>
+        /// <param name="costLimit">The budget left for the transform block.</param>
+        /// <param name="winnerDestination">
+        /// The prediction in the frame when a later transform block of an intra block predicts from the winner, and empty otherwise.
+        /// A winner with coefficients that the search did not reconstruct is then reconstructed here in place, over its prediction.
+        /// </param>
+        /// <param name="prediction">The prediction samples.</param>
+        /// <param name="predictionStride">The number of prediction samples between rows.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="inputStride">The number of residual samples between rows.</param>
+        /// <param name="candidateReconstruction">The reconstruction of the candidate being measured.</param>
+        /// <param name="bestReconstruction">The reconstruction of the winner.</param>
+        /// <param name="candidateCoefficients">The quantized coefficients of the candidate.</param>
+        /// <param name="bestCoefficients">The quantized coefficients of the winner.</param>
+        /// <param name="candidateDequantized">The dequantized coefficients of the candidate.</param>
+        /// <param name="bestDequantized">The dequantized coefficients of the winner.</param>
+        /// <returns>The winner.</returns>
+        private TransformTypeSearchResult SearchTransformType(
+            Av1SymbolEncoder writer,
+            in Av1CoefficientTables tables,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<int> transformTypeProbabilities,
+            Av1Plane plane,
+            bool isInter,
+            Av1TransformBlockContext blockContext,
+            Av1TransformBlockContext originContext,
+            ReadOnlySpan<TSample> source,
+            int sourceStride,
+            Point transformOrigin,
+            Av1TransformSize transformSize,
+            Av1PredictionMode mode,
+            Av1FilterIntraMode filterIntraMode,
+            Av1TransformType derivedTransformType,
+            long costLimit,
+            scoped Span<TSample> winnerDestination,
+            scoped ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            scoped Span<short> residual,
+            int inputStride,
+            ref Span<TSample> candidateReconstruction,
+            ref Span<TSample> bestReconstruction,
+            ref Span<int> candidateCoefficients,
+            ref Span<int> bestCoefficients,
+            ref Span<int> candidateDequantized,
+            ref Span<int> bestDequantized)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+            Span<byte> rawCandidateReconstruction = MemoryMarshal.AsBytes(candidateReconstruction);
+            Span<byte> rawBestReconstruction = MemoryMarshal.AsBytes(bestReconstruction);
+
+            TransformTypeSearchResult result = SearchControl.SearchTransformType(
+                control,
+                writer,
+                in tables,
+                transformCoefficients,
+                dequantizedCoefficients,
+                transformWorkspace,
+                transformTypeProbabilities,
+                plane,
+                isInter,
+                blockContext,
+                originContext,
+                MemoryMarshal.AsBytes(source),
+                sourceStride,
+                transformOrigin,
+                transformSize,
+                mode,
+                filterIntraMode,
+                derivedTransformType,
+                costLimit,
+                MemoryMarshal.AsBytes(winnerDestination),
+                MemoryMarshal.AsBytes(prediction),
+                predictionStride,
+                residual,
+                inputStride,
+                ref rawCandidateReconstruction,
+                ref rawBestReconstruction,
+                ref candidateCoefficients,
+                ref bestCoefficients,
+                ref candidateDequantized,
+                ref bestDequantized);
+
+            candidateReconstruction = MemoryMarshal.Cast<byte, TSample>(rawCandidateReconstruction);
+            bestReconstruction = MemoryMarshal.Cast<byte, TSample>(rawBestReconstruction);
+            return result;
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Estimates one luma transform without inverse reconstruction or coefficient refinement.
+        /// </summary>
+        /// <param name="modeCosts">The mode rates that the caller read once.</param>
+        /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="stride">The number of residual samples between rows.</param>
+        /// <param name="size">The transform size.</param>
+        /// <param name="type">The transform type to estimate.</param>
+        /// <param name="context">The coefficient contexts of the transform block.</param>
+        /// <param name="mode">The prediction mode that selects the transform-type context.</param>
+        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+        /// <param name="isInter">Whether the block is inter predicted.</param>
+        /// <param name="quantized">The storage that the estimate quantizes into.</param>
+        /// <returns>The estimated rate-distortion cost.</returns>
+        public long EstimateTransformTypeCost(
+            Av1ModeCosts modeCosts,
+            Av1CoefficientCosts coefficientCosts,
+            Span<int> transformCoefficients,
+            Span<int> dequantizedCoefficients,
+            Span<int> transformWorkspace,
+            ReadOnlySpan<short> residual,
+            int stride,
+            Av1TransformSize size,
+            Av1TransformType type,
+            Av1TransformBlockContext context,
+            Av1PredictionMode mode,
+            Av1FilterIntraMode filterMode,
+            bool isInter,
+            Span<int> quantized)
+        {
+            int count = size.GetAdjusted().GetSize2d();
+            Span<int> transformed = transformCoefficients[..count];
+            Span<int> dequantized = dequantizedCoefficients[..count];
+            Av1ForwardTransformer.Transform2d(
+                residual, transformed, (uint)stride, type, size, this.state.BitDepth.GetBitCount(), transformWorkspace);
+
+            ushort endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
+                transformed,
+                quantized[..count],
+                dequantized,
+                size,
+                type,
+                this.state.BlockQIndex,
+                this.state.Quantization.DeltaQDc[0],
+                this.state.Quantization.DeltaQAc[0],
+                this.state.BitDepth,
+                this.state.BlockWorkspace.EncoderOptions.Sharpness,
+                this.state.BlockWorkspace.GetQuantizationMatrix(Av1ComponentType.Luminance, size, type),
+                this.state.BlockWorkspace.GetInverseQuantizationMatrix(Av1ComponentType.Luminance, size, type));
+
+            int rate = Av1SymbolEncoder.EstimateLumaCoefficientRate(
+                modeCosts,
+                coefficientCosts,
+                quantized,
+                endOfBlock,
+                size,
+                type,
+                context,
+                this.state.Picture.Parent.FrameHeader.UseReducedTransformSet,
+                filterMode,
+                mode,
+                isInter,
+                this.BlockLossless);
+
+            // The squared error is normalized to eight-bit precision with rounding, then loses the transform
+            // scale, so it has the same four fractional bits as pixel-domain distortion.
+            long error = Av1TransformBlockEncoder.GetTransformError(
+                this.state.BlockWorkspace, Av1ComponentType.Luminance, transformed, dequantized, size, type, this.state.BitDepth, out _, useMatrix: true);
+
+            return Av1RateDistortion.GetCost(this.state.RateMultiplier, rate, error);
+        }
+
+        /// <summary>
+        /// Prunes and orders legal luma transforms using complete or separated-axis estimates.
+        /// </summary>
+        /// <param name="modeCosts">The mode rates that the caller read once.</param>
+        /// <param name="coefficientCosts">The coefficient rates that the caller read once.</param>
+        /// <param name="transformCoefficients">The forward transform output buffer.</param>
+        /// <param name="dequantizedCoefficients">The dequantized coefficient buffer.</param>
+        /// <param name="transformWorkspace">The intermediate buffer of the transforms.</param>
+        /// <param name="residual">The residual samples.</param>
+        /// <param name="stride">The number of residual samples between rows.</param>
+        /// <param name="size">The transform size.</param>
+        /// <param name="context">The coefficient contexts of the transform block.</param>
+        /// <param name="mode">The prediction mode that selects the transform-type context.</param>
+        /// <param name="filterMode">The filter intra mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/>.</param>
+        /// <param name="isInter">Whether the block is inter predicted.</param>
+        /// <param name="allowedMask">The transform types that the search permits, one bit for each type.</param>
+        /// <param name="pruningLevel">The pruning level of the current evaluation stage.</param>
+        /// <param name="bestCost">The budget left for the transform block.</param>
+        /// <param name="quantized">The storage that the estimates quantize into.</param>
+        /// <param name="order">The search order, which the estimates sort by cost.</param>
+        /// <returns>The transform types that remain after the pruning.</returns>
+        public ushort PruneTransformTypesByEstimatedCost(
             Av1ModeCosts modeCosts,
             Av1CoefficientCosts coefficientCosts,
             Span<int> transformCoefficients,
@@ -360,7 +672,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="transformOrder">The search order, which the estimates sort by cost.</param>
         /// <param name="singleTypeAllowed">Whether only one type is allowed.</param>
         /// <returns>The types to search.</returns>
-        private ushort GetTransformMask(
+        public ushort GetTransformMask(
             Av1SymbolEncoder writer,
             Av1ModeCosts modeCosts,
             Av1CoefficientCosts coefficientCosts,
@@ -382,11 +694,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1TransformType> transformOrder,
             out bool singleTypeAllowed)
         {
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
-            ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-            bool candidateStage = this.blockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate;
+            Av1EncoderSpeedSettings settings = this.state.Picture.Parent.SpeedSettings;
+            ObuFrameHeader frameHeader = this.state.Picture.Parent.FrameHeader;
+            bool candidateStage = this.state.BlockWorkspace.EvaluationStage == Av1EncoderEvaluationStage.Candidate;
             ReadOnlySpan<int> probabilities = transformTypeProbabilities.Slice(
-                ((int)this.picture.Parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength) +
+                ((int)this.state.Picture.Parent.FrameUpdateType * Av1TransformTypeProbabilities.FrameLength) +
                 ((int)transformSize * Av1TransformTypeProbabilities.TypeCount),
                 Av1TransformTypeProbabilities.TypeCount);
 
@@ -477,11 +789,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (settings.TransformTypeProbabilityPruning != 0)
                 {
                     allowedMask = Av1TransformTypeProbabilities.Prune(
-                        probabilities, allowedMask, settings.TransformTypeProbabilityPruning, this.picture.Parent.FrameUpdateType);
+                        probabilities, allowedMask, settings.TransformTypeProbabilityPruning, this.state.Picture.Parent.FrameUpdateType);
                 }
 
                 int allowedCount = System.Numerics.BitOperations.PopCount((uint)allowedMask);
-                int pruningLevel = this.blockWorkspace.EvaluationStage switch
+                int pruningLevel = this.state.BlockWorkspace.EvaluationStage switch
                 {
                     Av1EncoderEvaluationStage.Candidate => settings.CandidateInterTransformTypePruning,
                     Av1EncoderEvaluationStage.Winner => settings.WinnerInterTransformTypePruning,
@@ -540,6 +852,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// either <paramref name="winnerDestination"/> is not empty or the search measured the winner in pixels, and the winner is not in
         /// <paramref name="winnerDestination"/> instead (<see cref="TransformTypeSearchResult.WinnerInDestination"/>).
         /// </remarks>
+        /// <param name="control">The shared settings and native worker selector. Result spans remain owned by the caller.</param>
         /// <param name="writer">The tile symbol encoder that prices the syntax.</param>
         /// <param name="tables">The rate tables and level storage of the writer, which the caller read once.</param>
         /// <param name="transformCoefficients">The forward transform output buffer.</param>
@@ -573,7 +886,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="candidateDequantized">The dequantized coefficients of the candidate.</param>
         /// <param name="bestDequantized">The dequantized coefficients of the winner.</param>
         /// <returns>The winner.</returns>
-        private TransformTypeSearchResult SearchTransformType(
+        public static TransformTypeSearchResult SearchTransformType(
+            scoped SearchControl control,
             Av1SymbolEncoder writer,
             in Av1CoefficientTables tables,
             Span<int> transformCoefficients,
@@ -584,7 +898,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool isInter,
             Av1TransformBlockContext blockContext,
             Av1TransformBlockContext originContext,
-            ReadOnlySpan<TSample> source,
+            ReadOnlySpan<byte> source,
             int sourceStride,
             Point transformOrigin,
             Av1TransformSize transformSize,
@@ -592,32 +906,32 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1FilterIntraMode filterIntraMode,
             Av1TransformType derivedTransformType,
             long costLimit,
-            scoped Span<TSample> winnerDestination,
-            scoped ReadOnlySpan<TSample> prediction,
+            scoped Span<byte> winnerDestination,
+            scoped ReadOnlySpan<byte> prediction,
             int predictionStride,
             scoped Span<short> residual,
             int inputStride,
-            ref Span<TSample> candidateReconstruction,
-            ref Span<TSample> bestReconstruction,
+            ref Span<byte> candidateReconstruction,
+            ref Span<byte> bestReconstruction,
             ref Span<int> candidateCoefficients,
             ref Span<int> bestCoefficients,
             ref Span<int> candidateDequantized,
             ref Span<int> bestDequantized)
         {
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            Av1EncoderSpeedSettings settings = control.state.Picture.Parent.SpeedSettings;
             Av1ComponentType componentType = plane == Av1Plane.Y ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
             int planeIndex = (int)plane;
             int transformWidth = transformSize.GetWidth();
             int transformHeight = transformSize.GetHeight();
             int transformSampleCount = transformSize.GetSize2d();
-            bool useReducedTransformSet = this.picture.Parent.FrameHeader.UseReducedTransformSet;
+            bool useReducedTransformSet = control.state.Picture.Parent.FrameHeader.UseReducedTransformSet;
 
             // The residual energy of the visible samples gates coefficient refinement for every type, and selects
             // transform-domain distortion by the speed policy of the current evaluation stage.
-            Size visibleSize = this.blockWorkspace.GetVisibleSize(plane, transformOrigin, transformWidth, transformHeight);
+            Size visibleSize = control.state.BlockWorkspace.GetVisibleSize(plane, transformOrigin, transformWidth, transformHeight);
             int visibleWidth = visibleSize.Width;
             int visibleHeight = visibleSize.Height;
-            bool borderBlock = this.blockWorkspace.BorderPad &&
+            bool borderBlock = control.state.BlockWorkspace.BorderPad &&
                 (visibleWidth < transformWidth || visibleHeight < transformHeight);
 
             // A block crossing the frame edge is padded as DCT_DCT pads it before the skip prediction and the type
@@ -625,10 +939,10 @@ internal static partial class Av1IntraSuperblockEncoder
             if (borderBlock)
             {
                 Av1TransformBlockEncoder.PadBorderResidual(
-                    this.blockWorkspace, plane, transformOrigin, residual, inputStride, transformWidth, transformHeight, Av1TransformType.DctDct);
+                    control.state.BlockWorkspace, plane, transformOrigin, residual, inputStride, transformWidth, transformHeight, Av1TransformType.DctDct);
             }
 
-            int predictDcLevel = this.blockWorkspace.EvaluationStage switch
+            int predictDcLevel = control.state.BlockWorkspace.EvaluationStage switch
             {
                 Av1EncoderEvaluationStage.Candidate => settings.ModePredictDcLevel,
                 Av1EncoderEvaluationStage.Winner => settings.WinnerPredictDcLevel,
@@ -643,12 +957,12 @@ internal static partial class Av1IntraSuperblockEncoder
             uint blockMseQ8;
             long blockError = predictDcBlock
                 ? Av1TransformBlockEncoder.GetBlockStatistics(
-                    residual, inputStride, visibleWidth, visibleHeight, this.bitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
+                    residual, inputStride, visibleWidth, visibleHeight, control.state.BitDepth, out blockMseQ8, out perPixelMean, out blockVariance)
                 : Av1TransformBlockEncoder.GetBlockError(
-                    residual, inputStride, visibleWidth, visibleHeight, this.bitDepth, out blockMseQ8);
+                    residual, inputStride, visibleWidth, visibleHeight, control.state.BitDepth, out blockMseQ8);
 
             int acDequantizer = Av1QuantizationLookup.GetAcQuant(
-                this.blockQIndex, this.quantization.DeltaQAc[planeIndex], this.bitDepth);
+                control.state.BlockQIndex, control.state.Quantization.DeltaQAc[planeIndex], control.state.BitDepth);
 
             // The DC prediction settles a block whose residual cannot survive quantization. From level two, it keeps only the DC
             // coefficient of a low-variance block. The chroma of an intra block keeps its full transform. A DC-only block searches DCT_DCT
@@ -656,9 +970,9 @@ internal static partial class Av1IntraSuperblockEncoder
             bool dcOnlyCandidate = false;
             bool predictedSkip = predictDcBlock && Av1TransformBlockEncoder.PredictSkippedBlock(
                 transformSize,
-                Av1QuantizationLookup.GetDcQuant(this.blockQIndex, this.quantization.DeltaQDc[planeIndex], this.bitDepth),
+                Av1QuantizationLookup.GetDcQuant(control.state.BlockQIndex, control.state.Quantization.DeltaQDc[planeIndex], control.state.BitDepth),
                 acDequantizer,
-                this.bitDepth,
+                control.state.BitDepth,
                 perPixelMean,
                 blockVariance,
                 out dcOnlyCandidate);
@@ -683,7 +997,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 candidateTransformMask = dcOnlyBlock
                     ? (ushort)1
-                    : this.GetTransformMask(
+                    : control.GetTransformMask(
                         writer,
                         tables.ModeCosts,
                         tables.CoefficientCosts,
@@ -706,15 +1020,15 @@ internal static partial class Av1IntraSuperblockEncoder
                         out singleTypeAllowed);
             }
 
-            (uint Distortion, uint Satd) refinementThresholds = this.blockWorkspace.EvaluationStage switch
+            (uint Distortion, uint Satd) refinementThresholds = control.state.BlockWorkspace.EvaluationStage switch
             {
                 Av1EncoderEvaluationStage.Candidate => settings.ModeCoefficientOptimizationThresholds,
                 Av1EncoderEvaluationStage.Winner => settings.WinnerCoefficientOptimizationThresholds,
                 _ => settings.DefaultCoefficientOptimizationThresholds
             };
 
-            (int Type, uint Threshold) distortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(this.blockWorkspace, settings);
-            int dequantShift = this.bitDepth == Av1BitDepth.EightBit ? 3 : this.bitDepth.GetBitCount() - 5;
+            (int Type, uint Threshold) distortionPolicy = Av1TransformBlockEncoder.GetDistortionPolicy(control.state.BlockWorkspace, settings);
+            int dequantShift = control.state.BitDepth == Av1BitDepth.EightBit ? 3 : control.state.BitDepth.GetBitCount() - 5;
             ulong quantizerStep = (uint)(acDequantizer >> dequantShift);
             bool skipTrellis = !settings.EnableCoefficientOptimization ||
                 blockMseQ8 > refinementThresholds.Distortion * quantizerStep * quantizerStep;
@@ -768,7 +1082,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // are described once here. Only the type and the swapped coefficient buffers change in the loop.
             Av1TransformTypeTrial trial = new()
             {
-                Workspace = this.blockWorkspace,
+                Workspace = control.state.BlockWorkspace,
                 Writer = writer,
                 Tables = tables,
                 Context = blockContext,
@@ -781,16 +1095,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 FilterIntraMode = filterIntraMode,
                 UseReducedTransformSet = useReducedTransformSet,
                 UsesInterTransformSet = isInter,
-                QIndex = this.blockQIndex,
-                Lossless = this.BlockLossless,
-                DcDeltaQ = this.quantization.DeltaQDc[planeIndex],
-                AcDeltaQ = this.quantization.DeltaQAc[planeIndex],
-                Sharpness = this.blockWorkspace.EncoderOptions.Sharpness,
-                BitDepth = this.bitDepth,
+                QIndex = control.state.BlockQIndex,
+                Lossless = control.BlockLossless,
+                DcDeltaQ = control.state.Quantization.DeltaQDc[planeIndex],
+                AcDeltaQ = control.state.Quantization.DeltaQAc[planeIndex],
+                Sharpness = control.state.BlockWorkspace.EncoderOptions.Sharpness,
+                BitDepth = control.state.BitDepth,
                 ComponentType = componentType,
-                RateMultiplier = this.rateMultiplier,
+                RateMultiplier = control.state.RateMultiplier,
                 IsInter = isInter,
-                UseChromaWeights = this.picture.Parent.SpeedSettings.UseChromaTrellisRateMultiplier,
+                UseChromaWeights = control.state.Picture.Parent.SpeedSettings.UseChromaTrellisRateMultiplier,
                 SkipTrellis = skipTrellis,
                 SatdThreshold = refinementThresholds.Satd,
                 DcOnly = dcOnlyBlock,
@@ -809,7 +1123,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (borderBlock)
                 {
                     Av1TransformBlockEncoder.PadBorderResidual(
-                        this.blockWorkspace, plane, transformOrigin, residual, inputStride, transformWidth, transformHeight, transformType);
+                        control.state.BlockWorkspace, plane, transformOrigin, residual, inputStride, transformWidth, transformHeight, transformType);
                 }
 
                 Av1EncoderTransformBlockState candidateState = default;
@@ -818,7 +1132,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Distortion is never negative. A candidate whose rate alone already costs more than the current
                 // winner cannot replace it, so it needs no distortion measurement.
-                if (Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, 0) > best.Cost)
+                if (Av1RateDistortion.GetCost(control.state.RateMultiplier, candidateRate, 0) > best.Cost)
                 {
                     continue;
                 }
@@ -841,13 +1155,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 else if (useTransformDomainDistortion)
                 {
                     candidateDistortion = Av1TransformBlockEncoder.GetTransformError(
-                        this.blockWorkspace,
+                        control.state.BlockWorkspace,
                         componentType,
                         transformCoefficients[..codedCoefficientCount],
                         candidateDequantized[..codedCoefficientCount],
                         transformSize,
                         transformType,
-                        this.bitDepth,
+                        control.state.BitDepth,
                         out candidateSse,
                         useMatrix: !candidateMatricesDropped);
                 }
@@ -863,13 +1177,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (is64x64 || isHighEnergy)
                     {
                         transformDomainDistortion = Av1TransformBlockEncoder.GetTransformError(
-                            this.blockWorkspace,
+                            control.state.BlockWorkspace,
                             componentType,
                             transformCoefficients[..codedCoefficientCount],
                             candidateDequantized[..codedCoefficientCount],
                             transformSize,
                             transformType,
-                            this.bitDepth,
+                            control.state.BitDepth,
                             out transformDomainEnergy,
                             useMatrix: !candidateMatricesDropped);
 
@@ -878,8 +1192,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (!is64x64 || !isHighEnergy || energyDifference * 2 < transformDomainEnergy)
                     {
-                        candidateDistortion = Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate<TSample, TOperator>(
-                            this.blockWorkspace,
+                        candidateDistortion = control.ReconstructPredictionLossyCandidate(
+                            control.state.BlockWorkspace,
                             transformWorkspace,
                             candidateDequantized,
                             source,
@@ -891,8 +1205,8 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformWidth,
                             transformSize,
                             plane,
-                            this.BlockLossless,
-                            this.bitDepth,
+                            control.BlockLossless,
+                            control.state.BitDepth,
                             reconstructionState);
 
                         candidateReconstructed = true;
@@ -907,10 +1221,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, candidateDistortion);
+                long candidateCost = Av1RateDistortion.GetCost(control.state.RateMultiplier, candidateRate, candidateDistortion);
                 if (candidateCost < best.Cost)
                 {
-                    Span<TSample> previousReconstruction = bestReconstruction;
+                    Span<byte> previousReconstruction = bestReconstruction;
                     bestReconstruction = candidateReconstruction;
                     candidateReconstruction = previousReconstruction;
 
@@ -953,8 +1267,8 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // A later transform block predicts from the frame, so a winner that it reads is reconstructed there in place, over
                 // its prediction. The caller then copies nothing. No type is measured after this, so the prediction is no longer needed.
-                long pixelDistortion = Av1TransformBlockEncoder.ReconstructPredictionLossyCandidate<TSample, TOperator>(
-                    this.blockWorkspace,
+                long pixelDistortion = control.ReconstructPredictionLossyCandidate(
+                    control.state.BlockWorkspace,
                     transformWorkspace,
                     bestDequantized,
                     source,
@@ -966,8 +1280,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     reconstructWinner ? predictionStride : transformWidth,
                     transformSize,
                     plane,
-                    this.BlockLossless,
-                    this.bitDepth,
+                    control.BlockLossless,
+                    control.state.BitDepth,
                     best.ReconstructionState);
 
                 best.WinnerInDestination = reconstructWinner;
@@ -984,59 +1298,59 @@ internal static partial class Av1IntraSuperblockEncoder
             if (borderBlock && !predictedSkip)
             {
                 Av1TransformBlockEncoder.PadBorderResidual(
-                    this.blockWorkspace, plane, transformOrigin, residual, inputStride, transformWidth, transformHeight, best.Type);
+                    control.state.BlockWorkspace, plane, transformOrigin, residual, inputStride, transformWidth, transformHeight, best.Type);
             }
 
             return best;
         }
+    }
+
+    /// <summary>
+    /// The winner of a transform type search.
+    /// </summary>
+    internal struct TransformTypeSearchResult
+    {
+        /// <summary>
+        /// The rate-distortion cost that won the search.
+        /// </summary>
+        public long Cost;
 
         /// <summary>
-        /// The winner of a transform type search.
+        /// The winning transform type.
         /// </summary>
-        private struct TransformTypeSearchResult
-        {
-            /// <summary>
-            /// The rate-distortion cost that won the search.
-            /// </summary>
-            public long Cost;
+        public Av1TransformType Type;
 
-            /// <summary>
-            /// The winning transform type.
-            /// </summary>
-            public Av1TransformType Type;
+        /// <summary>
+        /// The coefficient rate of the winner.
+        /// </summary>
+        public int Rate;
 
-            /// <summary>
-            /// The coefficient rate of the winner.
-            /// </summary>
-            public int Rate;
+        /// <summary>
+        /// The distortion of the winner.
+        /// </summary>
+        public long Distortion;
 
-            /// <summary>
-            /// The distortion of the winner.
-            /// </summary>
-            public long Distortion;
+        /// <summary>
+        /// The energy that the block leaves uncoded. When the search measured the winner in the transform domain, the energy is in that
+        /// domain. Otherwise it is the visible residual energy.
+        /// </summary>
+        public long Sse;
 
-            /// <summary>
-            /// The energy that the block leaves uncoded. When the search measured the winner in the transform domain, the energy is in that
-            /// domain. Otherwise it is the visible residual energy.
-            /// </summary>
-            public long Sse;
+        /// <summary>
+        /// The coded state of the winner.
+        /// </summary>
+        public Av1EncoderTransformBlockState State;
 
-            /// <summary>
-            /// The coded state of the winner.
-            /// </summary>
-            public Av1EncoderTransformBlockState State;
+        /// <summary>
+        /// The state that reconstructs the winner, which for a DC-only chroma block carries the derived type.
+        /// </summary>
+        public Av1EncoderTransformBlockState ReconstructionState;
 
-            /// <summary>
-            /// The state that reconstructs the winner, which for a DC-only chroma block carries the derived type.
-            /// </summary>
-            public Av1EncoderTransformBlockState ReconstructionState;
-
-            /// <summary>
-            /// Whether the search reconstructed the winner in place in the winner destination, so the frame already holds it.
-            /// When this is false and a later transform block predicts from a winner with coefficients, the best reconstruction
-            /// holds the winner, which the search measured in pixels, and the caller copies it into the frame.
-            /// </summary>
-            public bool WinnerInDestination;
-        }
+        /// <summary>
+        /// Whether the search reconstructed the winner in place in the winner destination, so the frame already holds it.
+        /// When this is false and a later transform block predicts from a winner with coefficients, the best reconstruction
+        /// holds the winner, which the search measured in pixels, and the caller copies it into the frame.
+        /// </summary>
+        public bool WinnerInDestination;
     }
 }

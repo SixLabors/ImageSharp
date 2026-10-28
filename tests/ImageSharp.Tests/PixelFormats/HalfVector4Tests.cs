@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class HalfVector4Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        HalfVector4 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void HalfVector4_PackedValue()
     {
@@ -44,7 +58,7 @@ public class HalfVector4Tests
     public void HalfVector4_ToScaledVector4()
     {
         // arrange
-        Vector4 expected = new((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue);
+        Vector4 expected = new((float)Half.MinValue, 0F, (float)Half.MaxValue, 0F);
         HalfVector4 pixel = new((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue);
 
         // act
@@ -59,7 +73,7 @@ public class HalfVector4Tests
     {
         // arrange
         Vector4 scaled = new((float)Half.MinValue, -32752F, 0F, (float)Half.MaxValue);
-        ulong expected = new HalfVector4(scaled).PackedValue;
+        ulong expected = new HalfVector4(scaled.X, scaled.Y, scaled.Z, 1F).PackedValue;
 
         // act
         HalfVector4 pixel = HalfVector4.FromScaledVector4(scaled);
@@ -82,16 +96,18 @@ public class HalfVector4Tests
         HalfVector4[] source = new HalfVector4[17];
         Vector4[] expectedVectors = new Vector4[source.Length];
         Array.Fill(source, pixel);
-        Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, 0F, (float)Half.MaxValue, (float)Half.MinValue));
+        Array.Fill(expectedVectors, new Vector4((float)Half.MinValue, 0F, (float)Half.MaxValue, 0F));
 
         Vector4[] actualVectors = new Vector4[source.Length];
-        PixelOperations<HalfVector4>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        PixelOperations<HalfVector4>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         Vector4[] destructiveSource = [.. expectedVectors];
         HalfVector4[] actualPixels = new HalfVector4[source.Length];
-        PixelOperations<HalfVector4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
-        Assert.Equal(source, actualPixels);
+        PixelOperations<HalfVector4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
+        // Color conversion retains the HDR RGB limits and replaces the invalid negative opacity with zero.
+        HalfVector4 expectedPixel = new((float)Half.MinValue, 0F, (float)Half.MaxValue, 0F);
+        Assert.All(actualPixels, actual => Assert.Equal(expectedPixel, actual));
     }
 
     [Fact]
@@ -114,6 +130,7 @@ public class HalfVector4Tests
         Assert.Equal(Unsafe.SizeOf<HalfVector4>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

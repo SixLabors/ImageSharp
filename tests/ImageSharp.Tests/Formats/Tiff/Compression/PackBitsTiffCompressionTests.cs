@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression;
@@ -27,7 +28,9 @@ public class PackBitsTiffCompressionTests
         byte[] buffer = new byte[expectedResult.Length];
 
         using PackBitsTiffCompression decompressor = new(MemoryAllocator.Create(), default, default);
-        decompressor.Decompress(stream, 0, (uint)inputData.Length, 1, buffer, default);
+
+        // These codecs return raw TIFF samples; no final pixel region is needed.
+        decompressor.Decompress<Rgba32>(stream, 0, (uint)inputData.Length, 1, buffer, default, default);
 
         Assert.Equal(expectedResult, buffer);
     }

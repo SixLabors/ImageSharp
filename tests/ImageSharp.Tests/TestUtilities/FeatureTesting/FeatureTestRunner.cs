@@ -417,8 +417,8 @@ public static class FeatureTestRunner
 #if NET10_0_OR_GREATER
                 case nameof(HwIntrinsics.DisableAVX512F):
 
-                    // AVX-512's baseline features share one switch from .NET 10. The old F-only switch is
-                    // ignored, which would run 512-bit code again instead of exercising narrower vectors.
+                    // .NET 10 groups AVX512F, BW, CD, DQ, and VL under EnableAVX512; EnableAVX512F has no effect.
+                    // https://github.com/dotnet/runtime/blob/v10.0.12/src/coreclr/inc/clrconfigvalues.h
                     features.Add(key, "EnableAVX512");
                     break;
 #endif

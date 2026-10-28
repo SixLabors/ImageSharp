@@ -3,6 +3,8 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp;
 
@@ -12,6 +14,21 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 internal static class ColorNumerics
 {
+    /// <summary>
+    /// The maximum RGB component used by floating-point color-vector conversions.
+    /// </summary>
+    /// <remarks>
+    /// This is the largest finite half-precision value. Float and half color conversions use the same range.
+    /// The working range leaves headroom for float sums and products. Intermediate calculations can exceed this range.
+    /// Native floating-point conversions retain their storage range.
+    /// </remarks>
+    public const float MaxColorValue = 65504F;
+
+    /// <summary>
+    /// The minimum RGB component used by floating-point color-vector conversions.
+    /// </summary>
+    public const float MinColorValue = -MaxColorValue;
+
     /// <summary>
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
@@ -257,6 +274,215 @@ internal static class ColorNumerics
         {
             ref Vector4 v = ref vectors[i];
             Transform(ref v, ref matrix);
+        }
+    }
+
+    /// <summary>
+    /// Clamps the value to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="min">The minimum inclusive finite value.</param>
+    /// <param name="max">The maximum inclusive finite value.</param>
+    /// <returns>The clamped <see cref="float"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float ClampToFinite(float value, float min, float max) => ClampToFinite<float>(value, min, max);
+
+    /// <summary>
+    /// Clamps the value to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="min">The minimum inclusive finite value.</param>
+    /// <param name="max">The maximum inclusive finite value.</param>
+    /// <returns>The clamped <see cref="double"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double ClampToFinite(double value, double min, double max) => ClampToFinite<double>(value, min, max);
+
+    /// <summary>
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive finite lower bounds.</param>
+    /// <param name="max">The inclusive finite upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2 ClampToFinite(Vector2 value, Vector2 min, Vector2 max)
+        => ClampToFinite(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector2();
+
+    /// <summary>
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive finite lower bounds.</param>
+    /// <param name="max">The inclusive finite upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector3 ClampToFinite(Vector3 value, Vector3 min, Vector3 max)
+        => ClampToFinite(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector3();
+
+    /// <summary>
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive finite lower bounds.</param>
+    /// <param name="max">The inclusive finite upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> ClampToFinite<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
+        where T : struct, IFloatingPointIeee754<T>
+    {
+        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
+        Vector128<T> lowerClamped = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(value, min), value, min);
+        return Vector128.ConditionalSelect(Vector128.GreaterThan(value, max), max, lowerClamped);
+    }
+
+    /// <summary>
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive finite lower bounds.</param>
+    /// <param name="max">The inclusive finite upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> ClampToFinite<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
+        where T : struct, IFloatingPointIeee754<T>
+    {
+        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
+        Vector256<T> lowerClamped = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(value, min), value, min);
+        return Vector256.ConditionalSelect(Vector256.GreaterThan(value, max), max, lowerClamped);
+    }
+
+    /// <summary>
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive finite lower bounds.</param>
+    /// <param name="max">The inclusive finite upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> ClampToFinite<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
+        where T : struct, IFloatingPointIeee754<T>
+    {
+        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
+        Vector512<T> lowerClamped = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(value, min), value, min);
+        return Vector512.ConditionalSelect(Vector512.GreaterThan(value, max), max, lowerClamped);
+    }
+
+    /// <summary>
+    /// Clamps components to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range components retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="min">The minimum inclusive finite value.</param>
+    /// <param name="max">The maximum inclusive finite value.</param>
+    /// <returns>The clamped <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ClampToFinite(Vector4 value, Vector4 min, Vector4 max)
+        => ClampToFinite(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector4();
+
+    /// <summary>
+    /// Clamps the span values to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="span">The span containing the values to clamp.</param>
+    /// <param name="min">The minimum inclusive finite value.</param>
+    /// <param name="max">The maximum inclusive finite value.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClampToFinite(Span<float> span, float min, float max)
+        => ClampToFinite<float>(span, min, max);
+
+    /// <summary>
+    /// Clamps the span values to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
+    /// </summary>
+    /// <param name="span">The span containing the values to clamp.</param>
+    /// <param name="min">The minimum inclusive finite value.</param>
+    /// <param name="max">The maximum inclusive finite value.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClampToFinite(Span<double> span, double min, double max)
+        => ClampToFinite<double>(span, min, max);
+
+    /// <summary>
+    /// Clamps a component to the inclusive bounds. NaN maps to <paramref name="min"/>.
+    /// In-range values retain their bits, including signed zero.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The component to clamp.</param>
+    /// <param name="min">The inclusive finite lower bound.</param>
+    /// <param name="max">The inclusive finite upper bound.</param>
+    /// <returns>The clamped component.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static T ClampToFinite<T>(T value, T min, T max)
+        where T : struct, IFloatingPointIeee754<T>
+    {
+        // Ordered comparisons map NaN to min; in-range values retain their original bits, including signed zero.
+        return value > max ? max : value >= min ? value : min;
+    }
+
+    /// <summary>
+    /// Applies the scalar NaN and signed-zero rules to floating-point spans in place.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="span">The components to clamp.</param>
+    /// <param name="min">The inclusive finite lower bound.</param>
+    /// <param name="max">The inclusive finite upper bound.</param>
+    private static void ClampToFinite<T>(Span<T> span, T min, T max)
+        where T : struct, IFloatingPointIeee754<T>
+    {
+        ref T start = ref MemoryMarshal.GetReference(span);
+        int i = 0;
+
+        // Each register uses the same ClampToFinite overload as individual vector callers. Descending widths consume
+        // the remainder without overlapping stores, and the final components use the scalar overload.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<T> lower = Vector512.Create(min);
+            Vector512<T> upper = Vector512.Create(max);
+
+            for (; i <= span.Length - Vector512<T>.Count; i += Vector512<T>.Count)
+            {
+                Vector512<T> value = Vector512.LoadUnsafe(ref start, (nuint)i);
+                ClampToFinite(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<T> lower = Vector256.Create(min);
+            Vector256<T> upper = Vector256.Create(max);
+
+            for (; i <= span.Length - Vector256<T>.Count; i += Vector256<T>.Count)
+            {
+                Vector256<T> value = Vector256.LoadUnsafe(ref start, (nuint)i);
+                ClampToFinite(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<T> lower = Vector128.Create(min);
+            Vector128<T> upper = Vector128.Create(max);
+
+            for (; i <= span.Length - Vector128<T>.Count; i += Vector128<T>.Count)
+            {
+                Vector128<T> value = Vector128.LoadUnsafe(ref start, (nuint)i);
+                ClampToFinite(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+            }
+        }
+
+        for (; i < span.Length; i++)
+        {
+            ref T value = ref Unsafe.Add(ref start, (uint)i);
+            value = ClampToFinite(value, min, max);
         }
     }
 }

@@ -19,7 +19,8 @@ public class HistogramEqualization
     {
         if (this.image == null)
         {
-            this.image = Image.Load<Rgba32>(File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.HistogramEqImage)));
+            this.image = Image.Load<Rgba32>(
+                File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.HistogramEqImage)));
         }
     }
 

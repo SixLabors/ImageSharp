@@ -46,7 +46,7 @@ public partial class PngDecoderTests
 
         // Read the chunk length and type separately so cancellation occurs during the type read.
         configuration.StreamProcessingBufferSize = 4;
-        DecoderOptions options = new() { Configuration = configuration };
+        DecoderOptions options = new(configuration);
 
         // Calling the decoder directly avoids cancellation during format detection.
         if (identifyOnly)

@@ -67,5 +67,19 @@ internal static partial class Av1Inverse2dTransformer
             _ = cosBit;
             _ = stageRange;
         }
+
+        /// <inheritdoc/>
+        public static void Transform(
+            ref Av1TransformVector<Vector512<int>> input,
+            ref Av1TransformVector<Vector512<int>> output,
+            ref Av1TransformVector<Vector512<int>> step,
+            int cosBit,
+            InlineArray12<byte> stageRange)
+        {
+            Av1IdentityTransform1d.Transform(ref input, ref output, 8, 2, 0);
+            _ = step;
+            _ = cosBit;
+            _ = stageRange;
+        }
     }
 }

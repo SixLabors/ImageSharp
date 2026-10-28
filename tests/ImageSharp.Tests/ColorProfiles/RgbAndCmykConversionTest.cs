@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
@@ -73,6 +74,58 @@ public class RgbAndCmykConversionTest
         for (int i = 0; i < actualSpan.Length; i++)
         {
             Assert.Equal(expected, actualSpan[i], Comparer);
+        }
+    }
+
+    /// <summary>
+    /// Verifies mixed CMYK samples through all RGB and XYZ profile stages with configured working spaces.
+    /// </summary>
+    [Fact]
+    public void Convert_Cmyk_To_Rgb_BulkMatchesScalarWithCustomWorkingSpaces() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        RunCmykBulkWithCustomWorkingSpaces,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares the mixed CMYK row after disabled SIMD features are selected in separate processes before JIT compilation.
+    /// </summary>
+    private static void RunCmykBulkWithCustomWorkingSpaces()
+    {
+        Cmyk[] source = new Cmyk[31];
+        Rgb[] destination = new Rgb[source.Length];
+        ColorConversionOptions options = new()
+        {
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb,
+            TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
+        };
+
+        ColorProfileConverter converter = new(options);
+        ReadOnlySpan<Cmyk> samples =
+        [
+            new(0F, 0F, 0F, 0F),
+            new(1F, 1F, 1F, 1F),
+            new(.13F, .74F, .21F, .09F),
+            new(.91F, .05F, .62F, .33F),
+            new(.42F, .88F, .04F, .57F),
+            new(.08F, .19F, .93F, .71F),
+            new(.67F, .37F, .81F, .12F),
+            new(.26F, .53F, .16F, .94F),
+            new(.79F, .11F, .48F, .24F),
+            new(.34F, .96F, .72F, .46F),
+            new(.55F, .28F, .39F, .83F)
+        ];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            // Eleven unequal colors shift relative to each sixteen-lane group and scalar tail.
+            source[i] = samples[i % samples.Length];
+        }
+
+        converter.Convert<Cmyk, Rgb>(source, destination);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgb expected = converter.Convert<Cmyk, Rgb>(source[i]);
+            Assert.Equal(expected, destination[i], Comparer);
         }
     }
 }

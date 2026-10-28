@@ -3,6 +3,7 @@
 
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -21,7 +22,8 @@ public class WebpDecoderTests
 {
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
-    private static string TestImageLossyHorizontalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
+    private static string TestImageLossyHorizontalFilterPath
+        => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
 
     private static string TestImageLossyVerticalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedVerticalFilter);
 
@@ -182,6 +184,35 @@ public class WebpDecoderTests
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    /// <summary>
+    /// Compares lossy decoding with uncompressed alpha against the reference decoder across hardware configurations.
+    /// </summary>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(Lossy.AlphaNoCompression, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Lossy_WithUncompressedAlpha(TestImageProvider<Rgba32> provider)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunUncompressedAlphaDecode,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Checks the supplied image in the selected hardware configuration.
+    /// </summary>
+    /// <param name="providerDump">The serialized image provider.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void RunUncompressedAlphaDecode(string providerDump, string intrinsics)
+    {
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
+        using Image<Rgba32> reference = provider.GetImage(ReferenceDecoder);
+
+        image.DebugSave(provider, intrinsics);
+
+        // Bound the independent decoder's byte rounding per pixel; opaque regions must not hide alpha errors.
+        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(reference, image);
     }
 
     [Theory]
@@ -366,7 +397,7 @@ public class WebpDecoderTests
     public void Decode_AnimatedLossless_WithFrameDecodingModeFirst_OnlyDecodesOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -376,14 +407,13 @@ public class WebpDecoderTests
     public void Decode_AnimatedLossy_IgnoreBackgroundColor_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        WebpDecoderOptions options = new()
-        {
-            BackgroundColorHandling = BackgroundColorHandling.Ignore,
-            GeneralOptions = new DecoderOptions
+        WebpDecoderOptions options = new(new DecoderOptions(Configuration.Default)
             {
                 MaxFrames = 1
-            }
-        };
+            })
+{
+            BackgroundColorHandling = BackgroundColorHandling.Ignore
+};
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
@@ -408,12 +438,12 @@ public class WebpDecoderTests
     {
         // These stored files end before their declared VP8L payload ends. Local libwebp reports NOT_ENOUGH_DATA.
         // Recovery belongs to IgnoreImageData; ignoring ancillary errors must not permit missing image bytes.
-        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        DecoderOptions ancillary = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
+        DecoderOptions strict = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions ancillary = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary };
         Assert.Throws<InvalidImageContentException>(() => provider.GetImage(WebpDecoder.Instance, strict));
         Assert.Throws<InvalidImageContentException>(() => provider.GetImage(WebpDecoder.Instance, ancillary));
 
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         image.DebugSave(provider);
     }
@@ -423,7 +453,7 @@ public class WebpDecoderTests
     public void WebpDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };
@@ -497,7 +527,7 @@ public class WebpDecoderTests
         // Web
         using Image<TPixel> image = provider.GetImage(
             WebpDecoder.Instance,
-            new WebpDecoderOptions { BackgroundColorHandling = BackgroundColorHandling.Ignore });
+            new WebpDecoderOptions(new DecoderOptions(provider.Configuration)) { BackgroundColorHandling = BackgroundColorHandling.Ignore });
 
         // We can't use the reference decoder here.
         // It creates frames of different size without blending the frames.
@@ -512,7 +542,7 @@ public class WebpDecoderTests
         Assert.Throws<ImageFormatException>(
             () =>
             {
-                using (provider.GetImage(WebpDecoder.Instance, new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }))
+                using (provider.GetImage(WebpDecoder.Instance, new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }))
                 {
                 }
             });
@@ -550,16 +580,20 @@ public class WebpDecoderTests
     }
 
     [Fact]
-    public void DecodeLossyWithHorizontalFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithHorizontalFilter, HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeLossyWithHorizontalFilter_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithHorizontalFilter, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void DecodeLossyWithVerticalFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithVerticalFilter, HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeLossyWithVerticalFilter_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithVerticalFilter, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void DecodeLossyWithSimpleFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithSimpleFilterTest, HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeLossyWithSimpleFilterTest_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithSimpleFilterTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void DecodeLossyWithComplexFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithComplexFilterTest, HwIntrinsics.DisableHWIntrinsic);
+    public void DecodeLossyWithComplexFilterTest_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithComplexFilterTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Theory]
     [InlineData(Lossy.BikeWithExif)]
@@ -623,11 +657,65 @@ public class WebpDecoderTests
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
     where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+        using Image<TPixel> image = provider.GetImage(
+            WebpDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
+    }
+
+    /// <summary>
+    /// Checks ICC color conversion and alpha storage with straight and associated destination pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    [Theory]
+    [WithFile(Lossy.WithIccpAndAlpha, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    [WithFile(Lossless.WithIccpAndAlpha, PixelTypes.Rgba32 | PixelTypes.Rgba32P | PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void Decode_IccWithAlpha_UsesDestinationAlphaRepresentation<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            PixelTests<TPixel>.RunIccAlphaDecode,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares decoded pixels with an independent ICC transform in the requested pixel format.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The source image provider.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void AssertIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> actual = provider.GetImage(WebpDecoder.Instance);
+
+        // These pixels are now sRGB. Do not attach the retained source profile to the saved comparison image.
+        actual.Metadata.IccProfile = null;
+        PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit16 };
+        actual.DebugSave(provider, intrinsics, extension: "png", encoder: encoder);
+
+        // These eight-bit fixtures include partial and zero alpha. Allow three codes in total (771 sixteen-bit units) per pixel.
+        // Any pixel whose total component difference exceeds this limit fails the comparison.
+        actual.CompareToOriginal(provider, ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)), ReferenceDecoder);
+    }
+
+    /// <summary>
+    /// Provides non-generic callbacks whose declaring type retains the requested pixel format for RemoteExecutor.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    private static class PixelTests<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        /// <summary>
+        /// Restores the typed provider and runs the assertions with the selected hardware features.
+        /// </summary>
+        /// <param name="providerDump">The serialized image provider.</param>
+        /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+        public static void RunIccAlphaDecode(string providerDump, string intrinsics)
+            => AssertIccAlphaDecode(FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump), intrinsics);
     }
 
     /// <summary>
@@ -650,7 +738,7 @@ public class WebpDecoderTests
         // The stored files alter reserved fields, append bytes outside RIFF, or add an unknown chunk.
         byte[] original = TestFile.Create(originalFile).Bytes;
         byte[] modified = TestFile.Create(modifiedFile).Bytes;
-        DecoderOptions options = new() { MaxFrames = 2 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 2 };
         using Image<Rgba32> expected = Image.Load<Rgba32>(options, original);
         using Image<Rgba32> actual = Image.Load<Rgba32>(options, modified);
 
@@ -686,7 +774,7 @@ public class WebpDecoderTests
         // Framing errors cannot be recovered by ignoring image or ancillary segment contents.
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             Assert.Throws<InvalidImageContentException>(() => Image.Load(options, data));
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
         }
@@ -702,7 +790,7 @@ public class WebpDecoderTests
         byte[] data = TestFile.Create(ContainerDirectory + "frame-crosses-anmf.webp").Bytes;
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
             Assert.Throws<InvalidImageContentException>(() => Image.Load(options, data));
         }
     }

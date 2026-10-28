@@ -303,7 +303,9 @@ public class RectangleFTests
     public void ToStringTest()
     {
         RectangleF r = new(5, 5.1F, 1.3F, 1);
-        Assert.Equal(string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
+        Assert.Equal(
+            string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height),
+            r.ToString());
     }
 
     [Theory]

@@ -194,217 +194,6 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="byte"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Clamp(byte value, byte min, byte max)
-    {
-        // Order is important here as someone might set min to higher than max.
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="uint"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint Clamp(uint value, uint min, uint max)
-    {
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="uint"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Clamp(int value, int min, int max)
-    {
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="float"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Clamp(float value, float min, float max) => Clamp<float>(value, min, max);
-
-    /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="double"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Clamp(double value, double min, double max) => Clamp<double>(value, min, max);
-
-    /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="value">The components to clamp.</param>
-    /// <param name="min">The inclusive lower bounds.</param>
-    /// <param name="max">The inclusive upper bounds.</param>
-    /// <returns>The clamped components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Clamp(Vector2 value, Vector2 min, Vector2 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector2();
-
-    /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
-    /// <param name="value">The components to clamp.</param>
-    /// <param name="min">The inclusive lower bounds.</param>
-    /// <param name="max">The inclusive upper bounds.</param>
-    /// <returns>The clamped components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
-        where T : struct, INumber<T>
-    {
-        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
-        Vector128<T> lowerClamped = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(value, min), value, min);
-        return Vector128.ConditionalSelect(Vector128.GreaterThan(value, max), max, lowerClamped);
-    }
-
-    /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
-    /// <param name="value">The components to clamp.</param>
-    /// <param name="min">The inclusive lower bounds.</param>
-    /// <param name="max">The inclusive upper bounds.</param>
-    /// <returns>The clamped components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
-        where T : struct, INumber<T>
-    {
-        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
-        Vector256<T> lowerClamped = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(value, min), value, min);
-        return Vector256.ConditionalSelect(Vector256.GreaterThan(value, max), max, lowerClamped);
-    }
-
-    /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
-    /// <param name="value">The components to clamp.</param>
-    /// <param name="min">The inclusive lower bounds.</param>
-    /// <param name="max">The inclusive upper bounds.</param>
-    /// <returns>The clamped components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<T> Clamp<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
-        where T : struct, INumber<T>
-    {
-        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
-        Vector512<T> lowerClamped = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(value, min), value, min);
-        return Vector512.ConditionalSelect(Vector512.GreaterThan(value, max), max, lowerClamped);
-    }
-
-    /// <summary>
-    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    /// <returns>The clamped <see cref="Vector4"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4 Clamp(Vector4 value, Vector4 min, Vector4 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector4();
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<byte> span, byte min, byte max)
-        => TensorPrimitives.Clamp(span, min, max, span);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<uint> span, uint min, uint max)
-        => TensorPrimitives.Clamp(span, min, max, span);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<int> span, int min, int max)
-        => TensorPrimitives.Clamp(span, min, max, span);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<float> span, float min, float max)
-        => Clamp<float>(span, min, max);
-
-    /// <summary>
-    /// Clamps the span values to the inclusive range of min and max, mapping NaN to min.
-    /// </summary>
-    /// <param name="span">The span containing the values to clamp.</param>
-    /// <param name="min">The minimum inclusive value.</param>
-    /// <param name="max">The maximum inclusive value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Clamp(Span<double> span, double min, double max)
-        => Clamp<double>(span, min, max);
-
-    /// <summary>
     /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
     /// </summary>
     /// <param name="source">The <see cref="Vector4"/> to premultiply.</param>
@@ -425,7 +214,7 @@ internal static class Numerics
     public static void ClampRgbToAlpha(ref Vector4 source)
     {
         Vector4 alpha = PermuteW(source);
-        source = WithW(Clamp(source, Vector4.Zero, alpha), alpha);
+        source = WithW(ColorNumerics.ClampToFinite(source, Vector4.Zero, alpha), alpha);
     }
 
     /// <summary>
@@ -730,111 +519,6 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Calculates the cube root of all the XYZ channels of the input vectors.
-    /// </summary>
-    /// <param name="vectors">The span of vectors</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void CubeRootOnXYZ(Span<Vector4> vectors)
-    {
-        if (Sse41.IsSupported)
-        {
-            ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
-
-            Vector128<int> v128_341 = Vector128.Create(341);
-            Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
-            Vector128<int> v128_one = Vector128.Create(1.0f).AsInt32();
-
-            Vector128<float> v128_13rd = Vector128.Create(1 / 3f);
-            Vector128<float> v128_23rds = Vector128.Create(2 / 3f);
-
-            while (Unsafe.IsAddressLessThan(ref vectors128Ref, ref vectors128End))
-            {
-                Vector128<float> vecx = vectors128Ref;
-                Vector128<int> veax = vecx.AsInt32();
-
-                // If we can use SSE41 instructions, we can vectorize the entire cube root calculation, and also execute it
-                // directly on 32 bit floating point values. What follows is a vectorized implementation of this method:
-                // https://www.musicdsp.org/en/latest/Other/206-fast-cube-root-square-root-and-reciprocal-for-x86-sse-cpus.html.
-                // Furthermore, after the initial setup in vectorized form, we're doing two Newton approximations here
-                // using a different succession (the same used below), which should be less unstable due to not having cube pow.
-                veax = Sse2.AndNot(v128_negativeZero, veax);
-                veax = Sse2.Subtract(veax, v128_one);
-                veax = Sse2.ShiftRightArithmetic(veax, 10);
-                veax = Sse41.MultiplyLow(veax, v128_341);
-                veax = Sse2.Add(veax, v128_one);
-                veax = Sse2.AndNot(v128_negativeZero, veax);
-                veax = Sse2.Or(veax, Sse2.And(vecx.AsInt32(), v128_negativeZero));
-
-                Vector128<float> y4 = veax.AsSingle();
-
-                if (Fma.IsSupported)
-                {
-                    y4 = Fma.MultiplyAdd(v128_23rds, y4, Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
-                    y4 = Fma.MultiplyAdd(v128_23rds, y4, Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
-                }
-                else
-                {
-                    y4 = Sse.Add(Sse.Multiply(v128_23rds, y4), Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
-                    y4 = Sse.Add(Sse.Multiply(v128_23rds, y4), Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
-                }
-
-                y4 = Sse41.Insert(y4, vecx, 0xF0);
-
-                vectors128Ref = y4;
-                vectors128Ref = ref Unsafe.Add(ref vectors128Ref, 1);
-            }
-        }
-        else
-        {
-            ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, (uint)vectors.Length);
-
-            // Fallback with scalar preprocessing and vectorized approximation steps
-            while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
-            {
-                Vector4 v = vectorsRef;
-
-                double
-                    x64 = v.X,
-                    y64 = v.Y,
-                    z64 = v.Z;
-                float a = v.W;
-
-                ulong
-                    xl = *(ulong*)&x64,
-                    yl = *(ulong*)&y64,
-                    zl = *(ulong*)&z64;
-
-                // Here we use a trick to compute the starting value x0 for the cube root. This is because doing
-                // pow(x, 1 / gamma) is the same as the gamma-th root of x, and since gamme is 3 in this case,
-                // this means what we actually want is to find the cube root of our clamped values.
-                // For more info on the  constant below, see:
-                // https://community.intel.com/t5/Intel-C-Compiler/Fast-approximate-of-transcendental-operations/td-p/1044543.
-                // Here we perform the same trick on all RGB channels separately to help the CPU execute them in paralle, and
-                // store the alpha channel to preserve it. Then we set these values to the fields of a temporary 128-bit
-                // register, and use it to accelerate two steps of the Newton approximation using SIMD.
-                xl = 0x2a9f8a7be393b600 + (xl / 3);
-                yl = 0x2a9f8a7be393b600 + (yl / 3);
-                zl = 0x2a9f8a7be393b600 + (zl / 3);
-
-                Vector4 y4;
-                y4.X = (float)*(double*)&xl;
-                y4.Y = (float)*(double*)&yl;
-                y4.Z = (float)*(double*)&zl;
-                y4.W = 0;
-
-                y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
-                y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
-                y4.W = a;
-
-                vectorsRef = y4;
-                vectorsRef = ref Unsafe.Add(ref vectorsRef, 1);
-            }
-        }
-    }
-
-    /// <summary>
     /// Performs a linear interpolation between two values based on the given weighting.
     /// </summary>
     /// <param name="value1">The first value.</param>
@@ -1042,7 +726,7 @@ internal static class Numerics
     /// <typeparam name="TVector">The type of the vector.</typeparam>
     /// <param name="length">The given length.</param>
     /// <returns>Count of vectors that safely fit into the length.</returns>
-    public static nuint Vector256Count<TVector>(int length)
+    public static nuint Vector256Count<TVector>(this int length)
         where TVector : struct
         => (uint)length / (uint)Vector256<TVector>.Count;
 
@@ -1092,7 +776,7 @@ internal static class Numerics
     /// <typeparam name="TVector">The type of the vector.</typeparam>
     /// <param name="length">The given length.</param>
     /// <returns>Count of vectors that safely fit into the length.</returns>
-    public static nuint Vector128Count<TVector>(int length)
+    public static nuint Vector128Count<TVector>(this int length)
         where TVector : struct
         => (uint)length / (uint)Vector128<TVector>.Count;
 
@@ -1102,81 +786,7 @@ internal static class Numerics
     /// <typeparam name="TVector">The type of the vector.</typeparam>
     /// <param name="length">The given length.</param>
     /// <returns>Count of vectors that safely fit into the length.</returns>
-    public static nuint Vector512Count<TVector>(int length)
+    public static nuint Vector512Count<TVector>(this int length)
         where TVector : struct
         => (uint)length / (uint)Vector512<TVector>.Count;
-
-    /// <summary>
-    /// Clamps a floating-point component while mapping NaN to the lower bound.
-    /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
-    /// <param name="value">The component to clamp.</param>
-    /// <param name="min">The inclusive lower bound.</param>
-    /// <param name="max">The inclusive upper bound.</param>
-    /// <returns>The clamped component.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static T Clamp<T>(T value, T min, T max)
-        where T : struct, INumber<T>
-    {
-        // Ordered comparisons map NaN to min; in-range values retain their original bits, including signed zero.
-        return value > max ? max : value >= min ? value : min;
-    }
-
-    /// <summary>
-    /// Applies the scalar clamp contract to floating-point spans in place.
-    /// </summary>
-    /// <typeparam name="T">The component type.</typeparam>
-    /// <param name="span">The components to clamp.</param>
-    /// <param name="min">The inclusive lower bound.</param>
-    /// <param name="max">The inclusive upper bound.</param>
-    private static void Clamp<T>(Span<T> span, T min, T max)
-        where T : struct, INumber<T>
-    {
-        ref T start = ref MemoryMarshal.GetReference(span);
-        int i = 0;
-
-        // Each register uses the same Clamp overload as individual vector callers. Descending widths consume
-        // the remainder without overlapping stores, and the final components use the scalar overload.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            Vector512<T> lower = Vector512.Create(min);
-            Vector512<T> upper = Vector512.Create(max);
-
-            for (; i <= span.Length - Vector512<T>.Count; i += Vector512<T>.Count)
-            {
-                Vector512<T> value = Vector512.LoadUnsafe(ref start, (nuint)i);
-                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<T> lower = Vector256.Create(min);
-            Vector256<T> upper = Vector256.Create(max);
-
-            for (; i <= span.Length - Vector256<T>.Count; i += Vector256<T>.Count)
-            {
-                Vector256<T> value = Vector256.LoadUnsafe(ref start, (nuint)i);
-                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<T> lower = Vector128.Create(min);
-            Vector128<T> upper = Vector128.Create(max);
-
-            for (; i <= span.Length - Vector128<T>.Count; i += Vector128<T>.Count)
-            {
-                Vector128<T> value = Vector128.LoadUnsafe(ref start, (nuint)i);
-                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
-            }
-        }
-
-        for (; i < span.Length; i++)
-        {
-            ref T value = ref Unsafe.Add(ref start, (uint)i);
-            value = Clamp(value, min, max);
-        }
-    }
 }

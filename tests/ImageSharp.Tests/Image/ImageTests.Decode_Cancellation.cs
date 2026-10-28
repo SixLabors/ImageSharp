@@ -86,10 +86,7 @@ public partial class ImageTests
             configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
             configuration.StreamProcessingBufferSize = (int)Math.Min(128, pausedStream.Length / 4);
 
-            DecoderOptions options = new()
-            {
-                Configuration = configuration
-            };
+            DecoderOptions options = new(configuration);
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {

@@ -25,7 +25,12 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// <param name="result2">The third four widened samples.</param>
     /// <param name="result3">The fourth four widened samples.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Widen(Vector128<byte> source, out Vector128<int> result0, out Vector128<int> result1, out Vector128<int> result2, out Vector128<int> result3)
+    public static void Widen(
+        Vector128<byte> source,
+        out Vector128<int> result0,
+        out Vector128<int> result1,
+        out Vector128<int> result2,
+        out Vector128<int> result3)
     {
         (Vector128<ushort> low, Vector128<ushort> high) = Vector128.Widen(source);
         (Vector128<uint> low0, Vector128<uint> low1) = Vector128.Widen(low);
@@ -45,7 +50,12 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// <param name="result2">The third eight widened samples.</param>
     /// <param name="result3">The fourth eight widened samples.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Widen(Vector256<byte> source, out Vector256<int> result0, out Vector256<int> result1, out Vector256<int> result2, out Vector256<int> result3)
+    public static void Widen(
+        Vector256<byte> source,
+        out Vector256<int> result0,
+        out Vector256<int> result1,
+        out Vector256<int> result2,
+        out Vector256<int> result3)
     {
         (Vector256<ushort> low, Vector256<ushort> high) = Vector256.Widen(source);
         (Vector256<uint> low0, Vector256<uint> low1) = Vector256.Widen(low);
@@ -65,7 +75,12 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
     /// <param name="result2">The third sixteen widened samples.</param>
     /// <param name="result3">The fourth sixteen widened samples.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Widen(Vector512<byte> source, out Vector512<int> result0, out Vector512<int> result1, out Vector512<int> result2, out Vector512<int> result3)
+    public static void Widen(
+        Vector512<byte> source,
+        out Vector512<int> result0,
+        out Vector512<int> result1,
+        out Vector512<int> result2,
+        out Vector512<int> result3)
     {
         (Vector512<ushort> low, Vector512<ushort> high) = Vector512.Widen(source);
         (Vector512<uint> low0, Vector512<uint> low1) = Vector512.Widen(low);

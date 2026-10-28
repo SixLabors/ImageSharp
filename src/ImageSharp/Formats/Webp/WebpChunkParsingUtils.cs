@@ -411,39 +411,51 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="metadata">The image metadata.</param>
-    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
     /// <param name="executeAncillarySegmentAction">Executes profile parsing under the decoder's integrity policy.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
     public static void ReadIccProfile(
         BufferedReadStream stream,
         ImageMetadata metadata,
-        bool ignoreMetadata,
         Action<Action> executeAncillarySegmentAction,
         long containerEnd)
     {
         ulong payloadSize = ReadChunkPayloadSize(stream, stackalloc byte[4], true);
 
-        // ICCP precedes image/frame data. Its framing, including the padding byte of an odd-sized payload,
-        // must be readable even when metadata is skipped; otherwise there is no safe location to resume decoding.
-        if (payloadSize + (payloadSize & 1) > (ulong)(Math.Min(containerEnd, stream.Length) - stream.Position))
+        // Validate framing outside the ancillary error policy. The next chunk must remain inside RIFF.
+        ulong paddedSize = payloadSize + (payloadSize & 1);
+        if (paddedSize > (ulong)(Math.Min(containerEnd, stream.Length) - stream.Position))
         {
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
         }
 
-        executeAncillarySegmentAction(() =>
+        long chunkEnd = stream.Position + (long)paddedSize;
+        try
         {
-            byte[]? iccpData = ReadMetadataChunk(stream, payloadSize, ignoreMetadata || metadata.IccProfile != null, containerEnd);
-            if (iccpData is not null)
+            executeAncillarySegmentAction(() =>
             {
-                IccProfile profile = new(iccpData);
-                if (!profile.CheckIsValid())
+                // ICC remains color metadata when SkipMetadata is enabled. Retain only the first profile.
+                if (metadata.IccProfile is null)
                 {
-                    throw new InvalidIccProfileException("Invalid ICC profile.");
-                }
+                    if (!stream.TryGetReadLength(payloadSize, out int chunkLength))
+                    {
+                        WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
+                    }
 
-                metadata.IccProfile = profile;
-            }
-        });
+                    IccReader reader = new();
+                    if (reader.Read(stream, chunkLength) != chunkLength)
+                    {
+                        WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
+                    }
+
+                    metadata.IccProfile = reader.ToProfile();
+                }
+            });
+        }
+        finally
+        {
+            // Parsing can reject a profile before consuming its payload. Resume after the payload and its RIFF padding.
+            stream.Position = chunkEnd;
+        }
     }
 
     /// <summary>

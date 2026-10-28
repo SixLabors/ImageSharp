@@ -1574,9 +1574,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1NeuralNetwork.Convolve(retained[20..36], 2, 4, 2, 2, IntraPartitionCnnLayer4Kernel, IntraPartitionCnnLayer4Bias, retained[..20]);
 
                 // Normalize the DC step to 8-bit units before squaring. Each supported depth has a maximum of 1336,
-                // so the integer square is at most 1,784,896 and is exactly representable as float.
+                // so the square is at most 1,784,896. Float multiplication preserves this exact result without an integer product.
                 int dcStep = Av1QuantizationLookup.GetDcQuant(this.State.BlockQIndex, 0, this.State.BitDepth) >> (this.State.BitDepth.GetBitCount() - 8);
-                this.State.IntraPartitionLogQuantizer = (float.LogP1((dcStep * dcStep) / 256F) - IntraPartitionMean[0]) / IntraPartitionStd[0];
+                this.State.IntraPartitionLogQuantizer = (float.LogP1(((float)dcStep * dcStep) / 256F) - IntraPartitionMean[0]) / IntraPartitionStd[0];
                 this.State.IntraPartitionFeaturesValid = true;
             }
 

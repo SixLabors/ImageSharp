@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms;
 
@@ -11,7 +12,10 @@ internal sealed class JxlColorEncoding
 
     public JxlPrimaries Primaries { get; set; } = JxlPrimaries.SRgb;
 
-    public JxlRenderingIntent RenderingIntent { get; set; } = JxlRenderingIntent.Relative;
+    /// <summary>
+    /// Gets or sets the rendering intent requested by the color encoding.
+    /// </summary>
+    public IccRenderingIntent RenderingIntent { get; set; } = IccRenderingIntent.MediaRelativeColorimetric;
 
     public bool HaveFields { get; set; } = true;
 

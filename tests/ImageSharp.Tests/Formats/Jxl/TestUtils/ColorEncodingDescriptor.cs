@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.TestUtils;
 
@@ -15,5 +16,8 @@ internal struct ColorEncodingDescriptor
 
     public JxlTransferFunction TransferFunction { get; set; }
 
-    public JxlRenderingIntent RenderingIntent { get; set; }
+    /// <summary>
+    /// Gets or sets the rendering intent for the test color encoding.
+    /// </summary>
+    public IccRenderingIntent RenderingIntent { get; set; }
 }

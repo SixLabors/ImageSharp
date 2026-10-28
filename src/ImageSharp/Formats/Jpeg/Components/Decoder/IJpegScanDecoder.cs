@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 internal interface IJpegScanDecoder
 {
     /// <summary>
+    /// Sets the recovery policy for errors in compressed scan data.
+    /// </summary>
+    public SegmentIntegrityHandling SegmentIntegrityHandling { set; }
+
+    /// <summary>
     /// Sets the reset interval.
     /// </summary>
     public int ResetInterval { set; }

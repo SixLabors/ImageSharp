@@ -216,10 +216,32 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         meta.EncodingWidth = GetImageWidth(profile);
         meta.EncodingHeight = GetImageHeight(profile);
 
-        if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue)
-            && TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
+        if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue))
         {
-            meta.BitsPerSample = bitsPerSample;
+            // TryParse returns zero sample depths on failure. A present invalid entry must not inherit the RGB defaults.
+            meta.BitsPerSample = TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample)
+                ? bitsPerSample
+                : default;
+        }
+        else
+        {
+            // TIFF 6.0 defines one bit per sample when BitsPerSample is absent (page 29).
+            // SamplesPerPixel defaults to one (page 39). These file defaults differ from new metadata's RGB defaults.
+            int samplesPerPixel = profile.TryGetValue(ExifTag.SamplesPerPixel, out IExifValue<ushort>? samplesPerPixelValue)
+                ? samplesPerPixelValue.Value
+                : 1;
+
+            // This metadata type stores at most four sample depths. Do not reduce a different count to a supported layout.
+            if (samplesPerPixel is < 1 or > 4)
+            {
+                TiffThrowHelper.ThrowNotSupported("Only TIFF images with one to four samples per pixel are supported.");
+            }
+
+            meta.BitsPerSample = new TiffBitsPerSample(
+                1,
+                (ushort)(samplesPerPixel > 1 ? 1 : 0),
+                (ushort)(samplesPerPixel > 2 ? 1 : 0),
+                (ushort)(samplesPerPixel > 3 ? 1 : 0));
         }
 
         meta.BitsPerPixel = meta.BitsPerSample.BitsPerPixel();

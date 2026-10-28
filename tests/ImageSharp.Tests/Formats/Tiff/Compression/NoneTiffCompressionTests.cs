@@ -18,7 +18,7 @@ public class NoneTiffCompressionTests
         using BufferedReadStream stream = new(Configuration.Default, memoryStream);
         byte[] buffer = new byte[expectedResult.Length];
 
-        using NoneTiffCompression decompressor = new(default, default, default);
+        using NoneTiffCompression decompressor = new(default, default, default, default);
         decompressor.Decompress(stream, 0, byteCount, 1, buffer, default);
 
         Assert.Equal(expectedResult, buffer);

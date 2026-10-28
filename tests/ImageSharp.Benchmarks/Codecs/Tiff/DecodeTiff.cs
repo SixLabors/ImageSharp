@@ -96,47 +96,54 @@ public class DecodeTiff
         return image.Size;
     }
 
-    /* Measured 2026-10-18
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
 
-    | Method                | TestImage                                      |         Mean |        Error |     StdDev | Ratio | RatioSD |      Gen0 |     Gen1 |    Gen2 |  Allocated | Alloc Ratio |
-    | --------------------- | ---------------------------------------------- | -----------: | -----------: | ---------: | ----: | ------: | --------: | -------: | ------: | ---------: | ----------: |
-    | 'System.Drawing Tiff' | Tiff/Calliphora_grayscale_uncompressed.tiff    |     44.80 μs |     0.692 μs |   0.038 μs |  1.00 |    0.00 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/Calliphora_grayscale_uncompressed.tiff    |    100.14 μs |     8.297 μs |   0.455 μs |  2.24 |    0.01 |    0.2441 |        - |       - |     4797 B |       12.24 |
-    | 'ImageSharp Tiff'     | Tiff/Calliphora_grayscale_uncompressed.tiff    |     31.60 μs |     2.120 μs |   0.116 μs |  0.71 |    0.00 |    0.4883 |        - |       - |     8629 B |       22.01 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/Calliphora_rgb_deflate_predictor.tiff     |    464.93 μs |   159.149 μs |   8.723 μs |  1.00 |    0.02 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/Calliphora_rgb_deflate_predictor.tiff     |    734.93 μs |    28.383 μs |   1.556 μs |  1.58 |    0.03 |         - |        - |       - |     4805 B |       12.26 |
-    | 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_deflate_predictor.tiff     |    421.27 μs |    27.479 μs |   1.506 μs |  0.91 |    0.02 |    0.4883 |        - |       - |     9228 B |       23.54 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/Calliphora_rgb_lzw_predictor.tiff         |    642.36 μs |   280.550 μs |  15.378 μs |  1.00 |    0.03 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/Calliphora_rgb_lzw_predictor.tiff         |    628.92 μs |   157.649 μs |   8.641 μs |  0.98 |    0.02 |         - |        - |       - |     4805 B |       12.26 |
-    | 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_lzw_predictor.tiff         |  1,439.36 μs |   184.528 μs |  10.115 μs |  2.24 |    0.05 |  173.8281 |  85.9375 |       - |  2921822 B |    7,453.63 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/Calliphora_rgb_packbits.tiff              |    121.41 μs |     6.523 μs |   0.358 μs |  1.00 |    0.00 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/Calliphora_rgb_packbits.tiff              |    165.03 μs |    89.348 μs |   4.897 μs |  1.36 |    0.04 |    0.2441 |        - |       - |     4798 B |       12.24 |
-    | 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_packbits.tiff              |     17.77 μs |     0.931 μs |   0.051 μs |  0.15 |    0.00 |    0.5188 |        - |       - |     8816 B |       22.49 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/Calliphora_rgb_palette_lzw_predictor.tiff |  6,469.36 μs |   567.909 μs |  31.129 μs |  1.00 |    0.01 |         - |        - |       - |      395 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/Calliphora_rgb_palette_lzw_predictor.tiff |  8,990.68 μs | 1,205.920 μs |  66.101 μs |  1.39 |    0.01 |         - |        - |       - |     4994 B |       12.64 |
-    | 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_palette_lzw_predictor.tiff | 14,996.58 μs | 2,563.271 μs | 140.502 μs |  2.32 |    0.02 | 1078.1250 | 531.2500 | 15.6250 | 18043193 B |   45,678.97 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/Calliphora_rgb_uncompressed.tiff          |    126.15 μs |    39.109 μs |   2.144 μs |  1.00 |    0.02 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/Calliphora_rgb_uncompressed.tiff          |    137.49 μs |    12.791 μs |   0.701 μs |  1.09 |    0.02 |    0.2441 |        - |       - |     4798 B |       12.24 |
-    | 'ImageSharp Tiff'     | Tiff/Calliphora_rgb_uncompressed.tiff          |     11.33 μs |     2.046 μs |   0.112 μs |  0.09 |    0.00 |    0.5035 |        - |       - |     8660 B |       22.09 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/ccitt_fax3_all_terminating_codes.tiff     |     21.90 μs |     3.458 μs |   0.190 μs |  1.00 |    0.01 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/ccitt_fax3_all_terminating_codes.tiff     |     65.14 μs |     6.353 μs |   0.348 μs |  2.97 |    0.03 |    0.2441 |        - |       - |     4797 B |       12.24 |
-    | 'ImageSharp Tiff'     | Tiff/ccitt_fax3_all_terminating_codes.tiff     |     31.52 μs |     1.265 μs |   0.069 μs |  1.44 |    0.01 |    0.3662 |        - |       - |     6947 B |       17.72 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/CCITTGroup4.tiff                          |    720.26 μs |   160.602 μs |   8.803 μs |  1.00 |    0.02 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/CCITTGroup4.tiff                          |  4,263.93 μs |   493.756 μs |  27.064 μs |  5.92 |    0.07 |         - |        - |       - |     4893 B |       12.48 |
-    | 'ImageSharp Tiff'     | Tiff/CCITTGroup4.tiff                          |  9,631.47 μs |   852.696 μs |  46.739 μs | 13.37 |    0.15 |   15.6250 |  15.6250 | 15.6250 |    16308 B |       41.60 |
-    |                       |                                                |              |              |            |       |         |           |          |         |            |             |
-    | 'System.Drawing Tiff' | Tiff/huffman_rle_all_makeup_codes.tiff         |     27.44 μs |     5.727 μs |   0.314 μs |  1.00 |    0.01 |         - |        - |       - |      392 B |        1.00 |
-    | 'ImageMagick Tiff'    | Tiff/huffman_rle_all_makeup_codes.tiff         |    143.84 μs |    20.176 μs |   1.106 μs |  5.24 |    0.06 |    0.2441 |        - |       - |     4798 B |       12.24 |
-    | 'ImageSharp Tiff'     | Tiff/huffman_rle_all_makeup_codes.tiff         |    492.41 μs |     8.224 μs |   0.451 μs | 17.95 |    0.18 |         - |        - |       - |     8552 B |       21.82 |
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
 
-    Allocated reports managed memory only; ImageMagick also allocates native memory.
-    The input files have no ICC profiles. System.Drawing uses FromStream with image-data validation enabled.
+    | Method                 | TestImage                                       |           Mean |        Error |      StdDev |   Ratio |   RatioSD |        Gen0 |       Gen1 |      Gen2 |    Allocated |   Alloc Ratio |
+    | ---------------------- | ----------------------------------------------- | -------------: | -----------: | ----------: | ------: | --------: | ----------: | ---------: | --------: | -----------: | ------------: |
+    | 'System.Drawing Tiff'  | Tiff/Calliphora_grayscale_uncompressed.tiff     |       45.70 μs |     3.994 μs |    0.219 μs |    1.00 |      0.01 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/Calliphora_grayscale_uncompressed.tiff     |      101.78 μs |    18.275 μs |    1.002 μs |    2.23 |      0.02 |      0.2441 |          - |         - |       4797 B |         12.24 |
+    | 'ImageSharp Tiff'      | Tiff/Calliphora_grayscale_uncompressed.tiff     |       31.80 μs |     0.390 μs |    0.021 μs |    0.70 |      0.00 |      0.4883 |          - |         - |       8896 B |         22.69 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/Calliphora_rgb_deflate_predictor.tiff      |      463.94 μs |   104.494 μs |    5.728 μs |    1.00 |      0.02 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/Calliphora_rgb_deflate_predictor.tiff      |      745.63 μs |   106.212 μs |    5.822 μs |    1.61 |      0.02 |           - |          - |         - |       4805 B |         12.26 |
+    | 'ImageSharp Tiff'      | Tiff/Calliphora_rgb_deflate_predictor.tiff      |      422.26 μs |    48.053 μs |    2.634 μs |    0.91 |      0.01 |      0.4883 |          - |         - |       9376 B |         23.92 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/Calliphora_rgb_lzw_predictor.tiff          |      637.96 μs |   130.474 μs |    7.152 μs |    1.00 |      0.01 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/Calliphora_rgb_lzw_predictor.tiff          |      626.72 μs |    69.555 μs |    3.813 μs |    0.98 |      0.01 |           - |          - |         - |       4805 B |         12.26 |
+    | 'ImageSharp Tiff'      | Tiff/Calliphora_rgb_lzw_predictor.tiff          |    1,408.41 μs |   108.544 μs |    5.950 μs |    2.21 |      0.02 |    173.8281 |    85.9375 |         - |    2921573 B |      7,452.99 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/Calliphora_rgb_packbits.tiff               |      119.91 μs |     4.718 μs |    0.259 μs |    1.00 |      0.00 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/Calliphora_rgb_packbits.tiff               |      160.04 μs |    49.690 μs |    2.724 μs |    1.33 |      0.02 |      0.2441 |          - |         - |       4798 B |         12.24 |
+    | 'ImageSharp Tiff'      | Tiff/Calliphora_rgb_packbits.tiff               |       17.28 μs |     0.713 μs |    0.039 μs |    0.14 |      0.00 |      0.5188 |          - |         - |       8928 B |         22.78 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/Calliphora_rgb_palette_lzw_predictor.tiff  |    6,385.73 μs |   610.637 μs |   33.471 μs |    1.00 |      0.01 |           - |          - |         - |        395 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/Calliphora_rgb_palette_lzw_predictor.tiff  |    8,851.98 μs |   703.671 μs |   38.571 μs |    1.39 |      0.01 |           - |          - |         - |       4994 B |         12.64 |
+    | 'ImageSharp Tiff'      | Tiff/Calliphora_rgb_palette_lzw_predictor.tiff  |   14,182.08 μs |   632.607 μs |   34.675 μs |    2.22 |      0.01 |   1078.1250 |   531.2500 |   15.6250 |   18027055 B |     45,638.11 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/Calliphora_rgb_uncompressed.tiff           |      113.54 μs |    10.179 μs |    0.558 μs |    1.00 |      0.01 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/Calliphora_rgb_uncompressed.tiff           |      136.52 μs |     5.909 μs |    0.324 μs |    1.20 |      0.01 |      0.2441 |          - |         - |       4798 B |         12.24 |
+    | 'ImageSharp Tiff'      | Tiff/Calliphora_rgb_uncompressed.tiff           |       11.31 μs |     0.137 μs |    0.007 μs |    0.10 |      0.00 |      0.5341 |          - |         - |       8944 B |         22.82 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/ccitt_fax3_all_terminating_codes.tiff      |       22.19 μs |     2.117 μs |    0.116 μs |    1.00 |      0.01 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/ccitt_fax3_all_terminating_codes.tiff      |       65.87 μs |     9.096 μs |    0.499 μs |    2.97 |      0.02 |      0.2441 |          - |         - |       4797 B |         12.24 |
+    | 'ImageSharp Tiff'      | Tiff/ccitt_fax3_all_terminating_codes.tiff      |       31.82 μs |     0.088 μs |    0.005 μs |    1.43 |      0.01 |      0.4272 |          - |         - |       7224 B |         18.43 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/CCITTGroup4.tiff                           |      727.30 μs |    35.418 μs |    1.941 μs |    1.00 |      0.00 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/CCITTGroup4.tiff                           |    4,232.42 μs |   693.868 μs |   38.033 μs |    5.82 |      0.05 |           - |          - |         - |       4893 B |         12.48 |
+    | 'ImageSharp Tiff'      | Tiff/CCITTGroup4.tiff                           |   10,706.91 μs |   310.112 μs |   16.998 μs |   14.72 |      0.04 |     15.6250 |    15.6250 |   15.6250 |       8200 B |         20.92 |
+    |                        |                                                 |                |              |             |         |           |             |            |           |              |               |
+    | 'System.Drawing Tiff'  | Tiff/huffman_rle_all_makeup_codes.tiff          |       27.24 μs |     4.481 μs |    0.246 μs |    1.00 |      0.01 |           - |          - |         - |        392 B |          1.00 |
+    | 'ImageMagick Tiff'     | Tiff/huffman_rle_all_makeup_codes.tiff          |      137.86 μs |     8.790 μs |    0.482 μs |    5.06 |      0.04 |      0.2441 |          - |         - |       4798 B |         12.24 |
+    | 'ImageSharp Tiff'      | Tiff/huffman_rle_all_makeup_codes.tiff          |      562.16 μs |    12.596 μs |    0.690 μs |   20.64 |      0.16 |           - |          - |         - |       7800 B |         19.90 |
+
+    Allocated reports managed memory only.
     */
 }

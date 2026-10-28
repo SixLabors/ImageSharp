@@ -76,29 +76,27 @@ public class DecodeHeif
         return image.Height;
     }
 
-    /* Results 07.10.2026
-     *  BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9550)
-        AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
-        .NET SDK 11.0.100-preview.7.26381.103
-          [Host]     : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
-          Job-UCFAVH : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
 
-        Arguments=/p:DebugType=portable  IterationCount=15  LaunchCount=1
-        WarmupCount=5
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
 
-        | Method                   | TestImage                    | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0    | Allocated native memory | Native memory leak | Gen1    | Allocated | Alloc Ratio |
-        |------------------------- |----------------------------- |---------:|---------:|---------:|------:|--------:|--------:|------------------------:|-------------------:|--------:|----------:|------------:|
-        | 'Magick Avif'            | Heif/Irvine_CA.avif          | 19.94 ms | 0.249 ms | 0.221 ms |  1.00 |    0.02 |       - |               13,408 KB |               0 KB |       - |   5.07 KB |        1.00 |
-        | 'Magick Avif SingleCore' | Heif/Irvine_CA.avif          | 20.51 ms | 0.531 ms | 0.471 ms |  1.03 |    0.03 |       - |               13,409 KB |               0 KB |       - |   5.08 KB |        1.00 |
-        | 'ImageSharp Avif'        | Heif/Irvine_CA.avif          | 14.30 ms | 0.127 ms | 0.119 ms |  0.72 |    0.01 | 31.2500 |                    0 KB |                  - |       - | 537.38 KB |      105.90 |
-        |                          |                              |          |          |          |       |         |         |                         |                    |         |           |             |
-        | 'Magick Avif'            | Heif/libavif-kodim23-8b.avif | 24.35 ms | 2.448 ms | 2.290 ms |  1.01 |    0.12 |       - |               12,420 KB |               0 KB |       - |   5.07 KB |        1.00 |
-        | 'Magick Avif SingleCore' | Heif/libavif-kodim23-8b.avif | 22.56 ms | 0.436 ms | 0.364 ms |  0.93 |    0.08 |       - |               12,421 KB |               0 KB |       - |   5.08 KB |        1.00 |
-        | 'ImageSharp Avif'        | Heif/libavif-kodim23-8b.avif | 13.42 ms | 0.239 ms | 0.211 ms |  0.56 |    0.05 | 31.2500 |                1,639 KB |           1,638 KB | 15.6250 | 533.23 KB |      105.09 |
+    | Method                    | TestImage                     |       Mean |       Error |     StdDev |   Ratio |   RatioSD |      Gen0 |      Gen1 |      Gen2 |   Allocated |   Alloc Ratio |
+    | ------------------------- | ----------------------------- | ---------: | ----------: | ---------: | ------: | --------: | --------: | --------: | --------: | ----------: | ------------: |
+    | 'Magick Avif'             | Heif/Irvine_CA.avif           |   20.11 ms |    6.352 ms |   0.348 ms |    1.00 |      0.02 |         - |         - |         - |     5.07 KB |          1.00 |
+    | 'Magick Avif SingleCore'  | Heif/Irvine_CA.avif           |   19.34 ms |    4.067 ms |   0.223 ms |    0.96 |      0.02 |         - |         - |         - |     5.08 KB |          1.00 |
+    | 'ImageSharp Avif'         | Heif/Irvine_CA.avif           |   11.63 ms |    0.404 ms |   0.022 ms |    0.58 |      0.01 |   78.1250 |   62.5000 |   46.8750 |   560.91 KB |        110.54 |
+    |                           |                               |            |             |            |         |           |           |           |           |             |               |
+    | 'Magick Avif'             | Heif/libavif-kodim23-8b.avif  |   21.41 ms |    3.719 ms |   0.204 ms |    1.00 |      0.01 |         - |         - |         - |     5.07 KB |          1.00 |
+    | 'Magick Avif SingleCore'  | Heif/libavif-kodim23-8b.avif  |   21.76 ms |   11.596 ms |   0.636 ms |    1.02 |      0.03 |         - |         - |         - |     5.08 KB |          1.00 |
+    | 'ImageSharp Avif'         | Heif/libavif-kodim23-8b.avif  |   10.53 ms |    0.505 ms |   0.028 ms |    0.49 |      0.00 |   78.1250 |   62.5000 |   46.8750 |   541.21 KB |        106.66 |
 
-        Run elevated with --iterationCount 15 --warmupCount 5; the three iterations of Config.Short gave unstable means.
-        Elevation adds the native memory columns of NativeMemoryProfiler. The Allocated and Alloc Ratio columns count managed memory only.
-        The native leak of ImageSharp is whole 4 MB buffers of its unmanaged pool, which the pool keeps after Dispose returns them.
-        The decoder disposes every buffer that it allocates.
-     */
+    Allocated reports managed memory only.
+    The existing SingleCore method pins only its own Magick process. Other methods retain their existing threading behavior.
+    */
 }

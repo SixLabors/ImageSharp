@@ -95,19 +95,29 @@ public class EncodeJpegIcc
         this.image.Save(this.destination, this.encoder);
         return this.destination.Length;
     }
+
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
+
+    | Method      | TestImage                                 |           Mean |        Error |      StdDev |   Ratio |   RatioSD |   Allocated |   Alloc Ratio |
+    | ----------- | ----------------------------------------- | -------------: | -----------: | ----------: | ------: | --------: | ----------: | ------------: |
+    | WithoutIcc  | Jpg/icc-profiles/issue_2723.jpg           |     5,866.9 μs |     329.6 μs |    18.07 μs |    1.00 |      0.00 |    15.78 KB |          1.00 |
+    | WithIcc     | Jpg/icc-profiles/issue_2723.jpg           |    26,110.6 μs |   3,018.9 μs |   165.48 μs |    4.45 |      0.03 |    21.12 KB |          1.34 |
+    |             |                                           |                |              |             |         |           |             |               |
+    | WithoutIcc  | Jpg/icc-profiles/issue-129.jpg            |    41,249.9 μs |   4,332.1 μs |   237.45 μs |    1.00 |      0.01 |    12.66 KB |          1.00 |
+    | WithIcc     | Jpg/icc-profiles/issue-129.jpg            |   176,385.1 μs |   6,610.1 μs |   362.32 μs |    4.28 |      0.02 |    18.45 KB |          1.46 |
+    |             |                                           |                |              |             |         |           |             |               |
+    | WithoutIcc  | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |       940.1 μs |     110.9 μs |     6.08 μs |    1.00 |      0.01 |    14.94 KB |          1.00 |
+    | WithIcc     | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |     2,324.8 μs |     123.3 μs |     6.76 μs |    2.47 |      0.02 |    20.02 KB |          1.34 |
+
+    Allocated reports managed memory only.
+    WithIcc includes the return transform and profile output. WithoutIcc encodes the same sRGB pixels without that profile.
+    */
 }
-
-/*
-Measured 2026-10-17
-
-| Method      | TestImage                                 | Mean           | Error         | StdDev        | Ratio   | RatioSD   | Gen0      | Gen1      | Gen2      | Allocated   | Alloc Ratio   |
-| ----------- | ----------------------------------------- | -------------: | ------------: | ------------: | ------: | --------: | --------: | --------: | --------: | ----------: | ------------: |
-| WithoutIcc  | Jpg/icc-profiles/issue_2723.jpg           |     6,401.3 μs |      98.22 μs |      64.97 μs |    1.00 |      0.01 |         - |         - |         - |    16.61 KB |          1.00 |
-| WithIcc     | Jpg/icc-profiles/issue_2723.jpg           |    26,466.5 μs |     203.27 μs |     134.45 μs |    4.13 |      0.04 |   93.7500 |   93.7500 |   93.7500 |   660.52 KB |         39.77 |
-|             |                                           |                |               |               |         |           |           |           |           |             |               |
-| WithoutIcc  | Jpg/icc-profiles/issue-129.jpg            |    42,598.6 μs |     264.82 μs |     157.59 μs |    1.00 |      0.00 |         - |         - |         - |    12.65 KB |          1.00 |
-| WithIcc     | Jpg/icc-profiles/issue-129.jpg            |   196,826.0 μs |   6,696.35 μs |   3,984.89 μs |    4.62 |      0.09 |         - |         - |         - |   562.63 KB |         44.48 |
-|             |                                           |                |               |               |         |           |           |           |           |             |               |
-| WithoutIcc  | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |       959.1 μs |       6.28 μs |       3.28 μs |    1.00 |      0.00 |         - |         - |         - |    14.92 KB |          1.00 |
-| WithIcc     | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg  |     2,161.0 μs |      73.49 μs |      43.73 μs |    2.25 |      0.04 |         - |         - |         - |    20.71 KB |          1.39 |
-*/

@@ -142,24 +142,35 @@ public class EncodeTiffIcc
         this.image.Save(this.destination, this.encoder);
         return this.destination.Length;
     }
+
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
+
+    | Method      | Output      |        Mean |        Error |     StdDev |   Ratio |   RatioSD |      Gen0 |      Gen1 |      Gen2 |   Allocated |   Alloc Ratio |
+    | ----------- | ----------- | ----------: | -----------: | ---------: | ------: | --------: | --------: | --------: | --------: | ----------: | ------------: |
+    | WithoutIcc  | Rgb8        |    23.21 μs |     3.182 μs |   0.174 μs |    1.00 |      0.01 |    0.9766 |         - |         - |    15.95 KB |          1.00 |
+    | WithIcc     | Rgb8        |    71.99 μs |     2.156 μs |   0.118 μs |    3.10 |      0.02 |    1.3428 |         - |         - |    22.05 KB |          1.38 |
+    |             |             |             |              |            |         |           |           |           |           |             |               |
+    | WithoutIcc  | Rgb16       |    31.75 μs |     1.123 μs |   0.062 μs |    1.00 |      0.00 |    0.9766 |         - |         - |    16.21 KB |          1.00 |
+    | WithIcc     | Rgb16       |    80.52 μs |     2.432 μs |   0.133 μs |    2.54 |      0.01 |    1.3428 |         - |         - |     22.3 KB |          1.38 |
+    |             |             |             |              |            |         |           |           |           |           |             |               |
+    | WithoutIcc  | RgbFloat32  |    11.76 μs |     2.994 μs |   0.164 μs |    1.00 |      0.02 |    1.0529 |    0.0153 |         - |     17.2 KB |          1.00 |
+    | WithIcc     | RgbFloat32  |    61.19 μs |    10.159 μs |   0.557 μs |    5.20 |      0.08 |    1.3428 |         - |         - |    23.13 KB |          1.34 |
+    |             |             |             |              |            |         |           |           |           |           |             |               |
+    | WithoutIcc  | JpegRgb     |    55.91 μs |     3.140 μs |   0.172 μs |    1.00 |      0.00 |    1.5869 |         - |         - |    26.08 KB |          1.00 |
+    | WithIcc     | JpegRgb     |   100.66 μs |    17.582 μs |   0.964 μs |    1.80 |      0.02 |    1.9531 |         - |         - |    32.16 KB |          1.23 |
+    |             |             |             |              |            |         |           |           |           |           |             |               |
+    | WithoutIcc  | JpegCmyk    |    68.93 μs |     3.683 μs |   0.202 μs |    1.00 |      0.00 |    1.7090 |         - |         - |     28.5 KB |          1.00 |
+    | WithIcc     | JpegCmyk    |   335.16 μs |   125.576 μs |   6.883 μs |    4.86 |      0.09 |   93.7500 |   91.7969 |   91.7969 |   578.83 KB |         20.31 |
+
+    Allocated reports managed memory only.
+    WithIcc includes the return transform and profile output. WithoutIcc encodes the same sRGB pixels without that profile.
+    */
 }
-
-/* Measured 2026-10-18
-
-| Method     | Output     |      Mean |      Error |   StdDev | Ratio | RatioSD |    Gen0 |    Gen1 |    Gen2 | Allocated | Alloc Ratio |
-| ---------- | ---------- | --------: | ---------: | -------: | ----: | ------: | ------: | ------: | ------: | --------: | ----------: |
-| WithoutIcc | Rgb8       |  20.82 μs |   2.670 μs | 0.146 μs |  1.00 |    0.01 |  0.9766 |       - |       - |  15.98 KB |        1.00 |
-| WithIcc    | Rgb8       |  71.32 μs |  27.327 μs | 1.498 μs |  3.43 |    0.07 |  1.3428 |       - |       - |  22.18 KB |        1.39 |
-|            |            |           |            |          |       |         |         |         |         |           |             |
-| WithoutIcc | Rgb16      |  29.29 μs |   5.028 μs | 0.276 μs |  1.00 |    0.01 |  0.9766 |       - |       - |  16.23 KB |        1.00 |
-| WithIcc    | Rgb16      | 101.83 μs |  90.737 μs | 4.974 μs |  3.48 |    0.15 |  1.3428 |       - |       - |  22.44 KB |        1.38 |
-|            |            |           |            |          |       |         |         |         |         |           |             |
-| WithoutIcc | RgbFloat32 |  14.29 μs |  16.986 μs | 0.931 μs |  1.00 |    0.08 |  1.0529 |  0.0153 |       - |   17.2 KB |        1.00 |
-| WithIcc    | RgbFloat32 |  76.13 μs | 104.951 μs | 5.753 μs |  5.34 |    0.46 |  1.4038 |       - |       - |  23.27 KB |        1.35 |
-|            |            |           |            |          |       |         |         |         |         |           |             |
-| WithoutIcc | JpegRgb    |  66.87 μs | 127.165 μs | 6.970 μs |  1.01 |    0.13 |  1.5869 |       - |       - |  25.98 KB |        1.00 |
-| WithIcc    | JpegRgb    |  99.78 μs | 118.329 μs | 6.486 μs |  1.50 |    0.15 |  1.9531 |       - |       - |  32.21 KB |        1.24 |
-|            |            |           |            |          |       |         |         |         |         |           |             |
-| WithoutIcc | JpegCmyk   |  71.74 μs |   4.333 μs | 0.237 μs |  1.00 |    0.00 |  1.7090 |       - |       - |  28.38 KB |        1.00 |
-| WithIcc    | JpegCmyk   | 328.49 μs |  47.518 μs | 2.605 μs |  4.58 |    0.03 | 95.7031 | 93.7500 | 93.7500 | 578.83 KB |       20.40 |
-*/

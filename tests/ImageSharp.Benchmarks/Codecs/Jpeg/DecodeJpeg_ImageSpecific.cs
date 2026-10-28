@@ -88,41 +88,46 @@ public class DecodeJpeg_ImageSpecific
         using SKBitmap image = SKBitmap.Decode(codec, info);
         return new Size(image.Width, image.Height);
     }
+
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
+
+    | Method         | TestImage                                    |         Mean |        Error |      StdDev |   Ratio |   RatioSD |       Gen0 |       Gen1 |       Gen2 |   Allocated |   Alloc Ratio |
+    | -------------- | -------------------------------------------- | -----------: | -----------: | ----------: | ------: | --------: | ---------: | ---------: | ---------: | ----------: | ------------: |
+    | SystemDrawing  | Jpg/baseline/jpeg420exif.jpg                 |     7.704 ms |    0.8684 ms |   0.0476 ms |    0.49 |      0.00 |          - |          - |          - |       395 B |          0.15 |
+    | ImageSharp     | Jpg/baseline/jpeg420exif.jpg                 |     9.357 ms |    0.3325 ms |   0.0182 ms |    0.60 |      0.00 |          - |          - |          - |     16320 B |          6.18 |
+    | SkiaSharp      | Jpg/baseline/jpeg420exif.jpg                 |    15.714 ms |    0.9678 ms |   0.0530 ms |    1.00 |      0.00 |          - |          - |          - |      2640 B |          1.00 |
+    |                |                                              |              |              |             |         |           |            |            |            |             |               |
+    | SystemDrawing  | Jpg/baseline/Lake.jpg                        |    12.424 ms |    0.4965 ms |   0.0272 ms |    1.73 |      0.01 |          - |          - |          - |       399 B |          0.14 |
+    | ImageSharp     | Jpg/baseline/Lake.jpg                        |     8.618 ms |    0.3989 ms |   0.0219 ms |    1.20 |      0.00 |          - |          - |          - |     26033 B |          9.14 |
+    | SkiaSharp      | Jpg/baseline/Lake.jpg                        |     7.162 ms |    0.3309 ms |   0.0181 ms |    1.00 |      0.00 |          - |          - |          - |      2848 B |          1.00 |
+    |                |                                              |              |              |             |         |           |            |            |            |             |               |
+    | SystemDrawing  | Jpg/icc-profiles/issue_2723.jpg              |    13.057 ms |    1.2113 ms |   0.0664 ms |    0.70 |      0.00 |          - |          - |          - |       399 B |          0.15 |
+    | ImageSharp     | Jpg/icc-profiles/issue_2723.jpg              |    20.457 ms |    2.8332 ms |   0.1553 ms |    1.09 |      0.01 |   968.7500 |   968.7500 |   968.7500 |   3631815 B |      1,375.69 |
+    | SkiaSharp      | Jpg/icc-profiles/issue_2723.jpg              |    18.783 ms |    2.0060 ms |   0.1100 ms |    1.00 |      0.01 |          - |          - |          - |      2640 B |          1.00 |
+    |                |                                              |              |              |             |         |           |            |            |            |             |               |
+    | SystemDrawing  | Jpg/icc-profiles/issue-129.jpg               |    54.629 ms |    7.8786 ms |   0.4319 ms |    0.40 |      0.00 |          - |          - |          - |       459 B |          0.17 |
+    | ImageSharp     | Jpg/icc-profiles/issue-129.jpg               |   155.386 ms |   26.1410 ms |   1.4329 ms |    1.13 |      0.01 |          - |          - |          - |   3386594 B |      1,282.80 |
+    | SkiaSharp      | Jpg/icc-profiles/issue-129.jpg               |   137.003 ms |    7.6874 ms |   0.4214 ms |    1.00 |      0.00 |          - |          - |          - |      2640 B |          1.00 |
+    |                |                                              |              |              |             |         |           |            |            |            |             |               |
+    | SystemDrawing  | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg     |     5.180 ms |    2.6513 ms |   0.1453 ms |    2.60 |      0.07 |          - |          - |          - |       395 B |          0.14 |
+    | ImageSharp     | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg     |     2.034 ms |    0.1005 ms |   0.0055 ms |    1.02 |      0.01 |          - |          - |          - |     26410 B |          9.27 |
+    | SkiaSharp      | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg     |     1.990 ms |    0.3455 ms |   0.0189 ms |    1.00 |      0.01 |          - |          - |          - |      2848 B |          1.00 |
+    |                |                                              |              |              |             |         |           |            |            |            |             |               |
+    | SystemDrawing  | Jpg/issues/Issue518-Bad-RST-Progressive.jpg  |   226.616 ms |   16.2417 ms |   0.8903 ms |    1.60 |      0.01 |          - |          - |          - |       603 B |          0.23 |
+    | ImageSharp     | Jpg/issues/Issue518-Bad-RST-Progressive.jpg  |   143.563 ms |   36.5600 ms |   2.0040 ms |    1.01 |      0.01 |          - |          - |          - |     47994 B |         18.18 |
+    | SkiaSharp      | Jpg/issues/Issue518-Bad-RST-Progressive.jpg  |   142.046 ms |    4.5723 ms |   0.2506 ms |    1.00 |      0.00 |          - |          - |          - |      2640 B |          1.00 |
+
+    Allocated reports managed memory only.
+    SystemDrawing returns native CMYK for issue-129.jpg. Its timing excludes the embedded CMYK-to-sRGB conversion
+    performed by ImageSharp and Skia. The existing GDI+ comparison found identical rendered pixels with ICC enabled,
+    disabled, removed or replaced. The Adobe RGB control changed when ICC was enabled.
+    */
 }
-
-/*
-Measured 2026-10-17
-
-| Method            | TestImage                                    |         Mean |       Error |      StdDev |   Ratio |   RatioSD |        Gen0 |        Gen1 |        Gen2 |   Allocated |   Alloc Ratio |
-| ----------------- | -------------------------------------------- | -----------: | ----------: | ----------: | ------: | --------: | ----------: | ----------: | ----------: | ----------: | ------------: |
-| SystemDrawing     | Jpg/baseline/jpeg420exif.jpg                 |     7.981 ms |   0.1054 ms |   0.0551 ms |    0.49 |      0.01 |           - |           - |           - |       395 B |          0.15 |
-| ImageSharp        | Jpg/baseline/jpeg420exif.jpg                 |     9.605 ms |   0.2538 ms |   0.1679 ms |    0.58 |      0.01 |     15.6250 |     15.6250 |     15.6250 |     19905 B |          7.44 |
-| SkiaSharp         | Jpg/baseline/jpeg420exif.jpg                 |    16.440 ms |   0.4100 ms |   0.2712 ms |    1.00 |      0.02 |           - |           - |           - |      2674 B |          1.00 |
-|                   |                                              |              |             |             |         |           |             |             |             |             |               |
-| SystemDrawing     | Jpg/baseline/Lake.jpg                        |    12.873 ms |   0.2006 ms |   0.1194 ms |    1.70 |      0.03 |           - |           - |           - |       399 B |          0.13 |
-| ImageSharp        | Jpg/baseline/Lake.jpg                        |     7.526 ms |   0.0572 ms |   0.0340 ms |    0.99 |      0.02 |      7.8125 |      7.8125 |      7.8125 |     27124 B |          9.09 |
-| SkiaSharp         | Jpg/baseline/Lake.jpg                        |     7.585 ms |   0.1895 ms |   0.1253 ms |    1.00 |      0.02 |           - |           - |           - |      2985 B |          1.00 |
-|                   |                                              |              |             |             |         |           |             |             |             |             |               |
-| SystemDrawing     | Jpg/icc-profiles/issue_2723.jpg              |    13.852 ms |   0.5514 ms |   0.2884 ms |    0.71 |      0.02 |           - |           - |           - |       399 B |          0.14 |
-| ImageSharp        | Jpg/icc-profiles/issue_2723.jpg              |    17.699 ms |   0.4466 ms |   0.2954 ms |    0.91 |      0.02 |    937.5000 |    937.5000 |    937.5000 |   3646674 B |      1,244.17 |
-| SkiaSharp         | Jpg/icc-profiles/issue_2723.jpg              |    19.518 ms |   0.2638 ms |   0.1745 ms |    1.00 |      0.01 |           - |           - |           - |      2931 B |          1.00 |
-|                   |                                              |              |             |             |         |           |             |             |             |             |               |
-| SystemDrawing [1] | Jpg/icc-profiles/issue-129.jpg               |    58.790 ms |   2.9322 ms |   1.7449 ms |    0.41 |      0.01 |           - |           - |           - |       471 B |          0.16 |
-| ImageSharp        | Jpg/icc-profiles/issue-129.jpg               |   157.216 ms |   8.2200 ms |   5.4370 ms |    1.10 |      0.04 |    250.0000 |    250.0000 |    250.0000 |   3440528 B |      1,179.88 |
-| SkiaSharp         | Jpg/icc-profiles/issue-129.jpg               |   142.835 ms |   3.8164 ms |   1.9960 ms |    1.00 |      0.02 |           - |           - |           - |      2916 B |          1.00 |
-|                   |                                              |              |             |             |         |           |             |             |             |             |               |
-| SystemDrawing     | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg     |     5.812 ms |   1.0796 ms |   0.7141 ms |    2.79 |      0.33 |           - |           - |           - |       395 B |          0.14 |
-| ImageSharp        | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg     |     1.685 ms |   0.0196 ms |   0.0129 ms |    0.81 |      0.01 |           - |           - |           - |     29333 B |         10.29 |
-| SkiaSharp         | Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg     |     2.084 ms |   0.0367 ms |   0.0243 ms |    1.00 |      0.02 |           - |           - |           - |      2852 B |          1.00 |
-|                   |                                              |              |             |             |         |           |             |             |             |             |               |
-| SystemDrawing     | Jpg/issues/Issue518-Bad-RST-Progressive.jpg  |   231.770 ms |   3.4177 ms |   2.0338 ms |    1.55 |      0.02 |           - |           - |           - |       427 B |          0.15 |
-| ImageSharp        | Jpg/issues/Issue518-Bad-RST-Progressive.jpg  |   149.025 ms |   1.8008 ms |   1.0716 ms |    0.99 |      0.01 |   1000.0000 |   1000.0000 |   1000.0000 |     88960 B |         30.51 |
-| SkiaSharp         | Jpg/issues/Issue518-Bad-RST-Progressive.jpg  |   149.810 ms |   2.8577 ms |   1.8902 ms |    1.00 |      0.02 |           - |           - |           - |      2916 B |          1.00 |
-
-[1] SystemDrawing returns native CMYK for issue-129.jpg (PixelFormat32bppCMYK, 0x200F).
-Its timing does not include the embedded CMYK-to-sRGB conversion performed by ImageSharp and Skia.
-Verified on Windows 11, 2026-10-17: rendering the complete image to 32-bit ARGB produced identical pixel bytes
-with ICC enabled, disabled, removed, or replaced by the valid Coated_Fogra39L_VIGC_300.icc profile.
-The replacement used jpegtran without changing coefficients; profile-free JPEG outputs were byte-identical.
-The Adobe RGB control changed when ICC was enabled. Keep this timing, but do not interpret its ratio as equivalent ICC conversion throughput.
-*/

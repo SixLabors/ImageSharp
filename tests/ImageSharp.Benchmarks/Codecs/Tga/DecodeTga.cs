@@ -64,15 +64,22 @@ public class DecodeTga
         public int Rented => this.rented;
     }
 
-    /* RESULTS (07/01/2020)
-    |            Method |       Runtime |           TestImage |         Mean |        Error |     StdDev | Ratio |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |------------------ |-------------- |-------------------- |-------------:|-------------:|-----------:|------:|-------:|------:|------:|----------:|
-    | 'ImageMagick Tga' |    .NET 4.7.2 | Tga/targa_24bit.tga | 1,778.965 us | 1,711.088 us | 93.7905 us | 1.000 | 1.9531 |     - |     - |   13668 B |
-    |  'ImageSharp Tga' |    .NET 4.7.2 | Tga/targa_24bit.tga |    38.659 us |     6.886 us |  0.3774 us | 0.022 | 0.3052 |     - |     - |    1316 B |
-    |        'Pfim Tga' |    .NET 4.7.2 | Tga/targa_24bit.tga |     6.752 us |    10.268 us |  0.5628 us | 0.004 | 0.0687 |     - |     - |     313 B |
-    |                   |               |                     |              |              |            |       |        |       |       |           |
-    | 'ImageMagick Tga' | .NET Core 2.1 | Tga/targa_24bit.tga | 1,407.585 us |   124.215 us |  6.8087 us | 1.000 | 1.9531 |     - |     - |   13307 B |
-    |  'ImageSharp Tga' | .NET Core 2.1 | Tga/targa_24bit.tga |    17.958 us |     9.352 us |  0.5126 us | 0.013 | 0.2747 |     - |     - |    1256 B |
-    |        'Pfim Tga' | .NET Core 2.1 | Tga/targa_24bit.tga |     5.645 us |     2.279 us |  0.1249 us | 0.004 | 0.0610 |     - |     - |     280 B |
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
+
+    | Method             | TestImage            |         Mean |        Error |      StdDev |   Ratio |     Gen0 |   Allocated |   Alloc Ratio |
+    | ------------------ | -------------------- | -----------: | -----------: | ----------: | ------: | -------: | ----------: | ------------: |
+    | 'ImageMagick Tga'  | Tga/targa_24bit.tga  |   631.777 μs |   25.8058 μs |   1.4145 μs |   1.000 |        - |      4805 B |          1.00 |
+    | 'ImageSharp Tga'   | Tga/targa_24bit.tga  |    14.277 μs |    1.3643 μs |   0.0748 μs |   0.023 |   0.1221 |      2114 B |          0.44 |
+    | 'Pfim Tga'         | Tga/targa_24bit.tga  |     1.319 μs |    0.1189 μs |   0.0065 μs |   0.002 |   0.0134 |       248 B |          0.05 |
+
+    Allocated reports managed memory only.
     */
 }

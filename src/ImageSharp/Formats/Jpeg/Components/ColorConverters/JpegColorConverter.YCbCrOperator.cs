@@ -2,10 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -37,11 +35,6 @@ internal abstract partial class JpegColorConverterBase
         /// </summary>
         public const float BCbMult = 1.772F;
 
-        /// <summary>
-        /// The shared profile-free RGB/YCbCr matrix options. These options never change.
-        /// </summary>
-        private static readonly ColorConversionOptions ModelOptions = new();
-
         /// <inheritdoc/>
         public static JpegColorSpace ColorSpace => JpegColorSpace.YCbCr;
 
@@ -49,39 +42,38 @@ internal abstract partial class JpegColorConverterBase
         public static int ComponentCount => 3;
 
         /// <inheritdoc/>
-        public static void ConvertToProfile(Span<float> samples, IccColorSpaceType profileSpace)
-        {
-            if (profileSpace != IccColorSpaceType.YCbCr)
-            {
-                // An RGB profile reads RGB after the JPEG YCbCr model transform.
-                // A YCbCr profile reads the normalized stored components directly.
-                // Apply only the model matrix. A full profile conversion would expand RGB, pass through XYZ,
-                // and compress back into the same RGB space, adding six powers per color and temporary row buffers.
-                YCbCr.ToProfileConnectionSpace(ModelOptions, MemoryMarshal.Cast<float, YCbCr>(samples), MemoryMarshal.Cast<float, Rgb>(samples));
-
-                // JPEG's RGB device samples are bounded even when the YCbCr matrix overshoots.
-                // Clip before ICC curves, which can raise these samples to fractional powers.
-                ColorNumerics.ClampToFinite(samples, 0F, 1F);
-            }
-        }
-
-        /// <inheritdoc/>
-        public static void ConvertFromProfile(Span<float> samples, IccColorSpaceType profileSpace)
-        {
-            if (profileSpace != IccColorSpaceType.YCbCr)
-            {
-                // Reverse the decoder's model transform only for an RGB profile.
-                YCbCr.FromProfileConnectionSpace(ModelOptions, MemoryMarshal.Cast<float, Rgb>(samples), MemoryMarshal.Cast<float, YCbCr>(samples));
-            }
-        }
+        public static float GetProfileChromaOffset(float maximumValue, float halfValue) => halfValue / maximumValue;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        public static void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
         {
-            c0 *= scale;
-            c1 *= scale;
-            c2 *= scale;
+            // An RGB profile reads RGB after the JPEG matrix. A native YCbCr profile reads the stored components.
+            // Center chroma on the integer JPEG midpoint before normalization: 128/255 is not the model's 0.5.
+            if (profileSpace == IccColorSpaceType.YCbCr)
+            {
+                c0 *= scale;
+                c1 *= scale;
+                c2 *= scale;
+            }
+            else
+            {
+                ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+                // The matrix can overshoot the integer JPEG device range. Bound RGB before ICC curves,
+                // but retain its fractional precision until the destination pixel is packed.
+                c0 = ColorNumerics.ClampToFinite(c0 * scale, 0F, 1F);
+                c1 = ColorNumerics.ClampToFinite(c1 * scale, 0F, 1F);
+                c2 = ColorNumerics.ClampToFinite(c2 * scale, 0F, 1F);
+            }
         }
 
         /// <inheritdoc/>
@@ -93,11 +85,27 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale)
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
         {
-            c0 *= scale;
-            c1 *= scale;
-            c2 *= scale;
+            // An RGB profile reads RGB after the JPEG matrix. A native YCbCr profile reads the stored components.
+            // Center chroma on the integer JPEG midpoint before normalization: 128/255 is not the model's 0.5.
+            if (profileSpace == IccColorSpaceType.YCbCr)
+            {
+                c0 *= scale;
+                c1 *= scale;
+                c2 *= scale;
+            }
+            else
+            {
+                ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+                // The matrix can overshoot the integer JPEG device range. Bound RGB before ICC curves,
+                // but retain its fractional precision until the destination pixel is packed.
+                c0 = ColorNumerics.ClampToFinite(c0 * scale, Vector128<float>.Zero, Vector128<float>.One);
+                c1 = ColorNumerics.ClampToFinite(c1 * scale, Vector128<float>.Zero, Vector128<float>.One);
+                c2 = ColorNumerics.ClampToFinite(c2 * scale, Vector128<float>.Zero, Vector128<float>.One);
+            }
         }
 
         /// <inheritdoc/>
@@ -109,11 +117,27 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale)
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
         {
-            c0 *= scale;
-            c1 *= scale;
-            c2 *= scale;
+            // An RGB profile reads RGB after the JPEG matrix. A native YCbCr profile reads the stored components.
+            // Center chroma on the integer JPEG midpoint before normalization: 128/255 is not the model's 0.5.
+            if (profileSpace == IccColorSpaceType.YCbCr)
+            {
+                c0 *= scale;
+                c1 *= scale;
+                c2 *= scale;
+            }
+            else
+            {
+                ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+                // The matrix can overshoot the integer JPEG device range. Bound RGB before ICC curves,
+                // but retain its fractional precision until the destination pixel is packed.
+                c0 = ColorNumerics.ClampToFinite(c0 * scale, Vector256<float>.Zero, Vector256<float>.One);
+                c1 = ColorNumerics.ClampToFinite(c1 * scale, Vector256<float>.Zero, Vector256<float>.One);
+                c2 = ColorNumerics.ClampToFinite(c2 * scale, Vector256<float>.Zero, Vector256<float>.One);
+            }
         }
 
         /// <inheritdoc/>
@@ -125,17 +149,48 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale)
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
         {
-            c0 *= scale;
-            c1 *= scale;
-            c2 *= scale;
+            // An RGB profile reads RGB after the JPEG matrix. A native YCbCr profile reads the stored components.
+            // Center chroma on the integer JPEG midpoint before normalization: 128/255 is not the model's 0.5.
+            if (profileSpace == IccColorSpaceType.YCbCr)
+            {
+                c0 *= scale;
+                c1 *= scale;
+                c2 *= scale;
+            }
+            else
+            {
+                ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
+
+                // The matrix can overshoot the integer JPEG device range. Bound RGB before ICC curves,
+                // but retain its fractional precision until the destination pixel is packed.
+                c0 = ColorNumerics.ClampToFinite(c0 * scale, Vector512<float>.Zero, Vector512<float>.One);
+                c1 = ColorNumerics.ClampToFinite(c1 * scale, Vector512<float>.Zero, Vector512<float>.One);
+                c2 = ColorNumerics.ClampToFinite(c2 * scale, Vector512<float>.Zero, Vector512<float>.One);
+            }
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        public static void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
         {
+            // Reverse the decoder's model transform only for an RGB profile. The caller supplies
+            // the normalized integer midpoint; native YCbCr profile samples need only JPEG scaling.
+            if (profileSpace != IccColorSpaceType.YCbCr)
+            {
+                ConvertFromRgb(c0, c1, c2, 1F, halfValue, 1F, out c0, out c1, out c2, out _);
+            }
+
             c0 *= maximumValue;
             c1 *= maximumValue;
             c2 *= maximumValue;
@@ -150,8 +205,16 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale)
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
         {
+            // Reverse the decoder's model transform only for an RGB profile. The caller supplies
+            // the normalized integer midpoint; native YCbCr profile samples need only JPEG scaling.
+            if (profileSpace != IccColorSpaceType.YCbCr)
+            {
+                ConvertFromRgb(c0, c1, c2, Vector128<float>.One, halfValue, Vector128<float>.One, out c0, out c1, out c2, out _);
+            }
+
             c0 *= maximumValue;
             c1 *= maximumValue;
             c2 *= maximumValue;
@@ -166,8 +229,16 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale)
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
         {
+            // Reverse the decoder's model transform only for an RGB profile. The caller supplies
+            // the normalized integer midpoint; native YCbCr profile samples need only JPEG scaling.
+            if (profileSpace != IccColorSpaceType.YCbCr)
+            {
+                ConvertFromRgb(c0, c1, c2, Vector256<float>.One, halfValue, Vector256<float>.One, out c0, out c1, out c2, out _);
+            }
+
             c0 *= maximumValue;
             c1 *= maximumValue;
             c2 *= maximumValue;
@@ -182,8 +253,16 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale)
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
         {
+            // Reverse the decoder's model transform only for an RGB profile. The caller supplies
+            // the normalized integer midpoint; native YCbCr profile samples need only JPEG scaling.
+            if (profileSpace != IccColorSpaceType.YCbCr)
+            {
+                ConvertFromRgb(c0, c1, c2, Vector512<float>.One, halfValue, Vector512<float>.One, out c0, out c1, out c2, out _);
+            }
+
             c0 *= maximumValue;
             c1 *= maximumValue;
             c2 *= maximumValue;
@@ -356,7 +435,7 @@ internal abstract partial class JpegColorConverterBase
             out float c2,
             out float c3)
         {
-            // The RGB inputs are unnormalized 0..255 encoder lanes. The BT.601 luma weights form Y,
+            // RGB and halfValue use the same component units. The BT.601 luma weights form Y,
             // while the signed chroma projections are biased by halfValue into the JPEG sample domain.
             // YCbCr has no fourth component, so c3 is a compile-time-unused placeholder for the shared loop.
             c0 = (0.299F * r) + (0.587F * g) + (0.114F * b);

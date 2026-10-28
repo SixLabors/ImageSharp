@@ -20,7 +20,8 @@ internal abstract partial class JpegColorConverterBase
         /// </summary>
         /// <param name="source">The JPEG component planes.</param>
         /// <param name="destination">Caller-owned packed profile storage.</param>
-        private void UnpackProfileComponents(in ComponentValues source, Span<float> destination)
+        /// <param name="profileSpace">The source profile's device space, fixed for the complete row.</param>
+        private void UnpackProfileComponents(in ComponentValues source, Span<float> destination, IccColorSpaceType profileSpace)
         {
             int channels = TOperator.ComponentCount;
             int count = source.Component0.Length;
@@ -48,7 +49,7 @@ internal abstract partial class JpegColorConverterBase
                     Vector512<float> y = channels >= 3 ? Vector512.LoadUnsafe(ref c1, (nuint)i) : default;
                     Vector512<float> z = channels >= 3 ? Vector512.LoadUnsafe(ref c2, (nuint)i) : default;
                     Vector512<float> k = channels == 4 ? Vector512.LoadUnsafe(ref c3, (nuint)i) : default;
-                    TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal);
+                    TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
                     nuint offset = (uint)i * (uint)channels;
 
                     if (channels == 1)
@@ -79,7 +80,7 @@ internal abstract partial class JpegColorConverterBase
                     Vector256<float> y = channels >= 3 ? Vector256.LoadUnsafe(ref c1, (nuint)i) : default;
                     Vector256<float> z = channels >= 3 ? Vector256.LoadUnsafe(ref c2, (nuint)i) : default;
                     Vector256<float> k = channels == 4 ? Vector256.LoadUnsafe(ref c3, (nuint)i) : default;
-                    TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal);
+                    TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
                     nuint offset = (uint)i * (uint)channels;
 
                     if (channels == 1)
@@ -110,7 +111,7 @@ internal abstract partial class JpegColorConverterBase
                     Vector128<float> y = channels >= 3 ? Vector128.LoadUnsafe(ref c1, (nuint)i) : default;
                     Vector128<float> z = channels >= 3 ? Vector128.LoadUnsafe(ref c2, (nuint)i) : default;
                     Vector128<float> k = channels == 4 ? Vector128.LoadUnsafe(ref c3, (nuint)i) : default;
-                    TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal);
+                    TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
                     nuint offset = (uint)i * (uint)channels;
 
                     if (channels == 1)
@@ -151,7 +152,7 @@ internal abstract partial class JpegColorConverterBase
                 float y = channels >= 3 ? Unsafe.Add(ref c1, offset) : 0F;
                 float z = channels >= 3 ? Unsafe.Add(ref c2, offset) : 0F;
                 float k = channels == 4 ? Unsafe.Add(ref c3, offset) : 0F;
-                TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, this.MaximumValue, halfValue, scale);
+                TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, this.MaximumValue, halfValue, scale, profileSpace);
                 Unsafe.Add(ref packed, packedOffset) = x;
 
                 if (channels >= 3)
@@ -172,7 +173,8 @@ internal abstract partial class JpegColorConverterBase
         /// </summary>
         /// <param name="source">The packed normalized profile components.</param>
         /// <param name="destination">The destination JPEG component planes.</param>
-        private void PackProfileComponents(ReadOnlySpan<float> source, in ComponentValues destination)
+        /// <param name="profileSpace">The target profile's device space, fixed for the complete row.</param>
+        private void PackProfileComponents(ReadOnlySpan<float> source, in ComponentValues destination, IccColorSpaceType profileSpace)
         {
             int channels = TOperator.ComponentCount;
             int count = destination.Component0.Length;
@@ -217,7 +219,7 @@ internal abstract partial class JpegColorConverterBase
                         SimdUtils.Deinterleave4(quadruples, i, out x, out y, out z, out k);
                     }
 
-                    TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal);
+                    TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
                     x.StoreUnsafe(ref c0, (nuint)i);
 
                     if (channels >= 3)
@@ -260,7 +262,7 @@ internal abstract partial class JpegColorConverterBase
                         SimdUtils.Deinterleave4(quadruples, i, out x, out y, out z, out k);
                     }
 
-                    TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal);
+                    TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
                     x.StoreUnsafe(ref c0, (nuint)i);
 
                     if (channels >= 3)
@@ -313,7 +315,7 @@ internal abstract partial class JpegColorConverterBase
                             out k);
                     }
 
-                    TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal);
+                    TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
                     x.StoreUnsafe(ref c0, (nuint)i);
 
                     if (channels >= 3)
@@ -338,7 +340,7 @@ internal abstract partial class JpegColorConverterBase
                 float y = channels >= 3 ? Unsafe.Add(ref packed, packedOffset + 1) : 0F;
                 float z = channels >= 3 ? Unsafe.Add(ref packed, packedOffset + 2) : 0F;
                 float k = channels == 4 ? Unsafe.Add(ref packed, packedOffset + 3) : 0F;
-                TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, this.MaximumValue, halfValue, scale);
+                TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, this.MaximumValue, halfValue, scale, profileSpace);
                 Unsafe.Add(ref c0, offset) = x;
 
                 if (channels >= 3)
@@ -364,9 +366,9 @@ internal abstract partial class JpegColorConverterBase
             Span<float> samples = TOperator.ComponentCount == 1 ? scratch.Slice(length * 3, length) : scratch[..(length * TOperator.ComponentCount)];
             IccColorSpaceType profileSpace = profileConverter.Options.SourceIccProfile.Header.DataColorSpace;
 
-            // The operator removes JPEG scaling, inversion and model transforms before the profile reads its device samples.
-            this.UnpackProfileComponents(source, samples);
-            TOperator.ConvertToProfile(samples, profileSpace);
+            // Apply scaling, inversion and the profile's model in the same traversal that interleaves the planes.
+            // The operator receives the existing profile space; no second packed-row model conversion is required.
+            this.UnpackProfileComponents(source, samples, profileSpace);
 
             switch (TOperator.ColorSpace)
             {
@@ -429,8 +431,7 @@ internal abstract partial class JpegColorConverterBase
             ColorNumerics.ClampToFinite(samples, 0F, 1F);
 
             // The matching operator applies the model transform, inversion and JPEG scaling after ICC has produced device samples.
-            TOperator.ConvertFromProfile(samples, profileSpace);
-            this.PackProfileComponents(samples, destination);
+            this.PackProfileComponents(samples, destination, profileSpace);
         }
     }
 }

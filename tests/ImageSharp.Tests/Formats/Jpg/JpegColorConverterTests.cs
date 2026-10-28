@@ -227,6 +227,7 @@ public partial class JpegColorConverterTests
         ColorProfileConverter profileConverter = new(options);
         ColorProfileConverter modelConverter = new();
         float maximumValue = MathF.Pow(2, precision) - 1;
+        float chromaShift = (MathF.Ceiling(maximumValue * .5F) / maximumValue) - .5F;
         Rgb[] grayscaleExpected = null;
 
         if (colorSpace == JpegColorSpace.Luminance)
@@ -263,7 +264,10 @@ public partial class JpegColorConverterTests
                     break;
 
                 case JpegColorSpace.YCbCr:
-                    Rgb rgb = new YCbCr(c0, c1, c2).ToProfileConnectingSpace(modelConverter.Options);
+                    // The general model uses a normalized 0.5 midpoint. JPEG uses the integer code midpoint.
+                    // Keep the adjusted components intact; the value constructor would clip negative chroma.
+                    YCbCr ycbcr = YCbCr.FromScaledVector4(new Vector4(c0, c1 - chromaShift, c2 - chromaShift, 0F));
+                    Rgb rgb = ycbcr.ToProfileConnectingSpace(modelConverter.Options);
 
                     // JPEG device RGB is bounded before ICC, including overshoot from the YCbCr matrix.
                     rgb = new Rgb(Vector3.Clamp(rgb.ToScaledVector3(), Vector3.Zero, Vector3.One));
@@ -277,7 +281,6 @@ public partial class JpegColorConverterTests
                 case JpegColorSpace.Ycck:
                 case JpegColorSpace.TiffYccK:
                     // Decode the chromatic matrix independently, without deriving a new K from its RGB result.
-                    float chromaShift = (MathF.Ceiling(maximumValue * .5F) / maximumValue) - .5F;
                     YCbCr coded = YCbCr.FromScaledVector4(new Vector4(c0, c1 - chromaShift, c2 - chromaShift, 0F));
                     Rgb device = coded.ToProfileConnectingSpace(modelConverter.Options);
                     Vector4 ink = new(device.ToScaledVector3(), 1F - c3);
@@ -418,11 +421,15 @@ public partial class JpegColorConverterTests
                         YCbCr matrixOutput = YCbCr.FromProfileConnectingSpace(modelConverter.Options, in matrixInput);
                         code = matrixOutput.ToScaledVector4() * maximumValue;
 
+                        code.W = (inverted ? 1F - device.W : device.W) * maximumValue;
+                    }
+
+                    if (space is JpegColorSpace.YCbCr or JpegColorSpace.Ycck or JpegColorSpace.TiffYccK)
+                    {
                         // The shared color model centers chroma at 0.5; JPEG uses the integer midpoint.
                         float chromaOffset = MathF.Ceiling(maximumValue * .5F) - (maximumValue * .5F);
                         code.Y += chromaOffset;
                         code.Z += chromaOffset;
-                        code.W = (inverted ? 1F - device.W : device.W) * maximumValue;
                     }
 
                     Assert.Equal(code.X, actual.Component0[i], FromRgbTolerance);

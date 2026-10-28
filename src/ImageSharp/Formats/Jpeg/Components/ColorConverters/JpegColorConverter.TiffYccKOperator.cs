@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -33,7 +34,15 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        public static void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
         {
             // TIFF stores the matrix of CMY complements and an unchanged K sample.
             YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
@@ -52,7 +61,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale)
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
         {
             // TIFF stores the matrix of CMY complements and an unchanged K sample.
             YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
@@ -71,7 +81,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale)
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
         {
             // TIFF stores the matrix of CMY complements and an unchanged K sample.
             YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
@@ -90,7 +101,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale)
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
         {
             // TIFF stores the matrix of CMY complements and an unchanged K sample.
             YCbCrOperator.ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
@@ -102,7 +114,15 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        public static void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
         {
             // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
             YCbCrOperator.ConvertFromRgb(1F - c0, 1F - c1, 1F - c2, 1F, halfValue, 1F, out c0, out c1, out c2, out _);
@@ -121,7 +141,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale)
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
         {
             // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
             Vector128<float> one = Vector128<float>.One;
@@ -141,7 +162,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale)
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
         {
             // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
             Vector256<float> one = Vector256<float>.One;
@@ -161,7 +183,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale)
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
         {
             // The YCbCr matrix changes CMY coding only. K keeps the value supplied by ICC.
             Vector512<float> one = Vector512<float>.One;

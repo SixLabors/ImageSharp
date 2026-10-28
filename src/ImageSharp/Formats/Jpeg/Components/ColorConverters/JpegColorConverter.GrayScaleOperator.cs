@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -21,7 +22,15 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        public static void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= scale;
         }
@@ -35,7 +44,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale)
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= scale;
         }
@@ -49,7 +59,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale)
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= scale;
         }
@@ -63,14 +74,23 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale)
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= scale;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale)
+        public static void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= maximumValue;
         }
@@ -84,7 +104,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale)
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= maximumValue;
         }
@@ -98,7 +119,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale)
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= maximumValue;
         }
@@ -112,7 +134,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale)
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
         {
             c0 *= maximumValue;
         }

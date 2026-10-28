@@ -64,9 +64,9 @@ public class IccProfileRecognition
 
 /* Measured 2026-10-28, .NET 10.0.14. Profile parsing and shared-table initialization are outside measurement.
 
-| Method                  |         Mean |        Error |     StdDev | Allocated |
-| ----------------------- | -----------: | -----------: | ---------: | --------: |
-| KnownProfileId          |     3.633 ns |     2.361 ns |  0.1294 ns |         - |
-| ParametricLinearProfile |    36.379 ns |    24.914 ns |  1.3656 ns |         - |
-| SampledSrgbProfile      | 8,557.276 ns | 1,815.021 ns | 99.4874 ns |         - |
+| Method                  |         Mean |      Error |    StdDev | Allocated |
+| ----------------------- | -----------: | ---------: | --------: | --------: |
+| KnownProfileId          |     3.706 ns |  0.4679 ns | 0.0256 ns |         - |
+| ParametricLinearProfile |    32.536 ns |  6.9320 ns | 0.3800 ns |         - |
+| SampledSrgbProfile      | 2,055.693 ns | 38.2476 ns | 2.0965 ns |         - |
 */

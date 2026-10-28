@@ -217,7 +217,16 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
-        public static abstract void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3, float maximumValue, float halfValue, float scale);
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
+        public static abstract void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts JPEG component values to normalized profile components.
@@ -229,6 +238,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertToProfile(
             ref Vector128<float> c0,
             ref Vector128<float> c1,
@@ -236,7 +246,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale);
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts JPEG component values to normalized profile components.
@@ -248,6 +259,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertToProfile(
             ref Vector256<float> c0,
             ref Vector256<float> c1,
@@ -255,7 +267,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale);
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts JPEG component values to normalized profile components.
@@ -267,6 +280,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The integer JPEG chroma midpoint.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertToProfile(
             ref Vector512<float> c0,
             ref Vector512<float> c1,
@@ -274,7 +288,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale);
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts normalized profile components to JPEG component values.
@@ -286,6 +301,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertFromProfile(
             ref float c0,
             ref float c1,
@@ -293,7 +309,8 @@ internal abstract partial class JpegColorConverterBase
             ref float c3,
             float maximumValue,
             float halfValue,
-            float scale);
+            float scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts normalized profile components to JPEG component values.
@@ -305,6 +322,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertFromProfile(
             ref Vector128<float> c0,
             ref Vector128<float> c1,
@@ -312,7 +330,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> c3,
             Vector128<float> maximumValue,
             Vector128<float> halfValue,
-            Vector128<float> scale);
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts normalized profile components to JPEG component values.
@@ -324,6 +343,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertFromProfile(
             ref Vector256<float> c0,
             ref Vector256<float> c1,
@@ -331,7 +351,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c3,
             Vector256<float> maximumValue,
             Vector256<float> halfValue,
-            Vector256<float> scale);
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace);
 
         /// <summary>
         /// Converts normalized profile components to JPEG component values.
@@ -343,6 +364,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum JPEG sample code.</param>
         /// <param name="halfValue">The normalized chroma offset selected by the operator.</param>
         /// <param name="scale">The reciprocal maximum JPEG sample code.</param>
+        /// <param name="profileSpace">The profile's device color space, used to select the required JPEG model transform.</param>
         public static abstract void ConvertFromProfile(
             ref Vector512<float> c0,
             ref Vector512<float> c1,
@@ -350,25 +372,8 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> c3,
             Vector512<float> maximumValue,
             Vector512<float> halfValue,
-            Vector512<float> scale);
-
-        /// <summary>
-        /// Applies the packed color-model transform before the source profile reads its components.
-        /// </summary>
-        /// <param name="samples">Normalized packed components, available for in-place conversion.</param>
-        /// <param name="profileSpace">The profile's data color space.</param>
-        public static virtual void ConvertToProfile(Span<float> samples, IccColorSpaceType profileSpace)
-        {
-        }
-
-        /// <summary>
-        /// Applies the packed color-model transform after the target profile writes its components.
-        /// </summary>
-        /// <param name="samples">Normalized packed components, available for in-place conversion.</param>
-        /// <param name="profileSpace">The profile's data color space.</param>
-        public static virtual void ConvertFromProfile(Span<float> samples, IccColorSpaceType profileSpace)
-        {
-        }
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace);
     }
 
     /// <summary>

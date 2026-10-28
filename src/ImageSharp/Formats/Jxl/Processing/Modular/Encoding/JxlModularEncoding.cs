@@ -759,7 +759,7 @@ internal static class JxlModularEncoding
             }
 
             maxTreeSize = Math.Min(1uL << 20, maxTreeSize);
-            DecodeTree(configuration, br, treeStorage, maxTreeSize));
+            DecodeTree(configuration, br, treeStorage, maxTreeSize);
             DecodeHistograms(
                 configuration,
                 br,
@@ -813,7 +813,18 @@ internal static class JxlModularEncoding
         return true;
     }
 
-    public static bool ModularGenericDecompress(Configuration configuration. JxlBitReader br, JxlModularImage image, JxlGroupHeader header, int groupId, JxlModularOptions options, bool undoTransforms, Tree tree, JxlAnsCode code, List<byte> contextMap, bool allowTruncatedGroup)
+    public static bool ModularGenericDecompress(
+        Configuration configuration,
+        JxlBitReader br,
+        JxlModularImage image,
+        JxlGroupHeader header,
+        int groupId,
+        JxlModularOptions options,
+        bool undoTransforms,
+        Tree tree,
+        JxlAnsCode code,
+        List<byte> contextMap,
+        bool allowTruncatedGroup)
     {
         List<Size> reqSizes = new(capacity: image.Channels.Count);
 

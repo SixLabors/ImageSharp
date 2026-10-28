@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;

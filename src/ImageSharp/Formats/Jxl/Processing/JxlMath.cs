@@ -280,20 +280,6 @@ internal static class JxlMath
     }
 
     /// <summary>
-    /// Ensures that the value stays within the specified range.
-    /// </summary>
-    /// <param name="value">The input value</param>
-    /// <param name="low">The lower bound</param>
-    /// <param name="high">The upper bound</param>
-    /// <returns>
-    /// <paramref name="low" /> if value is lower than <paramref name="low"/>. <paramref name="high"/>
-    /// if value is higher than <paramref name="high"/>. Otherwise, <paramref name="value"/> if it's within
-    /// the range.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Clamp1(int value, int low, int high) => Numerics.Clamp(value, low, high);
-
-    /// <summary>
     /// Rounds the dimensions up to block dimensions.
     /// </summary>
     /// <param name="dim">The dimensions to round up to block dimensions.</param>

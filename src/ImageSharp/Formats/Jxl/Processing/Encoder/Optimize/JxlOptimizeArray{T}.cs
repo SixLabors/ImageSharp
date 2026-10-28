@@ -57,50 +57,59 @@ internal struct JxlOptimizeArray<T> : IDisposable
 
     public readonly T DotProduct(JxlOptimizeArray<T> y) => TensorPrimitives.Dot<T>(this.Span, y.Span);
 
-    public static JxlOptimizeArray<T> OptimizeWithScaledConjugateGradientMethod<T>(
-        JxlOptimizeArrayFactory<T> factory,
-        JxlOptimizeFunction<T> function,
-        JxlOptimizeArray<T> w0,
-        T gradientNormalThreshold,
+    /// <summary>
+    /// Finds objective-function parameters with the scaled conjugate gradient method.
+    /// </summary>
+    /// <typeparam name="TFloat">The floating-point type used by the objective and the search.</typeparam>
+    /// <param name="factory">The factory for search arrays.</param>
+    /// <param name="function">The objective function.</param>
+    /// <param name="w0">The initial parameter values.</param>
+    /// <param name="gradientNormalThreshold">The gradient norm at which the search stops.</param>
+    /// <param name="maxIterations">The maximum number of search iterations.</param>
+    /// <returns>The parameter values at the end of the search.</returns>
+    public static JxlOptimizeArray<TFloat> OptimizeWithScaledConjugateGradientMethod<TFloat>(
+        JxlOptimizeArrayFactory<TFloat> factory,
+        JxlOptimizeFunction<TFloat> function,
+        JxlOptimizeArray<TFloat> w0,
+        TFloat gradientNormalThreshold,
         int maxIterations)
-        where T : unmanaged, INumber<T>,
-                            IBinaryFloatingPointIeee754<T>
+        where TFloat : unmanaged, INumber<TFloat>, IBinaryFloatingPointIeee754<TFloat>
     {
         // These variable names look cryptic, but they're part of
         // the Scaled Conjugate Gradient method. See the reference
         // implementation:
         //    https://github.com/libjxl/libjxl/blob/main/lib/jxl/enc_optimize.h#L81-L188
         int n = w0.length;
-        T rsqThreshold = gradientNormalThreshold * gradientNormalThreshold;
+        TFloat rsqThreshold = gradientNormalThreshold * gradientNormalThreshold;
 
-        T sigma0 = T.CreateSaturating(0.0001);
-        T lMin = T.CreateSaturating(1.0e-15);
-        T lMax = T.CreateSaturating(1.0e15);
+        TFloat sigma0 = TFloat.CreateSaturating(0.0001);
+        TFloat lMin = TFloat.CreateSaturating(1.0e-15);
+        TFloat lMax = TFloat.CreateSaturating(1.0e15);
 
-        JxlOptimizeArray<T> w = w0;
+        JxlOptimizeArray<TFloat> w = w0;
 
-        JxlOptimizeArray<T> wp = factory.CreateArray();
-        JxlOptimizeArray<T> r = factory.CreateArray();
-        JxlOptimizeArray<T> rt = factory.CreateArray();
-        JxlOptimizeArray<T> e = factory.CreateArray();
-        JxlOptimizeArray<T> p = factory.CreateArray();
+        JxlOptimizeArray<TFloat> wp = factory.CreateArray();
+        JxlOptimizeArray<TFloat> r = factory.CreateArray();
+        JxlOptimizeArray<TFloat> rt = factory.CreateArray();
+        JxlOptimizeArray<TFloat> e = factory.CreateArray();
+        JxlOptimizeArray<TFloat> p = factory.CreateArray();
 
-        T psq = default;
-        T fp;
-        T D = default;
-        T d;
-        T m = default;
-        T a;
-        T b;
-        T s;
-        T t = default;
+        TFloat psq = default;
+        TFloat fp;
+        TFloat D = default;
+        TFloat d;
+        TFloat m = default;
+        TFloat a;
+        TFloat b;
+        TFloat s;
+        TFloat t = default;
 
-        T fw = function(w, ref r);
-        T rsq = r.DotProduct(r);
+        TFloat fw = function(w, ref r);
+        TFloat rsq = r.DotProduct(r);
         e = r;
         p = r;
 
-        T l = T.CreateSaturating(1.0);
+        TFloat l = TFloat.CreateSaturating(1.0);
         bool success = true;
         long nSuccess = 0;
         long k = 0;
@@ -112,20 +121,20 @@ internal struct JxlOptimizeArray<T> : IDisposable
             {
                 m = -p.DotProduct(r);
 
-                if (m >= T.Zero)
+                if (m >= TFloat.Zero)
                 {
                     p = r;
                     m = -p.DotProduct(r);
                 }
 
                 psq = p.DotProduct(p);
-                s = sigma0 / T.Sqrt(psq);
+                s = sigma0 / TFloat.Sqrt(psq);
                 _ = function(w + (s * p), ref rt);
                 t = p.DotProduct(r - rt) / s;
             }
 
             d = t + (l * psq);
-            if (d <= T.Zero)
+            if (d <= TFloat.Zero)
             {
                 d = l * psq;
                 l -= t / psq;
@@ -135,8 +144,8 @@ internal struct JxlOptimizeArray<T> : IDisposable
             wp = w + (a * p);
             fp = function(wp, ref rt);
 
-            D = T.CreateSaturating(2.0) * (fp - fw) / (a * m);
-            if (D >= T.Zero)
+            D = TFloat.CreateSaturating(2.0) * (fp - fw) / (a * m);
+            if (D >= TFloat.Zero)
             {
                 success = true;
                 nSuccess++;
@@ -160,19 +169,19 @@ internal struct JxlOptimizeArray<T> : IDisposable
                 }
             }
 
-            if (D < T.CreateSaturating(0.25))
+            if (D < TFloat.CreateSaturating(0.25))
             {
-                l = T.Min(T.CreateSaturating(4) * l, lMax);
+                l = TFloat.Min(TFloat.CreateSaturating(4) * l, lMax);
             }
-            else if (D > T.CreateSaturating(0.75))
+            else if (D > TFloat.CreateSaturating(0.75))
             {
-                l = T.Max(T.CreateSaturating(0.25) * l, lMax);
+                l = TFloat.Max(TFloat.CreateSaturating(0.25) * l, lMax);
             }
 
             if ((nSuccess % n) == 0)
             {
                 p = r;
-                l = T.CreateSaturating(1.0);
+                l = TFloat.CreateSaturating(1.0);
             }
             else if (success)
             {

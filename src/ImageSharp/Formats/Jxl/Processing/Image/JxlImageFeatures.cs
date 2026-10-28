@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 

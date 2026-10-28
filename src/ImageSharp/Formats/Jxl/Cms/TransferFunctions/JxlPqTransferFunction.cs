@@ -2,13 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms.TransferFunctions;
 
 /// <summary>
 /// Perceptual Quantization transfer function.
 /// </summary>
-internal struct JxlPqTransferFunction(float displayIntensityTarget = DefaultIntensityTarget)
+internal struct JxlPqTransferFunction(float displayIntensityTarget = JxlMath.DefaultIntensityTarget)
 {
     private const double M1 = 2610.0 / 16384;
     private const double M2 = (2523.0 / 4096) * 128;

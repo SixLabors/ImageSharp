@@ -63,7 +63,7 @@ internal class JxlPlaneBase : IDisposable
 #if DEBUG
         this.bytes?.Memory ?? throw new InvalidOperationException("Bytes are missing");
 #else
-        return this.bytes!.Memory;
+        this.bytes!.Memory;
 #endif
 
     /// <summary>

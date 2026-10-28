@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;

@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
-using SixLabors.ImageSharp.Formats.Jxl.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 

@@ -126,7 +126,7 @@ internal static class JxlGroupDecoder
 
     private static bool DecodeGroupCore(
         JxlFrameHeader frameHeader,
-        JxlGetBlock getBlock,
+        IJxlGetBlock getBlock,
         JxlGroupDecoderCache groupDecCache,
         JxlPassesDecoderState decState,
         int thread,

@@ -60,14 +60,6 @@ jobs:
 
   Build:
     needs: WarmLFS
-    env:
-      # Capture crashes in xUnit's child process, which can terminate before VSTest records a stack trace.
-      # The runner's temporary directory already exists. Mini dumps omit the managed heap.
-      DOTNET_DbgEnableMiniDump: '1'
-      DOTNET_DbgMiniDumpType: '1'
-      DOTNET_DbgMiniDumpName: ${{ runner.temp }}/imagesharp-%e-%p.dmp
-      DOTNET_EnableCrashReport: '1'
-
     strategy:
       matrix:
         options:
@@ -208,6 +200,11 @@ jobs:
         env:
           SIXLABORS_TESTING: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+          # Capture child-process crashes before VSTest can record a stack trace. Mini dumps omit the managed heap.
+          DOTNET_DbgEnableMiniDump: '1'
+          DOTNET_DbgMiniDumpType: '1'
+          DOTNET_DbgMiniDumpName: ${{ runner.temp }}/imagesharp-%e-%p.dmp
+          DOTNET_EnableCrashReport: '1'
 
       - name: DotNet Test Preview
         if: ${{ matrix.options.sdk-preview == true }}
@@ -216,6 +213,11 @@ jobs:
         env:
           SIXLABORS_TESTING_PREVIEW: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+          # Capture child-process crashes before VSTest can record a stack trace. Mini dumps omit the managed heap.
+          DOTNET_DbgEnableMiniDump: '1'
+          DOTNET_DbgMiniDumpType: '1'
+          DOTNET_DbgMiniDumpName: ${{ runner.temp }}/imagesharp-%e-%p.dmp
+          DOTNET_EnableCrashReport: '1'
 
       - name: Export Failed Output
         uses: actions/upload-artifact@v7

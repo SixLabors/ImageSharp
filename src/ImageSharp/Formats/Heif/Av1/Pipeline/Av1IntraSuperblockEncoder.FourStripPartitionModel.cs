@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -893,7 +894,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Resolves horizontal and vertical four-strip candidates using the configured texture classifier.
@@ -912,11 +913,65 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
         /// <param name="currentMask">The four-strip partitions that are still allowed.</param>
         /// <returns>The four-strip partitions that stay allowed.</returns>
-        private int ClassifyFourStripPartitions(
+        public int ClassifyFourStripPartitions(
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
             ReadOnlySpan<TSample> sourceRed,
             Span<TSample> midpoint,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1PartitionType winner,
+            long bestCost,
+            int sourceVariance,
+            ReadOnlySpan<long> horizontalCosts,
+            ReadOnlySpan<long> verticalCosts,
+            ReadOnlySpan<long> splitNoneCosts,
+            int currentMask)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.ClassifyFourStripPartitions(
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(midpoint),
+                blockOrigin,
+                blockSize,
+                winner,
+                bestCost,
+                sourceVariance,
+                horizontalCosts,
+                verticalCosts,
+                splitNoneCosts,
+                currentMask);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Resolves horizontal and vertical four-strip candidates using the configured texture classifier.
+        /// </summary>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="winner">The partition type of the best candidate so far.</param>
+        /// <param name="bestCost">The best partition cost of the block.</param>
+        /// <param name="sourceVariance">The source variance of the block.</param>
+        /// <param name="horizontalCosts">The costs of the two horizontal halves.</param>
+        /// <param name="verticalCosts">The costs of the two vertical halves.</param>
+        /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
+        /// <param name="currentMask">The four-strip partitions that are still allowed.</param>
+        /// <returns>The four-strip partitions that stay allowed.</returns>
+        public int ClassifyFourStripPartitions(
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> midpoint,
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PartitionType winner,
@@ -932,7 +987,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return currentMask;
             }
 
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            Av1EncoderSpeedSettings settings = this.state.Picture.Parent.SpeedSettings;
             bool normalized = settings.FourStripPartitionModelLevel < 3;
             Span<float> features = stackalloc float[18];
             features[0] = (int)winner;

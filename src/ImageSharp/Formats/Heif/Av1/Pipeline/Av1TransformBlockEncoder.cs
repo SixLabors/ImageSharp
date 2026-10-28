@@ -45,22 +45,22 @@ internal static partial class Av1TransformBlockEncoder
     /// <param name="sse">The residual energy of leaving the candidate uncoded, measured where its distortion was.</param>
     /// <returns>The normalized distortion in AV1 transform units.</returns>
     public static long EncodeIntraLossyCandidate<TSample, TOperator>(
-        in Av1IntraCandidatePlane<TSample> candidate,
+        in Av1IntraCandidatePlane candidate,
         Av1PredictionMode mode,
         int angleDelta,
         Av1TransformType transformType,
         ref Av1EncoderTransformBlockState state,
         out long sse)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         // The source block and the candidate reconstruction.
         Av1EncoderBlockWorkspace workspace = candidate.Workspace;
-        ReadOnlySpan<TSample> source = candidate.Source;
+        ReadOnlySpan<TSample> source = MemoryMarshal.Cast<byte, TSample>(candidate.Source);
         int sourceStride = candidate.SourceStride;
         Point blockOrigin = candidate.BlockOrigin;
-        Span<TSample> reconstruction = candidate.Reconstruction;
-        Span<TSample> prediction = candidate.FrameBlock;
+        Span<TSample> reconstruction = MemoryMarshal.Cast<byte, TSample>(candidate.Reconstruction);
+        Span<TSample> prediction = MemoryMarshal.Cast<byte, TSample>(candidate.FrameBlock);
         int predictionStride = candidate.FrameStride;
 
         // The transform and the quantizer of the plane.
@@ -93,8 +93,8 @@ internal static partial class Av1TransformBlockEncoder
             sourceStride,
             prediction,
             predictionStride,
-            candidate.Above,
-            candidate.Left,
+            MemoryMarshal.Cast<byte, TSample>(candidate.Above),
+            MemoryMarshal.Cast<byte, TSample>(candidate.Left),
             candidate.HasLeft,
             candidate.HasAbove,
             mode,
@@ -279,7 +279,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1BitDepth bitDepth,
         Av1EncoderTransformBlockState state)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -416,7 +416,7 @@ internal static partial class Av1TransformBlockEncoder
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();

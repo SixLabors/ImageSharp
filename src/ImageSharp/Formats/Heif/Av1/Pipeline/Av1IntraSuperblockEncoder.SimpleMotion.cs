@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -19,7 +20,7 @@ internal static partial class Av1IntraSuperblockEncoder
 {
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Searches the ordinary retained reference and measures its final rounded luma predictor.
@@ -41,7 +42,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="squaredError">The squared error of the selected prediction.</param>
         /// <param name="variance">The variance of the selected prediction error.</param>
         /// <returns>The selected vector.</returns>
-        private Av1MotionVector SearchSimpleMotion(
+        public Av1MotionVector SearchSimpleMotion(
             Span<int> workspaceStorage,
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
@@ -73,21 +74,21 @@ internal static partial class Av1IntraSuperblockEncoder
             int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
             Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
             Size frameSize = new(
-                this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
-                this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+                this.State.Picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                this.State.Picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
             Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
                 new Rectangle(blockOrigin, size), frameSize, Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
 
             Av1MotionVector zero = default;
-            ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-            Av1MotionSearchSettings settings = this.picture.Parent.MotionSearchSettings;
+            ObuFrameHeader frameHeader = this.State.Picture.Parent.FrameHeader;
+            Av1MotionSearchSettings settings = this.State.Picture.Parent.MotionSearchSettings;
             Av1MotionSearchSettings.FullPixelSearchMethod method = settings.GetFullPixelMethod(blockSize);
-            Av1MotionSearchSites sites = this.blockWorkspace.GetMotionSearchSites(workspaceStorage, method, referencePlane.Stride);
-            int step = Math.Min(this.picture.Parent.MotionSearchStepParameter + this.picture.Parent.SpeedSettings.SimpleMotionStepReduction, 9);
+            Av1MotionSearchSites sites = this.State.BlockWorkspace.GetMotionSearchSites(workspaceStorage, method, referencePlane.Stride);
+            int step = Math.Min(this.State.Picture.Parent.MotionSearchStepParameter + this.State.Picture.Parent.SpeedSettings.SimpleMotionStepReduction, 9);
 
             // The search prices vectors with the error per bit that the last block set. The partition search does not set its own value.
-            int errorPerBitRateMultiplier = this.blockWorkspace.ErrorPerBitRateMultiplier;
+            int errorPerBitRateMultiplier = this.State.BlockWorkspace.ErrorPerBitRateMultiplier;
             Av1MotionSearchBase.FullPixelSearch<TSample, TOperator> fullSearch = new(
                 source,
                 sourcePlane.Stride,
@@ -98,8 +99,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.ApplySharpnessMargins(zero.GetFullPixelSearchBounds(frameBounds), blockOrigin, size, 1),
                 zero,
                 motionVectorCosts,
-                this.bitDepth,
-                Av1RateDistortion.GetMotionSearchSadPerBit(this.blockQIndex, this.bitDepth),
+                this.State.BitDepth,
+                Av1RateDistortion.GetMotionSearchSadPerBit(this.State.BlockQIndex, this.State.BitDepth),
                 errorPerBitRateMultiplier,
                 [],
                 []);
@@ -127,7 +128,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // For a reference of another size, the fractional search and the final prediction read the original reference with its
                 // scale factors, not the resized copy.
                 Av1MotionSearchBase.ScaledReference<TSample> scaledReference =
-                    this.GetScaledSearchReference(this.simpleMotionReference, blockOrigin, filterRows);
+                    this.GetScaledSearchReference(this.State.SimpleMotionReference, blockOrigin, filterRows);
 
                 Av1MotionSearchBase.FractionalSearch<TSample, TOperator> fractionalSearch = new(
                     source,
@@ -140,7 +141,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.ApplySharpnessMargins(zero.GetSubpixelSearchBounds(frameBounds), blockOrigin, size, Av1MotionVector.SubpixelScale),
                     zero,
                     motionVectorCosts,
-                    this.bitDepth,
+                    this.State.BitDepth,
                     errorPerBitRateMultiplier,
                     [],
                     [],
@@ -164,7 +165,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // with the regular filter before it measures the model features.
                 if (scaledReference.IsScaled)
                 {
-                    scaledReference.Predict<TOperator>(vector, motionSearchPrediction, size, this.bitDepth.GetBitCount());
+                    scaledReference.Predict<TOperator>(vector, motionSearchPrediction, size, this.State.BitDepth.GetBitCount());
                 }
                 else
                 {
@@ -181,7 +182,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1InterpolationFilter.Regular,
                         (vector.Column & 7) << 1,
                         (vector.Row & 7) << 1,
-                        this.bitDepth.GetBitCount());
+                        this.State.BitDepth.GetBitCount());
                 }
 
                 // The prediction also goes into the reconstructed frame at this block. Later reads of the frame at this position see it.
@@ -191,7 +192,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 TOperator.GetMoments(source, sourcePlane.Stride, motionSearchPrediction, size.Width, size.Width, size.Height, out int sum, out long squares);
 
-                int shift = this.bitDepth.GetBitCount() - 8;
+                int shift = this.State.BitDepth.GetBitCount() - 8;
                 sum = (sum + ((1 << shift) >> 1)) >> shift;
                 squares = (squares + ((1L << (2 * shift)) >> 1)) >> (2 * shift);
                 squaredError = (int)squares;
@@ -234,7 +235,176 @@ internal static partial class Av1IntraSuperblockEncoder
             int nodeIndex,
             bool includeRectangles)
         {
-            Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.CollectSimpleMotionFeatures(
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                includeRectangles);
+        }
+
+        /// <summary>
+        /// Packs log-scaled motion errors, quantization, and spatial-neighbor geometry for the partition models.
+        /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="includeRectangles">Whether the half-block features are packed too.</param>
+        /// <param name="features">The feature destination.</param>
+        private void GetSimpleMotionFeatures(
+            Span<TSample> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            bool includeRectangles,
+            Span<float> features)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.GetSimpleMotionFeatures(
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                modeInfoGrid,
+                modeInfoAllocation,
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                includeRectangles,
+                features);
+        }
+
+        /// <summary>
+        /// Publishes a square's measured features and propagates its full-sample starting vector to its children.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        private void MeasureSimpleMotionNode(
+            Span<int> workspaceStorage,
+            ReadOnlySpan<TSample> sourceLuma,
+            ReadOnlySpan<TSample> sourceBlue,
+            ReadOnlySpan<TSample> sourceRed,
+            Span<TSample> reconstructionLuma,
+            Span<TSample> reconstructionBlue,
+            Span<TSample> reconstructionRed,
+            Span<TSample> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.MeasureSimpleMotionNode(
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                blockOrigin,
+                blockSize,
+                nodeIndex);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Populates whole, quarter, and half-block features without repeating completed searches.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="includeRectangles">Whether the half-block searches are measured too.</param>
+        public void CollectSimpleMotionFeatures(
+            Span<int> workspaceStorage,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
+            Span<byte> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            bool includeRectangles)
+        {
+            Span<Av1SimpleMotionData> nodes = this.state.BlockWorkspace.GetSimpleMotionData(workspaceStorage);
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             if (!node.WholeBlockValid)
             {
@@ -333,19 +503,19 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="nodeIndex">The simple motion node of the block.</param>
         /// <param name="includeRectangles">Whether the half-block features are packed too.</param>
         /// <param name="features">The feature destination.</param>
-        private void GetSimpleMotionFeatures(
-            Span<TSample> motionSearchPrediction,
+        public void GetSimpleMotionFeatures(
+            Span<byte> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             ReadOnlySpan<int> modeInfoGrid,
             Span<Av1MacroBlockModeInfo> modeInfoAllocation,
             Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             Av1BlockSize blockSize,
@@ -369,7 +539,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 nodeIndex,
                 includeRectangles);
 
-            Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
+            Span<Av1SimpleMotionData> nodes = this.state.BlockWorkspace.GetSimpleMotionData(workspaceStorage);
             features[0] = float.LogP1(nodes[nodeIndex].SquaredError);
             features[1] = float.LogP1(nodes[nodeIndex].Variance);
             int index = 2;
@@ -389,7 +559,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+            int dcStep = Av1QuantizationLookup.GetDcQuant(this.state.BlockQIndex, 0, this.state.BitDepth) >> (this.state.BitDepth.GetBitCount() - 8);
             features[index++] = float.LogP1((dcStep * dcStep) / 256F);
             Point position = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             Av1TileWriter.SetModeInfoRowAndColumn(
@@ -397,9 +567,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 macroBlock.Tile,
                 position,
                 blockSize,
-                this.picture.Parent.Common.ModeInfoStride,
-                this.picture.Parent.Common.ModeInfoRowCount,
-                this.picture.Parent.Common.ModeInfoColumnCount);
+                this.state.Picture.Parent.Common.ModeInfoStride,
+                this.state.Picture.Parent.Common.ModeInfoRowCount,
+                this.state.Picture.Parent.Common.ModeInfoColumnCount);
 
             Av1BlockSize above = macroBlock.IsUpAvailable
                 ? macroBlock.GetRelativeModeInfo(modeInfoGrid, modeInfoAllocation, -macroBlock.ModeInfoStride).Block.BlockSize
@@ -433,22 +603,22 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The luma block origin.</param>
         /// <param name="blockSize">The block size.</param>
         /// <param name="nodeIndex">The simple motion node of the block.</param>
-        private void MeasureSimpleMotionNode(
+        public void MeasureSimpleMotionNode(
             Span<int> workspaceStorage,
-            ReadOnlySpan<TSample> sourceLuma,
-            ReadOnlySpan<TSample> sourceBlue,
-            ReadOnlySpan<TSample> sourceRed,
-            Span<TSample> reconstructionLuma,
-            Span<TSample> reconstructionBlue,
-            Span<TSample> reconstructionRed,
-            Span<TSample> motionSearchPrediction,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
+            Span<byte> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             Point blockOrigin,
             Av1BlockSize blockSize,
             int nodeIndex)
         {
-            Span<Av1SimpleMotionData> nodes = this.blockWorkspace.GetSimpleMotionData(workspaceStorage);
+            Span<Av1SimpleMotionData> nodes = this.state.BlockWorkspace.GetSimpleMotionData(workspaceStorage);
             ref Av1SimpleMotionData node = ref nodes[nodeIndex];
             Av1MotionVector vector = this.SearchSimpleMotion(
                 workspaceStorage,

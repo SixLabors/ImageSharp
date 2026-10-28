@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
@@ -52,6 +53,25 @@ internal abstract partial class IccConverterBase
     /// <param name="pcs">The connection's PCS encoding and adjustment rules.</param>
     /// <returns>The closed converter for both profile operators.</returns>
     private static IIccColorConverter Connect<TSource>(TSource source, IIccColorConverter target, PcsOperator pcs)
+        where TSource : struct, IIccColorConverterOperator
+    {
+        // JIT retains the closed source type and its existing inline arithmetic. Native AOT binds all sources
+        // through one operator type, so target traversal compiles once per target instead of once per pair.
+        // RuntimeFeature is constant for each compiler. This selection adds no branch to component traversal.
+        return RuntimeFeature.IsDynamicCodeCompiled
+            ? CreateConnection(source, target, pcs)
+            : CreateConnection(new ProfileTransformOperator(new ProfileTransform<TSource>(source)), target, pcs);
+    }
+
+    /// <summary>
+    /// Connects the selected source binding to a target operator through the existing SIMD pipeline.
+    /// </summary>
+    /// <typeparam name="TSource">The source arithmetic or shared source binding.</typeparam>
+    /// <param name="source">The configured source stage.</param>
+    /// <param name="target">The target profile converter.</param>
+    /// <param name="pcs">The connection's PCS encoding and adjustment rules.</param>
+    /// <returns>The converter with its source binding and target operator selected.</returns>
+    private static IIccColorConverter CreateConnection<TSource>(TSource source, IIccColorConverter target, PcsOperator pcs)
         where TSource : struct, IIccColorConverterOperator
         => target switch
         {

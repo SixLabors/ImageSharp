@@ -55,7 +55,7 @@ internal sealed class Av1Distribution
     /// </summary>
     /// <param name="p0">The cumulative threshold following symbol zero.</param>
     public Av1Distribution(uint p0)
-        : this([p0, 0], 1)
+        : this([p0])
     {
     }
 
@@ -65,7 +65,7 @@ internal sealed class Av1Distribution
     /// <param name="p0">The cumulative threshold following symbol zero.</param>
     /// <param name="p1">The cumulative threshold following symbol one.</param>
     public Av1Distribution(uint p0, uint p1)
-        : this([p0, p1, 0], 1)
+        : this([p0, p1])
     {
     }
 
@@ -76,7 +76,7 @@ internal sealed class Av1Distribution
     /// <param name="p1">The cumulative threshold following symbol one.</param>
     /// <param name="p2">The cumulative threshold following symbol two.</param>
     public Av1Distribution(uint p0, uint p1, uint p2)
-        : this([p0, p1, p2, 0], 2)
+        : this([p0, p1, p2])
     {
     }
 
@@ -88,7 +88,7 @@ internal sealed class Av1Distribution
     /// <param name="p2">The cumulative threshold following symbol two.</param>
     /// <param name="p3">The cumulative threshold following symbol three.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3)
-        : this([p0, p1, p2, p3, 0], 2)
+        : this([p0, p1, p2, p3])
     {
     }
 
@@ -101,7 +101,7 @@ internal sealed class Av1Distribution
     /// <param name="p3">The cumulative threshold following symbol three.</param>
     /// <param name="p4">The cumulative threshold following symbol four.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4)
-        : this([p0, p1, p2, p3, p4, 0], 2)
+        : this([p0, p1, p2, p3, p4])
     {
     }
 
@@ -115,7 +115,7 @@ internal sealed class Av1Distribution
     /// <param name="p4">The cumulative threshold following symbol four.</param>
     /// <param name="p5">The cumulative threshold following symbol five.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5)
-        : this([p0, p1, p2, p3, p4, p5, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5])
     {
     }
 
@@ -130,7 +130,7 @@ internal sealed class Av1Distribution
     /// <param name="p5">The cumulative threshold following symbol five.</param>
     /// <param name="p6">The cumulative threshold following symbol six.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6)
-        : this([p0, p1, p2, p3, p4, p5, p6, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6])
     {
     }
 
@@ -146,7 +146,7 @@ internal sealed class Av1Distribution
     /// <param name="p6">The cumulative threshold following symbol six.</param>
     /// <param name="p7">The cumulative threshold following symbol seven.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7])
     {
     }
 
@@ -163,7 +163,7 @@ internal sealed class Av1Distribution
     /// <param name="p7">The cumulative threshold following symbol seven.</param>
     /// <param name="p8">The cumulative threshold following symbol eight.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8])
     {
     }
 
@@ -181,7 +181,7 @@ internal sealed class Av1Distribution
     /// <param name="p8">The cumulative threshold following symbol eight.</param>
     /// <param name="p9">The cumulative threshold following symbol nine.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8, uint p9)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9])
     {
     }
 
@@ -200,7 +200,7 @@ internal sealed class Av1Distribution
     /// <param name="p9">The cumulative threshold following symbol nine.</param>
     /// <param name="p10">The cumulative threshold following symbol ten.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8, uint p9, uint p10)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10])
     {
     }
 
@@ -220,7 +220,7 @@ internal sealed class Av1Distribution
     /// <param name="p10">The cumulative threshold following symbol ten.</param>
     /// <param name="p11">The cumulative threshold following symbol eleven.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8, uint p9, uint p10, uint p11)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11])
     {
     }
 
@@ -241,7 +241,7 @@ internal sealed class Av1Distribution
     /// <param name="p11">The cumulative threshold following symbol eleven.</param>
     /// <param name="p12">The cumulative threshold following symbol twelve.</param>
     public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8, uint p9, uint p10, uint p11, uint p12)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12])
     {
     }
 
@@ -279,28 +279,31 @@ internal sealed class Av1Distribution
         uint p12,
         uint p13,
         uint p14)
-        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, 0], 2)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14])
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1Distribution"/> class from forward cumulative thresholds.
     /// </summary>
-    /// <param name="props">The forward Q15 thresholds followed by a zero sentinel slot.</param>
-    /// <param name="speed">The symbol-count contribution to the update rate.</param>
-    private Av1Distribution(ReadOnlySpan<uint> props, int speed)
+    /// <param name="thresholds">The forward Q15 thresholds between symbols. The final symbol has no threshold.</param>
+    public Av1Distribution(ReadOnlySpan<uint> thresholds)
     {
         Span<ushort> probabilities = this.probabilities;
 
         // Q15 thresholds range from zero through 32768, including zero-mass intervals, and fit in unsigned 16-bit storage.
-        // The loop converts the forward defaults to inverse thresholds before it narrows them. The last zero sentinel is already zero.
-        for (int i = 0; i < props.Length - 1; i++)
+        // The loop converts the forward defaults to inverse thresholds before it narrows them. The final symbol's zero
+        // sentinel comes from the zero-initialized storage. Constant spans can refer directly to read-only table data.
+        for (int i = 0; i < thresholds.Length; i++)
         {
-            probabilities[i] = (ushort)(ProbabilityTop - props[i]);
+            probabilities[i] = (ushort)(ProbabilityTop - thresholds[i]);
         }
 
-        this.NumberOfSymbols = props.Length;
-        this.speed = speed;
+        this.NumberOfSymbols = thresholds.Length + 1;
+
+        // Binary and three-symbol alphabets use the smaller adaptation term. Larger alphabets use the same term as
+        // the scalar constructors; table-backed and explicitly supplied thresholds therefore adapt identically.
+        this.speed = this.NumberOfSymbols < 4 ? 1 : 2;
     }
 
     /// <summary>

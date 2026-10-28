@@ -72,7 +72,7 @@ public class Av1EncoderFrameTests
         bool extensionAvailable,
         bool limitedExtent)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
     {
         int width = transpose ? 16 : 4;
         int height = transpose ? 4 : 16;

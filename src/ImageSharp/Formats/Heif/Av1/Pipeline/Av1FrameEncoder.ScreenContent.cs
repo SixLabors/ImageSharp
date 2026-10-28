@@ -83,7 +83,7 @@ internal static partial class Av1FrameEncoder
             bool lossless,
             bool isScreenContent)
             where TSample : unmanaged
-            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         {
             ObuFrameHeader frameHeader = this.FrameHeader;
             this.PictureBuffer.Picture.Parent.ScreenContentToolsBeforeTrial = null;
@@ -208,7 +208,7 @@ internal static partial class Av1FrameEncoder
         /// <returns>The PSNR in decibels, at most 100.</returns>
         private static double GetFramePsnr<TSample, TOperator>(Av1EncoderFrame<TSample> source, Av1EncoderFrame<TSample> reconstruction)
             where TSample : unmanaged
-            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         {
             // A monochrome frame counts two neutral chroma planes of 4:2:0 size. Their error is zero, but their samples add to the sample count.
             int subsamplingX = source.IsMonochrome ? 1 : source.ChromaSubsamplingX;
@@ -251,7 +251,7 @@ internal static partial class Av1FrameEncoder
             int width,
             int height)
             where TSample : unmanaged
-            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         {
             Av1PlaneRegion<TSample> sourcePlane = source.View.GetPlane(plane);
             Av1PlaneRegion<TSample> reconstructionPlane = reconstruction.View.GetPlane(plane);

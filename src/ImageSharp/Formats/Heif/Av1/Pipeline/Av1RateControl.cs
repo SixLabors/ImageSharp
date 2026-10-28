@@ -887,7 +887,7 @@ internal sealed class Av1RateControl
         Av1PlaneRegion<TSample> lastReconstruction)
         where TSample : unmanaged
         where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
-        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlock>
     {
         Debug.Assert(this.realtime, "Only real-time coding picks through this entry.");
 
@@ -1237,7 +1237,7 @@ internal sealed class Av1RateControl
     private void MeasureReconstructionError<TSample, TMotion, TBlock>(Av1PlaneRegion<TSample> source, Av1PlaneRegion<TSample> lastReconstruction)
         where TSample : unmanaged
         where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
-        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlock>
     {
         int modeInfoColumns = Av1Math.AlignPowerOf2(this.width, 3) >> Av1Constants.ModeInfoSizeLog2;
         int modeInfoRows = Av1Math.AlignPowerOf2(this.height, 3) >> Av1Constants.ModeInfoSizeLog2;

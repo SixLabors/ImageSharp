@@ -18,6 +18,14 @@ internal static partial class Av1InverseTransformer
     internal readonly struct HighBitDepthOutputOperator : IAv1InverseTransformOutputOperator<short>
     {
         /// <inheritdoc/>
+        public static Av1Inverse2dTransformer.ReconstructionOutput CreateOutput(
+            ReadOnlySpan<short> prediction,
+            int predictionStride,
+            Span<short> destination,
+            int destinationStride)
+            => new(prediction, predictionStride, destination, destinationStride);
+
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static short Add(short prediction, int residual, int bitDepth)
             => (short)Math.Clamp(prediction + residual, 0, (1 << bitDepth) - 1);

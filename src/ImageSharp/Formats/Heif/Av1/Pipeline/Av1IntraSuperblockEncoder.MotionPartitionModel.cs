@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -1818,7 +1819,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Uses whole and quarter-block motion errors to restrict square and rectangular partition searches.
@@ -1846,7 +1847,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="allowRectangles">Whether the rectangular partitions are searched.</param>
         /// <param name="pruneHorizontal">Whether the horizontal partitions are dropped.</param>
         /// <param name="pruneVertical">Whether the vertical partitions are dropped.</param>
-        private void PrunePartitionsBySimpleMotion(
+        public void PrunePartitionsBySimpleMotion(
             Span<TSample> motionSearchPrediction,
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
@@ -1871,15 +1872,98 @@ internal static partial class Av1IntraSuperblockEncoder
             ref bool pruneHorizontal,
             ref bool pruneVertical)
         {
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.PrunePartitionsBySimpleMotion(
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                modeInfoGrid,
+                modeInfoAllocation,
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                macroBlock,
+                blockOrigin,
+                blockSize,
+                nodeIndex,
+                splitLevel,
+                aggressiveness,
+                ref allowNone,
+                ref allowSplit,
+                ref allowRectangles,
+                ref pruneHorizontal,
+                ref pruneVertical);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Uses whole and quarter-block motion errors to restrict square and rectangular partition searches.
+        /// </summary>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="modeInfoGrid">The mode-information allocation-index grid of the picture.</param>
+        /// <param name="modeInfoAllocation">The mode-information values of the picture.</param>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="macroBlock">The neighbor availability of the block.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="nodeIndex">The simple motion node of the block.</param>
+        /// <param name="splitLevel">The split pruning level, or zero to keep the split.</param>
+        /// <param name="aggressiveness">The pruning aggressiveness of the speed setting.</param>
+        /// <param name="allowNone">Whether the unsplit block is searched.</param>
+        /// <param name="allowSplit">Whether the square split is searched.</param>
+        /// <param name="allowRectangles">Whether the rectangular partitions are searched.</param>
+        /// <param name="pruneHorizontal">Whether the horizontal partitions are dropped.</param>
+        /// <param name="pruneVertical">Whether the vertical partitions are dropped.</param>
+        public void PrunePartitionsBySimpleMotion(
+            Span<byte> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            ReadOnlySpan<int> modeInfoGrid,
+            Span<Av1MacroBlockModeInfo> modeInfoAllocation,
+            Span<int> workspaceStorage,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            int splitLevel,
+            int aggressiveness,
+            ref bool allowNone,
+            ref bool allowSplit,
+            ref bool allowRectangles,
+            ref bool pruneHorizontal,
+            ref bool pruneVertical)
+        {
+            Av1EncoderSpeedSettings settings = this.state.Picture.Parent.SpeedSettings;
             int sizeIndex = ((int)Av1BlockSize.Block128x128 - (int)blockSize) / 3;
             int resolution = settings.FourStripPartitionResolutionIndex;
             int splitAggressiveness = aggressiveness == 6 ? 3 : aggressiveness;
             InlineArray32<float> featureStorage = default;
             bool wholeBlock = blockOrigin.X + blockSize.GetWidth() <=
-                (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) &&
+                (this.state.Picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) &&
                 blockOrigin.Y + blockSize.GetHeight() <=
-                (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+                (this.state.Picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
 
             if (splitLevel != 0 && allowSplit && wholeBlock)
             {
@@ -1996,7 +2080,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 ((this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Horizontal) && !pruneHorizontal) ||
                  (this.IsPartitionCandidateAllowed(blockOrigin, blockSize, Av1PartitionType.Vertical) && !pruneVertical)))
             {
-                int rectangleAggressiveness = aggressiveness == 6 ? this.blockQIndex <= 90 ? 4 : 3 : aggressiveness;
+                int rectangleAggressiveness = aggressiveness == 6 ? this.state.BlockQIndex <= 90 ? 4 : 3 : aggressiveness;
                 float threshold = MotionPruneRectThresh[(rectangleAggressiveness * 15) + (resolution * 5) + sizeIndex];
                 if (threshold == 0F)
                 {

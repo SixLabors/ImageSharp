@@ -15,7 +15,7 @@ internal static partial class Av1InverseTransformer
     /// <summary>
     /// The cosine bit count of every inverse transform stage.
     /// </summary>
-    private const int InverseCosBit = 12;
+    private const int InverseCosBit = Av1Transform2dFlipConfiguration.InverseCosBit;
 
     /// <summary>
     /// Adds the inverse transform of an eight-by-eight eight-bit block to its prediction with every stage in registers.

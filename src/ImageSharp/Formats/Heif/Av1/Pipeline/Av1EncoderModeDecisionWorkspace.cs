@@ -208,6 +208,13 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
                 TransientStorageOffset + ChromaFromLumaBlueDistortionOffset +
                     (planeIndex * ChromaFromLumaDistortionStorageLength),
                 ChromaFromLumaDistortionStorageLength));
+
+    /// <summary>Reuses the same aligned storage with the requested native sample view.</summary>
+    /// <typeparam name="TSampleTo">The sample storage selected by the caller.</typeparam>
+    /// <returns>A view over the same buffers. No samples are copied or converted.</returns>
+    public Av1EncoderModeDecisionWorkspace<TSampleTo> Cast<TSampleTo>()
+        where TSampleTo : unmanaged
+        => new(this.storage);
 }
 
 /// <summary>

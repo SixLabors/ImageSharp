@@ -47,7 +47,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="referenceFrame">The reference type.</param>
         /// <returns><see langword="true"/> when the reference has another size.</returns>
         private readonly bool IsResizedReference(Av1ReferenceFrameType referenceFrame)
-            => referenceFrame > Av1ReferenceFrameType.Intra && (this.scaledReferenceMask & (1 << (int)referenceFrame)) != 0;
+            => referenceFrame > Av1ReferenceFrameType.Intra && (this.State.ScaledReferenceMask & (1 << (int)referenceFrame)) != 0;
 
         /// <summary>
         /// Gets a value indicating whether the prediction from a reference scales. This is true when the reference has another size than
@@ -55,8 +55,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// </summary>
         /// <param name="referenceFrame">The reference type.</param>
         /// <returns><see langword="true"/> when the prediction from the reference scales.</returns>
-        private readonly bool IsScaledReference(Av1ReferenceFrameType referenceFrame)
-            => !this.predictsFromSearchReferences && this.IsResizedReference(referenceFrame);
+        public readonly bool IsScaledReference(Av1ReferenceFrameType referenceFrame)
+            => !this.State.PredictsFromSearchReferences && this.IsResizedReference(referenceFrame);
 
         /// <summary>
         /// Returns the reference from which a rate-distortion motion search predicts its fractional candidates. For a reference whose
@@ -79,7 +79,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
             Av1PlaneRegion<TSample> plane = reference.CodedView.GetPlane(Av1Plane.Y);
-            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
+            ObuFrameSize frameSize = this.State.Picture.Parent.FrameHeader.FrameSize;
             return new Av1MotionSearchBase.ScaledReference<TSample>(
                 plane.Samples,
                 plane.Stride,
@@ -105,7 +105,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
-            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
+            ObuFrameSize frameSize = this.State.Picture.Parent.FrameHeader.FrameSize;
             Av1ReferenceScale scale = new(reference.Width, reference.Height, frameSize.FrameWidth, frameSize.FrameHeight);
 
             // The scale functions expect sixteenth samples, but this offset passes whole samples. The shift drops the extra precision of
@@ -148,7 +148,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> filterRows)
         {
             Av1EncoderFrame<TSample> reference = this.references.Span[(int)referenceFrame];
-            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
+            ObuFrameSize frameSize = this.State.Picture.Parent.FrameHeader.FrameSize;
             Av1ReferenceScale scale = new(reference.Width, reference.Height, frameSize.FrameWidth, frameSize.FrameHeight);
 
             // The position is in sixteenth samples of the current plane. A luma vector in eighth samples becomes sixteenth samples of a
@@ -184,7 +184,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 position.Y & Av1ReferenceScale.SubpixelMask,
                 scale.VerticalStep,
                 filterRows,
-                this.bitDepth.GetBitCount());
+                this.State.BitDepth.GetBitCount());
         }
 
         /// <summary>

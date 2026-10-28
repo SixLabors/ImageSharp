@@ -14,14 +14,14 @@ internal ref struct Av1Transform2dFlipConfiguration
     public const int MaxStageNumber = 12;
 
     /// <summary>
+    /// The fixed-point cosine precision used by every inverse transform.
+    /// </summary>
+    public const int InverseCosBit = 12;
+
+    /// <summary>
     /// The base-two logarithm of the smallest supported transform dimension.
     /// </summary>
     private const int SmallestTransformSizeLog2 = 2;
-
-    /// <summary>
-    /// The fixed-point cosine precision used by every inverse transform.
-    /// </summary>
-    private const int InverseCosBit = 12;
 
     /// <summary>
     /// The fixed-point shifts applied between successive stages of the configured transform pipeline.

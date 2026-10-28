@@ -697,7 +697,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Evaluates the unsplit block's rate, error, variance, and quantizer against its breakout model.
@@ -705,9 +705,26 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockSize">The square block size.</param>
         /// <param name="statistics">The rate and distortion of the unsplit block.</param>
         /// <returns><see langword="true"/> when the split and rectangular searches stop.</returns>
-        private bool ShouldStopPartitionSearch(Av1BlockSize blockSize, Av1RateDistortionStatistics statistics)
+        public bool ShouldStopPartitionSearch(Av1BlockSize blockSize, Av1RateDistortionStatistics statistics)
         {
-            Av1EncoderSpeedSettings settings = this.picture.Parent.SpeedSettings;
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.ShouldStopPartitionSearch(blockSize, statistics);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Evaluates the unsplit block's rate, error, variance, and quantizer against its breakout model.
+        /// </summary>
+        /// <param name="blockSize">The square block size.</param>
+        /// <param name="statistics">The rate and distortion of the unsplit block.</param>
+        /// <returns><see langword="true"/> when the split and rectangular searches stop.</returns>
+        public bool ShouldStopPartitionSearch(Av1BlockSize blockSize, Av1RateDistortionStatistics statistics)
+        {
+            Av1EncoderSpeedSettings settings = this.state.Picture.Parent.SpeedSettings;
             if (!settings.EnablePartitionBreakoutModel || blockSize <= Av1BlockSize.Block4x4 ||
                 blockSize > settings.SquareOnlyPartitionThreshold)
             {
@@ -720,20 +737,20 @@ internal static partial class Av1IntraSuperblockEncoder
                 return false;
             }
 
-            int level = this.bitDepth == Av1BitDepth.EightBit ? 3 : settings.PartitionBreakoutHighBitDepthLevel;
+            int level = this.state.BitDepth == Av1BitDepth.EightBit ? 3 : settings.PartitionBreakoutHighBitDepthLevel;
             threshold *= level == 1 ? 1.15F : level == 2 ? 1.05F : 1F;
             bool normalized = settings.UseHighResolutionPartitionBreakout;
             int sampleCountLog2 = BitOperations.Log2((uint)GetBlockArea(blockSize));
             int dcStep = Av1QuantizationLookup.GetDcQuant(
-                this.blockQIndex, this.quantization.DeltaQDc[0], this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+                this.state.BlockQIndex, this.state.Quantization.DeltaQDc[0], this.state.BitDepth) >> (this.state.BitDepth.GetBitCount() - 8);
 
             // Rates use 1/512-bit units and the distortion term carries seven fractional bits.
             // Convert rate to per-sample distortion units, then pair it with per-sample reconstruction error.
             InlineArray4<float> featureStorage = default;
             Span<float> features = featureStorage;
-            features[0] = ((float)this.rateMultiplier / 128F / 512F / (1 << sampleCountLog2)) * statistics.Rate;
+            features[0] = ((float)this.state.RateMultiplier / 128F / 512F / (1 << sampleCountLog2)) * statistics.Rate;
             features[1] = Math.Min(statistics.Distortion, int.MaxValue) >> sampleCountLog2;
-            features[2] = this.interSourceVariance;
+            features[2] = this.state.InterSourceVariance;
             features[3] = (dcStep * dcStep) / 256F;
             ReadOnlySpan<float> weights;
             ReadOnlySpan<float> biases;

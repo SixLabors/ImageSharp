@@ -18,6 +18,20 @@ internal static partial class Av1InverseTransformer
         where TSample : unmanaged
     {
         /// <summary>
+        /// Binds prediction and destination storage for shared inverse-transform traversal.
+        /// </summary>
+        /// <param name="prediction">The predicted samples, which can share storage with the destination.</param>
+        /// <param name="predictionStride">The prediction row stride in native samples.</param>
+        /// <param name="destination">The reconstructed sample storage.</param>
+        /// <param name="destinationStride">The destination row stride in native samples.</param>
+        /// <returns>The borrowed output views. No sample storage is allocated or copied.</returns>
+        public static abstract Av1Inverse2dTransformer.ReconstructionOutput CreateOutput(
+            ReadOnlySpan<TSample> prediction,
+            int predictionStride,
+            Span<TSample> destination,
+            int destinationStride);
+
+        /// <summary>
         /// Adds one residual to a predicted sample and clips the result to the coded bit depth.
         /// </summary>
         /// <param name="prediction">The predicted sample.</param>

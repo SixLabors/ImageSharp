@@ -11,9 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// Holds the values and buffers of one plane that every intra candidate of a block uses. A mode search builds it once before its mode loop.
 /// Then a candidate reads no plane, workspace buffer or frame setting again. Only the mode, the angle and the transform type change between candidates.
 /// </summary>
-/// <typeparam name="TSample">The sample storage type.</typeparam>
-internal readonly ref struct Av1IntraCandidatePlane<TSample>
-    where TSample : unmanaged
+/// <remarks>
+/// Sample spans hold byte views of the original storage. Strides and dimensions remain in native samples.
+/// The typed prediction worker restores its sample views once before it performs arithmetic. No samples are copied or converted.
+/// </remarks>
+internal readonly ref struct Av1IntraCandidatePlane
 {
     /// <summary>
     /// Gets the block workspace, which holds the quantizer matrices and the coding stage.
@@ -63,7 +65,7 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     /// <summary>
     /// Gets the source block, from its top-left sample.
     /// </summary>
-    public ReadOnlySpan<TSample> Source { get; init; }
+    public ReadOnlySpan<byte> Source { get; init; }
 
     /// <summary>
     /// Gets the number of samples between rows of <see cref="Source"/>.
@@ -79,12 +81,12 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     /// Gets the contiguous storage that a candidate reconstructs into when it measures its distortion in pixels.
     /// The frame keeps the prediction of the candidate, so the reconstruction cannot go there.
     /// </summary>
-    public Span<TSample> Reconstruction { get; init; }
+    public Span<byte> Reconstruction { get; init; }
 
     /// <summary>
     /// Gets the frame plane from the block origin. Each candidate writes its prediction here. Its residual and distortion read the prediction from here.
     /// </summary>
-    public Span<TSample> FrameBlock { get; init; }
+    public Span<byte> FrameBlock { get; init; }
 
     /// <summary>
     /// Gets the number of samples between rows of <see cref="FrameBlock"/>.
@@ -94,12 +96,12 @@ internal readonly ref struct Av1IntraCandidatePlane<TSample>
     /// <summary>
     /// Gets the top reference samples, after the shared corner.
     /// </summary>
-    public ReadOnlySpan<TSample> Above { get; init; }
+    public ReadOnlySpan<byte> Above { get; init; }
 
     /// <summary>
     /// Gets the left reference samples, after the shared corner.
     /// </summary>
-    public ReadOnlySpan<TSample> Left { get; init; }
+    public ReadOnlySpan<byte> Left { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the left reference is available.

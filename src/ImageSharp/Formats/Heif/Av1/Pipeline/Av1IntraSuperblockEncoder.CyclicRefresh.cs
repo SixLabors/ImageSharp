@@ -18,7 +18,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// The kind of encode that a block of the estimated inter search represents. The search also codes the block. This value decides
     /// whether the block updates its cyclic refresh segment and whether the frame counts it.
     /// </summary>
-    private enum EstimatedLeafEncode
+    internal enum EstimatedLeafEncode
     {
         /// <summary>
         /// The block is coded for output.
@@ -43,9 +43,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Gets a value indicating whether the current block is in a boosted cyclic refresh segment.
         /// </summary>
         private readonly bool IsCyclicRefreshBoosted =>
-            this.picture.Parent.CyclicRefresh is not null &&
-            this.picture.Parent.FrameHeader.SegmentationParameters.Enabled &&
-            Av1CyclicRefresh.IsBoosted(this.blockSegmentId);
+            this.State.Picture.Parent.CyclicRefresh is not null &&
+            this.State.Picture.Parent.FrameHeader.SegmentationParameters.Enabled &&
+            Av1CyclicRefresh.IsBoosted(this.State.BlockSegmentId);
 
         /// <summary>
         /// Returns whether the selected block updates its cyclic refresh segment before it is coded, and whether the
@@ -54,15 +54,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="statistics">The block's searched rate and distortion.</param>
         /// <param name="countBlocks">Whether the frame counts the block's segment units.</param>
         /// <returns>Whether the block updates its segment.</returns>
-        private readonly bool UpdatesCyclicRefreshSegment(Av1RateDistortionStatistics statistics, out bool countBlocks)
+        public readonly bool UpdatesCyclicRefreshSegment(Av1RateDistortionStatistics statistics, out bool countBlocks)
         {
             countBlocks = false;
-            if (this.picture.Parent.CyclicRefresh is null || !this.picture.Parent.FrameHeader.SegmentationParameters.Enabled)
+            if (this.State.Picture.Parent.CyclicRefresh is null || !this.State.Picture.Parent.FrameHeader.SegmentationParameters.Enabled)
             {
                 return false;
             }
 
-            switch (this.estimatedLeafEncode)
+            switch (this.State.EstimatedLeafEncode)
             {
                 case EstimatedLeafEncode.Output:
                     countBlocks = true;
@@ -70,14 +70,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 case EstimatedLeafEncode.Search:
                     return false;
                 default:
-                    if (this.mergeChildIndex == 3)
+                    if (this.State.MergeChildIndex == 3)
                     {
                         return false;
                     }
 
-                    Av1RateDistortionStatistics split = this.mergeSplitStatistics;
-                    split.Add(this.mergeRateMultiplier, statistics);
-                    return !(this.mergeNoneCost < split.Cost);
+                    Av1RateDistortionStatistics split = this.State.MergeSplitStatistics;
+                    split.Add(this.State.MergeRateMultiplier, statistics);
+                    return !(this.State.MergeNoneCost < split.Cost);
             }
         }
 
@@ -92,7 +92,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="vector">The block's first motion vector, or zero for an intra block.</param>
         /// <param name="statistics">The searched rate, distortion and skip of the block.</param>
         /// <param name="countBlocks">Whether the frame counts the block's segment units.</param>
-        private void UpdateCyclicRefreshSegment(
+        public void UpdateCyclicRefreshSegment(
             Span<byte> encoderSegmentMap,
             Span<byte> searchSegmentMap,
             Point blockOrigin,
@@ -102,7 +102,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics statistics,
             bool countBlocks)
         {
-            Av1PictureParentControlSet parent = this.picture.Parent;
+            Av1PictureParentControlSet parent = this.State.Picture.Parent;
             int segmentId = modeInfo.SegmentId;
             parent.CyclicRefresh!.UpdateSegment(
                 encoderSegmentMap,
@@ -133,7 +133,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="block">The block's coding state, whose segment is updated.</param>
         /// <param name="codedSkip">Whether the coded block has no coefficients.</param>
         /// <param name="countBlocks">Whether the frame counts the block's segment units.</param>
-        private void ResetCyclicRefreshSkip(
+        public void ResetCyclicRefreshSkip(
             Span<byte> encoderSegmentMap,
             Span<byte> searchSegmentMap,
             Av1MacroBlockD macroBlock,
@@ -148,7 +148,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
-            Av1PictureParentControlSet parent = this.picture.Parent;
+            Av1PictureParentControlSet parent = this.State.Picture.Parent;
             int predictedSegmentId = Av1TileWriter.GetSpatialSegmentationPrediction(parent.Common, searchSegmentMap, macroBlock, blockOrigin, out _);
             int segmentId = modeInfo.SegmentId;
             parent.CyclicRefresh!.ResetSegmentSkip(
@@ -169,8 +169,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The block origin in luma samples.</param>
         /// <param name="modeInfo">The block's coded syntax.</param>
         /// <param name="vector">The block's first motion vector, or zero for an intra block.</param>
-        private readonly void CountNoiseStillBlock(Point blockOrigin, Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector)
-            => this.picture.Parent.NoiseEstimate?.CountStillBlock(
+        public readonly void CountNoiseStillBlock(Point blockOrigin, Av1EncoderBlockModeInfo modeInfo, Av1MotionVector vector)
+            => this.State.Picture.Parent.NoiseEstimate?.CountStillBlock(
                 new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2),
                 modeInfo.BlockSize,
                 modeInfo.ReferenceFrame == Av1ReferenceFrameType.Last,
@@ -184,11 +184,11 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="block">The block's coding state.</param>
         private void SetCyclicRefreshSegment(int segmentId, ref Av1EncoderBlockModeInfo modeInfo, ref Av1EncoderBlockStruct block)
         {
-            ObuSegmentationParameters segmentation = this.picture.Parent.FrameHeader.SegmentationParameters;
+            ObuSegmentationParameters segmentation = this.State.Picture.Parent.FrameHeader.SegmentationParameters;
             modeInfo.SegmentId = segmentId;
             block.SegmentId = segmentId;
-            this.blockSegmentId = segmentId;
-            this.blockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, segmentId, this.superblockQIndex);
+            this.State.BlockSegmentId = segmentId;
+            this.State.BlockQIndex = Av1QuantizationLookup.GetQIndex(segmentation, segmentId, this.State.SuperblockQIndex);
         }
     }
 }

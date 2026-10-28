@@ -1065,7 +1065,7 @@ internal static partial class Av1FrameEncoder
         where TPixel : unmanaged, IPixel<TPixel>
         where TSample : unmanaged, IBinaryInteger<TSample>
         where TStorer : struct, IHeifSampleConverter<TSample>
-        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlockOperator>
         where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where THorizontalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
@@ -1467,7 +1467,7 @@ internal static partial class Av1FrameEncoder
         bool writeSequenceHeader,
         bool writeTemporalDelimiter)
         where TSample : unmanaged
-        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlockOperator>
         where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where THorizontalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
@@ -2393,7 +2393,7 @@ internal static partial class Av1FrameEncoder
         /// <param name="parent">The frame state that receives the factors.</param>
         private protected void PrepareSsimRateMultiplierFactors<TSample, TOperator>(Av1EncoderFrame<TSample> unscaledSource, Av1PictureParentControlSet parent)
             where TSample : unmanaged
-            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
         {
             parent.HasPrecomputedSsimRateMultiplierFactors = false;
             if (this.Options.Tuning != Av1Tuning.Ssim && !this.Options.Tuning.IsImageTuning())
@@ -3203,7 +3203,7 @@ internal static partial class Av1FrameEncoder
             ulong previousAverageSourceSad)
             where TSample : unmanaged
             where TMotion : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
-            where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TBlock : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlock>
         {
             if (this.groupRateControl is not null)
             {
@@ -3794,7 +3794,7 @@ internal static partial class Av1FrameEncoder
         where TFilterOperator : struct, Av1TemporalFilter.ITemporalFilterOperator<TSample>
         where TSearchOperator : struct, Av1MotionSearchBase.IMotionSearchOperator<TSample>
         where TTplOperator : struct, IAv1TplSampleOperator<TSample>
-        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TBlockOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TBlockOperator>
         where TGlobalMotionOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         where TTextureOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
         where TVerticalEdgeOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>

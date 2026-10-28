@@ -17,6 +17,14 @@ internal static partial class Av1InverseTransformer
     internal readonly struct ByteOutputOperator : IAv1InverseTransformOutputOperator<byte>
     {
         /// <inheritdoc/>
+        public static Av1Inverse2dTransformer.ReconstructionOutput CreateOutput(
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            Span<byte> destination,
+            int destinationStride)
+            => new(prediction, predictionStride, destination, destinationStride);
+
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte Add(byte prediction, int residual, int bitDepth)
         {

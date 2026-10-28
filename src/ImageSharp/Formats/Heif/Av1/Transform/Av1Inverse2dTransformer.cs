@@ -126,15 +126,10 @@ internal static partial class Av1Inverse2dTransformer
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
         int bitDepth)
-        => Transform2dAdd<short, Av1InverseTransformer.HighBitDepthOutputOperator>(
-            input,
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
-            ref config,
-            workspace,
-            bitDepth);
+    {
+        ReconstructionOutput output = new(outputForRead, strideForRead, outputForWrite, strideForWrite);
+        Transform2dAdd(input, in output, ref config, workspace, bitDepth);
+    }
 
     /// <summary>
     /// Applies an inverse transform and adds its residual to eight-bit predicted samples.
@@ -154,40 +149,25 @@ internal static partial class Av1Inverse2dTransformer
         int strideForWrite,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace)
-        => Transform2dAdd<byte, Av1InverseTransformer.ByteOutputOperator>(
-            input,
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
-            ref config,
-            workspace,
-            8);
+    {
+        ReconstructionOutput output = new(outputForRead, strideForRead, outputForWrite, strideForWrite);
+        Transform2dAdd(input, in output, ref config, workspace, 8);
+    }
 
     /// <summary>
     /// Applies rows and columns independently through their shared workspace.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
     /// <param name="input">The dequantized coefficients in raster order.</param>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void Transform2dAdd<TSample, TOutputOperator>(
+    private static void Transform2dAdd(
         ReadOnlySpan<int> input,
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
+        in ReconstructionOutput output,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
         int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
     {
         Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetInverseRequiredLength(config.TransformSize), nameof(workspace));
 
@@ -195,307 +175,118 @@ internal static partial class Av1Inverse2dTransformer
         // that would compile a complete row/column pair for every combination, although the passes already exchange a raster block.
         TransformRows(input, ref config, workspace, bitDepth);
 
-        TransformColumns<TSample, TOutputOperator>(outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+        TransformColumns(in output, ref config, workspace, bitDepth);
     }
 
     /// <summary>
     /// Selects the column operator after the row pass has filled the raster intermediate.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformColumns<TSample, TOutputOperator>(
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
-        ref Av1Transform2dFlipConfiguration config,
-        Span<int> workspace,
-        int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+    private static void TransformColumns(in ReconstructionOutput output, ref Av1Transform2dFlipConfiguration config, Span<int> workspace, int bitDepth)
     {
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
-                TransformColumns<TSample, TOutputOperator, Dct4Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct4Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct8 when config.NonzeroHeight == 1:
-                TransformColumns<TSample, TOutputOperator, Dct8Low1Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct8Low1Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct8:
-                TransformColumns<TSample, TOutputOperator, Dct8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct16 when config.NonzeroHeight == 1:
-                TransformColumns<TSample, TOutputOperator, Dct16Low1Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct16Low1Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct16 when config.NonzeroHeight <= 8:
-                TransformColumns<TSample, TOutputOperator, Dct16Low8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct16Low8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct16:
-                TransformColumns<TSample, TOutputOperator, Dct16Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct16Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct32 when config.NonzeroHeight == 1:
-                TransformColumns<TSample, TOutputOperator, Dct32Low1Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct32Low1Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct32 when config.NonzeroHeight <= 8:
-                TransformColumns<TSample, TOutputOperator, Dct32Low8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct32Low8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct32 when config.NonzeroHeight <= 16:
-                TransformColumns<TSample, TOutputOperator, Dct32Low16Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct32Low16Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct32:
-                TransformColumns<TSample, TOutputOperator, Dct32Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct32Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64 when config.NonzeroHeight == 1:
-                TransformColumns<TSample, TOutputOperator, Dct64Low1Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct64Low1Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64 when config.NonzeroHeight <= 8:
-                TransformColumns<TSample, TOutputOperator, Dct64Low8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct64Low8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64 when config.NonzeroHeight <= 16:
-                TransformColumns<TSample, TOutputOperator, Dct64Low16Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct64Low16Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64 when config.NonzeroHeight <= 32:
-                TransformColumns<TSample, TOutputOperator, Dct64Low32Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct64Low32Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64:
-                TransformColumns<TSample, TOutputOperator, Dct64Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Dct64Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst4:
-                TransformColumns<TSample, TOutputOperator, Adst4Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Adst4Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst8 when config.NonzeroHeight == 1:
-                TransformColumns<TSample, TOutputOperator, Adst8Low1Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Adst8Low1Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst8:
-                TransformColumns<TSample, TOutputOperator, Adst8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Adst8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst16 when config.NonzeroHeight == 1:
-                TransformColumns<TSample, TOutputOperator, Adst16Low1Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Adst16Low1Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst16 when config.NonzeroHeight <= 8:
-                TransformColumns<TSample, TOutputOperator, Adst16Low8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Adst16Low8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst16:
-                TransformColumns<TSample, TOutputOperator, Adst16Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Adst16Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity4:
-                TransformColumns<TSample, TOutputOperator, Identity4Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Identity4Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity8:
-                TransformColumns<TSample, TOutputOperator, Identity8Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Identity8Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity16:
-                TransformColumns<TSample, TOutputOperator, Identity16Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Identity16Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity32:
-                TransformColumns<TSample, TOutputOperator, Identity32Operator>(
-                    outputForRead,
-                    strideForRead,
-                    outputForWrite,
-                    strideForWrite,
-                    ref config,
-                    workspace,
-                    bitDepth);
+                TransformColumns<Identity32Operator>(in output, ref config, workspace, bitDepth);
 
                 break;
             default:
@@ -627,7 +418,11 @@ internal static partial class Av1Inverse2dTransformer
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformRows<TRowOperator>(ReadOnlySpan<int> input, ref Av1Transform2dFlipConfiguration config, Span<int> workspace, int bitDepth)
+    private static unsafe void TransformRows<TRowOperator>(
+        ReadOnlySpan<int> input,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace,
+        int bitDepth)
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         int width = config.TransformSize.GetWidth();
@@ -635,51 +430,65 @@ internal static partial class Av1Inverse2dTransformer
 
         if (Vector512.IsHardwareAccelerated && width >= Vector512<int>.Count && height >= Vector512<int>.Count)
         {
-            TransformRowsVector512<TRowOperator>(input, ref config, workspace, bitDepth);
+            TransformRowsVector512<TRowOperator>(
+                RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+                input,
+                ref config,
+                workspace,
+                bitDepth,
+                TRowOperator.InputLength);
 
             return;
         }
 
         if (Vector256.IsHardwareAccelerated && width >= Vector256<int>.Count && height >= Vector256<int>.Count)
         {
-            TransformRowsVector256<TRowOperator>(input, ref config, workspace, bitDepth);
+            TransformRowsVector256<TRowOperator>(
+                RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+                input,
+                ref config,
+                workspace,
+                bitDepth,
+                TRowOperator.InputLength);
 
             return;
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            TransformRowsVector128<TRowOperator>(input, ref config, workspace, bitDepth);
+            TransformRowsVector128<TRowOperator>(
+                RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+                input,
+                ref config,
+                workspace,
+                bitDepth,
+                TRowOperator.InputLength);
 
             return;
         }
 
-        TransformRowsScalar<TRowOperator>(input, ref config, workspace, bitDepth);
+        TransformRowsScalar<TRowOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+            input,
+            ref config,
+            workspace,
+            bitDepth,
+            TRowOperator.InputLength);
     }
 
     /// <summary>
     /// Runs the column pass at the same SIMD width used to lay out the row workspace.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
     /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformColumns<TSample, TOutputOperator, TColumnOperator>(
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
+    private static unsafe void TransformColumns<TColumnOperator>(
+        in ReconstructionOutput output,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
         int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
         where TColumnOperator : struct, IAv1Transform1dOperator
     {
         int width = config.TransformSize.GetWidth();
@@ -687,54 +496,50 @@ internal static partial class Av1Inverse2dTransformer
 
         if (Vector512.IsHardwareAccelerated && width >= Vector512<int>.Count && height >= Vector512<int>.Count)
         {
-            TransformColumnsVector512<TSample, TOutputOperator, TColumnOperator>(
-                outputForRead,
-                strideForRead,
-                outputForWrite,
-                strideForWrite,
+            TransformColumnsVector512<TColumnOperator>(
+                RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+                in output,
                 ref config,
                 workspace,
-                bitDepth);
+                bitDepth,
+                TColumnOperator.InputLength);
 
             return;
         }
 
         if (Vector256.IsHardwareAccelerated && width >= Vector256<int>.Count && height >= Vector256<int>.Count)
         {
-            TransformColumnsVector256<TSample, TOutputOperator, TColumnOperator>(
-                outputForRead,
-                strideForRead,
-                outputForWrite,
-                strideForWrite,
+            TransformColumnsVector256<TColumnOperator>(
+                RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+                in output,
                 ref config,
                 workspace,
-                bitDepth);
+                bitDepth,
+                TColumnOperator.InputLength);
 
             return;
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            TransformColumnsVector128<TSample, TOutputOperator, TColumnOperator>(
-                outputForRead,
-                strideForRead,
-                outputForWrite,
-                strideForWrite,
+            TransformColumnsVector128<TColumnOperator>(
+                RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+                in output,
                 ref config,
                 workspace,
-                bitDepth);
+                bitDepth,
+                TColumnOperator.InputLength);
 
             return;
         }
 
-        TransformColumnsScalar<TSample, TOutputOperator, TColumnOperator>(
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
+        TransformColumnsScalar<TColumnOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+            in output,
             ref config,
             workspace,
-            bitDepth);
+            bitDepth,
+            TColumnOperator.InputLength);
     }
 
     /// <summary>
@@ -752,7 +557,7 @@ internal static partial class Av1Inverse2dTransformer
     /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
     /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
-    public static void Transform2dVector512<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
+    public static unsafe void Transform2dVector512<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
@@ -766,16 +571,23 @@ internal static partial class Av1Inverse2dTransformer
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
-        TransformRowsVector512<TRowOperator>(input, ref config, workspace, bitDepth);
+        ReconstructionOutput output = TOutputOperator.CreateOutput(outputForRead, strideForRead, outputForWrite, strideForWrite);
 
-        TransformColumnsVector512<TSample, TOutputOperator, TColumnOperator>(
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
+        TransformRowsVector512<TRowOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+            input,
             ref config,
             workspace,
-            bitDepth);
+            bitDepth,
+            TRowOperator.InputLength);
+
+        TransformColumnsVector512<TColumnOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+            in output,
+            ref config,
+            workspace,
+            bitDepth,
+            TColumnOperator.InputLength);
     }
 
     /// <summary>
@@ -793,7 +605,7 @@ internal static partial class Av1Inverse2dTransformer
     /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
     /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
-    public static void Transform2dVector256<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
+    public static unsafe void Transform2dVector256<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
@@ -807,16 +619,23 @@ internal static partial class Av1Inverse2dTransformer
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
-        TransformRowsVector256<TRowOperator>(input, ref config, workspace, bitDepth);
+        ReconstructionOutput output = TOutputOperator.CreateOutput(outputForRead, strideForRead, outputForWrite, strideForWrite);
 
-        TransformColumnsVector256<TSample, TOutputOperator, TColumnOperator>(
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
+        TransformRowsVector256<TRowOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+            input,
             ref config,
             workspace,
-            bitDepth);
+            bitDepth,
+            TRowOperator.InputLength);
+
+        TransformColumnsVector256<TColumnOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+            in output,
+            ref config,
+            workspace,
+            bitDepth,
+            TColumnOperator.InputLength);
     }
 
     /// <summary>
@@ -834,7 +653,7 @@ internal static partial class Av1Inverse2dTransformer
     /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
     /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
-    public static void Transform2dVector128<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
+    public static unsafe void Transform2dVector128<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
@@ -848,16 +667,23 @@ internal static partial class Av1Inverse2dTransformer
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
-        TransformRowsVector128<TRowOperator>(input, ref config, workspace, bitDepth);
+        ReconstructionOutput output = TOutputOperator.CreateOutput(outputForRead, strideForRead, outputForWrite, strideForWrite);
 
-        TransformColumnsVector128<TSample, TOutputOperator, TColumnOperator>(
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
+        TransformRowsVector128<TRowOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+            input,
             ref config,
             workspace,
-            bitDepth);
+            bitDepth,
+            TRowOperator.InputLength);
+
+        TransformColumnsVector128<TColumnOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+            in output,
+            ref config,
+            workspace,
+            bitDepth,
+            TColumnOperator.InputLength);
     }
 
     /// <summary>
@@ -875,7 +701,7 @@ internal static partial class Av1Inverse2dTransformer
     /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
     /// <param name="workspace">The reusable storage for transform stages and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
-    public static void Transform2dScalar<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
+    public static unsafe void Transform2dScalar<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
         ReadOnlySpan<int> input,
         ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
@@ -889,34 +715,56 @@ internal static partial class Av1Inverse2dTransformer
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
-        TransformRowsScalar<TRowOperator>(input, ref config, workspace, bitDepth);
+        ReconstructionOutput output = TOutputOperator.CreateOutput(outputForRead, strideForRead, outputForWrite, strideForWrite);
 
-        TransformColumnsScalar<TSample, TOutputOperator, TColumnOperator>(
-            outputForRead,
-            strideForRead,
-            outputForWrite,
-            strideForWrite,
+        TransformRowsScalar<TRowOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TRowOperator>,
+            input,
             ref config,
             workspace,
-            bitDepth);
+            bitDepth,
+            TRowOperator.InputLength);
+
+        TransformColumnsScalar<TColumnOperator>(
+            RuntimeFeature.IsDynamicCodeCompiled ? null : &TransformAxis<TColumnOperator>,
+            in output,
+            ref config,
+            workspace,
+            bitDepth,
+            TColumnOperator.InputLength);
     }
 
     /// <summary>
     /// Transforms coefficient rows into the raster intermediate with sixteen independent rows per SIMD vector.
     /// </summary>
-    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <typeparam name="TRowOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
     /// <param name="input">The dequantized coefficients in raster order.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformRowsVector512<TRowOperator>(
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformRowsVector512<TRowOperator>(
+        delegate*<
+            ref Av1TransformVector<Vector512<int>>,
+            ref Av1TransformVector<Vector512<int>>,
+            ref Av1TransformVector<Vector512<int>>,
+            InlineArray12<byte>,
+            void> transform,
         ReadOnlySpan<int> input,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
+        int bitDepth,
+        int inputLength)
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 16;
+
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TRowOperator.InputLength : inputLength;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -925,7 +773,7 @@ internal static partial class Av1Inverse2dTransformer
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
         int rowCount = (config.NonzeroHeight + laneCount - 1) & -laneCount;
-        int rowInputCount = (TRowOperator.InputLength + laneCount - 1) & -laneCount;
+        int rowInputCount = (inputLength + laneCount - 1) & -laneCount;
         int shift0 = config.Shift0;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         byte rowClampBits = (byte)(bitDepth + 8);
@@ -1043,7 +891,15 @@ internal static partial class Av1Inverse2dTransformer
                 tempIn[column + 15] = PrepareInverseRow(row15, normalizeRectangle, rowClampBits);
             }
 
-            TRowOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitRow, config.StageRangeRow);
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
+            {
+                TRowOperator.Transform(ref tempIn, ref tempOut, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeRow);
+            }
+            else
+            {
+                transform(ref tempIn, ref tempOut, ref step, config.StageRangeRow);
+            }
 
             for (int column = 0; column < width; column += laneCount)
             {
@@ -1105,19 +961,34 @@ internal static partial class Av1Inverse2dTransformer
     /// <summary>
     /// Transforms coefficient rows into the raster intermediate with eight independent rows per SIMD vector.
     /// </summary>
-    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <typeparam name="TRowOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
     /// <param name="input">The dequantized coefficients in raster order.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformRowsVector256<TRowOperator>(
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformRowsVector256<TRowOperator>(
+        delegate*<
+            ref Av1TransformVector<Vector256<int>>,
+            ref Av1TransformVector<Vector256<int>>,
+            ref Av1TransformVector<Vector256<int>>,
+            InlineArray12<byte>,
+            void> transform,
         ReadOnlySpan<int> input,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
+        int bitDepth,
+        int inputLength)
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 8;
+
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TRowOperator.InputLength : inputLength;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -1126,7 +997,7 @@ internal static partial class Av1Inverse2dTransformer
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
         int rowCount = (config.NonzeroHeight + laneCount - 1) & -laneCount;
-        int rowInputCount = (TRowOperator.InputLength + laneCount - 1) & -laneCount;
+        int rowInputCount = (inputLength + laneCount - 1) & -laneCount;
         int shift0 = config.Shift0;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         byte rowClampBits = (byte)(bitDepth + 8);
@@ -1194,7 +1065,15 @@ internal static partial class Av1Inverse2dTransformer
                 tempIn[column + 7] = PrepareInverseRow(row7, normalizeRectangle, rowClampBits);
             }
 
-            TRowOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitRow, config.StageRangeRow);
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
+            {
+                TRowOperator.Transform(ref tempIn, ref tempOut, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeRow);
+            }
+            else
+            {
+                transform(ref tempIn, ref tempOut, ref step, config.StageRangeRow);
+            }
 
             for (int column = 0; column < width; column += laneCount)
             {
@@ -1224,29 +1103,34 @@ internal static partial class Av1Inverse2dTransformer
     /// <summary>
     /// Transforms intermediate columns and reconstructs samples with sixteen independent columns per SIMD vector.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
-    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <typeparam name="TColumnOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformColumnsVector512<TSample, TOutputOperator, TColumnOperator>(
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformColumnsVector512<TColumnOperator>(
+        delegate*<
+            ref Av1TransformVector<Vector512<int>>,
+            ref Av1TransformVector<Vector512<int>>,
+            ref Av1TransformVector<Vector512<int>>,
+            InlineArray12<byte>,
+            void> transform,
+        in ReconstructionOutput output,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        int bitDepth,
+        int inputLength)
         where TColumnOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 16;
+
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TColumnOperator.InputLength : inputLength;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -1266,9 +1150,6 @@ internal static partial class Av1Inverse2dTransformer
         Span<int> buffer = workspace.Slice(2 * vectorLength, width * height);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
-        ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
-        ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
-
         // The intermediate rows already contain contiguous column groups, so the second axis needs no transpose. Horizontal and vertical flips are folded into
         // these loads and row selections, so flipped transforms need no separate reversal pass.
         for (int column = 0; column < width; column += laneCount)
@@ -1277,7 +1158,7 @@ internal static partial class Av1Inverse2dTransformer
 
             // Sparse operators read only their declared input prefix. Complete operators still receive zeros for rows omitted by the first axis, including the
             // uncoded half of a sixty-four-point transform.
-            for (int row = 0; row < TColumnOperator.InputLength; row++)
+            for (int row = 0; row < inputLength; row++)
             {
                 Vector512<int> value = row < rowCount
                     ? Vector512.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn))
@@ -1287,46 +1168,51 @@ internal static partial class Av1Inverse2dTransformer
                 tempIn[row] = Av1Transform1dMath.Clamp(value, columnClampBits);
             }
 
-            TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitColumn, config.StageRangeColumn);
-
-            for (int row = 0; row < height; row++)
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
             {
-                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
-                Vector512<int> residual = Av1Transform2dOperations.RoundShift(tempOut[sourceRow], -shift1);
-                ref TSample prediction = ref Unsafe.Add(ref readBase, (row * strideForRead) + column);
-                ref TSample destination = ref Unsafe.Add(ref writeBase, (row * strideForWrite) + column);
-
-                TOutputOperator.Add(ref prediction, ref destination, residual, bitDepth);
+                TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeColumn);
             }
+            else
+            {
+                transform(ref tempIn, ref tempOut, ref step, config.StageRangeColumn);
+            }
+
+            output.WriteColumns(ref tempOut, column, height, -shift1, config.FlipUpsideDown, bitDepth);
         }
     }
 
     /// <summary>
     /// Transforms intermediate columns and reconstructs samples with eight independent columns per SIMD vector.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
-    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <typeparam name="TColumnOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformColumnsVector256<TSample, TOutputOperator, TColumnOperator>(
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformColumnsVector256<TColumnOperator>(
+        delegate*<
+            ref Av1TransformVector<Vector256<int>>,
+            ref Av1TransformVector<Vector256<int>>,
+            ref Av1TransformVector<Vector256<int>>,
+            InlineArray12<byte>,
+            void> transform,
+        in ReconstructionOutput output,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        int bitDepth,
+        int inputLength)
         where TColumnOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 8;
+
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TColumnOperator.InputLength : inputLength;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -1346,9 +1232,6 @@ internal static partial class Av1Inverse2dTransformer
         Span<int> buffer = workspace.Slice(2 * vectorLength, width * height);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
-        ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
-        ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
-
         // The intermediate rows already contain contiguous column groups, so the second axis needs no transpose. Horizontal and vertical flips are folded into
         // these loads and row selections, so flipped transforms need no separate reversal pass.
         for (int column = 0; column < width; column += laneCount)
@@ -1357,7 +1240,7 @@ internal static partial class Av1Inverse2dTransformer
 
             // Sparse operators read only their declared input prefix. Complete operators still receive zeros for rows omitted by the first axis, including the
             // uncoded half of a sixty-four-point transform.
-            for (int row = 0; row < TColumnOperator.InputLength; row++)
+            for (int row = 0; row < inputLength; row++)
             {
                 Vector256<int> value = row < rowCount
                     ? Vector256.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn))
@@ -1367,36 +1250,51 @@ internal static partial class Av1Inverse2dTransformer
                 tempIn[row] = Av1Transform1dMath.Clamp(value, columnClampBits);
             }
 
-            TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitColumn, config.StageRangeColumn);
-
-            for (int row = 0; row < height; row++)
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
             {
-                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
-                Vector256<int> residual = Av1Transform2dOperations.RoundShift(tempOut[sourceRow], -shift1);
-                ref TSample prediction = ref Unsafe.Add(ref readBase, (row * strideForRead) + column);
-                ref TSample destination = ref Unsafe.Add(ref writeBase, (row * strideForWrite) + column);
-
-                TOutputOperator.Add(ref prediction, ref destination, residual, bitDepth);
+                TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeColumn);
             }
+            else
+            {
+                transform(ref tempIn, ref tempOut, ref step, config.StageRangeColumn);
+            }
+
+            output.WriteColumns(ref tempOut, column, height, -shift1, config.FlipUpsideDown, bitDepth);
         }
     }
 
     /// <summary>
     /// Transforms coefficient rows into the raster intermediate with four independent rows per SIMD vector.
     /// </summary>
-    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <typeparam name="TRowOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
     /// <param name="input">The dequantized coefficients in raster order.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformRowsVector128<TRowOperator>(
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformRowsVector128<TRowOperator>(
+        delegate*<
+            ref Av1TransformVector<Vector128<int>>,
+            ref Av1TransformVector<Vector128<int>>,
+            ref Av1TransformVector<Vector128<int>>,
+            InlineArray12<byte>,
+            void> transform,
         ReadOnlySpan<int> input,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
+        int bitDepth,
+        int inputLength)
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 4;
+
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TRowOperator.InputLength : inputLength;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -1405,7 +1303,7 @@ internal static partial class Av1Inverse2dTransformer
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
         int rowCount = (config.NonzeroHeight + laneCount - 1) & -laneCount;
-        int rowInputCount = (TRowOperator.InputLength + laneCount - 1) & -laneCount;
+        int rowInputCount = (inputLength + laneCount - 1) & -laneCount;
         int shift0 = config.Shift0;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         byte rowClampBits = (byte)(bitDepth + 8);
@@ -1458,7 +1356,15 @@ internal static partial class Av1Inverse2dTransformer
                 tempIn[column + 3] = PrepareInverseRow(row3, normalizeRectangle, rowClampBits);
             }
 
-            TRowOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitRow, config.StageRangeRow);
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
+            {
+                TRowOperator.Transform(ref tempIn, ref tempOut, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeRow);
+            }
+            else
+            {
+                transform(ref tempIn, ref tempOut, ref step, config.StageRangeRow);
+            }
 
             for (int column = 0; column < width; column += laneCount)
             {
@@ -1480,29 +1386,34 @@ internal static partial class Av1Inverse2dTransformer
     /// <summary>
     /// Transforms intermediate columns and reconstructs samples with four independent columns per SIMD vector.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
-    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <typeparam name="TColumnOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformColumnsVector128<TSample, TOutputOperator, TColumnOperator>(
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformColumnsVector128<TColumnOperator>(
+        delegate*<
+            ref Av1TransformVector<Vector128<int>>,
+            ref Av1TransformVector<Vector128<int>>,
+            ref Av1TransformVector<Vector128<int>>,
+            InlineArray12<byte>,
+            void> transform,
+        in ReconstructionOutput output,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        int bitDepth,
+        int inputLength)
         where TColumnOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 4;
+
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TColumnOperator.InputLength : inputLength;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -1522,9 +1433,6 @@ internal static partial class Av1Inverse2dTransformer
         Span<int> buffer = workspace.Slice(2 * vectorLength, width * height);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
-        ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
-        ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
-
         // Contiguous four-column groups become the independent lanes for the second axis. Flip selection happens while the loop reads the intermediate block
         // and selects completed rows, so no extra copy or reversal pass is necessary.
         for (int column = 0; column < width; column += laneCount)
@@ -1533,7 +1441,7 @@ internal static partial class Av1Inverse2dTransformer
 
             // Sparse operators read only their declared input prefix. Complete operators still receive zeros for rows omitted by the first axis, including the
             // uncoded half of a sixty-four-point transform.
-            for (int row = 0; row < TColumnOperator.InputLength; row++)
+            for (int row = 0; row < inputLength; row++)
             {
                 Vector128<int> value = row < rowCount
                     ? Vector128.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn))
@@ -1543,41 +1451,51 @@ internal static partial class Av1Inverse2dTransformer
                 tempIn[row] = Av1Transform1dMath.Clamp(value, columnClampBits);
             }
 
-            TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitColumn, config.StageRangeColumn);
-
-            for (int row = 0; row < height; row++)
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
             {
-                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
-                Vector128<int> residual = Av1Transform2dOperations.RoundShift(tempOut[sourceRow], -shift1);
-                ref TSample prediction = ref Unsafe.Add(ref readBase, (row * strideForRead) + column);
-                ref TSample destination = ref Unsafe.Add(ref writeBase, (row * strideForWrite) + column);
-
-                TOutputOperator.Add(ref prediction, ref destination, residual, bitDepth);
+                TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeColumn);
             }
+            else
+            {
+                transform(ref tempIn, ref tempOut, ref step, config.StageRangeColumn);
+            }
+
+            output.WriteColumns(ref tempOut, column, height, -shift1, config.FlipUpsideDown, bitDepth);
         }
     }
 
     /// <summary>
     /// Transforms coefficient rows into the raster intermediate with scalar arithmetic.
     /// </summary>
-    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <typeparam name="TRowOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
     /// <param name="input">The dequantized coefficients in raster order.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformRowsScalar<TRowOperator>(
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformRowsScalar<TRowOperator>(
+        delegate*<ReadOnlySpan<int>, Span<int>, Span<int>, InlineArray12<byte>, void> transform,
         ReadOnlySpan<int> input,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
+        int bitDepth,
+        int inputLength)
         where TRowOperator : struct, IAv1Transform1dOperator
     {
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TRowOperator.InputLength : inputLength;
+
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
         Av1TransformSize adjustedTransformSize = config.TransformSize.GetAdjusted();
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
-        int rowInputCount = Math.Min(inputWidth, TRowOperator.InputLength);
+        int rowInputCount = Math.Min(inputWidth, inputLength);
         int vectorLength = Math.Max(width, height);
         int shift0 = config.Shift0;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
@@ -1593,7 +1511,7 @@ internal static partial class Av1Inverse2dTransformer
         for (int row = 0; row < config.NonzeroHeight; row++)
         {
             int rowOffset = row * width;
-            tempIn[..TRowOperator.InputLength].Clear();
+            tempIn[..inputLength].Clear();
 
             if (row < inputHeight)
             {
@@ -1610,7 +1528,16 @@ internal static partial class Av1Inverse2dTransformer
                 }
             }
 
-            TRowOperator.Transform(tempIn, tempOut, step, config.CosBitRow, config.StageRangeRow);
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
+            {
+                TRowOperator.Transform(tempIn, tempOut, step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeRow);
+            }
+            else
+            {
+                transform(tempIn, tempOut, step, config.StageRangeRow);
+            }
+
             Av1InverseTransformMath.RoundShiftArray(tempOut, width, -shift0);
             tempOut[..width].CopyTo(buffer.Slice(rowOffset, width));
         }
@@ -1619,28 +1546,28 @@ internal static partial class Av1Inverse2dTransformer
     /// <summary>
     /// Transforms intermediate columns and reconstructs samples with scalar arithmetic.
     /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
-    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
-    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
-    /// <param name="strideForRead">The number of read samples between rows.</param>
-    /// <param name="outputForWrite">The destination reconstructed samples.</param>
-    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <typeparam name="TColumnOperator">The closed operator for JIT specialization; AOT shares the traversal body.</typeparam>
+    /// <param name="transform">The managed entry point for that operator at the selected lane width.</param>
+    /// <param name="output">The borrowed prediction and destination views and their native row strides.</param>
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The existing input/stage scratch, output scratch, and raster intermediate.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    private static void TransformColumnsScalar<TSample, TOutputOperator, TColumnOperator>(
-        ReadOnlySpan<TSample> outputForRead,
-        int strideForRead,
-        Span<TSample> outputForWrite,
-        int strideForWrite,
+    /// <param name="inputLength">The coefficient prefix read by the selected operator.</param>
+    private static unsafe void TransformColumnsScalar<TColumnOperator>(
+        delegate*<ReadOnlySpan<int>, Span<int>, Span<int>, InlineArray12<byte>, void> transform,
+        in ReconstructionOutput output,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
-        int bitDepth)
-        where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        int bitDepth,
+        int inputLength)
         where TColumnOperator : struct, IAv1Transform1dOperator
     {
+        // A closed JIT instantiation keeps its constant prefix and inline arithmetic. Native AOT removes
+        // the direct arithmetic path and can fold equal traversal bodies across operators.
+        // Tier0 does not inline this property. Read it once, before any component blocks.
+        bool isDynamicCodeCompiled = RuntimeFeature.IsDynamicCodeCompiled;
+        inputLength = isDynamicCodeCompiled ? TColumnOperator.InputLength : inputLength;
+
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
         int vectorLength = Math.Max(width, height);
@@ -1660,26 +1587,97 @@ internal static partial class Av1Inverse2dTransformer
 
             // The first axis writes only potentially nonzero rows. The loop sets every input that the second-axis operator reads, so a complete identity or DCT
             // kernel cannot read workspace values from a previous block.
-            for (int row = 0; row < TColumnOperator.InputLength; row++)
+            for (int row = 0; row < inputLength; row++)
             {
                 tempIn[row] = row < config.NonzeroHeight
                     ? Av1Transform1dMath.Clamp(buffer[(row * width) + sourceColumn], columnClampBits)
                     : 0;
             }
 
-            TColumnOperator.Transform(tempIn, tempOut, step, config.CosBitColumn, config.StageRangeColumn);
+            // Optimized JIT and Native AOT remove this choice. Initial JIT code reads only the cached mode here.
+            if (isDynamicCodeCompiled)
+            {
+                TColumnOperator.Transform(tempIn, tempOut, step, Av1Transform2dFlipConfiguration.InverseCosBit, config.StageRangeColumn);
+            }
+            else
+            {
+                transform(tempIn, tempOut, step, config.StageRangeColumn);
+            }
+
             Av1InverseTransformMath.RoundShiftArray(tempOut, height, -shift1);
 
-            for (int row = 0; row < height; row++)
-            {
-                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
-                int readIndex = (row * strideForRead) + column;
-                int writeIndex = (row * strideForWrite) + column;
-
-                outputForWrite[writeIndex] = TOutputOperator.Add(outputForRead[readIndex], tempOut[sourceRow], bitDepth);
-            }
+            output.WriteColumn(tempOut, column, height, config.FlipUpsideDown, bitDepth);
         }
     }
+
+    // Rows and columns use the same typed arithmetic entry points. The managed function pointers below select
+    // those entry points once per axis in Native AOT. JIT passes no address because it calls the typed operator directly.
+    // The pointers allocate no delegate and require no native interop or GC transition.
+    // Select the worker before passing spans. A conditional after span arguments forces the compiler to copy those arguments into temporary locals.
+    // Each caller supplies InputLength and the worker from the same TOperator. The shared traversal can therefore
+    // fill exactly the prefix that worker reads, including sparse transforms, without repeating operator dispatch.
+    // CreateInverse fixes cosine precision at 12 bits for every shape and sample depth. Keep that invariant
+    // in the worker so constant coefficients and shift counts remain visible when its stage graph compiles.
+
+    /// <summary>
+    /// Runs the selected one-dimensional operator for 16 independent axes.
+    /// </summary>
+    /// <typeparam name="TOperator">The operator selected by the existing transform factory.</typeparam>
+    /// <param name="input">The coefficient positions, with one independent axis per lane.</param>
+    /// <param name="output">The transformed positions in the same lane order.</param>
+    /// <param name="step">The existing stage storage. It can alias the input.</param>
+    /// <param name="stageRange">The signed-bit range for each stage.</param>
+    private static void TransformAxis<TOperator>(
+        ref Av1TransformVector<Vector512<int>> input,
+        ref Av1TransformVector<Vector512<int>> output,
+        ref Av1TransformVector<Vector512<int>> step,
+        InlineArray12<byte> stageRange)
+        where TOperator : struct, IAv1Transform1dOperator
+        => TOperator.Transform(ref input, ref output, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, stageRange);
+
+    /// <summary>
+    /// Runs the selected one-dimensional operator for 8 independent axes.
+    /// </summary>
+    /// <typeparam name="TOperator">The operator selected by the existing transform factory.</typeparam>
+    /// <param name="input">The coefficient positions, with one independent axis per lane.</param>
+    /// <param name="output">The transformed positions in the same lane order.</param>
+    /// <param name="step">The existing stage storage. It can alias the input.</param>
+    /// <param name="stageRange">The signed-bit range for each stage.</param>
+    private static void TransformAxis<TOperator>(
+        ref Av1TransformVector<Vector256<int>> input,
+        ref Av1TransformVector<Vector256<int>> output,
+        ref Av1TransformVector<Vector256<int>> step,
+        InlineArray12<byte> stageRange)
+        where TOperator : struct, IAv1Transform1dOperator
+        => TOperator.Transform(ref input, ref output, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, stageRange);
+
+    /// <summary>
+    /// Runs the selected one-dimensional operator for 4 independent axes.
+    /// </summary>
+    /// <typeparam name="TOperator">The operator selected by the existing transform factory.</typeparam>
+    /// <param name="input">The coefficient positions, with one independent axis per lane.</param>
+    /// <param name="output">The transformed positions in the same lane order.</param>
+    /// <param name="step">The existing stage storage. It can alias the input.</param>
+    /// <param name="stageRange">The signed-bit range for each stage.</param>
+    private static void TransformAxis<TOperator>(
+        ref Av1TransformVector<Vector128<int>> input,
+        ref Av1TransformVector<Vector128<int>> output,
+        ref Av1TransformVector<Vector128<int>> step,
+        InlineArray12<byte> stageRange)
+        where TOperator : struct, IAv1Transform1dOperator
+        => TOperator.Transform(ref input, ref output, ref step, Av1Transform2dFlipConfiguration.InverseCosBit, stageRange);
+
+    /// <summary>
+    /// Runs the selected one-dimensional operator for one axis without hardware vectorization.
+    /// </summary>
+    /// <typeparam name="TOperator">The operator selected by the existing transform factory.</typeparam>
+    /// <param name="input">The coefficient positions, with one independent axis per lane.</param>
+    /// <param name="output">The transformed positions in the same lane order.</param>
+    /// <param name="step">The existing stage storage. It can alias the input.</param>
+    /// <param name="stageRange">The signed-bit range for each stage.</param>
+    private static void TransformAxis<TOperator>(ReadOnlySpan<int> input, Span<int> output, Span<int> step, InlineArray12<byte> stageRange)
+        where TOperator : struct, IAv1Transform1dOperator
+        => TOperator.Transform(input, output, step, Av1Transform2dFlipConfiguration.InverseCosBit, stageRange);
 
     /// <summary>
     /// Applies rectangular normalization and the row-input clamp to four coefficient lanes.

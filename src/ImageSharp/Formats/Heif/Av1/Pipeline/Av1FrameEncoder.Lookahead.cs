@@ -186,7 +186,7 @@ internal static partial class Av1FrameEncoder
             int qIndex,
             out bool switchableBeforeFix)
             where TSample : unmanaged
-            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
             where TTextureOperator : struct, Av1MotionVectorStatistics.ITextureOperator<TSample>
             where TGlobalMotionOperator : struct, Av1GlobalMotionSearch.IAv1GlobalMotionOperator<TSample>
         {
@@ -418,7 +418,7 @@ internal static partial class Av1FrameEncoder
         /// <returns>The squared error.</returns>
         private protected static long GetLumaSquaredError<TSample, TOperator>(Av1EncoderFrame<TSample> source, Av1EncoderFrame<TSample> reconstruction)
             where TSample : unmanaged
-            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+            where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample, TOperator>
             => GetPlaneSquaredError<TSample, TOperator>(source, reconstruction, Av1Plane.Y, source.Width, source.Height);
 
         /// <summary>

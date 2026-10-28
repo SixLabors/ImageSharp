@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -417,7 +418,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Classifies horizontal and vertical partition searches after the square candidates.
@@ -439,6 +440,56 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> sourceBlue,
             ReadOnlySpan<TSample> sourceRed,
             Span<TSample> midpoint,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            long bestCost,
+            long noneCost,
+            int sourceVariance,
+            ReadOnlySpan<long> splitNoneCosts,
+            out bool pruneHorizontal,
+            out bool pruneVertical)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            control.PruneRectangularPartitions(
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(midpoint),
+                blockOrigin,
+                blockSize,
+                bestCost,
+                noneCost,
+                sourceVariance,
+                splitNoneCosts,
+                out pruneHorizontal,
+                out pruneVertical);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Classifies horizontal and vertical partition searches after the square candidates.
+        /// </summary>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="blockSize">The block size.</param>
+        /// <param name="bestCost">The best partition cost of the block.</param>
+        /// <param name="noneCost">The cost of the unsplit block.</param>
+        /// <param name="sourceVariance">The source variance of the block.</param>
+        /// <param name="splitNoneCosts">The unsplit costs of the four split children.</param>
+        /// <param name="pruneHorizontal">Whether the horizontal partitions are dropped.</param>
+        /// <param name="pruneVertical">Whether the vertical partitions are dropped.</param>
+        public void PruneRectangularPartitions(
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> midpoint,
             Point blockOrigin,
             Av1BlockSize blockSize,
             long bestCost,

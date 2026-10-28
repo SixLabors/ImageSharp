@@ -61,6 +61,10 @@ internal sealed class Av1TemporalFilterWorkspace<TSample> : IDisposable
 
         // The L1 rate table never changes. The search sites depend on the frame stride, so each frame configures them again.
         Av1TemporalFilter.FillL1MotionCosts(this.MotionCosts);
+
+        // Zero marks unconfigured sites, as in the block workspace. Pooled memory can retain a matching stride from an unrelated allocation;
+        // without this initialization, Configure can skip writing the site geometry and use stale stage counts and sample offsets.
+        this.SearchSites[^1] = 0;
     }
 
     /// <summary>

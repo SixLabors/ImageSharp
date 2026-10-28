@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
@@ -169,7 +170,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
     internal partial struct ModeDecision<TSample, TOperator>
         where TSample : unmanaged
-        where TOperator : struct, IBlockEncodingOperator<TSample>
+        where TOperator : struct, IBlockEncodingOperator<TSample, TOperator>
     {
         /// <summary>
         /// Aggregates the 64 full-sample block searches needed to choose a 128-sample superblock's size limit.
@@ -187,7 +188,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
         /// <param name="blockOrigin">The luma superblock origin.</param>
         /// <returns>The largest partition size of the superblock.</returns>
-        private Av1BlockSize PredictMaximumPartition(
+        public Av1BlockSize PredictMaximumPartition(
             Span<int> workspaceStorage,
             ReadOnlySpan<TSample> sourceLuma,
             ReadOnlySpan<TSample> sourceBlue,
@@ -199,6 +200,57 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> filterRows,
             in Av1MotionVectorCosts motionVectorCosts,
             Span<TSample> midpoint,
+            Point blockOrigin)
+        {
+            SearchControl control = TOperator.CreateSearchControl(ref this);
+
+            return control.PredictMaximumPartition(
+                workspaceStorage,
+                MemoryMarshal.AsBytes(sourceLuma),
+                MemoryMarshal.AsBytes(sourceBlue),
+                MemoryMarshal.AsBytes(sourceRed),
+                MemoryMarshal.AsBytes(reconstructionLuma),
+                MemoryMarshal.AsBytes(reconstructionBlue),
+                MemoryMarshal.AsBytes(reconstructionRed),
+                MemoryMarshal.AsBytes(motionSearchPrediction),
+                filterRows,
+                in motionVectorCosts,
+                MemoryMarshal.AsBytes(midpoint),
+                blockOrigin);
+        }
+    }
+
+    /// <summary>Shares search decisions while typed workers process the native samples.</summary>
+    internal readonly ref partial struct SearchControl
+    {
+        /// <summary>
+        /// Aggregates the 64 full-sample block searches needed to choose a 128-sample superblock's size limit.
+        /// </summary>
+        /// <param name="workspaceStorage">The storage of the block workspace, which holds the search buffers of every block.</param>
+        /// <param name="sourceLuma">The samples of the complete source luma plane, read once per frame pass.</param>
+        /// <param name="sourceBlue">The samples of the complete source blue-difference plane, read once per frame pass.</param>
+        /// <param name="sourceRed">The samples of the complete source red-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionLuma">The samples of the complete reconstructed luma plane, read once per frame pass.</param>
+        /// <param name="reconstructionBlue">The samples of the complete reconstructed blue-difference plane, read once per frame pass.</param>
+        /// <param name="reconstructionRed">The samples of the complete reconstructed red-difference plane, read once per frame pass.</param>
+        /// <param name="motionSearchPrediction">The prediction buffer of the motion search.</param>
+        /// <param name="filterRows">The intermediate rows of the prediction filters.</param>
+        /// <param name="motionVectorCosts">The motion vector rates of the frame precision.</param>
+        /// <param name="midpoint">Storage for one row of mid-gray samples of the source variance.</param>
+        /// <param name="blockOrigin">The luma superblock origin.</param>
+        /// <returns>The largest partition size of the superblock.</returns>
+        public Av1BlockSize PredictMaximumPartition(
+            Span<int> workspaceStorage,
+            ReadOnlySpan<byte> sourceLuma,
+            ReadOnlySpan<byte> sourceBlue,
+            ReadOnlySpan<byte> sourceRed,
+            Span<byte> reconstructionLuma,
+            Span<byte> reconstructionBlue,
+            Span<byte> reconstructionRed,
+            Span<byte> motionSearchPrediction,
+            Span<short> filterRows,
+            in Av1MotionVectorCosts motionVectorCosts,
+            Span<byte> midpoint,
             Point blockOrigin)
         {
             float rowSum = 0F;
@@ -258,7 +310,7 @@ internal static partial class Av1IntraSuperblockEncoder
             float meanRow = rowSum / 64F;
             float meanColumn = columnSum / 64F;
             float meanError = errorSum / 64F;
-            int dcStep = Av1QuantizationLookup.GetDcQuant(this.blockQIndex, 0, this.bitDepth) >> (this.bitDepth.GetBitCount() - 8);
+            int dcStep = Av1QuantizationLookup.GetDcQuant(this.state.BlockQIndex, 0, this.state.BitDepth) >> (this.state.BitDepth.GetBitCount() - 8);
             InlineArray16<float> featureStorage = default;
             Span<float> features = featureStorage;
             features[0] = meanError;
@@ -284,7 +336,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 MaximumPartitionLogitsBias,
                 scores);
 
-            Av1EncoderSpeedSettings.MaximumPartitionPrediction mode = this.picture.Parent.SpeedSettings.MaximumPartitionPredictionMode;
+            Av1EncoderSpeedSettings.MaximumPartitionPrediction mode = this.state.Picture.Parent.SpeedSettings.MaximumPartitionPredictionMode;
             int selected = 3;
             if (mode == Av1EncoderSpeedSettings.MaximumPartitionPrediction.Direct)
             {

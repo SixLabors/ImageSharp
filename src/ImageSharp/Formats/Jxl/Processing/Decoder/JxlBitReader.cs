@@ -6,165 +6,216 @@ using System.Buffers.Binary;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
 /// <summary>
-/// Represents a bitstream reader.
+/// Reads least-significant-bit-first JPEG XL fields from a caller-owned stream.
 /// </summary>
+/// <param name="stream">The stream bounded to the current codestream or section.</param>
+/// <remarks>
+/// Prefetch can advance the stream, but only reads and skips advance the logical bit position.
+/// The caller owns the stream and must keep it alive while using this reader.
+/// </remarks>
 internal class JxlBitReader(Stream stream)
 {
+    /// <summary>
+    /// The next unread bits, starting at bit zero.
+    /// </summary>
     private ulong buffer;
-    private uint bufferRemainingBits;
-    private int pointer;
 
     /// <summary>
-    /// Gets the total number of bits consumed.
+    /// The number of unread bits in the current buffer.
     /// </summary>
-    public long TotalBitsConsumed => ((long)this.pointer * 8) + (64 - this.bufferRemainingBits);
+    private int bufferRemainingBits;
 
     /// <summary>
-    /// Fetches a new buffer.
+    /// Prefetched bits following the current buffer.
     /// </summary>
-    private void RefillCore()
+    private ulong lookahead;
+
+    /// <summary>
+    /// The number of valid bits in the lookahead buffer.
+    /// </summary>
+    private int lookaheadBits;
+
+    /// <summary>
+    /// The number of bytes fetched from the stream.
+    /// </summary>
+    private long bytesFetched;
+
+    /// <summary>
+    /// Gets the number of bits consumed, excluding prefetched bits.
+    /// </summary>
+    public long TotalBitsConsumed => (this.bytesFetched * 8) - this.bufferRemainingBits - this.lookaheadBits;
+
+    /// <summary>
+    /// Reads up to one complete reservoir block, including streams that return short reads.
+    /// </summary>
+    /// <param name="value">The little-endian block, with unused high bits cleared.</param>
+    /// <param name="bits">The number of valid bits in the block.</param>
+    private void RefillCore(out ulong value, out int bits)
     {
-        Span<byte> temp = stackalloc byte[8];
-        int bytesRead = stream.Read(temp);
-        if (bytesRead == 8)
+        Span<byte> bytes = stackalloc byte[sizeof(ulong)];
+        int count = 0;
+
+        while (count < bytes.Length)
         {
-            this.buffer = BinaryPrimitives.ReadUInt64LittleEndian(temp);
-            this.bufferRemainingBits = 64u;
-            this.pointer += 8;
+            int read = stream.Read(bytes[count..]);
+
+            if (read == 0)
+            {
+                break;
+            }
+
+            count += read;
         }
-        else
+
+        // Stream.Read may return fewer bytes than requested without reaching EOF. Only a zero
+        // result ends the refill. Clear unused high bytes so no uninitialized stack data is read.
+        bytes[count..].Clear();
+        value = BinaryPrimitives.ReadUInt64LittleEndian(bytes);
+        bits = count * 8;
+        this.bytesFetched += count;
+    }
+
+    /// <summary>
+    /// Ensures that the requested field is buffered without consuming any bits.
+    /// </summary>
+    /// <param name="bits">The field width, from one to 64 bits.</param>
+    private void EnsureBits(int bits)
+    {
+        if (this.bufferRemainingBits == 0)
         {
-            if (bytesRead == 0)
-            {
-                throw new EndOfStreamException();
-            }
+            this.RefillCore(out this.buffer, out this.bufferRemainingBits);
+        }
 
-            ulong value = 0;
-            for (int i = 0; i < bytesRead; i++)
-            {
-                value |= (ulong)temp[i] << (8 * i);
-            }
+        if (bits > this.bufferRemainingBits && this.lookaheadBits == 0)
+        {
+            this.RefillCore(out this.lookahead, out this.lookaheadBits);
+        }
 
-            this.buffer = value;
-            this.bufferRemainingBits = (uint)(bytesRead * 8);
-            this.pointer += bytesRead;
+        // A short final block cannot satisfy a larger field. Preserve the buffered bits on
+        // failure; neither their count nor the logical position may wrap or advance.
+        if (bits > this.bufferRemainingBits + this.lookaheadBits)
+        {
+            throw new EndOfStreamException();
         }
     }
 
+    /// <summary>
+    /// Reads or peeks one field using the same reservoir and bit ordering.
+    /// </summary>
+    /// <param name="bits">The field width, from zero to 64 bits.</param>
+    /// <param name="peek">Whether to leave the logical position unchanged.</param>
+    /// <returns>The unsigned field value.</returns>
+    private ulong ReadBitsCore(int bits, bool peek)
+    {
+        if (bits == 0)
+        {
+            return 0;
+        }
+
+        this.EnsureBits(bits);
+
+        // Current bits occupy the low end. A field crossing the block boundary continues
+        // into lookahead. Keep both blocks until consumption so repeated peeks are identical.
+        ulong value = this.buffer;
+
+        if (bits > this.bufferRemainingBits)
+        {
+            value |= this.lookahead << this.bufferRemainingBits;
+        }
+
+        // This mask also handles a full 64-bit field. Shifting 1UL by 64 would wrap to bit zero.
+        value &= ulong.MaxValue >> (64 - bits);
+
+        if (peek)
+        {
+            return value;
+        }
+
+        if (bits < this.bufferRemainingBits)
+        {
+            this.buffer >>= bits;
+            this.bufferRemainingBits -= bits;
+        }
+        else
+        {
+            // Promote remaining lookahead bits after consuming the current block. The shift
+            // is at most 63: a crossing field always consumes at least one current-buffer bit.
+            int consumedLookahead = bits - this.bufferRemainingBits;
+            this.buffer = this.lookahead >> consumedLookahead;
+            this.bufferRemainingBits = this.lookaheadBits - consumedLookahead;
+            this.lookahead = 0;
+            this.lookaheadBits = 0;
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// Consumes zero padding up to the next byte boundary.
+    /// </summary>
+    /// <exception cref="InvalidImageContentException">The alignment bits are not zero.</exception>
     public void JumpToByteBoundary()
     {
-        uint remainder = (uint)(this.TotalBitsConsumed % 8);
+        int padding = (int)((8 - (this.TotalBitsConsumed & 7)) & 7);
 
-        if (remainder == 0)
+        if (this.ReadBits32((uint)padding) != 0)
         {
-            return;
-        }
-
-        if (this.ReadBits32(8u - remainder) != 0)
-        {
-            throw new InvalidDataException("Non-zero padding bits");
+            throw new InvalidImageContentException("JPEG XL byte-alignment padding is not zero.");
         }
     }
 
-    private void MaybeRefill()
+    /// <summary>
+    /// Reads an unsigned field of up to 32 bits.
+    /// </summary>
+    /// <param name="bits">The field width, from zero to 32 bits.</param>
+    /// <returns>The field value.</returns>
+    public virtual uint ReadBits32(uint bits) => (uint)this.ReadBitsCore((int)bits, false);
+
+    /// <summary>
+    /// Peeks an unsigned field of up to 32 bits without consuming it.
+    /// </summary>
+    /// <param name="bits">The field width, from zero to 32 bits.</param>
+    /// <returns>The field value.</returns>
+    public virtual uint PeekBits32(uint bits) => (uint)this.ReadBitsCore((int)bits, true);
+
+    /// <summary>
+    /// Skips the requested number of bits.
+    /// </summary>
+    /// <param name="bits">The number of bits to skip.</param>
+    public virtual void SkipBits32(uint bits) => this.SkipBits64(bits);
+
+    /// <summary>
+    /// Reads an unsigned field of up to 64 bits.
+    /// </summary>
+    /// <param name="bits">The field width, from zero to 64 bits.</param>
+    /// <returns>The field value.</returns>
+    public virtual ulong ReadBits64(ulong bits) => this.ReadBitsCore((int)bits, false);
+
+    /// <summary>
+    /// Peeks an unsigned field of up to 64 bits without consuming it.
+    /// </summary>
+    /// <param name="bits">The field width, from zero to 64 bits.</param>
+    /// <returns>The field value.</returns>
+    public virtual ulong PeekBits64(ulong bits) => this.ReadBitsCore((int)bits, true);
+
+    /// <summary>
+    /// Skips a bit range, including ranges longer than one reservoir block.
+    /// </summary>
+    /// <param name="bits">The number of bits to skip.</param>
+    public virtual void SkipBits64(ulong bits)
     {
-        if (this.bufferRemainingBits <= 0)
+        while (bits >= 64)
         {
-            this.RefillCore();
+            this.ReadBitsCore(64, false);
+            bits -= 64;
         }
+
+        this.ReadBitsCore((int)bits, false);
     }
 
-    private ulong ReadBits64Core(uint n, bool peek = false)
-    {
-        DebugGuard.MustBeLessThanOrEqualTo(n, 64u, nameof(n));
-        this.MaybeRefill();
-
-        if (n <= this.bufferRemainingBits)
-        {
-            ulong result = this.buffer & ((1UL << (int)n) - 1);
-
-            if (!peek)
-            {
-                this.buffer >>= (int)n;
-                this.bufferRemainingBits -= n;
-            }
-
-            return result;
-        }
-        else
-        {
-            uint bitsFromCurrent = this.bufferRemainingBits;
-            ulong part = this.buffer & ((1UL << (int)bitsFromCurrent) - 1);
-
-            this.buffer >>= (int)bitsFromCurrent;
-            this.bufferRemainingBits = 0;
-
-            this.RefillCore();
-
-            uint bitsFromNext = n - bitsFromCurrent;
-            ulong nextPart = this.buffer & ((1UL << (int)bitsFromNext) - 1);
-
-            if (!peek)
-            {
-                this.buffer >>= (int)bitsFromNext;
-                this.bufferRemainingBits -= bitsFromNext;
-            }
-
-            return part | (nextPart << (int)bitsFromCurrent);
-        }
-    }
-
-    private uint ReadBits32Core(uint n, bool peek = false)
-    {
-        DebugGuard.MustBeLessThanOrEqualTo(n, 32u, nameof(n));
-        this.MaybeRefill();
-
-        if (n <= this.bufferRemainingBits)
-        {
-            uint result = (uint)(this.buffer & ((1UL << (int)n) - 1));
-
-            if (!peek)
-            {
-                this.buffer >>= (int)n;
-                this.bufferRemainingBits -= n;
-            }
-
-            return result;
-        }
-        else
-        {
-            uint bitsFromCurrent = this.bufferRemainingBits;
-            uint part = (uint)(this.buffer & ((1UL << (int)bitsFromCurrent) - 1));
-
-            this.buffer >>= (int)bitsFromCurrent;
-            this.bufferRemainingBits = 0;
-
-            this.RefillCore();
-
-            uint bitsFromNext = n - bitsFromCurrent;
-            uint nextPart = (uint)(this.buffer & ((1UL << (int)bitsFromNext) - 1));
-
-            if (!peek)
-            {
-                this.buffer >>= (int)bitsFromNext;
-                this.bufferRemainingBits -= bitsFromNext;
-            }
-
-            return part | (nextPart << (int)bitsFromCurrent);
-        }
-    }
-
-    public virtual uint ReadBits32(uint bits) => this.ReadBits32Core(bits, peek: false);
-
-    public virtual uint PeekBits32(uint bits) => this.ReadBits32Core(bits, peek: true);
-
-    public virtual void SkipBits32(uint bits) => _ = this.ReadBits32(bits);
-
-    public virtual ulong ReadBits64(ulong bits) => this.ReadBits64Core((uint)bits, peek: false);
-
-    public virtual ulong PeekBits64(ulong bits) => this.ReadBits64Core((uint)bits, peek: true);
-
-    public virtual void SkipBits64(ulong bits) => _ = this.ReadBits64(bits);
-
-    public virtual bool ReadBoolean() => this.ReadBits32Core(1, peek: false) == 1;
+    /// <summary>
+    /// Reads the next Boolean field.
+    /// </summary>
+    /// <returns>Whether the next bit is one.</returns>
+    public virtual bool ReadBoolean() => this.ReadBits32(1) != 0;
 }

@@ -13,6 +13,71 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 
 public class FieldsTests
 {
+    /// <summary>
+    /// Checks that probing an incomplete header reports failure without accepting default field status.
+    /// </summary>
+    [Fact]
+    public void CanRead_RejectsIncompleteHeader()
+    {
+        using MemoryStream input = new();
+        JxlBitReader reader = new(input);
+
+        Assert.False(JxlBundle.CanRead(reader, new OldBundle()));
+    }
+
+    /// <summary>
+    /// Checks that unknown extension data is skipped using its full declared bit length.
+    /// </summary>
+    [Fact]
+    public void ReadExtensions_SkipsRemainingPayload()
+    {
+        // U64 flag value 1 uses six bits. U64 payload length 5 uses six more bits.
+        // Five payload bits, 10101, follow. These bytes are fixed LSB-first field data.
+        using MemoryStream input = new([0x41, 0x54, 0x01]);
+        JxlBitReader reader = new(input);
+        JxlReadVisitor visitor = new(reader);
+        ulong extensions = 0;
+
+        Assert.True(visitor.BeginExtensions(ref extensions));
+        Assert.Equal(1UL, extensions);
+        Assert.Equal(12, reader.TotalBitsConsumed);
+        Assert.Equal(1U, reader.ReadBits32(2));
+        Assert.True(visitor.EndExtensions());
+        Assert.Equal(17, reader.TotalBitsConsumed);
+    }
+
+    /// <summary>
+    /// Checks that extension lengths cannot wrap their accumulated UInt64 bit budget.
+    /// </summary>
+    [Fact]
+    public void ReadExtensions_RejectsAccumulatedLengthOverflow()
+    {
+        // Flag value 3 selects two extensions. Their lengths are UInt64.MaxValue and one.
+        // A wrapped sum of zero would incorrectly accept the header without skipping its payload.
+        using MemoryStream input = new([0xC9, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00]);
+        JxlReadVisitor visitor = new(new JxlBitReader(input));
+        ulong extensions = 0;
+
+        Assert.False(visitor.BeginExtensions(ref extensions));
+        Assert.Equal(3UL, extensions);
+    }
+
+    /// <summary>
+    /// Checks that extension ends fit the reader's signed bit-position range.
+    /// </summary>
+    [Fact]
+    public void ReadExtensions_RejectsUnrepresentableEnd()
+    {
+        // One extension declares UInt64.MaxValue payload bits. Its length fits UInt64,
+        // but adding the already-consumed header cannot produce an Int64 end position.
+        using MemoryStream input = new([0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F]);
+        JxlReadVisitor visitor = new(new JxlBitReader(input));
+        ulong extensions = 0;
+
+        Assert.True(visitor.BeginExtensions(ref extensions));
+        Assert.False(visitor.EndExtensions());
+    }
+
     private sealed class OldBundle : IJxlFields
     {
         private uint oldSmall;

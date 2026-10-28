@@ -98,16 +98,24 @@ internal static class JxlBundle
     }
 
     /// <summary>
-    /// Tries to read the fields from a bit-reader.
+    /// Reads fields and reports whether they are complete and valid.
     /// </summary>
     /// <param name="reader">The bit-reader.</param>
     /// <param name="fields">The fields.</param>
-    /// <returns>Status of the read operation.</returns>
+    /// <returns>Whether all fields are complete and valid.</returns>
+    /// <remarks>The operation advances the reader and updates the supplied fields. It does not restore either on failure.</remarks>
     public static bool CanRead(JxlBitReader reader, IJxlFields fields)
     {
         JxlReadVisitor visitor = new(reader);
-        _ = visitor.Visit(fields);
-        return visitor.OK;
+
+        try
+        {
+            return visitor.Visit(fields) && visitor.OK;
+        }
+        catch (EndOfStreamException)
+        {
+            return false;
+        }
     }
 
     public static bool Write(IJxlFields fields, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput auxOutput)

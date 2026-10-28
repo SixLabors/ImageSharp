@@ -4,7 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.ChromaFromLuma;
 
 internal static class JxlChromaFromLumaEncoder
 {
-    public static JxlImageF InitializeDcStorage(Configuration configuration, int numBlocks)
+    public static JxlPlane<float> InitializeDcStorage(Configuration configuration, int numBlocks)
     {
-        JxlImageF dcValues = new(configuration, JxlMath.RoundUpTo(numBlocks, Vector<float>.Count), 4);
+        JxlPlane<float> dcValues = new(configuration, JxlMath.RoundUpTo(numBlocks, Vector<float>.Count), 4);
 
         for (int y = 0; y < 4; y++)
         {
@@ -126,7 +126,20 @@ internal static class JxlChromaFromLumaEncoder
         return (int)Math.Clamp(MathF.Round(x), -128.0f, 127.0f);
     }
 
-    public static void ComputeTile(JxlImage3F opsin, Rectangle opsinRect, JxlDequantMatrices dequant, JxlAcStrategyImage? acStrategy, JxlImageI? rawQuantField, JxlQuantizer quantizer, Rectangle rect, bool fast, bool useDct8, JxlImageSB mapX, JxlImageSB mapB, JxlImageF dcValues, Span<float> mem)
+    public static void ComputeTile(
+        JxlImage3<float> opsin,
+        Rectangle opsinRect,
+        JxlDequantMatrices dequant,
+        JxlAcStrategyImage? acStrategy,
+        JxlPlane<int>? rawQuantField,
+        JxlQuantizer quantizer,
+        Rectangle rect,
+        bool fast,
+        bool useDct8,
+        JxlPlane<sbyte> mapX,
+        JxlPlane<sbyte> mapB,
+        JxlPlane<float> dcValues,
+        Span<float> mem)
     {
         int widthBlocks = opsinRect.Width / JxlFrameDimensions.BlockDimensions;
         const float distanceMultiplierAC = 1e-9f;

@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using Microsoft.Diagnostics.Runtime.Interop;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
@@ -20,16 +20,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 /// </summary>
 public class ButteraugliTests
 {
-    private static JxlImage3F SinglePixelImage(float r, float g, float b)
+    private static JxlImage3<float> SinglePixelImage(float r, float g, float b)
     {
-        JxlImage3F img = new(TestEnvironment.Configuration, 1, 1);
+        JxlImage3<float> img = new(TestEnvironment.Configuration, 1, 1);
         img.PlaneRow(0, 0)[0] = r;
         img.PlaneRow(1, 0)[0] = r;
         img.PlaneRow(2, 0)[0] = r;
         return img;
     }
 
-    private static void AddUniformNoise(JxlImage3F img, float d, ulong seed)
+    private static void AddUniformNoise(JxlImage3<float> img, float d, ulong seed)
     {
         Rng generator = new(seed);
 
@@ -47,7 +47,7 @@ public class ButteraugliTests
         }
     }
 
-    private static void AddEdge(JxlImage3F image, float d, int x0, int y0)
+    private static void AddEdge(JxlImage3<float> image, float d, int x0, int y0)
     {
         int h = Math.Min(image.YSize - y0, 100);
         int w = Math.Min(image.XSize - x0, 5);
@@ -66,11 +66,11 @@ public class ButteraugliTests
     [Fact]
     public void TestSinglePixel()
     {
-        JxlImage3F rgb0 = SinglePixelImage(0.5f, 0.5f, 0.5f);
-        JxlImage3F rgb1 = SinglePixelImage(0.5f, 0.49f, 0.5f);
+        JxlImage3<float> rgb0 = SinglePixelImage(0.5f, 0.5f, 0.5f);
+        JxlImage3<float> rgb1 = SinglePixelImage(0.5f, 0.49f, 0.5f);
 
         ButteraugliParameters butteraugliParameters = new();
-        JxlImageF diffmap = new();
+        JxlPlane<float> diffmap = new();
 
         Assert.True(
             Butteraugli.ButteraugliInterface(TestEnvironment.Configuration, rgb0, rgb1, butteraugliParameters, diffmap, out double diffval),
@@ -78,7 +78,7 @@ public class ButteraugliTests
 
         Assert.True(new TolerantMath(0.5).AreEqual(diffval, 2.5), $"Diff value isn't even close to 2.5 (it's {diffval})");
 
-        JxlImageF diffmap2 = new();
+        JxlPlane<float> diffmap2 = new();
         Assert.True(Butteraugli.ButteraugliInterfaceInPlace(
             TestEnvironment.Configuration,
             rgb0,
@@ -103,15 +103,15 @@ public class ButteraugliTests
         JxlTestFrame frame = img.AddFrame();
         frame.RandomFill(777);
 
-        JxlImage3F rgb0 = GetColorImage(img.Ppf);
-        JxlImage3F rgb1 = new(TestEnvironment.Configuration, xSize, ySize);
+        JxlImage3<float> rgb0 = GetColorImage(img.Ppf);
+        JxlImage3<float> rgb1 = new(TestEnvironment.Configuration, xSize, ySize);
         JxlImageOperations.CopyImage(rgb0, rgb1);
 
         AddUniformNoise(rgb1, 0.02f, 7777uL);
         AddEdge(rgb1, 0.1f, xSize / 2, xSize / 2);
 
         ButteraugliParameters butteraugliParameters = new();
-        JxlImageF diffmap = new();
+        JxlPlane<float> diffmap = new();
         Assert.True(
             Butteraugli.ButteraugliInterface(TestEnvironment.Configuration,, rgb0, rgb1, butteraugliParameters, diffmap, out double diffval),
             "Couldn't initialize Butteraugli");
@@ -120,7 +120,7 @@ public class ButteraugliTests
         Assert.True(new TolerantMath(0.5).AreEqual(diffval, 4.0), $"Diff isn't even close to 4.0 (diffval={diffval})");
         Assert.True(new TolerantMath(0.5).AreEqual(distp, 1.5), $"Distance isn't even close to 4.0 (distp={distp})");
 
-        JxlImageF diffmap2 = new();
+        JxlPlane<float> diffmap2 = new();
         Assert.True(
             Butteraugli.ButteraugliInterfaceInPlace(
                 TestEnvironment.Configuration,

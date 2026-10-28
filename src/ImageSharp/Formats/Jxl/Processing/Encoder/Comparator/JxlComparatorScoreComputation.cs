@@ -4,14 +4,14 @@
 using System.Numerics.Tensors;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Comparator;
 
 internal static class JxlComparatorScoreComputation
 {
-    private static void AlphaBlend(JxlImage3F input, int c, float backgroundLinear, JxlImageF alpha, JxlImage3F output)
+    private static void AlphaBlend(JxlImage3<float> input, int c, float backgroundLinear, JxlPlane<float> alpha, JxlImage3<float> output)
     {
         float background = (float)JxlGammaCorrect.LinearToSRgb8Direct(backgroundLinear);
 
@@ -59,7 +59,13 @@ internal static class JxlComparatorScoreComputation
         }
     }
 
-    private static void ComputeScoreImpl(Configuration configuration, JxlImageBundle rgb0, JxlImageBundle rgb1, JxlComparator comparator, JxlImageF? diffMap, out float score)
+    private static void ComputeScoreImpl(
+        Configuration configuration,
+        JxlImageBundle rgb0,
+        JxlImageBundle rgb1,
+        JxlComparator comparator,
+        JxlPlane<float>? diffMap,
+        out float score)
     {
         comparator.SetReferenceImage(rgb0);
         comparator.CompareWith(configuration, rgb1, diffMap, out score);
@@ -72,7 +78,7 @@ internal static class JxlComparatorScoreComputation
         JxlComparator comparator,
         JxlCmsInterface cms,
         out float score,
-        JxlImageF? diffMap = null,
+        JxlPlane<float>? diffMap = null,
         bool ignoreAlpha = false)
     {
         JxlImageMetadata metadata0 = rgb0.Metadata.Copy();
@@ -110,7 +116,7 @@ internal static class JxlComparatorScoreComputation
                 out score);
         }
 
-        JxlImageF diffMapBlack = new();
+        JxlPlane<float> diffMapBlack = new();
         float distBlack;
         {
             const float black = 0.0f;
@@ -130,7 +136,7 @@ internal static class JxlComparatorScoreComputation
                 out distBlack);
         }
 
-        JxlImageF diffMapWhite = new();
+        JxlPlane<float> diffMapWhite = new();
         float distWhite;
         {
             const float white = 1.0f;
@@ -155,7 +161,7 @@ internal static class JxlComparatorScoreComputation
             int xSize = rgb0.XSize;
             int ySize = rgb0.YSize;
 
-            JxlImageF outputDiffMap = new(
+            JxlPlane<float> outputDiffMap = new(
                 configuration,
                 xSize,
                 ySize);

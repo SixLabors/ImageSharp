@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
@@ -20,7 +19,7 @@ internal static class JxlConvolve
     /// Weighted sum of 1x5 pixels around ix, iy with [wx2, wx1, wx0, wx1, wx2].
     /// </summary>
     public static float WeightedSumBorder(
-        JxlImageF input,
+        JxlPlane<float> input,
         Func<long, long, int> wrapY,
         long ix,
         long iy,
@@ -46,7 +45,7 @@ internal static class JxlConvolve
     }
 
     public static Vector<float> WeightedSum(
-        JxlImageF input,
+        JxlPlane<float> input,
         Func<long, long, int> wrapY,
         int ix,
         long iy,
@@ -71,7 +70,7 @@ internal static class JxlConvolve
         return sum2 + (sum1 + sum0);
     }
 
-    public static float Symmetric5Border(JxlImageF input, Func<long, long, int> wrapY, long ix, long iy, ref JxlWeightsSymmetric5 weights)
+    public static float Symmetric5Border(JxlPlane<float> input, Func<long, long, int> wrapY, long ix, long iy, ref JxlWeightsSymmetric5 weights)
     {
         float w0 = weights.GetCVector()[0];
         float w1 = weights.GetRVector()[0];
@@ -95,7 +94,7 @@ internal static class JxlConvolve
     }
 
     public static void Symmetric5Interior(
-        JxlImageF image,
+        JxlPlane<float> image,
         int ix,
         Func<long, long, int> wrapY,
         int rix,
@@ -123,7 +122,7 @@ internal static class JxlConvolve
     }
 
     public static void Symmetric5Row(
-        JxlImageF image,
+        JxlPlane<float> image,
         Func<long, long, int> wrapY,
         in Rectangle rect,
         long iy,
@@ -187,7 +186,7 @@ internal static class JxlConvolve
     }
 
     public static float SlowSymmetric3Pixel(
-        JxlImageF image,
+        JxlPlane<float> image,
         int x,
         int y,
         int width,
@@ -220,7 +219,7 @@ internal static class JxlConvolve
     }
 
     public static void SlowSymmetric3Row(
-        JxlImageF image,
+        JxlPlane<float> image,
         int y,
         int width,
         int height,
@@ -303,7 +302,7 @@ internal static class JxlConvolve
     }
 
     public static float SlowSeparablePixel(
-        JxlImageF image,
+        JxlPlane<float> image,
         Rectangle rect,
         int x,
         int y,
@@ -334,10 +333,10 @@ internal static class JxlConvolve
     }
 
     public static void SlowSeparable(
-        JxlImageF input,
+        JxlPlane<float> input,
         Rectangle inputRect,
         JxlWeightsSeparable5 weights,
-        JxlImageF output,
+        JxlPlane<float> output,
         Rectangle outputRect,
         int radius)
     {
@@ -363,10 +362,10 @@ internal static class JxlConvolve
     }
 
     public static void SlowSeparable5(
-        JxlImageF input,
+        JxlPlane<float> input,
         Rectangle inputRect,
         JxlWeightsSeparable5 weights,
-        JxlImageF output,
+        JxlPlane<float> output,
         Rectangle outputRect)
         => SlowSeparable(input, inputRect, weights, output, outputRect, 2);
 

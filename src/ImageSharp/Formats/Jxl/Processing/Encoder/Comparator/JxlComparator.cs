@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Comparator;
@@ -22,6 +22,6 @@ internal abstract class JxlComparator
     public abstract void CompareWith(
         Configuration configuration,
         JxlImageBundle actual,
-        JxlImageF? diffMap,
+        JxlPlane<float>? diffMap,
         out float score);
 }

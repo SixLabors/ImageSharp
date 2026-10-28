@@ -4,7 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
@@ -125,10 +125,10 @@ internal static class JxlEntropyCoder
         ReadOnlyMemory<int>[] acRows,
         JxlAcStrategyImage acStrategy,
         JxlYCbCrChromaSubsampling cs,
-        JxlImage3I tmpNumNzeroes,
+        JxlImage3<int> tmpNumNzeroes,
         List<JxlToken> output,
-        JxlImageB qdc,
-        JxlImageI qf,
+        JxlPlane<byte> qdc,
+        JxlPlane<int> qf,
         JxlBlockContextMap blockCtxMap)
     {
         int xsizeBlocks = rect.Width;

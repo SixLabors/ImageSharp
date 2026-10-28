@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
@@ -36,7 +36,13 @@ internal class JxlAcStrategyHeuristics(Configuration configuration, JxlCompressi
         this.qMemoryOwner?.Dispose();
     }
 
-    public bool Initialize(JxlImage3F src, Rectangle rectIn, JxlImageF quantField, JxlImageF mask, JxlImageF mask1x1, JxlDequantMatrices matrices)
+    public bool Initialize(
+        JxlImage3<float> src,
+        Rectangle rectIn,
+        JxlPlane<float> quantField,
+        JxlPlane<float> mask,
+        JxlPlane<float> mask1x1,
+        JxlDequantMatrices matrices)
     {
         this.Config.Dequant = matrices;
 

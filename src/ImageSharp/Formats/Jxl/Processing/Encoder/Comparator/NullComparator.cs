@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Comparator;
@@ -15,7 +15,7 @@ internal sealed class NullComparator : JxlComparator
 
     public override float BadQualityScore => 0;
 
-    public override void CompareWith(Configuration configuration, JxlImageBundle actual, JxlImageF? diffMap, out float score) => score = 0;
+    public override void CompareWith(Configuration configuration, JxlImageBundle actual, JxlPlane<float>? diffMap, out float score) => score = 0;
 
     public override void SetReferenceImage(Configuration configuration, JxlImageBundle reference)
     {

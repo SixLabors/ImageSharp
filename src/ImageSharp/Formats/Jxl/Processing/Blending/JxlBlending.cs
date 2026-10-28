@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Blending;
@@ -55,7 +55,7 @@ internal static class JxlBlending
         bool hasAlpha = extraChannelInfo.Any(x => x.Type == JxlExtraChannel.Alpha);
 
         int numEc = extraChannelInfo.Count;
-        using JxlImageF tmp = new(configuration, xsize, 3 + numEc);
+        using JxlPlane<float> tmp = new(configuration, xsize, 3 + numEc);
 
         for (int i = 0; i < numEc; i++)
         {

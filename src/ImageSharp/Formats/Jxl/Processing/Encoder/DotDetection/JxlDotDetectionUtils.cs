@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using Matrix2x2 = System.Runtime.CompilerServices.InlineArray2<System.Runtime.CompilerServices.InlineArray2<double>>;
@@ -31,13 +31,13 @@ internal static class JxlDotDetectionUtils
     /// <param name="original">Original image</param>
     /// <param name="smooth">Smooth image</param>
     /// <returns>Sum of Square Differences coefficients</returns>
-    public static JxlImageF Ssd(Configuration configuration, JxlImage3F original, JxlImage3F smooth)
+    public static JxlPlane<float> Ssd(Configuration configuration, JxlImage3<float> original, JxlImage3<float> smooth)
     {
         Vector<float> colorCoef0 = Vector<float>.Zero;
         Vector<float> colorCoef1 = Vector.Create(10.0f);
         Vector<float> colorCoef2 = Vector<float>.Zero;
 
-        JxlImageF sumOfSquares = new(configuration, original.XSize, original.YSize);
+        JxlPlane<float> sumOfSquares = new(configuration, original.XSize, original.YSize);
 
         _ = Parallel.For(0, original.YSize, configuration.GetParallelOptions(), y =>
         {
@@ -177,7 +177,7 @@ internal static class JxlDotDetectionUtils
             highY - lowY + 1);
     }
 
-    public static JxlGaussianEllipse? FitGaussianFast(JxlConnectedComponent cc, Rectangle rect, JxlImage3F img, JxlImage3F background)
+    public static JxlGaussianEllipse? FitGaussianFast(JxlConnectedComponent cc, Rectangle rect, JxlImage3<float> img, JxlImage3<float> background)
     {
         const bool leastSqIntensity = true;
         const double epsilon = 1e-6;
@@ -346,7 +346,12 @@ internal static class JxlDotDetectionUtils
         return ans;
     }
 
-    public static void ComputeDotLossless(ref JxlGaussianEllipse ellipse, JxlConnectedComponent cc, Rectangle rect, JxlImage3F img, JxlImage3F background)
+    public static void ComputeDotLossless(
+        ref JxlGaussianEllipse ellipse,
+        JxlConnectedComponent cc,
+        Rectangle rect,
+        JxlImage3<float> img,
+        JxlImage3<float> background)
     {
         const int rectBounds = 2;
         const double intensityR = 1.0;
@@ -441,7 +446,7 @@ internal static class JxlDotDetectionUtils
         ellipse.RidgeLoss = ellipse.L2Loss + ridgeTerm;
     }
 
-    public static JxlGaussianEllipse? FitGaussian(JxlConnectedComponent cc, Rectangle rect, JxlImage3F img, JxlImage3F background)
+    public static JxlGaussianEllipse? FitGaussian(JxlConnectedComponent cc, Rectangle rect, JxlImage3<float> img, JxlImage3<float> background)
     {
         JxlGaussianEllipse? ellipseOrNull = FitGaussianFast(cc, rect, img, background);
 
@@ -473,7 +478,7 @@ internal static class JxlDotDetectionUtils
         return ellipse;
     }
 
-    public static bool ExtractComponent(Rectangle rect, JxlImageF img, List<Point> pixels, Point seed, double threshold)
+    public static bool ExtractComponent(Rectangle rect, JxlPlane<float> img, List<Point> pixels, Point seed, double threshold)
     {
         Span<Point> neighbors =
         [
@@ -522,9 +527,9 @@ internal static class JxlDotDetectionUtils
         return true;
     }
 
-    public static JxlImageF? ComputeEnergyImage(Configuration configuration, JxlImage3F original, ref JxlImage3F smooth)
+    public static JxlPlane<float>? ComputeEnergyImage(Configuration configuration, JxlImage3<float> original, ref JxlImage3<float> smooth)
     {
-        using JxlImage3F forig = new(configuration, original.XSize, original.YSize);
+        using JxlImage3<float> forig = new(configuration, original.XSize, original.YSize);
         smooth = new(configuration, original.XSize, original.YSize);
 
         Rectangle rect = original.GetRectangle();
@@ -553,11 +558,18 @@ internal static class JxlDotDetectionUtils
         return Ssd(configuration, forig, smooth);
     }
 
-    public static List<JxlConnectedComponent> FindCC(Configuration configuration, JxlImageF energy, Rectangle rect, double tLow, double tHigh, int maxWindow, double minScore)
+    public static List<JxlConnectedComponent> FindCC(
+        Configuration configuration,
+        JxlPlane<float> energy,
+        Rectangle rect,
+        double tLow,
+        double tHigh,
+        int maxWindow,
+        double minScore)
     {
         const int extraRect = 4;
 
-        using JxlImageF img = new(configuration, energy.XSize, energy.YSize);
+        using JxlPlane<float> img = new(configuration, energy.XSize, energy.YSize);
 
         if (!JxlImageOperations.CopyImage(energy, img))
         {
@@ -609,15 +621,15 @@ internal static class JxlDotDetectionUtils
 
     public static List<JxlPatchInfo> DetectGaussianEllipses(
         Configuration configuration,
-        JxlImage3F opsin,
+        JxlImage3<float> opsin,
         Rectangle rect,
         JxlGaussianDetectParameters parameters,
         JxlEllipseQuantParameters qparameters)
     {
         List<JxlPatchInfo> dots = [];
 
-        JxlImage3F smooth = new(configuration, opsin.XSize, opsin.YSize);
-        JxlImageF energy = ComputeEnergyImage(configuration, opsin, ref smooth) ?? throw new InvalidOperationException("Failed to compute energy image");
+        JxlImage3<float> smooth = new(configuration, opsin.XSize, opsin.YSize);
+        JxlPlane<float> energy = ComputeEnergyImage(configuration, opsin, ref smooth) ?? throw new InvalidOperationException("Failed to compute energy image");
         List<JxlConnectedComponent> components = FindCC(configuration, energy, rect, parameters.TLow, parameters.THigh, parameters.MaxWindowSize, parameters.MinScore);
         int numCC = Math.Min(parameters.MaxCC, (components.Count * parameters.PercCC) / 100);
 

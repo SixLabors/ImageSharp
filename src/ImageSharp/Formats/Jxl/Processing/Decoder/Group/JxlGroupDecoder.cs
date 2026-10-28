@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
@@ -698,7 +697,7 @@ internal static class JxlGroupDecoder
                 JxlRenderPipelineBuffer buffer = renderPipelineInput.GetBuffer(c);
 
                 Rectangle dstRect = buffer.Bounds;
-                JxlImageF upsamplingDst = buffer.Image;
+                JxlPlane<float> upsamplingDst = buffer.Image;
 
                 if (!dstRect.IsInside(upsamplingDst.GetRectangle()))
                 {

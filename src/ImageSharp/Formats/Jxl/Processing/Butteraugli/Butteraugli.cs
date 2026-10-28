@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -433,7 +432,7 @@ internal static class Butteraugli
         valY = y * yMul;
     }
 
-    public static void XybLowFrequencyToValues(JxlImage3F xybLf)
+    public static void XybLowFrequencyToValues(JxlImage3<float> xybLf)
     {
         int lanes = Vector<float>.Count;
 
@@ -524,9 +523,9 @@ internal static class Butteraugli
 
     public static bool SeparateLFAndMF(
         Configuration configuration,
-        JxlImage3F xyb,
-        JxlImage3F lf,
-        JxlImage3F mf,
+        JxlImage3<float> xyb,
+        JxlImage3<float> lf,
+        JxlImage3<float> mf,
         ButteraugliBlurTemp blurTemp)
     {
         const float sigmaLf = 7.15593339443f;
@@ -556,7 +555,7 @@ internal static class Butteraugli
 
     public static bool SeparateMfAndHf(
         Configuration configuration,
-        JxlImage3F mf,
+        JxlImage3<float> mf,
         ref InlineArray2<JxlPlane<float>> hf,
         ButteraugliBlurTemp blurTemp)
     {
@@ -758,15 +757,15 @@ internal static class Butteraugli
     public static bool SeparateFrequencies(
         Configuration configuration,
         ButteraugliBlurTemp blurTemp,
-        JxlImage3F xyb,
+        JxlImage3<float> xyb,
         ButteraugliPsychoImage ps)
     {
-        ps.Lf = new JxlImage3F(
+        ps.Lf = new JxlImage3<float>(
             configuration,
             xyb.XSize,
             xyb.YSize);
 
-        ps.Mf = new JxlImage3F(
+        ps.Mf = new JxlImage3<float>(
             configuration,
             xyb.XSize,
             xyb.YSize);
@@ -1419,13 +1418,13 @@ internal static class Butteraugli
     }
 
     public static bool MaltaDiffMap(
-        JxlImageF lum0,
-        JxlImageF lum1,
+        JxlPlane<float> lum0,
+        JxlPlane<float> lum1,
         float w0Gt1,
         float w0Lt1,
         float norm1,
-        JxlImageF diffs,
-        JxlImageF blockDiffAc)
+        JxlPlane<float> diffs,
+        JxlPlane<float> blockDiffAc)
     {
         const float len = 3.75f;
         const float mulli = 0.39905817637f;
@@ -1504,10 +1503,10 @@ internal static class Butteraugli
     }
 
     public static void DiffPrecompute(
-        JxlImageF xyb,
+        JxlPlane<float> xyb,
         float mul,
         float biasArg,
-        JxlImageF output)
+        JxlPlane<float> output)
     {
         int width = xyb.XSize;
         int height = xyb.YSize;
@@ -1557,7 +1556,7 @@ internal static class Butteraugli
         }
     }
 
-    public static void FuzzyErosion(JxlImageF from, JxlImageF to)
+    public static void FuzzyErosion(JxlPlane<float> from, JxlPlane<float> to)
     {
         int width = from.XSize;
         int height = from.YSize;
@@ -1656,11 +1655,11 @@ internal static class Butteraugli
 
     public static bool Mask(
         Configuration configuration,
-        JxlImageF mask0,
-        JxlImageF mask1,
+        JxlPlane<float> mask0,
+        JxlPlane<float> mask1,
         ButteraugliBlurTemp blurTemp,
-        JxlImageF? diffAc,
-        out JxlImageF mask)
+        JxlPlane<float>? diffAc,
+        out JxlPlane<float> mask)
     {
         int width = mask0.XSize;
         int height = mask0.YSize;
@@ -1671,10 +1670,10 @@ internal static class Butteraugli
         const float bias = 12.61050594197f;
         const float radius = 2.7f;
 
-        JxlImageF diff0 = new(configuration, width, height);
-        JxlImageF diff1 = new(configuration, width, height);
-        JxlImageF blurred0 = new(configuration, width, height);
-        JxlImageF blurred1 = new(configuration, width, height);
+        JxlPlane<float> diff0 = new(configuration, width, height);
+        JxlPlane<float> diff1 = new(configuration, width, height);
+        JxlPlane<float> blurred0 = new(configuration, width, height);
+        JxlPlane<float> blurred1 = new(configuration, width, height);
 
         DiffPrecompute(mask0, mul, bias, diff0);
         DiffPrecompute(mask1, mul, bias, diff1);
@@ -1723,11 +1722,11 @@ internal static class Butteraugli
         int width,
         int height,
         ButteraugliBlurTemp blurTemp,
-        JxlImageF mask,
-        out JxlImageF? diffAc)
+        JxlPlane<float> mask,
+        out JxlPlane<float>? diffAc)
     {
-        JxlImageF mask0 = new(configuration, width, height);
-        JxlImageF mask1 = new(configuration, width, height);
+        JxlPlane<float> mask0 = new(configuration, width, height);
+        JxlPlane<float> mask1 = new(configuration, width, height);
 
         CombineChannelsForMasking(
             pi0.Hf,
@@ -1781,11 +1780,11 @@ internal static class Butteraugli
         => (color[0] * mask) + (color[1] * mask) + (color[2] * mask);
 
     public static bool CombineChannelsToDiffmap(
-        JxlImageF mask,
-        JxlImage3F blockDiffDc,
+        JxlPlane<float> mask,
+        JxlImage3<float> blockDiffDc,
         JxlImage3<float> blockDiffAc,
         float xmul,
-        JxlImageF result)
+        JxlPlane<float> result)
     {
         if (!JxlImageOperations.SameSize(mask, result))
         {
@@ -2001,11 +2000,11 @@ internal static class Butteraugli
 
     public static bool OpsinDynamicsImage(
         Configuration configuration,
-        JxlImage3F rgb,
+        JxlImage3<float> rgb,
         in ButteraugliParameters parameters,
-        JxlImage3F blurred,
+        JxlImage3<float> blurred,
         ButteraugliBlurTemp blurTemp,
-        JxlImage3F xyb)
+        JxlImage3<float> xyb)
     {
         if (blurred == null)
         {
@@ -2108,17 +2107,17 @@ internal static class Butteraugli
 
     public static bool ButteraugliDiffmapInPlace(
         Configuration configuration,
-        JxlImage3F image0,
-        JxlImage3F image1,
+        JxlImage3<float> image0,
+        JxlImage3<float> image1,
         in ButteraugliParameters parameters,
-        JxlImageF diffmap)
+        JxlPlane<float> diffmap)
     {
         int xSize = image0.XSize;
         int ySize = image0.YSize;
 
         using ButteraugliBlurTemp blurTemp = new();
 
-        using (JxlImage3F temp = new(configuration, xSize, ySize))
+        using (JxlImage3<float> temp = new(configuration, xSize, ySize))
         {
             if (!OpsinDynamicsImage(configuration, image0, parameters, temp, blurTemp, image0))
             {
@@ -2131,12 +2130,12 @@ internal static class Butteraugli
             }
         }
 
-        using JxlPlane<float> blockDiffDc = JxlImageF.Create(configuration, xSize, ySize);
+        using JxlPlane<float> blockDiffDc = JxlPlane<float>.Create(configuration, xSize, ySize);
         blockDiffDc.Clear();
 
         // LF/DC
-        using (JxlImage3F lf0 = new(configuration, xSize, ySize))
-        using (JxlImage3F lf1 = new(configuration, xSize, ySize))
+        using (JxlImage3<float> lf0 = new(configuration, xSize, ySize))
+        using (JxlImage3<float> lf1 = new(configuration, xSize, ySize))
         {
             if (!SeparateLFAndMF(configuration, image0, lf0, image0, blurTemp))
             {
@@ -2171,10 +2170,10 @@ internal static class Butteraugli
             return false;
         }
 
-        using JxlImageF blockDiffAc = new(configuration, xSize, ySize);
+        using JxlPlane<float> blockDiffAc = new(configuration, xSize, ySize);
         blockDiffAc.Clear();
 
-        using (JxlImageF diffs = new(configuration, xSize, ySize))
+        using (JxlPlane<float> diffs = new(configuration, xSize, ySize))
         {
             if (!MaltaDiffMap(
                     true,
@@ -2231,7 +2230,7 @@ internal static class Butteraugli
 
         float hfAsymmetry = parameters.HfAsymmetry;
 
-        using (JxlImageF diffs = new(configuration, xSize, ySize))
+        using (JxlPlane<float> diffs = new(configuration, xSize, ySize))
         {
             _ = MaltaDiffMap(
                 false,
@@ -2287,9 +2286,9 @@ internal static class Butteraugli
         }
 
         // Mask
-        using JxlImageF mask = new(configuration, xSize, ySize);
-        using JxlImageF mask0 = new(configuration, xSize, ySize);
-        using JxlImageF mask1 = new(configuration, xSize, ySize);
+        using JxlPlane<float> mask = new(configuration, xSize, ySize);
+        using JxlPlane<float> mask0 = new(configuration, xSize, ySize);
+        using JxlPlane<float> mask1 = new(configuration, xSize, ySize);
 
         CombineChannelsForMasking(hf0, uhf0, mask0);
         CombineChannelsForMasking(hf1, uhf1, mask1);
@@ -2297,7 +2296,7 @@ internal static class Butteraugli
         DeallocateHFAndUHF(hf0, uhf0);
         DeallocateHFAndUHF(hf1, uhf1);
 
-        if (!Mask(configuration, mask0, mask1, blurTemp, mask, out JxlImageF newBlockDiffAc))
+        if (!Mask(configuration, mask0, mask1, blurTemp, mask, out JxlPlane<float> newBlockDiffAc))
         {
             return false;
         }
@@ -2322,12 +2321,12 @@ internal static class Butteraugli
 
     // Calculate a 2x2 subsampled image for purposes of recursive butteraugli at
     // multiresolution.
-    public static JxlImage3F SubSample2x(Configuration configuration, JxlImage3F input)
+    public static JxlImage3<float> SubSample2x(Configuration configuration, JxlImage3<float> input)
     {
         int xs = (input.XSize + 1) / 2;
         int ys = (input.YSize + 1) / 2;
 
-        JxlImage3F retval = new(configuration, xs, ys);
+        JxlImage3<float> retval = new(configuration, xs, ys);
 
         for (int c = 0; c < 3; ++c)
         {
@@ -2374,7 +2373,7 @@ internal static class Butteraugli
         return retval;
     }
 
-    public static void AddSupersampled2x(JxlImageF src, float w, JxlImageF dest)
+    public static void AddSupersampled2x(JxlPlane<float> src, float w, JxlPlane<float> dest)
     {
         const float heuristicMixingValue = 0.3f;
 
@@ -2419,11 +2418,11 @@ internal static class Butteraugli
         }
     }
 
-    public static JxlImage3F CreateHeatMapImage(Configuration configuration, JxlImageF distmap, float goodThreshold, float badThreshold)
+    public static JxlImage3<float> CreateHeatMapImage(Configuration configuration, JxlPlane<float> distmap, float goodThreshold, float badThreshold)
     {
         // Do not dispose (this is the return value; it is caller's responsibility to dispose this
         // or keep it)
-        JxlImage3F heatmap = new(configuration, distmap.XSize, distmap.YSize);
+        JxlImage3<float> heatmap = new(configuration, distmap.XSize, distmap.YSize);
 
         for (int y = 0; y < distmap.YSize; y++)
         {
@@ -2494,7 +2493,13 @@ internal static class Butteraugli
         return val;
     }
 
-    public static bool ButteraugliInterfaceInPlace(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, JxlImageF diffmap, out double diffvalue)
+    public static bool ButteraugliInterfaceInPlace(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        JxlPlane<float> diffmap,
+        out double diffvalue)
     {
         diffvalue = 0;
 
@@ -2520,12 +2525,12 @@ internal static class Butteraugli
             return ok;
         }
 
-        JxlImageF subDiffmap = new();
+        JxlPlane<float> subDiffmap = new();
 
         if (xsize >= 15 && ysize >= 15)
         {
-            using JxlImage3F rgb0Sub = SubSample2x(configuration, rgb0);
-            using JxlImage3F rgb1Sub = SubSample2x(configuration, rgb1);
+            using JxlImage3<float> rgb0Sub = SubSample2x(configuration, rgb0);
+            using JxlImage3<float> rgb1Sub = SubSample2x(configuration, rgb1);
 
             if (!ButteraugliDiffmapInPlace(configuration, rgb0Sub, rgb1Sub, parameters, diffmap))
             {
@@ -2547,7 +2552,13 @@ internal static class Butteraugli
         return true;
     }
 
-    public static bool ButteraugliInterface(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, JxlImageF diffmap, out double diffValue)
+    public static bool ButteraugliInterface(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        JxlPlane<float> diffmap,
+        out double diffValue)
     {
         diffValue = 0;
 
@@ -2560,7 +2571,14 @@ internal static class Butteraugli
         return true;
     }
 
-    public static bool ButteraugliInterface(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, float hfAsymmetry, float xmul, JxlImageF diffmap, out double diffValue)
+    public static bool ButteraugliInterface(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        float hfAsymmetry,
+        float xmul,
+        JxlPlane<float> diffmap,
+        out double diffValue)
     {
         ButteraugliParameters parameters = new()
         {
@@ -2571,7 +2589,12 @@ internal static class Butteraugli
         return ButteraugliInterface(configuration, rgb0, rgb1, parameters, diffmap, out diffValue);
     }
 
-    public static bool ButteraugliDiffmap(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, out JxlImageF diffmap)
+    public static bool ButteraugliDiffmap(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        out JxlPlane<float> diffmap)
     {
         diffmap = new();
 
@@ -2603,7 +2626,13 @@ internal static class Butteraugli
         return butteraugli.Diffmap(configuration, rgb1, diffmap);
     }
 
-    public static bool ButteraugliDiffmapSmall(Configuration configuration, int max, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, out JxlImageF diffmap)
+    public static bool ButteraugliDiffmapSmall(
+        Configuration configuration,
+        int max,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        out JxlPlane<float> diffmap)
     {
         int xsize = rgb0.XSize;
         int ysize = rgb0.YSize;
@@ -2613,8 +2642,8 @@ internal static class Butteraugli
         int xscaled = Math.Max(max, xsize);
         int yscaled = Math.Max(max, ysize);
 
-        using JxlImage3F scaled0 = new(configuration, xscaled, yscaled);
-        using JxlImage3F scaled1 = new(configuration, xscaled, yscaled);
+        using JxlImage3<float> scaled0 = new(configuration, xscaled, yscaled);
+        using JxlImage3<float> scaled1 = new(configuration, xscaled, yscaled);
 
         for (int i = 0; i < 3; ++i)
         {
@@ -2631,7 +2660,7 @@ internal static class Butteraugli
             }
         }
 
-        JxlImageF diffmapScaled = new();
+        JxlPlane<float> diffmapScaled = new();
         bool ok = ButteraugliDiffmap(configuration, scaled0, scaled1, parameters, out diffmapScaled);
 
         diffmap = new(configuration, xsize, ysize);
@@ -2650,7 +2679,7 @@ internal static class Butteraugli
         return ok;
     }
 
-    public static float ButteraugliScoreFromDiffmap(JxlImageF diffmap, ButteraugliParameters parameters)
+    public static float ButteraugliScoreFromDiffmap(JxlPlane<float> diffmap, ButteraugliParameters parameters)
     {
         float retval = 0.0f;
 
@@ -2666,9 +2695,25 @@ internal static class Butteraugli
         return retval;
     }
 
-    public static bool MaltaDiffMap(JxlPlane<float> lum0, JxlPlane<float> lum1, float w0Gt1, float w0Lt1, float norm1, JxlPlane<float> diffs, JxlImage3<float> blockDiffAc, int c)
+    public static bool MaltaDiffMap(
+        JxlPlane<float> lum0,
+        JxlPlane<float> lum1,
+        float w0Gt1,
+        float w0Lt1,
+        float norm1,
+        JxlPlane<float> diffs,
+        JxlImage3<float> blockDiffAc,
+        int c)
         => MaltaDiffMap(isLf: false, lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc.Plane(c));
 
-    public static bool MaltaDiffMapLf(JxlPlane<float> lum0, JxlPlane<float> lum1, float w0Gt1, float w0Lt1, float norm1, JxlPlane<float> diffs, JxlImage3<float> blockDiffAc, int c)
+    public static bool MaltaDiffMapLf(
+        JxlPlane<float> lum0,
+        JxlPlane<float> lum1,
+        float w0Gt1,
+        float w0Lt1,
+        float norm1,
+        JxlPlane<float> diffs,
+        JxlImage3<float> blockDiffAc,
+        int c)
         => MaltaDiffMap(isLf: true, lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc.Plane(c));
 }

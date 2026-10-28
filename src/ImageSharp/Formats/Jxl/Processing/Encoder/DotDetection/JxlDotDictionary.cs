@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.DotDetection;
@@ -37,7 +37,7 @@ internal static class JxlDotDictionary
     public static List<JxlPatchInfo> FindDotDictionary(
         Configuration configuration,
         JxlCompressParameters cparams,
-        JxlImage3F opsin,
+        JxlImage3<float> opsin,
         Rectangle rect,
         JxlColorCorrelation colorCorrelation)
     {

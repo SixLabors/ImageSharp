@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Memory;
@@ -16,9 +16,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 internal sealed class Epf2Stage : RenderPipelineStageBase
 {
     private readonly JxlLoopFilter loopFilter;
-    private readonly JxlImageF sigma;
+    private readonly JxlPlane<float> sigma;
 
-    public Epf2Stage(JxlLoopFilter loopFilter, JxlImageF sigma, Configuration configuration)
+    public Epf2Stage(JxlLoopFilter loopFilter, JxlPlane<float> sigma, Configuration configuration)
         : base(configuration)
     {
         this.loopFilter = loopFilter;

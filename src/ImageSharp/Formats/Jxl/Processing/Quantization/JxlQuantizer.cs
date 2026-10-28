@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -293,7 +292,7 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// Quantizes the specified rectangular selection.
     /// </summary>
-    public void SetQuantFieldRect(JxlImageF qf, in Rectangle rect, JxlImageI rawQuantField)
+    public void SetQuantFieldRect(JxlPlane<float> qf, in Rectangle rect, JxlPlane<int> rawQuantField)
     {
         for (int y = 0; y < rect.Height; y++)
         {
@@ -312,7 +311,7 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// Set the quant field.
     /// </summary>
-    public bool SetQuantField(Configuration configuration, float quantDc, JxlImageF qf, JxlImageI? rawQuantField)
+    public bool SetQuantField(Configuration configuration, float quantDc, JxlPlane<float> qf, JxlPlane<int>? rawQuantField)
     {
         IMemoryOwner<float> data = configuration.MemoryAllocator.Allocate<float>(qf.XSize * qf.YSize);
         Span<float> dataSpan = data.Memory.Span;
@@ -363,7 +362,7 @@ internal sealed class JxlQuantizer
         return true;
     }
 
-    public void SetQuant(float quantDc, float quantAc, JxlImageI rawQuantField)
+    public void SetQuant(float quantDc, float quantAc, JxlPlane<int> rawQuantField)
     {
         this.ComputeGlobalScaleAndQuant(quantDc, quantAc, 0);
 

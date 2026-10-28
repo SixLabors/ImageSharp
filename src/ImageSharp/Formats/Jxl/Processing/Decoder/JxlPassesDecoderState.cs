@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
@@ -28,7 +28,7 @@ internal sealed class JxlPassesDecoderState
 
         if (header.LoopFilter?.EpfIterations > 0)
         {
-            this.Sigma = new JxlImageF(
+            this.Sigma = new JxlPlane<float>(
                 configuration,
                 (this.Shared.FrameDimensions.XSizeBlocks + 2) * SigmaPadding,
                 (this.Shared.FrameDimensions.YSizeBlocks + 2) * SigmaPadding);
@@ -52,7 +52,7 @@ internal sealed class JxlPassesDecoderState
 
     public float BDmMultiplier { get; set; }
 
-    public JxlImageF? Sigma { get; set; }
+    public JxlPlane<float>? Sigma { get; set; }
 
     public int Width { get; set; }
 

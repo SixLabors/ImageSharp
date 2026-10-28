@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
@@ -26,16 +26,17 @@ internal sealed class JxlGroupDecoderCache(Configuration configuration)
     public Memory<short> DecodeGroupQBlock16ScratchSpace { get; set; }
 
     /// <summary>
-    /// Gets or sets the scratch-space for <see cref="JxlTransformsDecoder.TransformToPixels(JxlAcStrategyType, Span{float}, Span{float}, int, Span{float})"/>.
+    /// Gets or sets the scratch space for
+    /// <see cref="JxlTransformsDecoder.TransformToPixels(JxlAcStrategyType, Span{Single}, Span{Single}, int, Span{Single})"/>.
     /// </summary>
     public Memory<float> ScratchSpaceMemory { get; set; }
 
     /// <summary>
     /// Gets or sets the number of non-zero coefficients.
     /// </summary>
-    public JxlImage3I[] NumberOfNonZeroes { get; set; } = ArrayHelpers.CreateAndInitialize(JxlShared.MaximumNumberOfPasses, () => new JxlImage3I());
+    public JxlImage3<int>[] NumberOfNonZeroes { get; set; } = ArrayHelpers.CreateAndInitialize(JxlShared.MaximumNumberOfPasses, () => new JxlImage3<int>());
 
-    public JxlImageF DcBuffer { get; set; } = new();
+    public JxlPlane<float> DcBuffer { get; set; } = new();
 
     public void InitializeDcBufferOnce()
     {

@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -18,10 +17,14 @@ internal static class JxlImageOperations
     /// <summary>
     /// Returns true if first image has same width and height as the second image.
     /// </summary>
+    /// <typeparam name="TFrom">The sample type of the first plane.</typeparam>
+    /// <typeparam name="TTo">The sample type of the second plane.</typeparam>
     /// <param name="a">First image</param>
     /// <param name="b">Second image</param>
     /// <returns>True if width and height is equal.</returns>
-    public static bool SameSize(JxlPlaneBase a, JxlPlaneBase b) => a.XSize == b.XSize && a.YSize == b.YSize;
+    public static bool SameSize<TFrom, TTo>(JxlPlane<TFrom> a, JxlPlane<TTo> b)
+        where TFrom : unmanaged
+        where TTo : unmanaged => a.XSize == b.XSize && a.YSize == b.YSize;
 
     /// <summary>
     /// Returns true if first image has same width and height as the second image.
@@ -58,7 +61,7 @@ internal static class JxlImageOperations
         {
             Span<T> rowFrom = from.GetRow(y);
             Span<T> rowTo = to.GetRow(y);
-            rowFrom.CopyTo(rowTo);
+            rowFrom[..from.XSize].CopyTo(rowTo);
         }
 
         return true;
@@ -108,7 +111,7 @@ internal static class JxlImageOperations
             {
                 Span<T> rowFrom = from.PlaneRow(c, y);
                 Span<T> rowTo = to.PlaneRow(c, y);
-                rowFrom.CopyTo(rowTo);
+                rowFrom[..from.XSize].CopyTo(rowTo);
             }
         }
 
@@ -148,7 +151,7 @@ internal static class JxlImageOperations
     public static bool CopyImageTo<T>(Rectangle rectFrom, JxlPlane<T> from, Rectangle rectTo, JxlPlane<T> to)
         where T : unmanaged
     {
-        if (rectFrom != rectTo)
+        if (rectFrom.Size != rectTo.Size)
         {
             return false;
         }
@@ -172,7 +175,7 @@ internal static class JxlImageOperations
         {
             Span<T> rowFrom = from.GetRow(rectFrom, y);
             Span<T> rowTo = to.GetRow(rectTo, y);
-            rowFrom.CopyTo(rowTo);
+            rowFrom[..rectFrom.Width].CopyTo(rowTo);
         }
 
         return true;
@@ -196,7 +199,7 @@ internal static class JxlImageOperations
     public static bool CopyImageTo<T>(Rectangle rectFrom, JxlImage3<T> from, Rectangle rectTo, JxlImage3<T> to)
         where T : unmanaged
     {
-        if (rectFrom != rectTo)
+        if (rectFrom.Size != rectTo.Size)
         {
             return false;
         }
@@ -230,7 +233,7 @@ internal static class JxlImageOperations
         where TFrom : unmanaged, INumber<TFrom>
         where TTo : unmanaged, INumber<TTo>
     {
-        if (rectFrom != rectTo)
+        if (rectFrom.Size != rectTo.Size)
         {
             return false;
         }
@@ -392,7 +395,7 @@ internal static class JxlImageOperations
         for (int y = 0; y < image.YSize; y++)
         {
             Span<T> row = image.GetRow(y);
-            row.Fill(value);
+            row[..image.XSize].Fill(value);
         }
     }
 
@@ -425,7 +428,7 @@ internal static class JxlImageOperations
 
         for (int y = 0; y < image.YSize; y++)
         {
-            image.GetRow(y).Clear();
+            image.GetRow(y)[..image.XSize].Clear();
         }
     }
 
@@ -495,7 +498,7 @@ internal static class JxlImageOperations
         for (int y = 0; y < rect.Height; y++)
         {
             Span<T> row = image.GetRow(rect, y);
-            row.Fill(value);
+            row[..rect.Width].Fill(value);
         }
     }
 
@@ -557,9 +560,9 @@ internal static class JxlImageOperations
     /// <param name="image">The image to downsample.</param>
     /// <param name="factor">Downsampling factor.</param>
     /// <returns>A new downsampled image. It can later be disposed.</returns>
-    public static JxlImageF? DownsampleImage(Configuration configuration, JxlImageF image, int factor)
+    public static JxlPlane<float>? DownsampleImage(Configuration configuration, JxlPlane<float> image, int factor)
     {
-        JxlImageF downsampled = new(
+        JxlPlane<float> downsampled = new(
             configuration,
             JxlMath.DivCeil(image.XSize, factor) + JxlFrameDimensions.BlockDimensions,
             JxlMath.DivCeil(image.YSize, factor) + JxlFrameDimensions.BlockDimensions);
@@ -580,14 +583,14 @@ internal static class JxlImageOperations
     /// <param name="opsin">The image to downsample.</param>
     /// <param name="factor">Downsampling factor.</param>
     /// <returns>A new downsampled image. It can later be disposed.</returns>
-    public static JxlImage3F? DownsampleImage(Configuration configuration, JxlImage3F opsin, int factor)
+    public static JxlImage3<float>? DownsampleImage(Configuration configuration, JxlImage3<float> opsin, int factor)
     {
         if (factor == 1)
         {
             return null;
         }
 
-        JxlImage3F downsampled = new(
+        JxlImage3<float> downsampled = new(
             configuration,
             JxlMath.DivCeil(opsin.XSize, factor) + JxlFrameDimensions.BlockDimensions,
             JxlMath.DivCeil(opsin.YSize, factor) + JxlFrameDimensions.BlockDimensions);
@@ -629,10 +632,10 @@ internal static class JxlImageOperations
             for (int y = 0; y < ySizeOriginal; y++)
             {
                 Span<float> row = input.PlaneRow(plane, y);
-                row[xSizeOriginal..].Fill(row[xSizeOriginal - 1]);
+                row.Slice(xSizeOriginal, xSize - xSizeOriginal).Fill(row[xSizeOriginal - 1]);
             }
 
-            Span<float> sourceRow = input.PlaneRow(plane, ySizeOriginal - 1);
+            Span<float> sourceRow = input.PlaneRow(plane, ySizeOriginal - 1)[..xSize];
             for (int y = ySizeOriginal; y < ySize; y++)
             {
                 sourceRow.CopyTo(input.PlaneRow(plane, y));

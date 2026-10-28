@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
-internal class WriteToImage3FStage(Configuration configuration, JxlImage3F image)
+internal class WriteToImage3FStage(Configuration configuration, JxlImage3<float> image)
     : RenderPipelineStageBase(configuration)
 {
     public override string Name => "WriteI3F";

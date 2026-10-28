@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Memory;
 
@@ -29,14 +29,14 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
             }
         }
 
-        JxlImage3F tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
+        JxlImage3<float> tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
 
         if (!bundle.SetFromImage(tmp, colorEncoding))
         {
             throw new InvalidOperationException("Could not set the image of an image bundle");
         }
 
-        foreach (JxlImageF ec in bundle.EnumerateExtraChannels())
+        foreach (JxlPlane<float> ec in bundle.EnumerateExtraChannels())
         {
             // We don't want a memory leak here, as we're
             // removing old extra channels and inserting
@@ -48,7 +48,7 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
 
         for (int c = 3; c < inputSizes.Length; c++)
         {
-            JxlImageF ch = new(this.GetConfiguration(), inputSizes[c].Width, inputSizes[c].Height);
+            JxlPlane<float> ch = new(this.GetConfiguration(), inputSizes[c].Width, inputSizes[c].Height);
             bundle.AddExtraChannel(ch);
         }
     }
@@ -67,7 +67,7 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
         }
 
         int ecIndex = 0;
-        foreach (JxlImageF ec in bundle.EnumerateExtraChannels())
+        foreach (JxlPlane<float> ec in bundle.EnumerateExtraChannels())
         {
             if (ec.XSize < xPos + width)
             {

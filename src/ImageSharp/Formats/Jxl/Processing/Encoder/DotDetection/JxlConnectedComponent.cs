@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.DotDetection;
@@ -23,7 +23,7 @@ internal sealed class JxlConnectedComponent
 
     public float Score { get; private set; }
 
-    public void ComputeStats(JxlImageF energy, in Rectangle rect, int extra)
+    public void ComputeStats(JxlPlane<float> energy, in Rectangle rect, int extra)
     {
         this.stats = default;
         int nIn = 0;

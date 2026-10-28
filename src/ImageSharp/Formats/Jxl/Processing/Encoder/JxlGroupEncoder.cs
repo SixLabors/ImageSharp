@@ -6,7 +6,7 @@ using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
@@ -498,7 +498,13 @@ internal static class JxlGroupEncoder
         }
     }
 
-    public static void ComputeCoefficients(Configuration configuration, int groupIndex, JxlPassesEncoderState encoderState, JxlImage3F opsin, Rectangle rectangle, JxlImage3F dc)
+    public static void ComputeCoefficients(
+        Configuration configuration,
+        int groupIndex,
+        JxlPassesEncoderState encoderState,
+        JxlImage3<float> opsin,
+        Rectangle rectangle,
+        JxlImage3<float> dc)
     {
         Rectangle blockGroupRect = encoderState.Shared.FrameDimensions.BlockGroupRect(groupIndex);
         Rectangle cmapRect = new(
@@ -514,7 +520,7 @@ internal static class JxlGroupEncoder
         int dcStride = dc.PixelsPerRow;
         int opsinStride = opsin.PixelsPerRow;
 
-        JxlImageI fullQuantField = encoderState.RawQuantField;
+        JxlPlane<int> fullQuantField = encoderState.RawQuantField;
         JxlCompressParameters cparams = encoderState.CompressParameters;
 
         int dctScratchSize = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
@@ -698,7 +704,13 @@ internal static class JxlGroupEncoder
         TensorPrimitives.Subtract(c, d, d);
     }
 
-    public static bool EncodeGroupTokenizedCoefficients(int groupIndex, int passIndex, int histogramIndex, JxlPassesEncoderState encState, JxlBitWriter writer, JxlAuxiliaryOutput auxOut)
+    public static bool EncodeGroupTokenizedCoefficients(
+        int groupIndex,
+        int passIndex,
+        int histogramIndex,
+        JxlPassesEncoderState encState,
+        JxlBitWriter writer,
+        JxlAuxiliaryOutput auxOut)
     {
         int numHistograms = encState.Shared.HistogramCount;
 

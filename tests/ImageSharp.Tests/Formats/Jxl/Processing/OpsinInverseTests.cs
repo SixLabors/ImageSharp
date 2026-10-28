@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
@@ -15,7 +15,7 @@ public class OpsinInverseTests
     /// <param name="yCbCr">Input Y'Cb'Cr source.</param>
     /// <param name="rgb">Output RGB.</param>
     /// <param name="rect">Region in which conversion will happen.</param>
-    private static void SlowYCbCrToRgb(JxlImage3F yCbCr, JxlImage3F rgb, Rectangle rect)
+    private static void SlowYCbCrToRgb(JxlImage3<float> yCbCr, JxlImage3<float> rgb, Rectangle rect)
     {
         int width = rect.Width;
         int height = rect.Height;

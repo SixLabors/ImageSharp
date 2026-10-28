@@ -3,7 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -18,7 +18,7 @@ internal sealed class JxlCflHeuristics(Configuration configuration) : IDisposabl
 {
     // TODO
     private Memory<byte> scratchSpace;
-    private JxlImageF? dcValues;
+    private JxlPlane<float>? dcValues;
     private IMemoryOwner<byte>? scratchSpaceMemoryOwner;
 
     private static int ItemsPerThread
@@ -53,11 +53,11 @@ internal sealed class JxlCflHeuristics(Configuration configuration) : IDisposabl
 
     public void ComputeTile(
         Rectangle rectangle,
-        JxlImage3F opsin,
+        JxlImage3<float> opsin,
         Rectangle opsinRect,
         JxlDequantMatrices dequant,
         JxlAcStrategyImage? acStrategy,
-        JxlImageI rawQuantField,
+        JxlPlane<int> rawQuantField,
         JxlQuantizer quantizer,
         bool fast,
         int thread,

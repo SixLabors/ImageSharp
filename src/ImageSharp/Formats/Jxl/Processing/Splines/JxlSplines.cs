@@ -3,7 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -226,12 +226,12 @@ internal sealed class JxlSplines
         return span.Length;
     }
 
-    public void AddTo(JxlImage3F opsin, Rectangle opsinRect) => this.Apply(add: true, opsin, opsinRect);
+    public void AddTo(JxlImage3<float> opsin, Rectangle opsinRect) => this.Apply(add: true, opsin, opsinRect);
 
     public void AddToRow(Memory<float> rowX, Memory<float> rowY, Memory<float> rowB, int y, int x0, int x1)
         => this.ApplyToRow(add: true, rowX, rowY, rowB, y, x0, x1);
 
-    public void SubtractFrom(JxlImage3F opsin) => this.Apply(add: false, opsin, opsin.GetRectangle());
+    public void SubtractFrom(JxlImage3<float> opsin) => this.Apply(add: false, opsin, opsin.GetRectangle());
 
     private void ApplyToRow(bool add, Memory<float> rowX, Memory<float> rowY, Memory<float> rowB, int y, int x0, int x1)
     {
@@ -253,7 +253,7 @@ internal sealed class JxlSplines
             MemoryMarshal.Cast<byte, int>(this.segmentYStart.Memory.Span));
     }
 
-    private void Apply(bool add, JxlImage3F opsin, Rectangle opsinRect)
+    private void Apply(bool add, JxlImage3<float> opsin, Rectangle opsinRect)
     {
         if (this.segments.Count == 0)
         {

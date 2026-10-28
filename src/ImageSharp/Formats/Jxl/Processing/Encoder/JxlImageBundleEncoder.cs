@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
@@ -14,12 +14,12 @@ internal class JxlImageBundleEncoder
         Configuration configuration,
         JxlColorEncoding currentEncoding,
         float intensityTarget,
-        JxlImage3F color,
-        JxlImageF? black,
+        JxlImage3<float> color,
+        JxlPlane<float>? black,
         Rectangle rect,
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms,
-        ref JxlImage3F output)
+        ref JxlImage3<float> output)
     {
         if (currentEncoding.IsGray != desiredEncoding.IsGray)
         {
@@ -53,7 +53,7 @@ internal class JxlImageBundleEncoder
         // We can't use a ref variable inside of a lambda expression,
         // so we store its value in a variable. The output variable
         // will not be assigned.
-        JxlImage3F outValue = output;
+        JxlImage3<float> outValue = output;
 
         _ = Parallel.For(0, rect.Height, configuration.GetParallelOptions(), y =>
         {
@@ -134,7 +134,7 @@ internal class JxlImageBundleEncoder
         Rectangle rectangle,
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms,
-        JxlImage3F output)
+        JxlImage3<float> output)
         => TryApplyColorTransform(
             configuration,
             ib.CurrentColorEncoding!,
@@ -160,7 +160,7 @@ internal class JxlImageBundleEncoder
             return true;
         }
 
-        using JxlImage3F color = new(configuration, input.Color!.XSize, input.Color.YSize);
+        using JxlImage3<float> color = new(configuration, input.Color!.XSize, input.Color.YSize);
 
         if (!JxlImageOperations.CopyImage(input.Color!, color))
         {
@@ -174,11 +174,11 @@ internal class JxlImageBundleEncoder
 
         if (input.ContainsExtraChannels())
         {
-            List<JxlImageF> extraChannels = [];
+            List<JxlPlane<float>> extraChannels = [];
 
-            foreach (JxlImageF extraChannel in input.EnumerateExtraChannels())
+            foreach (JxlPlane<float> extraChannel in input.EnumerateExtraChannels())
             {
-                JxlImageF ec = new(configuration, extraChannel.XSize, extraChannel.YSize);
+                JxlPlane<float> ec = new(configuration, extraChannel.XSize, extraChannel.YSize);
 
                 if (!JxlImageOperations.CopyImage(extraChannel, ec))
                 {

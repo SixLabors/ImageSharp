@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Optimize;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
@@ -24,7 +24,7 @@ internal static class JxlNoiseEncoder
         [-0.25f, -1.0f, -0.25f],
     ];
 
-    public static float GetScoreSumsOfAbsoluteDifferences(JxlImage3F opsin, int x, int y, int blockSize)
+    public static float GetScoreSumsOfAbsoluteDifferences(JxlImage3<float> opsin, int x, int y, int blockSize)
     {
         const int smallBlockSizeX = 3;
         const int smallBlockSizeY = 4;
@@ -78,7 +78,7 @@ internal static class JxlNoiseEncoder
 
     public static IMemoryOwner<float> GetSadScoresForPatches(
         Configuration configuration,
-        JxlImage3F opsin,
+        JxlImage3<float> opsin,
         int blockSize,
         int binCount,
         JxlNoiseHistogram sadHistogram)
@@ -100,7 +100,11 @@ internal static class JxlNoiseEncoder
         return sadScores;
     }
 
-    public static void OptimizeNoiseParameters(Configuration configuration, List<JxlNoiseLevel> noiseLevel, JxlNoiseParameters noiseParameters, float multiplier)
+    public static void OptimizeNoiseParameters(
+        Configuration configuration,
+        List<JxlNoiseLevel> noiseLevel,
+        JxlNoiseParameters noiseParameters,
+        float multiplier)
     {
         const double maxError = 1e-3;
         const double precision = 1e-8;
@@ -152,7 +156,7 @@ internal static class JxlNoiseEncoder
     }
 
     public static List<JxlNoiseLevel> GetNoiseLevel(
-        JxlImage3F opsin,
+        JxlImage3<float> opsin,
         Span<float> textureStrength,
         float threshold,
         int blockSize)
@@ -278,7 +282,7 @@ internal static class JxlNoiseEncoder
         writer.Write(10, absValQuant);
     }
 
-    public static bool GetNoiseParameter(Configuration configuration, JxlImage3F opsin, JxlNoiseParameters noiseParams, float qualityCoefficient)
+    public static bool GetNoiseParameter(Configuration configuration, JxlImage3<float> opsin, JxlNoiseParameters noiseParams, float qualityCoefficient)
     {
         const int blockSize = 8;
         const int binCount = 256;

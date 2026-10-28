@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -49,10 +48,10 @@ public class GaborishTests
     }
 
     private static void TestRoundTrip(
-        JxlImage3F input,
+        JxlImage3<float> input,
         float maxL1)
     {
-        JxlImage3F fwd = new(TestEnvironment.Configuration, input.XSize, input.YSize);
+        JxlImage3<float> fwd = new(TestEnvironment.Configuration, input.XSize, input.YSize);
 
         ConvolveGaborish(
             input.Plane(0),
@@ -98,7 +97,7 @@ public class GaborishTests
     [Fact]
     public void TestZero()
     {
-        JxlImage3F input = new(TestEnvironment.Configuration, 20, 20);
+        JxlImage3<float> input = new(TestEnvironment.Configuration, 20, 20);
         JxlImageOperations.ZeroFillImage(input);
         TestRoundTrip(input, 0.0f);
     }
@@ -106,7 +105,7 @@ public class GaborishTests
     [Fact]
     public void TestFlat()
     {
-        JxlImage3F input = new(TestEnvironment.Configuration, 20, 20);
+        JxlImage3<float> input = new(TestEnvironment.Configuration, 20, 20);
         JxlImageOperations.FillImage(1.0f, input);
         TestRoundTrip(input, 1e-5f);
     }

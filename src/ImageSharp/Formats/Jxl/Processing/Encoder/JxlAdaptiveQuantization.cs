@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -225,7 +224,7 @@ internal static class JxlAdaptiveQuantization
         return scalarSumY + outVal;
     }
 
-    private static Vector<float> HfModulationVectorized(int x, int y, JxlImageF xybY, Rectangle rect, Vector<float> outVal)
+    private static Vector<float> HfModulationVectorized(int x, int y, JxlPlane<float> xybY, Rectangle rect, Vector<float> outVal)
     {
         const float valueMinY = 0.0206f;
         const float mulY = -0.38f;
@@ -267,7 +266,7 @@ internal static class JxlAdaptiveQuantization
         return new Vector<float>(scalarSumY) + outVal;
     }
 
-    public static Vector<float> HfModulation(int x, int y, JxlImageF xybY, Rectangle rect, Vector<float> outVal)
+    public static Vector<float> HfModulation(int x, int y, JxlPlane<float> xybY, Rectangle rect, Vector<float> outVal)
     {
         if (Vector<float>.Count == 1)
         {
@@ -285,7 +284,15 @@ internal static class JxlAdaptiveQuantization
         }
     }
 
-    private static void PerBlockModulations(float butteraugliTarget, JxlPlane<float> xybX, JxlPlane<float> xybY, JxlPlane<float> xybB, Rectangle rectIn, float scale, Rectangle rectOut, JxlImageF output)
+    private static void PerBlockModulations(
+        float butteraugliTarget,
+        JxlPlane<float> xybX,
+        JxlPlane<float> xybY,
+        JxlPlane<float> xybB,
+        Rectangle rectIn,
+        float scale,
+        Rectangle rectOut,
+        JxlPlane<float> output)
     {
         float baseLevel = 0.48f * scale;
 
@@ -376,7 +383,7 @@ internal static class JxlAdaptiveQuantization
     // Look for smooth areas near the area of degradation.
     // If the areas are generally smooth, don't do masking.
     // Output is downsampled by 2x.
-    public static bool FuzzyErosion(float butteraugliTarget, Rectangle fromRect, JxlImageF from, Rectangle toRect, JxlImageF to)
+    public static bool FuzzyErosion(float butteraugliTarget, Rectangle fromRect, JxlPlane<float> from, Rectangle toRect, JxlPlane<float> to)
     {
         int width = from.XSize;
         int height = from.YSize;
@@ -494,7 +501,7 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    private static void Blur1x1Masking(Configuration configuration, ref JxlImageF mask1x1, Rectangle rect)
+    private static void Blur1x1Masking(Configuration configuration, ref JxlPlane<float> mask1x1, Rectangle rect)
     {
         const float filterMask1x1_0 = 0.364911248f;
         const float filterMask1x1_1 = 0.05f;
@@ -522,7 +529,7 @@ internal static class JxlAdaptiveQuantization
         weights.D2 = JxlWeightsSymmetric5.CreateVector4(normalize * filterMask1x1_4);
         weights.L = JxlWeightsSymmetric5.CreateVector4(normalize * filterMask1x1_3);
 
-        JxlImageF temp = new(configuration, rect.Width, rect.Height);
+        JxlPlane<float> temp = new(configuration, rect.Width, rect.Height);
 
         if (!JxlConvolve.Symmetric5(mask1x1, in rect, ref weights, temp, temp.GetRectangle()))
         {
@@ -532,7 +539,14 @@ internal static class JxlAdaptiveQuantization
         mask1x1 = temp;
     }
 
-    public static JxlImageF AdaptiveQuantizationMap(Configuration configuration, float butteraugliTarget, JxlImageF xyb, Rectangle rect, float scale, out JxlImageF mask, out JxlImageF mask1x1)
+    public static JxlPlane<float> AdaptiveQuantizationMap(
+        Configuration configuration,
+        float butteraugliTarget,
+        JxlPlane<float> xyb,
+        Rectangle rect,
+        float scale,
+        out JxlPlane<float> mask,
+        out JxlPlane<float> mask1x1)
     {
         if ((rect.Width & 7) != 0)
         {
@@ -549,13 +563,13 @@ internal static class JxlAdaptiveQuantization
         int xSizeBlocks = rect.Width / 8;
         int ySizeBlocks = rect.Height / 8;
 
-        impl.AdaptiveQuantizationMap = new JxlImageF(configuration, xSizeBlocks, ySizeBlocks);
-        mask = new JxlImageF(configuration, xSizeBlocks, ySizeBlocks);
-        mask1x1 = new JxlImageF(configuration, xyb.XSize, xyb.YSize);
+        impl.AdaptiveQuantizationMap = new JxlPlane<float>(configuration, xSizeBlocks, ySizeBlocks);
+        mask = new JxlPlane<float>(configuration, xSizeBlocks, ySizeBlocks);
+        mask1x1 = new JxlPlane<float>(configuration, xyb.XSize, xyb.YSize);
 
         // out variables cannot be captured in a local function
-        JxlImageF maskRef = mask;
-        JxlImageF mask1x1Ref = mask1x1;
+        JxlPlane<float> maskRef = mask;
+        JxlPlane<float> mask1x1Ref = mask1x1;
 
         impl.InitializeBuffer(configuration);
 
@@ -589,12 +603,12 @@ internal static class JxlAdaptiveQuantization
         return impl.AdaptiveQuantizationMap!;
     }
 
-    private static JxlImageF TileDistMap(Configuration configuration, JxlImageF distMap, int tileSize, int margin, JxlAcStrategyImage acStrategy)
+    private static JxlPlane<float> TileDistMap(Configuration configuration, JxlPlane<float> distMap, int tileSize, int margin, JxlAcStrategyImage acStrategy)
     {
         int tileXSize = (distMap.XSize + tileSize - 1) / tileSize;
         int tileYSize = (distMap.YSize + tileSize - 1) / tileSize;
 
-        JxlImageF tileDistMap = new(configuration, tileXSize, tileYSize);
+        JxlPlane<float> tileDistMap = new(configuration, tileXSize, tileYSize);
 
         const float borderMul = 0.98f;
         const float cornerMul = 0.7f;
@@ -687,7 +701,12 @@ internal static class JxlAdaptiveQuantization
         return tileDistMap;
     }
 
-    private static JxlImageBundle RoundtripImage(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F opsin, JxlPassesEncoderState encState, JxlCmsInterface cms)
+    private static JxlImageBundle RoundtripImage(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3<float> opsin,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms)
     {
         JxlPassesDecoderState decState = new(frameHeader, configuration);
 
@@ -718,7 +737,7 @@ internal static class JxlAdaptiveQuantization
             Origin = frameHeader.FrameOrigin
         };
 
-        JxlImage3F tmp = new(configuration, opsin.XSize, opsin.YSize);
+        JxlImage3<float> tmp = new(configuration, opsin.XSize, opsin.YSize);
 
         if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
         {
@@ -765,7 +784,7 @@ internal static class JxlAdaptiveQuantization
 
             for (int c = 0; c < metadata.ExtraChannelCount; c++)
             {
-                (JxlImageF plane, Rectangle rect) = input.GetBuffer(3 + c);
+                (JxlPlane<float> plane, Rectangle rect) = input.GetBuffer(3 + c);
                 JxlImageOperations.FillPlane(0.0f, plane, rect);
             }
 
@@ -788,7 +807,7 @@ internal static class JxlAdaptiveQuantization
         return MathF.Min(DcQuant / butteraugliTargetDc, 50f);
     }
 
-    public static bool AdjustQuantField(JxlAcStrategyImage acStrategy, Rectangle rect, float butteraugliTarget, JxlImageF quantField)
+    public static bool AdjustQuantField(JxlAcStrategyImage acStrategy, Rectangle rect, float butteraugliTarget, JxlPlane<float> quantField)
     {
         int stride = quantField.PixelsPerRow;
         float meanMaxMixer = 1.0f;
@@ -860,7 +879,15 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    public static bool FindBestQuantization(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F linear, JxlImage3F opsin, JxlImageF quantField, JxlPassesEncoderState encState, JxlCmsInterface cms, JxlAuxiliaryOutput auxOut)
+    public static bool FindBestQuantization(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3<float> linear,
+        JxlImage3<float> opsin,
+        JxlPlane<float> quantField,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms,
+        JxlAuxiliaryOutput auxOut)
     {
         JxlCompressionParameters cparams = encState.CompressionParameters;
 
@@ -873,7 +900,7 @@ internal static class JxlAdaptiveQuantization
         }
 
         JxlQuantizer quantizer = encState.Shared.Quantizer;
-        JxlImageI rawQuantField = encState.Shared.RawQuantField;
+        JxlPlane<int> rawQuantField = encState.Shared.RawQuantField;
         float butteraugliTarget = cparams.ButteraugliDistance;
         float originalButteraugli = cparams.OriginalButteraugliDistance;
 
@@ -893,7 +920,7 @@ internal static class JxlAdaptiveQuantization
             return false;
         }
 
-        using JxlImageF initialQuantField = new(configuration, quantField.XSize, quantField.YSize);
+        using JxlPlane<float> initialQuantField = new(configuration, quantField.XSize, quantField.YSize);
 
         if (!JxlImageOperations.CopyImage(quantField, initialQuantField))
         {
@@ -927,7 +954,7 @@ internal static class JxlAdaptiveQuantization
             iters = MaxButteraugliIterations;
         }
 
-        JxlImageF tileDistmap = new();
+        JxlPlane<float> tileDistmap = new();
 
         for (int i = 0; i < iters + 1; i++)
         {
@@ -938,7 +965,7 @@ internal static class JxlAdaptiveQuantization
 
             JxlImageBundle decLinear = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
 
-            JxlImageF diffmap = new();
+            JxlPlane<float> diffmap = new();
             comparator.CompareWith(configuration, decLinear, diffmap, out float score);
 
             if (!lowerIsBetter)
@@ -1088,11 +1115,18 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    public static bool FindBestQuantizationMaxError(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F opsin, JxlImageF quantField, JxlPassesEncoderState encState, JxlCmsInterface cms, JxlAuxiliaryOutput auxOut)
+    public static bool FindBestQuantizationMaxError(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3<float> opsin,
+        JxlPlane<float> quantField,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms,
+        JxlAuxiliaryOutput auxOut)
     {
         JxlCompressionParameters cparams = encState.CompressionParameters;
         JxlQuantizer quantizer = encState.Shared.Quantizer;
-        JxlImageI rawQuantField = encState.Shared.RawQuantField;
+        JxlPlane<int> rawQuantField = encState.Shared.RawQuantField;
 
         float initialQuantDc = 16f * MathF.Sqrt(0.1f / cparams.ButteraugliDistance);
 
@@ -1187,7 +1221,14 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    public static JxlImageF InitialQuantField(Configuration configuration, float butteraugliTarget, JxlImage3F opsin, Rectangle rect, float rescale, JxlImageF mask, JxlImageF mask1x1)
+    public static JxlPlane<float> InitialQuantField(
+        Configuration configuration,
+        float butteraugliTarget,
+        JxlImage3<float> opsin,
+        Rectangle rect,
+        float rescale,
+        JxlPlane<float> mask,
+        JxlPlane<float> mask1x1)
     {
         float quantAc = AcQuant / butteraugliTarget;
 
@@ -1197,9 +1238,9 @@ internal static class JxlAdaptiveQuantization
     public static bool FindBestQuantizer(
         Configuration configuration,
         JxlFrameHeader frameHeader,
-        JxlImage3F linear,
-        JxlImage3F opsin,
-        JxlImageF quantField,
+        JxlImage3<float> linear,
+        JxlImage3<float> opsin,
+        JxlPlane<float> quantField,
         JxlPassesEncoderState encState,
         JxlCmsInterface cms,
         JxlAuxiliaryOutput auxOut,
@@ -1222,11 +1263,11 @@ internal static class JxlAdaptiveQuantization
 
     private sealed class AdaptiveQuantizationInternal
     {
-        public List<JxlImageF> PreErosion { get; set; } = [];
+        public List<JxlPlane<float>> PreErosion { get; set; } = [];
 
-        public JxlImageF? AdaptiveQuantizationMap { get; set; }
+        public JxlPlane<float>? AdaptiveQuantizationMap { get; set; }
 
-        public JxlImageF? DiffBuffer { get; set; }
+        public JxlPlane<float>? DiffBuffer { get; set; }
 
         public void InitializeBuffer(Configuration configuration)
         {
@@ -1237,14 +1278,22 @@ internal static class JxlAdaptiveQuantization
             for (int i = this.PreErosion.Count; i < numThreads; i++)
             {
                 this.PreErosion.Add(
-                    new JxlImageF(
+                    new JxlPlane<float>(
                         configuration,
                         (JxlEncoderParameters.TileDimensionsInBlocks * 2) + 2,
                         (JxlEncoderParameters.TileDimensionsInBlocks * 2) + 2));
             }
         }
 
-        public bool TryComputeTile(float butteraugliTarget, float scale, JxlImage3F xyb, Rectangle rectIn, Rectangle rectOut, int parallelIndex, JxlImageF mask, JxlImageF mask1x1)
+        public bool TryComputeTile(
+            float butteraugliTarget,
+            float scale,
+            JxlImage3<float> xyb,
+            Rectangle rectIn,
+            Rectangle rectOut,
+            int parallelIndex,
+            JxlPlane<float> mask,
+            JxlPlane<float> mask1x1)
         {
             const float matchGammaOffset = 0.019f;
 

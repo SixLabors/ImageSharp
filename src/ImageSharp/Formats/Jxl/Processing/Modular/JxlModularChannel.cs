@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
 
 /// <summary>
-/// A wrapper over <see cref="JxlImageI"/> for modular operations.
+/// A wrapper over <see cref="JxlPlane{Int32}"/> for modular operations.
 /// </summary>
 internal sealed class JxlModularChannel : IDisposable
 {
@@ -16,7 +16,7 @@ internal sealed class JxlModularChannel : IDisposable
         this.VerticalShift = vertShift;
         this.Width = width;
         this.Height = height;
-        this.Plane = new JxlImageI(configuration, width, height);
+        this.Plane = new JxlPlane<int>(configuration, width, height);
     }
 
     /// <summary>
@@ -53,7 +53,7 @@ internal sealed class JxlModularChannel : IDisposable
     /// <summary>
     /// Gets or sets the backing plane buffer.
     /// </summary>
-    public JxlImageI Plane { get; set; }
+    public JxlPlane<int> Plane { get; set; }
 
     public void Shrink(Configuration configuration)
     {
@@ -63,7 +63,7 @@ internal sealed class JxlModularChannel : IDisposable
         }
 
         this.Plane.Dispose();
-        this.Plane = new JxlImageI(configuration, this.Width, this.Height);
+        this.Plane = new JxlPlane<int>(configuration, this.Width, this.Height);
     }
 
     public void Shrink(Configuration configuration, int newWidth, int newHeight)

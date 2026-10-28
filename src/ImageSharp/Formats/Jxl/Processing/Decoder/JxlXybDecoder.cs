@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -65,7 +65,7 @@ internal static class JxlXybDecoder
         linearB = (LoadDuplicate128(ref inverseMatrix[8 * 4]) * mixedB) + linearB;
     }
 
-    public static bool OpsinToLinear(JxlImage3F opsin, Rectangle rect, JxlImage3F linear, JxlOpsinParameters opsinParameters)
+    public static bool OpsinToLinear(JxlImage3<float> opsin, Rectangle rect, JxlImage3<float> linear, JxlOpsinParameters opsinParameters)
     {
         if (!JxlImageOperations.SameSize(rect, linear))
         {

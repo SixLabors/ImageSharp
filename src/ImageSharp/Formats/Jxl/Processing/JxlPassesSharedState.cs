@@ -5,7 +5,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -29,9 +29,9 @@ internal class JxlPassesSharedState
 
     public JxlQuantizer Quantizer { get; set; }
 
-    public JxlImageI RawQuantField { get; set; }
+    public JxlPlane<int> RawQuantField { get; set; }
 
-    public JxlImageB EpfSharpness { get; set; }
+    public JxlPlane<byte> EpfSharpness { get; set; }
 
     public JxlColorCorrelationMap ColorMap { get; set; }
 
@@ -41,13 +41,13 @@ internal class JxlPassesSharedState
 
     public List<byte> CoeffOrders { get; set; } = [];
 
-    public JxlImageB QuantDc { get; set; }
+    public JxlPlane<byte> QuantDc { get; set; }
 
-    public JxlImage3F DcStorage { get; set; }
+    public JxlImage3<float> DcStorage { get; set; }
 
-    public JxlImage3F Dc { get; set; }
+    public JxlImage3<float> Dc { get; set; }
 
-    public JxlImage3F[] DcFrames { get; set; } = new JxlImage3F[4];
+    public JxlImage3<float>[] DcFrames { get; set; } = new JxlImage3<float>[4];
 
     public JxlReferenceFrame[] ReferenceFrames { get; set; } = new JxlReferenceFrame[4];
 
@@ -67,8 +67,8 @@ internal class JxlPassesSharedState
         JxlFrameDimensions dimensions = frameHeader.FrameDimensions;
 
         this.AcStrategy = JxlAcStrategyImage.Create(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
-        this.RawQuantField = new JxlImageI(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
-        this.EpfSharpness = new JxlImageB(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.RawQuantField = new JxlPlane<int>(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.EpfSharpness = new JxlPlane<byte>(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
         this.ColorMap = JxlColorCorrelationMap.Create(configuration, dimensions.XSize, dimensions.YSize);
 
         this.CoeffOrderSize = JxlCoefficientOrder.CoefficientOrderMaxSize;
@@ -88,7 +88,7 @@ internal class JxlPassesSharedState
             }
         }
 
-        this.QuantDc = new JxlImageB(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.QuantDc = new JxlPlane<byte>(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
 
         bool useDcFrame = (frameHeader.Flags & (ulong)JxlFrameHeaderFlags.Dc) != 0;
         if (!encoder && useDcFrame)
@@ -98,7 +98,7 @@ internal class JxlPassesSharedState
                 throw new InvalidOperationException("DC level for DC frames cannot be equal to 4");
             }
 
-            this.DcStorage = new JxlImage3F();
+            this.DcStorage = new JxlImage3<float>();
             this.Dc = this.DcFrames[(int)frameHeader.DcLevel];
 
             if (this.Dc.XSize == 0)
@@ -110,7 +110,7 @@ internal class JxlPassesSharedState
         }
         else
         {
-            this.DcStorage = new JxlImage3F(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+            this.DcStorage = new JxlImage3<float>(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
             this.Dc = this.DcStorage;
         }
 

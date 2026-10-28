@@ -4,7 +4,7 @@
 using System.Numerics.Tensors;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
@@ -25,7 +25,7 @@ internal sealed class ButteraugliJxlComparator(ButteraugliParameters parameters,
 
     public override float BadQualityScore => Butteraugli.Butteraugli.ButteraugliFuzzyInverse(0.5f);
 
-    public override void CompareWith(Configuration configuration, JxlImageBundle actual, JxlImageF? diffMap, out float score)
+    public override void CompareWith(Configuration configuration, JxlImageBundle actual, JxlPlane<float>? diffMap, out float score)
     {
         DebugGuard.NotNull(this.comparator, nameof(this.comparator));
 
@@ -39,12 +39,12 @@ internal sealed class ButteraugliJxlComparator(ButteraugliParameters parameters,
 
         JxlTransformsEncoder.TransformIfNeeded(configuration, actual, JxlColorEncoding.LinearSRgb(actual.IsGray), cms, store, out JxlImageBundle actualLinearSRgb);
 
-        JxlImageF tempDiffmap = new(configuration, this.width, this.height);
-        JxlImage3F scaledActualLinearSRgb = actualLinearSRgb.Color!;
+        JxlPlane<float> tempDiffmap = new(configuration, this.width, this.height);
+        JxlImage3<float> scaledActualLinearSRgb = actualLinearSRgb.Color!;
 
         if (this.intensityTarget != 0 && actual.Metadata!.IntensityTarget != this.intensityTarget)
         {
-            JxlImage3F scaledActualLinearSRgbStore = new(configuration, this.width, this.height);
+            JxlImage3<float> scaledActualLinearSRgbStore = new(configuration, this.width, this.height);
             scaledActualLinearSRgb = scaledActualLinearSRgbStore;
 
             float scale = actual.Metadata!.IntensityTarget / this.intensityTarget;

@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
 
@@ -79,7 +79,7 @@ internal static class JxlPalette
     private static readonly DenseMatrix<int> DefaultOffsets = new(DefaultOffsetsData);
 
     /// <summary>
-    /// Static delta palette used by <see cref="GetPaletteValue(Span{int}, int, int, int, int)" />.
+    /// Static delta palette used by <see cref="GetPaletteValue(Span{Int32}, int, int, int, int)" />.
     /// </summary>
     private static readonly int[][] DeltaPalette =
     [
@@ -222,7 +222,14 @@ internal static class JxlPalette
     /// <param name="weightedHeader">For weighted prediction.</param>
     /// <exception cref="InvalidOperationException">Thrown when the input for prediction is invalid.</exception>
     /// <exception cref="NotImplementedException">Thrown when there are too many channels.</exception>
-    public static void InversePalette(Configuration configuration, JxlModularImage input, int beginC, int nbColors, int nbDeltas, JxlPredictor predictor, JxlModularHeader weightedHeader)
+    public static void InversePalette(
+        Configuration configuration,
+        JxlModularImage input,
+        int beginC,
+        int nbColors,
+        int nbDeltas,
+        JxlPredictor predictor,
+        JxlModularHeader weightedHeader)
     {
         if (input.MetaChannels < 1)
         {
@@ -376,8 +383,8 @@ internal static class JxlPalette
         }
         else
         {
-            JxlImageI plane = input.Channels[c0].Plane;
-            JxlImageI indices = new(configuration, plane.XSize, plane.YSize);
+            JxlPlane<int> plane = input.Channels[c0].Plane;
+            JxlPlane<int> indices = new(configuration, plane.XSize, plane.YSize);
             input.Channels[c0].Plane = indices;
 
             if (predictor == JxlPredictor.Weighted)

@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -21,7 +21,7 @@ internal static class JxlNoiseDecoder
         rand12.StoreUnsafe(ref MemoryMarshal.GetReference(floats));
     }
 
-    public static void GenerateRandomImage(JxlXorShift rng, Rectangle rectangle, JxlImageF noise)
+    public static void GenerateRandomImage(JxlXorShift rng, Rectangle rectangle, JxlPlane<float> noise)
     {
         const int floatsPerBatch = JxlXorShift.Generators * sizeof(ulong) / sizeof(float);
 
@@ -69,9 +69,9 @@ internal static class JxlNoiseDecoder
         int nonVisibleFrameIndex,
         int x0,
         int y0,
-        (JxlImageF Image, Rectangle Bounds) plane0,
-        (JxlImageF Image, Rectangle Bounds) plane1,
-        (JxlImageF Image, Rectangle Bounds) plane2)
+        (JxlPlane<float> Image, Rectangle Bounds) plane0,
+        (JxlPlane<float> Image, Rectangle Bounds) plane1,
+        (JxlPlane<float> Image, Rectangle Bounds) plane2)
     {
         JxlXorShift rng = new((uint)visibleFrameIndex, (uint)nonVisibleFrameIndex, (uint)x0, (uint)y0);
 
@@ -95,7 +95,7 @@ internal static class JxlNoiseDecoder
         JxlRenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, thread);
         int noiseCStart = 3 + frameHeader.Metadata!.ImageMetadata!.ExtraChannelCount;
 
-        InlineArray3<(JxlImageF Image, Rectangle Rect)> rects = default;
+        InlineArray3<(JxlPlane<float> Image, Rectangle Rect)> rects = default;
 
         for (int iy = 0; iy < frameHeader.Upsampling; iy++)
         {

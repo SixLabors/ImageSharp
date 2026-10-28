@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Cms.TransferFunctions;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -225,7 +225,7 @@ internal static class JxlXybEncoder
     private static void LinearSrgbToXyb(
         Configuration configuration,
         Memory<float> premulAbsorb,
-        JxlImage3F image)
+        JxlImage3<float> image)
     {
         int xSize = image.XSize;
 
@@ -263,7 +263,7 @@ internal static class JxlXybEncoder
     private static void SRgbToXyb(
         Configuration configuration,
         Memory<float> premulAbsorb,
-        JxlImage3F image)
+        JxlImage3<float> image)
     {
         int xSize = image.XSize;
 
@@ -301,8 +301,8 @@ internal static class JxlXybEncoder
     private static void SrgbToXybAndLinear(
         Configuration configuration,
         Memory<float> premulAbsorb,
-        JxlImage3F image,
-        JxlImage3F linear)
+        JxlImage3<float> image,
+        JxlImage3<float> linear)
     {
         int xSize = image.XSize;
 
@@ -373,10 +373,10 @@ internal static class JxlXybEncoder
         Configuration configuration,
         JxlColorEncoding currentEncoding,
         float intensityTarget,
-        JxlImageF? black,
-        JxlImage3F image,
+        JxlPlane<float>? black,
+        JxlImage3<float> image,
         JxlCmsInterface cms,
-        JxlImage3F? linear)
+        JxlImage3<float>? linear)
     {
         if (black is not null)
         {
@@ -449,12 +449,12 @@ internal static class JxlXybEncoder
 
     public static void RgbToYcbcr(
         Configuration configuration,
-        JxlImageF rPlane,
-        JxlImageF gPlane,
-        JxlImageF bPlane,
-        JxlImageF yPlane,
-        JxlImageF cbPlane,
-        JxlImageF crPlane)
+        JxlPlane<float> rPlane,
+        JxlPlane<float> gPlane,
+        JxlPlane<float> bPlane,
+        JxlPlane<float> yPlane,
+        JxlPlane<float> cbPlane,
+        JxlPlane<float> crPlane)
     {
         int xSize = rPlane.XSize;
         int ySize = rPlane.YSize;

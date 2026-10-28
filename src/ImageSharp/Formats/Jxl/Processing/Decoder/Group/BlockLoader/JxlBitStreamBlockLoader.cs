@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
@@ -20,8 +20,8 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
 {
     private readonly JxlGroupDecoderCache groupDecCache;
     private readonly JxlBlockContextMap blockCtxMap;
-    private readonly JxlImageI rawQuantField;
-    private readonly JxlImageB quantDc;
+    private readonly JxlPlane<int> rawQuantField;
+    private readonly JxlPlane<byte> quantDc;
     private readonly JxlAnsSymbolReader[] decoders;
     private readonly JxlBitReader[] readers;
 
@@ -50,8 +50,8 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
     public JxlBitStreamBlockLoader(
         JxlGroupDecoderCache groupDecCache,
         JxlBlockContextMap blockCtxMap,
-        JxlImageI rawQuantField,
-        JxlImageB quantDc,
+        JxlPlane<int> rawQuantField,
+        JxlPlane<byte> quantDc,
         JxlAnsSymbolReader[] decoders,
         JxlBitReader[] readers)
     {

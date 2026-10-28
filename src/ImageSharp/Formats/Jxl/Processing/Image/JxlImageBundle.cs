@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -18,7 +18,7 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Image data for additional channels.
     /// </summary>
-    private List<JxlImageF> extraChannels = [];
+    private List<JxlPlane<float>> extraChannels = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlImageBundle"/> class.
@@ -137,7 +137,7 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Gets the color data.
     /// </summary>
-    public JxlImage3F? Color { get; private set; }
+    public JxlImage3<float>? Color { get; private set; }
 
     /// <summary>
     /// Gets a value indicating whether the color data is present and usable.
@@ -189,7 +189,7 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Gets the black extra channel.
     /// </summary>
-    public JxlImageF? Black
+    public JxlPlane<float>? Black
     {
         get
         {
@@ -206,7 +206,7 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Gets the alpha extra channel.
     /// </summary>
-    public JxlImageF? Alpha
+    public JxlPlane<float>? Alpha
     {
         get
         {
@@ -255,7 +255,7 @@ internal sealed class JxlImageBundle
                 return false;
             }
 
-            foreach (JxlImageF ec in this.extraChannels)
+            foreach (JxlPlane<float> ec in this.extraChannels)
             {
                 if (ec.XSize != xs || ec.YSize != ys)
                 {
@@ -279,7 +279,7 @@ internal sealed class JxlImageBundle
     /// </summary>
     /// <param name="color">Output color data.</param>
     /// <returns>True if color isn't null.</returns>
-    public bool TryGetColor(out JxlImage3F? color)
+    public bool TryGetColor(out JxlImage3<float>? color)
     {
         color = null;
         if (this.Color is not null)
@@ -293,7 +293,7 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Removes the color data, replacing it with a new Image3F with 0 as width and height.
     /// </summary>
-    public void RemoveColor() => this.Color = new JxlImage3F();
+    public void RemoveColor() => this.Color = new JxlImage3<float>();
 
     /// <summary>
     /// Removes all extra channels, if any.
@@ -310,15 +310,15 @@ internal sealed class JxlImageBundle
     /// Returns an enumerable for extra channels.
     /// </summary>
     /// <returns>Extra channels enumerable.</returns>
-    public IEnumerable<JxlImageF> EnumerateExtraChannels() => this.extraChannels;
+    public IEnumerable<JxlPlane<float>> EnumerateExtraChannels() => this.extraChannels;
 
     /// <summary>
     /// Adds a specified extra channel.
     /// </summary>
     /// <param name="channel">The extra channel to be added to the image bundle.</param>
-    public void AddExtraChannel(JxlImageF channel) => this.extraChannels.Add(channel);
+    public void AddExtraChannel(JxlPlane<float> channel) => this.extraChannels.Add(channel);
 
-    public JxlImageF GetExtraChannel(int i) => this.extraChannels[i];
+    public JxlPlane<float> GetExtraChannel(int i) => this.extraChannels[i];
 
     /// <summary>
     /// Sets the extra channels.
@@ -328,9 +328,9 @@ internal sealed class JxlImageBundle
     /// True if each plane had width and height greater than 0 and sizes are correct
     /// after changing the extra channels; false otherwise.
     /// </returns>
-    public bool TrySetExtraChannels(List<JxlImageF> extraChannels)
+    public bool TrySetExtraChannels(List<JxlPlane<float>> extraChannels)
     {
-        foreach (JxlImageF plane in extraChannels)
+        foreach (JxlPlane<float> plane in extraChannels)
         {
             if (plane.XSize == 0 || plane.YSize == 0)
             {
@@ -349,7 +349,7 @@ internal sealed class JxlImageBundle
     /// <param name="alpha">The alpha channel to set.</param>
     /// <returns>True if it was set successfully; false otherwise.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the corresponding extra channel has incorrect info.</exception>
-    public bool TrySetAlpha(JxlImageF alpha)
+    public bool TrySetAlpha(JxlPlane<float> alpha)
     {
         if (this.Metadata is null)
         {
@@ -399,7 +399,7 @@ internal sealed class JxlImageBundle
 
         if (this.Metadata?.HasAlpha == true)
         {
-            JxlImageF? img = this.Alpha;
+            JxlPlane<float>? img = this.Alpha;
             if (img?.XSize == 0)
             {
                 throw new InvalidOperationException("Alpha should not have width equal to 0");
@@ -422,7 +422,7 @@ internal sealed class JxlImageBundle
     /// <param name="color">Color data.</param>
     /// <param name="current">Current color encoding.</param>
     /// <returns>True if setting the image succeeded; otherwise false.</returns>
-    public bool SetFromImage(JxlImage3F color, JxlColorEncoding current)
+    public bool SetFromImage(JxlImage3<float> color, JxlColorEncoding current)
     {
         if (color.XSize == 0 || color.YSize == 0)
         {
@@ -463,7 +463,7 @@ internal sealed class JxlImageBundle
             }
         }
 
-        foreach (JxlImageF extraChannel in this.extraChannels)
+        foreach (JxlPlane<float> extraChannel in this.extraChannels)
         {
             if (!extraChannel.ShrinkTo(width, height))
             {
@@ -492,7 +492,7 @@ internal sealed class JxlImageBundle
 
         if (this.Color is not null)
         {
-            copy.Color = new JxlImage3F(configuration, this.Color.XSize, this.Color.YSize);
+            copy.Color = new JxlImage3<float>(configuration, this.Color.XSize, this.Color.YSize);
         }
 
         copy.CurrentColorEncoding = this.CurrentColorEncoding;
@@ -500,9 +500,9 @@ internal sealed class JxlImageBundle
         copy.ColorTransform = this.ColorTransform;
         copy.ChromaSubsampling = this.ChromaSubsampling;
 
-        foreach (JxlImageF plane in this.extraChannels)
+        foreach (JxlPlane<float> plane in this.extraChannels)
         {
-            JxlImageF ec = new(configuration, plane.XSize, plane.YSize);
+            JxlPlane<float> ec = new(configuration, plane.XSize, plane.YSize);
             if (!JxlImageOperations.CopyImage(plane, ec))
             {
                 throw new InvalidOperationException("Cannot copy extra channel");
@@ -519,7 +519,7 @@ internal sealed class JxlImageBundle
         Rectangle rectangle,
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms,
-        JxlImage3F output)
+        JxlImage3<float> output)
         => JxlImageBundleEncoder.CopyToT(
             configuration,
             this.Metadata!,

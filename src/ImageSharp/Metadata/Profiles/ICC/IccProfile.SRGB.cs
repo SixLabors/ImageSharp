@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -18,12 +19,15 @@ public sealed partial class IccProfile
     // sRGB v4 Preference
     private static readonly IccProfileId StandardRgbV4 = new(0x34562ABF, 0x994CCD06, 0x6D2C5721, 0xD0D68C5D);
 
+    // Compact sRGB v4 working profile. Its fitted coefficients differ from the rounded IEC coefficients.
+    private static readonly IccProfileId CompactRgbV4 = new(0xA3B2ABDF, 0x5CA70312, 0xA855A4EC, 0x357AD1F3);
+
     /// <summary>
     /// Detects canonical sRGB matrix+TRC profiles quickly and safely.
     /// Rules:
-    /// 1) Accept known IEC sRGB v2 and v4 by profile ID.
+    /// 1) Accept known sRGB v2, v4 and compact working profiles by profile ID.
     /// 2) Require RGB, PCS=XYZ, ICC v2 or v4, and no A2B*/B2A* LUTs.
-    /// 3) Require rTRC, gTRC, bTRC to exist and be identical by parameters or sampled shape.
+    /// 3) Require rTRC, gTRC, bTRC to be identical and to encode the sRGB transfer function.
     /// 4) Accept if rXYZ/gXYZ/bXYZ already match the D50-adapted sRGB colorants within tolerance.
     /// 5) If white point ≈ D65, adapt only the colorant columns to D50 using Bradford
     ///    via <see cref="VonKriesChromaticAdaptation.Transform(in CieXyz, ValueTuple{CieXyz, CieXyz}, Matrix4x4)"/> and then compare.
@@ -40,8 +44,8 @@ public sealed partial class IccProfile
     {
         IccProfileHeader h = this.Header;
 
-        // Fast path for known IEC sRGB profile IDs
-        if (h.Id == StandardRgbV2 || h.Id == StandardRgbV4)
+        // Fast path for known sRGB profile IDs
+        if (h.Id == StandardRgbV2 || h.Id == StandardRgbV4 || h.Id == CompactRgbV4)
         {
             return true;
         }
@@ -98,7 +102,8 @@ public sealed partial class IccProfile
             return false;
         }
 
-        // TRCs must exist and be identical across channels. This filters many trick profiles.
+        // Matching channel curves alone do not establish sRGB. Linear RGB and gamma-only profiles can use
+        // the same primaries. Check the transfer function before allowing conversion to be skipped.
         if (!TryGetTrc(entries, IccProfileTag.RedTrc, out Trc tR))
         {
             return false;
@@ -114,7 +119,7 @@ public sealed partial class IccProfile
             return false;
         }
 
-        if (!tR.Equals(tG) || !tR.Equals(tB))
+        if (!tR.Equals(tG) || !tR.Equals(tB) || !tR.IsSrgbLike())
         {
             return false;
         }
@@ -225,10 +230,11 @@ public sealed partial class IccProfile
     }
 
     /// <summary>
-    /// Compact, allocation-free descriptor of a TRC for equality and optional sRGB check.
+    /// Describes an ICC tone curve without copying its parameters or sampled values.
     /// </summary>
     private readonly struct Trc : IEquatable<Trc>
     {
+        private readonly float[]? samples;
         private readonly byte kind; // 0 = none, 1 = parametric, 2 = sampled
         private readonly float g; // parametric payload or downsampled hash
         private readonly float a;
@@ -239,8 +245,22 @@ public sealed partial class IccProfile
         private readonly float f;
         private readonly int n; // for sampled, length or a small signature
 
-        private Trc(byte kind, float g, float a, float b, float c, float d, float e, float f, int n)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Trc"/> struct without copying the sampled array.
+        /// </summary>
+        /// <param name="kind">One for parametric curves; two for sampled curves.</param>
+        /// <param name="g">The gamma coefficient or first sample.</param>
+        /// <param name="a">The A coefficient or first-quarter sample.</param>
+        /// <param name="b">The B coefficient or middle sample.</param>
+        /// <param name="c">The C coefficient or third-quarter sample.</param>
+        /// <param name="d">The D coefficient or last sample.</param>
+        /// <param name="e">The E coefficient.</param>
+        /// <param name="f">The F coefficient.</param>
+        /// <param name="n">The parametric type or sampled array length.</param>
+        /// <param name="samples">The profile's original sampled array, or null for parametric curves.</param>
+        private Trc(byte kind, float g, float a, float b, float c, float d, float e, float f, int n, float[]? samples)
         {
+            this.samples = samples;
             this.kind = kind;
             this.g = g;
             this.a = a;
@@ -252,16 +272,23 @@ public sealed partial class IccProfile
             this.n = n;
         }
 
+        /// <summary>
+        /// Copies the fixed coefficients needed for curve comparison.
+        /// </summary>
+        /// <param name="c">The profile's parametric curve.</param>
+        /// <returns>The curve descriptor.</returns>
         public static Trc FromParametric(IccParametricCurve c)
+            => new(1, c.G, c.A, c.B, c.C, c.D, c.E, c.F, (int)c.Type, null);
 
-            // Normalize by curve type to a stable tuple
-            // The types map to piecewise forms, but equality across channels is the key requirement here
-            => new(1, c.G, c.A, c.B, c.C, c.D, c.E, c.F, (int)c.Type);
-
+        /// <summary>
+        /// Describes the original sampled curve without allocating or copying sample storage.
+        /// </summary>
+        /// <param name="data">The profile's sampled curve.</param>
+        /// <returns>The curve descriptor.</returns>
         public static Trc FromCurveLut(float[] data)
         {
-            // Exact sequence equality is enforced by the calling code using the same Trc construction
-            // Record a short signature to compare cheaply, avoid copying
+            // Retain the original array for full sequence comparison. The fingerprint rejects different curves
+            // cheaply, but matching five points is not enough to prove that the complete curves match.
             if (data == null)
             {
                 return default;
@@ -281,16 +308,7 @@ public sealed partial class IccProfile
             float s3 = data[(n * 3) >> 2];
             float s4 = data[n - 1];
 
-            return new Trc(
-                2,
-                s0,
-                s1,
-                s2,
-                s3,
-                s4,
-                0F,
-                0F,
-                n);
+            return new Trc(2, s0, s1, s2, s3, s4, 0F, 0F, n, data);
         }
 
         public override bool Equals(object? obj) => obj is Trc trc && this.Equals(trc);
@@ -316,21 +334,66 @@ public sealed partial class IccProfile
                        this.d == other.d && this.e == other.e && this.f == other.f;
             }
 
-            // sampled: same length and same 5-point fingerprint
+            // Compare the fingerprint first, then every sample. No sample array is copied.
             return this.n == other.n &&
                    this.g == other.g && this.a == other.a &&
-                   this.b == other.b && this.c == other.c && this.d == other.d;
+                   this.b == other.b && this.c == other.c && this.d == other.d &&
+                   this.samples.AsSpan().SequenceEqual(other.samples);
         }
 
-        // Optional stricter sRGB check if you need it later
+        /// <summary>
+        /// Checks the sRGB transfer function before its profile can be removed without conversion.
+        /// </summary>
+        /// <returns>Whether the curve encodes sRGB within its ICC storage precision.</returns>
         public bool IsSrgbLike()
         {
             if (this.kind == 1)
             {
-                // Accept common sRGB parametric encodings where type and parameters match
-                // IEC 61966-2-1 maps to Type4 or Type5 forms in practice
-                // Tighten only if you must exclude gamma~2.2 profiles that share primaries
-                return true;
+                // ICC stores these coefficients as signed 16.16 numbers. Allow one stored unit for
+                // their quantization. Gamma-only curves lack the linear segment and cannot match.
+                const float parameterTolerance = 1F / 65536F;
+                return (this.n == (int)IccParametricCurveType.SRgb || this.n == (int)IccParametricCurveType.Type5) &&
+                       MathF.Abs(this.g - 2.4F) <= parameterTolerance &&
+                       MathF.Abs(this.a - (1F / 1.055F)) <= parameterTolerance &&
+                       MathF.Abs(this.b - (0.055F / 1.055F)) <= parameterTolerance &&
+                       MathF.Abs(this.c - (1F / 12.92F)) <= parameterTolerance &&
+                       MathF.Abs(this.d - 0.04045F) <= parameterTolerance &&
+                       MathF.Abs(this.e) <= parameterTolerance &&
+                       MathF.Abs(this.f) <= parameterTolerance;
+            }
+
+            if (this.kind != 2 || this.n < 2)
+            {
+                return false;
+            }
+
+            // Sampled ICC curves store unsigned sixteen-bit values. Check every node against the
+            // shared sRGB expansion path within one stored level. Its lookup table is reused, not
+            // allocated per profile. This work is profile selection, never a pixel-row operation.
+            const float sampleTolerance = 1F / ushort.MaxValue;
+            float[] table = SRgbCompanding.GetExpandLookupTable();
+            float step = 1F / (this.n - 1);
+
+            for (int i = 0; i < this.n; i++)
+            {
+                // X checks the stored node. Y checks the midpoint of the preceding segment, so a
+                // sparse identity table [0,1] cannot pass just because both endpoints match sRGB.
+                // Obtain the shared table once above; this loop performs no cache lookups or powers.
+                Vector4 inputs = new(i * step, (i - 0.5F) * step, 0F, 0F);
+                Vector4 expected = CompandingUtilities.Compand(inputs, table);
+                if (!(MathF.Abs(this.samples![i] - expected.X) <= sampleTolerance))
+                {
+                    return false;
+                }
+
+                if (i > 0)
+                {
+                    float interpolated = (this.samples[i - 1] + this.samples[i]) * 0.5F;
+                    if (!(MathF.Abs(interpolated - expected.Y) <= sampleTolerance))
+                    {
+                        return false;
+                    }
+                }
             }
 
             return true;

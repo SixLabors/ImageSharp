@@ -78,7 +78,9 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        // Compact removes canonical sRGB metadata only. It must not convert samples while retaining
+        // their original non-sRGB profile. Only Convert requests a color transform.
+        if (this.ColorProfileHandling != ColorProfileHandling.Convert)
         {
             return false;
         }

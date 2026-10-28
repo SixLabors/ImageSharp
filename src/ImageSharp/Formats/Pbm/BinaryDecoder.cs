@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -34,9 +35,25 @@ internal class BinaryDecoder
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="colorType">The color type of the encoded pixels.</param>
     /// <param name="componentType">The data type of the pixel components.</param>
-    public static void Process<TPixel>(Configuration configuration, Buffer2D<TPixel> pixels, BufferedReadStream stream, PbmColorType colorType, PbmComponentType componentType)
+    /// <param name="maxPixelValue">The maximum sample value declared in the header. Unused for black and white.</param>
+    public static void Process<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        PbmColorType colorType,
+        PbmComponentType componentType,
+        int maxPixelValue)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Full-range inputs keep the existing byte and ushort conversion paths.
+        // Other ranges need normalized floats until the destination pixel format performs its final packing.
+        int fullRange = componentType == PbmComponentType.Short ? ushort.MaxValue : byte.MaxValue;
+        if (colorType != PbmColorType.BlackAndWhite && maxPixelValue != fullRange)
+        {
+            ProcessScaled(configuration, pixels, stream, colorType, componentType, maxPixelValue);
+            return;
+        }
+
         if (colorType == PbmColorType.Grayscale)
         {
             if (componentType == PbmComponentType.Byte)
@@ -66,6 +83,77 @@ internal class BinaryDecoder
     }
 
     /// <summary>
+    /// Normalizes binary samples before the destination pixel format packs them.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="pixels">The destination pixels.</param>
+    /// <param name="stream">The input stream at the raster.</param>
+    /// <param name="colorType">The encoded color type.</param>
+    /// <param name="componentType">The encoded sample size.</param>
+    /// <param name="maxPixelValue">The declared maximum sample value.</param>
+    private static void ProcessScaled<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> pixels,
+        BufferedReadStream stream,
+        PbmColorType colorType,
+        PbmComponentType componentType,
+        int maxPixelValue)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        bool isRgb = colorType == PbmColorType.Rgb;
+        bool isWide = componentType == PbmComponentType.Short;
+        int sampleSize = isWide ? sizeof(ushort) : sizeof(byte);
+        int bytesPerPixel = sampleSize * (isRgb ? 3 : 1);
+        int width = pixels.Width;
+
+        // Rent both rows once. Encoded bytes stay separate from the float row, so widening cannot overwrite unread samples.
+        using IMemoryOwner<byte> encoded = configuration.MemoryAllocator.Allocate<byte>(width * bytesPerPixel);
+        using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(width);
+        Span<byte> encodedRow = encoded.GetSpan();
+        Span<Vector4> vectorRow = vectors.GetSpan();
+
+        for (int y = 0; y < pixels.Height; y++)
+        {
+            int count = ReadRow(stream, encodedRow, bytesPerPixel);
+            if (count == 0)
+            {
+                return;
+            }
+
+            for (int x = 0; x < count; x++)
+            {
+                int offset = x * bytesPerPixel;
+                int red = isWide ? BinaryPrimitives.ReadUInt16BigEndian(encodedRow.Slice(offset, sampleSize)) : encodedRow[offset];
+                int green = red;
+                int blue = red;
+                if (isRgb)
+                {
+                    offset += sampleSize;
+                    green = isWide ? BinaryPrimitives.ReadUInt16BigEndian(encodedRow.Slice(offset, sampleSize)) : encodedRow[offset];
+                    offset += sampleSize;
+                    blue = isWide ? BinaryPrimitives.ReadUInt16BigEndian(encodedRow.Slice(offset, sampleSize)) : encodedRow[offset];
+                }
+
+                // RGB holds the encoded magnitudes. Alpha uses Maxval so normalization produces exactly opaque alpha.
+                vectorRow[x] = PbmSampleScaler.Scale(new Vector4(red, green, blue, maxPixelValue), maxPixelValue);
+            }
+
+            // Convert only complete pixels. A short final row must not copy unused pooled memory into the image.
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                configuration,
+                vectorRow[..count],
+                pixels.DangerousGetRowSpan(y)[..count],
+                PixelConversionModifiers.Scale);
+
+            if (count < width)
+            {
+                return;
+            }
+        }
+    }
+
+    /// <summary>
     /// Decodes 8-bit binary grayscale (PGM) pixel data.
     /// Each pixel is a single byte that holds its luminance value.
     /// When the stream ends early, the rows that were not read keep their default value.
@@ -86,17 +174,20 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) < rowSpan.Length)
+            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            if (count == 0)
             {
                 return;
             }
 
+            Span<byte> samples = rowSpan[..(count * bytesPerPixel)];
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromL8Bytes(
                 configuration,
-                rowSpan,
-                pixelSpan,
-                width);
+                samples,
+                pixelSpan[..count],
+                count);
         }
     }
 
@@ -121,21 +212,24 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) < rowSpan.Length)
+            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            if (count == 0)
             {
                 return;
             }
 
+            Span<byte> samples = rowSpan[..(count * bytesPerPixel)];
+
             // The binary format stores 16-bit samples most significant byte first,
             // but L16 expects native (little-endian) byte order.
-            SwapSampleBytes(rowSpan);
+            SwapSampleBytes(samples);
 
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromL16Bytes(
                 configuration,
-                rowSpan,
-                pixelSpan,
-                width);
+                samples,
+                pixelSpan[..count],
+                count);
         }
     }
 
@@ -160,17 +254,20 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) < rowSpan.Length)
+            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            if (count == 0)
             {
                 return;
             }
 
+            Span<byte> samples = rowSpan[..(count * bytesPerPixel)];
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromRgb24Bytes(
                 configuration,
-                rowSpan,
-                pixelSpan,
-                width);
+                samples,
+                pixelSpan[..count],
+                count);
         }
     }
 
@@ -195,22 +292,46 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) < rowSpan.Length)
+            int count = ReadRow(stream, rowSpan, bytesPerPixel);
+            if (count == 0)
             {
                 return;
             }
 
+            Span<byte> samples = rowSpan[..(count * bytesPerPixel)];
+
             // The binary format stores 16-bit samples most significant byte first,
             // but Rgb48 expects native (little-endian) byte order.
-            SwapSampleBytes(rowSpan);
+            SwapSampleBytes(samples);
 
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromRgb48Bytes(
                 configuration,
-                rowSpan,
-                pixelSpan,
-                width);
+                samples,
+                pixelSpan[..count],
+                count);
         }
+    }
+
+    /// <summary>
+    /// Reads one encoded row and zero-fills only missing bytes in its last incomplete pixel.
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="row">The reusable encoded row.</param>
+    /// <param name="bytesPerPixel">The encoded size of one pixel.</param>
+    /// <returns>The number of available pixels, including an incomplete final pixel.</returns>
+    private static int ReadRow(BufferedReadStream stream, Span<byte> row, int bytesPerPixel)
+    {
+        int bytesRead = stream.Read(row);
+        int count = bytesRead / bytesPerPixel;
+        if (bytesRead % bytesPerPixel != 0)
+        {
+            // Keep the available channels and high sample bytes. Missing bytes must not come from pooled storage.
+            count++;
+            row.Slice(bytesRead, (count * bytesPerPixel) - bytesRead).Clear();
+        }
+
+        return count;
     }
 
     /// <summary>

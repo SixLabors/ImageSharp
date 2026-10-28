@@ -1360,6 +1360,42 @@ public static class TestImages
 
     public static class Pbm
     {
+        public const string WideGrayPgm = "Pbm/samples/wide-gray.pgm";
+        public const string WideRgbPpm = "Pbm/samples/wide-rgb.ppm";
+        public const string ByteWhitePgm = "Pbm/samples/byte-white.pgm";
+        public const string WideWhitePgm = "Pbm/samples/wide-white.pgm";
+        public const string P2Max100Pgm = "Pbm/samples/p2-max100.pgm";
+        public const string P3Max100Ppm = "Pbm/samples/p3-max100.ppm";
+        public const string P5Max100Pgm = "Pbm/samples/p5-max100.pgm";
+        public const string P6Max100Ppm = "Pbm/samples/p6-max100.ppm";
+        public const string P2Max1000Pgm = "Pbm/samples/p2-max1000.pgm";
+        public const string P3Max1000Ppm = "Pbm/samples/p3-max1000.ppm";
+        public const string P5Max1000Pgm = "Pbm/samples/p5-max1000.pgm";
+        public const string P6Max1000Ppm = "Pbm/samples/p6-max1000.ppm";
+        public const string P2AboveMax100Pgm = "Pbm/samples/p2-above-max100.pgm";
+        public const string P3AboveMax100Ppm = "Pbm/samples/p3-above-max100.ppm";
+        public const string P5AboveMax100Pgm = "Pbm/samples/p5-above-max100.pgm";
+        public const string P6AboveMax100Ppm = "Pbm/samples/p6-above-max100.ppm";
+        public const string P2AboveMax1000Pgm = "Pbm/samples/p2-above-max1000.pgm";
+        public const string P3AboveMax1000Ppm = "Pbm/samples/p3-above-max1000.ppm";
+        public const string P5AboveMax1000Pgm = "Pbm/samples/p5-above-max1000.pgm";
+        public const string P6AboveMax1000Ppm = "Pbm/samples/p6-above-max1000.ppm";
+        public const string P2DecimalOverflowPgm = "Pbm/samples/p2-decimal-overflow.pgm";
+        public const string P3DecimalOverflowPpm = "Pbm/samples/p3-decimal-overflow.ppm";
+        public const string P2PartialPgm = "Pbm/samples/p2-partial.pgm";
+        public const string P5PartialPgm = "Pbm/samples/p5-partial.pgm";
+        public const string P3PartialPpm = "Pbm/samples/p3-partial.ppm";
+        public const string P6PartialPpm = "Pbm/samples/p6-partial.ppm";
+        public const string RasterWhitespacePgm = "Pbm/samples/raster-whitespace.pgm";
+        public const string RasterWhitespacePpm = "Pbm/samples/raster-whitespace.ppm";
+        public const string RasterWhitespacePbm = "Pbm/samples/raster-whitespace.pbm";
+        public const string HeaderDecimalOverflowPgm = "Pbm/samples/header-decimal-overflow.pgm";
+        public const string P2ZeroMaxPgm = "Pbm/samples/p2-zero-max.pgm";
+        public const string P3ZeroMaxPpm = "Pbm/samples/p3-zero-max.ppm";
+        public const string P5ZeroMaxPgm = "Pbm/samples/p5-zero-max.pgm";
+        public const string P6ZeroMaxPpm = "Pbm/samples/p6-zero-max.ppm";
+        public const string PlainEofPbm = "Pbm/samples/plain-eof.pbm";
+
         public const string BlackAndWhitePlain = "Pbm/blackandwhite_plain.pbm";
         public const string BlackAndWhiteBinary = "Pbm/blackandwhite_binary.pbm";
         public const string GrayscaleBinary = "Pbm/rings.pgm";

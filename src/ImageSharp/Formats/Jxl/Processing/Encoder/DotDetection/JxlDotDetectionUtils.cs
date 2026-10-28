@@ -27,7 +27,7 @@ internal static class JxlDotDetectionUtils
     /// <summary>
     /// Sum of Square Differences
     /// </summary>
-    /// <param name="configuration">Contains the memory allocator and parallel options.</param>
+    /// <param name="configuration">The configuration that owns the output allocator.</param>
     /// <param name="original">Original image</param>
     /// <param name="smooth">Smooth image</param>
     /// <returns>Sum of Square Differences coefficients</returns>
@@ -39,7 +39,7 @@ internal static class JxlDotDetectionUtils
 
         JxlPlane<float> sumOfSquares = new(configuration, original.XSize, original.YSize);
 
-        _ = Parallel.For(0, original.YSize, configuration.GetParallelOptions(), y =>
+        for (int y = 0; y < original.YSize; y++)
         {
             Span<float> originalRow0 = original.Plane(0).GetRow(y);
             Span<float> originalRow1 = original.Plane(1).GetRow(y);
@@ -64,7 +64,7 @@ internal static class JxlDotDetectionUtils
                 Vector<float> weightedSumOfSquareDiffs = v0 + v1 + v2;
                 weightedSumOfSquareDiffs.CopyTo(sumOfSquaresRow[x..]);
             }
-        });
+        }
 
         return sumOfSquares;
     }

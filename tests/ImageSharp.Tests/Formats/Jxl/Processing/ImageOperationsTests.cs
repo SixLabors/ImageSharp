@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Memory;
@@ -12,6 +13,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class ImageOperationsTests
 {
+    /// <summary>
+    /// Checks that groups reuse coefficient scratch and release replaced buffers when it grows.
+    /// </summary>
+    [Fact]
+    public void GroupScratch_ReusesAndReleasesAllocations()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        using (JxlGroupDecoderCache cache = new(configuration))
+        {
+            int smallTransform = JxlAcStrategy.GetTypeBit(JxlAcStrategyType.DCT);
+            cache.InitializeOnce(0, smallTransform);
+            Assert.Equal(3, allocator.AllocationLog.Count);
+
+            cache.InitializeOnce(0, smallTransform);
+            Assert.Equal(3, allocator.AllocationLog.Count);
+            Assert.Empty(allocator.ReturnLog);
+
+            // A larger transform replaces the three coefficient buffers. The previous owners
+            // must be returned immediately rather than retained until the cache is disposed.
+            cache.InitializeOnce(0, JxlAcStrategy.GetTypeBit(JxlAcStrategyType.DCT32X32));
+            Assert.Equal(6, allocator.AllocationLog.Count);
+            Assert.Equal(3, allocator.ReturnLog.Count);
+        }
+
+        Assert.Equal(6, allocator.ReturnLog.Count);
+        Assert.Equal(0, allocator.LiveBufferBytes);
+    }
+
     /// <summary>
     /// Checks typed allocation, distinct rows, sample offsets, and initialized vector padding.
     /// </summary>

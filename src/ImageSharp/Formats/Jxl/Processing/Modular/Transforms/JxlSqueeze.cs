@@ -225,20 +225,23 @@ internal static class JxlSqueeze
             return;
         }
 
-        // The number of rows a single parallel iteration computes
-        // is stored here.
-        const int rowsPerThread = 8;
+        // Transposition works on eight rows at a time. Reuse its stack storage for all blocks.
+        const int rowsPerBlock = 8;
 
-        // rowsPerThread * 9, aligned to the power of 2.
-        const int rowsPerThreadMul9Alignment = 128;
+        // The average block has one extra column for the next-sample predictor. Each of the
+        // other planes contains an eight-by-eight block. Allocate them once, outside traversal.
+        Span<int> bpAvg = stackalloc int[rowsPerBlock * 9];
+        Span<int> bpResidual = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutEven = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutOdd = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutEvenT = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutOddT = stackalloc int[rowsPerBlock * 8];
+        int rowBlockCount = JxlMath.DivCeil(inputChannel.Height, rowsPerBlock);
 
-        // rowsPerThread * 8, aligned to the power of 2.
-        const int rowsPerThreadMul8Alignment = 64;
-
-        _ = Parallel.For(0, JxlMath.DivCeil(inputChannel.Height, rowsPerThread), configuration.GetParallelOptions(), idx =>
+        for (int idx = 0; idx < rowBlockCount; idx++)
         {
-            int y0 = idx * rowsPerThread;
-            int rows = Math.Min(rowsPerThread, inputChannel.Height - y0);
+            int y0 = idx * rowsPerBlock;
+            int rows = Math.Min(rowsPerBlock, inputChannel.Height - y0);
             int x = 0;
 
             int onerow_in = inputChannel.Plane.PixelsPerRow;
@@ -249,26 +252,19 @@ internal static class JxlSqueeze
             Span<int> pOut = outputChannel.GetRow(y0);
             ref int pOutRef = ref MemoryMarshal.GetReference(pOut);
 
-            Span<int> bpAvg = stackalloc int[rowsPerThreadMul9Alignment].Slice(0, rowsPerThread * 9);
-            Span<int> bpResidual = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutEven = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutOdd = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutEvenT = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutOddT = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-
             ref int bpOutEvenTRef = ref MemoryMarshal.GetReference(bpOutEvenT);
             ref int bpOutOddTRef = ref MemoryMarshal.GetReference(bpOutOddT);
 
             int n = Vector256<int>.Count;
 
-            if (inputResidualChannel.Width > 16 && rows == rowsPerThread)
+            if (inputResidualChannel.Width > 16 && rows == rowsPerBlock)
             {
                 for (; x < inputResidualChannel.Width - 9; x += 8)
                 {
                     JxlSimdUtils.Transpose8x8Block(pResidual[x..], bpResidual, onerow_inr);
                     JxlSimdUtils.Transpose8x8Block(pAverage[x..], bpAvg, onerow_in);
 
-                    for (int y = 0; y < rowsPerThread; y++)
+                    for (int y = 0; y < rowsPerBlock; y++)
                     {
                         bpAvg[64 + y] = pAverage[x + 8 + (onerow_in * y)];
                     }
@@ -290,12 +286,12 @@ internal static class JxlSqueeze
                     JxlSimdUtils.Transpose8x8Block(bpOutEven, bpOutEvenT, 8);
                     JxlSimdUtils.Transpose8x8Block(bpOutOdd, bpOutOddT, 8);
 
-                    for (int y = 0; y < rowsPerThread; y++)
+                    for (int y = 0; y < rowsPerBlock; y++)
                     {
                         // y * 8
                         int y8 = y << 3;
 
-                        for (int i = 0; i < rowsPerThread; i += n)
+                        for (int i = 0; i < rowsPerBlock; i += n)
                         {
                             int offset = y8 + i;
 
@@ -315,7 +311,7 @@ internal static class JxlSqueeze
             {
                 UnsqueezeRow(y0 + y, x);
             }
-        });
+        }
 
         input.Channels[c] = outputChannel;
 
@@ -392,14 +388,15 @@ internal static class JxlSqueeze
             return;
         }
 
-        // The number of columns a single parallel iteration computes
-        // is stored here.
-        const int colsPerThread = 8;
+        // Process one vector-width column block at a time. The previous output row
+        // remains available for prediction while traversal stays on the calling thread.
+        const int columnsPerBlock = 8;
+        int columnBlockCount = JxlMath.DivCeil(inputChannel.Width, columnsPerBlock);
 
-        _ = Parallel.For(0, JxlMath.DivCeil(inputChannel.Width, colsPerThread), configuration.GetParallelOptions(), idx =>
+        for (int idx = 0; idx < columnBlockCount; idx++)
         {
-            int x0 = idx * colsPerThread;
-            int x1 = Math.Min((idx + 1) * colsPerThread, inputChannel.Width);
+            int x0 = idx * columnsPerBlock;
+            int x1 = Math.Min((idx + 1) * columnsPerBlock, inputChannel.Width);
             int w = x1 - x0;
 
             for (int y = 0; y < inputResidualChannel.Height; y++)
@@ -439,7 +436,7 @@ internal static class JxlSqueeze
                     pNOut[x] = output - diff;
                 }
             }
-        });
+        }
 
         if ((outputChannel.Height & 1) > 0)
         {

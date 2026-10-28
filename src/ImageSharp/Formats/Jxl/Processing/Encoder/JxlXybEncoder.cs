@@ -222,10 +222,12 @@ internal static class JxlXybEncoder
     private static Vector<float> LinearFromSRgb(Vector<float> encoded)
         => JxlSRgbTransferFunction.DisplayFromEncoded(encoded);
 
-    private static void LinearSrgbToXyb(
-        Configuration configuration,
-        Memory<float> premulAbsorb,
-        JxlImage3<float> image)
+    /// <summary>
+    /// Converts linear sRGB planes to XYB in place.
+    /// </summary>
+    /// <param name="premulAbsorb">The broadcast absorbance matrix and cube-root bias coefficients.</param>
+    /// <param name="image">The source planes, which receive XYB samples.</param>
+    private static void LinearSrgbToXyb(ReadOnlySpan<float> premulAbsorb, JxlImage3<float> image)
     {
         int xSize = image.XSize;
 
@@ -254,16 +256,18 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, image.YSize, configuration.GetParallelOptions(), x =>
+        for (int y = 0; y < image.YSize; y++)
         {
-            ProcessRow(x, premulAbsorb.Span);
-        });
+            ProcessRow(y, premulAbsorb);
+        }
     }
 
-    private static void SRgbToXyb(
-        Configuration configuration,
-        Memory<float> premulAbsorb,
-        JxlImage3<float> image)
+    /// <summary>
+    /// Converts encoded sRGB planes to XYB in place.
+    /// </summary>
+    /// <param name="premulAbsorb">The broadcast absorbance matrix and cube-root bias coefficients.</param>
+    /// <param name="image">The source planes, which receive XYB samples.</param>
+    private static void SRgbToXyb(ReadOnlySpan<float> premulAbsorb, JxlImage3<float> image)
     {
         int xSize = image.XSize;
 
@@ -292,17 +296,19 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, image.YSize, configuration.GetParallelOptions(), x =>
+        for (int y = 0; y < image.YSize; y++)
         {
-            ProcessRow(x, premulAbsorb.Span);
-        });
+            ProcessRow(y, premulAbsorb);
+        }
     }
 
-    private static void SrgbToXybAndLinear(
-        Configuration configuration,
-        Memory<float> premulAbsorb,
-        JxlImage3<float> image,
-        JxlImage3<float> linear)
+    /// <summary>
+    /// Converts encoded sRGB planes to XYB and retains the linear sRGB samples.
+    /// </summary>
+    /// <param name="premulAbsorb">The broadcast absorbance matrix and cube-root bias coefficients.</param>
+    /// <param name="image">The source planes, which receive XYB samples.</param>
+    /// <param name="linear">The caller-owned planes that receive linear sRGB samples.</param>
+    private static void SrgbToXybAndLinear(ReadOnlySpan<float> premulAbsorb, JxlImage3<float> image, JxlImage3<float> linear)
     {
         int xSize = image.XSize;
 
@@ -339,7 +345,10 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, image.YSize, configuration.GetParallelOptions(), x => ProcessRow(x, premulAbsorb.Span));
+        for (int y = 0; y < image.YSize; y++)
+        {
+            ProcessRow(y, premulAbsorb);
+        }
     }
 
     private static void ComputePremulAbsorb(float intensityTarget, Span<float> premulAbsorb)
@@ -396,33 +405,33 @@ internal static class JxlXybEncoder
 
         int lanes = Vector<float>.Count;
 
-        Memory<float> premulAbsorb = new float[lanes * 12];
-        ComputePremulAbsorb(intensityTarget, premulAbsorb.Span);
-
-        bool wantLinear = linear is not null;
+        // Twelve coefficients are broadcast across the active vector lanes. The bounded
+        // workspace stays on the calling thread and is reused for every row of this transform.
+        Span<float> premulAbsorb = stackalloc float[lanes * 12];
+        ComputePremulAbsorb(intensityTarget, premulAbsorb);
 
         JxlColorEncoding linearSrgb = JxlColorEncoding.LinearSRgb(currentEncoding.IsGray);
 
         if (linearSrgb.SameColorEncoding(currentEncoding))
         {
-            if (wantLinear)
+            if (linear is not null)
             {
-                JxlImageOperations.ForceCopyImage(image, linear!);
+                JxlImageOperations.ForceCopyImage(image, linear);
             }
 
-            LinearSrgbToXyb(configuration, premulAbsorb, image);
+            LinearSrgbToXyb(premulAbsorb, image);
             return true;
         }
 
         if (currentEncoding.IsSRgb)
         {
-            if (wantLinear)
+            if (linear is not null)
             {
-                SrgbToXybAndLinear(configuration, premulAbsorb, image, linear!);
+                SrgbToXybAndLinear(premulAbsorb, image, linear);
                 return true;
             }
 
-            SRgbToXyb(configuration, premulAbsorb, image);
+            SRgbToXyb(premulAbsorb, image);
             return true;
         }
 
@@ -436,14 +445,14 @@ internal static class JxlXybEncoder
             image.GetRectangle(),
             linearSrgb,
             cms,
-            wantLinear ? linear! : image);
+            linear ?? image);
 
-        if (wantLinear)
+        if (linear is not null)
         {
-            JxlImageOperations.ForceCopyImage(linear!, image);
+            JxlImageOperations.ForceCopyImage(linear, image);
         }
 
-        LinearSrgbToXyb(configuration, premulAbsorb, image);
+        LinearSrgbToXyb(premulAbsorb, image);
         return true;
     }
 
@@ -522,6 +531,9 @@ internal static class JxlXybEncoder
             }
         }
 
-        _ = Parallel.For(0, numStripes, configuration.GetParallelOptions(), Transform);
+        for (int i = 0; i < numStripes; i++)
+        {
+            Transform(i);
+        }
     }
 }

@@ -89,7 +89,10 @@ internal class JxlExternalImageEncoder
             LoadFloatRow(data[offset..], xSize, bytesPerPixel, format.DataType, littleEndian, scale, SaveValue);
         }
 
-        _ = Parallel.For(0, ySize, configuration.GetParallelOptions(), ConvertRow);
+        for (int i = 0; i < ySize; i++)
+        {
+            ConvertRow(i);
+        }
     }
 
     private static bool ConvertFromExternal(

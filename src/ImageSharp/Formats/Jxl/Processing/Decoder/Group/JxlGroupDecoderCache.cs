@@ -12,11 +12,26 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
 /// <summary>
 /// Cache for the JPEG XL Group Decoder.
 /// </summary>
-internal sealed class JxlGroupDecoderCache(Configuration configuration)
+internal sealed class JxlGroupDecoderCache(Configuration configuration) : IDisposable
 {
+    /// <summary>
+    /// Owns the floating-point coefficient and transform workspace.
+    /// </summary>
     private IMemoryOwner<float>? floatMemory;
+
+    /// <summary>
+    /// Owns the full-width quantized coefficients.
+    /// </summary>
     private IMemoryOwner<int>? int32Memory;
+
+    /// <summary>
+    /// Owns the narrow quantized coefficients.
+    /// </summary>
     private IMemoryOwner<short>? int16Memory;
+
+    /// <summary>
+    /// The largest transform area supported by the current workspace.
+    /// </summary>
     private int maxBlockArea;
 
     public Memory<float> DecodeGroupBlockScratchSpace { get; set; }
@@ -52,6 +67,11 @@ internal sealed class JxlGroupDecoderCache(Configuration configuration)
         }
     }
 
+    /// <summary>
+    /// Initializes pass storage and grows coefficient scratch only when a larger transform is required.
+    /// </summary>
+    /// <param name="numPasses">The number of coefficient passes.</param>
+    /// <param name="usedACStrategy">The bit mask of transform types used by the group.</param>
     public void InitializeOnce(int numPasses, int usedACStrategy)
     {
         for (int i = 0; i < numPasses; i++)
@@ -82,11 +102,32 @@ internal sealed class JxlGroupDecoderCache(Configuration configuration)
 
         if (maxBlockArea > this.maxBlockArea)
         {
-            this.maxBlockArea = maxBlockArea;
+            IMemoryOwner<float> floatMemory = configuration.MemoryAllocator.Allocate<float>(maxBlockArea * 7);
+            IMemoryOwner<int>? int32Memory = null;
+            IMemoryOwner<short>? int16Memory = null;
 
-            this.floatMemory = configuration.MemoryAllocator.Allocate<float>(this.maxBlockArea * 7);
-            this.int32Memory = configuration.MemoryAllocator.Allocate<int>(this.maxBlockArea * 3);
-            this.int16Memory = configuration.MemoryAllocator.Allocate<short>(this.maxBlockArea * 3);
+            try
+            {
+                int32Memory = configuration.MemoryAllocator.Allocate<int>(maxBlockArea * 3);
+                int16Memory = configuration.MemoryAllocator.Allocate<short>(maxBlockArea * 3);
+            }
+            catch
+            {
+                int16Memory?.Dispose();
+                int32Memory?.Dispose();
+                floatMemory.Dispose();
+                throw;
+            }
+
+            // Publish the replacement only after every allocation succeeds. Later groups reuse
+            // these buffers until a larger transform is needed; growth releases the old owners.
+            this.floatMemory?.Dispose();
+            this.int32Memory?.Dispose();
+            this.int16Memory?.Dispose();
+            this.floatMemory = floatMemory;
+            this.int32Memory = int32Memory;
+            this.int16Memory = int16Memory;
+            this.maxBlockArea = maxBlockArea;
         }
 
         this.DecodeGroupBlockScratchSpace = this.floatMemory?.Memory ?? Memory<float>.Empty;
@@ -101,5 +142,22 @@ internal sealed class JxlGroupDecoderCache(Configuration configuration)
         {
             this.ScratchSpaceMemory = Memory<float>.Empty;
         }
+    }
+
+    /// <summary>
+    /// Releases coefficient scratch, nonzero-count planes, and DC storage owned by this cache.
+    /// </summary>
+    public void Dispose()
+    {
+        this.floatMemory?.Dispose();
+        this.int32Memory?.Dispose();
+        this.int16Memory?.Dispose();
+
+        foreach (JxlImage3<int> nonZeroes in this.NumberOfNonZeroes)
+        {
+            nonZeroes.Dispose();
+        }
+
+        this.DcBuffer.Dispose();
     }
 }

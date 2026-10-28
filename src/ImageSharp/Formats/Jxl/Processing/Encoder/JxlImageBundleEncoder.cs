@@ -50,12 +50,7 @@ internal class JxlImageBundleEncoder
 
         transform.Initialize(configuration, currentEncoding, desiredEncoding, intensityTarget, rect.Width);
 
-        // We can't use a ref variable inside of a lambda expression,
-        // so we store its value in a variable. The output variable
-        // will not be assigned.
-        JxlImage3<float> outValue = output;
-
-        _ = Parallel.For(0, rect.Height, configuration.GetParallelOptions(), y =>
+        for (int y = 0; y < rect.Height; y++)
         {
             Span<float> sourceBuffer = transform.GetSourceBuffer();
 
@@ -101,9 +96,9 @@ internal class JxlImageBundleEncoder
                 throw new InvalidOperationException("Could not run color space transform");
             }
 
-            Span<float> rowOut0 = outValue.PlaneRow(0, y);
-            Span<float> rowOut1 = outValue.PlaneRow(1, y);
-            Span<float> rowOut2 = outValue.PlaneRow(2, y);
+            Span<float> rowOut0 = output.PlaneRow(0, y);
+            Span<float> rowOut1 = output.PlaneRow(1, y);
+            Span<float> rowOut2 = output.PlaneRow(2, y);
 
             if (isGray)
             {
@@ -121,7 +116,7 @@ internal class JxlImageBundleEncoder
                     rowOut2[x] = destBuffer[x3 + 2];
                 }
             }
-        });
+        }
 
         return false;
     }

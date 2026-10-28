@@ -273,7 +273,7 @@ internal static class JxlPalette
         {
             if (nb == 1)
             {
-                _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
+                for (int y = 0; y < h; y++)
                 {
                     Span<int> p = channel.GetRow(y);
                     Span<int> paletteData = palette.GetRow(0);
@@ -284,11 +284,11 @@ internal static class JxlPalette
 
                         p[x] = GetPaletteValue(paletteData, index, 0, oneRow, bitDepth);
                     }
-                });
+                }
             }
             else if (nb == 2)
             {
-                _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
+                for (int y = 0; y < h; y++)
                 {
                     Span<int> paletteData = palette.GetRow(0);
                     Span<int> p0 = channel.GetRow(y);
@@ -302,11 +302,11 @@ internal static class JxlPalette
                         p0[x] = GetPaletteValue(paletteData, index0, 0, oneRow, bitDepth);
                         p1[x] = GetPaletteValue(paletteData, index1, 0, oneRow, bitDepth);
                     }
-                });
+                }
             }
             else if (nb == 3)
             {
-                _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
+                for (int y = 0; y < h; y++)
                 {
                     Span<int> paletteData = palette.GetRow(0);
                     Span<int> p0 = channel.GetRow(y);
@@ -323,11 +323,11 @@ internal static class JxlPalette
                         p1[x] = GetPaletteValue(paletteData, index1, 0, oneRow, bitDepth);
                         p2[x] = GetPaletteValue(paletteData, index2, 0, oneRow, bitDepth);
                     }
-                });
+                }
             }
             else if (nb == 4)
             {
-                _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
+                for (int y = 0; y < h; y++)
                 {
                     Span<int> paletteData = palette.GetRow(0);
                     Span<int> p0 = channel.GetRow(y);
@@ -347,11 +347,11 @@ internal static class JxlPalette
                         p2[x] = GetPaletteValue(paletteData, index2, 0, oneRow, bitDepth);
                         p3[x] = GetPaletteValue(paletteData, index3, 0, oneRow, bitDepth);
                     }
-                });
+                }
             }
             else if (nb == 5)
             {
-                _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
+                for (int y = 0; y < h; y++)
                 {
                     Span<int> paletteData = palette.GetRow(0);
                     Span<int> p0 = channel.GetRow(y);
@@ -374,7 +374,7 @@ internal static class JxlPalette
                         p3[x] = GetPaletteValue(paletteData, index3, 0, oneRow, bitDepth);
                         p4[x] = GetPaletteValue(paletteData, index4, 0, oneRow, bitDepth);
                     }
-                });
+                }
             }
             else
             {
@@ -389,23 +389,30 @@ internal static class JxlPalette
 
             if (predictor == JxlPredictor.Weighted)
             {
-                _ = Parallel.For(0, nb, configuration.GetParallelOptions(), c =>
+                for (int c = 0; c < nb; c++)
                 {
-                    JxlModularChannel channel = input.Channels[c0 + c];
-                    JxlModularState wpState = new(weightedHeader, channel.Width);
+                    JxlModularChannel outputChannel = input.Channels[c0 + c];
+                    JxlModularState wpState = new(weightedHeader, outputChannel.Width);
                     Span<int> paletteData = palette.GetRow(0);
 
-                    for (int y = 0; y < channel.Height; y++)
+                    for (int y = 0; y < outputChannel.Height; y++)
                     {
-                        Span<int> p = channel.GetRow(y);
+                        Span<int> p = outputChannel.GetRow(y);
                         Span<int> idx = indices.GetRow(y);
 
-                        for (int x = 0; x < channel.Width; x++)
+                        for (int x = 0; x < outputChannel.Width; x++)
                         {
                             int index = idx[x];
                             int value = 0;
                             int paletteEntry = GetPaletteValue(paletteData, index, c, oneRow, bitDepth);
-                            JxlPredictionResult pred = JxlContextPrediction.PredictTreeNoWeightedPrediction(channel.Width, p[x..], oneRowImage, x, y, predictor, wpState);
+                            JxlPredictionResult pred = JxlContextPrediction.PredictTreeNoWeightedPrediction(
+                                outputChannel.Width,
+                                p[x..],
+                                oneRowImage,
+                                x,
+                                y,
+                                predictor,
+                                wpState);
 
                             if (index < nbDeltas)
                             {
@@ -417,24 +424,24 @@ internal static class JxlPalette
                             }
 
                             p[x] = value;
-                            wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                            wpState.UpdatePredictionErrors(p[x], x, y, outputChannel.Width);
                         }
                     }
-                });
+                }
             }
             else
             {
-                _ = Parallel.For(0, nb, configuration.GetParallelOptions(), c =>
+                for (int c = 0; c < nb; c++)
                 {
-                    JxlModularChannel channel = input.Channels[c0 + c];
+                    JxlModularChannel outputChannel = input.Channels[c0 + c];
                     Span<int> paletteData = palette.GetRow(0);
 
-                    for (int y = 0; y < channel.Height; y++)
+                    for (int y = 0; y < outputChannel.Height; y++)
                     {
-                        Span<int> p = channel.GetRow(y);
+                        Span<int> p = outputChannel.GetRow(y);
                         Span<int> idx = indices.GetRow(y);
 
-                        for (int x = 0; x < channel.Width; x++)
+                        for (int x = 0; x < outputChannel.Width; x++)
                         {
                             int index = idx[x];
                             int value = 0;
@@ -442,7 +449,14 @@ internal static class JxlPalette
 
                             if (index < nbDeltas)
                             {
-                                JxlPredictionResult pred = JxlContextPrediction.PredictNoTreeNoWeightedPrediction(channel.Width, p[x..], oneRowImage, x, y, predictor);
+                                JxlPredictionResult pred = JxlContextPrediction.PredictNoTreeNoWeightedPrediction(
+                                    outputChannel.Width,
+                                    p[x..],
+                                    oneRowImage,
+                                    x,
+                                    y,
+                                    predictor);
+
                                 value = pred.Guess + paletteEntry;
                             }
                             else
@@ -453,7 +467,7 @@ internal static class JxlPalette
                             p[x] = value;
                         }
                     }
-                });
+                }
             }
         }
 

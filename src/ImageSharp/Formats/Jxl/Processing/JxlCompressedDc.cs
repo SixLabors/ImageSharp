@@ -172,7 +172,7 @@ internal static class JxlCompressedDc
             dc.PlaneRow(c, ySize - 1).CopyTo(smoothed.PlaneRow(c, ySize - 1));
         }
 
-        _ = Parallel.For(1, ySize, configuration.GetParallelOptions(), y =>
+        for (int y = 1; y < ySize - 1; y++)
         {
             ReadOnlySpan<float> rowTopX = dc.PlaneRow(0, y - 1);
             ReadOnlySpan<float> rowTopY = dc.PlaneRow(1, y - 1);
@@ -219,7 +219,7 @@ internal static class JxlCompressedDc
             {
                 ComputePixelScalar(dcFactors, rowTopX, rowTopY, rowTopB, rowX, rowY, rowB, rowBottomX, rowBottomY, rowBottomB, rowOutX, rowOutY, rowOutB, x);
             }
-        });
+        }
 
         dc.Swap(smoothed);
         return true;

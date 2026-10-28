@@ -44,7 +44,7 @@ internal static class JxlExternalImageDecoder
         {
             output = JxlPlane<T>.Create(configuration, xSize, ySize);
 
-            _ = Parallel.For(0, ySize, configuration.GetParallelOptions(), (y) =>
+            for (int y = 0; y < ySize; y++)
             {
                 Span<T> rowIn = image.GetRow(y);
                 Span<T> rowOut = output.GetRow(y);
@@ -53,13 +53,13 @@ internal static class JxlExternalImageDecoder
                 {
                     rowOut[xSize - x - 1] = rowIn[x];
                 }
-            });
+            }
         }
         else if (undoOrientation == JxlExifOrientation.Rotate180)
         {
             output = JxlPlane<T>.Create(configuration, xSize, ySize);
 
-            _ = Parallel.For(0, ySize, configuration.GetParallelOptions(), (y) =>
+            for (int y = 0; y < ySize; y++)
             {
                 Span<T> rowIn = image.GetRow(y);
                 Span<T> rowOut = output.GetRow(ySize - y - 1);
@@ -68,7 +68,7 @@ internal static class JxlExternalImageDecoder
                 {
                     rowOut[xSize - x - 1] = rowIn[x];
                 }
-            });
+            }
         }
         // TODO
     }

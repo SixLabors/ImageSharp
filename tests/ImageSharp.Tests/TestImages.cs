@@ -1358,6 +1358,11 @@ public static class TestImages
 
     public static class Pbm
     {
+        /// <summary>
+        /// Stored sample normalization and raster-boundary inputs.
+        /// </summary>
+        public const string SampleDirectory = "Pbm/samples/";
+
         public const string BlackAndWhitePlain = "Pbm/blackandwhite_plain.pbm";
         public const string BlackAndWhiteBinary = "Pbm/blackandwhite_binary.pbm";
         public const string GrayscaleBinary = "Pbm/rings.pgm";

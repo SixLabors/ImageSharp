@@ -91,7 +91,7 @@ public static partial class SRgbCompanding
         // Extended ranges and precision above sixteen bits use analytic conversion.
         if (bitDepth <= 16 && colorRange == PixelColorRange.Sdr)
         {
-            CompandingUtilities.Compand(vectors, CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction));
+            CompandingUtilities.Compand(vectors, GetExpandLookupTable());
         }
         else
         {
@@ -147,7 +147,7 @@ public static partial class SRgbCompanding
         // Extended ranges and precision above sixteen bits use analytic conversion.
         if (bitDepth <= 16 && colorRange == PixelColorRange.Sdr)
         {
-            return CompandingUtilities.Compand(vector, CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction));
+            return CompandingUtilities.Compand(vector, GetExpandLookupTable());
         }
 
         return ExpandCore(vector, colorRange);
@@ -186,6 +186,13 @@ public static partial class SRgbCompanding
     /// <returns>The converted color with unchanged alpha.</returns>
     private static Vector4 CompressCore(Vector4 vector, PixelColorRange colorRange)
         => CompandingUtilities.Compand(vector, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F), colorRange);
+
+    /// <summary>
+    /// Gets the shared sRGB expansion table without allocating a table for each caller.
+    /// </summary>
+    /// <returns>The cached table used by the sRGB expansion methods.</returns>
+    internal static float[] GetExpandLookupTable()
+        => CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction);
 
     private class SRgbCompandingKey;
 }

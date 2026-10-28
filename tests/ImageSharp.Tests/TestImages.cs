@@ -174,6 +174,7 @@ public static class TestImages
 
         public static class Icc
         {
+            public const string LinearRgb = "Png/icc-profiles/issue-3216-linear.png";
             public const string SRgbGray = "Png/icc-profiles/sRGB_Gray.png";
             public const string SRgbGrayInterlacedRgba32 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba32.png";
             public const string SRgbGrayInterlacedRgba64 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba64.png";
@@ -239,6 +240,7 @@ public static class TestImages
         public static class ICC
         {
             public const string SRgb = "Jpg/icc-profiles/Momiji-sRGB-yes.jpg";
+            public const string LinearRgb = "Jpg/icc-profiles/issue-3216-linear.jpg";
             public const string AdobeRgb = "Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg";
             public const string ColorMatch = "Jpg/icc-profiles/Momiji-ColorMatch-yes.jpg";
             public const string ProPhoto = "Jpg/icc-profiles/Momiji-ProPhoto-yes.jpg";

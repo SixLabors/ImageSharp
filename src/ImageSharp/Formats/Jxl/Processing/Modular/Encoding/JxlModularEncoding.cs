@@ -251,6 +251,8 @@ internal static class JxlModularEncoding
     /// <param name="image">The image that owns the channel.</param>
     /// <param name="flRun">The remaining prefix-coded repetition count.</param>
     /// <param name="flV">The repeated prefix-coded value.</param>
+    /// <param name="weightedState">The operation-owned scratch, prepared on its first weighted channel and reused by later channels.</param>
+    /// <param name="maximumWidth">The maximum channel width prepared by the enclosing modular operation.</param>
     public static void DecodeModularChannelMAANS(
         Configuration configuration,
         bool usesLz77,
@@ -265,7 +267,9 @@ internal static class JxlModularEncoding
         JxlTreeLut<byte> treeLookup,
         JxlModularImage image,
         ref uint flRun,
-        ref uint flV)
+        ref uint flV,
+        ref JxlModularState? weightedState,
+        int maximumWidth)
     {
         JxlModularChannel channel = image.Channels[channelIdx];
 
@@ -273,10 +277,9 @@ internal static class JxlModularEncoding
         staticProps[0] = channelIdx;
         staticProps[1] = groupId;
 
-        if ((channel.Width & channel.Height) == 0) // equivalent to (channel.Width == 0 || channel.Height == 0)
-        {
-            return;
-        }
+        // Keep the physical stride after metadata shrink. Borrow the allocation once; row and neighbor views use this span.
+        Span<int> channelSamples = channel.GetRow(0);
+        int onerow = channel.Plane.PixelsPerRow;
 
         bool treeHasWeightedPredictionPropOrPred = false;
         bool isWeightedPredictionOnly = false;
@@ -337,7 +340,7 @@ internal static class JxlModularEncoding
 
                     for (int y = 0; y < channel.Height; y++)
                     {
-                        Span<int> r = channel.GetRow(y);
+                        Span<int> r = channelSamples[(y * onerow)..];
                         r[..channel.Width].Fill(v);
                     }
                 }
@@ -347,7 +350,7 @@ internal static class JxlModularEncoding
                     {
                         for (int y = 0; y < channel.Height; y++)
                         {
-                            Span<int> r = channel.GetRow(y);
+                            Span<int> r = channelSamples[(y * onerow)..];
 
                             for (int x = 0; x < channel.Width; x++)
                             {
@@ -361,7 +364,7 @@ internal static class JxlModularEncoding
                     {
                         for (int y = 0; y < channel.Height; y++)
                         {
-                            Span<int> r = channel.GetRow(y);
+                            Span<int> r = channelSamples[(y * onerow)..];
 
                             for (int x = 0; x < channel.Width; x++)
                             {
@@ -381,9 +384,8 @@ internal static class JxlModularEncoding
 
                 for (int y = 0; y < channel.Height; y++)
                 {
-                    Span<int> r = channel.GetRow(y);
-                    Span<int> rtop = y > 0 ? channel.GetRow(y - 1) : channel.GetRowMinus(y, 1);
-                    Span<int> rtopleft = y > 0 ? channel.GetRowMinus(y - 1, 1) : channel.GetRowMinus(y, 1);
+                    Span<int> r = channelSamples[(y * onerow)..];
+                    Span<int> rtop = y > 0 ? channelSamples[((y - 1) * onerow)..] : r;
                     int guess0 = y > 0 ? rtop[0] : 0;
 
                     if (flRun == 0)
@@ -401,8 +403,8 @@ internal static class JxlModularEncoding
                     for (int x = 1; x < channel.Width; x++)
                     {
                         int left = r[x - 1];
-                        int top = rtop[x];
-                        int topleft = rtopleft[x];
+                        int top = y > 0 ? rtop[x] : left;
+                        int topleft = y > 0 ? rtop[x - 1] : left;
                         int guess = JxlContextPrediction.ClampedGradient(top, left, topleft);
 
                         if (flRun == 0)
@@ -423,18 +425,16 @@ internal static class JxlModularEncoding
             }
             else if (predictor == JxlPredictor.Gradient && offset == 0 && multiplier == 1)
             {
-                int onerow = channel.Plane.PixelsPerRow;
-
                 for (int y = 0; y < channel.Height; y++)
                 {
-                    Span<int> r = channel.GetRow(y);
+                    Span<int> r = channelSamples[(y * onerow)..];
 
                     for (int x = 0; x < channel.Width; x++)
                     {
                         // Neighbors
-                        int left = x > 0 ? r[x - 1] : y > 0 ? channel.GetRowMinus(y, x - onerow)[0] : 0;
-                        int top = y > 0 ? channel.GetRowMinus(y, x - onerow)[0] : left;
-                        int topleft = x > 0 && y > 0 ? channel.GetRowMinus(y, x - 1 - onerow)[0] : left;
+                        int left = x > 0 ? r[x - 1] : y > 0 ? channelSamples[((y - 1) * onerow) + x] : 0;
+                        int top = y > 0 ? channelSamples[((y - 1) * onerow) + x] : left;
+                        int topleft = x > 0 && y > 0 ? channelSamples[((y - 1) * onerow) + x - 1] : left;
 
                         int guess = JxlContextPrediction.ClampedGradient(top, left, topleft);
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, (int)ctx_id, bitReader, window);
@@ -459,18 +459,16 @@ internal static class JxlModularEncoding
 
         if (isGradientOnly)
         {
-            int onerow = channel.Plane.PixelsPerRow;
-
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> r = channel.GetRow(y);
+                Span<int> r = channelSamples[(y * onerow)..];
 
                 for (int x = 0; x < channel.Width; x++)
                 {
                     // Neighbors
-                    int left = x > 0 ? channel.GetRowPlus(y, x - 1)[0] : y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : 0;
-                    int top = y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : left;
-                    int topleft = x > 0 && y > 0 ? channel.GetRowPlus(y, x - 1 - onerow)[0] : left;
+                    int left = x > 0 ? r[x - 1] : y > 0 ? channelSamples[((y - 1) * onerow) + x] : 0;
+                    int top = y > 0 ? channelSamples[((y - 1) * onerow) + x] : left;
+                    int topleft = x > 0 && y > 0 ? channelSamples[((y - 1) * onerow) + x - 1] : left;
 
                     int guess = JxlContextPrediction.ClampedGradient(top, left, topleft);
                     int pos =
@@ -487,16 +485,24 @@ internal static class JxlModularEncoding
         }
         else if (!usesLz77 && isWeightedPredictionOnly && channel.Width > 8)
         {
-            JxlModularState wpState = new(wpHeader, channel.Width);
+            // Allocate only when this operation first selects a weighted channel. Later channels reset the same fixed-capacity owner.
+            weightedState ??= new(configuration, wpHeader, maximumWidth, 1);
+            JxlModularState wpState = weightedState;
+            Span<uint> weightedStorage = wpState.Reset(wpHeader, channel.Width);
             Span<int> properties = [0];
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> r = channel.GetRow(y);
-                Span<int> rtop = y > 0 ? channel.GetRow(y - 1) : channel.GetRowMinus(y, 1);
-                Span<int> rtoptop = y > 1 ? channel.GetRow(y - 2) : rtop;
-                Span<int> rtopleft = y > 0 ? channel.GetRowMinus(y - 1, 1) : channel.GetRowMinus(y, 1);
-                Span<int> rtopright = y > 0 ? channel.GetRow(y - 1)[1..] : channel.GetRowMinus(y, 1);
+                Span<int> r = channelSamples[(y * onerow)..];
+                Span<int> rtop = y > 0 ? channelSamples[((y - 1) * onerow)..] : r;
+                Span<int> rtoptop = y > 1 ? channelSamples[((y - 2) * onerow)..] : rtop;
+
+                // Interior columns have a valid west sample. Select unavailable first-row neighbors as west once per row.
+                // For row one, the unavailable two-up sample is north. These offsets are only loaded for 1 <= x < width-1.
+                int northOffset = y > 0 ? -onerow : -1;
+                int northWestOffset = y > 0 ? -onerow - 1 : -1;
+                int northEastOffset = y > 0 ? -onerow + 1 : -1;
+                int twoUpOffset = y > 1 ? -2 * onerow : northOffset;
 
                 int x = 0;
                 {
@@ -505,39 +511,75 @@ internal static class JxlModularEncoding
                     int toptop = y > 0 ? rtoptop[x] : 0;
                     int topright = x + 1 < channel.Width && y > 0 ? rtop[x + 1] : left;
 
-                    int guess = (int)wpState.Predict(true, x, y, channel.Width, left, left, topright, left, toptop, properties, offset);
-                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(properties[0], -JxlMaConstants.PropertyRangeFast, JxlMaConstants.PropertyRangeFast - 1);
+                    int guess = (int)wpState.Predict(true, x, y, weightedStorage, 0, left, left, topright, left, toptop, properties, offset);
+                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(
+                        properties[0],
+                        -JxlMaConstants.PropertyRangeFast,
+                        JxlMaConstants.PropertyRangeFast - 1);
 
                     uint ctx_id = treeLookup.ContextLookup[pos];
                     uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, (int)ctx_id, bitReader, window);
 
                     r[x] = MakePixel(v, 1, guess);
-                    wpState.UpdatePredictionErrors(r[x], x, y, channel.Width);
+                    wpState.UpdatePredictionErrors(r[x], x, y, weightedStorage, 0);
                 }
 
                 for (x = 1; x + 1 < channel.Width; x++)
                 {
                     int offset = 0;
-                    int guess = (int)wpState.Predict(true, x, y, channel.Width, rtop[x], r[x - 1], rtopright[x], rtopleft[x], rtoptop[x], properties, offset);
-                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(properties[0], -JxlMaConstants.PropertyRangeFast, JxlMaConstants.PropertyRangeFast - 1);
+                    ref int current = ref r[x];
+                    int guess = (int)wpState.Predict(
+                        true,
+                        x,
+                        y,
+                        weightedStorage,
+                        0,
+                        Unsafe.Add(ref current, northOffset),
+                        r[x - 1],
+                        Unsafe.Add(ref current, northEastOffset),
+                        Unsafe.Add(ref current, northWestOffset),
+                        Unsafe.Add(ref current, twoUpOffset),
+                        properties,
+                        offset);
+
+                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(
+                        properties[0],
+                        -JxlMaConstants.PropertyRangeFast,
+                        JxlMaConstants.PropertyRangeFast - 1);
 
                     int ctx_id = treeLookup.ContextLookup[pos];
                     uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, (int)ctx_id, bitReader, window);
 
                     r[x] = MakePixel(v, 1, guess);
-                    wpState.UpdatePredictionErrors(r[x], x, y, channel.Width);
+                    wpState.UpdatePredictionErrors(r[x], x, y, weightedStorage, 0);
                 }
 
                 {
                     int offset = 0;
-                    int guess = (int)wpState.Predict(true, x, y, channel.Width, rtop[x], r[x - 1], rtop[x], rtopleft[x], rtoptop[x], properties, offset);
-                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(properties[0], -JxlMaConstants.PropertyRangeFast, JxlMaConstants.PropertyRangeFast - 1);
+                    int guess = (int)wpState.Predict(
+                        true,
+                        x,
+                        y,
+                        weightedStorage,
+                        0,
+                        y > 0 ? rtop[x] : r[x - 1],
+                        r[x - 1],
+                        y > 0 ? rtop[x] : r[x - 1],
+                        y > 0 ? rtop[x - 1] : r[x - 1],
+                        y > 0 ? rtoptop[x] : r[x - 1],
+                        properties,
+                        offset);
+
+                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(
+                        properties[0],
+                        -JxlMaConstants.PropertyRangeFast,
+                        JxlMaConstants.PropertyRangeFast - 1);
 
                     int ctx_id = treeLookup.ContextLookup[pos];
                     uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, (int)ctx_id, bitReader, window);
 
                     r[x] = MakePixel(v, 1, guess);
-                    wpState.UpdatePredictionErrors(r[x], x, y, channel.Width);
+                    wpState.UpdatePredictionErrors(r[x], x, y, weightedStorage, 0);
                 }
             }
         }
@@ -545,35 +587,62 @@ internal static class JxlModularEncoding
         {
             JxlMaTreeLookup tree_lookup = new(tree);
             Span<int> properties = stackalloc int[numProps];
-            int onerow = channel.Plane.PixelsPerRow;
-
-            JxlModularChannel references = new(configuration, properties.Length - NumNonrefProperties, channel.Width, 0, 0);
+            using JxlModularChannel references = new(configuration, properties.Length - JxlMaConstants.NumNonrefProperties, channel.Width, 0, 0);
+            Span<int> referenceStorage = references.GetRow(0);
+            int referenceStride = references.Plane.PixelsPerRow;
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> p = channel.GetRow(y);
-                PrecomputeReferences(channel, y, image, channelIdx, references);
-                InitPropsRow(properties, staticProps, y);
+                Span<int> p = channelSamples[(y * onerow)..];
+                JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIdx, references, referenceStorage);
+                JxlContextPrediction.InitializePropertiesForRow(properties, staticProps, y);
 
                 if (y > 1 && channel.Width > 8 && references.Width == 0)
                 {
                     for (int x = 0; x < 2; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width));
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
                     }
 
                     for (int x = 2; x < channel.Width - 2; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPredictionNoEdgeCases(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPredictionNoEdgeCases(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width));
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
                     }
 
                     for (int x = channel.Width - 2; x < channel.Width; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width));
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
                     }
@@ -582,7 +651,16 @@ internal static class JxlModularEncoding
                 {
                     for (int x = 0; x < channel.Width; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width));
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
                     }
@@ -593,106 +671,111 @@ internal static class JxlModularEncoding
         {
             JxlMaTreeLookup tree_lookup = new(tree);
             Span<int> properties = stackalloc int[numProps];
-            int onerow = channel.Plane.PixelsPerRow;
-
-            JxlModularChannel references = new(configuration, properties.Length - NumNonrefProperties, channel.Width, 0, 0);
-            JxlModularState wpState = new(wpHeader, channel.Width);
+            using JxlModularChannel references = new(configuration, properties.Length - JxlMaConstants.NumNonrefProperties, channel.Width, 0, 0);
+            Span<int> referenceStorage = references.GetRow(0);
+            int referenceStride = references.Plane.PixelsPerRow;
+            // Allocate only when this operation first selects a weighted channel. Later channels reset the same fixed-capacity owner.
+            weightedState ??= new(configuration, wpHeader, maximumWidth, 1);
+            JxlModularState wpState = weightedState;
+            Span<uint> weightedStorage = wpState.Reset(wpHeader, channel.Width);
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> p = channel.GetRow(y);
-                InitPropsRow(properties, staticProps, y);
-                PrecomputeReferences(channel, y, image, channelIdx, references);
+                Span<int> p = channelSamples[(y * onerow)..];
+                JxlContextPrediction.InitializePropertiesForRow(properties, staticProps, y);
+                JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIdx, references, referenceStorage);
 
                 if (!usesLz77 && y > 1 && channel.Width > 8 && references.Width == 0)
                 {
                     for (int x = 0; x < 2; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references, wpState);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width),
+                            wpState,
+                            weightedStorage,
+                            0);
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
 
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
-                        wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                        wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                     }
 
                     for (int x = 2; x < channel.Width - 2; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPredictionNoEdgeCases(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references, wpState);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPredictionNoEdgeCases(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width),
+                            wpState,
+                            weightedStorage,
+                            0);
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
 
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
-                        wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                        wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                     }
 
                     for (int x = channel.Width - 2; x < channel.Width; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references, wpState);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width),
+                            wpState,
+                            weightedStorage,
+                            0);
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
 
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
-                        wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                        wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                     }
                 }
                 else
                 {
                     for (int x = 0; x < channel.Width; x++)
                     {
-                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, tree_lookup, references, wpState);
+                        JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            onerow,
+                            x,
+                            y,
+                            tree_lookup,
+                            referenceStorage.Slice(x * referenceStride, references.Width),
+                            wpState,
+                            weightedStorage,
+                            0);
+
                         uint v = (uint)reader.ReadHybridUIntClustered(usesLz77, res.Context, bitReader, window);
 
                         p[x] = MakePixel(v, res.Multiplier, res.Guess);
-                        wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                        wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                     }
                 }
             }
         }
     }
-
-    /// <summary>
-    /// Decodes one channel using the entropy reader's LZ77 selection and caller-borrowed storage.
-    /// </summary>
-    /// <param name="configuration">The configuration that owns prediction storage.</param>
-    /// <param name="bitReader">The encoded channel data.</param>
-    /// <param name="reader">The caller-owned entropy reader.</param>
-    /// <param name="contextMap">The stable prediction-context mapping.</param>
-    /// <param name="window">The LZ77 window borrowed before decoding channels.</param>
-    /// <param name="globalTree">The shared prediction tree.</param>
-    /// <param name="wpHeader">The weighted-prediction settings.</param>
-    /// <param name="channelIdx">The channel index.</param>
-    /// <param name="groupId">The group identifier.</param>
-    /// <param name="treeLut">The reusable prediction lookup storage.</param>
-    /// <param name="image">The image that owns the channel.</param>
-    /// <param name="flRun">The remaining prefix-coded repetition count.</param>
-    /// <param name="flV">The repeated prefix-coded value.</param>
-    public static void DecodeModularChannelMAANS(
-        Configuration configuration,
-        JxlBitReader bitReader,
-        JxlAnsSymbolReader reader,
-        ReadOnlySpan<byte> contextMap,
-        Span<int> window,
-        Tree globalTree,
-        JxlModularHeader wpHeader,
-        int channelIdx,
-        int groupId,
-        JxlTreeLut<byte> treeLut,
-        JxlModularImage image,
-        ref uint flRun,
-        ref uint flV)
-        => DecodeModularChannelMAANS(
-            configuration,
-            reader.UsesLz77,
-            bitReader,
-            reader,
-            contextMap,
-            window,
-            globalTree,
-            wpHeader,
-            channelIdx,
-            groupId,
-            treeLut,
-            image,
-            ref flRun,
-            ref flV);
 
     public static void ValidateChannelDimensions(JxlModularImage image, JxlModularOptions options)
     {
@@ -816,110 +899,124 @@ internal static class JxlModularEncoding
         }
 
         int nextChannel = 0;
-        using JxlScopeGuard clearGuard = new(() =>
+        bool clearPendingChannels = !allowTruncatedGroup;
+        try
         {
-            for (int c = nextChannel; c < image.Channels.Count; c++)
+            Tree treeStorage = [];
+            List<byte> contextMapStorage = [];
+            JxlAnsCode codeStorage = new();
+
+            Tree tree = treeStorage;
+            JxlAnsCode code = codeStorage;
+            List<byte> contextMap = contextMapStorage;
+
+            if (!header.UseGlobalTree)
             {
-                image.Channels[c].Plane.Clear();
-            }
-        });
+                ulong maxTreeSize = 1024;
 
-        if (allowTruncatedGroup)
-        {
-            clearGuard.Disarm();
-        }
-
-        Tree treeStorage = [];
-        List<byte> contextMapStorage = [];
-        JxlAnsCode codeStorage = new();
-
-        Tree tree = treeStorage;
-        JxlAnsCode code = codeStorage;
-        List<byte> contextMap = contextMapStorage;
-
-        if (!header.UseGlobalTree)
-        {
-            ulong maxTreeSize = 1024;
-
-            for (int i = 0; i < numberOfChannels; i++)
-            {
-                JxlModularChannel channel = image.Channels[i];
-                if (i >= image.MetaChannels && (channel.Width > options.MaxChannelSize || channel.Height > options.MaxChannelSize))
+                for (int i = 0; i < numberOfChannels; i++)
                 {
-                    break;
+                    JxlModularChannel channel = image.Channels[i];
+                    if (i >= image.MetaChannels && (channel.Width > options.MaxChannelSize || channel.Height > options.MaxChannelSize))
+                    {
+                        break;
+                    }
+
+                    ulong pixels = (ulong)channel.Width * (ulong)channel.Height;
+                    maxTreeSize += pixels;
                 }
 
-                ulong pixels = (ulong)channel.Width * (ulong)channel.Height;
-                maxTreeSize += pixels;
+                maxTreeSize = Math.Min(1uL << 20, maxTreeSize);
+                JxlMaDecoder.DecodeTree(configuration, br, treeStorage, (int)maxTreeSize);
+                JxlAnsReader.DecodeHistograms(configuration, br, (treeStorage.Count + 1) / 2, codeStorage, ref contextMapStorage, false);
             }
-
-            maxTreeSize = Math.Min(1uL << 20, maxTreeSize);
-            JxlMaDecoder.DecodeTree(configuration, br, treeStorage, (int)maxTreeSize);
-            JxlAnsReader.DecodeHistograms(configuration, br, (treeStorage.Count + 1) / 2, codeStorage, ref contextMapStorage, false);
-        }
-        else
-        {
-            if (globalTree.Count == 0)
+            else
             {
-                throw new InvalidOperationException("No global tree available but one was requested");
+                if (globalTree.Count == 0)
+                {
+                    throw new InvalidOperationException("No global tree available but one was requested");
+                }
+
+                tree = globalTree;
+                code = globalCode;
+                contextMap = globalContextMap;
             }
 
-            tree = globalTree;
-            code = globalCode;
-            contextMap = globalContextMap;
-        }
+            using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(configuration, code, br, distanceMultiplier);
+            JxlTreeLut<byte> treeLut = new(false, false);
 
-        using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(configuration, code, br, distanceMultiplier);
-        JxlTreeLut<byte> treeLut = new(false, false);
+            // All channels share this reader and distance history. Borrow storage before the channel loop,
+            // then pass the same spans through prediction loops without acquiring Memory.Span for each symbol.
+            Span<int> window = reader.Lz77Window;
+            bool usesLz77 = reader.UsesLz77;
+            ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
 
-        // All channels share this reader and distance history. Borrow storage before the channel loop,
-        // then pass the same spans through prediction loops without acquiring Memory.Span for each symbol.
-        Span<int> window = reader.Lz77Window;
-        ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
+            uint flRun = 0;
+            uint flV = 0;
 
-        uint flRun = 0;
-        uint flV = 0;
-
-        for (; nextChannel < numberOfChannels; nextChannel++)
-        {
-            JxlModularChannel channel = image.Channels[nextChannel];
-            if (nextChannel >= image.MetaChannels &&
-                (channel.Width > options.MaxChannelSize ||
-                 channel.Height > options.MaxChannelSize))
+            JxlModularState? weightedState = null;
+            try
             {
-                break;
-            }
+                for (; nextChannel < numberOfChannels; nextChannel++)
+                {
+                    JxlModularChannel channel = image.Channels[nextChannel];
+                    if (nextChannel >= image.MetaChannels &&
+                        (channel.Width > options.MaxChannelSize ||
+                         channel.Height > options.MaxChannelSize))
+                    {
+                        break;
+                    }
 
-            if (channel.Width == 0 || channel.Height == 0)
+                    if (channel.Width == 0 || channel.Height == 0)
+                    {
+                        continue;  // skip empty channels
+                    }
+
+                    DecodeModularChannelMAANS(
+                        configuration,
+                        usesLz77,
+                        br,
+                        reader,
+                        contexts,
+                        window,
+                        tree,
+                        header.WeightedHeader,
+                        nextChannel,
+                        groupId,
+                        treeLut,
+                        image,
+                        ref flRun,
+                        ref flV,
+                        ref weightedState,
+                        distanceMultiplier);
+                }
+            }
+            finally
             {
-                continue;  // skip empty channels
+                weightedState?.Dispose();
             }
 
-            DecodeModularChannelMAANS(
-                configuration,
-                br,
-                reader,
-                contexts,
-                window,
-                tree,
-                header.WeightedHeader,
-                nextChannel,
-                groupId,
-                treeLut,
-                image,
-                ref flRun,
-                ref flV);
+            clearPendingChannels = false;
 
+            if (!reader.CheckAnsFinalState())
+            {
+                throw new InvalidOperationException("ANS decode final state failed");
+            }
+
+            return true;
         }
-
-        clearGuard.Disarm();
-
-        if (!reader.CheckAnsFinalState())
+        finally
         {
-            throw new InvalidOperationException("ANS decode final state failed");
+            // Strict failures clear channels that decoding has not completed. Truncated-group mode retains the decoded samples.
+            // The success path disables this cleanup before the final ANS check, matching the native decoder's boundary.
+            if (clearPendingChannels)
+            {
+                for (int c = nextChannel; c < image.Channels.Count; c++)
+                {
+                    image.Channels[c].Plane.Clear();
+                }
+            }
         }
-
-        return true;
     }
 
     public static bool ModularGenericDecompress(
@@ -941,8 +1038,6 @@ internal static class JxlModularEncoding
         {
             reqSizes.Add(new(c.Width, c.Height));
         }
-
-        header ??= new JxlGroupHeader();
 
         bool decStatus = ModularDecode(configuration, br, image, header, groupId, options, tree, code, contextMap, allowTruncatedGroup);
 

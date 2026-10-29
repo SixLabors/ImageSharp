@@ -121,7 +121,28 @@ internal static class JxlModularEncodingEncoder
         return tree;
     }
 
-    public static void GatherTreeData(Configuration configuration, JxlModularImage image, int channelIndex, int groupId, JxlModularHeader wpHeader, JxlModularOptions options, JxlTreeSamples treeSamples, ref int totalPixels)
+    /// <summary>
+    /// Collects prediction samples for one channel, using scratch shared by the complete tree-learning operation.
+    /// </summary>
+    /// <param name="configuration">The configuration used for channel-reference storage.</param>
+    /// <param name="image">The source modular image.</param>
+    /// <param name="channelIndex">The source channel index.</param>
+    /// <param name="groupId">The group used for static context properties.</param>
+    /// <param name="wpHeader">The weighted-prediction settings for this image.</param>
+    /// <param name="options">The sampling and predictor options.</param>
+    /// <param name="treeSamples">The destination prediction samples.</param>
+    /// <param name="wpState">The operation-owned scratch, reset for this channel without allocating.</param>
+    /// <param name="totalPixels">The running number of visited samples.</param>
+    public static void GatherTreeData(
+        Configuration configuration,
+        JxlModularImage image,
+        int channelIndex,
+        int groupId,
+        JxlModularHeader wpHeader,
+        JxlModularOptions options,
+        JxlTreeSamples treeSamples,
+        JxlModularState wpState,
+        ref int totalPixels)
     {
         JxlModularChannel channel = image.Channels[channelIndex];
 
@@ -153,24 +174,57 @@ internal static class JxlModularEncodingEncoder
             return (bits >> 32) <= threshold;
         }
 
+        Span<int> channelSamples = channel.GetRow(0);
         int pixelsPerRow = channel.Plane.PixelsPerRow;
         using JxlModularChannel references = new(configuration, properties.Length - JxlMaConstants.NumNonrefProperties, channel.Width, 0, 0);
-        JxlModularState wpState = new(wpHeader, channel.Width);
+        Span<int> referenceStorage = references.GetRow(0);
+        int referenceStride = references.Plane.PixelsPerRow;
+        Span<uint> weightedStorage = wpState.Reset(wpHeader, channel.Width);
 
         treeSamples.PrepareForSamples((int)(pixelFraction * channel.Height * channel.Width) + 64);
         bool haveMultiplePredictors = treeSamples.NumberOfPredictors != 1;
 
-        void ComputeSample(Span<int> p, int x, int y, Span<int> properties, ref int totalPixels)
+        // Pass spans into the local operation. Its captured state contains no borrowed spans.
+        void ComputeSample(
+            Span<int> p,
+            int x,
+            int y,
+            Span<int> properties,
+            Span<uint> predictionStorage,
+            ReadOnlySpan<int> referenceProperties,
+            ref int totalPixels)
         {
             Span<int> pred = stackalloc int[JxlPredictorFacts.ModularPredictorsAlignment].Slice(0, JxlPredictorFacts.ModularPredictors);
 
             if (haveMultiplePredictors)
             {
-                _ = JxlContextPrediction.PredictLearnAll(properties, channel.Width, ref p[x], pixelsPerRow, x, y, references, wpState, pred);
+                _ = JxlContextPrediction.PredictLearnAll(
+                    properties,
+                    channel.Width,
+                    ref p[x],
+                    pixelsPerRow,
+                    x,
+                    y,
+                    referenceProperties,
+                    wpState,
+                    predictionStorage,
+                    0,
+                    pred);
             }
             else
             {
-                pred[(int)treeSamples.PredictorFromIndex(0)] = JxlContextPrediction.PredictLearn(properties, channel.Width, ref p[x], pixelsPerRow, x, y, treeSamples.PredictorFromIndex(0), references, wpState).Guess;
+                pred[(int)treeSamples.PredictorFromIndex(0)] = JxlContextPrediction.PredictLearn(
+                    properties,
+                    channel.Width,
+                    ref p[x],
+                    pixelsPerRow,
+                    x,
+                    y,
+                    treeSamples.PredictorFromIndex(0),
+                    referenceProperties,
+                    wpState,
+                    predictionStorage,
+                    0).Guess;
             }
 
             totalPixels++;
@@ -180,33 +234,55 @@ internal static class JxlModularEncodingEncoder
                 treeSamples.AddSample(p[x], properties, pred);
             }
 
-            wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+            wpState.UpdatePredictionErrors(p[x], x, y, predictionStorage, 0);
         }
 
         Span<int> pred = stackalloc int[JxlPredictorFacts.ModularPredictorsAlignment].Slice(0, JxlPredictorFacts.ModularPredictors);
 
         for (int y = 0; y < channel.Height; y++)
         {
-            Span<int> p = channel.GetRow(y);
-            JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIndex, references);
+            Span<int> p = channelSamples[(y * pixelsPerRow)..];
+            JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIndex, references, referenceStorage);
             JxlContextPrediction.InitializePropertiesForRow(properties, staticProperties, y);
 
             if (y > 1 && channel.Width > 8 && references.Width == 0)
             {
                 for (int x = 0; x < 2; x++)
                 {
-                    ComputeSample(p, x, y, properties, ref totalPixels);
+                    ComputeSample(p, x, y, properties, weightedStorage, referenceStorage.Slice(x * referenceStride, references.Width), ref totalPixels);
                 }
 
                 for (int x = 2; x < channel.Width - 2; x++)
                 {
                     if (haveMultiplePredictors)
                     {
-                        _ = JxlContextPrediction.PredictLearnAllNoEdgeCases(properties, channel.Width, ref p[x], pixelsPerRow, x, y, references, wpState, pred);
+                        _ = JxlContextPrediction.PredictLearnAllNoEdgeCases(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            pixelsPerRow,
+                            x,
+                            y,
+                            referenceStorage.Slice(x * referenceStride, references.Width),
+                            wpState,
+                            weightedStorage,
+                            0,
+                            pred);
                     }
                     else
                     {
-                        pred[(int)treeSamples.PredictorFromIndex(0)] = JxlContextPrediction.PredictLearnNoEdgeCases(properties, channel.Width, ref p[x], pixelsPerRow, x, y, treeSamples.PredictorFromIndex(0), references, wpState).Guess;
+                        pred[(int)treeSamples.PredictorFromIndex(0)] = JxlContextPrediction.PredictLearnNoEdgeCases(
+                            properties,
+                            channel.Width,
+                            ref p[x],
+                            pixelsPerRow,
+                            x,
+                            y,
+                            treeSamples.PredictorFromIndex(0),
+                            referenceStorage.Slice(x * referenceStride, references.Width),
+                            wpState,
+                            weightedStorage,
+                            0).Guess;
                     }
 
                     totalPixels++;
@@ -216,19 +292,19 @@ internal static class JxlModularEncodingEncoder
                         treeSamples.AddSample(p[x], properties, pred);
                     }
 
-                    wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                    wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                 }
 
                 for (int x = channel.Width - 2; x < channel.Width; x++)
                 {
-                    ComputeSample(p, x, y, properties, ref totalPixels);
+                    ComputeSample(p, x, y, properties, weightedStorage, referenceStorage.Slice(x * referenceStride, references.Width), ref totalPixels);
                 }
             }
             else
             {
                 for (int x = 0; x < channel.Width; x++)
                 {
-                    ComputeSample(p, x, y, properties, ref totalPixels);
+                    ComputeSample(p, x, y, properties, weightedStorage, referenceStorage.Slice(x * referenceStride, references.Width), ref totalPixels);
                 }
             }
         }
@@ -269,7 +345,30 @@ internal static class JxlModularEncodingEncoder
         return tree;
     }
 
-    public static void EncodeModularChannelMAANS(Configuration configuration, JxlModularImage image, int channelIndex, JxlModularHeader wpHeader, Tree globalTree, Span<JxlToken> tokens, int groupId, bool skipEncoderFastPath)
+    /// <summary>
+    /// Encodes one channel's prediction residuals into the caller's token storage.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns prediction and reference storage.</param>
+    /// <param name="image">The source modular image.</param>
+    /// <param name="channelIndex">The source channel index.</param>
+    /// <param name="wpHeader">The weighted-prediction settings for this group.</param>
+    /// <param name="globalTree">The prediction tree shared by the encoded channels.</param>
+    /// <param name="tokens">The destination token storage.</param>
+    /// <param name="groupId">The group used for static context properties.</param>
+    /// <param name="skipEncoderFastPath">Whether to use general prediction instead of the specialized channel paths.</param>
+    /// <param name="weightedState">The operation-owned scratch, prepared on its first weighted channel and reused by later channels.</param>
+    /// <param name="maximumWidth">The maximum channel width prepared by the enclosing modular operation.</param>
+    public static void EncodeModularChannelMAANS(
+        Configuration configuration,
+        JxlModularImage image,
+        int channelIndex,
+        JxlModularHeader wpHeader,
+        Tree globalTree,
+        Span<JxlToken> tokens,
+        int groupId,
+        bool skipEncoderFastPath,
+        ref JxlModularState? weightedState,
+        int maximumWidth)
     {
         JxlModularChannel channel = image.Channels[channelIndex];
 
@@ -303,38 +402,46 @@ internal static class JxlModularEncodingEncoder
             isGradientOnly = JxlModularEncoding.TreeToLookupTable(tree, treeLut);
         }
 
+        // Neighbor references remain inside this allocation, including physical row padding after metadata shrink.
+        Span<int> channelSamples = channel.GetRow(0);
         int onerow = channel.Plane.PixelsPerRow;
         int treeCount = tree.Count;
 
         if (isWpOnly && !skipEncoderFastPath)
         {
-            JxlModularState wpState = new(wpHeader, channel.Width);
+            // Prepare once on the first weighted channel. The enclosing operation owns disposal and fixed maximum-width capacity.
+            weightedState ??= new(configuration, wpHeader, maximumWidth, 1);
+            JxlModularState wpState = weightedState;
+            Span<uint> weightedStorage = wpState.Reset(wpHeader, channel.Width);
             Span<int> properties = [0];
             bool unhealthy = false;
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> r = channel.GetRow(y);
+                Span<int> r = channelSamples[(y * onerow)..];
 
                 for (int x = 0; x < channel.Width; x++)
                 {
                     int offset = 0;
 
                     // Neighbors
-                    int left = x > 0 ? channel.GetRowPlus(y, x - 1)[0] : y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : 0;
-                    int top = y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : left;
-                    int topleft = x > 0 && y > 0 ? channel.GetRowPlus(y, x - 1 - onerow)[0] : left;
-                    int topright = x + 1 < channel.Width && y > 0 ? channel.GetRowPlus(y, x + 1 - onerow)[0] : top;
-                    int toptop = y > 1 ? channel.GetRowPlus(y, x - onerow - onerow)[0] : top;
+                    int left = x > 0 ? r[x - 1] : y > 0 ? channelSamples[((y - 1) * onerow) + x] : 0;
+                    int top = y > 0 ? channelSamples[((y - 1) * onerow) + x] : left;
+                    int topleft = x > 0 && y > 0 ? channelSamples[((y - 1) * onerow) + x - 1] : left;
+                    int topright = x + 1 < channel.Width && y > 0 ? channelSamples[((y - 1) * onerow) + x + 1] : top;
+                    int toptop = y > 1 ? channelSamples[((y - 2) * onerow) + x] : top;
 
-                    int guess = (int)wpState.Predict(true, x, y, channel.Width, top, left, topright, topleft, toptop, properties, offset);
-                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(properties[0], -JxlMaConstants.PropertyRangeFast, JxlMaConstants.PropertyRangeFast - 1);
+                    int guess = (int)wpState.Predict(true, x, y, weightedStorage, 0, top, left, topright, topleft, toptop, properties, offset);
+                    int pos = JxlMaConstants.PropertyRangeFast + Math.Clamp(
+                        properties[0],
+                        -JxlMaConstants.PropertyRangeFast,
+                        JxlMaConstants.PropertyRangeFast - 1);
 
                     int ctxId = treeLut.ContextLookup[pos];
                     unhealthy |= JxlMath.SubOverflow(r[x], guess, out int residual);
 
                     tokens[tokenp++] = new JxlToken((JxlMaTreeContext)ctxId, JxlPackSigned.PackUnsigned(residual));
-                    wpState.UpdatePredictionErrors(r[x], x, y, channel.Width);
+                    wpState.UpdatePredictionErrors(r[x], x, y, weightedStorage, 0);
                 }
             }
 
@@ -346,13 +453,13 @@ internal static class JxlModularEncodingEncoder
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> r = channel.GetRow(y);
+                Span<int> r = channelSamples[(y * onerow)..];
 
                 for (int x = 0; x < channel.Width; x++)
                 {
-                    int left = x > 0 ? channel.GetRowPlus(y, x - 1)[0] : y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : 0;
-                    int top = y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : left;
-                    int topleft = x > 0 && y > 0 ? channel.GetRowPlus(y, x - 1 - onerow)[0] : left;
+                    int left = x > 0 ? r[x - 1] : y > 0 ? channelSamples[((y - 1) * onerow) + x] : 0;
+                    int top = y > 0 ? channelSamples[((y - 1) * onerow) + x] : left;
+                    int topleft = x > 0 && y > 0 ? channelSamples[((y - 1) * onerow) + x - 1] : left;
 
                     int guess = JxlContextPrediction.ClampedGradient(top, left, topleft);
                     unhealthy |= JxlMath.SubOverflow(r[x], guess, out int residual);
@@ -369,13 +476,13 @@ internal static class JxlModularEncodingEncoder
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> r = channel.GetRow(y);
+                Span<int> r = channelSamples[(y * onerow)..];
 
                 for (int x = 0; x < channel.Width; x++)
                 {
-                    int left = x > 0 ? channel.GetRowPlus(y, x - 1)[0] : y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : 0;
-                    int top = y > 0 ? channel.GetRowPlus(y, x - onerow)[0] : left;
-                    int topleft = x > 0 && y > 0 ? channel.GetRowPlus(y, x - 1 - onerow)[0] : left;
+                    int left = x > 0 ? r[x - 1] : y > 0 ? channelSamples[((y - 1) * onerow) + x] : 0;
+                    int top = y > 0 ? channelSamples[((y - 1) * onerow) + x] : left;
+                    int topleft = x > 0 && y > 0 ? channelSamples[((y - 1) * onerow) + x - 1] : left;
 
                     int guess = JxlContextPrediction.ClampedGradient(top, left, topleft);
                     int pos = JxlMaConstants.PropertyRangeFast + Math.Min(
@@ -395,7 +502,7 @@ internal static class JxlModularEncodingEncoder
         {
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> p = channel.GetRow(y);
+                Span<int> p = channelSamples[(y * onerow)..];
 
                 for (int x = 0; x < channel.Width; x++)
                 {
@@ -409,7 +516,7 @@ internal static class JxlModularEncodingEncoder
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> r = channel.GetRow(y);
+                Span<int> r = channelSamples[(y * onerow)..];
 
                 for (int x = 0; x < channel.Width; x++)
                 {
@@ -429,17 +536,28 @@ internal static class JxlModularEncodingEncoder
         {
             Span<int> properties = stackalloc int[numProps];
             using JxlModularChannel references = new(configuration, properties.Length - JxlMaConstants.NumNonrefProperties, channel.Width, 0, 0);
+            Span<int> referenceStorage = references.GetRow(0);
+            int referenceStride = references.Plane.PixelsPerRow;
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> p = channel.GetRow(y);
+                Span<int> p = channelSamples[(y * onerow)..];
 
-                JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIndex, references);
+                JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIndex, references, referenceStorage);
                 JxlContextPrediction.InitializePropertiesForRow(properties, staticProperties, y);
 
                 for (int x = 0; x < channel.Width; x++)
                 {
-                    JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, treeLookup, references);
+                    JxlPredictionResult res = JxlContextPrediction.PredictTreeNoWeightedPrediction(
+                        properties,
+                        channel.Width,
+                        ref p[x],
+                        onerow,
+                        x,
+                        y,
+                        treeLookup,
+                        referenceStorage.Slice(x * referenceStride, references.Width));
+
                     int residual = p[x] - res.Guess;
 
                     if ((residual % res.Multiplier) != 0)
@@ -455,18 +573,34 @@ internal static class JxlModularEncodingEncoder
         {
             Span<int> properties = stackalloc int[numProps];
             using JxlModularChannel references = new(configuration, properties.Length - JxlMaConstants.NumNonrefProperties, channel.Width, 0, 0);
+            Span<int> referenceStorage = references.GetRow(0);
+            int referenceStride = references.Plane.PixelsPerRow;
 
-            JxlModularState wpState = new(wpHeader, channel.Width);
+            // Prepare once on the first weighted channel. The enclosing operation owns disposal and fixed maximum-width capacity.
+            weightedState ??= new(configuration, wpHeader, maximumWidth, 1);
+            JxlModularState wpState = weightedState;
+            Span<uint> weightedStorage = wpState.Reset(wpHeader, channel.Width);
 
             for (int y = 0; y < channel.Height; y++)
             {
-                Span<int> p = channel.GetRow(y);
-                JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIndex, references);
+                Span<int> p = channelSamples[(y * onerow)..];
+                JxlContextPrediction.PrecomputeReferences(channel, y, image, channelIndex, references, referenceStorage);
                 JxlContextPrediction.InitializePropertiesForRow(properties, staticProperties, y);
 
                 for (int x = 0; x < channel.Width; x++)
                 {
-                    JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(properties, channel.Width, ref p[x], onerow, x, y, treeLookup, references, wpState);
+                    JxlPredictionResult res = JxlContextPrediction.PredictTreeWeightedPrediction(
+                        properties,
+                        channel.Width,
+                        ref p[x],
+                        onerow,
+                        x,
+                        y,
+                        treeLookup,
+                        referenceStorage.Slice(x * referenceStride, references.Width),
+                        wpState,
+                        weightedStorage,
+                        0);
 
                     int residual = p[x] - res.Guess;
 
@@ -476,7 +610,7 @@ internal static class JxlModularEncodingEncoder
                     }
 
                     tokens[tokenp++] = new JxlToken((JxlMaTreeContext)res.Context, JxlPackSigned.PackUnsigned(residual / res.Multiplier));
-                    wpState.UpdatePredictionErrors(p[x], x, y, channel.Width);
+                    wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                 }
             }
         }
@@ -564,7 +698,23 @@ internal static class JxlModularEncodingEncoder
         throw new InvalidOperationException("Invalid tree type: " + treeKind);
     }
 
-    public static Tree LearnTree(Configuration configuration, JxlModularImage[] images, Span<JxlModularOptions> options, int start, int stop, List<JxlModularMultiplierInfo>? multiplierInfo = null)
+    /// <summary>
+    /// Learns a prediction tree from the selected images, reusing weighted-prediction storage across their channels.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns temporary prediction storage.</param>
+    /// <param name="images">The modular source images.</param>
+    /// <param name="options">The matching sampling and prediction options.</param>
+    /// <param name="start">The first image index to include.</param>
+    /// <param name="stop">The first image index to exclude.</param>
+    /// <param name="multiplierInfo">The optional learned multiplier information.</param>
+    /// <returns>The learned prediction tree.</returns>
+    public static Tree LearnTree(
+        Configuration configuration,
+        JxlModularImage[] images,
+        Span<JxlModularOptions> options,
+        int start,
+        int stop,
+        List<JxlModularMultiplierInfo>? multiplierInfo = null)
     {
         multiplierInfo ??= [];
 
@@ -573,6 +723,7 @@ internal static class JxlModularEncodingEncoder
         samples.SetProperties(options[start].SplittingHeuristicsProperties, options[start].WpTreeMode);
 
         int maxC = 0;
+        int maximumWidth = 0;
 
         List<int> pixelSamples = [];
         List<int> diffSamples = [];
@@ -582,6 +733,19 @@ internal static class JxlModularEncodingEncoder
         for (int i = start; i < stop; i++)
         {
             maxC = Math.Max(images[i].Channels.Count, maxC);
+
+            for (int c = 0; c < images[i].Channels.Count; c++)
+            {
+                JxlModularChannel channel = images[i].Channels[c];
+
+                if (c >= images[i].MetaChannels && (channel.Width > options[i].MaxChannelSize || channel.Height > options[i].MaxChannelSize))
+                {
+                    break;
+                }
+
+                maximumWidth = Math.Max(maximumWidth, channel.Width);
+            }
+
             JxlMaEncoder.CollectPixelSamples(configuration, images[i], options[i], i, groupPixelCount, channelPixelCount, pixelSamples, diffSamples);
         }
 
@@ -616,6 +780,7 @@ internal static class JxlModularEncodingEncoder
         totalPixels = Math.Max(totalPixels, 1);
 
         JxlModularHeader wpHeader = new();
+        using JxlModularState weightedState = new(configuration, wpHeader, maximumWidth, 1);
 
         for (int i = start; i < stop; i++)
         {
@@ -657,7 +822,7 @@ internal static class JxlModularEncodingEncoder
                     continue;  // skip empty channels
                 }
 
-                GatherTreeData(configuration, images[i], c, i, wpHeader, options[i], samples, totalPixels);
+                GatherTreeData(configuration, images[i], c, i, wpHeader, options[i], samples, weightedState, ref totalPixels);
             }
         }
 
@@ -666,7 +831,26 @@ internal static class JxlModularEncodingEncoder
         return tree;
     }
 
-    public static void ModularCompress(JxlModularImage image, JxlModularOptions options, int groupId, Tree tree, JxlGroupHeader header, List<JxlToken> tokens, ref int width)
+    /// <summary>
+    /// Prepares one modular group's prediction header and tokens, sharing weighted scratch across its sequential channels.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns temporary prediction storage.</param>
+    /// <param name="image">The source modular image.</param>
+    /// <param name="options">The prediction and channel-selection options.</param>
+    /// <param name="groupId">The group used for static context properties.</param>
+    /// <param name="tree">The prediction tree shared by this group.</param>
+    /// <param name="header">The destination group header.</param>
+    /// <param name="tokens">The destination token list.</param>
+    /// <param name="width">The maximum encoded channel width, used by the entropy encoder.</param>
+    public static void ModularCompress(
+        Configuration configuration,
+        JxlModularImage image,
+        JxlModularOptions options,
+        int groupId,
+        Tree tree,
+        JxlGroupHeader header,
+        List<JxlToken> tokens,
+        ref int width)
     {
         int numChannels = image.Channels.Count;
 
@@ -721,21 +905,39 @@ internal static class JxlModularEncodingEncoder
 
             int tokenp = pos;
 
-            for (int i = 0; i < numChannels; i++)
+            JxlModularState? weightedState = null;
+            try
             {
-                if (i >= image.MetaChannels &&
-                    (image.Channels[i].Width > options.MaxChannelSize ||
-                     image.Channels[i].Height > options.MaxChannelSize))
+                for (int i = 0; i < numChannels; i++)
                 {
-                    break;
-                }
+                    if (i >= image.MetaChannels &&
+                        (image.Channels[i].Width > options.MaxChannelSize ||
+                         image.Channels[i].Height > options.MaxChannelSize))
+                    {
+                        break;
+                    }
 
-                if (image.Channels[i].Width == 0 || image.Channels[i].Height == 0)
-                {
-                    continue;
-                }
+                    if (image.Channels[i].Width == 0 || image.Channels[i].Height == 0)
+                    {
+                        continue;
+                    }
 
-                EncodeModularChannelMAANS(configuration, image, i, header.WeightedHeader, tree, CollectionsMarshal.AsSpan(tokens)[tokenp..], groupId, options.SkipEncoderFastPath);
+                    EncodeModularChannelMAANS(
+                        configuration,
+                        image,
+                        i,
+                        header.WeightedHeader,
+                        tree,
+                        CollectionsMarshal.AsSpan(tokens)[tokenp..],
+                        groupId,
+                        options.SkipEncoderFastPath,
+                        ref weightedState,
+                        imageWidth);
+                }
+            }
+            finally
+            {
+                weightedState?.Dispose();
             }
 
             if (tokenp != tokens.Count)
@@ -829,7 +1031,7 @@ internal static class JxlModularEncodingEncoder
 
         int imageWidth = 0;
         List<List<JxlToken>> tokens = [[]];
-        ModularCompress(image, options, groupId, tree, groupHeader, tokens[0], ref imageWidth);
+        ModularCompress(configuration, image, options, groupId, tree, groupHeader, tokens[0], ref imageWidth);
 
         code = default;
         JxlHistogramParameters histoParameters = options.HistogramParameters;

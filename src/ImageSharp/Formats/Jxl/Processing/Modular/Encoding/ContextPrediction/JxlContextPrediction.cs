@@ -151,15 +151,30 @@ internal static class JxlContextPrediction
         return pa < pb ? a : b;
     }
 
-    public static void PrecomputeReferences(JxlModularChannel channel, int y, JxlModularImage image, int i, JxlModularChannel references)
+    /// <summary>
+    /// Prepares the current row's reference properties in storage borrowed before the channel traversal.
+    /// </summary>
+    /// <param name="channel">The channel whose samples will be predicted.</param>
+    /// <param name="y">The current row.</param>
+    /// <param name="image">The image containing already reconstructed reference channels.</param>
+    /// <param name="i">The current channel index. Only earlier channels can supply references.</param>
+    /// <param name="references">The reference-record dimensions and physical stride.</param>
+    /// <param name="referenceStorage">The caller-borrowed reference plane, cleared and reused for this row.</param>
+    public static void PrecomputeReferences(
+        JxlModularChannel channel,
+        int y,
+        JxlModularImage image,
+        int i,
+        JxlModularChannel references,
+        Span<int> referenceStorage)
     {
-        references.Plane.Clear();
+        referenceStorage.Clear();
         int offset = 0;
         int numExtraProps = references.Width;
         int oneRow = references.Plane.PixelsPerRow;
         JxlModularChannel channelI = image.Channels[i];
 
-        for (int j = i - 1; i >= 0 && offset < numExtraProps; j--)
+        for (int j = i - 1; j >= 0 && offset < numExtraProps; j--)
         {
             JxlModularChannel channelJ = image.Channels[j];
 
@@ -174,12 +189,15 @@ internal static class JxlContextPrediction
                 continue;
             }
 
-            Span<int> rp = references.GetRow(0)[offset..];
-            Span<int> rpp = channelJ.GetRow(y);
-            Span<int> rpprev = channelJ.GetRow(y > 0 ? y - 1 : 0);
+            Span<int> source = channelJ.GetRow(0);
+            int sourceStride = channelJ.Plane.PixelsPerRow;
+            Span<int> rpp = source[(y * sourceStride)..];
+            Span<int> rpprev = source[((y > 0 ? y - 1 : 0) * sourceStride)..];
 
-            for (int x = 0; x < channel.Width; x++, rp = rp[oneRow..])
+            for (int x = 0; x < channel.Width; x++)
             {
+                // A reference record is one row of this transposed plane. Address it directly; advancing a final prefixed span can exceed the allocation.
+                Span<int> rp = referenceStorage.Slice((x * oneRow) + offset, ExtraPropertiesPerChannel);
                 int v = rpp[x];
                 rp[0] = Numerics.Abs(v);
                 rp[1] = v;
@@ -200,18 +218,18 @@ internal static class JxlContextPrediction
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InitializePropertiesForRow(Span<int> p, InlineArray2<int> staticProperties, int y)
+    public static void InitializePropertiesForRow(Span<int> properties, InlineArray2<int> staticProperties, int y)
     {
-        p[0] = staticProperties[0];
-        p[1] = staticProperties[1];
-        p[2] = y;
-        p[9] = 0; // Local gradient
+        properties[0] = staticProperties[0];
+        properties[1] = staticProperties[1];
+        properties[2] = y;
+        properties[9] = 0; // Local gradient
     }
 
     // Prediction for one pixel using neighbors
     [MethodImpl(InliningOptions.HotPath)] // This method is called frequently
     public static int PredictOne(
-        JxlPredictor p,
+        JxlPredictor predictor,
         int left,
         int top,
         int toptop,
@@ -219,13 +237,13 @@ internal static class JxlContextPrediction
         int topright,
         int leftleft,
         int toprightright,
-        int wpPred) => p switch
+        int weightedPrediction) => predictor switch
         {
             JxlPredictor.Zero => 0,
             JxlPredictor.Left => left,
             JxlPredictor.Top => top,
             JxlPredictor.Select => Select(left, top, topleft),
-            JxlPredictor.Weighted => wpPred,
+            JxlPredictor.Weighted => weightedPrediction,
             JxlPredictor.Gradient => ClampedGradient(left, top, topleft),
             JxlPredictor.TopLeft => topleft,
             JxlPredictor.TopRight => topright,
@@ -240,90 +258,112 @@ internal static class JxlContextPrediction
             _ => 0,
         };
 
+    /// <summary>
+    /// Predicts a modular sample and evaluates the context properties selected by the mode.
+    /// </summary>
+    /// <param name="mode">The prediction and property-evaluation flags.</param>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="predictor">The predictor used when tree selection is disabled.</param>
+    /// <param name="treeLookup">The optional prediction tree.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The optional weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The borrowed prediction storage, empty when weighted prediction is disabled.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot when weighted prediction is enabled.</param>
+    /// <param name="predictions">The destination for all predictor results when requested by the mode.</param>
+    /// <returns>The predicted value and entropy context.</returns>
     public static JxlPredictionResult Predict(
         JxlPredictorMode mode,
-        Span<int> p, // contains properties
-        int w, // block width
-        ref int pp, // This is a reference to the output pixel stored in row-major order. Negative offsets are accessed to reference other pixels in the image, specifically neighboring pixles.
-        int oneRow, // Number of pixels on one row
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlPredictor predictor,
-        JxlMaTreeLookup? lookup,
-        JxlModularChannel? references,
-        JxlModularState? wpState,
+        JxlMaTreeLookup? treeLookup,
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState? weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex,
         Span<int> predictions)
     {
         int offset = 3; // Start at position 3 because of 2 static properties + y
 
         // Status flags
-        // computeProperties = should the p (properties) variable be updated?
-        // nec = are there no edge cases?
         bool computeProperties = (mode & JxlPredictorMode.UseTree) != 0 || (mode & JxlPredictorMode.ForceComputeProperties) != 0;
-        bool nec = (mode & JxlPredictorMode.NoEdgeCases) != 0;
+        bool skipEdgeChecks = (mode & JxlPredictorMode.NoEdgeCases) != 0;
 
-        // The following variables are neighboring pixels relative to the pixel to predict.
-        // Pixels may be unavailable and therefore replaced with default values. For example,
-        // at Y=0, the top pixel may not be available because we're already at the very top
-        // of the image, there's no "above" of that.
-        int left = nec || x > 0 ? Unsafe.Subtract(ref pp, 1) : (y > 0 ? Unsafe.Subtract(ref pp, oneRow) : 0); // ⬅️ (or 0 if unavailable)
-        int top = nec || y > 0 ? Unsafe.Subtract(ref pp, oneRow) : left; // ⬆️ (or ⬅️ if unavailable)
-        int topleft = nec || (x > 0 && y > 0) ? Unsafe.Add(ref pp, -1 - oneRow) : left; // ↗️ (or ⬅️ if unavailable)
-        int topright = nec || (x + 1 < w && y > 0) ? Unsafe.Add(ref pp, 1 - oneRow) : top; // ↖️ (or ⬆️ if unavailable)
-        int leftleft = nec || x > 1 ? Unsafe.Subtract(ref pp, 2) : left; // ⬅️⬅️ (or ⬅️ if unavailable)
-        int toptop = nec || y > 1 ? Unsafe.Add(ref pp, -oneRow - oneRow) : top; // ⬆️⬆️ (or ⬆️ if unavailable)
-        int toprightright = nec || (x + 2 < w && y > 0) ? Unsafe.Add(ref pp, 2 - oneRow) : topright; // ↗️➡️ (or ↗️ if unavailable)
+        // Interior callers omit edge checks only when every addressed neighbor exists.
+        // At the left edge use north, or zero on the first row. Missing north and diagonal samples use the nearest available neighbor.
+        int left = skipEdgeChecks || x > 0 ? Unsafe.Subtract(ref currentSample, 1) : (y > 0 ? Unsafe.Subtract(ref currentSample, rowStride) : 0);
+        int top = skipEdgeChecks || y > 0 ? Unsafe.Subtract(ref currentSample, rowStride) : left;
+        int topleft = skipEdgeChecks || (x > 0 && y > 0) ? Unsafe.Add(ref currentSample, -1 - rowStride) : left;
+        int topright = skipEdgeChecks || (x + 1 < width && y > 0) ? Unsafe.Add(ref currentSample, 1 - rowStride) : top;
+        int leftleft = skipEdgeChecks || x > 1 ? Unsafe.Subtract(ref currentSample, 2) : left;
+        int toptop = skipEdgeChecks || y > 1 ? Unsafe.Add(ref currentSample, -rowStride - rowStride) : top;
+        int toprightright = skipEdgeChecks || (x + 2 < width && y > 0) ? Unsafe.Add(ref currentSample, 2 - rowStride) : topright;
 
         if (computeProperties)
         {
-            p[offset++] = x;
-            p[offset++] = top > 0 ? top : -top;
-            p[offset++] = left > 0 ? left : -left;
-            p[offset++] = top;
-            p[offset++] = left;
+            properties[offset++] = x;
+            properties[offset++] = top > 0 ? top : -top;
+            properties[offset++] = left > 0 ? left : -left;
+            properties[offset++] = top;
+            properties[offset++] = left;
 
             // Local gradient
-            p[offset] = left - p[offset + 1];
+            properties[offset] = left - properties[offset + 1];
             offset++;
 
             // Local gradient
-            p[offset++] = left + top - topleft;
+            properties[offset++] = left + top - topleft;
 
             // FFV1 context properties
-            p[offset++] = left - topleft;
-            p[offset++] = topleft - top;
-            p[offset++] = top - topright;
-            p[offset++] = top - toptop;
-            p[offset++] = left - leftleft;
+            properties[offset++] = left - topleft;
+            properties[offset++] = topleft - top;
+            properties[offset++] = top - topright;
+            properties[offset++] = top - toptop;
+            properties[offset++] = left - leftleft;
         }
 
         // Predicted weighted prediction value
-        int wpPred = 0;
+        int weightedPrediction = 0;
 
         if ((mode & JxlPredictorMode.UseWeightedPrediction) != 0)
         {
-            if (wpState is null)
+            if (weightedPredictorState is null)
             {
                 throw new InvalidOperationException("Weighted prediction state is missing");
             }
 
-            wpPred = unchecked((int)wpState.Predict(computeProperties, x, y, w, top, left, topright, topleft, toptop, p, offset));
+            weightedPrediction = unchecked((int)weightedPredictorState.Predict(
+                computeProperties,
+                x,
+                y,
+                weightedStorage,
+                weightedStateIndex,
+                top,
+                left,
+                topright,
+                topleft,
+                toptop,
+                properties,
+                offset));
         }
 
-        if (!nec && computeProperties)
+        if (!skipEdgeChecks && computeProperties)
         {
-            if (references is null)
-            {
-                throw new InvalidOperationException("References are missing");
-            }
-
             offset += NumberOfProperties;
 
-            // Extra properties
-            Span<int> rp = references.GetRow(x);
-            for (int i = 0; i < references.Width; i++)
+            // The caller slices one pixel's reference record from storage borrowed before the row loop.
+            foreach (int value in referenceProperties)
             {
-                p[offset++] = rp[i];
+                properties[offset++] = value;
             }
         }
 
@@ -331,12 +371,12 @@ internal static class JxlContextPrediction
 
         if ((mode & JxlPredictorMode.UseTree) != 0)
         {
-            if (lookup is null)
+            if (treeLookup is null)
             {
                 throw new InvalidOperationException("Lookup is missing");
             }
 
-            JxlMaTreeLookupResult result = lookup.Lookup(p);
+            JxlMaTreeLookupResult result = treeLookup.Lookup(properties);
             predictor = result.Predictor;
             predResult = new((int)result.Context, result.Offset, default, result.Multiplier);
         }
@@ -345,13 +385,13 @@ internal static class JxlContextPrediction
         {
             for (int i = 0; i < JxlPredictorFacts.ModularPredictors; i++)
             {
-                predictions[i] = PredictOne((JxlPredictor)i, left, top, toptop, topleft, topright, leftleft, toprightright, wpPred);
+                predictions[i] = PredictOne((JxlPredictor)i, left, top, toptop, topleft, topright, leftleft, toprightright, weightedPrediction);
             }
         }
 
         predResult = new(
             predResult.Context,
-            predResult.Guess + PredictOne(predictor, left, top, toptop, topleft, topright, leftleft, toprightright, wpPred),
+            predResult.Guess + PredictOne(predictor, left, top, toptop, topleft, topright, leftleft, toprightright, weightedPrediction),
             predictor,
             predResult.Multiplier);
 
@@ -361,125 +401,412 @@ internal static class JxlContextPrediction
     // The following methods are just wrappers over the Predict
     // method.
     // See https://github.com/libjxl/libjxl/blob/main/lib/jxl/modular/encoding/context_predict.h#L593-L709
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="predictor">The predictor to evaluate.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictNoTreeNoWeightedPrediction(
-        int w,
-        ref int pp,
-        int oneRow,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlPredictor predictor)
-        => Predict(0, [], w, ref pp, oneRow, x, y, predictor, null, null, null, []);
+        => Predict(0, [], width, ref currentSample, rowStride, x, y, predictor, null, [], null, [], 0, []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="predictor">The predictor to evaluate.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictNoTreeWeightedPrediction(
-        int w,
-        ref int pp,
-        int oneRow,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlPredictor predictor,
-        JxlModularState wpState)
-        => Predict(JxlPredictorMode.UseTree, [], w, ref pp, oneRow, x, y, predictor, null, null, wpState, []);
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex)
+        => Predict(
+            JxlPredictorMode.UseWeightedPrediction,
+            [],
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            predictor,
+            null,
+            [],
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="treeLookup">The prediction tree.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictTreeNoWeightedPrediction(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlMaTreeLookup treeLookup,
-        JxlModularChannel references)
-        => Predict(JxlPredictorMode.UseTree, p, w, ref pp, oneRow, x, y, JxlPredictor.Zero, treeLookup, references, null, []);
+        ReadOnlySpan<int> referenceProperties)
+        => Predict(
+            JxlPredictorMode.UseTree,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            JxlPredictor.Zero,
+            treeLookup,
+            referenceProperties,
+            null,
+            [],
+            0,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="treeLookup">The prediction tree.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictTreeNoWeightedPredictionNoEdgeCases(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlMaTreeLookup treeLookup,
-        JxlModularChannel references)
-        => Predict(JxlPredictorMode.UseTree | JxlPredictorMode.NoEdgeCases, p, w, ref pp, oneRow, x, y, JxlPredictor.Zero, treeLookup, references, null, []);
+        ReadOnlySpan<int> referenceProperties)
+        => Predict(
+            JxlPredictorMode.UseTree | JxlPredictorMode.NoEdgeCases,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            JxlPredictor.Zero,
+            treeLookup,
+            referenceProperties,
+            null,
+            [],
+            0,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="treeLookup">The prediction tree.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictTreeWeightedPrediction(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlMaTreeLookup treeLookup,
-        JxlModularChannel references,
-        JxlModularState wpState)
-        => Predict(JxlPredictorMode.UseTree | JxlPredictorMode.UseWeightedPrediction, p, w, ref pp, oneRow, x, y, JxlPredictor.Zero, treeLookup, references, wpState, []);
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex)
+        => Predict(
+            JxlPredictorMode.UseTree | JxlPredictorMode.UseWeightedPrediction,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            JxlPredictor.Zero,
+            treeLookup,
+            referenceProperties,
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="treeLookup">The prediction tree.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictTreeWeightedPredictionNoEdgeCases(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlMaTreeLookup treeLookup,
-        JxlModularChannel references,
-        JxlModularState wpState)
-        => Predict(JxlPredictorMode.UseTree | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.NoEdgeCases, p, w, ref pp, oneRow, x, y, JxlPredictor.Zero, treeLookup, references, wpState, []);
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex)
+        => Predict(
+            JxlPredictorMode.UseTree | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.NoEdgeCases,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            JxlPredictor.Zero,
+            treeLookup,
+            referenceProperties,
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="predictor">The predictor to evaluate.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictLearn(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlPredictor predictor,
-        JxlModularChannel references,
-        JxlModularState wpState)
-        => Predict(JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction, p, w, ref pp, oneRow, x, y, predictor, null, references, wpState, []);
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex)
+        => Predict(
+            JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            predictor,
+            null,
+            referenceProperties,
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <param name="predictions">The destination for all predictor results.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictLearnAll(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
-        JxlModularChannel references,
-        JxlModularState wpState,
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex,
         Span<int> predictions)
-        => Predict(JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.AllPredictions, p, w, ref pp, oneRow, x, y, JxlPredictor.Zero, null, references, wpState, predictions);
+        => Predict(
+            JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.AllPredictions,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            JxlPredictor.Zero,
+            null,
+            referenceProperties,
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            predictions);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="predictor">The predictor to evaluate.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictLearnNoEdgeCases(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         JxlPredictor predictor,
-        JxlModularChannel references,
-        JxlModularState wpState)
-        => Predict(JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.NoEdgeCases, p, w, ref pp, oneRow, x, y, predictor, null, references, wpState, []);
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex)
+        => Predict(
+            JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.NoEdgeCases,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            predictor,
+            null,
+            referenceProperties,
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            []);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="properties">The destination context properties.</param>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="referenceProperties">The exact precomputed reference-property record for this pixel, empty when no reference properties are used.</param>
+    /// <param name="weightedPredictorState">The operation's weighted-prediction owner.</param>
+    /// <param name="weightedStorage">The storage borrowed when the channel or palette histories were reset.</param>
+    /// <param name="weightedStateIndex">The independently live channel slot, zero for a sequential channel.</param>
+    /// <param name="predictions">The destination for all predictor results.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictLearnAllNoEdgeCases(
-        Span<int> p,
-        int w,
-        ref int pp,
-        int oneRow,
+        Span<int> properties,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
-        JxlModularChannel references,
-        JxlModularState wpState,
+        ReadOnlySpan<int> referenceProperties,
+        JxlModularState weightedPredictorState,
+        Span<uint> weightedStorage,
+        int weightedStateIndex,
         Span<int> predictions)
-        => Predict(JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.AllPredictions | JxlPredictorMode.NoEdgeCases, p, w, ref pp, oneRow, x, y, JxlPredictor.Zero, null, references, wpState, predictions);
+        => Predict(
+            JxlPredictorMode.ForceComputeProperties | JxlPredictorMode.UseWeightedPrediction | JxlPredictorMode.AllPredictions | JxlPredictorMode.NoEdgeCases,
+            properties,
+            width,
+            ref currentSample,
+            rowStride,
+            x,
+            y,
+            JxlPredictor.Zero,
+            null,
+            referenceProperties,
+            weightedPredictorState,
+            weightedStorage,
+            weightedStateIndex,
+            predictions);
 
+    /// <summary>
+    /// Predicts a sample using the fixed mode selected by this entry point.
+    /// </summary>
+    /// <param name="width">The number of samples in the current row.</param>
+    /// <param name="currentSample">The reference used as the origin for neighboring samples.</param>
+    /// <param name="rowStride">The distance between row starts, in samples.</param>
+    /// <param name="x">The current sample column.</param>
+    /// <param name="y">The current sample row.</param>
+    /// <param name="predictions">The destination for all predictor results.</param>
+    /// <returns>The predicted sample and entropy context.</returns>
     public static JxlPredictionResult PredictAllNoWeightedPrediction(
-        int w,
-        ref int pp,
-        int oneRow,
+        int width,
+        ref int currentSample,
+        int rowStride,
         int x,
         int y,
         Span<int> predictions)
-        => Predict(JxlPredictorMode.AllPredictions, [], w, ref pp, oneRow, x, y, JxlPredictor.Zero, null, null, null, predictions);
+        => Predict(JxlPredictorMode.AllPredictions, [], width, ref currentSample, rowStride, x, y, JxlPredictor.Zero, null, [], null, [], 0, predictions);
 }

@@ -446,12 +446,14 @@ internal static class JxlPalette
             // Read each output stride after the swap. The original indices can retain wider storage from a metadata shrink.
             if (predictor == JxlPredictor.Weighted)
             {
+                using JxlModularState wpState = new(configuration, weightedHeader, indices.XSize, 1);
+
                 for (int c = 0; c < nb; c++)
                 {
                     JxlModularChannel outputChannel = input.Channels[c0 + c];
                     int oneRowImage = outputChannel.Plane.PixelsPerRow;
                     Span<int> outputSamples = outputChannel.GetRow(0);
-                    JxlModularState wpState = new(weightedHeader, outputChannel.Width);
+                    Span<uint> weightedStorage = wpState.Reset(weightedHeader, outputChannel.Width);
 
                     for (int y = 0; y < outputChannel.Height; y++)
                     {
@@ -463,14 +465,16 @@ internal static class JxlPalette
                             int index = idx[x];
                             int value = 0;
                             int paletteEntry = GetPaletteValue(paletteData, index, c, oneRow, bitDepth);
-                            JxlPredictionResult pred = JxlContextPrediction.PredictTreeNoWeightedPrediction(
+                            JxlPredictionResult pred = JxlContextPrediction.PredictNoTreeWeightedPrediction(
                                 outputChannel.Width,
-                                p[x..],
+                                ref p[x],
                                 oneRowImage,
                                 x,
                                 y,
                                 predictor,
-                                wpState);
+                                wpState,
+                                weightedStorage,
+                                0);
 
                             if (index < nbDeltas)
                             {
@@ -482,7 +486,7 @@ internal static class JxlPalette
                             }
 
                             p[x] = value;
-                            wpState.UpdatePredictionErrors(p[x], x, y, outputChannel.Width);
+                            wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
                         }
                     }
                 }
@@ -1128,12 +1132,9 @@ internal static class JxlPalette
                 inversePalette[pcol] = clr++;
             }
 
-            List<JxlModularState> wpStates = [];
-
-            for (int c = 0; c < nb; c++)
-            {
-                wpStates.Add(new JxlModularState(wpHeader, w));
-            }
+            // Lossy palette search interleaves channels within each pixel. Their independent histories share one tracked allocation.
+            using JxlModularState? wpState = lossy ? new(configuration, wpHeader, w, nb) : null;
+            Span<uint> weightedStorage = wpState is not null ? wpState.Reset(wpHeader, w) : default;
 
             InlineArray3<DenseMatrix<float>> errorRow = default;
 
@@ -1170,7 +1171,7 @@ internal static class JxlPalette
                 for (int x = 0; x < w; x++)
                 {
                     int index;
-                    if (!lossy)
+                    if (wpState is null)
                     {
                         for (int c = 0; c < nb; c++)
                         {
@@ -1199,7 +1200,16 @@ internal static class JxlPalette
 
                             for (int c = 0; c < nb; c++)
                             {
-                                predictions[c] = PredictTreeNoWeightedPrediction(w, p_quant[c] + x, oneRowImage, x, y, predictor, wpStates[c]).Guess;
+                                predictions[c] = JxlContextPrediction.PredictNoTreeWeightedPrediction(
+                                    w,
+                                    ref p_quant[c][x],
+                                    oneRowImage,
+                                    x,
+                                    y,
+                                    predictor,
+                                    wpState,
+                                    weightedStorage,
+                                    c).Guess;
                             }
 
                             void TryIndex(
@@ -1294,7 +1304,7 @@ internal static class JxlPalette
 
                         for (int c = 0; c < nb; c++)
                         {
-                            wpStates[c].UpdatePredictionErrors(bestValue[c], x, y, w);
+                            wpState.UpdatePredictionErrors(bestValue[c], x, y, weightedStorage, c);
                             p_quant[c][x] = bestValue[c];
                         }
 

@@ -505,4 +505,73 @@ public class OpsinImageTests
         parameters.Initialize(in matrix, biases, intensityTarget);
         return parameters;
     }
+
+    /// <summary>Checks centered chroma, luma bias, HDR values and exact in-place YCbCr row bounds at every SIMD width.</summary>
+    [Fact]
+    public void YCbCrStage_ConvertsCenteredChromaAndPreservesHdrAndPadding()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+            ReadOnlySpan<float> chroma = [0F, 0F, 0.25F, 0F, 0F, 0.5F, 0.25F, 0.5F, -0.25F, -0.5F, 32768F, 0F, 0F, -32768F, 32768F, 32768F];
+            const int origin = RenderPipelineStageBase.RenderPipelineXOffset;
+            const float untouched = -777F;
+            const float storedY = -128F / 255F;
+            const float greenCb = (float)(0.114 * 1.772 / 0.587);
+            const float greenCr = (float)(0.299 * 1.402 / 0.587);
+
+            foreach (int width in widths)
+            {
+                int storageWidth = origin + width + 3;
+                using JxlPlane<float> storage = new(TestEnvironment.Configuration, storageWidth, 4);
+                Span<float> samples = storage.GetRow(0);
+                samples.Fill(untouched);
+                Memory<float>[] table = new Memory<float>[4];
+                for (int c = 0; c < table.Length; c++)
+                {
+                    table[c] = storage.GetRowMemory(c)[..storageWidth];
+                    if (c < 3)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            int sample = (x % 8) * 2;
+                            samples[(c * storage.PixelsPerRow) + origin + x] = c == 0 ? chroma[sample] : c == 1 ? storedY : chroma[sample + 1];
+                        }
+                    }
+                }
+
+                // The row table borrows the numeric allocation. JPEG XL stores Cb, biased Y and Cr in that order.
+                using Buffer2D<Memory<float>> rows = new(MemoryGroup<Memory<float>>.Wrap(table.AsMemory()), 4, 1);
+                using YCbCrStage stage = new(TestEnvironment.Configuration);
+                stage.ProcessRow(rows, rows, 0, 0, width, 0, 0);
+
+                for (int c = 0; c < 4; c++)
+                {
+                    ReadOnlySpan<float> row = samples.Slice(c * storage.PixelsPerRow, storage.PixelsPerRow);
+                    for (int i = 0; i < row.Length; i++)
+                    {
+                        int x = i - origin;
+                        float expected = untouched;
+                        if (c < 3 && x >= 0 && x < width)
+                        {
+                            int sample = (x % 8) * 2;
+                            float cb = chroma[sample];
+                            float cr = chroma[sample + 1];
+
+                            // Restored Y is exactly zero. Power-of-two chroma keeps each coefficient product exact,
+                            // so the independent BT.601 equations agree with fused and separate float operations.
+                            expected = c == 0 ? 1.402F * cr : c == 1 ? -(greenCb * cb) - (greenCr * cr) : 1.772F * cb;
+                        }
+
+                        Assert.Equal(expected, row[i]);
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
 }

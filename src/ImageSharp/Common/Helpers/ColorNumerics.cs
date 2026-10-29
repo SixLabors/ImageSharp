@@ -29,11 +29,92 @@ internal static class ColorNumerics
     /// </summary>
     public const float MinColorValue = -MaxColorValue;
 
+    // BT.601 fixes the red and blue chroma amplitudes. Derive green weights before their single conversion to float.
+    // These are compile-time expressions; sample conversion uses float arithmetic.
+    /// <summary>The BT.601 red contribution from zero-centered Cr, in the same units as Y.</summary>
+    public const float Bt601RedCrMultiplier = 1.402F;
+
+    /// <summary>The magnitude of the BT.601 green contribution from zero-centered Cb.</summary>
+    public const float Bt601GreenCbMultiplier = (float)(0.114 * 1.772 / 0.587);
+
+    /// <summary>The magnitude of the BT.601 green contribution from zero-centered Cr.</summary>
+    public const float Bt601GreenCrMultiplier = (float)(0.299 * 1.402 / 0.587);
+
+    /// <summary>The BT.601 blue contribution from zero-centered Cb, in the same units as Y.</summary>
+    public const float Bt601BlueCbMultiplier = 1.772F;
+
     /// <summary>
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
     /// </summary>
     public static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
+
+    /// <summary>Converts full-range BT.601 components to RGB without rounding, normalization or clipping.</summary>
+    /// <param name="y">The luma component.</param>
+    /// <param name="cb">The zero-centered blue chroma component, in the same units as luma.</param>
+    /// <param name="cr">The zero-centered red chroma component, in the same units as luma.</param>
+    /// <param name="r">The unrounded red component.</param>
+    /// <param name="g">The unrounded green component.</param>
+    /// <param name="b">The unrounded blue component.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConvertBt601YCbCrToRgb(float y, float cb, float cr, out float r, out float g, out float b)
+    {
+        // Centering and component scale belong to the caller. Keep the established scalar subtraction order;
+        // the destination pixel conversion applies its own bounds and final storage rounding.
+        r = y + (Bt601RedCrMultiplier * cr);
+        g = y - (Bt601GreenCbMultiplier * cb) - (Bt601GreenCrMultiplier * cr);
+        b = y + (Bt601BlueCbMultiplier * cb);
+    }
+
+    /// <inheritdoc cref="ConvertBt601YCbCrToRgb(float, float, float, out float, out float, out float)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConvertBt601YCbCrToRgb(
+        Vector128<float> y,
+        Vector128<float> cb,
+        Vector128<float> cr,
+        out Vector128<float> r,
+        out Vector128<float> g,
+        out Vector128<float> b)
+    {
+        // Each lane contains one position from the three component planes. The nested green multiply-adds retain
+        // the existing SIMD order: blue chroma contributes first, then red chroma.
+        r = Vector128.MultiplyAddEstimate(cr, Vector128.Create(Bt601RedCrMultiplier), y);
+        Vector128<float> greenBase = Vector128.MultiplyAddEstimate(cb, Vector128.Create(-Bt601GreenCbMultiplier), y);
+        g = Vector128.MultiplyAddEstimate(cr, Vector128.Create(-Bt601GreenCrMultiplier), greenBase);
+        b = Vector128.MultiplyAddEstimate(cb, Vector128.Create(Bt601BlueCbMultiplier), y);
+    }
+
+    /// <inheritdoc cref="ConvertBt601YCbCrToRgb(float, float, float, out float, out float, out float)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConvertBt601YCbCrToRgb(
+        Vector256<float> y,
+        Vector256<float> cb,
+        Vector256<float> cr,
+        out Vector256<float> r,
+        out Vector256<float> g,
+        out Vector256<float> b)
+    {
+        r = Vector256.MultiplyAddEstimate(cr, Vector256.Create(Bt601RedCrMultiplier), y);
+        Vector256<float> greenBase = Vector256.MultiplyAddEstimate(cb, Vector256.Create(-Bt601GreenCbMultiplier), y);
+        g = Vector256.MultiplyAddEstimate(cr, Vector256.Create(-Bt601GreenCrMultiplier), greenBase);
+        b = Vector256.MultiplyAddEstimate(cb, Vector256.Create(Bt601BlueCbMultiplier), y);
+    }
+
+    /// <inheritdoc cref="ConvertBt601YCbCrToRgb(float, float, float, out float, out float, out float)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConvertBt601YCbCrToRgb(
+        Vector512<float> y,
+        Vector512<float> cb,
+        Vector512<float> cr,
+        out Vector512<float> r,
+        out Vector512<float> g,
+        out Vector512<float> b)
+    {
+        r = Vector512.MultiplyAddEstimate(cr, Vector512.Create(Bt601RedCrMultiplier), y);
+        Vector512<float> greenBase = Vector512.MultiplyAddEstimate(cb, Vector512.Create(-Bt601GreenCbMultiplier), y);
+        g = Vector512.MultiplyAddEstimate(cr, Vector512.Create(-Bt601GreenCrMultiplier), greenBase);
+        b = Vector512.MultiplyAddEstimate(cb, Vector512.Create(Bt601BlueCbMultiplier), y);
+    }
 
     /// <summary>
     /// Gets unrounded, unsaturated luminance using ITU-R Recommendation BT.709.

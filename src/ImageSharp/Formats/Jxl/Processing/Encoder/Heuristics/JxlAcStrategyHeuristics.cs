@@ -11,42 +11,98 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Heuristics;
 
-internal class JxlAcStrategyHeuristics(Configuration configuration, JxlCompressionParameters cparams) : IDisposable
+/// <summary>
+/// Selects transform strategies with one reusable workspace for sequential rectangle processing.
+/// </summary>
+/// <remarks>
+/// Source images, masks and matrices remain owned by the frame encoder. They must outlive this helper's processing calls.
+/// Each search rectangle covers at most eight by eight blocks. Scratch also accommodates the largest supported transform candidate.
+/// </remarks>
+internal sealed class JxlAcStrategyHeuristics : IDisposable
 {
-    private IMemoryOwner<float>? memoryOwner;
-    private IMemoryOwner<int>? qMemoryOwner;
+    /// <summary>
+    /// Owns floating-point search storage, absent when the configured speed uses only DCT8.
+    /// </summary>
+    private readonly IMemoryOwner<float>? memoryOwner;
 
-    public Configuration Configuration { get; set; } = configuration;
+    /// <summary>
+    /// Borrows the floating-point workspace for every processed rectangle.
+    /// </summary>
+    private readonly Memory<float> scratch;
 
-    public JxlCompressionParameters CompressionParameters { get; set; } = cparams;
+    /// <summary>
+    /// Whether the configured speed selects DCT8 without searching other strategies.
+    /// </summary>
+    private readonly bool useDct8Only;
 
-    public JxlAcStrategyConfiguration Config { get; set; } = new(new());
+    /// <summary>
+    /// Initializes strategy selection with the frame's real matrices and one sequential workspace.
+    /// </summary>
+    /// <param name="configuration">The configuration whose allocator owns scratch storage.</param>
+    /// <param name="parameters">The frame encoder's compression settings, which remain fixed while this helper is used.</param>
+    /// <param name="matrices">The frame-owned dequantization matrices borrowed by the search.</param>
+    public JxlAcStrategyHeuristics(Configuration configuration, JxlCompressionParameters parameters, JxlDequantMatrices matrices)
+    {
+        this.Configuration = configuration;
+        this.CompressionParameters = parameters;
+        this.Config = new(matrices);
+        this.useDct8Only = parameters.SpeedTier >= JxlSpeedTier.Cheetah;
 
-    public int MemoryPerThread { get; set; }
+        if (!this.useDct8Only)
+        {
+            // Counts are float elements, not bytes. Three maximum-area regions hold the candidate's channel coefficients.
+            // A fourth holds reconstruction error. The remaining two regions and three SIMD-width strips serve the forward/inverse transforms.
+            // Each maximum-area region accommodates a 256 by 256 transform. Rounded coefficients remain float vectors in the entropy calculation.
+            int dctScratchLength = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
+            int scratchLength = (6 * JxlAcStrategy.MaximumCoefficientArea) + dctScratchLength;
+            IMemoryOwner<float> memory = configuration.MemoryAllocator.Allocate<float>(scratchLength);
+            this.memoryOwner = memory;
+            this.scratch = memory.Memory;
+        }
+    }
 
-    public Memory<float> Memory { get; set; }
+    /// <summary>
+    /// Gets the configuration that owns scratch allocations.
+    /// </summary>
+    public Configuration Configuration { get; }
 
-    public int QMemoryPerThread { get; set; }
+    /// <summary>
+    /// Gets the frame encoder's fixed compression settings.
+    /// </summary>
+    public JxlCompressionParameters CompressionParameters { get; }
 
-    public Memory<int> QMemory { get; set; }
+    /// <summary>
+    /// Gets the matrix references and borrowed source views used by the strategy kernel.
+    /// </summary>
+    public JxlAcStrategyConfiguration Config { get; }
 
+    /// <summary>
+    /// Releases owned scratch without disposing the borrowed source, masks or matrices.
+    /// </summary>
     public void Dispose()
     {
         this.memoryOwner?.Dispose();
-        this.qMemoryOwner?.Dispose();
     }
 
+    /// <summary>
+    /// Binds source and mask rows and prepares the matrices needed by the configured strategy search.
+    /// </summary>
+    /// <param name="src">The frame-owned source planes.</param>
+    /// <param name="rectIn">The block-aligned source region corresponding to the search coordinates.</param>
+    /// <param name="quantField">The frame-owned quantization field in block coordinates.</param>
+    /// <param name="mask">The optional masking plane, or an empty plane when masking is absent.</param>
+    /// <param name="mask1x1">The optional per-block masking plane, or an empty plane when absent.</param>
+    /// <returns>Whether the required matrices were computed. Processing starts only after this returns true.</returns>
     public bool Initialize(
         JxlImage3<float> src,
         Rectangle rectIn,
         JxlPlane<float> quantField,
         JxlPlane<float> mask,
-        JxlPlane<float> mask1x1,
-        JxlDequantMatrices matrices)
+        JxlPlane<float> mask1x1)
     {
-        this.Config.Dequant = matrices;
+        JxlDequantMatrices matrices = this.Config.Dequant;
 
-        if (this.CompressionParameters.SpeedTier < JxlSpeedTier.Cheetah)
+        if (!this.useDct8Only)
         {
             uint acsMask = 0;
 
@@ -71,6 +127,10 @@ internal class JxlAcStrategyHeuristics(Configuration configuration, JxlCompressi
         this.Config.QuantFieldRow = quantField.GetRowMemory(0);
         this.Config.QuantFieldStride = quantField.PixelsPerRow;
 
+        // Rebinding must also remove optional views from an earlier source. Empty masks never borrow a row.
+        this.Config.MaskingFieldRow = default;
+        this.Config.MaskingFieldStride = 0;
+
         if (mask.XSize > 0 && mask.YSize > 0)
         {
             this.Config.MaskingFieldRow = mask.GetRowMemory(0);
@@ -78,6 +138,8 @@ internal class JxlAcStrategyHeuristics(Configuration configuration, JxlCompressi
         }
 
         this.Config.Mask1x1Width = mask1x1.XSize;
+        this.Config.Masking1x1FieldRow = default;
+        this.Config.Masking1x1FieldStride = 0;
 
         if (mask1x1.XSize > 0 && mask1x1.YSize > 0)
         {
@@ -108,43 +170,38 @@ internal class JxlAcStrategyHeuristics(Configuration configuration, JxlCompressi
         return true;
     }
 
-    public void PrepareForThreads(int numThreads)
+    /// <summary>
+    /// Selects strategies for one rectangle using the same scratch as all preceding rectangles.
+    /// </summary>
+    /// <param name="rect">The search rectangle in block coordinates, at most eight by eight blocks.</param>
+    /// <param name="cmap">The frame-owned color-correlation maps.</param>
+    /// <param name="acStrategy">The destination strategy image.</param>
+    /// <returns>Whether the rectangle's strategies were selected successfully.</returns>
+    public bool ProcessRectangle(Rectangle rect, JxlColorCorrelationMap cmap, JxlAcStrategyImage acStrategy)
     {
-        int dctScratchSize = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
-
-        this.MemoryPerThread = (6 * JxlAcStrategy.MaximumCoefficientArea) + dctScratchSize;
-        int memBytes = numThreads * this.MemoryPerThread;
-        this.memoryOwner = this.Configuration.MemoryAllocator.Allocate<float>(memBytes);
-        this.Memory = this.memoryOwner.Memory;
-
-        this.QMemoryPerThread = JxlAcStrategy.MaximumCoefficientArea;
-        int qmemBytes = numThreads * this.QMemoryPerThread;
-        this.qMemoryOwner = this.Configuration.MemoryAllocator.Allocate<int>(qmemBytes);
-        this.QMemory = this.qMemoryOwner.Memory;
-    }
-
-    public bool ProcessRectangle(Rectangle rect, JxlColorCorrelationMap cmap, JxlAcStrategyImage acStrategy, int thread)
-    {
-        if (this.CompressionParameters.SpeedTier >= JxlSpeedTier.Cheetah)
+        if (this.useDct8Only)
         {
             acStrategy.FillDct8(in rect);
             return true;
         }
 
-        ref int qmem = ref this.QMemory.Span[thread * this.QMemoryPerThread];
+        // Borrow the span once for this rectangle. The kernel reuses its regions for every candidate; none escape this call.
+        Span<float> scratch = this.scratch.Span;
 
-        bool status = JxlAcStrategyEncoder.ProcessAcStrategyRectangle(
+        return JxlAcStrategyEncoder.ProcessAcStrategyRectangle(
             this.CompressionParameters,
             this.Config,
             rect,
             cmap,
-            this.Memory[(thread * this.MemoryPerThread)..],
-            ref qmem,
+            scratch,
             acStrategy);
-
-        return status;
     }
 
+    /// <summary>
+    /// Records the selected strategy counts when the encoder requests statistics.
+    /// </summary>
+    /// <param name="acStrategy">The completed strategy image.</param>
+    /// <param name="auxOut">The optional encoder statistics.</param>
     public void Finalize(JxlAcStrategyImage acStrategy, JxlAuxiliaryOutput? auxOut)
     {
         if (auxOut is not null)

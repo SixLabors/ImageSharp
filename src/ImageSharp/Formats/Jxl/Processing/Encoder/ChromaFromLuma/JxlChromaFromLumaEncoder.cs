@@ -126,6 +126,22 @@ internal static class JxlChromaFromLumaEncoder
         return (int)Math.Clamp(MathF.Round(x), -128.0f, 127.0f);
     }
 
+    /// <summary>
+    /// Computes the X and B correlation multipliers for one tile and records its frame-wide DC pairs.
+    /// </summary>
+    /// <param name="opsin">The borrowed XYB source planes.</param>
+    /// <param name="opsinRect">The block-aligned source region in pixels.</param>
+    /// <param name="dequant">The prepared dequantization matrices.</param>
+    /// <param name="acStrategy">The selected strategies, unused when <paramref name="useDct8"/> is true.</param>
+    /// <param name="rawQuantField">The quantization field, or null to use a unit field.</param>
+    /// <param name="quantizer">The frame's quantization controls.</param>
+    /// <param name="rect">The tile in block coordinates relative to <paramref name="opsinRect"/>, at most eight by eight blocks.</param>
+    /// <param name="fast">Whether to use the existing fast correlation estimate.</param>
+    /// <param name="useDct8">Whether to use DCT8 rather than reading selected strategies.</param>
+    /// <param name="mapX">The destination X-correlation map.</param>
+    /// <param name="mapB">The destination B-correlation map.</param>
+    /// <param name="dcValues">Four owned-by-caller DC rows, with vector-rounded frame block count as their logical width.</param>
+    /// <param name="mem">The borrowed float workspace, partitioned into transform blocks, tile coefficients, DC values and transform scratch.</param>
     public static void ComputeTile(
         JxlImage3<float> opsin,
         Rectangle opsinRect,
@@ -161,6 +177,8 @@ internal static class JxlChromaFromLumaEncoder
         Span<float> dcValuesYB = dcValues.GetRow(2);
         Span<float> dcValuesB = dcValues.GetRow(3);
 
+        // Maximum transform blocks hold 256 by 256 samples, including candidates too large for this color tile.
+        // The kernel records their DC values but uses only transforms that fit the tile for its AC correlation estimate.
         Span<float> blockY = mem;
         Span<float> blockX = blockY[JxlAcStrategy.MaximumCoefficientArea..];
         Span<float> blockB = blockX[JxlAcStrategy.MaximumCoefficientArea..];
@@ -172,7 +190,9 @@ internal static class JxlChromaFromLumaEncoder
         Span<float> coeffsYB = coeffsX[(JxlChromaFromLuma.ColorTileDimension * JxlChromaFromLuma.ColorTileDimension)..];
         Span<float> coeffsB = coeffsYB[(JxlChromaFromLuma.ColorTileDimension * JxlChromaFromLuma.ColorTileDimension)..];
 
-        mem = mem[(4 * JxlAcStrategy.MaximumCoefficientArea)..];
+        // The four coefficient arrays hold one color tile each, not one maximum-size transform each.
+        // Advance by exactly those tile arrays so the following DC arrays and transform scratch match the owner's allocation.
+        mem = mem[(4 * JxlChromaFromLuma.ColorTileDimension * JxlChromaFromLuma.ColorTileDimension)..];
 
         const int dcSize = JxlAcStrategy.MaximumCoefficientBlocks * JxlAcStrategy.MaximumCoefficientBlocks;
 

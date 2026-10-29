@@ -72,7 +72,10 @@ internal class JxlToJpegDecoder
     {
         if (this.IsOutputSet && this.jpegData is not null)
         {
-            JpegData.SetJpegDataFromIcc(bundle.Metadata!.ColorEncoding!.Icc, this.jpegData);
+            // JPEG reconstruction must retain the original profile bytes. The shared profile exposes them
+            // read-only without copying or rewriting tag order, padding, or the original header.
+            ReadOnlyMemory<byte> icc = bundle.Metadata!.ColorEncoding!.IccProfile?.GetData() ?? ReadOnlyMemory<byte>.Empty;
+            JpegData.SetJpegDataFromIcc(icc.Span, this.jpegData);
             bundle.JpegData = this.jpegData;
         }
     }

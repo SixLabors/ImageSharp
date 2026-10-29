@@ -96,7 +96,12 @@ internal sealed class JpegData : IJxlFields
         mcuRows = JxlMath.DivCeil(this.Height * verticalGroup, 8 * maxVSampFactor);
     }
 
-    public static void SetJpegDataFromIcc(Span<byte> icc, JpegData jpegData)
+    /// <summary>
+    /// Restores retained ICC profile bytes into the original JPEG APP marker payloads.
+    /// </summary>
+    /// <param name="icc">The original, decompressed ICC profile bytes. These bytes remain unchanged.</param>
+    /// <param name="jpegData">The JPEG marker storage to update.</param>
+    public static void SetJpegDataFromIcc(ReadOnlySpan<byte> icc, JpegData jpegData)
     {
         int iccPos = 0;
 

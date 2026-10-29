@@ -19,7 +19,11 @@ internal sealed class JxlColorEncoding
 
     public bool HaveFields { get; set; } = true;
 
-    public JxlIccBytes? Icc { get; set; }
+    /// <summary>
+    /// Gets or sets the ICC profile reconstructed from the compressed profile payload.
+    /// </summary>
+    /// <remarks>The profile contains decoded ICC data. Compressed JPEG XL profile bytes do not belong here.</remarks>
+    public IccProfile? IccProfile { get; set; }
 
     public JxlColorSpace ColorSpace { get; set; } = JxlColorSpace.Rgb;
 

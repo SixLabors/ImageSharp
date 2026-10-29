@@ -387,7 +387,7 @@ internal sealed class JxlImageBundle
     /// <exception cref="InvalidOperationException">Rare.</exception>
     public bool VerifyMetadata()
     {
-        if (this.CurrentColorEncoding?.Icc?.IsEmpty == true)
+        if (this.CurrentColorEncoding?.IccProfile?.GetData().IsEmpty == true)
         {
             return false;
         }

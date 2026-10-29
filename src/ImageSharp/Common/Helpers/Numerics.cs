@@ -406,8 +406,7 @@ internal static class Numerics
         Vector128<float> result = Vector128.ConditionalSelect(zeroMask, source, source / alpha);
 
         // Division would replace W with one, so restore the original alpha lane exactly.
-        Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-        return Vector128.ConditionalSelect(alphaMask, alpha, result);
+        return WithW(result, alpha);
     }
 
     /// <summary>
@@ -425,7 +424,7 @@ internal static class Numerics
         Vector256<float> result = Avx.BlendVariable(Avx.Divide(source, alpha), source, zeroMask);
 
         // Division would replace W with one, so restore both original alpha lanes exactly.
-        return Avx.Blend(result, alpha, BlendAlphaControl);
+        return WithW(result, alpha);
     }
 
     /// <summary>
@@ -443,8 +442,7 @@ internal static class Numerics
         Vector512<float> result = Vector512.ConditionalSelect(zeroMask, source, source / alpha);
 
         // Division would replace W with one, so restore all four original alpha lanes exactly.
-        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-        return Vector512.ConditionalSelect(alphaMask, alpha, result);
+        return WithW(result, alpha);
     }
 
     /// <summary>
@@ -487,6 +485,47 @@ internal static class Numerics
 
         value.W = w.W;
         return value;
+    }
+
+    /// <summary>
+    /// Replaces the fourth component in each four-component group without changing the other component bits.
+    /// </summary>
+    /// <param name="value">The vectors to update.</param>
+    /// <param name="w">The vectors that supply each fourth component.</param>
+    /// <returns>The vectors with their fourth components replaced.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> WithW(Vector128<float> value, Vector128<float> w)
+    {
+        // Select only W in each four-lane group. This retains signed zeros and NaN payload bits in all other lanes.
+        Vector128<float> mask = Vector128.Create(0, 0, 0, -1).AsSingle();
+        return Vector128.ConditionalSelect(mask, w, value);
+    }
+
+    /// <summary>
+    /// Replaces the fourth component in each four-component group without changing the other component bits.
+    /// </summary>
+    /// <param name="value">The vectors to update.</param>
+    /// <param name="w">The vectors that supply each fourth component.</param>
+    /// <returns>The vectors with their fourth components replaced.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> WithW(Vector256<float> value, Vector256<float> w)
+    {
+        // Lanes 3 and 7 are W. The immediate blend preserves every other lane without arithmetic.
+        return Avx.Blend(value, w, BlendAlphaControl);
+    }
+
+    /// <summary>
+    /// Replaces the fourth component in each four-component group without changing the other component bits.
+    /// </summary>
+    /// <param name="value">The vectors to update.</param>
+    /// <param name="w">The vectors that supply each fourth component.</param>
+    /// <returns>The vectors with their fourth components replaced.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> WithW(Vector512<float> value, Vector512<float> w)
+    {
+        // Select only W in each four-lane group. This retains signed zeros and NaN payload bits in all other lanes.
+        Vector512<float> mask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+        return Vector512.ConditionalSelect(mask, w, value);
     }
 
     /// <summary>

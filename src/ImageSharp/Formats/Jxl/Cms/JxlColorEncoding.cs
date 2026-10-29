@@ -58,14 +58,14 @@ internal sealed class JxlColorEncoding
             return false;
         }
 
-        // Preserve the coordinates used by libjxl color_encoding_cms.h. Its sRGB coordinates differ slightly
-        // from the ideal standard coordinates, so replacing them with a working-space preset would change this conversion.
+        // JPEG XL signals primaries, white point, and transfer function separately. Read only the primary coordinates
+        // from the known working spaces. Their white points and transfer functions do not replace the encoded fields.
         primaries = this.Primaries switch
         {
             JxlPrimaries.Custom => new(this.Red.GetValue(), this.Green.GetValue(), this.Blue.GetValue()),
-            JxlPrimaries.SRgb => new(new(0.639998686F, 0.330010138F), new(0.300003784F, 0.600003357F), new(0.150002046F, 0.059997204F)),
-            JxlPrimaries.Bt2020 => new(new(0.708F, 0.292F), new(0.170F, 0.797F), new(0.131F, 0.046F)),
-            JxlPrimaries.P3 => new(new(0.680F, 0.320F), new(0.265F, 0.690F), new(0.150F, 0.060F)),
+            JxlPrimaries.SRgb => KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates,
+            JxlPrimaries.Bt2020 => KnownRgbWorkingSpaces.Rec2020.ChromaticityCoordinates,
+            JxlPrimaries.P3 => KnownRgbWorkingSpaces.DisplayP3.ChromaticityCoordinates,
             _ => throw new InvalidOperationException("Invalid primaries: " + this.Primaries)
         };
 

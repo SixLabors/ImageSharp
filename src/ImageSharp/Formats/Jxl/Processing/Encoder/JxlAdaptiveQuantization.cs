@@ -4,6 +4,8 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
@@ -350,6 +352,12 @@ internal static class JxlAdaptiveQuantization
         return Vector.Create(0.25f) * Vector.SquareRoot((v * Vector.SquareRoot(kMul * 1e8f)) + kLogOffset);
     }
 
+    /// <summary>Inserts one finite sample into four ordered minima.</summary>
+    /// <param name="v">The new sample.</param>
+    /// <param name="min0">The lowest retained sample.</param>
+    /// <param name="min1">The second-lowest retained sample.</param>
+    /// <param name="min2">The third-lowest retained sample.</param>
+    /// <param name="min3">The fourth-lowest retained sample.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreMin4(float v, ref float min0, ref float min1, ref float min2, ref float min3)
     {
@@ -380,125 +388,532 @@ internal static class JxlAdaptiveQuantization
         }
     }
 
-    // Look for smooth areas near the area of degradation.
-    // If the areas are generally smooth, don't do masking.
-    // Output is downsampled by 2x.
+    /// <summary>
+    /// Filters the four lowest samples of each clamped three-by-three neighborhood and downsamples the result by two in each axis.
+    /// </summary>
+    /// <param name="butteraugliTarget">The perceptual target used to select the four minimum weights.</param>
+    /// <param name="fromRect">The source region, twice the destination width and height.</param>
+    /// <param name="from">The borrowed source plane. Neighbor positions clamp at its global image edges.</param>
+    /// <param name="toRect">The destination region, independent of the source origin and physical stride.</param>
+    /// <param name="to">The distinct destination plane. Samples outside toRect remain unchanged.</param>
+    /// <returns>Whether the source and destination regions have the required two-to-one dimensions.</returns>
     public static bool FuzzyErosion(float butteraugliTarget, Rectangle fromRect, JxlPlane<float> from, Rectangle toRect, JxlPlane<float> to)
     {
-        int width = from.XSize;
-        int height = from.YSize;
-        const int step = 1;
-
-        if (toRect.Width != fromRect.Width || toRect.Height != fromRect.Height)
+        // Each output combines four source neighborhoods. This checks the actual downsampling contract, not equal-sized image regions.
+        if ((long)toRect.Width * 2 != fromRect.Width || (long)toRect.Height * 2 != fromRect.Height)
         {
             return false;
         }
 
-        ReadOnlySpan<float> mulBase = [0.125f, 0.1f, 0.09f, 0.06f];
-        ReadOnlySpan<float> mulAdd = [0.0f, -0.1f, -0.09f, -0.06f];
-        float mul = 0f;
+        ReadOnlySpan<float> mulBase = [0.125F, 0.1F, 0.09F, 0.06F];
+        ReadOnlySpan<float> mulAdd = [0F, -0.1F, -0.09F, -0.06F];
+        float mul = butteraugliTarget < 2F ? (2F - butteraugliTarget) * 0.5F : 0F;
+        InlineArray4<float> weights = default;
+        float normSum = 0F;
 
-        if (butteraugliTarget < 2.0f)
+        for (int i = 0; i < 4; i++)
         {
-            mul = (2.0f - butteraugliTarget) * (1.0f / 2.0f);
+            weights[i] = mulBase[i] + (mul * mulAdd[i]);
+            normSum += weights[i];
         }
 
-        InlineArray4<float> multipliers = default;
-        float normSum = 0;
-
-        for (int ii = 0; ii < 4; ii++)
+        const float total = 0.29959705784054957F;
+        for (int i = 0; i < 4; i++)
         {
-            multipliers[ii] = mulBase[ii] + (mul * mulAdd[ii]);
-            normSum += multipliers[ii];
+            weights[i] *= total / normSum;
         }
 
-        const float total = 0.29959705784054957f;
+        FuzzyErosionOperator operation = new(weights[0], weights[1], weights[2], weights[3]);
+        ReadOnlySpan<float> source = from.GetRow(0);
+        Span<float> destination = to.GetRow(0);
+        // Reserve a right neighbor after every vector's final source pair. This bound uses the full source width, not the tile edge.
+        int vectorEnd = Math.Min(toRect.Width, (from.XSize - fromRect.Left - 1) / 2);
 
-        for (int ii = 0; ii < 4; ii++)
+        for (int y = 0; y < toRect.Height; y++)
         {
-            multipliers[ii] *= total / normSum;
-        }
+            int sourceY = fromRect.Top + (2 * y);
 
-        for (int fy = 0; fy < fromRect.Height; fy++)
-        {
-            int y = fy + fromRect.Y0();
-            int ym1 = y >= step ? y - step : y;
-            int yp1 = y + step < height ? y + step : y;
+            // A source row pair needs four rows of neighborhoods. Clamp at the plane edges, including repeated rows at height two.
+            ReadOnlySpan<float> top = source.Slice(Math.Max(0, sourceY - 1) * from.PixelsPerRow, from.XSize);
+            ReadOnlySpan<float> upper = source.Slice(sourceY * from.PixelsPerRow, from.XSize);
+            ReadOnlySpan<float> lower = source.Slice((sourceY + 1) * from.PixelsPerRow, from.XSize);
+            ReadOnlySpan<float> bottom = source.Slice(Math.Min(from.YSize - 1, sourceY + 2) * from.PixelsPerRow, from.XSize);
+            Span<float> output = destination.Slice(((toRect.Top + y) * to.PixelsPerRow) + toRect.Left, toRect.Width);
+            int x = 0;
 
-            Span<float> rowt = from.GetRow(ym1);
-            Span<float> row = from.GetRow(y);
-            Span<float> rowb = from.GetRow(yp1);
-            Span<float> rowOut = to.GetRow(toRect, fy / 2);
-
-            for (int fx = 0; fx < fromRect.Height; fx++)
+            // The first output pair can touch the global left edge. Complete it with clamped scalar reads before vector interiors.
+            if (fromRect.Left == 0 && x < output.Length)
             {
-                int x = fx + fromRect.X0();
-                int xm1 = x >= step ? x - step : x;
-                int xp1 = x + step < width ? x + step : x;
+                output[x++] = Erode2x2(top, upper, lower, bottom, fromRect.Left, operation);
+            }
 
-                // float min[4] = { row[x], row[xm1], row[xp1], rowt[xm1] };
-                InlineArray4<float> min = default;
-                min[0] = row[x];
-                min[1] = row[xm1];
-                min[2] = row[xp1];
-                min[3] = rowt[xm1];
-
-                if (min[0] > min[1])
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= vectorEnd - Vector512<float>.Count; x += Vector512<float>.Count)
                 {
-                    RuntimeUtility.Swap(ref min[0], ref min[1]);
-                }
+                    int sourceX = fromRect.Left + (2 * x);
+                    ErodePair(top, upper, lower, bottom, sourceX, operation, out Vector512<float> upper0, out Vector512<float> lower0);
+                    ErodePair(top, upper, lower, bottom, sourceX + Vector512<float>.Count, operation, out Vector512<float> upper1, out Vector512<float> lower1);
+                    SimdUtils.Deinterleave2(upper0.AsInt32(), upper1.AsInt32(), out Vector512<int> upperEven, out Vector512<int> upperOdd);
+                    SimdUtils.Deinterleave2(lower0.AsInt32(), lower1.AsInt32(), out Vector512<int> lowerEven, out Vector512<int> lowerOdd);
 
-                if (min[0] > min[2])
+                    // Deinterleaving only moves bits. Add the four neighborhoods in native row-major order, without regrouping the lower pair.
+                    Vector512<float> result = upperEven.AsSingle() + upperOdd.AsSingle();
+                    result += lowerEven.AsSingle();
+                    result += lowerOdd.AsSingle();
+                    result.StoreUnsafe(ref MemoryMarshal.GetReference(output), (uint)x);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= vectorEnd - Vector256<float>.Count; x += Vector256<float>.Count)
                 {
-                    RuntimeUtility.Swap(ref min[0], ref min[2]);
-                }
+                    int sourceX = fromRect.Left + (2 * x);
+                    ErodePair(top, upper, lower, bottom, sourceX, operation, out Vector256<float> upper0, out Vector256<float> lower0);
+                    ErodePair(top, upper, lower, bottom, sourceX + Vector256<float>.Count, operation, out Vector256<float> upper1, out Vector256<float> lower1);
+                    SimdUtils.Deinterleave2(upper0.AsInt32(), upper1.AsInt32(), out Vector256<int> upperEven, out Vector256<int> upperOdd);
+                    SimdUtils.Deinterleave2(lower0.AsInt32(), lower1.AsInt32(), out Vector256<int> lowerEven, out Vector256<int> lowerOdd);
 
-                if (min[0] > min[3])
+                    // Deinterleaving only moves bits. Add the four neighborhoods in native row-major order, without regrouping the lower pair.
+                    Vector256<float> result = upperEven.AsSingle() + upperOdd.AsSingle();
+                    result += lowerEven.AsSingle();
+                    result += lowerOdd.AsSingle();
+                    result.StoreUnsafe(ref MemoryMarshal.GetReference(output), (uint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= vectorEnd - Vector128<float>.Count; x += Vector128<float>.Count)
                 {
-                    RuntimeUtility.Swap(ref min[0], ref min[3]);
-                }
+                    int sourceX = fromRect.Left + (2 * x);
+                    ErodePair(top, upper, lower, bottom, sourceX, operation, out Vector128<float> upper0, out Vector128<float> lower0);
+                    ErodePair(top, upper, lower, bottom, sourceX + Vector128<float>.Count, operation, out Vector128<float> upper1, out Vector128<float> lower1);
+                    SimdUtils.Deinterleave2(upper0.AsInt32(), upper1.AsInt32(), out Vector128<int> upperEven, out Vector128<int> upperOdd);
+                    SimdUtils.Deinterleave2(lower0.AsInt32(), lower1.AsInt32(), out Vector128<int> lowerEven, out Vector128<int> lowerOdd);
 
-                if (min[1] > min[2])
-                {
-                    RuntimeUtility.Swap(ref min[1], ref min[2]);
+                    // Deinterleaving only moves bits. Add the four neighborhoods in native row-major order, without regrouping the lower pair.
+                    Vector128<float> result = upperEven.AsSingle() + upperOdd.AsSingle();
+                    result += lowerEven.AsSingle();
+                    result += lowerOdd.AsSingle();
+                    result.StoreUnsafe(ref MemoryMarshal.GetReference(output), (uint)x);
                 }
+            }
 
-                if (min[1] > min[3])
-                {
-                    RuntimeUtility.Swap(ref min[1], ref min[3]);
-                }
-
-                if (min[2] > min[3])
-                {
-                    RuntimeUtility.Swap(ref min[2], ref min[3]);
-                }
-
-                // remaining 5 values of a 3x3 neighborhood
-                ref float rmin0 = ref min[0];
-                ref float rmin1 = ref min[1];
-                ref float rmin2 = ref min[2];
-                ref float rmin3 = ref min[3];
-                StoreMin4(rowt[x], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowt[xp1], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowb[xm1], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowb[x], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowb[xp1], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-
-                float v = (multipliers[0] * min[0]) + (multipliers[1] * min[1]) +
-                          (multipliers[2] * min[2]) + (multipliers[3] * min[3]);
-
-                if (fx % 2 == 0 && fy % 2 == 0)
-                {
-                    rowOut[fx / 2] = v;
-                }
-                else
-                {
-                    rowOut[fx / 2] += v;
-                }
+            for (; x < output.Length; x++)
+            {
+                output[x] = Erode2x2(top, upper, lower, bottom, fromRect.Left + (2 * x), operation);
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Combines one clamped source pair from each of two rows with the same order as the vector interior.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The global source column of the left sample.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <returns>The sum of the four filtered neighborhoods in upper-left, upper-right, lower-left, lower-right order.</returns>
+    private static float Erode2x2(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation)
+    {
+        int left = Math.Max(0, x - 1);
+        int right = Math.Min(upper.Length - 1, x + 2);
+        float result = operation.Invoke(upper[x], upper[left], upper[x + 1], top[left], top[x], top[x + 1], lower[left], lower[x], lower[x + 1]);
+        result += operation.Invoke(upper[x + 1], upper[x], upper[right], top[x], top[x + 1], top[right], lower[x], lower[x + 1], lower[right]);
+        result += operation.Invoke(lower[x], lower[left], lower[x + 1], upper[left], upper[x], upper[x + 1], bottom[left], bottom[x], bottom[x + 1]);
+        result += operation.Invoke(lower[x + 1], lower[x], lower[right], upper[x], upper[x + 1], upper[right], bottom[x], bottom[x + 1], bottom[right]);
+        return result;
+    }
+
+    /// <summary>
+    /// Filters corresponding source columns in two adjacent rows while reusing their common neighborhood loads.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The first global source column. Its vector and one-sample halo stay inside every row.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <param name="upperResult">Filtered upper-row samples in original column order.</param>
+    /// <param name="lowerResult">Filtered lower-row samples in original column order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ErodePair(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation,
+        out Vector128<float> upperResult,
+        out Vector128<float> lowerResult)
+    {
+        Vector128<float> topLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x - 1));
+        Vector128<float> topCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x));
+        Vector128<float> topRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x + 1));
+        Vector128<float> upperLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x - 1));
+        Vector128<float> upperCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x));
+        Vector128<float> upperRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x + 1));
+        Vector128<float> lowerLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x - 1));
+        Vector128<float> lowerCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x));
+        Vector128<float> lowerRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x + 1));
+        Vector128<float> bottomLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x - 1));
+        Vector128<float> bottomCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x));
+        Vector128<float> bottomRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x + 1));
+
+        upperResult = operation.Invoke(upperCenter, upperLeft, upperRight, topLeft, topCenter, topRight, lowerLeft, lowerCenter, lowerRight);
+
+        lowerResult = operation.Invoke(lowerCenter, lowerLeft, lowerRight, upperLeft, upperCenter, upperRight, bottomLeft, bottomCenter, bottomRight);
+    }
+
+    /// <summary>
+    /// Filters corresponding source columns in two adjacent rows while reusing their common neighborhood loads.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The first global source column. Its vector and one-sample halo stay inside every row.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <param name="upperResult">Filtered upper-row samples in original column order.</param>
+    /// <param name="lowerResult">Filtered lower-row samples in original column order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ErodePair(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation,
+        out Vector256<float> upperResult,
+        out Vector256<float> lowerResult)
+    {
+        Vector256<float> topLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x - 1));
+        Vector256<float> topCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x));
+        Vector256<float> topRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x + 1));
+        Vector256<float> upperLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x - 1));
+        Vector256<float> upperCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x));
+        Vector256<float> upperRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x + 1));
+        Vector256<float> lowerLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x - 1));
+        Vector256<float> lowerCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x));
+        Vector256<float> lowerRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x + 1));
+        Vector256<float> bottomLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x - 1));
+        Vector256<float> bottomCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x));
+        Vector256<float> bottomRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x + 1));
+
+        upperResult = operation.Invoke(upperCenter, upperLeft, upperRight, topLeft, topCenter, topRight, lowerLeft, lowerCenter, lowerRight);
+
+        lowerResult = operation.Invoke(lowerCenter, lowerLeft, lowerRight, upperLeft, upperCenter, upperRight, bottomLeft, bottomCenter, bottomRight);
+    }
+
+    /// <summary>
+    /// Filters corresponding source columns in two adjacent rows while reusing their common neighborhood loads.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The first global source column. Its vector and one-sample halo stay inside every row.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <param name="upperResult">Filtered upper-row samples in original column order.</param>
+    /// <param name="lowerResult">Filtered lower-row samples in original column order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ErodePair(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation,
+        out Vector512<float> upperResult,
+        out Vector512<float> lowerResult)
+    {
+        Vector512<float> topLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x - 1));
+        Vector512<float> topCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x));
+        Vector512<float> topRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x + 1));
+        Vector512<float> upperLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x - 1));
+        Vector512<float> upperCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x));
+        Vector512<float> upperRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x + 1));
+        Vector512<float> lowerLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x - 1));
+        Vector512<float> lowerCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x));
+        Vector512<float> lowerRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x + 1));
+        Vector512<float> bottomLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x - 1));
+        Vector512<float> bottomCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x));
+        Vector512<float> bottomRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x + 1));
+
+        upperResult = operation.Invoke(upperCenter, upperLeft, upperRight, topLeft, topCenter, topRight, lowerLeft, lowerCenter, lowerRight);
+
+        lowerResult = operation.Invoke(lowerCenter, lowerLeft, lowerRight, upperLeft, upperCenter, upperRight, bottomLeft, bottomCenter, bottomRight);
+    }
+
+    /// <summary>
+    /// Evaluates the adaptive quantizer's four-lowest-neighbor filter, distinct from Butteraugli's three-minimum masking filter.
+    /// </summary>
+    /// <param name="weight0">The lowest sample weight.</param>
+    /// <param name="weight1">The second-lowest sample weight.</param>
+    /// <param name="weight2">The third-lowest sample weight.</param>
+    /// <param name="weight3">The fourth-lowest sample weight.</param>
+    private readonly struct FuzzyErosionOperator(float weight0, float weight1, float weight2, float weight3)
+    {
+        /// <summary>
+        /// Returns the weighted four lowest finite values of one three-by-three neighborhood.
+        /// </summary>
+        /// <param name="first">The center sample.</param>
+        /// <param name="second">The left sample.</param>
+        /// <param name="third">The right sample.</param>
+        /// <param name="fourth">The upper-left sample.</param>
+        /// <param name="fifth">The upper sample.</param>
+        /// <param name="sixth">The upper-right sample.</param>
+        /// <param name="seventh">The lower-left sample.</param>
+        /// <param name="eighth">The lower sample.</param>
+        /// <param name="ninth">The lower-right sample.</param>
+        /// <returns>The weighted four-minimum sum in native arithmetic order.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(
+            float first,
+            float second,
+            float third,
+            float fourth,
+            float fifth,
+            float sixth,
+            float seventh,
+            float eighth,
+            float ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            float minimum = MathF.Min(first, second);
+            second = MathF.Max(first, second);
+            first = minimum;
+            minimum = MathF.Min(third, fourth);
+            fourth = MathF.Max(third, fourth);
+            third = minimum;
+            minimum = MathF.Min(first, third);
+            third = MathF.Max(first, third);
+            first = minimum;
+            minimum = MathF.Min(second, fourth);
+            fourth = MathF.Max(second, fourth);
+            second = minimum;
+            minimum = MathF.Min(second, third);
+            third = MathF.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            return (((weight0 * first) + (weight1 * second)) + (weight2 * third)) + (weight3 * fourth);
+        }
+
+        /// <inheritdoc cref="Invoke(float, float, float, float, float, float, float, float, float)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(
+            Vector128<float> first,
+            Vector128<float> second,
+            Vector128<float> third,
+            Vector128<float> fourth,
+            Vector128<float> fifth,
+            Vector128<float> sixth,
+            Vector128<float> seventh,
+            Vector128<float> eighth,
+            Vector128<float> ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            Vector128<float> minimum = Vector128.Min(first, second);
+            second = Vector128.Max(first, second);
+            first = minimum;
+            minimum = Vector128.Min(third, fourth);
+            fourth = Vector128.Max(third, fourth);
+            third = minimum;
+            minimum = Vector128.Min(first, third);
+            third = Vector128.Max(first, third);
+            first = minimum;
+            minimum = Vector128.Min(second, fourth);
+            fourth = Vector128.Max(second, fourth);
+            second = minimum;
+            minimum = Vector128.Min(second, third);
+            third = Vector128.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            Vector128<float> result = (Vector128.Create(weight0) * first) + (Vector128.Create(weight1) * second);
+            result += Vector128.Create(weight2) * third;
+            return result + (Vector128.Create(weight3) * fourth);
+        }
+
+        /// <inheritdoc cref="Invoke(float, float, float, float, float, float, float, float, float)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(
+            Vector256<float> first,
+            Vector256<float> second,
+            Vector256<float> third,
+            Vector256<float> fourth,
+            Vector256<float> fifth,
+            Vector256<float> sixth,
+            Vector256<float> seventh,
+            Vector256<float> eighth,
+            Vector256<float> ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            Vector256<float> minimum = Vector256.Min(first, second);
+            second = Vector256.Max(first, second);
+            first = minimum;
+            minimum = Vector256.Min(third, fourth);
+            fourth = Vector256.Max(third, fourth);
+            third = minimum;
+            minimum = Vector256.Min(first, third);
+            third = Vector256.Max(first, third);
+            first = minimum;
+            minimum = Vector256.Min(second, fourth);
+            fourth = Vector256.Max(second, fourth);
+            second = minimum;
+            minimum = Vector256.Min(second, third);
+            third = Vector256.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            Vector256<float> result = (Vector256.Create(weight0) * first) + (Vector256.Create(weight1) * second);
+            result += Vector256.Create(weight2) * third;
+            return result + (Vector256.Create(weight3) * fourth);
+        }
+
+        /// <inheritdoc cref="Invoke(float, float, float, float, float, float, float, float, float)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(
+            Vector512<float> first,
+            Vector512<float> second,
+            Vector512<float> third,
+            Vector512<float> fourth,
+            Vector512<float> fifth,
+            Vector512<float> sixth,
+            Vector512<float> seventh,
+            Vector512<float> eighth,
+            Vector512<float> ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            Vector512<float> minimum = Vector512.Min(first, second);
+            second = Vector512.Max(first, second);
+            first = minimum;
+            minimum = Vector512.Min(third, fourth);
+            fourth = Vector512.Max(third, fourth);
+            third = minimum;
+            minimum = Vector512.Min(first, third);
+            third = Vector512.Max(first, third);
+            first = minimum;
+            minimum = Vector512.Min(second, fourth);
+            fourth = Vector512.Max(second, fourth);
+            second = minimum;
+            minimum = Vector512.Min(second, third);
+            third = Vector512.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            Vector512<float> result = (Vector512.Create(weight0) * first) + (Vector512.Create(weight1) * second);
+            result += Vector512.Create(weight2) * third;
+            return result + (Vector512.Create(weight3) * fourth);
+        }
+    }
+
+    /// <summary>
+    /// Inserts independent finite samples into four ordered minima without changing lane order.
+    /// </summary>
+    /// <param name="value">The new sample in each lane.</param>
+    /// <param name="min0">The lowest retained sample in each lane.</param>
+    /// <param name="min1">The second-lowest retained sample in each lane.</param>
+    /// <param name="min2">The third-lowest retained sample in each lane.</param>
+    /// <param name="min3">The fourth-lowest retained sample in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin4(
+        Vector128<float> value,
+        ref Vector128<float> min0,
+        ref Vector128<float> min1,
+        ref Vector128<float> min2,
+        ref Vector128<float> min3)
+    {
+        Vector128<float> next = Vector128.Max(value, min0);
+        min0 = Vector128.Min(value, min0);
+        value = Vector128.Max(next, min1);
+        min1 = Vector128.Min(next, min1);
+        next = Vector128.Max(value, min2);
+        min2 = Vector128.Min(value, min2);
+        min3 = Vector128.Min(next, min3);
+    }
+
+    /// <summary>
+    /// Inserts independent finite samples into four ordered minima without changing lane order.
+    /// </summary>
+    /// <param name="value">The new sample in each lane.</param>
+    /// <param name="min0">The lowest retained sample in each lane.</param>
+    /// <param name="min1">The second-lowest retained sample in each lane.</param>
+    /// <param name="min2">The third-lowest retained sample in each lane.</param>
+    /// <param name="min3">The fourth-lowest retained sample in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin4(
+        Vector256<float> value,
+        ref Vector256<float> min0,
+        ref Vector256<float> min1,
+        ref Vector256<float> min2,
+        ref Vector256<float> min3)
+    {
+        Vector256<float> next = Vector256.Max(value, min0);
+        min0 = Vector256.Min(value, min0);
+        value = Vector256.Max(next, min1);
+        min1 = Vector256.Min(next, min1);
+        next = Vector256.Max(value, min2);
+        min2 = Vector256.Min(value, min2);
+        min3 = Vector256.Min(next, min3);
+    }
+
+    /// <summary>
+    /// Inserts independent finite samples into four ordered minima without changing lane order.
+    /// </summary>
+    /// <param name="value">The new sample in each lane.</param>
+    /// <param name="min0">The lowest retained sample in each lane.</param>
+    /// <param name="min1">The second-lowest retained sample in each lane.</param>
+    /// <param name="min2">The third-lowest retained sample in each lane.</param>
+    /// <param name="min3">The fourth-lowest retained sample in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin4(
+        Vector512<float> value,
+        ref Vector512<float> min0,
+        ref Vector512<float> min1,
+        ref Vector512<float> min2,
+        ref Vector512<float> min3)
+    {
+        Vector512<float> next = Vector512.Max(value, min0);
+        min0 = Vector512.Min(value, min0);
+        value = Vector512.Max(next, min1);
+        min1 = Vector512.Min(next, min1);
+        next = Vector512.Max(value, min2);
+        min2 = Vector512.Min(value, min2);
+        min3 = Vector512.Min(next, min3);
     }
 
     private static void Blur1x1Masking(Configuration configuration, JxlPlane<float> mask1x1, Rectangle rect)
@@ -961,7 +1376,8 @@ internal static class JxlAdaptiveQuantization
         float qfLower = initialQfMin / (asymmetry * qfMaxDeviationLow);
         float qfHigher = initialQfMax * (qfMaxDeviationLow / asymmetry);
 
-        if (qfHigher / qfLower < 253)
+        // Native requires a representable quantization range below 253 before the iterative search begins.
+        if (qfHigher / qfLower >= 253)
         {
             return false;
         }
@@ -1070,6 +1486,8 @@ internal static class JxlAdaptiveQuantization
                         if (diff > 1.0f)
                         {
                             float old = rowQ[x];
+                            // Increase the requested precision before checking whether integer quantization preserves that change.
+                            rowQ[x] *= diff;
                             int qfOld = (int)MathF.Round(old * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
                             int qfNew = (int)MathF.Round(rowQ[x] * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
 
@@ -1120,7 +1538,7 @@ internal static class JxlAdaptiveQuantization
                             }
                         }
 
-                        if (rowQ[x] < qfHigher)
+                        if (rowQ[x] > qfHigher)
                         {
                             rowQ[x] = qfHigher;
                         }

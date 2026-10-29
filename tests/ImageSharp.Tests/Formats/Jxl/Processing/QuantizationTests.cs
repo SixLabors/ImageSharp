@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -14,6 +15,99 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class QuantizationTests
 {
+    /// <summary>
+    /// Checks the adaptive quantizer's four-minimum filter and two-to-one rectangle traversal against independently sorted neighborhoods.
+    /// </summary>
+    [Fact]
+    public void AdaptiveFuzzyErosion_DownsamplesRectanglesWithoutTouchingPadding()
+    {
+        static void RunTest()
+        {
+            // The last case places both regions inside larger planes. Neighbors use global source edges, not the selected rectangle.
+            ReadOnlySpan<(int Width, int Height, Rectangle Source, Rectangle Destination)> cases =
+            [
+                (2, 2, new Rectangle(0, 0, 2, 2), new Rectangle(0, 0, 1, 1)),
+                (6, 4, new Rectangle(0, 0, 6, 4), new Rectangle(1, 1, 3, 2)),
+                (34, 6, new Rectangle(0, 0, 34, 6), new Rectangle(2, 1, 17, 3)),
+                (66, 4, new Rectangle(0, 0, 66, 4), new Rectangle(1, 2, 33, 2)),
+                (70, 8, new Rectangle(2, 2, 66, 4), new Rectangle(3, 1, 33, 2))
+            ];
+
+            const float untouched = -123F;
+            // At target 2, native weights [.125,.1,.09,.06] sum to .375 before normalization. All four minima contribute.
+            float normalization = 0.29959705784054957F / 0.375F;
+            ReadOnlySpan<float> weights = [0.125F * normalization, 0.1F * normalization, 0.09F * normalization, 0.06F * normalization];
+            Span<float> neighbors = stackalloc float[9];
+
+            foreach ((int width, int height, Rectangle sourceRect, Rectangle destinationRect) in cases)
+            {
+                using JxlPlane<float> source = new(TestEnvironment.Configuration, width, height);
+                using JxlPlane<float> destination = new(TestEnvironment.Configuration, destinationRect.Right + 2, destinationRect.Bottom + 2);
+
+                Span<float> input = source.GetRow(0);
+                Span<float> output = destination.GetRow(0);
+                input.Fill(untouched);
+                output.Fill(untouched);
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        input[(y * source.PixelsPerRow) + x] = ((x * 13 + y * 7) % 19) + 1;
+                    }
+                }
+
+                Assert.True(JxlAdaptiveQuantization.FuzzyErosion(2F, sourceRect, source, destinationRect, destination));
+
+                for (int y = 0; y < destination.YSize; y++)
+                {
+                    ReadOnlySpan<float> row = output.Slice(y * destination.PixelsPerRow, destination.PixelsPerRow);
+                    for (int x = 0; x < row.Length; x++)
+                    {
+                        if (!destinationRect.Contains(x, y))
+                        {
+                            Assert.Equal(untouched, row[x]);
+                            continue;
+                        }
+
+                        float expected = 0F;
+                        for (int pairY = 0; pairY < 2; pairY++)
+                        {
+                            int sourceY = sourceRect.Top + (2 * (y - destinationRect.Top)) + pairY;
+                            for (int pairX = 0; pairX < 2; pairX++)
+                            {
+                                int sourceX = sourceRect.Left + (2 * (x - destinationRect.Left)) + pairX;
+                                int count = 0;
+                                for (int dy = -1; dy <= 1; dy++)
+                                {
+                                    int neighborY = Math.Clamp(sourceY + dy, 0, height - 1);
+                                    for (int dx = -1; dx <= 1; dx++)
+                                    {
+                                        int neighborX = Math.Clamp(sourceX + dx, 0, width - 1);
+                                        neighbors[count++] = input[(neighborY * source.PixelsPerRow) + neighborX];
+                                    }
+                                }
+
+                                // Full sorting is an independent oracle for the production four-minimum insertion network.
+                                neighbors.Sort();
+                                float value = (((weights[0] * neighbors[0]) + (weights[1] * neighbors[1]))
+                                    + (weights[2] * neighbors[2])) + (weights[3] * neighbors[3]);
+
+                                expected += value;
+                            }
+                        }
+
+                        Assert.Equal(expected, row[x]);
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     /// <summary>
     /// Checks final table layout, reciprocal weights, low-frequency exclusion and output guards at every SIMD width.
     /// </summary>

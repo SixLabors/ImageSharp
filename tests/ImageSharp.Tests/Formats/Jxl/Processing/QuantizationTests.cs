@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -8,6 +9,88 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class QuantizationTests
 {
+    /// <summary>
+    /// Checks final table layout, reciprocal weights, low-frequency exclusion and output guards at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void QuantizationTables_WriteReciprocalsAndExcludeLowFrequencies()
+    {
+        static void RunTest()
+        {
+            JxlQuantizerEncoding encoding = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([[2F], [4F], [8F]], 1));
+            ReadOnlySpan<JxlQuantTable> kinds = [JxlQuantTable.DCT, JxlQuantTable.DCT8X16, JxlQuantTable.DCT16X16, JxlQuantTable.DCT256X256];
+
+            foreach (JxlQuantTable kind in kinds)
+            {
+                int blocksX = JxlDequantMatrices.RequiredSizeX[(int)kind];
+                int blocksY = JxlDequantMatrices.RequiredSizeY[(int)kind];
+                int channelLength = blocksX * blocksY * 64;
+                int length = 3 * channelLength;
+                float[] table = new float[length + 2];
+                float[] inverse = new float[length + 2];
+                table.AsSpan().Fill(-77F);
+                inverse.AsSpan().Fill(-77F);
+                int offset = 1;
+                Assert.True(JxlQuantWeights.ComputeQuantTable(encoding, table, inverse, kind, ref offset));
+                Assert.Equal(length + 1, offset);
+
+                // One distance band gives constant weights [2,4,8]. Their exact reciprocals are [.5,.25,.125].
+                // The top-left covered-block rectangle is excluded only from AC quantization, as specified by the native table layout.
+                int columns = 8 * Math.Max(blocksX, blocksY);
+                int lowRows = Math.Min(blocksX, blocksY);
+                int lowColumns = Math.Max(blocksX, blocksY);
+                for (int c = 0; c < 3; c++)
+                {
+                    float weight = 2 << c;
+                    int start = 1 + (c * channelLength);
+                    Assert.Equal(-1, table.AsSpan(start, channelLength).IndexOfAnyExcept(1F / weight));
+                    for (int row = 0; row < channelLength / columns; row++)
+                    {
+                        Span<float> values = inverse.AsSpan(start + (row * columns), columns);
+                        int excluded = row < lowRows ? lowColumns : 0;
+                        Assert.Equal(-1, values[..excluded].IndexOfAnyExcept(0F));
+                        Assert.Equal(-1, values[excluded..].IndexOfAnyExcept(weight));
+                    }
+                }
+
+                Assert.Equal(-77F, table[0]);
+                Assert.Equal(-77F, table[^1]);
+                Assert.Equal(-77F, inverse[0]);
+                Assert.Equal(-77F, inverse[^1]);
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks that invalid generated weights cannot publish a completed table at any SIMD width.
+    /// </summary>
+    [Fact]
+    public void QuantizationTables_RejectNonfiniteAndOutOfRangeWeights()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<float> invalidWeights = [1E8F, float.PositiveInfinity, float.NaN];
+            foreach (float invalid in invalidWeights)
+            {
+                // A one-band table reaches the reciprocal validation directly. The third channel must still be checked.
+                JxlQuantizerEncoding encoding = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([[2F], [4F], [invalid]], 1));
+                float[] table = new float[3 * 64];
+                float[] inverse = new float[3 * 64];
+                int offset = 0;
+                Assert.Throws<InvalidImageContentException>(() => JxlQuantWeights.ComputeQuantTable(encoding, table, inverse, JxlQuantTable.DCT, ref offset));
+                Assert.Equal(0, offset);
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     /// <summary>
     /// Checks the native default band count and the rectangular transform's predefined table selection.
     /// </summary>

@@ -27,7 +27,9 @@ internal static class JxlQuantWeights
 
     public const int Log2NumQuantModes = 3;
 
+    // The format rejects quantization weights outside this reciprocal-safe interval.
     private const float AlmostZero = 1e-8f;
+    private const float MaximumWeight = 1F / AlmostZero;
 
     /// <summary>
     /// DCT quantizer encoding. (6 distance bands)
@@ -824,12 +826,11 @@ internal static class JxlQuantWeights
     }
 
     /// <summary>
-    /// Builds forward and inverse quantization tables for one transform.
+    /// Builds dequantization weights and their reciprocals for one transform in the caller's final storage.
     /// </summary>
     /// <param name="encoding">The quantization weight parameters.</param>
-    /// <param name="quantizationTable">The destination forward weights.</param>
-    /// <param name="inverseQuantizationTable">The destination inverse weights.</param>
-    /// <param name="tableIndex">The table index. This implementation does not yet use it.</param>
+    /// <param name="quantizationTable">The destination dequantization weights. Each entry is the reciprocal of the generated weight.</param>
+    /// <param name="inverseQuantizationTable">The destination quantization weights. Low-frequency entries are cleared after preparation.</param>
     /// <param name="kind">The transform table kind.</param>
     /// <param name="writeOffset">The starting destination offset, advanced past the written weights.</param>
     /// <returns>Whether the encoding supports the selected transform.</returns>
@@ -837,7 +838,6 @@ internal static class JxlQuantWeights
         JxlQuantizerEncoding encoding,
         Span<float> quantizationTable,
         Span<float> inverseQuantizationTable,
-        int tableIndex,
         JxlQuantTable kind,
         ref int writeOffset)
     {
@@ -848,7 +848,9 @@ internal static class JxlQuantWeights
         int wcols = 8 * JxlDequantMatrices.RequiredSizeY[quantSizeTable];
         int num = wrows * wcols;
 
-        Span<float> weights = stackalloc float[3 * num];
+        // Generate all three channel planes directly in their final allocation. The largest transform has 196,608 entries.
+        // Keeping this view avoids a proportional stack allocation and subsequent copies of the complete table.
+        Span<float> weights = inverseQuantizationTable.Slice(writeOffset, 3 * num);
 
         switch (encoding.Mode)
         {
@@ -1074,32 +1076,16 @@ internal static class JxlQuantWeights
 
                 break;
             }
+
+            default:
+                return false;
         }
 
         int prevPos = writeOffset;
 
-        // Don't zero-init
-        Span<float> invVal = stackalloc float[64];
-        Span<float> val = stackalloc float[64];
-
-        for (int i = 0; i < num * 3; i += 64)
-        {
-            weights.Slice(i, 64).CopyTo(invVal);
-
-            // TODO: there's an unlikely check right here in
-            // reference:
-            //    if (JXL_UNLIKELY(!AllFalse(d, Ge(inv_val, Set(d, 1.0f / kAlmostZero))) ||
-            //             !AllFalse(d, Lt(inv_val, Set(d, kAlmostZero)))))
-            //    {
-            //      throw new InvalidOperationException("Invalid quantization table");
-            //    }
-            // should we trade performance for an unlikely check?
-            val.Fill(1.0f);
-            TensorPrimitives.Divide(val, invVal, val);
-
-            val.CopyTo(quantizationTable.Slice(writeOffset + i, 64));
-            invVal.CopyTo(inverseQuantizationTable.Slice(writeOffset + i, 64));
-        }
+        // libjxl quant_weights.cc validates this interval before division. Validate and invert together;
+        // no temporary table, fill with ones, or extra validation pass is required. Each lane owns one coefficient.
+        TensorPrimitives_.Invoke(weights, quantizationTable.Slice(writeOffset, weights.Length), default(ReciprocalWeightOperator));
 
         writeOffset += 3 * num;
 
@@ -1120,6 +1106,61 @@ internal static class JxlQuantWeights
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Validates generated weights and returns their reciprocals. Preparation rejects invalid weights instead of clipping them.
+    /// </summary>
+    private readonly struct ReciprocalWeightOperator : TensorPrimitives_.IUnaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+        {
+            // Ordered comparisons also reject NaN. Positive finite weights in [1e-8,1e8) have finite positive reciprocals.
+            if (!(value >= AlmostZero && value < MaximumWeight))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return 1F / value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            if (!(Vector128.GreaterThanOrEqualAll(value, Vector128.Create(AlmostZero)) && Vector128.LessThanAll(value, Vector128.Create(MaximumWeight))))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return Vector128<float>.One / value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            if (!(Vector256.GreaterThanOrEqualAll(value, Vector256.Create(AlmostZero)) && Vector256.LessThanAll(value, Vector256.Create(MaximumWeight))))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return Vector256<float>.One / value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            if (!(Vector512.GreaterThanOrEqualAll(value, Vector512.Create(AlmostZero)) && Vector512.LessThanAll(value, Vector512.Create(MaximumWeight))))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return Vector512<float>.One / value;
+        }
     }
 
     public static bool DecodeDctParameters(JxlBitReader reader, JxlDctQuantWeightParameters parameters)

@@ -1,11 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -14,6 +16,57 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class EntropyCoderTests
 {
+    /// <summary>
+    /// Checks ANS cost for exact binary probabilities, zero bins and logical histogram lengths under every feature mode.
+    /// </summary>
+    [Fact]
+    public void HistogramBitCost_UsesProbabilityFloorAndLogicalCount()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<int> widths = [1, 2, 4, 8, 16, 32, 64];
+            foreach (int width in widths)
+            {
+                int[] counts = new int[width + 1];
+                counts.AsSpan(0, width).Fill(4);
+                counts[width] = int.MaxValue;
+
+                // Equal frequencies require log2(width) bits per occurrence. Powers of two make this expectation exact.
+                float expected = 4 * width * (int)BitOperations.Log2((uint)width);
+                Assert.Equal(expected, JxlMaEncoder.EstimateBits(counts, width));
+
+                counts.AsSpan(0, width).Clear();
+                Assert.Equal(0F, JxlMaEncoder.EstimateBits(counts, width));
+                counts[width - 1] = 7;
+                Assert.Equal(0F, JxlMaEncoder.EstimateBits(counts, width));
+                Assert.Equal(int.MaxValue, counts[width]);
+            }
+
+            ReadOnlySpan<int> lengths = [3, 7, 15, 17, 31, 33, 65];
+            foreach (int length in lengths)
+            {
+                int[] counts = new int[length + 1];
+                counts[0] = 1;
+                counts[length - 1] = 1;
+                counts[length] = int.MaxValue;
+
+                // Two equally likely symbols require one bit each. Empty bins must contribute zero, including scalar tail bins.
+                Assert.Equal(2F, JxlMaEncoder.EstimateBits(counts, length));
+            }
+
+            // ANS has 4096 table entries, so the probability floor limits this estimate to 12 bits per occurrence.
+            // With 8192 equally likely symbols, unconstrained Shannon entropy would incorrectly return 13 bits each.
+            int[] rareSymbols = new int[8192];
+            rareSymbols.AsSpan().Fill(1);
+            Assert.Equal(98304F, JxlMaEncoder.EstimateBits(rareSymbols, rareSymbols.Length));
+            Assert.Equal(0F, JxlMaEncoder.EstimateBits([], 0));
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     /// <summary>
     /// Checks terminal zero-bit and one-bit Huffman symbols through the encoded table and bounded bit reader.
     /// </summary>

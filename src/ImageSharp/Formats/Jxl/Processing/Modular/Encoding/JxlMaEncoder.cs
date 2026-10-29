@@ -6,6 +6,8 @@ using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
@@ -26,30 +28,131 @@ internal static class JxlMaEncoder
 
     private static int Padded(int x) => JxlMath.RoundUpTo(x, Vector<float>.Count);
 
-    public static float EstimateBits(Span<int> counts, int numSymbols)
+    /// <summary>
+    /// Estimates the ANS bit cost of a histogram with the codec's minimum nonzero symbol probability.
+    /// </summary>
+    /// <param name="counts">The nonnegative occurrence counts. Storage after numSymbols is not part of the histogram.</param>
+    /// <param name="numSymbols">The logical number of histogram entries.</param>
+    /// <returns>The estimated cost in bits. Empty and single-symbol histograms have zero cost.</returns>
+    public static float EstimateBits(ReadOnlySpan<int> counts, int numSymbols)
     {
-        int total = TensorPrimitives.Sum((ReadOnlySpan<int>)counts.Slice(0, numSymbols));
+        ReadOnlySpan<int> histogram = counts[..numSymbols];
+        int total = TensorPrimitives.Sum(histogram);
+        HistogramBitCostOperator operation = new(total);
+        ref int input = ref MemoryMarshal.GetReference(histogram);
+        float cost = 0F;
+        int i = 0;
 
-        Vector<float> minprob = Vector.Create(1.0f / JxlAnsConstants.AnsTableSize);
-        Vector<float> inverseTotal = Vector.Create(1.0f / total);
-        Vector<float> bitsLanes = Vector<float>.Zero;
-
-        for (int i = 0; i < numSymbols; i += Vector<float>.Count)
+        // Convert integer counts numerically. Keep the single-symbol comparison in integer lanes so counts above 2^24 cannot compare equal by rounding.
+        if (Vector512.IsHardwareAccelerated)
         {
-            Vector<int> countsIv = new(counts[i..]);
-            Vector<float> countsFv = Vector.ConvertToSingle(countsIv);
-            Vector<float> probs = countsFv * inverseTotal;
-            Vector<float> mprobs = probs * minprob;
+            nuint count = (histogram.Length - i).Vector512Count<int>();
+            Vector512<int> totalCounts = Vector512.Create(total);
+            Vector512<float> accumulated = Vector512<float>.Zero;
 
-            Vector<float> nbps = Vector.ConditionalSelect(
-                Vector.Equals(countsIv, Vector.Create(total)),
-                Vector<float>.Zero,
-                Vector.Log2(mprobs));
+            for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
+            {
+                Vector512<int> occurrences = Vector512.LoadUnsafe(ref input, (uint)i);
+                Vector512<float> bits = operation.Invoke(Vector512.ConvertToSingle(occurrences));
+                bits = Vector512.ConditionalSelect(Vector512.Equals(occurrences, totalCounts).AsSingle(), Vector512<float>.Zero, bits);
+                accumulated += bits;
+            }
 
-            bitsLanes -= countsFv * nbps;
+            cost += Vector512.Sum(accumulated);
         }
 
-        return Vector.Sum(bitsLanes);
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (histogram.Length - i).Vector256Count<int>();
+            Vector256<int> totalCounts = Vector256.Create(total);
+            Vector256<float> accumulated = Vector256<float>.Zero;
+
+            for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
+            {
+                Vector256<int> occurrences = Vector256.LoadUnsafe(ref input, (uint)i);
+                Vector256<float> bits = operation.Invoke(Vector256.ConvertToSingle(occurrences));
+                bits = Vector256.ConditionalSelect(Vector256.Equals(occurrences, totalCounts).AsSingle(), Vector256<float>.Zero, bits);
+                accumulated += bits;
+            }
+
+            cost += Vector256.Sum(accumulated);
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (histogram.Length - i).Vector128Count<int>();
+            Vector128<int> totalCounts = Vector128.Create(total);
+            Vector128<float> accumulated = Vector128<float>.Zero;
+
+            for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
+            {
+                Vector128<int> occurrences = Vector128.LoadUnsafe(ref input, (uint)i);
+                Vector128<float> bits = operation.Invoke(Vector128.ConvertToSingle(occurrences));
+                bits = Vector128.ConditionalSelect(Vector128.Equals(occurrences, totalCounts).AsSingle(), Vector128<float>.Zero, bits);
+                accumulated += bits;
+            }
+
+            cost += Vector128.Sum(accumulated);
+        }
+
+        // The native single-symbol rule also covers total zero: all its counts are zero and contribute zero.
+        // Scalar tails require no padding and use the same probability floor as complete registers.
+        for (; i < histogram.Length; i++)
+        {
+            int value = Unsafe.Add(ref input, i);
+            cost += value == total ? 0F : operation.Invoke(value);
+        }
+
+        return cost;
+    }
+
+    /// <summary>
+    /// Calculates -count * log2(max(count / total, 1 / ANS table size)) for one histogram entry.
+    /// </summary>
+    /// <remarks>The caller handles a count equal to the histogram total before reduction, including the all-zero case.</remarks>
+    private readonly struct HistogramBitCostOperator : TensorPrimitives_.IUnaryOperator
+    {
+        private const float MinimumProbability = 1F / JxlAnsConstants.AnsTableSize;
+
+        private readonly float inverseTotal;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HistogramBitCostOperator"/> struct.
+        /// </summary>
+        /// <param name="total">The histogram's total occurrence count.</param>
+        public HistogramBitCostOperator(int total) => this.inverseTotal = 1F / total;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+            => -(value * MathF.Log2(MathF.Max(value * this.inverseTotal, MinimumProbability)));
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            // ANS cannot assign a nonzero symbol a probability below one table entry. Flooring probabilities also keeps empty bins away from log2(0).
+            Vector128<float> probability = Vector128.Max(value * Vector128.Create(this.inverseTotal), Vector128.Create(MinimumProbability));
+            return -(value * Vector128.Log2(probability));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            // ANS cannot assign a nonzero symbol a probability below one table entry. Flooring probabilities also keeps empty bins away from log2(0).
+            Vector256<float> probability = Vector256.Max(value * Vector256.Create(this.inverseTotal), Vector256.Create(MinimumProbability));
+            return -(value * Vector256.Log2(probability));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            // ANS cannot assign a nonzero symbol a probability below one table entry. Flooring probabilities also keeps empty bins away from log2(0).
+            Vector512<float> probability = Vector512.Max(value * Vector512.Create(this.inverseTotal), Vector512.Create(MinimumProbability));
+            return -(value * Vector512.Log2(probability));
+        }
     }
 
     public static void MakeSplitNode(int pos, int property, int splitValue, JxlPredictor leftPredictor, int leftOffset, JxlPredictor rightPredictor, int rightOffset, Tree tree)

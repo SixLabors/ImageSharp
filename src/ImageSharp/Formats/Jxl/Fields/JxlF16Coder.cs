@@ -3,11 +3,12 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 /// <summary>
-/// Represents the Half-precision Floating-point number coder.
+/// Reads and writes JPEG XL half-precision fields.
 /// </summary>
 internal static class JxlF16Coder
 {
@@ -34,37 +35,24 @@ internal static class JxlF16Coder
         return MathF.Abs(value) <= 65504.0f;
     }
 
+    /// <summary>
+    /// Reads one half-precision field, rejecting the NaN and infinity encodings forbidden by JPEG XL.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the 16-bit field.</param>
+    /// <param name="value">The decoded value, unchanged when its encoding is invalid.</param>
+    /// <returns>Whether the field contains a finite value.</returns>
     public static bool Read(JxlBitReader reader, ref float value)
     {
-        uint bits16 = reader.ReadBits32(16u);
-        uint sign = bits16 >> 15;
-        uint biasedExponent = (bits16 >> 10) & 0x1Fu;
-        uint mantissa = bits16 & 0x3FFu;
+        ushort bits = (ushort)reader.ReadBits32(16u);
 
-        if (biasedExponent == 31u)
+        // The wire format forbids an all-ones exponent. All other bit patterns, including signed zero
+        // and subnormal values, use the existing half-storage conversion without color-range clamping.
+        if ((bits & 0x7C00) == 0x7C00)
         {
-            // NaN and Infinity are not valid
             return false;
         }
 
-        if (biasedExponent == 0u)
-        {
-            // Subnormal or zero.
-            value = (1.0f / 16384) * (mantissa * (1.0f / 1024));
-            if (sign != 0u)
-            {
-                value = -value;
-            }
-
-            return true;
-        }
-
-        uint biasedExp32 = biasedExponent + (127u - 15u);
-        uint mantissa32 = mantissa << (23 - 10);
-        uint bits32 = (sign << 31) | (biasedExp32 << 23) | mantissa32;
-
-        value = BitConverter.UInt32BitsToSingle(bits32);
-
+        value = HalfTypeHelper.Unpack(bits);
         return true;
     }
 

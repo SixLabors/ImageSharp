@@ -265,6 +265,42 @@ public class FieldsTests
 
         Assert.Equal(1U, bundle.OldSmall);
         Assert.True(JxlBundle.AllDefault(bundle));
+
+        // Constructed children keep their own values when the parent's fields are initialized.
+        JxlImageMetadata metadata = new();
+        metadata.ToneMapping.IntensityTarget = 123F;
+        JxlBundle.Init(metadata);
+        Assert.Equal(123F, metadata.ToneMapping.IntensityTarget);
+
+        // An explicit default reset must also restore nested fields.
+        JxlBundle.SetDefault(metadata);
+        Assert.Equal(JxlMath.DefaultIntensityTarget, metadata.ToneMapping.IntensityTarget);
+    }
+
+    /// <summary>
+    /// Checks finite half fields and the wire rejection of nonfinite encodings.
+    /// </summary>
+    /// <param name="bits">The stored half-precision field.</param>
+    /// <param name="expectedBits">The exact single-precision result, or the unchanged initial value after rejection.</param>
+    /// <param name="valid">Whether the wire encoding is valid.</param>
+    [Theory]
+    [InlineData((ushort)0x0000, 0x00000000U, true)]
+    [InlineData((ushort)0x8000, 0x80000000U, true)]
+    [InlineData((ushort)0x0001, 0x33800000U, true)]
+    [InlineData((ushort)0x0400, 0x38800000U, true)]
+    [InlineData((ushort)0x7BFF, 0x477FE000U, true)]
+    [InlineData((ushort)0x7C00, 0x3F900000U, false)]
+    [InlineData((ushort)0xFC00, 0x3F900000U, false)]
+    [InlineData((ushort)0x7E00, 0x3F900000U, false)]
+    public void ReadF16_PreservesFiniteBitsAndRejectsNonfinite(ushort bits, uint expectedBits, bool valid)
+    {
+        // JXL fields use least-significant-bit-first bytes. The initial 1.125F must survive an invalid encoding.
+        using MemoryStream input = new([(byte)bits, (byte)(bits >> 8)]);
+        JxlBitReader reader = new(input);
+        float value = 1.125F;
+
+        Assert.Equal(valid, JxlF16Coder.Read(reader, ref value));
+        Assert.Equal(expectedBits, BitConverter.SingleToUInt32Bits(value));
     }
 
     /// <summary>
@@ -593,7 +629,7 @@ public class FieldsTests
     private static void TestF16Coder(float value)
     {
         int maxEncodedBits = 0;
-        if (JxlF16Coder.CanEncode(value, ref maxEncodedBits))
+        if (!JxlF16Coder.CanEncode(value, ref maxEncodedBits))
         {
             throw new InvalidOperationException("This F16 value cannot be encoded: " + value);
         }

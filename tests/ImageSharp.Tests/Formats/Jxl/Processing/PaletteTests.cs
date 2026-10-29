@@ -296,4 +296,3 @@ public class PaletteTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 }
-

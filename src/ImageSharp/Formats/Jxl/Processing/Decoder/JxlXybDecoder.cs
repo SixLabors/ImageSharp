@@ -4,159 +4,305 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
-/// <summary>
-/// Decodes the XYB color format (which JPEG XL uses) into RGB.
-/// </summary>
+/// <summary>Reconstructs linear RGB from JPEG XL XYB samples.</summary>
 internal static class JxlXybDecoder
 {
-    /// <summary>
-    /// Converts XYB to RGB using SIMD, one vector at a time.
-    /// </summary>
-    /// <param name="opsinX">X channel</param>
-    /// <param name="opsinY">Y channel</param>
-    /// <param name="opsinB">B channel</param>
-    /// <param name="opsinParameters">Opsin parameters &amp; configuration</param>
-    /// <param name="linearR">Output R</param>
-    /// <param name="linearG">Output G</param>
-    /// <param name="linearB">Output B</param>
+    /// <summary>Converts three equally sized XYB rows to linear RGB without clamping reconstructed components.</summary>
+    /// <param name="opsinX">The logical X samples.</param>
+    /// <param name="opsinY">The corresponding Y samples.</param>
+    /// <param name="opsinB">The corresponding B samples.</param>
+    /// <param name="linearR">The equally sized red destination.</param>
+    /// <param name="linearG">The equally sized green destination.</param>
+    /// <param name="linearB">The equally sized blue destination.</param>
+    /// <param name="parameters">The matrix and biases prepared before processing rows.</param>
+    /// <remarks>Corresponding source and destination rows can start at the same address. Offset overlap is not supported.</remarks>
     public static void ConvertXybToRgb(
-        Vector<float> opsinX,
-        Vector<float> opsinY,
-        Vector<float> opsinB,
-        JxlOpsinParameters opsinParameters,
-        ref Vector<float> linearR,
-        ref Vector<float> linearG,
-        ref Vector<float> linearB)
+        ReadOnlySpan<float> opsinX,
+        ReadOnlySpan<float> opsinY,
+        ReadOnlySpan<float> opsinB,
+        Span<float> linearR,
+        Span<float> linearG,
+        Span<float> linearB,
+        JxlOpsinParameters parameters)
     {
-        Vector<float> negBiasR = new(opsinParameters.OpsinBiases[0]);
-        Vector<float> negBiasG = new(opsinParameters.OpsinBiases[1]);
-        Vector<float> negBiasB = new(opsinParameters.OpsinBiases[2]);
+        Matrix4x4 matrix = parameters.InverseOpsinMatrix;
+        Vector3 biases = parameters.OpsinBiases;
+        Vector3 cubeRootBiases = parameters.OpsinBiasesCbrt;
+        ref float inputX = ref MemoryMarshal.GetReference(opsinX);
+        ref float inputY = ref MemoryMarshal.GetReference(opsinY);
+        ref float inputB = ref MemoryMarshal.GetReference(opsinB);
+        ref float outputR = ref MemoryMarshal.GetReference(linearR);
+        ref float outputG = ref MemoryMarshal.GetReference(linearG);
+        ref float outputB = ref MemoryMarshal.GetReference(linearB);
+        int x = 0;
 
-        Vector<float> gammaR = opsinX + opsinY;
-        Vector<float> gammaG = opsinY - opsinX;
-        Vector<float> gammaB = opsinB;
+        // Each register contains one component from consecutive pixels. Load all three components before the first store.
+        // Only complete registers enter a SIMD loop. Narrower widths and the scalar tail start at the first unprocessed pixel.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= opsinX.Length - Vector512<float>.Count; x += Vector512<float>.Count)
+            {
+                Vector512<float> input0 = Vector512.LoadUnsafe(ref inputX, (uint)x);
+                Vector512<float> input1 = Vector512.LoadUnsafe(ref inputY, (uint)x);
+                Vector512<float> input2 = Vector512.LoadUnsafe(ref inputB, (uint)x);
+                ConvertXybToRgb(
+                    input0,
+                    input1,
+                    input2,
+                    in matrix,
+                    biases,
+                    cubeRootBiases,
+                    out Vector512<float> r,
+                    out Vector512<float> g,
+                    out Vector512<float> b);
 
-        Vector<float> gammaR2 = gammaR * gammaR;
-        Vector<float> gammaG2 = gammaG * gammaG;
-        Vector<float> gammaB2 = gammaB * gammaB;
+                r.StoreUnsafe(ref outputR, (uint)x);
+                g.StoreUnsafe(ref outputG, (uint)x);
+                b.StoreUnsafe(ref outputB, (uint)x);
+            }
+        }
 
-        Vector<float> mixedR = (gammaR2 * gammaR) + negBiasR;
-        Vector<float> mixedG = (gammaG2 * gammaG) + negBiasG;
-        Vector<float> mixedB = (gammaB2 * gammaB) + negBiasB;
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= opsinX.Length - Vector256<float>.Count; x += Vector256<float>.Count)
+            {
+                Vector256<float> input0 = Vector256.LoadUnsafe(ref inputX, (uint)x);
+                Vector256<float> input1 = Vector256.LoadUnsafe(ref inputY, (uint)x);
+                Vector256<float> input2 = Vector256.LoadUnsafe(ref inputB, (uint)x);
+                ConvertXybToRgb(
+                    input0,
+                    input1,
+                    input2,
+                    in matrix,
+                    biases,
+                    cubeRootBiases,
+                    out Vector256<float> r,
+                    out Vector256<float> g,
+                    out Vector256<float> b);
 
-        Span<float> inverseMatrix = opsinParameters.InverseOpsinMatrix;
+                r.StoreUnsafe(ref outputR, (uint)x);
+                g.StoreUnsafe(ref outputG, (uint)x);
+                b.StoreUnsafe(ref outputB, (uint)x);
+            }
+        }
 
-        linearR = LoadDuplicate128(ref inverseMatrix[0 * 4]) * mixedR;
-        linearG = LoadDuplicate128(ref inverseMatrix[3 * 4]) * mixedR;
-        linearB = LoadDuplicate128(ref inverseMatrix[6 * 4]) * mixedR;
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= opsinX.Length - Vector128<float>.Count; x += Vector128<float>.Count)
+            {
+                Vector128<float> input0 = Vector128.LoadUnsafe(ref inputX, (uint)x);
+                Vector128<float> input1 = Vector128.LoadUnsafe(ref inputY, (uint)x);
+                Vector128<float> input2 = Vector128.LoadUnsafe(ref inputB, (uint)x);
+                ConvertXybToRgb(
+                    input0,
+                    input1,
+                    input2,
+                    in matrix,
+                    biases,
+                    cubeRootBiases,
+                    out Vector128<float> r,
+                    out Vector128<float> g,
+                    out Vector128<float> b);
 
-        linearR = (LoadDuplicate128(ref inverseMatrix[1 * 4]) * mixedG) + linearR;
-        linearG = (LoadDuplicate128(ref inverseMatrix[4 * 4]) * mixedG) + linearG;
-        linearB = (LoadDuplicate128(ref inverseMatrix[7 * 4]) * mixedG) + linearB;
+                r.StoreUnsafe(ref outputR, (uint)x);
+                g.StoreUnsafe(ref outputG, (uint)x);
+                b.StoreUnsafe(ref outputB, (uint)x);
+            }
+        }
 
-        linearR = (LoadDuplicate128(ref inverseMatrix[2 * 4]) * mixedB) + linearR;
-        linearG = (LoadDuplicate128(ref inverseMatrix[5 * 4]) * mixedB) + linearG;
-        linearB = (LoadDuplicate128(ref inverseMatrix[8 * 4]) * mixedB) + linearB;
+        for (; x < opsinX.Length; x++)
+        {
+            ConvertXybToRgb(opsinX[x], opsinY[x], opsinB[x], in matrix, biases, cubeRootBiases, out float r, out float g, out float b);
+            linearR[x] = r;
+            linearG[x] = g;
+            linearB[x] = b;
+        }
     }
 
-    public static bool OpsinToLinear(JxlImage3<float> opsin, Rectangle rect, JxlImage3<float> linear, JxlOpsinParameters opsinParameters)
+    /// <summary>Converts an XYB rectangle to an equally sized linear RGB image.</summary>
+    /// <param name="opsin">The source planes that contain the rectangle.</param>
+    /// <param name="rect">The logical source rectangle.</param>
+    /// <param name="linear">The destination, whose logical dimensions must equal the rectangle dimensions.</param>
+    /// <param name="parameters">The prepared matrix and biases.</param>
+    /// <returns>Whether the rectangle and destination have equal dimensions.</returns>
+    public static bool OpsinToLinear(JxlImage3<float> opsin, Rectangle rect, JxlImage3<float> linear, JxlOpsinParameters parameters)
     {
         if (!JxlImageOperations.SameSize(rect, linear))
         {
             return false;
         }
 
-        if (Vector<float>.Count < 4)
-        {
-            // TODO: support 64bit vectors or no SIMD?
-            throw new PlatformNotSupportedException("XYB to RGB conversion requires at least 128-bit SIMD");
-        }
-
-        // Reuse variables instead of creating them over
-        // and over again
-        Unsafe.SkipInit(out Vector<float> linearR);
-        Unsafe.SkipInit(out Vector<float> linearG);
-        Unsafe.SkipInit(out Vector<float> linearB);
+        // Borrow all allocations once. Rectangle origins belong only to the input; the output starts at its own origin.
+        // Source and destination strides can differ. Exact row slices keep every vector and scalar store out of padding.
+        ReadOnlySpan<float> source0 = opsin.PlaneRow(0, 0);
+        ReadOnlySpan<float> source1 = opsin.PlaneRow(1, 0);
+        ReadOnlySpan<float> source2 = opsin.PlaneRow(2, 0);
+        Span<float> destination0 = linear.PlaneRow(0, 0);
+        Span<float> destination1 = linear.PlaneRow(1, 0);
+        Span<float> destination2 = linear.PlaneRow(2, 0);
+        int sourceStride = opsin.PixelsPerRow;
+        int destinationStride = linear.PixelsPerRow;
 
         for (int y = 0; y < rect.Height; y++)
         {
-            ReadOnlySpan<float> rowOpsin0 = opsin.PlaneRow(rect, 0, y);
-            ReadOnlySpan<float> rowOpsin1 = opsin.PlaneRow(rect, 1, y);
-            ReadOnlySpan<float> rowOpsin2 = opsin.PlaneRow(rect, 2, y);
-
-            ref float rowOpsin0Reference = ref MemoryMarshal.GetReference(rowOpsin0);
-            ref float rowOpsin1Reference = ref MemoryMarshal.GetReference(rowOpsin1);
-            ref float rowOpsin2Reference = ref MemoryMarshal.GetReference(rowOpsin2);
-
-            Span<float> rowLinear0 = linear.PlaneRow(0, y);
-            Span<float> rowLinear1 = linear.PlaneRow(1, y);
-            Span<float> rowLinear2 = linear.PlaneRow(2, y);
-
-            ref float rowLinear0Reference = ref MemoryMarshal.GetReference(rowLinear0);
-            ref float rowLinear1Reference = ref MemoryMarshal.GetReference(rowLinear1);
-            ref float rowLinear2Reference = ref MemoryMarshal.GetReference(rowLinear2);
-
-            for (int x = 0; x < rect.Height; x += Vector<float>.Count)
-            {
-                Vector<float> inOpsinX = Vector.LoadUnsafe(ref Unsafe.Add(ref rowOpsin0Reference, x));
-                Vector<float> inOpsinY = Vector.LoadUnsafe(ref Unsafe.Add(ref rowOpsin1Reference, x));
-                Vector<float> inOpsinB = Vector.LoadUnsafe(ref Unsafe.Add(ref rowOpsin2Reference, x));
-
-                ConvertXybToRgb(inOpsinX, inOpsinY, inOpsinB, opsinParameters, ref linearR, ref linearG, ref linearB);
-
-                linearR.StoreUnsafe(ref Unsafe.Add(ref rowLinear0Reference, x));
-                linearG.StoreUnsafe(ref Unsafe.Add(ref rowLinear1Reference, x));
-                linearB.StoreUnsafe(ref Unsafe.Add(ref rowLinear2Reference, x));
-            }
+            int sourceOffset = ((rect.Top + y) * sourceStride) + rect.Left;
+            int destinationOffset = y * destinationStride;
+            ConvertXybToRgb(
+                source0.Slice(sourceOffset, rect.Width),
+                source1.Slice(sourceOffset, rect.Width),
+                source2.Slice(sourceOffset, rect.Width),
+                destination0.Slice(destinationOffset, rect.Width),
+                destination1.Slice(destinationOffset, rect.Width),
+                destination2.Slice(destinationOffset, rect.Width),
+                parameters);
         }
 
         return true;
     }
 
-    /// <summary>
-    /// A SIMD utility method which reads next 128 bits
-    /// (which in this case happens to be next 4 floats),
-    /// and duplicates them to fit in the CPU vector size.
-    /// For example,
-    ///
-    ///     128 bit vectors: A B C D    (as-is)
-    ///     256 bit vectors: A B C D A B C D (duplicate once)
-    ///     512 bit vectors: A B C D A B C D A B C D A B C D (duplicate three times)
-    ///
-    /// Vector&lt;T&gt; has support for arbitrarily large
-    /// vector sizes. For example, some ARM CPUs support 2048-bit
-    /// vectors through Vector&lt;T&gt;. In that specific case, this
-    /// method can be used for future-proofing.
-    ///
-    /// Note that this method, albeit future-proof, may be considered
-    /// slow for smaller vector sizes (think CPUs with 128bit or 256bit vectors).
-    /// </summary>
-    /// <param name="reference">Reference to first element to load &amp; duplicate.</param>
-    /// <returns>Vector with first 128 bits duplicated across the vector width.</returns>
-    private static Vector<float> LoadDuplicate128(ref float reference)
+    /// <summary>Applies the inverse opsin equations to one pixel in the same order as each SIMD lane.</summary>
+    /// <param name="x">The X sample.</param>
+    /// <param name="y">The Y sample.</param>
+    /// <param name="b">The B sample.</param>
+    /// <param name="matrix">The transposed, intensity-scaled inverse matrix.</param>
+    /// <param name="biases">The negative absorbance biases.</param>
+    /// <param name="cubeRootBiases">The signed cube roots of the negative biases.</param>
+    /// <param name="r">The reconstructed red sample.</param>
+    /// <param name="g">The reconstructed green sample.</param>
+    /// <param name="blue">The reconstructed blue sample.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ConvertXybToRgb(
+        float x,
+        float y,
+        float b,
+        in Matrix4x4 matrix,
+        Vector3 biases,
+        Vector3 cubeRootBiases,
+        out float r,
+        out float g,
+        out float blue)
     {
-        Span<float> value = stackalloc float[Vector<float>.Count];
-        Span<float> values128 = [
-            reference,
-            Unsafe.Add(ref reference, 1),
-            Unsafe.Add(ref reference, 2),
-            Unsafe.Add(ref reference, 3)
-        ];
+        // Undo the opponent mix and the forward transform's cube-root offset before cubing.
+        float gammaR = (y + x) - cubeRootBiases.X;
+        float gammaG = (y - x) - cubeRootBiases.Y;
+        float gammaB = b - cubeRootBiases.Z;
+        float mixedR = float.MultiplyAddEstimate(gammaR * gammaR, gammaR, biases.X);
+        float mixedG = float.MultiplyAddEstimate(gammaG * gammaG, gammaG, biases.Y);
+        float mixedB = float.MultiplyAddEstimate(gammaB * gammaB, gammaB, biases.Z);
 
-        for (int i = 0; i < Vector<float>.Count; i += 4)
-        {
-            values128[i..].CopyTo(value[i..]);
-        }
-
-        return new(value);
+        // Match shared Transform3's X, then Y, then Z multiplication order. Translation is zero for this inverse matrix.
+        r = float.MultiplyAddEstimate(mixedG, matrix.M21, mixedR * matrix.M11);
+        r = float.MultiplyAddEstimate(mixedB, matrix.M31, r) + matrix.M41;
+        g = float.MultiplyAddEstimate(mixedG, matrix.M22, mixedR * matrix.M12);
+        g = float.MultiplyAddEstimate(mixedB, matrix.M32, g) + matrix.M42;
+        blue = float.MultiplyAddEstimate(mixedG, matrix.M23, mixedR * matrix.M13);
+        blue = float.MultiplyAddEstimate(mixedB, matrix.M33, blue) + matrix.M43;
     }
 
+    /// <summary>Reconstructs 4 independent pixels; each register holds one component in pixel order.</summary>
+    /// <param name="x">The X samples.</param>
+    /// <param name="y">The Y samples.</param>
+    /// <param name="b">The B samples.</param>
+    /// <param name="matrix">The transposed, intensity-scaled inverse matrix.</param>
+    /// <param name="biases">The negative absorbance biases, broadcast uniformly to all lanes.</param>
+    /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
+    /// <param name="r">The reconstructed red samples.</param>
+    /// <param name="g">The reconstructed green samples.</param>
+    /// <param name="blue">The reconstructed blue samples.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ConvertXybToRgb(
+        Vector128<float> x,
+        Vector128<float> y,
+        Vector128<float> b,
+        in Matrix4x4 matrix,
+        Vector3 biases,
+        Vector3 cubeRootBiases,
+        out Vector128<float> r,
+        out Vector128<float> g,
+        out Vector128<float> blue)
+    {
+        Vector128<float> gammaR = (y + x) - Vector128.Create(cubeRootBiases.X);
+        Vector128<float> gammaG = (y - x) - Vector128.Create(cubeRootBiases.Y);
+        Vector128<float> gammaB = b - Vector128.Create(cubeRootBiases.Z);
+        Vector128<float> mixedR = Vector128.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector128.Create(biases.X));
+        Vector128<float> mixedG = Vector128.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector128.Create(biases.Y));
+        Vector128<float> mixedB = Vector128.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector128.Create(biases.Z));
+        SimdUtils.Transform3(in matrix, mixedR, mixedG, mixedB, out r, out g, out blue);
+    }
+
+    /// <summary>Reconstructs 8 independent pixels; each register holds one component in pixel order.</summary>
+    /// <param name="x">The X samples.</param>
+    /// <param name="y">The Y samples.</param>
+    /// <param name="b">The B samples.</param>
+    /// <param name="matrix">The transposed, intensity-scaled inverse matrix.</param>
+    /// <param name="biases">The negative absorbance biases, broadcast uniformly to all lanes.</param>
+    /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
+    /// <param name="r">The reconstructed red samples.</param>
+    /// <param name="g">The reconstructed green samples.</param>
+    /// <param name="blue">The reconstructed blue samples.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ConvertXybToRgb(
+        Vector256<float> x,
+        Vector256<float> y,
+        Vector256<float> b,
+        in Matrix4x4 matrix,
+        Vector3 biases,
+        Vector3 cubeRootBiases,
+        out Vector256<float> r,
+        out Vector256<float> g,
+        out Vector256<float> blue)
+    {
+        Vector256<float> gammaR = (y + x) - Vector256.Create(cubeRootBiases.X);
+        Vector256<float> gammaG = (y - x) - Vector256.Create(cubeRootBiases.Y);
+        Vector256<float> gammaB = b - Vector256.Create(cubeRootBiases.Z);
+        Vector256<float> mixedR = Vector256.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector256.Create(biases.X));
+        Vector256<float> mixedG = Vector256.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector256.Create(biases.Y));
+        Vector256<float> mixedB = Vector256.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector256.Create(biases.Z));
+        SimdUtils.Transform3(in matrix, mixedR, mixedG, mixedB, out r, out g, out blue);
+    }
+
+    /// <summary>Reconstructs 16 independent pixels; each register holds one component in pixel order.</summary>
+    /// <param name="x">The X samples.</param>
+    /// <param name="y">The Y samples.</param>
+    /// <param name="b">The B samples.</param>
+    /// <param name="matrix">The transposed, intensity-scaled inverse matrix.</param>
+    /// <param name="biases">The negative absorbance biases, broadcast uniformly to all lanes.</param>
+    /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
+    /// <param name="r">The reconstructed red samples.</param>
+    /// <param name="g">The reconstructed green samples.</param>
+    /// <param name="blue">The reconstructed blue samples.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ConvertXybToRgb(
+        Vector512<float> x,
+        Vector512<float> y,
+        Vector512<float> b,
+        in Matrix4x4 matrix,
+        Vector3 biases,
+        Vector3 cubeRootBiases,
+        out Vector512<float> r,
+        out Vector512<float> g,
+        out Vector512<float> blue)
+    {
+        Vector512<float> gammaR = (y + x) - Vector512.Create(cubeRootBiases.X);
+        Vector512<float> gammaG = (y - x) - Vector512.Create(cubeRootBiases.Y);
+        Vector512<float> gammaB = b - Vector512.Create(cubeRootBiases.Z);
+        Vector512<float> mixedR = Vector512.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector512.Create(biases.X));
+        Vector512<float> mixedG = Vector512.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector512.Create(biases.Y));
+        Vector512<float> mixedB = Vector512.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector512.Create(biases.Z));
+        SimdUtils.Transform3(in matrix, mixedR, mixedG, mixedB, out r, out g, out blue);
+    }
+
+    /// <summary>Checks whether native reconstruction supports the encoding's direct fields and transfer function.</summary>
+    /// <param name="colorEncoding">The requested encoding.</param>
+    /// <returns>Whether its direct color fields can describe supported reconstruction output.</returns>
     public static bool CanOutputToColorEncoding(JxlColorEncoding colorEncoding)
     {
         if (!colorEncoding.HaveFields)

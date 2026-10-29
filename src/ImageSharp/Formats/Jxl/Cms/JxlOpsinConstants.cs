@@ -24,6 +24,12 @@ internal static class JxlOpsinConstants
 
     public static ReadOnlySpan<float> OpsinAbsorbanceBias => [OpsinAbsorbanceBias0, OpsinAbsorbanceBias1, OpsinAbsorbanceBias2];
 
+    /// <summary>Gets the output scales for X, Y and B minus Y in the native scaled-XYB representation.</summary>
+    public static ReadOnlySpan<float> ScaledXybScale => [22.995788804F, 1.183000077F, 1.502141333F];
+
+    /// <summary>Gets the offsets added to X, Y and B minus Y before scaled-XYB multiplication.</summary>
+    public static ReadOnlySpan<float> ScaledXybOffset => [0.015386134F, 0F, 0.27770459F];
+
     /// <summary>
     /// Gets the frozen default inverse opsin matrix in row-major order, as defined by the JPEG XL bitstream.
     /// </summary>

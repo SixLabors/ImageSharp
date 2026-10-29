@@ -6,87 +6,110 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 
+/// <summary>
+/// Owns the reference frequency bands, lower-resolution comparators and reusable blur storage for Butteraugli.
+/// </summary>
+/// <remarks>Comparisons reuse mutable scratch and run sequentially for each comparator.</remarks>
 internal class ButteraugliComparator : IDisposable
 {
     private readonly int xSize;
     private readonly int ySize;
-    private ButteraugliParameters parameters;
+    private readonly ButteraugliParameters parameters;
     private readonly ButteraugliPsychoImage pi0 = new();
-    private JxlImage3<float>? temp;
+    private readonly JxlImage3<float> temp;
     private readonly ButteraugliBlurTemp blurTemp = new();
     private ButteraugliComparator? sub;
 
-    public ButteraugliComparator(int xsize, int ysize, ButteraugliParameters parameters)
+    /// <summary>
+    /// Initializes a comparator and its full-resolution scratch image without taking ownership of input pixels.
+    /// </summary>
+    /// <param name="configuration">The configuration used for owned sample allocations.</param>
+    /// <param name="xsize">The comparison width.</param>
+    /// <param name="ysize">The comparison height.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    public ButteraugliComparator(Configuration configuration, int xsize, int ysize, ButteraugliParameters parameters)
     {
         this.xSize = xsize;
         this.ySize = ysize;
         this.parameters = parameters;
+        this.temp = new(configuration, xsize, ysize);
     }
 
-    public JxlImage3<float> Temp => this.temp ??= new();
+    /// <summary>
+    /// Gets the borrowed blur scratch image. The comparator retains this allocation between comparisons.
+    /// </summary>
+    public JxlImage3<float> Temp => this.temp;
 
+    /// <summary>
+    /// Builds the owned reference decomposition and its lower-resolution comparisons from borrowed RGB samples.
+    /// </summary>
+    /// <param name="configuration">The configuration used for owned sample allocations.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <returns>The comparator that owns the completed reference decomposition.</returns>
     public static ButteraugliComparator Make(Configuration configuration, JxlImage3<float> rgb0, ButteraugliParameters parameters)
     {
         int xSize = rgb0.XSize;
         int ySize = rgb0.YSize;
 
-        ButteraugliComparator result = new(xSize, ySize, parameters)
-        {
-            temp = new JxlImage3<float>(configuration, xSize, ySize)
-        };
+        ButteraugliComparator result = new(configuration, xSize, ySize, parameters);
 
-        if (xSize < 8 || ySize < 8)
+        try
         {
+            if (xSize < 8 || ySize < 8)
+            {
+                return result;
+            }
+
+            using JxlImage3<float> xyb0 = new(configuration, xSize, ySize);
+
+            if (!Butteraugli.OpsinDynamicsImage(configuration, rgb0, parameters, result.Temp, result.blurTemp, xyb0))
+            {
+                throw new InvalidOperationException("OpsinDynamicsImage failed");
+            }
+
+            if (!Butteraugli.SeparateFrequencies(configuration, result.blurTemp, xyb0, result.pi0))
+            {
+                throw new InvalidOperationException("Could not separate frequencies");
+            }
+
+            using JxlImage3<float> subsampledRgb0 = Butteraugli.SubSample2x(configuration, rgb0);
+            result.sub = Make(configuration, subsampledRgb0, parameters);
+
             return result;
         }
-
-        JxlImage3<float> xyb0 = new(configuration, xSize, ySize);
-
-        if (!Butteraugli.OpsinDynamicsImage(configuration, rgb0, parameters, result.Temp, result.blurTemp, xyb0))
+        catch
         {
-            throw new InvalidOperationException("OpsinDynamicsImage failed");
+            // Construction publishes ownership only after every required frequency band and lower-resolution comparator succeeds.
+            result.Dispose();
+            throw;
         }
-
-        result.ReleaseTemp();
-
-        if (!Butteraugli.SeparateFrequencies(configuration, result.blurTemp, xyb0, result.pi0))
-        {
-            throw new InvalidOperationException("Could not separate frequencies");
-        }
-
-        JxlImage3<float> subsampledRgb0 = Butteraugli.SubSample2x(configuration, rgb0);
-        result.sub = Make(configuration, subsampledRgb0, parameters);
-
-        return result;
-    }
-
-    public void ReleaseTemp()
-    {
-        this.temp?.Dispose();
-        this.temp = null;
     }
 
     /// <summary>
     /// Computes the butteraugli map between the original image given in the constructor and the distorted image given here.
     /// </summary>
+    /// <param name="configuration">The configuration used for temporary sample allocations.</param>
+    /// <param name="rgb1">The borrowed distorted pixels.</param>
+    /// <param name="result">The caller-owned result plane. Its storage is resized or reused to match the reference.</param>
+    /// <returns>Whether all comparison stages succeeded.</returns>
     public virtual bool Diffmap(Configuration configuration, JxlImage3<float> rgb1, JxlPlane<float> result)
     {
         if (this.xSize < 8 || this.ySize < 8)
         {
+            this.PrepareResult(configuration, result);
             result.Clear();
             return true;
         }
 
-        JxlImage3<float> xyb1 = new(configuration, this.xSize, this.ySize);
+        using JxlImage3<float> xyb1 = new(configuration, this.xSize, this.ySize);
 
         if (!Butteraugli.OpsinDynamicsImage(configuration, rgb1, this.parameters, this.Temp, this.blurTemp, xyb1))
         {
             return false;
         }
 
-        this.ReleaseTemp();
-
-        if (!this.DiffmapOpsinDynamicsImage(configuration, xyb1, out result))
+        if (!this.DiffmapOpsinDynamicsImage(configuration, xyb1, result))
         {
             return false;
         }
@@ -98,17 +121,18 @@ internal class ButteraugliComparator : IDisposable
                 return true;
             }
 
-            JxlImage3<float> subXyb = new(configuration, this.sub.xSize, this.sub.ySize);
-            JxlImage3<float> subsampledRgb1 = Butteraugli.SubSample2x(configuration, rgb1);
+            using JxlImage3<float> subXyb = new(configuration, this.sub.xSize, this.sub.ySize);
+            using JxlImage3<float> subsampledRgb1 = Butteraugli.SubSample2x(configuration, rgb1);
 
             if (!Butteraugli.OpsinDynamicsImage(configuration, subsampledRgb1, this.parameters, this.sub.Temp, this.sub.blurTemp, subXyb))
             {
                 return false;
             }
 
-            this.sub.ReleaseTemp();
+            using JxlPlane<float> subResult = new();
 
-            if (!this.DiffmapOpsinDynamicsImage(configuration, subXyb, out JxlPlane<float> subResult))
+            // Use the lower-resolution reference decomposition with its matching lower-resolution distorted image.
+            if (!this.sub.DiffmapOpsinDynamicsImage(configuration, subXyb, subResult))
             {
                 return false;
             }
@@ -120,34 +144,42 @@ internal class ButteraugliComparator : IDisposable
     }
 
     /// <summary>
-    /// Same as Diffmap but OpsinDynamicsImage() was already applied.
+    /// Computes the comparison from borrowed samples that already passed through the opsin dynamics transform.
     /// </summary>
-    public bool DiffmapOpsinDynamicsImage(Configuration configuration, JxlImage3<float> xyb1, out JxlPlane<float> result)
+    /// <param name="configuration">The configuration used for temporary sample allocations.</param>
+    /// <param name="xyb1">The borrowed transformed samples.</param>
+    /// <param name="result">The caller-owned result plane.</param>
+    /// <returns>Whether frequency separation and comparison succeeded.</returns>
+    public bool DiffmapOpsinDynamicsImage(Configuration configuration, JxlImage3<float> xyb1, JxlPlane<float> result)
     {
-        result = new();
-
         if (this.xSize < 8 || this.ySize < 8)
         {
+            this.PrepareResult(configuration, result);
             result.Clear();
             return true;
         }
 
-        ButteraugliPsychoImage pi1 = new();
+        using ButteraugliPsychoImage pi1 = new();
 
         if (!Butteraugli.SeparateFrequencies(configuration, this.blurTemp, xyb1, pi1))
         {
             return false;
         }
 
-        result = new(configuration, this.xSize, this.ySize);
         return this.DiffmapPsychoImage(configuration, pi1, result);
     }
 
     /// <summary>
-    /// Same as above but the frequency decomposition was already applied.
+    /// Compares a borrowed frequency decomposition against the owned reference decomposition.
     /// </summary>
+    /// <param name="configuration">The configuration used for temporary sample allocations.</param>
+    /// <param name="pi1">The borrowed distorted frequency bands.</param>
+    /// <param name="diffmap">The caller-owned result plane.</param>
+    /// <returns>Whether every comparison and mask stage succeeded.</returns>
     public bool DiffmapPsychoImage(Configuration configuration, ButteraugliPsychoImage pi1, JxlPlane<float> diffmap)
     {
+        this.PrepareResult(configuration, diffmap);
+
         if (this.xSize < 8 || this.ySize < 8)
         {
             diffmap.Clear();
@@ -157,8 +189,8 @@ internal class ButteraugliComparator : IDisposable
         float hfAsymmetry = this.parameters.HfAsymmetry;
         float xmul = this.parameters.XMultiplier;
 
-        JxlPlane<float> diffs = new(configuration, this.xSize, this.ySize);
-        JxlImage3<float> blockDiffAc = new(configuration, this.xSize, this.ySize);
+        using JxlPlane<float> diffs = new(configuration, this.xSize, this.ySize);
+        using JxlImage3<float> blockDiffAc = new(configuration, this.xSize, this.ySize);
 
         JxlImageOperations.ZeroFillImage(blockDiffAc);
 
@@ -215,8 +247,8 @@ internal class ButteraugliComparator : IDisposable
         }
 
         if (!Butteraugli.MaltaDiffMapLf(
-            this.pi0.Mf!.Plane(1),
-            pi1.Mf!.Plane(1),
+            this.pi0.Mf.Plane(1),
+            pi1.Mf.Plane(1),
             Butteraugli.WHfMalta,
             Butteraugli.WMfMalta,
             Butteraugli.Norm1Mf,
@@ -228,8 +260,8 @@ internal class ButteraugliComparator : IDisposable
         }
 
         if (!Butteraugli.MaltaDiffMapLf(
-            this.pi0.Mf!.Plane(0),
-            pi1.Mf!.Plane(0),
+            this.pi0.Mf.Plane(0),
+            pi1.Mf.Plane(0),
             Butteraugli.WHfMaltaX,
             Butteraugli.WMfMaltaX,
             Butteraugli.Norm1MfX,
@@ -240,7 +272,7 @@ internal class ButteraugliComparator : IDisposable
             return false;
         }
 
-        JxlImage3<float> blockDiffDc = new(configuration, this.xSize, this.ySize);
+        using JxlImage3<float> blockDiffDc = new(configuration, this.xSize, this.ySize);
 
         for (int c = 0; c < 3; c++)
         {
@@ -261,42 +293,52 @@ internal class ButteraugliComparator : IDisposable
                 blockDiffAc.Plane(c));
 
             Butteraugli.SetL2Diff(
-                this.pi0.Lf!.Plane(c),
-                pi1.Lf!.Plane(c),
+                this.pi0.Lf.Plane(c),
+                pi1.Lf.Plane(c),
                 Butteraugli.Wmul[6 + c],
                 blockDiffDc.Plane(c));
         }
 
-        JxlPlane<float> mask = new();
+        using JxlPlane<float> mask = new();
 
-        if (!Butteraugli.MaskButteraugliPsychoImage(
-            configuration,
-            this.pi0,
-            pi1,
-            this.xSize,
-            this.ySize,
-            this.blurTemp,
-            mask,
-            out JxlPlane<float>? diffAc))
+        if (!Butteraugli.MaskButteraugliPsychoImage(configuration, this.pi0, pi1, this.xSize, this.ySize, this.blurTemp, mask, blockDiffAc.Plane(1)))
         {
             return false;
-        }
-
-        if (diffAc is not null)
-        {
-            JxlImageOperations.ForceCopyImage(diffAc, blockDiffAc.Plane(1));
         }
 
         return Butteraugli.CombineChannelsToDiffmap(mask, blockDiffDc, blockDiffAc, xmul, diffmap);
     }
 
+    /// <summary>
+    /// Writes the reference image's perceptual mask into caller-owned storage.
+    /// </summary>
+    /// <param name="configuration">The configuration used for temporary sample allocations.</param>
+    /// <param name="mask">The caller-owned output plane.</param>
+    /// <returns>Whether mask construction succeeded.</returns>
     public virtual bool Mask(Configuration configuration, JxlPlane<float> mask)
-        => Butteraugli.MaskButteraugliPsychoImage(configuration, this.pi0, this.pi0, this.xSize, this.ySize, this.blurTemp, mask, out _);
+        => Butteraugli.MaskButteraugliPsychoImage(configuration, this.pi0, this.pi0, this.xSize, this.ySize, this.blurTemp, mask, null);
 
+    /// <inheritdoc />
     public void Dispose()
     {
-        this.temp?.Dispose();
-        this.temp = null;
+        this.temp.Dispose();
+        this.pi0.Dispose();
+        this.sub?.Dispose();
+        this.sub = null;
         this.blurTemp.Dispose();
+    }
+
+    /// <summary>
+    /// Reuses the caller's result capacity or exchanges it for an allocation matching the reference dimensions.
+    /// </summary>
+    /// <param name="configuration">The configuration used if a larger allocation is required.</param>
+    /// <param name="result">The result plane whose identity and ownership remain with the caller.</param>
+    private void PrepareResult(Configuration configuration, JxlPlane<float> result)
+    {
+        if (!result.ShrinkTo(this.xSize, this.ySize))
+        {
+            using JxlPlane<float> replacement = new(configuration, this.xSize, this.ySize);
+            result.Swap(replacement);
+        }
     }
 }

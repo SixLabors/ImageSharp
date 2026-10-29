@@ -929,7 +929,7 @@ internal static class JxlAdaptiveQuantization
 
         parameters.IntensityTarget = tf.IsPq || tf.IsHlg ? frameHeader.Metadata.ImageMetadata.IntensityTarget : 0;
 
-        ButteraugliJxlComparator comparator = new(parameters, cms);
+        using JxlComparator comparator = new(parameters, cms);
         comparator.SetReferenceImage(configuration, linear);
 
         bool lowerIsBetter = comparator.GoodQualityScore < comparator.BadQualityScore;

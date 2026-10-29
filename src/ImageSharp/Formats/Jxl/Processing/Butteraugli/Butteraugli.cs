@@ -553,10 +553,18 @@ internal static class Butteraugli
         return true;
     }
 
+    /// <summary>
+    /// Splits the middle-frequency XYB image in place and writes the high-frequency X and Y planes.
+    /// </summary>
+    /// <param name="configuration">The configuration used if an output plane needs more capacity.</param>
+    /// <param name="mf">The caller-owned middle-frequency image, updated in place.</param>
+    /// <param name="hf">Two borrowed, caller-owned planes in X, Y order. Their identities remain unchanged.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <returns>Whether all blur and frequency-separation stages succeeded.</returns>
     public static bool SeparateMfAndHf(
         Configuration configuration,
         JxlImage3<float> mf,
-        ref InlineArray2<JxlPlane<float>> hf,
+        Span<JxlPlane<float>> hf,
         ButteraugliBlurTemp blurTemp)
     {
         const float sigmaHf = 3.22489901262f;
@@ -564,8 +572,14 @@ internal static class Butteraugli
         int xSize = mf.XSize;
         int ySize = mf.YSize;
 
-        hf[0] = JxlPlane<float>.Create(configuration, xSize, ySize);
-        hf[1] = JxlPlane<float>.Create(configuration, xSize, ySize);
+        for (int i = 0; i < 2; i++)
+        {
+            if (!hf[i].ShrinkTo(xSize, ySize))
+            {
+                using JxlPlane<float> replacement = new(configuration, xSize, ySize);
+                hf[i].Swap(replacement);
+            }
+        }
 
         int lanes = Vector<float>.Count;
 
@@ -645,10 +659,18 @@ internal static class Butteraugli
         return SuppressXByY(hf[1], hf[0]);
     }
 
+    /// <summary>
+    /// Splits the high-frequency X and Y planes in place and writes their ultra-high-frequency planes.
+    /// </summary>
+    /// <param name="configuration">The configuration used if an output plane needs more capacity.</param>
+    /// <param name="hf">Two borrowed high-frequency planes in X, Y order, updated in place.</param>
+    /// <param name="uhf">Two borrowed, caller-owned output planes in X, Y order. Their identities remain unchanged.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <returns>Whether both frequency separations succeeded.</returns>
     public static bool SeparateHFAndUHF(
         Configuration configuration,
-        InlineArray2<JxlPlane<float>> hf,
-        InlineArray2<JxlPlane<float>> uhf,
+        Span<JxlPlane<float>> hf,
+        Span<JxlPlane<float>> uhf,
         ButteraugliBlurTemp blurTemp)
     {
         const float sigmaUhf = 1.56416327805f;
@@ -656,8 +678,15 @@ internal static class Butteraugli
         int xSize = hf[0].XSize;
         int ySize = hf[0].YSize;
 
-        uhf[0] = JxlPlane<float>.Create(configuration, xSize, ySize);
-        uhf[1] = JxlPlane<float>.Create(configuration, xSize, ySize);
+        // Borrow the owner's actual plane entries. Assigning to an InlineArray passed by value would lose the new allocations.
+        for (int i = 0; i < 2; i++)
+        {
+            if (!uhf[i].ShrinkTo(xSize, ySize))
+            {
+                using JxlPlane<float> replacement = new(configuration, xSize, ySize);
+                uhf[i].Swap(replacement);
+            }
+        }
 
         int lanes = Vector<float>.Count;
 
@@ -742,58 +771,57 @@ internal static class Butteraugli
         return true;
     }
 
-    public static void DeallocateHFAndUHF(InlineArray2<JxlPlane<float>> hf, InlineArray2<JxlPlane<float>> uhf)
+    /// <summary>
+    /// Releases high- and ultra-high-frequency sample storage after masking has consumed it.
+    /// </summary>
+    /// <param name="hf">The two borrowed high-frequency planes.</param>
+    /// <param name="uhf">The two borrowed ultra-high-frequency planes.</param>
+    public static void DeallocateHFAndUHF(Span<JxlPlane<float>> hf, Span<JxlPlane<float>> uhf)
     {
         for (int i = 0; i < 2; i++)
         {
             hf[i].Dispose();
             uhf[i].Dispose();
-
-            hf[i] = new JxlPlane<float>();
-            uhf[i] = new JxlPlane<float>();
         }
     }
 
+    /// <summary>
+    /// Writes all frequency bands into the supplied owner, reusing its existing sample capacity when possible.
+    /// </summary>
+    /// <param name="configuration">The configuration used for frequency-band sample allocations.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <param name="xyb">The borrowed transformed input image.</param>
+    /// <param name="ps">The owner of every output plane, including partially completed outputs on failure.</param>
+    /// <returns>Whether all frequency bands were produced.</returns>
     public static bool SeparateFrequencies(
         Configuration configuration,
         ButteraugliBlurTemp blurTemp,
         JxlImage3<float> xyb,
         ButteraugliPsychoImage ps)
     {
-        ps.Lf = new JxlImage3<float>(
-            configuration,
-            xyb.XSize,
-            xyb.YSize);
+        if (!ps.Lf.ShrinkTo(xyb.XSize, xyb.YSize))
+        {
+            using JxlImage3<float> replacement = new(configuration, xyb.XSize, xyb.YSize);
+            ps.Lf.Swap(replacement);
+        }
 
-        ps.Mf = new JxlImage3<float>(
-            configuration,
-            xyb.XSize,
-            xyb.YSize);
+        if (!ps.Mf.ShrinkTo(xyb.XSize, xyb.YSize))
+        {
+            using JxlImage3<float> replacement = new(configuration, xyb.XSize, xyb.YSize);
+            ps.Mf.Swap(replacement);
+        }
 
-        if (!SeparateLFAndMF(
-                configuration,
-                xyb,
-                ps.Lf,
-                ps.Mf,
-                blurTemp))
+        if (!SeparateLFAndMF(configuration, xyb, ps.Lf, ps.Mf, blurTemp))
         {
             return false;
         }
 
-        if (!SeparateMfAndHf(
-                configuration,
-                ps.Mf,
-                ref ps.Hf,
-                blurTemp))
+        if (!SeparateMfAndHf(configuration, ps.Mf, ps.Hf, blurTemp))
         {
             return false;
         }
 
-        if (!SeparateHFAndUHF(
-                configuration,
-                ps.Hf,
-                ps.Uhf,
-                blurTemp))
+        if (!SeparateHFAndUHF(configuration, ps.Hf, ps.Uhf, blurTemp))
         {
             return false;
         }
@@ -1653,6 +1681,16 @@ internal static class Butteraugli
         }
     }
 
+    /// <summary>
+    /// Builds a perceptual mask and optionally accumulates its AC correction into caller-owned storage.
+    /// </summary>
+    /// <param name="configuration">The configuration used for owned sample allocations.</param>
+    /// <param name="mask0">The borrowed reference masking samples.</param>
+    /// <param name="mask1">The borrowed distorted masking samples.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <param name="diffAc">The existing AC accumulation plane, or null when no AC correction is needed.</param>
+    /// <param name="mask">The newly allocated output, transferred to the caller on success and released on failure.</param>
+    /// <returns>Whether mask construction succeeded.</returns>
     public static bool Mask(
         Configuration configuration,
         JxlPlane<float> mask0,
@@ -1666,55 +1704,80 @@ internal static class Butteraugli
 
         mask = new(configuration, width, height);
 
-        const float mul = 6.19424080439f;
-        const float bias = 12.61050594197f;
-        const float radius = 2.7f;
+        bool completed = false;
 
-        JxlPlane<float> diff0 = new(configuration, width, height);
-        JxlPlane<float> diff1 = new(configuration, width, height);
-        JxlPlane<float> blurred0 = new(configuration, width, height);
-        JxlPlane<float> blurred1 = new(configuration, width, height);
-
-        DiffPrecompute(mask0, mul, bias, diff0);
-        DiffPrecompute(mask1, mul, bias, diff1);
-
-        if (!Blur(configuration, diff0, radius, blurTemp, blurred0))
+        try
         {
-            return false;
-        }
+            const float mul = 6.19424080439f;
+            const float bias = 12.61050594197f;
+            const float radius = 2.7f;
 
-        FuzzyErosion(blurred0, diff0);
+            using JxlPlane<float> diff0 = new(configuration, width, height);
+            using JxlPlane<float> diff1 = new(configuration, width, height);
+            using JxlPlane<float> blurred0 = new(configuration, width, height);
+            using JxlPlane<float> blurred1 = new(configuration, width, height);
 
-        if (!Blur(configuration, diff1, radius, blurTemp, blurred1))
-        {
-            return false;
-        }
+            DiffPrecompute(mask0, mul, bias, diff0);
+            DiffPrecompute(mask1, mul, bias, diff1);
 
-        for (int y = 0; y < height; y++)
-        {
-            Span<float> maskRow = mask.GetRow(y);
-            Span<float> diffRow = diffAc is not null ? diffAc.GetRow(y) : [];
-
-            ReadOnlySpan<float> diff0Row = diff0.GetRow(y);
-            ReadOnlySpan<float> blur0Row = blurred0.GetRow(y);
-            ReadOnlySpan<float> blur1Row = blurred1.GetRow(y);
-
-            for (int x = 0; x < width; x++)
+            if (!Blur(configuration, diff0, radius, blurTemp, blurred0))
             {
-                maskRow[x] = diff0Row[x];
+                return false;
+            }
 
-                if (diffRow.Length > 0)
+            FuzzyErosion(blurred0, diff0);
+
+            if (!Blur(configuration, diff1, radius, blurTemp, blurred1))
+            {
+                return false;
+            }
+
+            for (int y = 0; y < height; y++)
+            {
+                Span<float> maskRow = mask.GetRow(y);
+                Span<float> diffRow = diffAc is not null ? diffAc.GetRow(y) : [];
+
+                ReadOnlySpan<float> diff0Row = diff0.GetRow(y);
+                ReadOnlySpan<float> blur0Row = blurred0.GetRow(y);
+                ReadOnlySpan<float> blur1Row = blurred1.GetRow(y);
+
+                for (int x = 0; x < width; x++)
                 {
-                    const float maskToErrorMul = 10.0f;
-                    float diff = blur0Row[x] - blur1Row[x];
-                    diffRow[x] += maskToErrorMul * diff * diff;
+                    maskRow[x] = diff0Row[x];
+
+                    if (diffRow.Length > 0)
+                    {
+                        const float maskToErrorMul = 10.0f;
+                        float diff = blur0Row[x] - blur1Row[x];
+                        diffRow[x] += maskToErrorMul * diff * diff;
+                    }
                 }
             }
-        }
 
-        return true;
+            completed = true;
+            return true;
+        }
+        finally
+        {
+            if (!completed)
+            {
+                mask.Dispose();
+            }
+        }
     }
 
+    /// <summary>
+    /// Writes a perceptual mask from borrowed frequency bands and optionally updates an existing AC plane.
+    /// </summary>
+    /// <param name="configuration">The configuration used for temporary sample allocations.</param>
+    /// <param name="pi0">The borrowed reference frequency bands.</param>
+    /// <param name="pi1">The borrowed distorted frequency bands.</param>
+    /// <param name="width">The comparison width.</param>
+    /// <param name="height">The comparison height.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <param name="mask">The caller-owned result plane, which receives the completed mask allocation.</param>
+    /// <param name="diffAc">The existing AC accumulation plane, or null when only the mask is needed.</param>
+    /// <returns>Whether mask construction succeeded.</returns>
     public static bool MaskButteraugliPsychoImage(
         Configuration configuration,
         ButteraugliPsychoImage pi0,
@@ -1723,28 +1786,27 @@ internal static class Butteraugli
         int height,
         ButteraugliBlurTemp blurTemp,
         JxlPlane<float> mask,
-        out JxlPlane<float>? diffAc)
+        JxlPlane<float>? diffAc)
     {
-        JxlPlane<float> mask0 = new(configuration, width, height);
-        JxlPlane<float> mask1 = new(configuration, width, height);
+        using JxlPlane<float> mask0 = new(configuration, width, height);
+        using JxlPlane<float> mask1 = new(configuration, width, height);
 
-        CombineChannelsForMasking(
-            pi0.Hf,
-            pi0.Uhf,
-            mask0);
+        CombineChannelsForMasking(pi0.Hf, pi0.Uhf, mask0);
+        CombineChannelsForMasking(pi1.Hf, pi1.Uhf, mask1);
 
-        CombineChannelsForMasking(
-            pi1.Hf,
-            pi1.Uhf,
-            mask1);
+        bool completed = Mask(configuration, mask0, mask1, blurTemp, diffAc, out JxlPlane<float> allocatedMask);
 
-        return Mask(
-            configuration,
-            mask0,
-            mask1,
-            blurTemp,
-            mask,
-            out diffAc);
+        using (allocatedMask)
+        {
+            if (!completed)
+            {
+                return false;
+            }
+
+            // Transfer only the completed output. The temporary then releases any previous caller allocation.
+            mask.Swap(allocatedMask);
+            return true;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2160,12 +2222,23 @@ internal static class Butteraugli
         InlineArray2<JxlPlane<float>> hf0 = default;
         InlineArray2<JxlPlane<float>> hf1 = default;
 
-        if (!SeparateMfAndHf(configuration, image0, ref hf0, blurTemp))
+        // The inline arrays borrow these owners. Using declarations release every partially built band on early return.
+        using JxlPlane<float> hf0X = new();
+        using JxlPlane<float> hf0Y = new();
+        using JxlPlane<float> hf1X = new();
+        using JxlPlane<float> hf1Y = new();
+
+        hf0[0] = hf0X;
+        hf0[1] = hf0Y;
+        hf1[0] = hf1X;
+        hf1[1] = hf1Y;
+
+        if (!SeparateMfAndHf(configuration, image0, hf0, blurTemp))
         {
             return false;
         }
 
-        if (!SeparateMfAndHf(configuration, image1, ref hf1, blurTemp))
+        if (!SeparateMfAndHf(configuration, image1, hf1, blurTemp))
         {
             return false;
         }
@@ -2217,6 +2290,16 @@ internal static class Butteraugli
 
         InlineArray2<JxlPlane<float>> uhf0 = default;
         InlineArray2<JxlPlane<float>> uhf1 = default;
+
+        using JxlPlane<float> uhf0X = new();
+        using JxlPlane<float> uhf0Y = new();
+        using JxlPlane<float> uhf1X = new();
+        using JxlPlane<float> uhf1Y = new();
+
+        uhf0[0] = uhf0X;
+        uhf0[1] = uhf0Y;
+        uhf1[0] = uhf1X;
+        uhf1[1] = uhf1Y;
 
         if (!SeparateHFAndUHF(configuration, hf0, uhf0, blurTemp))
         {
@@ -2301,22 +2384,25 @@ internal static class Butteraugli
             return false;
         }
 
-        for (int y = 0; y < ySize; y++)
+        using (newBlockDiffAc)
         {
-            ReadOnlySpan<float> dc = newBlockDiffAc.GetRow(y);
-            ReadOnlySpan<float> ac = newBlockDiffAc.GetRow(y);
-            Span<float> output = diffmap.GetRow(y);
-            ReadOnlySpan<float> maskRow = mask.GetRow(y);
-
-            for (int x = 0; x < xSize; x++)
+            for (int y = 0; y < ySize; y++)
             {
-                float m = maskRow[x];
+                ReadOnlySpan<float> dc = newBlockDiffAc.GetRow(y);
+                ReadOnlySpan<float> ac = newBlockDiffAc.GetRow(y);
+                Span<float> output = diffmap.GetRow(y);
+                ReadOnlySpan<float> maskRow = mask.GetRow(y);
 
-                output[x] = MathF.Sqrt((dc[x] * (float)MaskDcY(m)) + (ac[x] * (float)MaskY(m)));
+                for (int x = 0; x < xSize; x++)
+                {
+                    float m = maskRow[x];
+
+                    output[x] = MathF.Sqrt((dc[x] * (float)MaskDcY(m)) + (ac[x] * (float)MaskY(m)));
+                }
             }
-        }
 
-        return true;
+            return true;
+        }
     }
 
     // Calculate a 2x2 subsampled image for purposes of recursive butteraugli at
@@ -2493,6 +2579,16 @@ internal static class Butteraugli
         return val;
     }
 
+    /// <summary>
+    /// Computes the perceptual difference map and score, using input storage for full-size comparisons.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="rgb0">The reference pixels, which full-size comparison can modify.</param>
+    /// <param name="rgb1">The distorted pixels, which full-size comparison can modify.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The caller-owned output plane. Its identity does not change.</param>
+    /// <param name="diffvalue">The comparison score, or zero when comparison fails.</param>
+    /// <returns>Whether every comparison stage succeeded.</returns>
     public static bool ButteraugliInterfaceInPlace(
         Configuration configuration,
         JxlImage3<float> rgb0,
@@ -2506,7 +2602,7 @@ internal static class Butteraugli
         int xsize = rgb0.XSize;
         int ysize = rgb0.YSize;
 
-        if ((xsize & ysize) == 0) // equivalent to xsize == 0 || ysize == 0, minus one branch
+        if (xsize == 0 || ysize == 0)
         {
             throw new InvalidOperationException("Zero-sized image");
         }
@@ -2520,9 +2616,21 @@ internal static class Butteraugli
 
         if (xsize < max || ysize < max)
         {
-            bool ok = ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out diffmap);
-            diffvalue = ButteraugliScoreFromDiffmap(diffmap, parameters);
-            return ok;
+            bool completed = ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out JxlPlane<float> smallDiffmap);
+
+            using (smallDiffmap)
+            {
+                if (!completed)
+                {
+                    return false;
+                }
+
+                diffvalue = ButteraugliScoreFromDiffmap(smallDiffmap, parameters);
+
+                // Transfer the completed allocation into the caller's plane. The temporary releases the caller's previous allocation.
+                diffmap.Swap(smallDiffmap);
+                return true;
+            }
         }
 
         JxlPlane<float> subDiffmap = new();
@@ -2552,6 +2660,16 @@ internal static class Butteraugli
         return true;
     }
 
+    /// <summary>
+    /// Computes the perceptual difference map and score without changing either input image.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="rgb1">The borrowed distorted pixels of the same size.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The caller-owned plane that receives the completed map. Its identity does not change.</param>
+    /// <param name="diffValue">The comparison score, or zero when comparison fails.</param>
+    /// <returns>Whether every comparison stage succeeded.</returns>
     public static bool ButteraugliInterface(
         Configuration configuration,
         JxlImage3<float> rgb0,
@@ -2562,13 +2680,21 @@ internal static class Butteraugli
     {
         diffValue = 0;
 
-        if (!ButteraugliDiffmap(configuration, rgb0, rgb1, parameters, out diffmap))
-        {
-            return false;
-        }
+        bool completed = ButteraugliDiffmap(configuration, rgb0, rgb1, parameters, out JxlPlane<float> result);
 
-        diffValue = ButteraugliScoreFromDiffmap(diffmap, parameters);
-        return true;
+        using (result)
+        {
+            if (!completed)
+            {
+                return false;
+            }
+
+            diffValue = ButteraugliScoreFromDiffmap(result, parameters);
+
+            // Keep the caller's plane object and dispose its previous allocation after the storage exchange.
+            diffmap.Swap(result);
+            return true;
+        }
     }
 
     public static bool ButteraugliInterface(
@@ -2589,6 +2715,15 @@ internal static class Butteraugli
         return ButteraugliInterface(configuration, rgb0, rgb1, parameters, diffmap, out diffValue);
     }
 
+    /// <summary>
+    /// Allocates the perceptual difference map for two borrowed RGB images.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="rgb1">The borrowed distorted pixels of the same size.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The output owner transferred on success, or an empty plane on failure.</param>
+    /// <returns>Whether every comparison stage succeeded.</returns>
     public static bool ButteraugliDiffmap(
         Configuration configuration,
         JxlImage3<float> rgb0,
@@ -2596,12 +2731,10 @@ internal static class Butteraugli
         ButteraugliParameters parameters,
         out JxlPlane<float> diffmap)
     {
-        diffmap = new();
-
         int xsize = rgb0.XSize;
         int ysize = rgb0.YSize;
 
-        if ((xsize & ysize) == 0) // equivalent to xsize == 0 || ysize == 0, minus one branch
+        if (xsize == 0 || ysize == 0)
         {
             throw new InvalidOperationException("Zero-sized image");
         }
@@ -2615,17 +2748,38 @@ internal static class Butteraugli
 
         if (xsize < max || ysize < max)
         {
-            if (!ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out diffmap))
-            {
-                return false;
-            }
+            // The padded comparison already produced the result. Do not replace it with the small comparator's empty decomposition.
+            return ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out diffmap);
         }
 
-        ButteraugliComparator butteraugli = ButteraugliComparator.Make(configuration, rgb0, parameters);
+        using ButteraugliComparator butteraugli = ButteraugliComparator.Make(configuration, rgb0, parameters);
+        diffmap = new();
+        bool completed = false;
 
-        return butteraugli.Diffmap(configuration, rgb1, diffmap);
+        try
+        {
+            completed = butteraugli.Diffmap(configuration, rgb1, diffmap);
+            return completed;
+        }
+        finally
+        {
+            if (!completed)
+            {
+                diffmap.Dispose();
+            }
+        }
     }
 
+    /// <summary>
+    /// Compares padded small images and transfers only the original-size region of the resulting difference map.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="max">The minimum comparison extent in each dimension.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="rgb1">The borrowed distorted pixels of the same size.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The original-size output owner transferred on success, or an empty plane on failure.</param>
+    /// <returns>Whether the padded comparison succeeded.</returns>
     public static bool ButteraugliDiffmapSmall(
         Configuration configuration,
         int max,
@@ -2660,23 +2814,37 @@ internal static class Butteraugli
             }
         }
 
-        JxlPlane<float> diffmapScaled = new();
-        bool ok = ButteraugliDiffmap(configuration, scaled0, scaled1, parameters, out diffmapScaled);
+        bool completed = ButteraugliDiffmap(configuration, scaled0, scaled1, parameters, out JxlPlane<float> diffmapScaled);
 
-        diffmap = new(configuration, xsize, ysize);
-
-        for (int y = 0; y < ysize; y++)
+        using (diffmapScaled)
         {
-            Span<float> diffmapRow = diffmap.GetRow(y);
-            Span<float> diffmapScaledRow = diffmapScaled.GetRow(y + yborder);
-
-            for (int x = 0; x < xsize; x++)
+            if (!completed)
             {
-                diffmapRow[x] = diffmapScaledRow[x + xborder];
+                diffmap = new();
+                return false;
+            }
+
+            diffmap = new(configuration, xsize, ysize);
+            bool copied = false;
+
+            try
+            {
+                for (int y = 0; y < ysize; y++)
+                {
+                    diffmapScaled.GetRow(y + yborder).Slice(xborder, xsize).CopyTo(diffmap.GetRow(y));
+                }
+
+                copied = true;
+                return true;
+            }
+            finally
+            {
+                if (!copied)
+                {
+                    diffmap.Dispose();
+                }
             }
         }
-
-        return ok;
     }
 
     public static float ButteraugliScoreFromDiffmap(JxlPlane<float> diffmap, ButteraugliParameters parameters)

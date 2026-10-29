@@ -3,7 +3,6 @@
 
 using System.Numerics.Tensors;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
-using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
@@ -67,7 +66,7 @@ internal static class JxlComparatorScoreComputation
         JxlPlane<float>? diffMap,
         out float score)
     {
-        comparator.SetReferenceImage(rgb0);
+        comparator.SetReferenceImage(configuration, rgb0);
         comparator.CompareWith(configuration, rgb1, diffMap, out score);
     }
 
@@ -81,29 +80,20 @@ internal static class JxlComparatorScoreComputation
         JxlPlane<float>? diffMap = null,
         bool ignoreAlpha = false)
     {
-        JxlImageMetadata metadata0 = rgb0.Metadata.Copy();
+        // Original metadata stays borrowed. Conversion changes the bundle's current encoding, not the shared metadata.
+        using JxlImageBundle store0 = new(rgb0.Metadata);
+        JxlImageBundle linearSrgb0 = rgb0;
+        if (!JxlImageBundleEncoder.TransformIfNeeded(configuration, rgb0, JxlColorEncoding.LinearSrgb(rgb0.IsGray), cms, store0, ref linearSrgb0))
+        {
+            throw new InvalidOperationException("Could not convert the first comparison image to linear sRGB.");
+        }
 
-        JxlImageBundle store0 = new(metadata0);
-
-        JxlTransformsEncoder.TransformIfNeeded(
-            rgb0,
-            JxlColorEncoding.LinearSRgb(rgb0.IsGray),
-            cms,
-            pool,
-            store0,
-            out JxlImageBundle linearSrgb0);
-
-        JxlImageMetadata metadata1 = rgb1.Metadata.Copy();
-
-        JxlImageBundle store1 = new(metadata1);
-
-        JxlTransformsEncoder.TransformIfNeeded(
-            rgb1,
-            JxlColorEncoding.LinearSRgb(rgb1.IsGray),
-            cms,
-            pool,
-            store1,
-            out JxlImageBundle linearSrgb1);
+        using JxlImageBundle store1 = new(rgb1.Metadata);
+        JxlImageBundle linearSrgb1 = rgb1;
+        if (!JxlImageBundleEncoder.TransformIfNeeded(configuration, rgb1, JxlColorEncoding.LinearSrgb(rgb1.IsGray), cms, store1, ref linearSrgb1))
+        {
+            throw new InvalidOperationException("Could not convert the second comparison image to linear sRGB.");
+        }
 
         if (ignoreAlpha || (!rgb0.ContainsAlpha && !rgb1.ContainsAlpha))
         {
@@ -114,15 +104,18 @@ internal static class JxlComparatorScoreComputation
                 comparator,
                 diffMap,
                 out score);
+
+            // No background comparison is required when opacity is absent or deliberately ignored.
+            return;
         }
 
-        JxlPlane<float> diffMapBlack = new();
+        using JxlPlane<float> diffMapBlack = new();
         float distBlack;
         {
             const float black = 0.0f;
 
-            JxlImageBundle blendedBlack0 = linearSrgb0.Copy(configuration);
-            JxlImageBundle blendedBlack1 = linearSrgb1.Copy(configuration);
+            using JxlImageBundle blendedBlack0 = linearSrgb0.Copy(configuration);
+            using JxlImageBundle blendedBlack1 = linearSrgb1.Copy(configuration);
 
             AlphaBlend(black, blendedBlack0);
             AlphaBlend(black, blendedBlack1);
@@ -136,13 +129,13 @@ internal static class JxlComparatorScoreComputation
                 out distBlack);
         }
 
-        JxlPlane<float> diffMapWhite = new();
+        using JxlPlane<float> diffMapWhite = new();
         float distWhite;
         {
             const float white = 1.0f;
 
-            JxlImageBundle blendedWhite0 = linearSrgb0.Copy(configuration);
-            JxlImageBundle blendedWhite1 = linearSrgb1.Copy(configuration);
+            using JxlImageBundle blendedWhite0 = linearSrgb0.Copy(configuration);
+            using JxlImageBundle blendedWhite1 = linearSrgb1.Copy(configuration);
 
             AlphaBlend(white, blendedWhite0);
             AlphaBlend(white, blendedWhite1);
@@ -161,19 +154,20 @@ internal static class JxlComparatorScoreComputation
             int xSize = rgb0.XSize;
             int ySize = rgb0.YSize;
 
-            JxlPlane<float> outputDiffMap = new(
-                configuration,
-                xSize,
-                ySize);
+            using JxlPlane<float> outputDiffMap = new(configuration, xSize, ySize);
 
             for (int y = 0; y < ySize; y++)
             {
-                ReadOnlySpan<float> rowBlack = diffMapBlack.GetRow(y);
-                ReadOnlySpan<float> rowWhite = diffMapWhite.GetRow(y);
-                Span<float> rowOut = diffMap.GetRow(y);
+                // GetRow also exposes following rows. Combine only the current logical row.
+                ReadOnlySpan<float> rowBlack = diffMapBlack.GetRow(y)[..xSize];
+                ReadOnlySpan<float> rowWhite = diffMapWhite.GetRow(y)[..xSize];
+                Span<float> rowOut = outputDiffMap.GetRow(y)[..xSize];
 
                 TensorPrimitives.Max(rowBlack, rowWhite, rowOut);
             }
+
+            // The caller receives the computed plane. The temporary takes and releases the caller's previous storage.
+            diffMap.Swap(outputDiffMap);
         }
 
         score = MathF.Max(distBlack, distWhite);

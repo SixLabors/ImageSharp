@@ -995,54 +995,6 @@ internal static class Vector256_
     }
 
     /// <summary>
-    /// Multiplies only the even indices of the two 256-bit vectors,
-    /// producing half as many elements of twice the element width.
-    /// </summary>
-    /// <param name="left">Left vector to multiply.</param>
-    /// <param name="right">Right vector to multiply</param>
-    /// <returns>
-    ///   <code>
-    ///     {
-    ///       A[0] * B[0],
-    ///       A[2] * B[2],
-    ///       A[4] * B[4],
-    ///       A[6] * B[6]
-    ///     }
-    ///   </code>
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<long> MultiplyEven(Vector256<int> left, Vector256<int> right)
-        => Vector256.Create(
-            left[0] * right[0],
-            left[2] * right[2],
-            left[4] * right[4],
-            left[6] * right[6]);
-
-    /// <summary>
-    /// Multiplies only the odd indices of the two 256-bit vectors,
-    /// producing half as many elements of twice the element width.
-    /// </summary>
-    /// <param name="left">Left vector to multiply.</param>
-    /// <param name="right">Right vector to multiply</param>
-    /// <returns>
-    ///   <code>
-    ///     {
-    ///       A[1] * B[1],
-    ///       A[3] * B[3],
-    ///       A[5] * B[5],
-    ///       A[7] * B[7]
-    ///     }
-    ///   </code>
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<long> MultiplyOdd(Vector256<int> left, Vector256<int> right)
-        => Vector256.Create(
-            left[1] * right[1],
-            left[3] * right[3],
-            left[5] * right[5],
-            left[7] * right[7]);
-
-    /// <summary>
     /// Produces a vector by interleaving the even-indexed elements
     /// of the left and right vectors.
     /// </summary>

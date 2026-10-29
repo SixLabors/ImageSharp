@@ -135,14 +135,14 @@ internal static class JxlDct
         if (rows < columns)
         {
             Dct1D(rows, columns, from, new JxlDctOutput(block, columns), tmp);
-            JxlTranspose.Transpose(rows, columns, new JxlDctSource(block, columns), new JxlDctOutput(to, rows));
+            SimdUtils.Transpose(block, columns, to, rows, rows, columns);
             Dct1D(columns, rows, new JxlDctSource(to, rows), new JxlDctOutput(block, rows), tmp);
-            JxlTranspose.Transpose(columns, rows, new JxlDctSource(block, rows), new JxlDctOutput(to, columns));
+            SimdUtils.Transpose(block, rows, to, columns, columns, rows);
         }
         else
         {
             Dct1D(rows, columns, from, new JxlDctOutput(to, columns), tmp);
-            JxlTranspose.Transpose(rows, columns, new JxlDctSource(to, columns), new JxlDctOutput(block, rows));
+            SimdUtils.Transpose(to, columns, block, rows, rows, columns);
             Dct1D(columns, rows, new JxlDctSource(block, rows), new JxlDctOutput(to, rows), tmp);
         }
     }
@@ -154,15 +154,15 @@ internal static class JxlDct
 
         if (rows < columns)
         {
-            JxlTranspose.Transpose(rows, columns, new JxlDctSource(from, columns), new JxlDctOutput(block, rows));
+            SimdUtils.Transpose(from, columns, block, rows, rows, columns);
             InverseDct1D(columns, rows, new JxlDctSource(block, rows), new JxlDctOutput(from, rows), tmp);
-            JxlTranspose.Transpose(columns, rows, new JxlDctSource(from, rows), new JxlDctOutput(block, columns));
+            SimdUtils.Transpose(from, rows, block, columns, columns, rows);
             InverseDct1D(rows, columns, new JxlDctSource(block, columns), to, tmp);
         }
         else
         {
             InverseDct1D(columns, rows, new JxlDctSource(from, rows), new JxlDctOutput(block, rows), tmp);
-            JxlTranspose.Transpose(columns, rows, new JxlDctSource(block, rows), new JxlDctOutput(from, columns));
+            SimdUtils.Transpose(block, rows, from, columns, columns, rows);
             InverseDct1D(rows, columns, new JxlDctSource(from, columns), to, tmp);
         }
     }

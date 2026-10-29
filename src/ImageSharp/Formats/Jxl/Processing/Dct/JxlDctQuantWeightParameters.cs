@@ -1,32 +1,43 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 
-internal sealed class JxlDctQuantWeightParameters
+/// <summary>
+/// Stores one DCT weight seed and its distance-band deltas for each XYB channel.
+/// </summary>
+/// <remarks>
+/// The fixed rows contain 17 entries. Only NumDistanceBands entries participate in table generation or serialization.
+/// Values are copied into descriptors during preparation. Parsers update this value by reference.
+/// </remarks>
+internal struct JxlDctQuantWeightParameters
 {
-    /// <summary>
-    /// Log2 of the maximum number of distance bands.
-    /// </summary>
+    /// <summary>The bit count used to store the distance-band count minus one.</summary>
     public const int Log2MaxDistanceBands = 4;
-    private const int MaxDistanceBands = 1 + (1 << Log2MaxDistanceBands);
 
-    public JxlDctQuantWeightParameters()
+    /// <summary>The three fixed channel rows. Entries after NumDistanceBands do not participate in interpolation.</summary>
+    [SuppressMessage(
+        "StyleCop.CSharp.MaintainabilityRules",
+        "SA1401:Fields should be private",
+        Justification = "Fixed parameter storage must support reference parsing without value copies.")]
+    public InlineArray3<InlineArray17<float>> DistanceBands;
+
+    /// <summary>Copies three packed channel rows into their fixed parameter storage.</summary>
+    /// <param name="distanceBands">Three consecutive rows, each containing numDistanceBands values.</param>
+    /// <param name="numDistanceBands">The number of values in each channel row.</param>
+    public JxlDctQuantWeightParameters(ReadOnlySpan<float> distanceBands, int numDistanceBands)
     {
-        this.DistanceBands = new float[3][];
-        for (int i = 0; i < 3; i++)
+        this = default;
+        this.NumDistanceBands = numDistanceBands;
+        for (int c = 0; c < 3; c++)
         {
-            this.DistanceBands[i] = new float[MaxDistanceBands];
+            Span<float> destination = this.DistanceBands[c];
+            distanceBands.Slice(c * numDistanceBands, numDistanceBands).CopyTo(destination);
         }
     }
 
-    public JxlDctQuantWeightParameters(float[][] distanceBands, int numDistanceBands)
-    {
-        this.NumDistanceBands = numDistanceBands;
-        this.DistanceBands = distanceBands;
-    }
-
+    /// <summary>Gets or sets the number of active seed and delta values in each channel row.</summary>
     public int NumDistanceBands { get; set; }
-
-    public float[][] DistanceBands { get; }
 }

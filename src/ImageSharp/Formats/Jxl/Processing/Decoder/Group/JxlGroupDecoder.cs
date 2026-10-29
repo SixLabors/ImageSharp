@@ -183,12 +183,12 @@ internal static class JxlGroupDecoder
                 return false;
             }
 
-            if (qe[0].QuantizationTable!.Length != 3 * 8 * 8)
+            if (qe[0].QuantizationTable.Length != 3 * 8 * 8)
             {
                 return false;
             }
 
-            ReadOnlySpan<int> qTable = qe[0].QuantizationTable.AsSpan();
+            ReadOnlySpan<int> qTable = qe[0].QuantizationTable.Span;
 
             for (int c = 0; c < 3; c++)
             {

@@ -95,7 +95,7 @@ internal sealed class JxlDequantMatrices : IDisposable
         Verify(15, JxlQuantTable.DCT256X256);
         Verify(16, JxlQuantTable.DCT128X256);
 
-        return
+        JxlQuantizerEncoding[] definitions =
         [
             JxlQuantWeights.Dct,
             JxlQuantWeights.Identity,
@@ -115,6 +115,23 @@ internal sealed class JxlDequantMatrices : IDisposable
             JxlQuantWeights.Dct256x256,
             JxlQuantWeights.Dct128x256
         ];
+
+        // These library definitions contain fixed parameters only. Value copies make each returned descriptor independent;
+        // frame disposal never reaches the shared defaults used by table preparation.
+        for (int i = 0; i < definitions.Length; i++)
+        {
+            JxlQuantizerEncoding source = definitions[i];
+            definitions[i] = new JxlQuantizerEncoding
+            {
+                Mode = source.Mode,
+                Predefined = source.Predefined,
+                DctParameters = source.DctParameters,
+                DctParametersAfv4x4 = source.DctParametersAfv4x4,
+                ModeWeights = source.ModeWeights
+            };
+        }
+
+        return definitions;
 
         [Conditional("DEBUG")]
         static void Verify(int expected, JxlQuantTable actual)
@@ -295,6 +312,11 @@ internal sealed class JxlDequantMatrices : IDisposable
     /// <param name="encodings">The complete descriptor array. The caller must not modify it after transfer.</param>
     public void SetEncodings(JxlQuantizerEncoding[] encodings)
     {
+        foreach (JxlQuantizerEncoding previous in this.encodings)
+        {
+            previous.Dispose();
+        }
+
         this.encodings = encodings;
         this.computedMask = 0;
         this.preparedKinds = 0;
@@ -305,9 +327,15 @@ internal sealed class JxlDequantMatrices : IDisposable
     /// <returns>The fixed set of table descriptors, which callers must not modify.</returns>
     public ReadOnlySpan<JxlQuantizerEncoding> GetEncodings() => this.encodings;
 
-    /// <summary>Releases the prepared coefficient allocation.</summary>
+    /// <summary>Releases the coefficient allocation and every transferred descriptor's raw storage.</summary>
     public void Dispose()
     {
+        foreach (JxlQuantizerEncoding encoding in this.encodings)
+        {
+            encoding.Dispose();
+        }
+
+        this.encodings = [];
         this.tableOwner?.Dispose();
         this.tableOwner = null;
         this.allocation = default;

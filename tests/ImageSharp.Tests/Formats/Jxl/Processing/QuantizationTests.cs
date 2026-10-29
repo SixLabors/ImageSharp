@@ -3,6 +3,8 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -20,7 +22,7 @@ public class QuantizationTests
     {
         static void RunTest()
         {
-            JxlQuantizerEncoding encoding = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([[2F], [4F], [8F]], 1));
+            using JxlQuantizerEncoding encoding = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([2F, 4F, 8F], 1));
             ReadOnlySpan<JxlQuantTable> kinds = [JxlQuantTable.DCT, JxlQuantTable.DCT8X16, JxlQuantTable.DCT16X16, JxlQuantTable.DCT256X256];
 
             foreach (JxlQuantTable kind in kinds)
@@ -80,7 +82,7 @@ public class QuantizationTests
             foreach (float invalid in invalidWeights)
             {
                 // A one-band table reaches the reciprocal validation directly. The third channel must still be checked.
-                JxlQuantizerEncoding encoding = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([[2F], [4F], [invalid]], 1));
+                using JxlQuantizerEncoding encoding = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([2F, 4F, invalid], 1));
                 float[] table = new float[3 * 64];
                 float[] inverse = new float[3 * 64];
                 int offset = 0;
@@ -100,8 +102,18 @@ public class QuantizationTests
     [Fact]
     public void DefaultWeights_MatchNativeBandAndTableMetadata()
     {
-        Assert.Equal(8, JxlQuantWeights.Dct32x32.DctParameters!.NumDistanceBands);
-        Assert.Same(JxlQuantWeights.Dct32x64, JxlDequantMatrices.Library[(int)JxlQuantTable.DCT32X64]);
+        Assert.Equal(8, JxlQuantWeights.Dct32x32.DctParameters.NumDistanceBands);
+        JxlQuantizerEncoding expected = JxlQuantWeights.Dct32x64;
+        JxlQuantizerEncoding actual = JxlDequantMatrices.Library[(int)JxlQuantTable.DCT32X64];
+        Assert.NotSame(expected, actual);
+        Assert.Equal(expected.Mode, actual.Mode);
+        Assert.Equal(expected.DctParameters.NumDistanceBands, actual.DctParameters.NumDistanceBands);
+        for (int c = 0; c < 3; c++)
+        {
+            ReadOnlySpan<float> expectedBands = expected.DctParameters.DistanceBands[c];
+            ReadOnlySpan<float> actualBands = actual.DctParameters.DistanceBands[c];
+            Assert.True(expectedBands.SequenceEqual(actualBands));
+        }
     }
 
     /// <summary>
@@ -113,8 +125,8 @@ public class QuantizationTests
         static void RunTest()
         {
             // Mult(0)=1 keeps every interval constant. This exercises the real interpolation path rather than the single-band fill.
-            float[][] constantBands = [[2F, 0F, 0F], [4F, 0F, 0F], [8F, 0F, 0F]];
-            float[][] varyingBands = [[2F, 1F, -1F], [4F, 1F, -1F], [8F, 1F, -1F]];
+            JxlDctQuantWeightParameters constantBands = new([2F, 0F, 0F, 4F, 0F, 0F, 8F, 0F, 0F], 3);
+            JxlDctQuantWeightParameters varyingBands = new([2F, 1F, -1F, 4F, 1F, -1F, 8F, 1F, -1F], 3);
             ReadOnlySpan<int> columns = [3, 4, 7, 8, 15, 16, 17, 31, 32, 33];
 
             foreach (int columnCount in columns)
@@ -124,13 +136,13 @@ public class QuantizationTests
                 float[] storage = new float[(3 * channelSize) + 2];
                 storage.AsSpan().Fill(-77F);
                 Span<float> weights = storage.AsSpan(1, 3 * channelSize);
-                Assert.True(JxlQuantWeights.GetQuantWeights(rowCount, columnCount, constantBands, 3, weights));
+                Assert.True(JxlQuantWeights.GetQuantWeights(rowCount, columnCount, in constantBands, weights));
 
                 for (int c = 0; c < 3; c++)
                 {
                     for (int i = 0; i < channelSize; i++)
                     {
-                        Assert.Equal(constantBands[c][0], weights[(c * channelSize) + i]);
+                        Assert.Equal(constantBands.DistanceBands[c][0], weights[(c * channelSize) + i]);
                     }
                 }
 
@@ -138,10 +150,10 @@ public class QuantizationTests
                 Assert.Equal(-77F, storage[^1]);
 
                 // Mult(1)=2 and Mult(-1)=1/2 produce positive cumulative bands [a,2a,a]. Raw multiplication would reject them.
-                Assert.True(JxlQuantWeights.GetQuantWeights(rowCount, columnCount, varyingBands, 3, weights));
+                Assert.True(JxlQuantWeights.GetQuantWeights(rowCount, columnCount, in varyingBands, weights));
                 for (int c = 0; c < 3; c++)
                 {
-                    Assert.Equal(varyingBands[c][0], weights[c * channelSize]);
+                    Assert.Equal(varyingBands.DistanceBands[c][0], weights[c * channelSize]);
                 }
 
                 Assert.Equal(-77F, storage[0]);
@@ -349,7 +361,7 @@ public class QuantizationTests
                 encodings[i] = JxlQuantizerEncoding.Library(0);
             }
 
-            encodings[(int)JxlQuantTable.DCT8X16] = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([[2F], [4F], [8F]], 1));
+            encodings[(int)JxlQuantTable.DCT8X16] = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([2F, 4F, 8F], 1));
             matrices.SetEncodings(encodings);
             uint mask = (1U << (int)JxlAcStrategyType.DCT) | (1U << (int)JxlAcStrategyType.DCT8X16);
             Assert.True(matrices.EnsureComputed(configuration, mask));
@@ -405,7 +417,7 @@ public class QuantizationTests
             JxlQuantizerEncoding[] encodings = JxlDequantMatrices.GetLibrary();
 
             // Identity parameters are valid only for an 8 by 8 table. The 16 by 16 request must fail through real table generation.
-            encodings[(int)JxlQuantTable.DCT16X16] = JxlQuantizerEncoding.Identity([[1F, 1F, 1F], [1F, 1F, 1F], [1F, 1F, 1F]]);
+            encodings[(int)JxlQuantTable.DCT16X16] = JxlQuantizerEncoding.Identity([1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F, 1F]);
             matrices.SetEncodings(encodings);
             Assert.False(matrices.EnsureComputed(configuration, 1U << (int)JxlAcStrategyType.DCT16X16));
             Assert.True(matrices.GetPreparedStorage().IsEmpty);
@@ -420,5 +432,105 @@ public class QuantizationTests
 
         Assert.Equal(0, allocator.LiveBufferBytes);
         Assert.Equal(2, allocator.ReturnLog.Count);
+    }
+
+    /// <summary>Checks fixed mode and DCT parameter storage through independently specified wire fields.</summary>
+    [Fact]
+    public void QuantizerDescriptors_ParseFixedModeAndDistanceBands()
+    {
+        // ID mode is 1 in three low bits. Nine half values of 1 (0x3C00) follow; the decoder multiplies each by 64.
+        using (MemoryStream input = new([0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01, 0xE0, 0x01]))
+        using (JxlQuantizerEncoding encoding = new())
+        {
+            JxlBitReader reader = new(input);
+            Assert.True(JxlQuantWeights.Decode(TestEnvironment.Configuration, reader, encoding, 1, 1, 0, null));
+            Assert.Equal(JxlQuantMode.Id, encoding.Mode);
+            Assert.Equal(147, reader.TotalBitsConsumed);
+            for (int c = 0; c < 3; c++)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    Assert.Equal(64F, encoding.ModeWeights[c][i]);
+                }
+            }
+        }
+
+        // DCT mode 6 uses three bits, followed by four zero count bits (one band).
+        // Half seeds 0x2800,0x2C00,0x3000 represent 1/32,1/16,1/8. Multiplication by 64 yields 2,4,8.
+        using (MemoryStream input = new([0x06, 0x00, 0x14, 0x00, 0x16, 0x00, 0x18]))
+        using (JxlQuantizerEncoding encoding = new())
+        {
+            JxlBitReader reader = new(input);
+            Assert.True(JxlQuantWeights.Decode(TestEnvironment.Configuration, reader, encoding, 1, 1, 0, null));
+            Assert.Equal(JxlQuantMode.Dct, encoding.Mode);
+            Assert.Equal(1, encoding.DctParameters.NumDistanceBands);
+            Assert.Equal(2F, encoding.DctParameters.DistanceBands[0][0]);
+            Assert.Equal(4F, encoding.DctParameters.DistanceBands[1][0]);
+            Assert.Equal(8F, encoding.DctParameters.DistanceBands[2][0]);
+            Assert.Equal(55, reader.TotalBitsConsumed);
+        }
+    }
+
+    /// <summary>Checks fixed value copies and raw ownership transfer, replacement, reuse and disposal.</summary>
+    [Fact]
+    public void QuantizerDescriptors_CopyFixedValuesAndTransferRawOwnership()
+    {
+        Span<float> packed = [2F, 4F, 8F];
+        JxlDctQuantWeightParameters parameters = new(packed, 1);
+        using JxlQuantizerEncoding fixedDescriptor = JxlQuantizerEncoding.Dct(in parameters);
+        packed.Fill(-1F);
+        parameters.DistanceBands[0][0] = -1F;
+        Assert.Equal(2F, fixedDescriptor.DctParameters.DistanceBands[0][0]);
+
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+        using (JxlDequantMatrices matrices = new())
+        {
+            JxlQuantizerEncoding[] descriptors = JxlDequantMatrices.GetLibrary();
+            JxlQuantizerEncoding raw = descriptors[(int)JxlQuantTable.DCT];
+            raw.Mode = JxlQuantMode.Raw;
+            raw.PrepareRawTable(configuration, 3 * 64).Fill(7);
+            raw.PrepareRawTable(configuration, 3 * 64);
+            Assert.Single(allocator.AllocationLog);
+
+            // A larger real transform replaces its raw allocation once. Returning to DCT8 reuses that capacity without copying.
+            raw.PrepareRawTable(configuration, 3 * 256).Fill(11);
+            raw.PrepareRawTable(configuration, 3 * 64);
+            Assert.Equal(2, allocator.AllocationLog.Count);
+            Assert.Single(allocator.ReturnLog);
+            Assert.Equal(192, raw.QuantizationTable.Length);
+            matrices.SetEncodings(descriptors);
+            matrices.SetEncodings(JxlDequantMatrices.GetLibrary());
+            Assert.True(raw.QuantizationTable.IsEmpty);
+            Assert.Equal(0, allocator.LiveBufferBytes);
+        }
+
+        Assert.Equal(2, allocator.ReturnLog.Count);
+    }
+
+    /// <summary>Checks the native raw-denominator boundary and cleanup of a failed descriptor replacement.</summary>
+    /// <param name="low">The low byte of the fixed half field.</param>
+    /// <param name="high">The high byte: zero or the sign and exponent bits for minus one.</param>
+    [Theory]
+    [InlineData((byte)0, (byte)0)]
+    [InlineData((byte)0, (byte)0xBC)]
+    public void RawQuantizer_InvalidDenominatorReleasesOwnedSamples(byte low, byte high)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+        using JxlQuantizerEncoding encoding = new() { Mode = JxlQuantMode.Raw };
+        encoding.PrepareRawTable(configuration, 3 * 64).Fill(1);
+        using MemoryStream input = new([low, high]);
+        JxlBitReader reader = new(input);
+        Assert.Throws<InvalidImageContentException>(
+            () => JxlModularFrameDecoder.DecodeQuantizerTable(configuration, 8, 8, reader, encoding, 0, null));
+
+        Assert.True(encoding.QuantizationTable.IsEmpty);
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.Single(allocator.ReturnLog);
     }
 }

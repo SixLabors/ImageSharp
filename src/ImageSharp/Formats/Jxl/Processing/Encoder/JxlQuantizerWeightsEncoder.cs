@@ -16,7 +16,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 /// </summary>
 internal static class JxlQuantizerWeightsEncoder
 {
-    public static bool EncodeDctParameters(JxlDctQuantWeightParameters parameters, JxlBitWriter writer)
+    /// <summary>Writes the active fixed distance bands without copying the parameter value.</summary>
+    /// <param name="parameters">The borrowed channel bands and their active count.</param>
+    /// <param name="writer">The destination bit writer.</param>
+    /// <returns>Whether the band count and all F16 values were written successfully.</returns>
+    public static bool EncodeDctParameters(in JxlDctQuantWeightParameters parameters, JxlBitWriter writer)
     {
         if (parameters.NumDistanceBands < 1)
         {
@@ -28,7 +32,7 @@ internal static class JxlQuantizerWeightsEncoder
 
         for (int c = 0; c < 3; c++)
         {
-            Span<float> bands = parameters.DistanceBands[c];
+            ReadOnlySpan<float> bands = parameters.DistanceBands[c];
 
             for (int i = 0; i < parameters.NumDistanceBands; i++)
             {
@@ -59,7 +63,7 @@ internal static class JxlQuantizerWeightsEncoder
             case JxlQuantMode.Id:
                 for (int c = 0; c < 3; c++)
                 {
-                    Span<float> idWeight = encoding.IdWeights![c];
+                    ReadOnlySpan<float> idWeight = encoding.ModeWeights[c];
 
                     for (int i = 0; i < 3; i++)
                     {
@@ -75,7 +79,7 @@ internal static class JxlQuantizerWeightsEncoder
             case JxlQuantMode.Dct2:
                 for (int c = 0; c < 3; c++)
                 {
-                    Span<float> dct2Weight = encoding.Dct2Weights![c];
+                    ReadOnlySpan<float> dct2Weight = encoding.ModeWeights[c];
 
                     for (int i = 0; i < 6; i++)
                     {
@@ -89,16 +93,14 @@ internal static class JxlQuantizerWeightsEncoder
                 break;
 
             case JxlQuantMode.Dct4x8:
-                Span<float> multipliers = encoding.Dct4x8Multipliers!.AsSpan();
-
-                if (!JxlF16Coder.Write(multipliers[0], writer) ||
-                    !JxlF16Coder.Write(multipliers[1], writer) ||
-                    !JxlF16Coder.Write(multipliers[2], writer))
+                if (!JxlF16Coder.Write(encoding.ModeWeights[0][0], writer) ||
+                    !JxlF16Coder.Write(encoding.ModeWeights[1][0], writer) ||
+                    !JxlF16Coder.Write(encoding.ModeWeights[2][0], writer))
                 {
                     return false;
                 }
 
-                if (!EncodeDctParameters(encoding.DctParameters!, writer))
+                if (!EncodeDctParameters(in encoding.DctParameters, writer))
                 {
                     return false;
                 }
@@ -108,7 +110,7 @@ internal static class JxlQuantizerWeightsEncoder
             case JxlQuantMode.Dct4:
                 for (int c = 0; c < 3; c++)
                 {
-                    Span<float> dct4Mul = encoding.Dct4Multipliers![c];
+                    ReadOnlySpan<float> dct4Mul = encoding.ModeWeights[c];
 
                     if (!JxlF16Coder.Write(dct4Mul[0], writer) || !JxlF16Coder.Write(dct4Mul[1], writer))
                     {
@@ -116,7 +118,7 @@ internal static class JxlQuantizerWeightsEncoder
                     }
                 }
 
-                if (!EncodeDctParameters(encoding.DctParameters!, writer))
+                if (!EncodeDctParameters(in encoding.DctParameters, writer))
                 {
                     return false;
                 }
@@ -124,7 +126,7 @@ internal static class JxlQuantizerWeightsEncoder
                 break;
 
             case JxlQuantMode.Dct:
-                if (!EncodeDctParameters(encoding.DctParameters!, writer))
+                if (!EncodeDctParameters(in encoding.DctParameters, writer))
                 {
                     return false;
                 }
@@ -142,7 +144,7 @@ internal static class JxlQuantizerWeightsEncoder
             case JxlQuantMode.Afv:
                 for (int c = 0; c < 3; c++)
                 {
-                    Span<float> afvWeights = encoding.AfvWeights![c];
+                    ReadOnlySpan<float> afvWeights = encoding.ModeWeights[c];
 
                     for (int i = 0; i < 9; i++)
                     {
@@ -153,12 +155,12 @@ internal static class JxlQuantizerWeightsEncoder
                     }
                 }
 
-                if (!EncodeDctParameters(encoding.DctParameters!, writer))
+                if (!EncodeDctParameters(in encoding.DctParameters, writer))
                 {
                     return false;
                 }
 
-                if (!EncodeDctParameters(encoding.DctParametersAfv4x4!, writer))
+                if (!EncodeDctParameters(in encoding.DctParametersAfv4x4, writer))
                 {
                     return false;
                 }

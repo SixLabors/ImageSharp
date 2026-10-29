@@ -10,12 +10,73 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class EntropyCoderTests
 {
+    /// <summary>
+    /// Checks an actual learned split with dirty allocator storage and confirms that search and sample buffers are returned.
+    /// </summary>
+    [Fact]
+    public void TreeSearch_SplitsDistinctChannelsAndReturnsOwnedStorage()
+    {
+        static void RunTest()
+        {
+            Configuration configuration = TestEnvironment.Configuration.Clone();
+            TestMemoryAllocator allocator = new();
+            allocator.EnableNonThreadSafeLogging();
+            configuration.MemoryAllocator = allocator;
+            JxlTreeSamples samples = new(configuration);
+
+            try
+            {
+                samples.SetPredictor(JxlPredictor.Zero, JxlTreeMode.Default);
+                samples.SetProperties([0, 1], JxlTreeMode.Default);
+                samples.PrepareForSamples(4);
+                InlineArray2<InlineArray2<int>> range = default;
+                range[0][1] = 2;
+                range[1][1] = 1;
+                samples.PreQuantizeProperties(range, [], [4], [2, 2], [], [], 2);
+                Span<int> properties = [0, 0];
+                Span<int> predictions = stackalloc int[JxlPredictorFacts.ModularPredictors];
+                predictions.Clear();
+                samples.AddSample(0, properties, predictions);
+                samples.AddSample(0, properties, predictions);
+                properties[0] = 1;
+                samples.AddSample(16, properties, predictions);
+                samples.AddSample(16, properties, predictions);
+                samples.AllSamplesDone();
+                long sampleBytes = allocator.LiveBufferBytes;
+
+                // Each channel has one repeated token. Splitting at channel 0 removes four entropy bits, with payload bits unchanged.
+                // Residual 16 encodes to token 24, so the real search also traverses complete 512-bit histogram batches.
+                List<JxlPropertyDecisionNode> tree = [];
+                JxlMaEncoder.ComputeBestTree(configuration, ref samples, 0.5F, [], range, 1F, tree);
+                Assert.Equal(3, tree.Count);
+                Assert.Equal(0, tree[0].Property);
+                Assert.Equal(0, tree[0].SplitValue);
+                Assert.Equal(-1, tree[tree[0].LeftChild].Property);
+                Assert.Equal(-1, tree[tree[0].RightChild].Property);
+                Assert.Equal(JxlPredictor.Zero, tree[tree[0].LeftChild].Predictor);
+                Assert.Equal(JxlPredictor.Zero, tree[tree[0].RightChild].Predictor);
+                Assert.Equal(sampleBytes, allocator.LiveBufferBytes);
+            }
+            finally
+            {
+                samples.Dispose();
+            }
+
+            Assert.Equal(0L, allocator.LiveBufferBytes);
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     /// <summary>
     /// Checks ANS cost for exact binary probabilities, zero bins and logical histogram lengths under every feature mode.
     /// </summary>
@@ -65,6 +126,134 @@ public class EntropyCoderTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks sample insertion, independent predictor planes, static and dynamic maps, duplicate counts, and in-place partition swaps.
+    /// </summary>
+    [Fact]
+    public void TreeSamples_RetainNewRecordsAndMergeOnlyEqualQuantizedSamples()
+    {
+        JxlTreeSamples samples = new(TestEnvironment.Configuration);
+        try
+        {
+            samples.SetPredictor(JxlPredictor.Best, JxlTreeMode.Default);
+            Span<int> selected = [0, 1, 6];
+            samples.SetProperties(selected, JxlTreeMode.Default);
+            selected[2] = JxlMaConstants.WpProp;
+            samples.PrepareForSamples(5);
+
+            // Two equal channel counts split at channel 0. Group counts [0,0,1,1] instead split at group 2.
+            // Pixel training values [-8,8] split at -8. Each exact threshold stays in the lower interval.
+            InlineArray2<InlineArray2<int>> range = default;
+            range[0][1] = 2;
+            range[1][1] = 4;
+            Span<int> pixels = [-8, 8];
+            samples.PreQuantizeProperties(range, [], [0, 0, 1, 1], [1, 1], pixels, [], 2);
+            Assert.Equal(6, samples.PropertyFromIndex(2));
+            Assert.Equal(0, samples.QuantizeStaticProperty(0, 0));
+            Assert.Equal(1, samples.QuantizeStaticProperty(0, 1));
+            Assert.Equal(0, samples.QuantizeStaticProperty(1, 2));
+            Assert.Equal(1, samples.QuantizeStaticProperty(1, 3));
+            Assert.Equal(0, samples.QuantizeProperty(2, -8));
+            Assert.Equal(1, samples.QuantizeProperty(2, -7));
+            Assert.Equal(2, samples.FindPropertyIndex(6));
+
+            Span<int> properties = [0, 0, 0, 0, 0, 0, -8];
+            Span<int> predictions = stackalloc int[JxlPredictorFacts.ModularPredictors];
+            predictions[(int)JxlPredictor.Weighted] = 0;
+            predictions[(int)JxlPredictor.Gradient] = 1;
+            samples.AddSample(2, properties, predictions);
+            samples.AddSample(2, properties, predictions);
+
+            // Residuals 2 and 1 encode directly as tokens 4 and 2. Changing only Gradient must retain a different sample.
+            predictions[(int)JxlPredictor.Gradient] = 0;
+            samples.AddSample(2, properties, predictions);
+            predictions[(int)JxlPredictor.Gradient] = 1;
+            properties[0] = 1;
+            samples.AddSample(2, properties, predictions);
+            properties[0] = 0;
+            properties[6] = 8;
+            samples.AddSample(2, properties, predictions);
+
+            Assert.Equal(5, samples.NumberOfSamples);
+            Assert.Equal(4, samples.NumberOfDistinctSamples);
+            Assert.Equal(2, samples.GetCount(0));
+            Assert.Equal(1, samples.GetCount(1));
+            Assert.Equal(4, samples.GetResidualTokensForPrediction(0).Length);
+            Assert.Equal(4, samples.GetToken(0, 0));
+            Assert.Equal(2, samples.GetToken(1, 0));
+            Assert.Equal(4, samples.GetToken(1, 1));
+            Assert.Equal(1, samples.GetProperty(true, 0, 2));
+            Assert.Equal(1, samples.GetProperty(false, 0, 3));
+
+            samples.AllSamplesDone();
+            samples.Swap(0, 3);
+            Assert.Equal(1, samples.GetCount(0));
+            Assert.Equal(2, samples.GetCount(3));
+            Assert.Equal(1, samples.GetProperty(false, 0, 0));
+            Assert.Equal(0, samples.GetProperty(false, 0, 3));
+        }
+        finally
+        {
+            samples.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Checks native count saturation: the next matching sample starts a new record after the first count reaches 65535.
+    /// </summary>
+    [Fact]
+    public void TreeSamples_SaturatedCountsStartANewRecord()
+    {
+        JxlTreeSamples samples = new(TestEnvironment.Configuration);
+        try
+        {
+            samples.SetPredictor(JxlPredictor.Zero, JxlTreeMode.Default);
+            samples.SetProperties([2], JxlTreeMode.Default);
+            samples.PrepareForSamples(ushort.MaxValue + 1);
+            samples.PreQuantizeProperties(default, [], [], [], [], [], 2);
+            ReadOnlySpan<int> properties = [0, 0, 0];
+            ReadOnlySpan<int> predictions = [0];
+            for (int i = 0; i <= ushort.MaxValue; i++)
+            {
+                samples.AddSample(1, properties, predictions);
+            }
+
+            Assert.Equal(ushort.MaxValue + 1, samples.NumberOfSamples);
+            Assert.Equal(2, samples.NumberOfDistinctSamples);
+            Assert.Equal(ushort.MaxValue, samples.GetCount(0));
+            Assert.Equal(1, samples.GetCount(1));
+        }
+        finally
+        {
+            samples.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Checks that excluding weighted prediction changes the owned selection without modifying caller property IDs.
+    /// </summary>
+    [Fact]
+    public void TreeSamples_NoWeightedModeDoesNotChangeOptions()
+    {
+        Span<int> selected = [0, 1, JxlMaConstants.WpProp, 6];
+        JxlTreeSamples samples = new(TestEnvironment.Configuration);
+        try
+        {
+            samples.SetPredictor(JxlPredictor.Best, JxlTreeMode.NoWp);
+            samples.SetProperties(selected, JxlTreeMode.NoWp);
+            Assert.Equal(1, samples.NumberOfPredictors);
+            Assert.Equal(JxlPredictor.Gradient, samples.PredictorFromIndex(0));
+            Assert.Equal(3, samples.NumberOfProperties);
+            Assert.Equal(6, samples.PropertyFromIndex(2));
+            Assert.Equal(JxlMaConstants.WpProp, selected[2]);
+            Assert.Equal(6, selected[3]);
+        }
+        finally
+        {
+            samples.Dispose();
+        }
     }
 
     /// <summary>

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
@@ -9,8 +9,9 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Memory;
 using FlatTree = System.Collections.Generic.List<SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction.JxlFlatDecisionNode>;
-using StaticPropertyRange = System.Runtime.CompilerServices.InlineArray2<System.Runtime.CompilerServices.InlineArray2<int>>;
+using StaticPropertyRange = SixLabors.ImageSharp.InlineArray2<SixLabors.ImageSharp.InlineArray2<int>>;
 using Tree = System.Collections.Generic.List<SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.JxlPropertyDecisionNode>;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
@@ -77,9 +78,16 @@ internal static class JxlModularEncodingEncoder
         return result;
     }
 
-    public static Tree MakeFixedTree(int property, Span<int> cutoffs, JxlPredictor pred, int numPixels, int bitDepth)
+    /// <summary>Builds a fixed predictor tree, with fewer splits for small channel populations.</summary>
+    /// <param name="property">The context property used for each split.</param>
+    /// <param name="cutoffs">The ordered split thresholds.</param>
+    /// <param name="pred">The predictor used by the leaves.</param>
+    /// <param name="numPixels">The complete pixel population, including all selected channels.</param>
+    /// <param name="bitDepth">The source sample precision.</param>
+    /// <returns>The fixed prediction tree.</returns>
+    public static Tree MakeFixedTree(int property, Span<int> cutoffs, JxlPredictor pred, long numPixels, int bitDepth)
     {
-        int logPx = JxlMath.CeilLog2Nonzero(numPixels);
+        int logPx = (int)JxlMath.CeilLog2Nonzero(numPixels);
         int minGap = 0;
 
         if (logPx < 14)
@@ -140,9 +148,9 @@ internal static class JxlModularEncodingEncoder
         int groupId,
         JxlModularHeader wpHeader,
         JxlModularOptions options,
-        JxlTreeSamples treeSamples,
+        ref JxlTreeSamples treeSamples,
         JxlModularState wpState,
-        ref int totalPixels)
+        ref long totalPixels)
     {
         JxlModularChannel channel = image.Channels[channelIndex];
 
@@ -152,27 +160,8 @@ internal static class JxlModularEncodingEncoder
 
         Span<int> properties = stackalloc int[JxlMaConstants.NumNonrefProperties + (JxlContextPrediction.ExtraPropertiesPerChannel * options.MaxProperties)];
 
-        double pixelFraction = Math.Min(1.0f, options.NumberOfRepeats);
-
-        if (pixelFraction > 0)
-        {
-            pixelFraction = Math.Max(pixelFraction, Math.Min(1.0, 1024.0 / (channel.Width * channel.Height)));
-        }
-
-        ulong threshold = (ulong)((ulong.MaxValue >> 32) * pixelFraction);
-
-        ulong s1 = 0x94D049BB133111EBuL;
-        ulong s2 = 0xBF58476D1CE4E5B9uL;
-
-        bool UseSample()
-        {
-            ulong bits = s2 + s1;
-            s1 = s2;
-            s1 ^= s1 << 23;
-            s1 ^= s2 ^ (s1 >> 18) ^ (s2 >> 5);
-            s2 = s1;
-            return (bits >> 32) <= threshold;
-        }
+        ulong threshold = SamplingThreshold(channel.Width, channel.Height, options.NumberOfRepeats);
+        Rng samplingRng = new(0);
 
         Span<int> channelSamples = channel.GetRow(0);
         int pixelsPerRow = channel.Plane.PixelsPerRow;
@@ -181,18 +170,19 @@ internal static class JxlModularEncodingEncoder
         int referenceStride = references.Plane.PixelsPerRow;
         Span<uint> weightedStorage = wpState.Reset(wpHeader, channel.Width);
 
-        treeSamples.PrepareForSamples((int)(pixelFraction * channel.Height * channel.Width) + 64);
         bool haveMultiplePredictors = treeSamples.NumberOfPredictors != 1;
 
         // Pass spans into the local operation. Its captured state contains no borrowed spans.
         void ComputeSample(
-            Span<int> p,
+            scoped Span<int> p,
             int x,
             int y,
-            Span<int> properties,
-            Span<uint> predictionStorage,
-            ReadOnlySpan<int> referenceProperties,
-            ref int totalPixels)
+            scoped Span<int> properties,
+            scoped Span<uint> predictionStorage,
+            scoped ReadOnlySpan<int> referenceProperties,
+            ref long totalPixels,
+            ref JxlTreeSamples treeSamples,
+            ref Rng samplingRng)
         {
             Span<int> pred = stackalloc int[JxlPredictorFacts.ModularPredictorsAlignment].Slice(0, JxlPredictorFacts.ModularPredictors);
 
@@ -229,7 +219,7 @@ internal static class JxlModularEncodingEncoder
 
             totalPixels++;
 
-            if (UseSample())
+            if ((samplingRng.Next() >> 32) <= threshold)
             {
                 treeSamples.AddSample(p[x], properties, pred);
             }
@@ -249,7 +239,17 @@ internal static class JxlModularEncodingEncoder
             {
                 for (int x = 0; x < 2; x++)
                 {
-                    ComputeSample(p, x, y, properties, weightedStorage, referenceStorage.Slice(x * referenceStride, references.Width), ref totalPixels);
+                    ComputeSample(
+                        p,
+                        x,
+                        y,
+                        properties,
+                        weightedStorage,
+                        referenceStorage.Slice(x * referenceStride, references.Width),
+                        ref totalPixels,
+                        ref treeSamples,
+                        ref samplingRng);
+
                 }
 
                 for (int x = 2; x < channel.Width - 2; x++)
@@ -287,7 +287,7 @@ internal static class JxlModularEncodingEncoder
 
                     totalPixels++;
 
-                    if (UseSample())
+                    if ((samplingRng.Next() >> 32) <= threshold)
                     {
                         treeSamples.AddSample(p[x], properties, pred);
                     }
@@ -297,20 +297,54 @@ internal static class JxlModularEncodingEncoder
 
                 for (int x = channel.Width - 2; x < channel.Width; x++)
                 {
-                    ComputeSample(p, x, y, properties, weightedStorage, referenceStorage.Slice(x * referenceStride, references.Width), ref totalPixels);
+                    ComputeSample(
+                        p,
+                        x,
+                        y,
+                        properties,
+                        weightedStorage,
+                        referenceStorage.Slice(x * referenceStride, references.Width),
+                        ref totalPixels,
+                        ref treeSamples,
+                        ref samplingRng);
+
                 }
             }
             else
             {
                 for (int x = 0; x < channel.Width; x++)
                 {
-                    ComputeSample(p, x, y, properties, weightedStorage, referenceStorage.Slice(x * referenceStride, references.Width), ref totalPixels);
+                    ComputeSample(
+                        p,
+                        x,
+                        y,
+                        properties,
+                        weightedStorage,
+                        referenceStorage.Slice(x * referenceStride, references.Width),
+                        ref totalPixels,
+                        ref treeSamples,
+                        ref samplingRng);
+
                 }
             }
         }
     }
 
-    public static Tree LearnTree(JxlTreeSamples treeSamples, int totalPixels, JxlModularOptions options, List<JxlModularMultiplierInfo>? info = null, StaticPropertyRange staticPropertyRange = default)
+    /// <summary>Learns the tree from the retained records, then releases collection-only deduplication storage.</summary>
+    /// <param name="configuration">The configuration used for tree-search scratch.</param>
+    /// <param name="treeSamples">The prepared sample owner, partitioned in place during tree search.</param>
+    /// <param name="totalPixels">The population used to normalize the sampling cost.</param>
+    /// <param name="options">The tree-search options.</param>
+    /// <param name="info">The forced multiplier splits.</param>
+    /// <param name="staticPropertyRange">The channel and group ranges.</param>
+    /// <returns>The learned prediction tree.</returns>
+    public static Tree LearnTree(
+        Configuration configuration,
+        ref JxlTreeSamples treeSamples,
+        long totalPixels,
+        JxlModularOptions options,
+        List<JxlModularMultiplierInfo> info,
+        StaticPropertyRange staticPropertyRange)
     {
         Tree tree = [];
 
@@ -341,7 +375,15 @@ internal static class JxlModularEncodingEncoder
 
         treeSamples.AllSamplesDone();
 
-        JxlMaEncoder.ComputeBestTree(treeSamples, options.SplittingHeuristicsNodeThreshold * requiredCost, info, staticPropertyRange, options.FastDecodeMultiplier, tree);
+        JxlMaEncoder.ComputeBestTree(
+            configuration,
+            ref treeSamples,
+            options.SplittingHeuristicsNodeThreshold * requiredCost,
+            info,
+            staticPropertyRange,
+            options.FastDecodeMultiplier,
+            tree);
+
         return tree;
     }
 
@@ -616,7 +658,13 @@ internal static class JxlModularEncodingEncoder
         }
     }
 
-    public static Tree PredefinedTree(JxlTreeKind treeKind, int totalPixels, int bitDepth, int prevProp)
+    /// <summary>Selects a predefined modular prediction tree.</summary>
+    /// <param name="treeKind">The requested predefined tree.</param>
+    /// <param name="totalPixels">The complete pixel population, including all selected channels.</param>
+    /// <param name="bitDepth">The source sample precision.</param>
+    /// <param name="prevProp">The number of reference properties available from earlier channels.</param>
+    /// <returns>The selected prediction tree.</returns>
+    public static Tree PredefinedTree(JxlTreeKind treeKind, long totalPixels, int bitDepth, int prevProp)
     {
         switch (treeKind)
         {
@@ -706,129 +754,216 @@ internal static class JxlModularEncodingEncoder
     /// <param name="options">The matching sampling and prediction options.</param>
     /// <param name="start">The first image index to include.</param>
     /// <param name="stop">The first image index to exclude.</param>
-    /// <param name="multiplierInfo">The optional learned multiplier information.</param>
+    /// <param name="multiplierInfo">The forced multiplier ranges, or an empty list when none are required.</param>
     /// <returns>The learned prediction tree.</returns>
     public static Tree LearnTree(
         Configuration configuration,
-        JxlModularImage[] images,
-        Span<JxlModularOptions> options,
+        ReadOnlySpan<JxlModularImage> images,
+        ReadOnlySpan<JxlModularOptions> options,
         int start,
         int stop,
-        List<JxlModularMultiplierInfo>? multiplierInfo = null)
+        List<JxlModularMultiplierInfo> multiplierInfo)
     {
-        multiplierInfo ??= [];
-
-        JxlTreeSamples samples = new();
-        samples.SetPredictor(options[start].Predictor, options[start].WpTreeMode);
-        samples.SetProperties(options[start].SplittingHeuristicsProperties, options[start].WpTreeMode);
-
-        int maxC = 0;
-        int maximumWidth = 0;
-
-        List<int> pixelSamples = [];
-        List<int> diffSamples = [];
-        List<int> groupPixelCount = [];
-        List<int> channelPixelCount = [];
-
-        for (int i = start; i < stop; i++)
+        JxlTreeSamples samples = new(configuration);
+        try
         {
-            maxC = Math.Max(images[i].Channels.Count, maxC);
+            samples.SetPredictor(options[start].Predictor, options[start].WpTreeMode);
+            samples.SetProperties(CollectionsMarshal.AsSpan(options[start].SplittingHeuristicsProperties), options[start].WpTreeMode);
 
-            for (int c = 0; c < images[i].Channels.Count; c++)
+            int maxC = 0;
+            int maximumWidth = 0;
+
+            int acceptedSamples = 0;
+            int previousPixels = -1;
+            ulong previousThreshold = 0;
+            int previousAccepted = 0;
+
+            for (int i = start; i < stop; i++)
             {
-                JxlModularChannel channel = images[i].Channels[c];
+                maxC = Math.Max(images[i].Channels.Count, maxC);
 
-                if (c >= images[i].MetaChannels && (channel.Width > options[i].MaxChannelSize || channel.Height > options[i].MaxChannelSize))
+                for (int c = 0; c < images[i].Channels.Count; c++)
+                {
+                    JxlModularChannel channel = images[i].Channels[c];
+
+                    if (c >= images[i].MetaChannels && (channel.Width > options[i].MaxChannelSize || channel.Height > options[i].MaxChannelSize))
+                    {
+                        break;
+                    }
+
+                    maximumWidth = Math.Max(maximumWidth, channel.Width);
+                    if (images[i].Width == 0 || images[i].Height == 0 || channel.Width == 0 || channel.Height == 0)
+                    {
+                        continue;
+                    }
+
+                    int pixels = checked(channel.Width * channel.Height);
+                    ulong threshold = SamplingThreshold(channel.Width, channel.Height, options[i].NumberOfRepeats);
+                    if (pixels != previousPixels || threshold != previousThreshold)
+                    {
+                        previousAccepted = CountAcceptedSamples(pixels, threshold);
+                        previousPixels = pixels;
+                        previousThreshold = threshold;
+                    }
+
+                    acceptedSamples = checked(acceptedSamples + previousAccepted);
+                }
+            }
+
+            // Count the actual deterministic selections before allocating sample planes. Repeated pixel counts and thresholds
+            // reuse the preceding count. A fraction of one uses the channel pixel count without an RNG counting pass.
+            samples.PrepareForSamples(acceptedSamples);
+            using IMemoryOwner<int> histogramOwner = configuration.MemoryAllocator.Allocate<int>(checked(stop + maxC), AllocationOptions.Clean);
+            Span<int> histogramStorage = histogramOwner.Memory.Span;
+            Span<int> groupPixelCount = histogramStorage[..stop];
+            Span<int> channelPixelCount = histogramStorage[stop..];
+            int rawSampleCount = 0;
+            for (int i = start; i < stop; i++)
+            {
+                rawSampleCount = checked(rawSampleCount + JxlMaEncoder.CountPixelSamples(images[i], options[i], i, groupPixelCount, channelPixelCount));
+            }
+
+            // Pixel and residual training values have the same selection count. Keep both in one owned allocation.
+            using IMemoryOwner<int> trainingOwner = configuration.MemoryAllocator.Allocate<int>(checked(2 * rawSampleCount));
+            Span<int> trainingStorage = trainingOwner.Memory.Span;
+            Span<int> pixelSamples = trainingStorage[..rawSampleCount];
+            Span<int> diffSamples = trainingStorage[rawSampleCount..];
+            int sampleOffset = 0;
+            for (int i = start; i < stop; i++)
+            {
+                sampleOffset += JxlMaEncoder.CollectPixelSamples(images[i], options[i], i, pixelSamples[sampleOffset..], diffSamples[sampleOffset..]);
+            }
+
+            StaticPropertyRange range = default;
+            InlineArray2<int> currRange = default;
+            currRange[0] = 0;
+            currRange[1] = maxC;
+            range[0] = currRange;
+            currRange[0] = start;
+            currRange[1] = stop;
+            range[1] = currRange;
+
+            samples.PreQuantizeProperties(
+                range,
+                CollectionsMarshal.AsSpan(multiplierInfo),
+                groupPixelCount,
+                channelPixelCount,
+                pixelSamples,
+                diffSamples,
+                options[start].MaxPropertyValues);
+
+            // Individual planes fit Int32 storage. Their combined population can exceed Int32 when sampling is sparse.
+            long totalPixels = 0;
+
+            for (int i = 0; i < images[start].Channels.Count; i++)
+            {
+                if (i >= images[start].MetaChannels &&
+                    (images[start].Channels[i].Width > options[start].MaxChannelSize ||
+                     images[start].Channels[i].Height > options[start].MaxChannelSize))
                 {
                     break;
                 }
 
-                maximumWidth = Math.Max(maximumWidth, channel.Width);
+                totalPixels += images[start].Channels[i].Width * images[start].Channels[i].Height;
             }
 
-            JxlMaEncoder.CollectPixelSamples(configuration, images[i], options[i], i, groupPixelCount, channelPixelCount, pixelSamples, diffSamples);
-        }
+            totalPixels = Math.Max(totalPixels, 1);
 
-        // StaticPropRange range;
-        // range[0] = { { 0, max_c } };
-        // range[1] = { { start, stop } };
-        StaticPropertyRange range = default;
-        InlineArray2<int> currRange = default;
-        currRange[0] = 0;
-        currRange[1] = maxC;
-        range[0] = currRange;
-        currRange[0] = start;
-        currRange[1] = stop;
-        range[1] = currRange;
+            JxlModularHeader wpHeader = new();
+            using JxlModularState weightedState = new(configuration, wpHeader, maximumWidth, 1);
 
-        samples.PreQuantizeProperties(configuration, range, multiplierInfo, groupPixelCount, channelPixelCount, pixelSamples, diffSamples, options[start].MaxPropertyValues);
-
-        int totalPixels = 0;
-
-        for (int i = 0; i < images[start].Channels.Count; i++)
-        {
-            if (i >= images[start].MetaChannels &&
-                (images[start].Channels[i].Width > options[start].MaxChannelSize ||
-                 images[start].Channels[i].Height > options[start].MaxChannelSize))
+            for (int i = start; i < stop; i++)
             {
-                break;
-            }
+                int numChannels = images[i].Channels.Count;
 
-            totalPixels += images[start].Channels[i].Width * images[start].Channels[i].Height;
-        }
-
-        totalPixels = Math.Max(totalPixels, 1);
-
-        JxlModularHeader wpHeader = new();
-        using JxlModularState weightedState = new(configuration, wpHeader, maximumWidth, 1);
-
-        for (int i = start; i < stop; i++)
-        {
-            int numChannels = images[i].Channels.Count;
-
-            if (images[i].Width == 0 || images[i].Height == 0 || numChannels < 1)
-            {
-                continue;
-            }
-
-            if (images[i].IsInvalid)
-            {
-                throw new InvalidOperationException("Invalid image");
-            }
-
-            if (options[i].TreeKind != JxlTreeKind.Learn)
-            {
-                throw new InvalidOperationException("Tree type must be Learn");
-            }
-
-            JxlBundle.Init(wpHeader);
-
-            if (JxlContextPrediction.IsWeightedPredictor(options[i].Predictor))
-            {
-                JxlContextPrediction.SetPredictorMode(options[i].WpMode, wpHeader);
-            }
-
-            for (int c = 0; c < numChannels; c++)
-            {
-                if (c >= images[i].MetaChannels &&
-                    (images[i].Channels[c].Width > options[i].MaxChannelSize ||
-                     images[i].Channels[c].Height > options[i].MaxChannelSize))
+                if (images[i].Width == 0 || images[i].Height == 0 || numChannels < 1)
                 {
-                    break;
+                    continue;
                 }
 
-                if (images[i].Channels[c].Width == 0 || images[i].Channels[c].Height == 0)
+                if (images[i].IsInvalid)
                 {
-                    continue;  // skip empty channels
+                    throw new InvalidOperationException("Invalid image");
                 }
 
-                GatherTreeData(configuration, images[i], c, i, wpHeader, options[i], samples, weightedState, ref totalPixels);
+                if (options[i].TreeKind != JxlTreeKind.Learn)
+                {
+                    throw new InvalidOperationException("Tree type must be Learn");
+                }
+
+                JxlBundle.Init(wpHeader);
+
+                if (JxlContextPrediction.IsWeightedPredictor(options[i].Predictor))
+                {
+                    JxlContextPrediction.SetPredictorMode(options[i].WpMode, wpHeader);
+                }
+
+                for (int c = 0; c < numChannels; c++)
+                {
+                    if (c >= images[i].MetaChannels &&
+                        (images[i].Channels[c].Width > options[i].MaxChannelSize ||
+                         images[i].Channels[c].Height > options[i].MaxChannelSize))
+                    {
+                        break;
+                    }
+
+                    if (images[i].Channels[c].Width == 0 || images[i].Channels[c].Height == 0)
+                    {
+                        continue;  // skip empty channels
+                    }
+
+                    GatherTreeData(configuration, images[i], c, i, wpHeader, options[i], ref samples, weightedState, ref totalPixels);
+                }
+            }
+
+            Tree tree = LearnTree(configuration, ref samples, totalPixels, options[start], multiplierInfo, range);
+
+            return tree;
+        }
+        finally
+        {
+            samples.Dispose();
+        }
+    }
+
+    /// <summary>Computes the native acceptance threshold shared by sample counting and collection.</summary>
+    /// <param name="width">The channel width.</param>
+    /// <param name="height">The channel height.</param>
+    /// <param name="repeats">The requested sampling fraction.</param>
+    /// <returns>The inclusive threshold for the high 32 RNG bits.</returns>
+    private static ulong SamplingThreshold(int width, int height, float repeats)
+    {
+        double fraction = Math.Min(1F, repeats);
+        if (fraction > 0)
+        {
+            fraction = Math.Max(fraction, Math.Min(1D, 1024D / ((long)width * height)));
+        }
+
+        return (ulong)(uint.MaxValue * fraction);
+    }
+
+    /// <summary>Counts the exact accepted samples without reading or copying channel samples.</summary>
+    /// <param name="pixelCount">The number of channel pixels visited by collection.</param>
+    /// <param name="threshold">The inclusive native acceptance threshold.</param>
+    /// <returns>The capacity required before collecting this channel.</returns>
+    private static int CountAcceptedSamples(int pixelCount, ulong threshold)
+    {
+        if (threshold == uint.MaxValue)
+        {
+            return pixelCount;
+        }
+
+        Rng rng = new(0);
+        int accepted = 0;
+        for (int i = 0; i < pixelCount; i++)
+        {
+            if ((rng.Next() >> 32) <= threshold)
+            {
+                accepted++;
             }
         }
 
-        Tree tree = LearnTree(samples, totalPixels, options[start], multiplierInfo, range);
-
-        return tree;
+        return accepted;
     }
 
     /// <summary>
@@ -988,12 +1123,15 @@ internal static class JxlModularEncodingEncoder
 
         if (modularOptions.TreeKind == JxlTreeKind.Learn)
         {
-            tree = LearnTree(configuration, image, options, 0, 1);
+            // Borrow the single image and its resolved options. Tree preparation reads these references only during this call.
+            ReadOnlySpan<JxlModularImage> images = MemoryMarshal.CreateReadOnlySpan(ref image, 1);
+            ReadOnlySpan<JxlModularOptions> treeOptions = MemoryMarshal.CreateReadOnlySpan(ref modularOptions, 1);
+            tree = LearnTree(configuration, images, treeOptions, 0, 1, []);
         }
         else
         {
             // It's a predefined tree.
-            int totalPixels = 0;
+            long totalPixels = 0;
 
             for (int i = 0; i < numChannels; i++)
             {

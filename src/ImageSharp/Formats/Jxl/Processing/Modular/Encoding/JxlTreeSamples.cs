@@ -1,884 +1,707 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
-using StaticPropertyRange = System.Runtime.CompilerServices.InlineArray2<System.Runtime.CompilerServices.InlineArray2<int>>;
+using SixLabors.ImageSharp.Memory;
+using StaticPropertyRange = SixLabors.ImageSharp.InlineArray2<SixLabors.ImageSharp.InlineArray2<int>>;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
 
 /// <summary>
-/// Contains all the necessary data needed to build a tree.
+/// Owns the sampled residuals and quantized properties used to learn one modular prediction tree.
 /// </summary>
-internal sealed class JxlTreeSamples
+/// <remarks>
+/// Preparation allocates each numeric buffer once. Separate predictor and property planes retain contiguous tree-search reads.
+/// The borrowed spans remain valid until disposal. Pass this owner by reference; copying it would copy ownership and logical counts.
+/// </remarks>
+internal ref struct JxlTreeSamples
 {
-    /// <summary>
-    /// This deduplication table entry marks an unused entry.
-    /// </summary>
     private const int DeduplicationEntryUnused = -1;
-
     private const int PropertyRange = 511;
+    private const int PropertyMapSize = (2 * PropertyRange) + 1;
+
+    private readonly MemoryAllocator allocator;
+    private InlineArray16<JxlPredictor> predictors;
+    private IMemoryOwner<int>? propertyIdsOwner;
+    private IMemoryOwner<int>? quantizationOwner;
+    private IMemoryOwner<JxlResidualToken>? residualsOwner;
+    private IMemoryOwner<int>? countsOwner;
+    private IMemoryOwner<byte>? propertiesOwner;
+    private IMemoryOwner<int>? deduplicationOwner;
+
+    // Each predictor/property occupies one capacity-sized plane. Only the first NumberOfDistinctSamples entries are samples.
+    private Span<int> propertiesToUse;
+    private Span<int> thresholdCounts;
+    private Span<int> compactProperties;
+    private Span<int> propertyMapping;
+    private Span<JxlResidualToken> residuals;
+    private Span<int> sampleCounts;
+    private Span<int> staticProperties;
+    private Span<byte> properties;
+    private Span<int> deduplicationTable;
+    private int sampleCapacity;
+    private int thresholdCapacity;
 
     /// <summary>
-    /// Residual information: token and number of extra bits per predictor.
+    /// Creates an empty owner. Select predictors and properties before preparing quantization and sample storage.
     /// </summary>
-    private List<List<JxlResidualToken>> residuals = [];
+    /// <param name="configuration">The configuration that owns all numeric storage.</param>
+    public JxlTreeSamples(Configuration configuration)
+    {
+        this = default;
+        this.allocator = configuration.MemoryAllocator;
+    }
 
-    /// <summary>
-    /// Number of occurrences of each sample.
-    /// </summary>
-    private readonly List<int> sampleCounts = [];
+    /// <summary>Gets whether at least one distinct sample was inserted.</summary>
+    public readonly bool HasSamples => this.NumberOfDistinctSamples != 0;
 
-    /// <summary>
-    /// Quantized static property values.
-    /// </summary>
-    private InlineArray2<List<int>> staticProperties;
+    /// <summary>Gets the number of retained sample records.</summary>
+    public int NumberOfDistinctSamples { get; private set; }
 
-    /// <summary>
-    /// Property values, quantized to at most 256 distinct values.
-    /// </summary>
-    private readonly List<List<byte>> properties = [];
-
-    /// <summary>
-    /// Decompactification info for <see cref="properties"/>.
-    /// </summary>
-    private readonly List<List<int>> compactProperties = [];
-
-    /// <summary>
-    /// List of properties to use.
-    /// </summary>
-    private List<int> propertiesToUse = [];
-
-    /// <summary>
-    /// List of predictors to use.
-    /// </summary>
-    private List<JxlPredictor> predictors = [];
-
-    /// <summary>
-    /// Mapping property value -> quantized property value.
-    /// </summary>
-    private InlineArray2<List<int>> staticPropertyMapping;
-
-    private readonly List<List<int>> propertyMapping = [];
-
-    /// <summary>
-    /// Table for deduplication.
-    /// </summary>
-    private List<int> deduplicationTable = [];
-
-    /// <summary>
-    /// Gets a value indicating whether there are any residual samples.
-    /// </summary>
-    public bool HasSamples => this.residuals.Count > 0 && this.residuals[0].Count > 0;
-
-    /// <summary>
-    /// Gets the total number of distinct samples.
-    /// </summary>
-    public int NumberOfDistinctSamples => this.sampleCounts.Count;
-
-    /// <summary>
-    /// Gets the total number of samples.
-    /// </summary>
+    /// <summary>Gets the number of inserted samples, including merged duplicates.</summary>
     public int NumberOfSamples { get; private set; }
 
-    /// <summary>
-    /// Gets the number of quantized static property values.
-    /// </summary>
+    /// <summary>Gets the number of selected static properties.</summary>
     public int NumberOfStaticProperties { get; private set; }
 
-    /// <summary>
-    /// Gets the total number of predictors.
-    /// </summary>
-    public int NumberOfPredictors => this.predictors.Count;
+    /// <summary>Gets the number of selected predictors.</summary>
+    public int NumberOfPredictors { get; private set; }
 
-    /// <summary>
-    /// Gets the total number of properties.
-    /// </summary>
-    public int NumberOfProperties => this.propertiesToUse.Count;
+    /// <summary>Gets the number of selected properties.</summary>
+    public readonly int NumberOfProperties => this.propertiesToUse.Length;
 
-    /// <summary>
-    /// Returns a List of residual tokens for the specified kind of prediction.
-    /// </summary>
-    /// <param name="prediction">The type of prediction.</param>
-    /// <returns>Residual tokens corresponding to the prediction specified by the parameter <paramref name="prediction"/>.</returns>
-    public List<JxlResidualToken> GetResidualTokensForPrediction(int prediction) => this.residuals[prediction];
+    /// <summary>Returns the logical residual plane for one selected predictor.</summary>
+    /// <param name="prediction">The selected predictor index.</param>
+    /// <returns>The retained residual tokens, without unused capacity.</returns>
+    public readonly ReadOnlySpan<JxlResidualToken> GetResidualTokensForPrediction(int prediction)
+        => this.residuals.Slice(prediction * this.sampleCapacity, this.NumberOfDistinctSamples);
 
-    /// <summary>
-    /// Returns a reference to the residual token.
-    /// </summary>
-    /// <param name="pred">Kind of prediction.</param>
-    /// <param name="i">Index of the residual token within that prediction.</param>
-    /// <returns>The residual token for prediction <paramref name="pred"/> indexed <paramref name="i"/>.</returns>
-    public ref JxlResidualToken GetResidualToken(int pred, int i) => ref CollectionsMarshal.AsSpan(this.residuals[pred])[i];
+    /// <summary>Returns one retained residual token.</summary>
+    /// <param name="prediction">The selected predictor index.</param>
+    /// <param name="sample">The retained sample index.</param>
+    /// <returns>The token and extra-bit count.</returns>
+    public readonly ref JxlResidualToken GetResidualToken(int prediction, int sample)
+        => ref this.residuals[(prediction * this.sampleCapacity) + sample];
 
-    /// <summary>
-    /// Returns a token of the residual for prediction <paramref name="prediction"/> index <paramref name="index"/>.
-    /// </summary>
-    /// <param name="prediction">The kind of prediction.</param>
-    /// <param name="index">Index of the residual token within that prediction.</param>
-    /// <returns>For residual token whose prediction is <paramref name="prediction"/> and index is <paramref name="index"/>, returns its token coefficient.</returns>
-    public int GetToken(int prediction, int index) => this.residuals[prediction][index].Token;
+    /// <summary>Returns the entropy symbol for one predictor and sample.</summary>
+    /// <param name="prediction">The selected predictor index.</param>
+    /// <param name="sample">The retained sample index.</param>
+    /// <returns>The residual symbol.</returns>
+    public readonly int GetToken(int prediction, int sample) => this.residuals[(prediction * this.sampleCapacity) + sample].Token;
 
-    /// <summary>
-    /// Returns the number of occurrences for sample <paramref name="i"/>.
-    /// </summary>
-    /// <param name="i">The index of the sample.</param>
-    /// <returns>Number of times <paramref name="i"/> appears.</returns>
-    public int GetCount(int i) => this.sampleCounts[i];
+    /// <summary>Returns the occurrence count for one retained sample.</summary>
+    /// <param name="sample">The retained sample index.</param>
+    /// <returns>The count, saturated at 65535 for each retained record.</returns>
+    public readonly int GetCount(int sample) => this.sampleCounts[sample];
 
-    /// <summary>
-    /// Finds the index of the predictor <paramref name="predictor"/>.
-    /// </summary>
-    /// <param name="predictor">The predictor to find the index for.</param>
-    /// <returns>Index of the predictor in the predictors storage.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the predictor can't be found.</exception>
-    public int FindPredictorIndex(JxlPredictor predictor)
+    /// <summary>Finds a selected predictor.</summary>
+    /// <param name="predictor">The predictor to find.</param>
+    /// <returns>Its index in the selected predictor set.</returns>
+    public readonly int FindPredictorIndex(JxlPredictor predictor)
     {
-        ReadOnlySpan<JxlPredictor> span = CollectionsMarshal.AsSpan(this.predictors);
-
-        int index = span.IndexOf(predictor);
-
-        if (index < 0)
+        for (int i = 0; i < this.NumberOfPredictors; i++)
         {
-            // Should not happen.
-            throw new InvalidOperationException("Cannot find the index of the predictor");
+            if (this.predictors[i] == predictor)
+            {
+                return i;
+            }
         }
 
+        throw new InvalidOperationException("The predictor was not selected.");
+    }
+
+    /// <summary>Finds a selected property.</summary>
+    /// <param name="property">The original property index.</param>
+    /// <returns>Its index in the selected property set.</returns>
+    public readonly int FindPropertyIndex(int property)
+    {
+        int index = this.propertiesToUse.IndexOf(property);
+        DebugGuard.MustBeGreaterThanOrEqualTo(index, 0, nameof(property));
         return index;
     }
 
-    /// <summary>
-    /// Finds the index of the property <paramref name="property"/>.
-    /// </summary>
-    /// <param name="property">The property to find the index for.</param>
-    /// <returns>Index of the property in the properties storage.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the property isn't valid.</exception>
-    public int FindPropertyIndex(int property)
-    {
-        ReadOnlySpan<int> span = CollectionsMarshal.AsSpan(this.propertiesToUse);
+    /// <summary>Returns the number of quantization intervals for a selected property.</summary>
+    /// <param name="propertyIndex">The selected property index.</param>
+    /// <returns>The threshold count plus one.</returns>
+    public readonly int CountPropertyValues(int propertyIndex) => this.thresholdCounts[propertyIndex] + 1;
 
-        int index = span.IndexOf(property);
-
-        if (index != this.propertiesToUse[^1])
-        {
-            // Should not happen.
-            throw new InvalidOperationException("Invalid property");
-        }
-
-        return index;
-    }
-
-    /// <summary>
-    /// Returns the number of properties for a <paramref name="propertyIndex"/>.
-    /// </summary>
-    /// <param name="propertyIndex">Index of the property.</param>
-    /// <returns>Number of property values for property with index <paramref name="propertyIndex"/>.</returns>
-    public int CountPropertyValues(int propertyIndex) => this.compactProperties[propertyIndex].Count + 1;
-
-    /// <summary>
-    /// Returns the value of a property.
-    /// </summary>
-    /// <param name="useStaticProperty">Prefer a static property?</param>
-    /// <param name="propertyIndex">The index of the properties table.</param>
-    /// <param name="i">The index of the property.</param>
-    /// <returns>
-    /// Property for index <paramref name="i" /> within table <paramref name="propertyIndex"/>.
-    /// </returns>
+    /// <summary>Reads one quantized static or dynamic property.</summary>
+    /// <param name="useStaticProperty">Whether to read a static property plane.</param>
+    /// <param name="propertyIndex">The index within the static or dynamic property planes.</param>
+    /// <param name="sampleIndex">The retained sample index.</param>
+    /// <returns>The quantization interval.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetProperty(bool useStaticProperty, int propertyIndex, int i)
+    public readonly int GetProperty(bool useStaticProperty, int propertyIndex, int sampleIndex)
+        => useStaticProperty
+            ? this.staticProperties[(propertyIndex * this.sampleCapacity) + sampleIndex]
+            : this.properties[(propertyIndex * this.sampleCapacity) + sampleIndex];
+
+    /// <summary>Returns the original threshold for a quantized split.</summary>
+    /// <param name="propertyIndex">The selected property index.</param>
+    /// <param name="quant">The threshold index.</param>
+    /// <returns>The original property threshold.</returns>
+    public readonly int UnquantizeProperty(int propertyIndex, int quant)
+        => this.compactProperties[(propertyIndex * this.thresholdCapacity) + quant];
+
+    /// <summary>Returns the predictor at a selected index.</summary>
+    /// <param name="index">The selected predictor index.</param>
+    /// <returns>The predictor.</returns>
+    public readonly JxlPredictor PredictorFromIndex(int index) => this.predictors[index];
+
+    /// <summary>Returns the original property at a selected index.</summary>
+    /// <param name="index">The selected property index.</param>
+    /// <returns>The original property index.</returns>
+    public readonly int PropertyFromIndex(int index) => this.propertiesToUse[index];
+
+    /// <summary>Releases the deduplication table after collection. Sample planes remain available for tree search.</summary>
+    public void AllSamplesDone()
     {
-        if (useStaticProperty)
-        {
-            return this.staticProperties[propertyIndex][i];
-        }
-        else
-        {
-            return this.properties[propertyIndex][i];
-        }
+        this.deduplicationTable = default;
+        this.deduplicationOwner?.Dispose();
+        this.deduplicationOwner = null;
     }
 
-    /// <summary>
-    /// Returns the dequantized property.
-    /// </summary>
-    /// <param name="propertyIndex">Index of the target property.</param>
-    /// <param name="quant">Property quantizer.</param>
-    /// <returns>The dequantized property.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the quant is out of range.</exception>
-    public int UnquantizeProperty(int propertyIndex, int quant)
-    {
-        List<int> compactProperties = this.compactProperties[propertyIndex];
+    /// <summary>Maps a dynamic property to its quantization interval.</summary>
+    /// <param name="property">The selected property index, including static properties.</param>
+    /// <param name="value">The original property value.</param>
+    /// <returns>The quantization interval.</returns>
+    public readonly int QuantizeProperty(int property, int value)
+        => this.propertyMapping[(property * PropertyMapSize) + Math.Clamp(value, -PropertyRange, PropertyRange) + PropertyRange];
 
-        if (quant >= compactProperties.Count)
-        {
-            throw new InvalidOperationException("Quant is out of range");
-        }
+    /// <summary>Maps a static property to its quantization interval.</summary>
+    /// <param name="property">The selected static property index.</param>
+    /// <param name="value">The original property value.</param>
+    /// <returns>The quantization interval.</returns>
+    public readonly int QuantizeStaticProperty(int property, int value)
+        => this.propertyMapping[(property * PropertyMapSize) + Math.Clamp(value, -PropertyRange, PropertyRange) + PropertyRange];
 
-        return compactProperties[quant];
-    }
-
-    /// <summary>
-    /// Returns a predictor for index <paramref name="index"/>.
-    /// </summary>
-    /// <param name="index">The index of the predictor.</param>
-    /// <returns>Predictor at index <paramref name="index"/>.</returns>
-    public JxlPredictor PredictorFromIndex(int index)
-    {
-        DebugGuard.MustBeLessThan(index, this.predictors.Count, nameof(index));
-
-        return this.predictors[index];
-    }
-
-    /// <summary>
-    /// Returns a property for index <paramref name="index"/>.
-    /// </summary>
-    /// <param name="index">The index of the property.</param>
-    /// <returns>Property at index <paramref name="index"/>.</returns>
-    public int PropertyFromIndex(int index)
-    {
-        DebugGuard.MustBeLessThan(index, this.propertiesToUse.Count, nameof(index));
-
-        return this.propertiesToUse[index];
-    }
-
-    /// <summary>
-    /// Invoked after processing samples completed.
-    /// </summary>
-    public void AllSamplesDone() => this.deduplicationTable = [];
-
-    /// <summary>
-    /// Returns the quantized property value of <paramref name="v"/>.
-    /// </summary>
-    /// <param name="property">Index of the property.</param>
-    /// <param name="v">Value to quantize.</param>
-    /// <returns>Quantized value.</returns>
-    public int QuantizeProperty(int property, int v)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(property, this.NumberOfStaticProperties, nameof(property));
-
-        v = Math.Clamp(v, -PropertyRange, PropertyRange) + PropertyRange;
-
-        return this.propertyMapping[property][v];
-    }
-
-    /// <summary>
-    /// Returns the quantized static property value of <paramref name="v"/>.
-    /// </summary>
-    /// <param name="property">Index of the static property.</param>
-    /// <param name="v">Value to quantize.</param>
-    /// <returns>Quantized value.</returns>
-    public int QuantizeStaticProperty(int property, int v)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(property, this.NumberOfStaticProperties, nameof(property));
-
-        v = Math.Clamp(v, -PropertyRange, PropertyRange) + PropertyRange;
-
-        return this.staticPropertyMapping[property][v];
-    }
-
+    /// <summary>Selects the predictors before sample storage is prepared.</summary>
+    /// <param name="predictor">The requested predictor or predictor search set.</param>
+    /// <param name="wpTreeMode">The weighted-prediction selection mode.</param>
     public void SetPredictor(JxlPredictor predictor, JxlTreeMode wpTreeMode)
     {
+        this.NumberOfPredictors = 0;
         if (wpTreeMode == JxlTreeMode.WpOnly)
         {
-            this.predictors = [JxlPredictor.Weighted];
-
-            // equivalent of residuals.resize(1)
-            if (this.residuals.Count > 1)
-            {
-                this.residuals = [this.residuals[0]];
-            }
-            else if (this.residuals.Count < 1)
-            {
-                this.residuals = [[]];
-            }
-
+            this.predictors[this.NumberOfPredictors++] = JxlPredictor.Weighted;
             return;
         }
 
         if (wpTreeMode == JxlTreeMode.NoWp && predictor == JxlPredictor.Weighted)
         {
-            throw new InvalidOperationException("Invalid predictor settings");
+            throw new InvalidOperationException("Weighted prediction is excluded by the tree mode.");
         }
 
         if (predictor == JxlPredictor.Variable)
         {
             for (int i = 0; i < JxlPredictorFacts.ModularPredictors; i++)
             {
-                this.predictors.Add((JxlPredictor)i);
+                this.predictors[this.NumberOfPredictors++] = (JxlPredictor)i;
             }
 
-            Span<JxlPredictor> predictorsSpan = CollectionsMarshal.AsSpan(this.predictors);
-            RuntimeUtility.Swap(ref predictorsSpan[0], ref predictorsSpan[(int)JxlPredictor.Weighted]);
-            RuntimeUtility.Swap(ref predictorsSpan[1], ref predictorsSpan[(int)JxlPredictor.Gradient]);
+            RuntimeUtility.Swap(ref this.predictors[0], ref this.predictors[(int)JxlPredictor.Weighted]);
+            RuntimeUtility.Swap(ref this.predictors[1], ref this.predictors[(int)JxlPredictor.Gradient]);
         }
         else if (predictor == JxlPredictor.Best)
         {
-            this.predictors = [JxlPredictor.Weighted, JxlPredictor.Gradient];
+            this.predictors[this.NumberOfPredictors++] = JxlPredictor.Weighted;
+            this.predictors[this.NumberOfPredictors++] = JxlPredictor.Gradient;
         }
         else
         {
-            this.predictors = [predictor];
+            this.predictors[this.NumberOfPredictors++] = predictor;
         }
 
         if (wpTreeMode == JxlTreeMode.NoWp)
         {
-            // delete all weighted predictors
-            _ = this.predictors.RemoveAll(p => p == JxlPredictor.Weighted);
-        }
+            int count = 0;
+            for (int i = 0; i < this.NumberOfPredictors; i++)
+            {
+                if (this.predictors[i] != JxlPredictor.Weighted)
+                {
+                    this.predictors[count++] = this.predictors[i];
+                }
+            }
 
-        this.residuals.Grow([], this.predictors.Count);
+            this.NumberOfPredictors = count;
+        }
     }
 
-    public void SetProperties(List<int> properties, JxlTreeMode wpTreeMode)
+    /// <summary>Copies the selected property IDs. Tree modes do not modify the caller's options.</summary>
+    /// <param name="selectedProperties">The original property IDs.</param>
+    /// <param name="wpTreeMode">The weighted-prediction selection mode.</param>
+    public void SetProperties(scoped ReadOnlySpan<int> selectedProperties, JxlTreeMode wpTreeMode)
     {
-        this.propertiesToUse = properties;
-
-        if (wpTreeMode == JxlTreeMode.WpOnly)
+        int capacity = wpTreeMode is JxlTreeMode.WpOnly or JxlTreeMode.GradientOnly ? 1 : selectedProperties.Length;
+        this.propertyIdsOwner = this.allocator.Allocate<int>(capacity);
+        Span<int> destination = this.propertyIdsOwner.Memory.Span;
+        int count = 0;
+        if (wpTreeMode is JxlTreeMode.WpOnly or JxlTreeMode.GradientOnly)
         {
-            this.propertiesToUse = [JxlMaConstants.WpProp];
+            destination[count++] = wpTreeMode == JxlTreeMode.WpOnly ? JxlMaConstants.WpProp : JxlMaConstants.GradientProp;
         }
-        else if (wpTreeMode == JxlTreeMode.GradientOnly)
+        else
         {
-            this.propertiesToUse = [JxlMaConstants.GradientProp];
-        }
-        else if (wpTreeMode == JxlTreeMode.NoWp)
-        {
-            // delete all weighted properties, tree mode
-            // says "no weighted predictors"
-            _ = this.propertiesToUse.RemoveAll(x => x == JxlMaConstants.WpProp);
-        }
-
-        if (this.propertiesToUse.Count == 0)
-        {
-            // could happen in default tree mode or when properties parameter
-            // is empty
-            throw new InvalidOperationException("Invalid property set configuration");
-        }
-
-        this.NumberOfStaticProperties = 0;
-
-        for (int i = 0; i < this.propertiesToUse.Count; ++i)
-        {
-            int prop = this.propertiesToUse[i];
-
-            if (prop < JxlPredictorFacts.StaticProperties)
+            foreach (int property in selectedProperties)
             {
-                if (i != prop)
+                if (wpTreeMode != JxlTreeMode.NoWp || property != JxlMaConstants.WpProp)
                 {
-                    throw new InvalidOperationException("Index is not equal to the property");
+                    destination[count++] = property;
                 }
+            }
+        }
 
+        if (count == 0)
+        {
+            throw new InvalidOperationException("The selected property set is empty.");
+        }
+
+        this.propertiesToUse = destination[..count];
+        this.NumberOfStaticProperties = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (destination[i] < JxlPredictorFacts.StaticProperties)
+            {
+                DebugGuard.IsTrue(i == destination[i], "Static properties must form the initial property prefix.");
                 this.NumberOfStaticProperties++;
             }
         }
-
-        this.properties.Resize(this.propertiesToUse.Count - this.NumberOfStaticProperties);
     }
 
-    public void InitializeTable(int logSize)
+    /// <summary>Allocates sample planes and the deduplication table for the exact accepted sample count.</summary>
+    /// <param name="sampleCount">The number of samples selected by the prepared RNG sequence.</param>
+    public void PrepareForSamples(int sampleCount)
     {
-        int size = 1 << logSize;
+        this.sampleCapacity = sampleCount;
+        this.residualsOwner = this.allocator.Allocate<JxlResidualToken>(checked(sampleCount * this.NumberOfPredictors));
+        this.residuals = this.residualsOwner.Memory.Span;
+        this.countsOwner = this.allocator.Allocate<int>(checked(sampleCount * (1 + this.NumberOfStaticProperties)));
+        Span<int> counts = this.countsOwner.Memory.Span;
+        this.sampleCounts = counts[..sampleCount];
+        this.staticProperties = counts[sampleCount..];
+        this.propertiesOwner = this.allocator.Allocate<byte>(checked(sampleCount * (this.NumberOfProperties - this.NumberOfStaticProperties)));
+        this.properties = this.propertiesOwner.Memory.Span;
 
-        if (this.deduplicationTable.Count == size)
-        {
-            return;
-        }
-
-        this.deduplicationTable.Resize(size, DeduplicationEntryUnused);
-
-        for (int i = 0; i < this.NumberOfDistinctSamples; i++)
-        {
-            if (this.sampleCounts[i] != ushort.MaxValue)
-            {
-                this.AddToTable(i);
-            }
-        }
+        // Native uses two candidate buckets and removes saturated records. Keep the same power-of-two load bound.
+        // One accepted sample can add at most one distinct record; no insertion can outgrow these prepared planes.
+        uint buckets = BitOperations.RoundUpToPowerOf2((uint)Math.Max(1L, ((long)sampleCount * 3) / 2));
+        this.deduplicationOwner = this.allocator.Allocate<int>(checked((int)buckets));
+        this.deduplicationTable = this.deduplicationOwner.Memory.Span;
+        this.deduplicationTable.Fill(DeduplicationEntryUnused);
     }
 
-    public void AddToTableAndMerge(int a)
+    /// <summary>Inserts one selected sample, or merges its occurrence into a matching record.</summary>
+    /// <param name="pixel">The source sample value.</param>
+    /// <param name="sampleProperties">The original static and dynamic context properties.</param>
+    /// <param name="predictions">Predictions indexed by the modular predictor enum.</param>
+    public void AddSample(int pixel, scoped ReadOnlySpan<int> sampleProperties, scoped ReadOnlySpan<int> predictions)
     {
-        int pos1 = Hash1(a);
-        int pos2 = Hash2(a);
-
-        if (this.deduplicationTable[pos1] != DeduplicationEntryUnused && this.IsSameSample(a, this.deduplicationTable[pos1]))
+        int sample = this.NumberOfDistinctSamples;
+        JxlAnsHybridUIntConfiguration coding = new(4, 1, 2);
+        for (int i = 0; i < this.NumberOfPredictors; i++)
         {
-            if (this.sampleCounts[a] != 1)
-            {
-                throw new InvalidOperationException("Sample count must be 1");
-            }
-
-            this.sampleCounts[this.deduplicationTable[pos1]]++;
-
-            if (this.sampleCounts[this.deduplicationTable[pos1]] == ushort.MaxValue)
-            {
-                this.deduplicationTable[pos1] = DeduplicationEntryUnused;
-            }
-
-            return;
-        }
-
-        if (this.deduplicationTable[pos2] != DeduplicationEntryUnused && this.IsSameSample(a, this.deduplicationTable[pos2]))
-        {
-            if (this.sampleCounts[a] != 1)
-            {
-                throw new InvalidOperationException("Sample count must be 1");
-            }
-
-            this.sampleCounts[this.deduplicationTable[pos2]]++;
-
-            if (this.sampleCounts[this.deduplicationTable[pos2]] == ushort.MaxValue)
-            {
-                this.deduplicationTable[pos2] = DeduplicationEntryUnused;
-            }
-
-            return;
-        }
-
-        this.AddToTable(a);
-    }
-
-    public void AddToTable(int a)
-    {
-        int pos1 = Hash1(a);
-        int pos2 = Hash2(a);
-
-        if (this.deduplicationTable[pos1] == DeduplicationEntryUnused)
-        {
-            this.deduplicationTable[pos1] = a;
-        }
-        else if (this.deduplicationTable[pos2] == DeduplicationEntryUnused)
-        {
-            this.deduplicationTable[pos2] = a;
-        }
-    }
-
-    public void PrepareForSamples(int extraNumSamples)
-    {
-        foreach (List<JxlResidualToken> residual in this.residuals)
-        {
-            residual.Grow(default, residual.Count + extraNumSamples);
+            int residual = unchecked(pixel - predictions[(int)this.predictors[i]]);
+            coding.Encode(JxlPackSigned.PackUnsigned(residual), out uint token, out uint bitCount, out _);
+            this.residuals[(i * this.sampleCapacity) + sample] = new((int)token, (int)bitCount);
         }
 
         for (int i = 0; i < this.NumberOfStaticProperties; i++)
         {
-            this.staticProperties[i].Grow(0, this.staticProperties[i].Count + extraNumSamples);
+            this.staticProperties[(i * this.sampleCapacity) + sample] = this.QuantizeStaticProperty(i, sampleProperties[i]);
         }
 
-        foreach (List<byte> prop in this.properties)
+        for (int i = this.NumberOfStaticProperties; i < this.NumberOfProperties; i++)
         {
-            prop.Grow((byte)0, prop.Count + extraNumSamples);
+            int property = this.QuantizeProperty(i, sampleProperties[this.propertiesToUse[i]]);
+            this.properties[((i - this.NumberOfStaticProperties) * this.sampleCapacity) + sample] = (byte)property;
         }
 
-        int totalNumSamples = extraNumSamples + this.sampleCounts.Count;
-        int nextSize = JxlMath.CeilLog2Nonzero(totalNumSamples * 3 / 2);
-
-        this.InitializeTable(nextSize);
-    }
-
-    public int Hash1(int a)
-    {
-        const ulong constant = 0x1e35a7bd;
-
-        ulong h = constant;
-
-        foreach (List<JxlResidualToken> r in this.residuals)
-        {
-            h = (h * constant) + (ulong)r[a].Token;
-            h = (h * constant) + (ulong)r[a].NumberOfBits;
-        }
-
-        for (int i = 0; i < this.NumberOfStaticProperties; i++)
-        {
-            h = (h * constant) + (ulong)this.staticProperties[i][a];
-        }
-
-        foreach (List<byte> property in this.properties)
-        {
-            h = (h * constant) + property[a];
-        }
-
-        return (int)((h >> 16) & (ulong)(this.deduplicationTable.Count - 1));
-    }
-
-    public int Hash2(int a)
-    {
-        const ulong constant = 0x1e35a7bd1e35a7bd;
-
-        ulong h = constant;
-
-        for (int i = 0; i < this.NumberOfStaticProperties; i++)
-        {
-            h = (h * constant) ^ (ulong)this.staticProperties[i][a];
-        }
-
-        foreach (List<byte> property in this.properties)
-        {
-            h = (h * constant) ^ property[a];
-        }
-
-        foreach (List<JxlResidualToken> r in this.residuals)
-        {
-            h = (h * constant) ^ (ulong)r[a].Token;
-            h = (h * constant) ^ (ulong)r[a].NumberOfBits;
-        }
-
-        return (int)((h >> 16) & (ulong)(this.deduplicationTable.Count - 1));
-    }
-
-    public bool IsSameSample(int a, int b)
-    {
-        foreach (List<JxlResidualToken> r in this.residuals)
-        {
-            if (r[a].Token != r[b].Token)
-            {
-                return false;
-            }
-
-            if (r[a].NumberOfBits != r[b].NumberOfBits)
-            {
-                return false;
-            }
-        }
-
-        for (int i = 0; i < this.NumberOfStaticProperties; ++i)
-        {
-            if (this.staticProperties[i][a] != this.staticProperties[i][b])
-            {
-                return false;
-            }
-        }
-
-        foreach (List<byte> p in this.properties)
-        {
-            if (p[a] != p[b])
-            {
-                return false;
-            }
-        }
-
-        return false;
-    }
-
-    public void AddSample(int pixel, Span<int> properties, Span<int> predictions)
-    {
-        for (int i = 0; i < this.predictors.Count; i++)
-        {
-            int v = pixel - predictions[(int)this.predictors[i]];
-            new JxlAnsHybridUIntConfiguration(4, 1, 2).Encode(JxlPackSigned.PackUnsigned(v), out uint tok, out uint nbits, out uint bits);
-
-            if (tok >= 256)
-            {
-                throw new InvalidOperationException("Token is too large");
-            }
-
-            if (nbits >= 256)
-            {
-                throw new InvalidOperationException("Number of bits is too large");
-            }
-
-            JxlResidualToken token = new((int)tok, (int)nbits);
-            this.residuals[i].Add(token);
-        }
-
-        for (int i = 0; i < this.NumberOfStaticProperties; ++i)
-        {
-            this.staticProperties[i].Add(this.QuantizeStaticProperty(i, properties[i]));
-        }
-
-        for (int i = this.NumberOfStaticProperties; i < this.propertiesToUse.Count; i++)
-        {
-            this.properties[i - this.NumberOfStaticProperties].Add(unchecked((byte)this.QuantizeProperty(i, properties[this.propertiesToUse[i]])));
-        }
-
-        this.sampleCounts.Add(1);
+        this.sampleCounts[sample] = 1;
         this.NumberOfSamples++;
-
-        this.AddToTableAndMerge(this.sampleCounts.Count - 1);
-
-        foreach (List<JxlResidualToken> residual in this.residuals)
+        if (!this.AddToTableAndMerge(sample))
         {
-            // remove last item from List<T>
-            residual.RemoveAt(residual.Count - 1);
+            this.NumberOfDistinctSamples++;
         }
-
-        for (int i = 0; i < this.NumberOfStaticProperties; i++)
-        {
-            // ditto
-            this.staticProperties[i].RemoveAt(this.staticProperties[i].Count - 1);
-        }
-
-        foreach (List<byte> property in this.properties)
-        {
-            // ditto
-            property.RemoveAt(property.Count - 1);
-        }
-
-        // ditto
-        this.sampleCounts.RemoveAt(this.sampleCounts.Count - 1);
     }
 
-    public void Swap(int a, int b)
+    /// <summary>Probes the native two-bucket table and commits a new record only if neither bucket matches.</summary>
+    /// <param name="sample">The tentative record at the end of the logical sample planes.</param>
+    /// <returns>Whether a previous record absorbed the sample.</returns>
+    private bool AddToTableAndMerge(int sample)
     {
-        if (a == b)
+        int first = this.Hash1(sample);
+        int second = this.Hash2(sample);
+        int match = this.deduplicationTable[first];
+        int bucket = first;
+        if (match == DeduplicationEntryUnused || !this.IsSameSample(sample, match))
         {
-            return;
+            match = this.deduplicationTable[second];
+            bucket = second;
+            if (match == DeduplicationEntryUnused || !this.IsSameSample(sample, match))
+            {
+                if (this.deduplicationTable[first] == DeduplicationEntryUnused)
+                {
+                    this.deduplicationTable[first] = sample;
+                }
+                else if (this.deduplicationTable[second] == DeduplicationEntryUnused)
+                {
+                    this.deduplicationTable[second] = sample;
+                }
+
+                return false;
+            }
         }
 
-        foreach (List<JxlResidualToken> r in this.residuals)
+        if (++this.sampleCounts[match] == ushort.MaxValue)
         {
-            // Get a Span for this List so we can get a ref to its items
-            // for use in RuntimeUtility.Swap (tuple-swap is slightly slower)
-            Span<JxlResidualToken> sp = CollectionsMarshal.AsSpan(r);
+            this.deduplicationTable[bucket] = DeduplicationEntryUnused;
+        }
 
-            RuntimeUtility.Swap(ref sp[a], ref sp[b]);
+        return true;
+    }
+
+    /// <summary>Computes the first native sample hash over residuals, static properties, then dynamic properties.</summary>
+    /// <param name="sample">The retained or tentative record.</param>
+    /// <returns>The first candidate bucket.</returns>
+    private readonly int Hash1(int sample)
+    {
+        const ulong multiplier = 0x1e35a7bd;
+        ulong hash = multiplier;
+        unchecked
+        {
+            for (int i = 0; i < this.NumberOfPredictors; i++)
+            {
+                JxlResidualToken residual = this.residuals[(i * this.sampleCapacity) + sample];
+                hash = (hash * multiplier) + (ulong)residual.Token;
+                hash = (hash * multiplier) + (ulong)residual.NumberOfBits;
+            }
+
+            for (int i = 0; i < this.NumberOfStaticProperties; i++)
+            {
+                hash = (hash * multiplier) + (ulong)this.staticProperties[(i * this.sampleCapacity) + sample];
+            }
+
+            for (int i = 0; i < this.NumberOfProperties - this.NumberOfStaticProperties; i++)
+            {
+                hash = (hash * multiplier) + this.properties[(i * this.sampleCapacity) + sample];
+            }
+        }
+
+        return (int)((hash >> 16) & (ulong)(this.deduplicationTable.Length - 1));
+    }
+
+    /// <summary>Computes the second native hash with properties first and XOR instead of addition.</summary>
+    /// <param name="sample">The retained or tentative record.</param>
+    /// <returns>The second candidate bucket.</returns>
+    private readonly int Hash2(int sample)
+    {
+        const ulong multiplier = 0x1e35a7bd1e35a7bd;
+        ulong hash = multiplier;
+        unchecked
+        {
+            for (int i = 0; i < this.NumberOfStaticProperties; i++)
+            {
+                hash = (hash * multiplier) ^ (ulong)this.staticProperties[(i * this.sampleCapacity) + sample];
+            }
+
+            for (int i = 0; i < this.NumberOfProperties - this.NumberOfStaticProperties; i++)
+            {
+                hash = (hash * multiplier) ^ this.properties[(i * this.sampleCapacity) + sample];
+            }
+
+            for (int i = 0; i < this.NumberOfPredictors; i++)
+            {
+                JxlResidualToken residual = this.residuals[(i * this.sampleCapacity) + sample];
+                hash = (hash * multiplier) ^ (ulong)residual.Token;
+                hash = (hash * multiplier) ^ (ulong)residual.NumberOfBits;
+            }
+        }
+
+        return (int)((hash >> 16) & (ulong)(this.deduplicationTable.Length - 1));
+    }
+
+    /// <summary>Compares every selected residual and quantized property without allocating a sample key.</summary>
+    /// <param name="first">The first record.</param>
+    /// <param name="second">The second record.</param>
+    /// <returns>Whether all fields match.</returns>
+    private readonly bool IsSameSample(int first, int second)
+    {
+        for (int i = 0; i < this.NumberOfPredictors; i++)
+        {
+            int offset = i * this.sampleCapacity;
+            JxlResidualToken a = this.residuals[offset + first];
+            JxlResidualToken b = this.residuals[offset + second];
+            if (a.Token != b.Token || a.NumberOfBits != b.NumberOfBits)
+            {
+                return false;
+            }
         }
 
         for (int i = 0; i < this.NumberOfStaticProperties; i++)
         {
-            // Ditto
-            Span<int> sp = CollectionsMarshal.AsSpan(this.staticProperties[i]);
-
-            RuntimeUtility.Swap(ref sp[a], ref sp[b]);
+            int offset = i * this.sampleCapacity;
+            if (this.staticProperties[offset + first] != this.staticProperties[offset + second])
+            {
+                return false;
+            }
         }
 
-        foreach (List<byte> p in this.properties)
+        for (int i = 0; i < this.NumberOfProperties - this.NumberOfStaticProperties; i++)
         {
-            // Ditto
-            Span<byte> sp = CollectionsMarshal.AsSpan(p);
-
-            RuntimeUtility.Swap(ref sp[a], ref sp[b]);
+            int offset = i * this.sampleCapacity;
+            if (this.properties[offset + first] != this.properties[offset + second])
+            {
+                return false;
+            }
         }
 
-        // Ditto
-        Span<int> sampleCounts = CollectionsMarshal.AsSpan(this.sampleCounts);
-
-        RuntimeUtility.Swap(ref sampleCounts[a], ref sampleCounts[b]);
+        return true;
     }
 
+    /// <summary>Swaps two retained records across all sample planes during tree partitioning.</summary>
+    /// <param name="first">The first retained record.</param>
+    /// <param name="second">The second retained record.</param>
+    public void Swap(int first, int second)
+    {
+        for (int i = 0; i < this.NumberOfPredictors; i++)
+        {
+            int offset = i * this.sampleCapacity;
+            RuntimeUtility.Swap(ref this.residuals[offset + first], ref this.residuals[offset + second]);
+        }
+
+        for (int i = 0; i < this.NumberOfStaticProperties; i++)
+        {
+            int offset = i * this.sampleCapacity;
+            RuntimeUtility.Swap(ref this.staticProperties[offset + first], ref this.staticProperties[offset + second]);
+        }
+
+        for (int i = 0; i < this.NumberOfProperties - this.NumberOfStaticProperties; i++)
+        {
+            int offset = i * this.sampleCapacity;
+            RuntimeUtility.Swap(ref this.properties[offset + first], ref this.properties[offset + second]);
+        }
+
+        RuntimeUtility.Swap(ref this.sampleCounts[first], ref this.sampleCounts[second]);
+    }
+
+    /// <summary>Builds thresholds and complete lookup maps before any sample is inserted.</summary>
+    /// <param name="range">The channel and group ranges represented by this tree.</param>
+    /// <param name="multiplierInfo">Forced multiplier splits.</param>
+    /// <param name="groupPixelCount">The number of eligible pixels in each group.</param>
+    /// <param name="channelPixelCount">The number of eligible pixels in each channel.</param>
+    /// <param name="pixelSamples">Owned preparation samples. Absolute thresholds can replace these values with their magnitudes.</param>
+    /// <param name="diffSamples">Owned residual preparation samples, with the same destructive absolute-value rule.</param>
+    /// <param name="maxPropertyValues">The requested maximum number of quantization intervals.</param>
     public void PreQuantizeProperties(
-        Configuration configuration,
         StaticPropertyRange range,
-        List<JxlModularMultiplierInfo> multiplierInfo,
-        List<int> groupPixelCount,
-        List<int> channelPixelCount,
-        List<int> pixelSamples,
-        List<int> diffSamples,
+        scoped ReadOnlySpan<JxlModularMultiplierInfo> multiplierInfo,
+        scoped ReadOnlySpan<int> groupPixelCount,
+        scoped ReadOnlySpan<int> channelPixelCount,
+        scoped Span<int> pixelSamples,
+        scoped Span<int> diffSamples,
         int maxPropertyValues)
     {
-        List<int> groupMultiplierThresholds = [];
-        List<int> channelMultiplierThresholds = [];
+        // Forced static splits can exceed the ordinary quantile count. Weighted thresholds use at most 55 fixed entries.
+        this.thresholdCapacity = Math.Max(55, Math.Max(maxPropertyValues - 1, checked(2 * multiplierInfo.Length)));
+        int thresholdLength = checked(this.NumberOfProperties * this.thresholdCapacity);
+        int mapLength = checked(this.NumberOfProperties * PropertyMapSize);
+        this.quantizationOwner = this.allocator.Allocate<int>(checked(this.NumberOfProperties + thresholdLength + mapLength));
+        Span<int> storage = this.quantizationOwner.Memory.Span;
+        this.thresholdCounts = storage[..this.NumberOfProperties];
+        this.compactProperties = storage.Slice(this.NumberOfProperties, thresholdLength);
+        this.propertyMapping = storage[(this.NumberOfProperties + thresholdLength)..];
 
-        foreach (JxlModularMultiplierInfo v in multiplierInfo)
+        // Four cached distributions avoid rescanning pixel/residual samples for each property that uses the same thresholds.
+        // Two additional rows retain sorted, unique forced channel/group thresholds. This scratch expires before collection.
+        using IMemoryOwner<int> scratchOwner = this.allocator.Allocate<int>(checked(6 * this.thresholdCapacity));
+        Span<int> scratch = scratchOwner.Memory.Span;
+        Span<int> channelThresholds = scratch.Slice(0, this.thresholdCapacity);
+        Span<int> groupThresholds = scratch.Slice(this.thresholdCapacity, this.thresholdCapacity);
+        int channelCount = 0;
+        int groupCount = 0;
+        foreach (JxlModularMultiplierInfo multiplier in multiplierInfo)
         {
-            if (v.Range[0][0] != range[0][0])
+            if (multiplier.Range[0][0] != range[0][0])
             {
-                channelMultiplierThresholds.Add(v.Range[0][0] - 1);
+                channelThresholds[channelCount++] = checked((int)multiplier.Range[0][0]) - 1;
             }
 
-            if (v.Range[0][1] != range[0][1])
+            if (multiplier.Range[0][1] != range[0][1])
             {
-                channelMultiplierThresholds.Add(v.Range[0][1] - 1);
+                channelThresholds[channelCount++] = checked((int)multiplier.Range[0][1]) - 1;
             }
 
-            if (v.Range[1][0] != range[1][0])
+            if (multiplier.Range[1][0] != range[1][0])
             {
-                groupMultiplierThresholds.Add(v.Range[1][0] - 1);
+                groupThresholds[groupCount++] = checked((int)multiplier.Range[1][0]) - 1;
             }
 
-            if (v.Range[1][1] != range[1][1])
+            if (multiplier.Range[1][1] != range[1][1])
             {
-                groupMultiplierThresholds.Add(v.Range[1][1] - 1);
+                groupThresholds[groupCount++] = checked((int)multiplier.Range[1][1]) - 1;
             }
         }
 
-        channelMultiplierThresholds.Sort();
-        channelMultiplierThresholds.Resize(0, channelMultiplierThresholds.Distinct().Count());
-        groupMultiplierThresholds.Sort();
-        groupMultiplierThresholds.Resize(0, groupMultiplierThresholds.Distinct().Count());
-
-        this.compactProperties.Resize([], this.propertiesToUse.Count);
-
-        List<int> QuantizeChannel()
+        // Each forced boundary appears once, even when adjacent multiplier ranges share it.
+        channelThresholds = channelThresholds[..channelCount];
+        groupThresholds = groupThresholds[..groupCount];
+        channelThresholds.Sort();
+        groupThresholds.Sort();
+        for (int kind = 0; kind < 2; kind++)
         {
-            if (channelMultiplierThresholds.Count > 0)
+            Span<int> thresholds = kind == 0 ? channelThresholds : groupThresholds;
+            int unique = 0;
+            foreach (int threshold in thresholds)
             {
-                return channelMultiplierThresholds;
+                if (unique == 0 || thresholds[unique - 1] != threshold)
+                {
+                    thresholds[unique++] = threshold;
+                }
             }
 
-            return JxlMaEncoder.QuantizeHistogram(
-                CollectionsMarshal.AsSpan(groupPixelCount),
-                maxPropertyValues);
-        }
-
-        List<int> QuantizeGroupId()
-        {
-            if (groupMultiplierThresholds.Count > 0)
+            if (kind == 0)
             {
-                return groupMultiplierThresholds;
-            }
-
-            return JxlMaEncoder.QuantizeHistogram(
-                CollectionsMarshal.AsSpan(groupPixelCount),
-                maxPropertyValues);
-        }
-
-        List<int> QuantizeCoordinate()
-        {
-            List<int> quantized = new(maxPropertyValues - 1);
-
-            for (int i = 0; i + 1 < maxPropertyValues; i++)
-            {
-                quantized[i] = ((i + 1) * 256 / maxPropertyValues) - 1;
-            }
-
-            return quantized;
-        }
-
-        List<int> absPixelThresholds = [];
-        List<int> pixelThresholds = [];
-
-        List<int> QuantizePixelProperty()
-        {
-            if (pixelThresholds.Count == 0)
-            {
-                pixelThresholds = JxlMaEncoder.QuantizeSamples(
-                    CollectionsMarshal.AsSpan(pixelSamples),
-                    maxPropertyValues);
-            }
-
-            return pixelThresholds;
-        }
-
-        List<int> QuantizeAbsolutePixelProperty()
-        {
-            if (absPixelThresholds.Count == 0)
-            {
-                _ = QuantizePixelProperty(); // compute the non-abs thresholds
-
-                Span<int> pixelSamplesSpan = CollectionsMarshal.AsSpan(pixelSamples);
-                TensorPrimitives.Abs(pixelSamplesSpan, pixelSamplesSpan);
-
-                absPixelThresholds = JxlMaEncoder.QuantizeSamples(pixelSamplesSpan, maxPropertyValues);
-            }
-
-            return absPixelThresholds;
-        }
-
-        List<int> absoluteDiffThresholds = [];
-        List<int> diffThresholds = [];
-
-        List<int> QuantizeDiffProperty()
-        {
-            if (diffThresholds.Count == 0)
-            {
-                diffThresholds = JxlMaEncoder.QuantizeSamples(
-                    CollectionsMarshal.AsSpan(diffSamples),
-                    maxPropertyValues);
-            }
-
-            return diffThresholds;
-        }
-
-        List<int> QuantizeAbsoluteDiffProperty()
-        {
-            if (absoluteDiffThresholds.Count == 0)
-            {
-                _ = QuantizeDiffProperty();
-
-                Span<int> diffSamplesSpan = CollectionsMarshal.AsSpan(diffSamples);
-                TensorPrimitives.Abs(diffSamplesSpan, diffSamplesSpan);
-
-                absoluteDiffThresholds = JxlMaEncoder.QuantizeSamples(diffSamplesSpan, maxPropertyValues);
-            }
-
-            return absoluteDiffThresholds;
-        }
-
-        List<int> QuantizeWeightedPrediction()
-        {
-            // TODO: static ReadOnlySpan<int> ... => [...]?
-            if (maxPropertyValues < 32)
-            {
-                return [-127, -63, -31, -15, -7, -3, -1, 0, 1,
-                        3, 7, 15, 31, 63, 127];
-            }
-            else if (maxPropertyValues < 64)
-            {
-                return [-255, -191, -127, -95, -63, -47, -31, -23,
-                        -15,  -11,  -7,   -5,  -3,  -1,  0,   1,
-                        3,    5,    7,    11,  15,  23,  31,  47,
-                        63,   95,   127,  191, 255];
+                channelThresholds = thresholds[..unique];
             }
             else
             {
-                return [-255, -223, -191, -159, -127, -111, -95, -79, -63, -55, -47,
-                        -39,  -31,  -27,  -23,  -19,  -15,  -13, -11, -9,  -7,  -6,
-                        -5,   -4,   -3,   -2,   -1,   0,    1,   2,   3,   4,   5,
-                        6,    7,    9,    11,   13,   15,   19,  23,  27,  31,  39,
-                        47,   55,   63,   79,   95,   111,  127, 159, 191, 223, 255];
+                groupThresholds = thresholds[..unique];
             }
         }
 
-        this.propertyMapping.Resize(0, this.propertiesToUse.Count - this.NumberOfStaticProperties);
-
-        for (int i = 0; i < this.propertiesToUse.Count; i++)
+        InlineArray4<int> cachedCounts = default;
+        InlineArray4<bool> required = default;
+        foreach (int property in this.propertiesToUse)
         {
-            if (this.propertiesToUse[i] == 0)
+            if (property > 3 && property != JxlMaConstants.WpProp)
             {
-                this.compactProperties[i] = QuantizeChannel();
-            }
-            else if (this.propertiesToUse[i] == 1)
-            {
-                this.compactProperties[i] = QuantizeGroupId();
-            }
-            else if (this.propertiesToUse[i] is 2 or 3)
-            {
-                this.compactProperties[i] = QuantizeCoordinate();
-            }
-            else if (this.propertiesToUse[i] == 6 || this.propertiesToUse[i] == 7 ||
-                     this.propertiesToUse[i] == 8 ||
-                     (this.propertiesToUse[i] >= JxlMaConstants.NumNonrefProperties && (this.propertiesToUse[i] - JxlMaConstants.NumNonrefProperties) % 4 == 1))
-            {
-                this.compactProperties[i] = QuantizePixelProperty();
-            }
-            else if (this.propertiesToUse[i] == 4 || this.propertiesToUse[i] == 5 ||
-                     (this.propertiesToUse[i] >= JxlMaConstants.NumNonrefProperties && (this.propertiesToUse[i] - JxlMaConstants.NumNonrefProperties) % 4 == 0))
-            {
-                this.compactProperties[i] = QuantizeAbsolutePixelProperty();
-            }
-            else if (this.propertiesToUse[i] >= JxlMaConstants.NumNonrefProperties && (this.propertiesToUse[i] - JxlMaConstants.NumNonrefProperties) % 4 == 2)
-            {
-                this.compactProperties[i] = QuantizeAbsoluteDiffProperty();
-            }
-            else if (this.propertiesToUse[i] == JxlMaConstants.WpProp)
-            {
-                this.compactProperties[i] = QuantizeWeightedPrediction();
-            }
-            else
-            {
-                this.compactProperties[i] = QuantizeDiffProperty();
-            }
-
-            if (i < this.NumberOfStaticProperties)
-            {
-                JxlMaEncoder.QuantMap(
-                    CollectionsMarshal.AsSpan(this.compactProperties[i]),
-                    CollectionsMarshal.AsSpan(this.staticPropertyMapping[i]),
-                    (PropertyRange * 2) + 1,
-                    PropertyRange);
-            }
-            else
-            {
-                JxlMaEncoder.QuantMap(
-                    CollectionsMarshal.AsSpan(this.compactProperties[i]),
-                    CollectionsMarshal.AsSpan(this.propertyMapping[i - this.NumberOfStaticProperties]),
-                    (PropertyRange * 2) + 1,
-                    PropertyRange);
+                required[DistributionIndex(property)] = true;
             }
         }
+
+        // Compute ordinary thresholds before converting the same owned input to magnitudes, as native enc_ma.cc requires.
+        for (int kind = 0; kind < 2; kind++)
+        {
+            Span<int> samples = kind == 0 ? pixelSamples : diffSamples;
+            int normal = 2 * kind;
+            if (required[normal] || required[normal + 1])
+            {
+                Span<int> thresholds = scratch.Slice((normal + 2) * this.thresholdCapacity, this.thresholdCapacity);
+                cachedCounts[normal] = JxlMaEncoder.QuantizeSamples(samples, maxPropertyValues, thresholds);
+            }
+
+            if (required[normal + 1])
+            {
+                TensorPrimitives.Abs(samples, samples);
+                Span<int> thresholds = scratch.Slice((normal + 3) * this.thresholdCapacity, this.thresholdCapacity);
+                cachedCounts[normal + 1] = JxlMaEncoder.QuantizeSamples(samples, maxPropertyValues, thresholds);
+            }
+        }
+
+        for (int i = 0; i < this.NumberOfProperties; i++)
+        {
+            int property = this.propertiesToUse[i];
+            Span<int> thresholds = this.compactProperties.Slice(i * this.thresholdCapacity, this.thresholdCapacity);
+            int count;
+            if (property is 0 or 1)
+            {
+                ReadOnlySpan<int> forced = property == 0 ? channelThresholds : groupThresholds;
+                if (!forced.IsEmpty)
+                {
+                    forced.CopyTo(thresholds);
+                    count = forced.Length;
+                }
+                else
+                {
+                    ReadOnlySpan<int> histogram = property == 0 ? channelPixelCount : groupPixelCount;
+                    count = JxlMaEncoder.QuantizeHistogram(histogram, maxPropertyValues, thresholds);
+                }
+            }
+            else if (property is 2 or 3)
+            {
+                count = maxPropertyValues - 1;
+                for (int j = 0; j < count; j++)
+                {
+                    thresholds[j] = ((j + 1) * 256 / maxPropertyValues) - 1;
+                }
+            }
+            else if (property == JxlMaConstants.WpProp)
+            {
+                ReadOnlySpan<int> weighted = WeightedThresholds(maxPropertyValues);
+                weighted.CopyTo(thresholds);
+                count = weighted.Length;
+            }
+            else
+            {
+                int distribution = DistributionIndex(property);
+                count = cachedCounts[distribution];
+                scratch.Slice((distribution + 2) * this.thresholdCapacity, count).CopyTo(thresholds);
+            }
+
+            this.thresholdCounts[i] = count;
+            JxlMaEncoder.QuantMap(thresholds[..count], this.propertyMapping.Slice(i * PropertyMapSize, PropertyMapSize), PropertyMapSize, PropertyRange);
+        }
+    }
+
+    /// <summary>Selects the native pixel, absolute-pixel, residual, or absolute-residual threshold distribution.</summary>
+    /// <param name="property">The original non-static property ID.</param>
+    /// <returns>Zero for pixel values, one for magnitudes, two for residuals, or three for residual magnitudes.</returns>
+    private static int DistributionIndex(int property)
+    {
+        int referenceProperty = property - JxlMaConstants.NumNonrefProperties;
+        if (property is 6 or 7 or 8 || (referenceProperty >= 0 && referenceProperty % 4 == 1))
+        {
+            return 0;
+        }
+
+        if (property is 4 or 5 || (referenceProperty >= 0 && referenceProperty % 4 == 0))
+        {
+            return 1;
+        }
+
+        return referenceProperty >= 0 && referenceProperty % 4 == 2 ? 3 : 2;
+    }
+
+    /// <summary>Returns the native fixed weighted-prediction thresholds for the requested quantization resolution.</summary>
+    /// <param name="maxPropertyValues">The requested interval count.</param>
+    /// <returns>The immutable signed error thresholds.</returns>
+    private static ReadOnlySpan<int> WeightedThresholds(int maxPropertyValues)
+    {
+        if (maxPropertyValues < 32)
+        {
+            return [-127, -63, -31, -15, -7, -3, -1, 0, 1, 3, 7, 15, 31, 63, 127];
+        }
+        else if (maxPropertyValues < 64)
+        {
+            return [-255, -191, -127, -95, -63, -47, -31, -23, -15, -11, -7, -5, -3, -1, 0, 1, 3, 5, 7, 11, 15, 23, 31, 47, 63, 95, 127, 191, 255];
+        }
+        else
+        {
+            return [-255, -223, -191, -159, -127, -111, -95, -79, -63, -55, -47,
+                    -39,  -31,  -27,  -23,  -19,  -15,  -13, -11, -9,  -7,  -6,
+                    -5,   -4,   -3,   -2,   -1,   0,    1,   2,   3,   4,   5,
+                    6,    7,    9,    11,   13,   15,   19,  23,  27,  31,  39,
+                    47,   55,   63,   79,   95,   111,  127, 159, 191, 223, 255];
+
+        }
+    }
+
+    /// <summary>Releases every allocation, including partially prepared state after an exception.</summary>
+    public void Dispose()
+    {
+        this.AllSamplesDone();
+        this.propertyIdsOwner?.Dispose();
+        this.quantizationOwner?.Dispose();
+        this.residualsOwner?.Dispose();
+        this.countsOwner?.Dispose();
+        this.propertiesOwner?.Dispose();
+        this = default;
     }
 }

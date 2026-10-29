@@ -101,12 +101,50 @@ internal static class Butteraugli
     /// </summary>
     private const float MaskDcYMultiplier = 0.505054525019F;
 
-    // These five Gaussian kernels are fixed by the comparison equations. Build them once, outside repeated comparisons.
-    private static readonly float[] OpsinDynamicsKernel = ComputeKernel(1.2F);
-    private static readonly float[] LowFrequencyKernel = ComputeKernel(7.15593339443F);
-    private static readonly float[] HighFrequencyKernel = ComputeKernel(3.22489901262F);
-    private static readonly float[] UltraHighFrequencyKernel = ComputeKernel(1.56416327805F);
-    private static readonly float[] MaskingKernel = ComputeKernel(2.7F);
+    // Native ComputeKernel first converts sigma to float, then evaluates its scaler and exponential in double.
+    // These fixed coefficients retain the final rounded float bits. Border normalization and Opsin normalization
+    // remain separate float operations, in native order.
+    /// <summary>
+    /// Gets the five-tap Opsin Gaussian with float sigma 1.2 and a radius of two samples.
+    /// </summary>
+    private static ReadOnlySpan<float> OpsinDynamicsKernel => [0.249352232F, 0.70664829F, 1F, 0.70664829F, 0.249352232F];
+
+    /// <summary>
+    /// Gets the 33-tap low-frequency Gaussian with float sigma 7.15593339443 and a radius of 16 samples.
+    /// </summary>
+    private static ReadOnlySpan<float> LowFrequencyKernel =>
+    [
+        0.0821145922F, 0.111141749F, 0.147520736F, 0.19202058F, 0.245110229F, 0.306827277F, 0.376656473F, 0.453435808F, 0.535309672F, 0.619745314F,
+        0.703623533F, 0.783405066F, 0.855364621F, 0.915872633F, 0.961696029F, 0.99028331F,
+        1F,
+        0.99028331F, 0.961696029F, 0.915872633F, 0.855364621F, 0.783405066F, 0.703623533F, 0.619745314F, 0.535309672F, 0.453435808F, 0.376656473F,
+        0.306827277F, 0.245110229F, 0.19202058F, 0.147520736F, 0.111141749F, 0.0821145922F
+    ];
+
+    /// <summary>
+    /// Gets the 15-tap high-frequency Gaussian with float sigma 3.22489901262 and a radius of seven samples.
+    /// </summary>
+    private static ReadOnlySpan<float> HighFrequencyKernel =>
+    [
+        0.0948199779F, 0.177147314F, 0.300614655F, 0.463368475F, 0.648759365F, 0.825052559F, 0.953060329F,
+        1F,
+        0.953060329F, 0.825052559F, 0.648759365F, 0.463368475F, 0.300614655F, 0.177147314F, 0.0948199779F
+    ];
+
+    /// <summary>
+    /// Gets the seven-tap ultra-high-frequency Gaussian with float sigma 1.56416327805 and a radius of three samples.
+    /// </summary>
+    private static ReadOnlySpan<float> UltraHighFrequencyKernel => [0.158931509F, 0.441552371F, 0.815165043F, 1F, 0.815165043F, 0.441552371F, 0.158931509F];
+
+    /// <summary>
+    /// Gets the 13-tap masking Gaussian with float sigma 2.7 and a radius of six samples.
+    /// </summary>
+    private static ReadOnlySpan<float> MaskingKernel =>
+    [
+        0.0846579969F, 0.180021748F, 0.333739787F, 0.539407492F, 0.760067225F, 0.933712125F,
+        1F,
+        0.933712125F, 0.760067225F, 0.539407492F, 0.333739787F, 0.180021748F, 0.0846579969F
+    ];
 
     /// <summary>
     /// The normalized five-tap weights used by the mirrored single-scan Opsin blur.
@@ -139,27 +177,6 @@ internal static class Butteraugli
         }
 
         OpsinBlurWeights = weights;
-    }
-
-    /// <summary>
-    /// Builds one fixed Gaussian kernel without normalizing its border weights.
-    /// </summary>
-    /// <param name="sigma">The standard deviation fixed by the comparison stage.</param>
-    /// <returns>The symmetric samples from minus to plus two-and-one-quarter standard deviations.</returns>
-    private static float[] ComputeKernel(float sigma)
-    {
-        const float m = 2.25f;  // Accuracy increases when m is increased
-        float scaler = -1.0f / (2.0f * sigma * sigma);
-        int diff = Math.Max(1, (int)(m * MathF.Abs(sigma)));
-
-        float[] kernel = new float[(2 * diff) + 1];
-
-        for (int i = -diff; i <= diff; i++)
-        {
-            kernel[i + diff] = MathF.Exp(scaler * i * i);
-        }
-
-        return kernel;
     }
 
     /// <summary>

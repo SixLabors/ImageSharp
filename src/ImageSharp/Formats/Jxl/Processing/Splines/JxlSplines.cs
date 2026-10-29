@@ -180,7 +180,7 @@ internal sealed class JxlSplines
 
         try
         {
-            List<JxlSplineSegmentSpan> segmentSpans = [];
+            List<Range> segmentSpans = [];
             List<PointF> intermediatePoints = [];
             List<(PointF Point, float Multiplier)> pointsToDraw = [];
             using JxlSpline spline = new();
@@ -233,28 +233,37 @@ internal sealed class JxlSplines
                 return;
             }
 
-            // Signed differences record where segments enter and leave the image rows. Int32 storage is required:
-            // negative departures and segment offsets cannot be represented by the old byte-sized view.
-            this.segmentYStartOwner = configuration.MemoryAllocator.Allocate<int>(checked(imageYSize + 2), AllocationOptions.Clean);
+            // Signed differences record where segments enter and leave the image rows. All ranges use forward indices.
+            // The frame header limits height to 2^30 + 18687, leaving room for two sentinel rows within Int32.
+            this.segmentYStartOwner = configuration.MemoryAllocator.Allocate<int>(imageYSize + 2, AllocationOptions.Clean);
             this.segmentYStart = this.segmentYStartOwner.Memory[..(imageYSize + 2)];
             Span<int> rowStarts = this.segmentYStart.Span;
             Span<int> population = rowStarts[1..];
+            long indexCount = 0;
 
-            foreach (JxlSplineSegmentSpan span in segmentSpans)
+            foreach (Range span in segmentSpans)
             {
-                population[span.StartInclusive]++;
-                population[span.EndExclusive]--;
+                population[span.Start.Value]++;
+                population[span.End.Value]--;
+                indexCount += span.End.Value - span.Start.Value;
+            }
+
+            // Each interval length and the number of segments fit Int32, so their total fits Int64.
+            // Validate the aggregate once before narrowing. Every subsequent row offset is at most this count.
+            if (indexCount > int.MaxValue)
+            {
+                throw new InvalidImageContentException("JPEG XL spline row index exceeds the supported length.");
             }
 
             int total = 0;
             int coverage = 0;
 
-            // Convert the difference counts to insertion offsets. The checked sum bounds the allocator size and later list indices.
+            // Coverage is an active-segment count, bounded by segmentSpans.Count. The validated total bounds every insertion offset.
             for (int y = 0; y < imageYSize; y++)
             {
-                coverage = checked(coverage + population[y]);
+                coverage += population[y];
                 population[y] = total;
-                total = checked(total + coverage);
+                total += coverage;
             }
 
             this.segmentIndicesOwner = configuration.MemoryAllocator.Allocate<int>(total);
@@ -265,9 +274,9 @@ internal sealed class JxlSplines
             // one element after rowStarts, the finished rowStarts[y..y+2] is exactly that row's segment range.
             for (int i = 0; i < segmentSpans.Count; i++)
             {
-                JxlSplineSegmentSpan span = segmentSpans[i];
+                Range span = segmentSpans[i];
 
-                for (int y = span.StartInclusive; y < span.EndExclusive; y++)
+                for (int y = span.Start.Value; y < span.End.Value; y++)
                 {
                     indices[population[y]++] = i;
                 }

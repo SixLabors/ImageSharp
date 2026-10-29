@@ -198,109 +198,117 @@ internal sealed class JxlQuantizedSpline : IDisposable
         ulong cappedPixelCount = Math.Min(imagePixelCount, (maximumAreaAllowance - initialAreaAllowance) / areaPerImagePixel);
         ulong areaLimit = (areaPerImagePixel * cappedPixelCount) + initialAreaAllowance;
 
+        // Decoded starts are finite integer positions within +/-2^23. Rounding also matches the encoder's stored starting-point rule.
+        long currentX = (long)MathF.Round(startingPoint.X, MidpointRounding.AwayFromZero);
+        long currentY = (long)MathF.Round(startingPoint.Y, MidpointRounding.AwayFromZero);
+        JxlSpline.ValidatePosition(currentX, currentY);
+
+        // The parser limits the whole frame to 2^20 control points, including each starting point.
+        result.ReserveControlPoints(configuration, this.ControlPoints.Length + 1);
+        Span<PointF> controlPoints = result.ControlPoints.Span;
+        ReadOnlySpan<JxlControlPoint> deltas = this.ControlPoints.Span;
+        controlPoints[0] = new(currentX, currentY);
+
+        long deltaX = 0;
+        long deltaY = 0;
+        ulong manhattanDistance = 0;
+
+        for (int i = 0; i < deltas.Length; i++)
+        {
+            // Each accepted coordinate and reconstructed delta has magnitude below 2^23.
+            // Adding one encoded Int32 delta in Int64 cannot overflow before the next geometry check.
+            deltaX += deltas[i].First;
+            deltaY += deltas[i].Second;
+            JxlSpline.ValidatePosition(deltaX, deltaY);
+            manhattanDistance += (ulong)(Math.Abs(deltaX) + Math.Abs(deltaY));
+
+            if (manhattanDistance > areaLimit)
+            {
+                throw new InvalidImageContentException("JPEG XL spline length exceeds the rendering limit.");
+            }
+
+            currentX += deltaX;
+            currentY += deltaY;
+            JxlSpline.ValidatePosition(currentX, currentY);
+            controlPoints[i + 1] = new(currentX, currentY);
+        }
+
+        float inverseQuant = InverseAdjustedQuant(quantizationAdjustment);
+        Span<InlineArray32<float>> colorDct = result.ColorDct;
+
+        for (int channel = 0; channel < 3; channel++)
+        {
+            for (int i = 0; i < 32; i++)
+            {
+                float inverseDctFactor = i == 0 ? JxlDctScales.Sqrt05 : 1F;
+                colorDct[channel][i] = this.ColorDct[channel][i] * inverseDctFactor * ChannelWeight[channel] * inverseQuant;
+            }
+        }
+
+        for (int i = 0; i < 32; i++)
+        {
+            colorDct[0][i] += yToX * colorDct[1][i];
+            colorDct[2][i] += yToB * colorDct[1][i];
+        }
+
+        ulong logColor;
+
         try
         {
-            checked
+            // A coefficient contributes at most 2^31 * 2^28 = 2^59 units. That conversion fits UInt64,
+            // but summing 32 contributions can reach 2^64. Check only these work-estimate sums and their correlation products.
+            InlineArray3<ulong> colorStorage = default;
+            Span<ulong> color = colorStorage;
+
+            for (int channel = 0; channel < 3; channel++)
             {
-                // Round only at the spline's integer geometry boundary. Checked conversion rejects nonfinite starting points.
-                long currentX = (long)MathF.Round(startingPoint.X, MidpointRounding.AwayFromZero);
-                long currentY = (long)MathF.Round(startingPoint.Y, MidpointRounding.AwayFromZero);
-                JxlSpline.ValidatePosition(currentX, currentY);
-
-                result.ReserveControlPoints(configuration, this.ControlPoints.Length + 1);
-                Span<PointF> controlPoints = result.ControlPoints.Span;
-                ReadOnlySpan<JxlControlPoint> deltas = this.ControlPoints.Span;
-                controlPoints[0] = new(currentX, currentY);
-
-                long deltaX = 0;
-                long deltaY = 0;
-                ulong manhattanDistance = 0;
-
-                for (int i = 0; i < deltas.Length; i++)
-                {
-                    // The stream stores changes to the previous delta. Accumulate in Int64 before applying the geometry bound.
-                    deltaX += deltas[i].First;
-                    deltaY += deltas[i].Second;
-                    JxlSpline.ValidatePosition(deltaX, deltaY);
-                    manhattanDistance += (ulong)(Math.Abs(deltaX) + Math.Abs(deltaY));
-
-                    if (manhattanDistance > areaLimit)
-                    {
-                        throw new InvalidImageContentException("JPEG XL spline length exceeds the rendering limit.");
-                    }
-
-                    currentX += deltaX;
-                    currentY += deltaY;
-                    JxlSpline.ValidatePosition(currentX, currentY);
-                    controlPoints[i + 1] = new(currentX, currentY);
-                }
-
-                float inverseQuant = InverseAdjustedQuant(quantizationAdjustment);
-                Span<InlineArray32<float>> colorDct = result.ColorDct;
-
-                for (int channel = 0; channel < 3; channel++)
-                {
-                    for (int i = 0; i < 32; i++)
-                    {
-                        float inverseDctFactor = i == 0 ? JxlDctScales.Sqrt05 : 1F;
-                        colorDct[channel][i] = this.ColorDct[channel][i] * inverseDctFactor * ChannelWeight[channel] * inverseQuant;
-                    }
-                }
-
                 for (int i = 0; i < 32; i++)
                 {
-                    colorDct[0][i] += yToX * colorDct[1][i];
-                    colorDct[2][i] += yToB * colorDct[1][i];
+                    ulong contribution = (ulong)MathF.Ceiling(inverseQuant * MathF.Abs(this.ColorDct[channel][i]));
+                    color[channel] = checked(color[channel] + contribution);
                 }
-
-                // These unsigned sums estimate rendering work, not stored color values. Start every channel at zero.
-                // Checked arithmetic rejects extreme decoded coefficients before a wrapped sum can appear inexpensive.
-                InlineArray3<ulong> colorStorage = default;
-                Span<ulong> color = colorStorage;
-
-                for (int channel = 0; channel < 3; channel++)
-                {
-                    for (int i = 0; i < 32; i++)
-                    {
-                        color[channel] += (ulong)MathF.Ceiling(inverseQuant * MathF.Abs(this.ColorDct[channel][i]));
-                    }
-                }
-
-                color[0] += (ulong)MathF.Ceiling(MathF.Abs(yToX)) * color[1];
-                color[2] += (ulong)MathF.Ceiling(MathF.Abs(yToB)) * color[1];
-
-                ulong maximumColor = Math.Max(color[1], Math.Max(color[0], color[2]));
-                ulong logColor = Math.Max(1UL, JxlMath.CeilLog2Nonzero(1UL + maximumColor));
-
-                // Width squared, color magnitude and path length jointly estimate the rendering area.
-                // Both divisors belong inside the square root, as in the native work estimate.
-                float weightLimit = MathF.Ceiling(MathF.Sqrt(((float)areaLimit / logColor) / Math.Max(1UL, manhattanDistance)));
-                Span<float> sigmaDct = result.SigmaDct;
-                ulong widthEstimate = 0;
-
-                for (int i = 0; i < 32; i++)
-                {
-                    float inverseDctFactor = i == 0 ? JxlDctScales.Sqrt05 : 1F;
-                    sigmaDct[i] = this.SigmaDct[i] * inverseDctFactor * ChannelWeight[3] * inverseQuant;
-                    float weightF = MathF.Ceiling(inverseQuant * MathF.Abs(this.SigmaDct[i]));
-                    ulong weight = (ulong)MathF.Min(weightLimit, MathF.Max(1F, weightF));
-                    widthEstimate += weight * weight * logColor;
-                }
-
-                ulong estimatedArea = widthEstimate * manhattanDistance;
-                if (estimatedArea > areaLimit - totalEstimatedAreaReached)
-                {
-                    throw new InvalidImageContentException("JPEG XL splines exceed the rendering-work limit.");
-                }
-
-                totalEstimatedAreaReached += estimatedArea;
-                return true;
             }
+
+            // Decoded DC correlation factors have magnitude at most four. Their casts fit; scaling the channel sums can overflow.
+            ulong xCorrelation = (ulong)MathF.Ceiling(MathF.Abs(yToX));
+            ulong bCorrelation = (ulong)MathF.Ceiling(MathF.Abs(yToB));
+            color[0] = checked(color[0] + (xCorrelation * color[1]));
+            color[2] = checked(color[2] + (bCorrelation * color[1]));
+
+            ulong maximumColor = Math.Max(color[1], Math.Max(color[0], color[2]));
+            logColor = Math.Max(1UL, JxlMath.CeilLog2Nonzero(checked(1UL + maximumColor)));
         }
         catch (OverflowException exception)
         {
             throw new InvalidImageContentException("JPEG XL spline work estimate exceeds the supported range.", exception);
         }
+
+        // Width squared, color magnitude and path length jointly estimate the rendering area.
+        // Both divisors belong inside the square root, as in the native work estimate.
+        float weightLimit = MathF.Ceiling(MathF.Sqrt(((float)areaLimit / logColor) / Math.Max(1UL, manhattanDistance)));
+        Span<float> sigmaDct = result.SigmaDct;
+        ulong widthEstimate = 0;
+
+        for (int i = 0; i < 32; i++)
+        {
+            float inverseDctFactor = i == 0 ? JxlDctScales.Sqrt05 : 1F;
+            sigmaDct[i] = this.SigmaDct[i] * inverseDctFactor * ChannelWeight[3] * inverseQuant;
+            float weightF = MathF.Ceiling(inverseQuant * MathF.Abs(this.SigmaDct[i]));
+            ulong weight = (ulong)MathF.Min(weightLimit, MathF.Max(1F, weightF));
+            widthEstimate += weight * weight * logColor;
+        }
+
+        // Let A be the area limit, D the path length and L the color logarithm: A <= 2^42, D <= A, L <= 64.
+        // Including float rounding, W <= 2*sqrt(A/(L*max(1,D)))+1 bounds all 32 width terms and their final area below 2^54.
+        // These products fit UInt64. A zero-length path contributes no work.
+        ulong estimatedArea = widthEstimate * manhattanDistance;
+        if (estimatedArea > areaLimit - totalEstimatedAreaReached)
+        {
+            throw new InvalidImageContentException("JPEG XL splines exceed the rendering-work limit.");
+        }
+
+        totalEstimatedAreaReached += estimatedArea;
+        return true;
     }
 
     /// <summary>

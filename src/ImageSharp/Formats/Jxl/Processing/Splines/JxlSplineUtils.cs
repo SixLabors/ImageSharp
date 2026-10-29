@@ -244,7 +244,7 @@ internal static class JxlSplineUtils
         InlineArray3<float> color,
         float sigma,
         List<JxlSplineSegment> segments,
-        List<JxlSplineSegmentSpan> segmentSpans)
+        List<Range> segmentSpans)
     {
         if (!(float.IsFinite(sigma) && sigma != 0.0f && float.IsFinite(1.0f / sigma) && float.IsFinite(intensity)))
         {
@@ -281,7 +281,7 @@ internal static class JxlSplineUtils
         };
 
         segments.Add(segment);
-        segmentSpans.Add(new JxlSplineSegmentSpan(y0, y1));
+        segmentSpans.Add(y0..y1);
     }
 
     /// <summary>
@@ -335,7 +335,7 @@ internal static class JxlSplineUtils
         List<(PointF Point, float Multiplier)> pointsToDraw,
         float arcLength,
         List<JxlSplineSegment> segments,
-        List<JxlSplineSegmentSpan> segmentsSpans)
+        List<Range> segmentsSpans)
     {
         float inverseArcLength = 1.0f / arcLength;
         int k = 0;

@@ -2073,20 +2073,28 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     }
 
     /// <summary>
-    /// Parses the start of a box.
+    /// Parses a box header and checks that its total size fits the decoder's stream offsets.
     /// </summary>
-    /// <param name="input">Input bytes to parse from.</param>
-    /// <param name="type">Type of the box</param>
-    /// <param name="boxSize">Output box size.</param>
-    /// <param name="headerSize">Output header size.</param>
+    /// <param name="input">The stream positioned at the box header.</param>
+    /// <param name="type">The box's four-character type code.</param>
+    /// <param name="boxSize">The total size, or zero for a final box that extends through the input.</param>
+    /// <param name="headerSize">The 8-byte or 16-byte header size.</param>
     /// <exception cref="InvalidOperationException">
     /// Thrown when data is invalid.
     /// </exception>
     private static void ParseBoxHeader(Stream input, out int type, out long boxSize, out long headerSize)
     {
         JxlBoxHeader header = JxlBoxHeader.ReadHeader(input);
+
+        // The wire uses UInt64, but this decoder tracks stream positions with Int64. Reject before narrowing
+        // so a bounded box cannot become a negative size or be mistaken for an unbounded final box.
+        if (header.Size > long.MaxValue)
+        {
+            throw new InvalidOperationException("JPEG XL box size exceeds the supported stream range.");
+        }
+
         boxSize = (long)header.Size;
-        headerSize = (header.ContainsLargeSize ? 12 : 4) + 4;
+        headerSize = header.ContainsLargeSize ? 16 : 8;
         type = (int)header.Type;
     }
 

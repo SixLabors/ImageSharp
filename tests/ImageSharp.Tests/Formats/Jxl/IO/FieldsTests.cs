@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Container;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
@@ -17,6 +18,64 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 
 public class FieldsTests
 {
+    /// <summary>
+    /// Checks box-header byte order, minimum sizes, and final unbounded boxes against fixed wire bytes.
+    /// </summary>
+    /// <param name="wire">The complete fixed header, with its type before any extended size.</param>
+    /// <param name="expectedSize">The total size stored by the wire header.</param>
+    /// <param name="extended">Whether the header has an explicit 64-bit size.</param>
+    [Theory]
+    [InlineData(new byte[] { 0, 0, 0, 8, 0x6A, 0x78, 0x6C, 0x63 }, 8UL, false)]
+    [InlineData(new byte[] { 0, 0, 0, 0, 0x6A, 0x78, 0x6C, 0x63 }, 0UL, false)]
+    [InlineData(new byte[] { 0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 0, 0, 0, 0, 0, 0, 0, 16 }, 16UL, true)]
+    [InlineData(new byte[] { 0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 0, 0, 0, 1, 0, 0, 0, 16 }, 0x1_0000_0010UL, true)]
+    [InlineData(new byte[] { 0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 0, 0, 0, 0, 0, 0, 0, 0 }, 0UL, true)]
+    [InlineData(new byte[] { 0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 255, 255, 255, 255, 255, 255, 255, 255 }, ulong.MaxValue, true)]
+    public void BoxHeader_ReadAndWriteMatchesFixedWire(byte[] wire, ulong expectedSize, bool extended)
+    {
+        // The container stores size32, the four bytes "jxlc", then size64 when size32 is one.
+        using MemoryStream input = new(wire, false);
+        JxlBoxHeader header = JxlBoxHeader.ReadHeader(input);
+
+        Assert.Equal(expectedSize, header.Size);
+        Assert.Equal(0x6A786C63U, header.Type);
+        Assert.Equal(extended, header.ContainsLargeSize);
+        Assert.Equal(expectedSize == 0, header.SizeExtendsTillEnd);
+
+        // Compare with the independent wire bytes so paired reader/writer ordering errors cannot hide each other.
+        using MemoryStream output = new();
+        header.WriteHeader(output);
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks that a bounded box cannot declare fewer bytes than its complete header.
+    /// </summary>
+    /// <param name="wire">A fixed 8-byte or 16-byte header with an undersized nonzero length.</param>
+    [Theory]
+    [InlineData(new byte[] { 0, 0, 0, 2, 0x6A, 0x78, 0x6C, 0x63 })]
+    [InlineData(new byte[] { 0, 0, 0, 7, 0x6A, 0x78, 0x6C, 0x63 })]
+    [InlineData(new byte[] { 0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 0, 0, 0, 0, 0, 0, 0, 1 })]
+    [InlineData(new byte[] { 0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 0, 0, 0, 0, 0, 0, 0, 15 })]
+    public void BoxHeader_RejectsSizeBelowHeader(byte[] wire)
+    {
+        using MemoryStream input = new(wire, false);
+
+        Assert.Throws<InvalidOperationException>(() => JxlBoxHeader.ReadHeader(input));
+    }
+
+    /// <summary>
+    /// Checks that the complete extended size is required after the box type.
+    /// </summary>
+    [Fact]
+    public void BoxHeader_RejectsTruncatedExtendedSize()
+    {
+        using MemoryStream input = new([0, 0, 0, 1, 0x6A, 0x78, 0x6C, 0x63, 0, 0, 0, 0, 0, 0, 0]);
+
+        Assert.Throws<EndOfStreamException>(() => JxlBoxHeader.ReadHeader(input));
+    }
+
     /// <summary>
     /// Checks that the one-bit default shortcut replaces earlier serialized color fields.
     /// </summary>

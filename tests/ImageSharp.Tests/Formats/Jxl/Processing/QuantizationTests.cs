@@ -114,6 +114,33 @@ public class QuantizationTests
             ReadOnlySpan<float> actualBands = actual.DctParameters.DistanceBands[c];
             Assert.True(expectedBands.SequenceEqual(actualBands));
         }
+
+        // These are the default decimal seed products rounded once to float, as native quant_weights.cc defines them.
+        // Checking the exact bits catches rounding operands before multiplication, without changing interpolation tolerances.
+        ReadOnlySpan<JxlQuantizerEncoding> largeTables =
+        [
+            JxlQuantWeights.Dct64x64, JxlQuantWeights.Dct32x64,
+            JxlQuantWeights.Dct128x128, JxlQuantWeights.Dct64x128,
+            JxlQuantWeights.Dct256x256, JxlQuantWeights.Dct128x256
+        ];
+
+        ReadOnlySpan<int> seedBits =
+        [
+            0x46BB3C55, 0x4602F0C4, 0x458C6831,
+            0x466FFB98, 0x45AEEAE2, 0x45367F63,
+            0x473B3C55, 0x4682F0C4, 0x460C6831,
+            0x46EFFB98, 0x462EEAE2, 0x45B67F63,
+            0x47BB3C55, 0x4702F0C4, 0x468C6831,
+            0x476FFB98, 0x46AEEAE2, 0x46367F63
+        ];
+
+        for (int table = 0; table < largeTables.Length; table++)
+        {
+            for (int c = 0; c < 3; c++)
+            {
+                Assert.Equal(seedBits[(table * 3) + c], BitConverter.SingleToInt32Bits(largeTables[table].DctParameters.DistanceBands[c][0]));
+            }
+        }
     }
 
     /// <summary>

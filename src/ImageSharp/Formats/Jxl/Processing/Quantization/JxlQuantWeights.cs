@@ -270,13 +270,14 @@ internal static class JxlQuantWeights
             384, 384, 12, 12, 12, 22, -0.25f, -0.25f, -0.25f
         ]);
 
+    // Round these compile-time seed products to float once. Rounding their operands first can change the resulting coefficient.
     /// <summary>
     /// DCT64x64 quantizer encoding.
     /// </summary>
     public static readonly JxlQuantizerEncoding Dct64x64 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                0.9f * 26629.073922049845f,
+                (float)(0.9 * 26629.073922049845),
                 -1.025f,
                 -0.78f,
                 -0.65012f,
@@ -284,7 +285,7 @@ internal static class JxlQuantWeights
                 -0.20819395464f,
                 -0.421064f,
                 -0.32733845535848671f,
-                0.9f * 9311.3238710010046f,
+                (float)(0.9 * 9311.3238710010046),
                 -0.3041958212306401f,
                 -0.3633036457487539f,
                 -0.35660379990111464f,
@@ -292,7 +293,7 @@ internal static class JxlQuantWeights
                 -0.33699592683512467f,
                 -0.30180866526242109f,
                 -0.27321683125358037f,
-                0.9f * 4992.2486445538634f,
+                (float)(0.9 * 4992.2486445538634),
                 -1.2f,
                 -1.2f,
                 -0.8f,
@@ -309,7 +310,7 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct32x64 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                0.65f * 23629.073922049845f,
+                (float)(0.65 * 23629.073922049845),
                 -1.025f,
                 -0.78f,
                 -0.65012f,
@@ -317,7 +318,7 @@ internal static class JxlQuantWeights
                 -0.20819395464f,
                 -0.421064f,
                 -0.32733845535848671f,
-                0.65f * 8611.3238710010046f,
+                (float)(0.65 * 8611.3238710010046),
                 -0.3041958212306401f,
                 -0.3633036457487539f,
                 -0.35660379990111464f,
@@ -325,7 +326,7 @@ internal static class JxlQuantWeights
                 -0.33699592683512467f,
                 -0.30180866526242109f,
                 -0.27321683125358037f,
-                0.65f * 4492.2486445538634f,
+                (float)(0.65 * 4492.2486445538634),
                 -1.2f,
                 -1.2f,
                 -0.8f,
@@ -342,7 +343,7 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct128x128 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                1.8f * 26629.073922049845f,
+                (float)(1.8 * 26629.073922049845),
                 -1.025f,
                 -0.78f,
                 -0.65012f,
@@ -350,7 +351,7 @@ internal static class JxlQuantWeights
                 -0.20819395464f,
                 -0.421064f,
                 -0.32733845535848671f,
-                1.8f * 9311.3238710010046f,
+                (float)(1.8 * 9311.3238710010046),
                 -0.3041958212306401f,
                 -0.3633036457487539f,
                 -0.35660379990111464f,
@@ -358,7 +359,7 @@ internal static class JxlQuantWeights
                 -0.33699592683512467f,
                 -0.30180866526242109f,
                 -0.27321683125358037f,
-                1.8f * 4992.2486445538634f,
+                (float)(1.8 * 4992.2486445538634),
                 -1.2f,
                 -1.2f,
                 -0.8f,
@@ -375,7 +376,7 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct64x128 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                1.3f * 23629.073922049845f,
+                (float)(1.3 * 23629.073922049845),
                 -1.025f,
                 -0.78f,
                 -0.65012f,
@@ -383,7 +384,7 @@ internal static class JxlQuantWeights
                 -0.20819395464f,
                 -0.421064f,
                 -0.32733845535848671f,
-                1.3f * 8611.3238710010046f,
+                (float)(1.3 * 8611.3238710010046),
                 -0.3041958212306401f,
                 -0.3633036457487539f,
                 -0.35660379990111464f,
@@ -391,7 +392,7 @@ internal static class JxlQuantWeights
                 -0.33699592683512467f,
                 -0.30180866526242109f,
                 -0.27321683125358037f,
-                1.3f * 4492.2486445538634f,
+                (float)(1.3 * 4492.2486445538634),
                 -1.2f,
                 -1.2f,
                 -0.8f,
@@ -408,7 +409,7 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct256x256 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                3.6f * 26629.073922049845f,
+                (float)(3.6 * 26629.073922049845),
                 -1.025f,
                 -0.78f,
                 -0.65012f,
@@ -416,7 +417,7 @@ internal static class JxlQuantWeights
                 -0.20819395464f,
                 -0.421064f,
                 -0.32733845535848671f,
-                3.6f * 9311.3238710010046f,
+                (float)(3.6 * 9311.3238710010046),
                 -0.3041958212306401f,
                 -0.3633036457487539f,
                 -0.35660379990111464f,
@@ -424,7 +425,7 @@ internal static class JxlQuantWeights
                 -0.33699592683512467f,
                 -0.30180866526242109f,
                 -0.27321683125358037f,
-                3.6f * 4992.2486445538634f,
+                (float)(3.6 * 4992.2486445538634),
                 -1.2f,
                 -1.2f,
                 -0.8f,
@@ -441,7 +442,7 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct128x256 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                2.6f * 23629.073922049845f,
+                (float)(2.6 * 23629.073922049845),
                 -1.025f,
                 -0.78f,
                 -0.65012f,
@@ -449,7 +450,7 @@ internal static class JxlQuantWeights
                 -0.20819395464f,
                 -0.421064f,
                 -0.32733845535848671f,
-                2.6f * 8611.3238710010046f,
+                (float)(2.6 * 8611.3238710010046),
                 -0.3041958212306401f,
                 -0.3633036457487539f,
                 -0.35660379990111464f,
@@ -457,7 +458,7 @@ internal static class JxlQuantWeights
                 -0.33699592683512467f,
                 -0.30180866526242109f,
                 -0.27321683125358037f,
-                2.6f * 4492.2486445538634f,
+                (float)(2.6 * 4492.2486445538634),
                 -1.2f,
                 -1.2f,
                 -0.8f,

@@ -172,9 +172,6 @@ internal sealed class JxlAnsSymbolReader : IDisposable
             this.state = newState;
         }
 
-        uint nextRes = this.state & (JxlAnsConstants.AnsTableSize - 1);
-        JxlAnsHelper.Prefetch(table, nextRes, this.logEntrySize);
-
         return symbol.Value;
     }
 

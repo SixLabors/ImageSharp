@@ -1572,14 +1572,10 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
 
         if (this.metadata.ImageMetadata.ColorEncoding.NeedsIcc)
         {
-            // TODO: Decode the JPEG XL compressed ICC payload before constructing the profile.
-            IccDataReader reader = new(sp.ToArray());
-            IccProfileHeader header = IccReader.ReadHeader(reader);
-            IccTagDataEntry[] tagData = IccReader.ReadTagData(reader);
-
-            // Keep the profile on its original encoding. Frame bundles and JPEG reconstruction share this owner.
-            this.metadata.ImageMetadata.ColorEncoding.IccProfile = new IccProfile(header, tagData);
-            sp = sp[reader.Index..];
+            // ICC compression continues at this exact bit position. The codec reconstructs bytes;
+            // the shared ICC reader validates and retains them on the original color encoding.
+            byte[] profileData = JxlIccReader.Read(this.Options.Configuration, bitReader);
+            this.metadata.ImageMetadata.ColorEncoding.IccProfile = IccReader.ToProfile(profileData);
         }
 
         this.gotAllHeaders = true;

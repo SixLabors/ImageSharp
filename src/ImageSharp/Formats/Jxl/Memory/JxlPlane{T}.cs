@@ -236,11 +236,21 @@ internal sealed class JxlPlane<T> : IDisposable
         (this.PixelsPerRow, other.PixelsPerRow) = (other.PixelsPerRow, this.PixelsPerRow);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases the allocation and resets the plane to an empty state.
+    /// </summary>
     public void Dispose()
     {
         this.owner?.Dispose();
         this.owner = null;
         this.memory = default;
+
+        // Capacity belongs to the allocation. A released plane cannot satisfy a later ShrinkTo request for sample storage.
+        this.origin = 0;
+        this.allocatedWidth = 0;
+        this.allocatedHeight = 0;
+        this.XSize = 0;
+        this.YSize = 0;
+        this.PixelsPerRow = 0;
     }
 }

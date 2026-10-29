@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
@@ -18,6 +19,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 
 public class ImageBundleTests
 {
+    /// <summary>
+    /// Checks that released plane storage cannot be reused through its previous dimensions.
+    /// </summary>
+    [Fact]
+    public void DisposedPlane_CannotReuseReleasedCapacity()
+    {
+        using JxlPlane<float> plane = new(TestEnvironment.Configuration, 16, 2);
+
+        // Frame initialization uses ShrinkTo before allocating replacement storage.
+        // After disposal, that check must reject the dimensions of the released allocation.
+        plane.Dispose();
+
+        Assert.False(plane.ShrinkTo(16, 2));
+        Assert.Equal(0, plane.XSize);
+        Assert.Equal(0, plane.YSize);
+        Assert.Equal(0, plane.PixelsPerRow);
+        Assert.True(plane.GetRowMemory(0).IsEmpty);
+    }
+
     /// <summary>
     /// Checks that a sample conversion cannot replace the original ICC bytes used for JPEG reconstruction.
     /// </summary>

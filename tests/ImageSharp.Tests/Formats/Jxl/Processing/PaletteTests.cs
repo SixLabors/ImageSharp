@@ -10,10 +10,105 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 /// <summary>
-/// Tests inverse palette sample reconstruction and its channel ownership.
+/// Tests palette index selection, sample reconstruction and channel ownership.
 /// </summary>
 public class PaletteTests
 {
+    /// <summary>
+    /// Checks that scoring preserves an exact high-precision explicit match instead of overflowing its weighted luminance.
+    /// </summary>
+    [Fact]
+    public void ForwardPalette_HighPrecisionExplicitMatchesRemainExact()
+    {
+        Configuration configuration = TestEnvironment.Configuration;
+        using JxlModularImage image = JxlModularImage.Create(configuration, 2, 1, 30, 1);
+        Span<int> source = image.Channels[0].GetRow(0);
+        source[0] = 1000000000;
+        source[1] = 600000000;
+        int colors = 2;
+        int deltas = 0;
+        JxlPredictor predictor = JxlPredictor.Zero;
+        JxlModularHeader header = new();
+
+        // One component skips RGB preprocessing. Two allowed entries retain these exact float-representable source values before scoring.
+        // At the first pixel, an Int32 luminance product turns the exact match's zero error into 2^64.
+        // The 600-million competitor then scores lower. Float multiplication keeps the exact match's error zero, so diffusion also remains zero.
+        JxlPalette.ForwardPalette(configuration, image, 0, 0, ref colors, ref deltas, false, true, ref predictor, header);
+
+        Assert.Equal(2, colors);
+        Assert.Equal(0, deltas);
+        JxlPalette.InversePalette(configuration, image, 0, colors, deltas, predictor, header);
+        ReadOnlySpan<int> restored = image.Channels[0].GetRow(0);
+        Assert.Equal(1000000000, restored[0]);
+        Assert.Equal(600000000, restored[1]);
+    }
+
+    /// <summary>
+    /// Checks that 31-bit source maxima select bounded implicit digits in the decoder's 24-bit range.
+    /// </summary>
+    [Fact]
+    public void ForwardPalette_HighPrecisionImplicitDigitsUseDecoderRange()
+    {
+        Configuration configuration = TestEnvironment.Configuration;
+        using JxlModularImage image = JxlModularImage.Create(configuration, 1, 1, 31, 2);
+        image.Channels[0].GetRow(0)[0] = int.MaxValue;
+        image.Channels[1].GetRow(0)[0] = int.MaxValue;
+        int colors = 0;
+        int deltas = 0;
+        JxlPredictor predictor = JxlPredictor.Zero;
+        JxlModularHeader header = new();
+
+        // Two components skip RGB delta preprocessing. Zero explicit colors and no earlier pixels leave only the fixed implicit candidates.
+        // The large cube is nearest in both components. Its luminance-only advantage over the small cube exceeds four billion score units.
+        // The largest index-penalty difference is 380, so penalties cannot change this first-pixel selection.
+        JxlPalette.ForwardPalette(configuration, image, 0, 1, ref colors, ref deltas, false, true, ref predictor, header);
+
+        Assert.Equal(0, colors);
+        Assert.Equal(0, deltas);
+        Assert.Equal(0, image.Channels[0].Width);
+
+        // Native palette.cc and Rust palette.rs cap implicit precision to 24. Digits [R,G,B]=[4,4,0] encode as 64+4+5*4=88.
+        Assert.Equal(88, image.Channels[1].GetRow(0)[0]);
+        JxlPalette.InversePalette(configuration, image, 0, colors, deltas, predictor, header);
+        Assert.Equal(16777215, image.Channels[0].GetRow(0)[0]);
+        Assert.Equal(16777215, image.Channels[1].GetRow(0)[0]);
+    }
+
+    /// <summary>
+    /// Checks that extra components do not add digits beyond the three-component implicit cube.
+    /// </summary>
+    [Fact]
+    public void ForwardPalette_ImplicitCubeUsesOnlyRgbDigits()
+    {
+        Configuration configuration = TestEnvironment.Configuration;
+        using JxlModularImage image = JxlModularImage.Create(configuration, 1, 1, 24, 6);
+        for (int c = 0; c < image.Channels.Count; c++)
+        {
+            image.Channels[c].GetRow(0)[0] = 16777215;
+        }
+
+        int colors = 0;
+        int deltas = 0;
+        JxlPredictor predictor = JxlPredictor.Zero;
+        JxlModularHeader header = new();
+
+        // A one-pixel source cannot create frequent absolute colors. The preprocessing residual rounds down to 16711680 in its delta bucket.
+        // The large cube represents all three RGB maxima exactly; extra components are zero for every implicit candidate and cannot add digits.
+        // Its luminance-only advantage over the learned delta exceeds 444000 score units, so index penalties cannot select that delta.
+        JxlPalette.ForwardPalette(configuration, image, 0, 5, ref colors, ref deltas, false, true, ref predictor, header);
+
+        Assert.Equal(0, colors);
+        int paletteSize = image.Channels[0].Width;
+
+        // Large-cube digits [4,4,4] encode as 64+4+5*4+25*4=188, regardless of any retained explicit delta prefix.
+        Assert.Equal(188, image.Channels[1].GetRow(0)[0] - paletteSize);
+        JxlPalette.InversePalette(configuration, image, 0, colors, deltas, predictor, header);
+        for (int c = 0; c < image.Channels.Count; c++)
+        {
+            Assert.Equal(c < 3 ? 16777215 : 0, image.Channels[c].GetRow(0)[0]);
+        }
+    }
+
     /// <summary>
     /// Checks component selection, retained index strides, channel placement and allocation ownership at every SIMD width.
     /// </summary>

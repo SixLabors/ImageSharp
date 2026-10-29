@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -174,33 +175,12 @@ public class EntropyCoderTests
         }
     }
 
-    private sealed class MockBitReader : JxlBitReader
-    {
-        public ulong NBits { get; set; }
-
-        public ulong Bits { get; set; }
-
-        public MockBitReader(Stream stream)
-            : base(stream)
-        {
-        }
-
-        public override uint PeekBits32(uint bitCount)
-        {
-            Assert.Equal(this.NBits, bitCount);
-            return (uint)this.Bits;
-        }
-
-        public override uint ReadBits32(uint bitCount)
-        {
-            Assert.Equal(this.NBits, bitCount);
-            return (uint)this.Bits;
-        }
-    }
-
-    private static void HybridUintRoundtrip(
-        JxlAnsHybridUIntConfiguration config,
-        uint limit = 1u << 24)
+    /// <summary>
+    /// Checks hybrid integers through one real bitstream, including each token's exact number of remaining bits.
+    /// </summary>
+    /// <param name="config">The split and token-bit settings.</param>
+    /// <param name="limit">The largest generated integer.</param>
+    private static void HybridUintRoundtrip(JxlAnsHybridUIntConfiguration config, uint limit)
     {
         Rng rng = new(0);
 
@@ -209,7 +189,8 @@ public class EntropyCoderTests
         uint[] integers = new uint[numIntegers];
         uint[] token = new uint[numIntegers];
         uint[] nbits = new uint[numIntegers];
-        uint[] bits = new uint[numIntegers];
+        using MemoryStream input = new();
+        JxlBitWriter writer = new(input);
 
         for (int i = 0; i < numIntegers; i++)
         {
@@ -218,31 +199,36 @@ public class EntropyCoderTests
                 integers[i],
                 out token[i],
                 out nbits[i],
-                out bits[i]);
+                out uint bits);
+
+            // Tokens belong to the entropy stream. Only their remaining low bits go into this bitstream.
+            writer.Write((int)nbits[i], bits);
         }
+
+        writer.ZeroPadToByte();
+        input.Position = 0;
+        JxlBitReader reader = new(input);
 
         for (int i = 0; i < numIntegers; i++)
         {
-            MockBitReader br = new(Stream.Null)
-            {
-                NBits = nbits[i],
-                Bits = bits[i]
-            };
+            long before = reader.TotalBitsConsumed;
 
             Assert.Equal(
                 integers[i],
-                (uint)JxlAnsSymbolReader.ReadHybridUIntConfiguration(config, (int)token[i], br));
+                (uint)JxlAnsSymbolReader.ReadHybridUIntConfiguration(config, (int)token[i], reader));
+
+            Assert.Equal((long)nbits[i], reader.TotalBitsConsumed - before);
         }
     }
 
     [Fact]
-    public void Test000() => HybridUintRoundtrip(new JxlAnsHybridUIntConfiguration(0, 0, 0));
+    public void Test000() => HybridUintRoundtrip(new JxlAnsHybridUIntConfiguration(0, 0, 0), 1U << 24);
 
     [Fact]
-    public void Test411() => HybridUintRoundtrip(new JxlAnsHybridUIntConfiguration(4, 1, 1));
+    public void Test411() => HybridUintRoundtrip(new JxlAnsHybridUIntConfiguration(4, 1, 1), 1U << 24);
 
     [Fact]
-    public void Test420() => HybridUintRoundtrip(new JxlAnsHybridUIntConfiguration(4, 2, 0));
+    public void Test420() => HybridUintRoundtrip(new JxlAnsHybridUIntConfiguration(4, 2, 0), 1U << 24);
 
     [Fact]
     public void Test421() => HybridUintRoundtrip(

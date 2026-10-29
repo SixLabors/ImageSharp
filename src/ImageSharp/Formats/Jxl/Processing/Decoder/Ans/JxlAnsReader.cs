@@ -385,8 +385,6 @@ internal static class JxlAnsReader
 
     public static void DecodeUIntConfiguration(int logAlphaSize, out JxlAnsHybridUIntConfiguration uintConfig, JxlBitReader br)
     {
-        br.Refill();
-
         uint splitExponent = br.ReadBits32((uint)JxlMath.CeilLog2Nonzero(logAlphaSize + 1));
         uint msbInToken = 0;
         uint lsbInToken = 0;

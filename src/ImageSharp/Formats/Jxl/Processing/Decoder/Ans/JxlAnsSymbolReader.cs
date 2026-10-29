@@ -153,7 +153,13 @@ internal sealed class JxlAnsSymbolReader : IDisposable
     /// <returns>Whether the stream ended at the format's signature state.</returns>
     public bool CheckAnsFinalState() => this.state == JxlAnsConstants.AnsSignature << 16;
 
-    public int ReadSymbolAnsWithoutRefill(int histogramIndex, JxlBitReader br)
+    /// <summary>
+    /// Reads one ANS symbol and consumes a 16-bit normalization field only when the state needs it.
+    /// </summary>
+    /// <param name="histogramIndex">The decoded histogram table to use.</param>
+    /// <param name="br">The encoded normalization fields. The bit reader owns reservoir refill.</param>
+    /// <returns>The decoded symbol.</returns>
+    private int ReadSymbolAns(int histogramIndex, JxlBitReader br)
     {
         uint res = this.state & (JxlAnsConstants.AnsTableSize - 1);
 
@@ -175,25 +181,22 @@ internal sealed class JxlAnsSymbolReader : IDisposable
         return symbol.Value;
     }
 
-    public int ReadSymbolHuffmanWithoutRefill(int histogramIndex, JxlBitReader br)
-        => this.huffmanDecoders[histogramIndex].ReadSymbol(br);
-
-    public int ReadSymbolWithoutRefill(int histogramIndex, JxlBitReader br)
+    /// <summary>
+    /// Reads one symbol using the prefix or ANS coding selected by the entropy header.
+    /// </summary>
+    /// <param name="histogramIndex">The decoded histogram table to use.</param>
+    /// <param name="br">The encoded symbol fields. Reads and peeks refill their own reservoir.</param>
+    /// <returns>The decoded symbol.</returns>
+    public int ReadSymbol(int histogramIndex, JxlBitReader br)
     {
         if (this.usePrefixCode)
         {
-            return this.ReadSymbolHuffmanWithoutRefill(histogramIndex, br);
+            return this.huffmanDecoders[histogramIndex].ReadSymbol(br);
         }
         else
         {
-            return this.ReadSymbolAnsWithoutRefill(histogramIndex, br);
+            return this.ReadSymbolAns(histogramIndex, br);
         }
-    }
-
-    public int ReadSymbol(int histogramIndex, JxlBitReader br)
-    {
-        br.Refill();
-        return this.ReadSymbolWithoutRefill(histogramIndex, br);
     }
 
     /// <summary>
@@ -244,9 +247,7 @@ internal sealed class JxlAnsSymbolReader : IDisposable
     public void ReadHybridUIntClusteredHuffRleOnly(int context, JxlBitReader br, ref uint value, ref uint run)
     {
         DebugGuard.IsTrue(this.IsHuffRleOnly, "This method is meant for huffman RLE only");
-        br.Refill();
-
-        int token = this.ReadSymbolHuffmanWithoutRefill(context, br);
+        int token = this.huffmanDecoders[context].ReadSymbol(br);
         if (token >= this.lz77Threshold)
         {
             run = (uint)(
@@ -283,17 +284,14 @@ internal sealed class JxlAnsSymbolReader : IDisposable
             }
         }
 
-        br.Refill();
-        int token = this.ReadSymbolWithoutRefill(context, br);
+        int token = this.ReadSymbol(context, br);
 
         if (usesLz77)
         {
             if (token >= this.lz77Threshold)
             {
                 this.numToCopy = (uint)ReadHybridUIntConfiguration(this.lz77LengthUInt, token - this.lz77Threshold, br) + (uint)this.lz77MinLength;
-                br.Refill();
-
-                int distanceToken = this.ReadSymbolWithoutRefill(this.lz77Context, br);
+                int distanceToken = this.ReadSymbol(this.lz77Context, br);
 
                 // Hybrid integers retain all 32 bits. Widen before adding one so the largest distance
                 // cannot wrap to zero. The format then bounds it by the available history and ring size.

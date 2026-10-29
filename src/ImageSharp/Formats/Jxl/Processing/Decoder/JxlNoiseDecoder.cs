@@ -93,7 +93,7 @@ internal static class JxlNoiseDecoder
         int gy = groupIndex / frameDim.XSizeGroups;
 
         JxlRenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, thread);
-        int noiseCStart = 3 + frameHeader.Metadata!.ImageMetadata!.ExtraChannelCount;
+        int noiseCStart = 3 + frameHeader.Metadata!.ImageMetadata.ExtraChannelCount;
 
         InlineArray3<(JxlPlane<float> Image, Rectangle Rect)> rects = default;
 

@@ -32,7 +32,7 @@ internal class ToneMappingStage : RenderPipelineStageBase
         }
 
         JxlCustomTransferFunction originalTf = outputEncodingInfo.OriginalColorEncoding!.TransferFunction;
-        JxlCustomTransferFunction destinationTf = outputEncodingInfo.ColorEncoding!.TransferFunction;
+        JxlCustomTransferFunction destinationTf = outputEncodingInfo.ColorEncoding.TransferFunction;
 
         if (originalTf.IsPq && outputEncodingInfo.DesiredIntensityTarget < outputEncodingInfo.OriginalIntensityTarget)
         {

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 
@@ -13,6 +14,11 @@ internal sealed class JxlToneMapping : IJxlFields
     private bool relativeToMaxDisplay;
     private float linearBelow;
     private float minNits;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlToneMapping"/> class with the codestream's default intensities.
+    /// </summary>
+    public JxlToneMapping() => JxlBundle.Init(this);
 
     public bool AllDefault
     {
@@ -59,7 +65,7 @@ internal sealed class JxlToneMapping : IJxlFields
             return true;
         }
 
-        if (!visitor.F16(JxlFieldExpressions.Value(JxlConstants.DefaultIntensityTarget), ref this.intensityTarget))
+        if (!visitor.F16(JxlMath.DefaultIntensityTarget, ref this.intensityTarget))
         {
             return false;
         }

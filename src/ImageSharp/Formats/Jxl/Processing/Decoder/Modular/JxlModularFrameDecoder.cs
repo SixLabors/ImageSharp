@@ -268,8 +268,8 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
     public void DecodeGlobalInfo(JxlBitReader reader, JxlFrameHeader frameHeader, bool allowTruncatedGroup)
     {
         bool decodeColor = frameHeader.Encoding == JxlFrameEncoding.Modular;
-        JxlImageMetadata metadata = frameHeader.Metadata!.ImageMetadata!;
-        bool isGray = metadata.ColorEncoding!.IsGray;
+        JxlImageMetadata metadata = frameHeader.Metadata!.ImageMetadata;
+        bool isGray = metadata.ColorEncoding.IsGray;
 
         // We initially assume we have three color channels.
         // It could be XYB, RGB, etc. See the if statement

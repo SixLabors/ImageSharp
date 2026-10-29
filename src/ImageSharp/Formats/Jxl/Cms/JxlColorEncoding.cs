@@ -6,6 +6,9 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms;
 
+/// <summary>
+/// Describes JPEG XL color fields and an optional decoded ICC profile.
+/// </summary>
 internal sealed class JxlColorEncoding
 {
     public JxlWhitePoint WhitePoint { get; set; } = JxlWhitePoint.D65;
@@ -22,14 +25,20 @@ internal sealed class JxlColorEncoding
     /// <summary>
     /// Gets or sets the ICC profile reconstructed from the compressed profile payload.
     /// </summary>
-    /// <remarks>The profile contains decoded ICC data. Compressed JPEG XL profile bytes do not belong here.</remarks>
+    /// <remarks>
+    /// A null value means that no ICC profile is attached. Named color fields do not require a generated profile.
+    /// The decoder attaches the decoded profile to the original metadata encoding before it publishes the headers.
+    /// </remarks>
     public IccProfile? IccProfile { get; set; }
 
     public JxlColorSpace ColorSpace { get; set; } = JxlColorSpace.Rgb;
 
     public bool Cmyk { get; set; }
 
-    public JxlCustomTransferFunction TransferFunction { get; set; }
+    /// <summary>
+    /// Gets or sets the transfer function, which defaults to sRGB when the header uses default color fields.
+    /// </summary>
+    public JxlCustomTransferFunction TransferFunction { get; set; } = new();
 
     public JxlCustomXy White { get; set; }
 

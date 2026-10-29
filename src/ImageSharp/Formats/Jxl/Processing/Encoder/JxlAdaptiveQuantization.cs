@@ -769,9 +769,9 @@ internal static class JxlAdaptiveQuantization
             RenderNoise = false
         };
 
-        JxlImageMetadata metadata = decoded.Metadata!;
+        JxlImageMetadata metadata = decoded.Metadata;
 
-        decState.PreparePipeline(frameHeader, encState.Shared.Metadata.ImageMetadata!, decoded, options);
+        decState.PreparePipeline(frameHeader, encState.Shared.Metadata.ImageMetadata, decoded, options);
 
         using JxlGroupDecoderCache groupDecCache = new(configuration);
 
@@ -925,7 +925,7 @@ internal static class JxlAdaptiveQuantization
         float originalButteraugli = cparams.OriginalButteraugliDistance;
 
         ButteraugliParameters parameters = new();
-        JxlCustomTransferFunction tf = frameHeader.Metadata!.ImageMetadata!.ColorEncoding!.TransferFunction;
+        JxlCustomTransferFunction tf = frameHeader.Metadata!.ImageMetadata.ColorEncoding.TransferFunction;
 
         parameters.IntensityTarget = tf.IsPq || tf.IsHlg ? frameHeader.Metadata.ImageMetadata.IntensityTarget : 0;
 

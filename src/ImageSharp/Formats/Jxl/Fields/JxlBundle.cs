@@ -153,19 +153,19 @@ internal static class JxlBundle
             return false;
         }
 
-        if (!WriteSizeHeader(metadata.Size!, writer, JxlLayerType.Header, auxOut))
+        if (!WriteSizeHeader(metadata.Size, writer, JxlLayerType.Header, auxOut))
         {
             return false;
         }
 
-        if (!WriteImageMetadata(metadata.ImageMetadata!, writer, JxlLayerType.Header, auxOut))
+        if (!WriteImageMetadata(metadata.ImageMetadata, writer, JxlLayerType.Header, auxOut))
         {
             return false;
         }
 
-        metadata.CustomTransformData!.NonserializedXybEncoded = metadata.ImageMetadata!.XybEncoded;
+        metadata.CustomTransformData.NonserializedXybEncoded = metadata.ImageMetadata.XybEncoded;
 
-        return Write(metadata.CustomTransformData!, writer, JxlLayerType.Header, auxOut);
+        return Write(metadata.CustomTransformData, writer, JxlLayerType.Header, auxOut);
     }
 
     public static bool WriteFrameHeader(JxlFrameHeader frame, JxlBitWriter writer, JxlAuxiliaryOutput auxOut)

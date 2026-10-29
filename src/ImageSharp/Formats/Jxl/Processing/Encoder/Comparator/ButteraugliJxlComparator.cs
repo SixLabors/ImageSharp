@@ -34,7 +34,7 @@ internal sealed class ButteraugliJxlComparator(ButteraugliParameters parameters,
             throw new InvalidOperationException("Image must have same size");
         }
 
-        JxlImageMetadata metadata = actual.Metadata!;
+        JxlImageMetadata metadata = actual.Metadata;
         JxlImageBundle store = new(metadata);
 
         JxlTransformsEncoder.TransformIfNeeded(configuration, actual, JxlColorEncoding.LinearSRgb(actual.IsGray), cms, store, out JxlImageBundle actualLinearSRgb);
@@ -42,12 +42,12 @@ internal sealed class ButteraugliJxlComparator(ButteraugliParameters parameters,
         JxlPlane<float> tempDiffmap = new(configuration, this.width, this.height);
         JxlImage3<float> scaledActualLinearSRgb = actualLinearSRgb.Color!;
 
-        if (this.intensityTarget != 0 && actual.Metadata!.IntensityTarget != this.intensityTarget)
+        if (this.intensityTarget != 0 && actual.Metadata.IntensityTarget != this.intensityTarget)
         {
             JxlImage3<float> scaledActualLinearSRgbStore = new(configuration, this.width, this.height);
             scaledActualLinearSRgb = scaledActualLinearSRgbStore;
 
-            float scale = actual.Metadata!.IntensityTarget / this.intensityTarget;
+            float scale = actual.Metadata.IntensityTarget / this.intensityTarget;
             for (int c = 0; c < 3; ++c)
             {
                 for (int y = 0; y < this.height; ++y)
@@ -70,7 +70,7 @@ internal sealed class ButteraugliJxlComparator(ButteraugliParameters parameters,
 
     public override void SetReferenceImage(Configuration configuration, JxlImageBundle reference)
     {
-        JxlImageMetadata metadata = reference.Metadata!;
+        JxlImageMetadata metadata = reference.Metadata;
         JxlImageBundle store = new(metadata);
 
         JxlTransformsEncoder.TransformIfNeeded(configuration, reference, JxlColorEncoding.LinearSRgb(reference.IsGray), cms, store, out JxlImageBundle refLinearSRgb);
@@ -78,6 +78,6 @@ internal sealed class ButteraugliJxlComparator(ButteraugliParameters parameters,
 
         this.width = reference.XSize;
         this.height = reference.YSize;
-        this.intensityTarget = reference.Metadata!.IntensityTarget;
+        this.intensityTarget = reference.Metadata.IntensityTarget;
     }
 }

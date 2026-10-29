@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 /// <summary>
-/// An image bundle.
+/// Stores frame sample planes, the original image metadata, and the current sample encoding.
 /// </summary>
 internal sealed class JxlImageBundle
 {
@@ -21,17 +21,14 @@ internal sealed class JxlImageBundle
     private List<JxlPlane<float>> extraChannels = [];
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlImageBundle"/> class.
-    /// </summary>
-    public JxlImageBundle()
-    {
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="JxlImageBundle"/> class with the specified image metadata.
     /// </summary>
-    /// <param name="metadata">Initial image metadata.</param>
-    public JxlImageBundle(JxlImageMetadata? metadata) => this.Metadata = metadata;
+    /// <param name="metadata">The original metadata shared by frames from this codestream.</param>
+    public JxlImageBundle(JxlImageMetadata metadata)
+    {
+        this.Metadata = metadata;
+        this.CurrentColorEncoding = metadata.ColorEncoding;
+    }
 
     /// <summary>
     /// Gets or sets the optional name of the bundle.
@@ -97,42 +94,43 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Gets a value indicating whether the black extra channel is present.
     /// </summary>
-    public bool ContainsBlack => this.Metadata?.FindExtraChannel(JxlExtraChannel.Black) is not null;
+    public bool ContainsBlack => this.Metadata.FindExtraChannel(JxlExtraChannel.Black) is not null;
 
     /// <summary>
     /// Gets a value indicating whether the alpha extra channel is present.
     /// </summary>
-    public bool ContainsAlpha => this.Metadata?.FindExtraChannel(JxlExtraChannel.Alpha) is not null;
+    public bool ContainsAlpha => this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha) is not null;
 
     /// <summary>
     /// Gets a value indicating whether the alpha channel is premultiplied.
     /// </summary>
-    public bool IsAlphaPremultiplied => this.Metadata?.FindExtraChannel(JxlExtraChannel.Alpha)?.AlphaAssociated == true;
+    public bool IsAlphaPremultiplied => this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha)?.AlphaAssociated == true;
 
     /// <summary>
     /// Gets a value indicating whether the color encoding specifies Gray.
     /// </summary>
-    public bool IsGray => this.CurrentColorEncoding?.IsGray == true;
+    public bool IsGray => this.CurrentColorEncoding.IsGray;
 
     /// <summary>
     /// Gets a value indicating whether the color encoding specifies sRGB.
     /// </summary>
-    public bool IsSrgb => this.CurrentColorEncoding?.IsSrgb == true;
+    public bool IsSrgb => this.CurrentColorEncoding.IsSrgb;
 
     /// <summary>
     /// Gets a value indicating whether the color encoding specifies linear sRGB.
     /// </summary>
-    public bool IsLinearSrgb => this.CurrentColorEncoding?.IsLinearSrgb == true;
+    public bool IsLinearSrgb => this.CurrentColorEncoding.IsLinearSrgb;
 
     /// <summary>
-    /// Gets the current color encoding for this image.
+    /// Gets the encoding of the current sample planes.
     /// </summary>
-    public JxlColorEncoding? CurrentColorEncoding { get; private set; }
+    /// <remarks>Changing this encoding does not replace the original encoding or ICC profile in <see cref="Metadata"/>.</remarks>
+    public JxlColorEncoding CurrentColorEncoding { get; private set; }
 
     /// <summary>
-    /// Gets the image metadata for this image bundle.
+    /// Gets the original image metadata shared with the codestream.
     /// </summary>
-    public JxlImageMetadata? Metadata { get; }
+    public JxlImageMetadata Metadata { get; }
 
     /// <summary>
     /// Gets the color data.
@@ -193,13 +191,15 @@ internal sealed class JxlImageBundle
     {
         get
         {
-            if (!this.ContainsBlack || this.Metadata is null)
+            JxlExtraChannelInfo? channel = this.Metadata.FindExtraChannel(JxlExtraChannel.Black);
+
+            if (channel is null)
             {
                 return null;
             }
 
-            int ec = this.Metadata!.FindExtraChannel(JxlExtraChannel.Black) - this.Metadata.ExtraChannelInfo.Data;
-            return this.extraChannels[ec];
+            // Extra-channel metadata and planes use the same order in the codestream.
+            return this.extraChannels[this.Metadata.ExtraChannels.IndexOf(channel)];
         }
     }
 
@@ -210,30 +210,31 @@ internal sealed class JxlImageBundle
     {
         get
         {
-            if (!this.ContainsAlpha || this.Metadata is null)
+            JxlExtraChannelInfo? channel = this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha);
+
+            if (channel is null)
             {
                 return null;
             }
 
-            int ec = this.Metadata!.FindExtraChannel(JxlExtraChannel.Alpha) - this.Metadata.ExtraChannelInfo.Data;
-            return this.extraChannels[ec];
+            return this.extraChannels[this.Metadata.ExtraChannels.IndexOf(channel)];
         }
     }
 
     /// <summary>
     /// Gets the oriented X size.
     /// </summary>
-    public int OrientedXSize => this.Metadata?.Orientation > 4 ? this.YSize : this.XSize;
+    public int OrientedXSize => this.Metadata.Orientation > 4 ? this.YSize : this.XSize;
 
     /// <summary>
     /// Gets the oriented Y size.
     /// </summary>
-    public int OrientedYSize => this.Metadata?.Orientation > 4 ? this.XSize : this.YSize;
+    public int OrientedYSize => this.Metadata.Orientation > 4 ? this.XSize : this.YSize;
 
     /// <summary>
     /// Gets the real bit depth.
     /// </summary>
-    public uint RealBitDepth => this.Metadata!.BitDepth!.BitsPerSample;
+    public uint RealBitDepth => this.Metadata.BitDepth.BitsPerSample;
 
     /// <summary>
     /// Returns false if the width or height is 0 and any extra channel
@@ -351,12 +352,7 @@ internal sealed class JxlImageBundle
     /// <exception cref="InvalidOperationException">Thrown if the corresponding extra channel has incorrect info.</exception>
     public bool TrySetAlpha(JxlPlane<float> alpha)
     {
-        if (this.Metadata is null)
-        {
-            return false;
-        }
-
-        JxlExtraChannelInfo? eci = this.Metadata!.FindExtraChannel(JxlExtraChannel.Alpha);
+        JxlExtraChannelInfo? eci = this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha);
 
         if (eci is null)
         {
@@ -368,11 +364,11 @@ internal sealed class JxlImageBundle
             return false;
         }
 
-        int eciIndex = this.Metadata.ExtraChannelInfo.Data;
+        int eciIndex = this.Metadata.ExtraChannels.IndexOf(eci);
 
         if (eciIndex != this.extraChannels.Count)
         {
-            throw new InvalidOperationException("The SetAlpha parameter is incorrect");
+            throw new InvalidOperationException("Alpha must be appended in the metadata's extra-channel order.");
         }
 
         this.extraChannels.Add(alpha);
@@ -384,20 +380,26 @@ internal sealed class JxlImageBundle
     /// Ensures that the metadata of this image is valid.
     /// </summary>
     /// <returns>True if metadata is correct. False if it isn't.</returns>
-    /// <exception cref="InvalidOperationException">Rare.</exception>
+    /// <exception cref="InvalidOperationException">The alpha plane has zero width.</exception>
     public bool VerifyMetadata()
     {
-        if (this.CurrentColorEncoding?.IccProfile?.GetData().IsEmpty == true)
+        // Named color fields can define a conversion without an ICC profile. ICC-only encodings cannot.
+        if (!this.CurrentColorEncoding.HaveFields && this.CurrentColorEncoding.IccProfile is null)
         {
             return false;
         }
 
-        if (this.Metadata?.ColorEncoding?.IsGray != this.IsGray)
+        if (this.CurrentColorEncoding.IccProfile is not null && this.CurrentColorEncoding.IccProfile.GetData().IsEmpty)
         {
             return false;
         }
 
-        if (this.Metadata?.HasAlpha == true)
+        if (this.Metadata.ColorEncoding.IsGray != this.IsGray)
+        {
+            return false;
+        }
+
+        if (this.Metadata.HasAlpha)
         {
             JxlPlane<float>? img = this.Alpha;
             if (img?.XSize == 0)
@@ -406,7 +408,7 @@ internal sealed class JxlImageBundle
             }
         }
 
-        int alphaBits = this.Metadata?.AlphaBits ?? 0;
+        int alphaBits = this.Metadata.AlphaBits;
 
         if (alphaBits > 32)
         {
@@ -417,7 +419,7 @@ internal sealed class JxlImageBundle
     }
 
     /// <summary>
-    /// Updates the bundle from the sepcified image.
+    /// Updates the bundle from the specified image.
     /// </summary>
     /// <param name="color">Color data.</param>
     /// <param name="current">Current color encoding.</param>
@@ -429,7 +431,8 @@ internal sealed class JxlImageBundle
             return false;
         }
 
-        if (this.Metadata?.ColorEncoding?.IsGray == this.IsGray)
+        // All frame encodings must keep the original gray/RGB channel model.
+        if (this.Metadata.ColorEncoding.IsGray != current.IsGray)
         {
             return false;
         }
@@ -522,7 +525,7 @@ internal sealed class JxlImageBundle
         JxlImage3<float> output)
         => JxlImageBundleEncoder.CopyToT(
             configuration,
-            this.Metadata!,
+            this.Metadata,
             this,
             rectangle,
             desiredEncoding,

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
@@ -67,11 +68,6 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     /// Are we decoding pixels now?
     /// </summary>
     private bool postHeaders;
-
-    /// <summary>
-    /// ICC profile for JPEG XL metadata, if present.
-    /// </summary>
-    private IccProfile? iccProfile;
 
     /// <summary>
     /// The frame index box, if present.
@@ -233,14 +229,9 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     private readonly List<JxlExtraChannelOutput> extraChannelOutputs = [];
 
     /// <summary>
-    /// Codec metadata if present.
+    /// Metadata owned by the current decode operation and shared with its frame bundles.
     /// </summary>
-    private JxlCodecMetadata? metadata;
-
-    /// <summary>
-    /// Image metadata if present.
-    /// </summary>
-    private JxlImageMetadata? imageMetadata;
+    private JxlCodecMetadata metadata;
 
     /// <summary>
     /// The image bundle.
@@ -519,13 +510,13 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
 
             if (this.frameHeader?.IsPreviewFrame == true)
             {
-                width = this.metadata!.GetOrientedPreviewXSize(this.keepOrientation);
-                height = this.metadata!.GetOrientedPreviewYSize(this.keepOrientation);
+                width = this.metadata.GetOrientedPreviewXSize(this.keepOrientation);
+                height = this.metadata.GetOrientedPreviewYSize(this.keepOrientation);
             }
             else
             {
-                width = this.metadata!.GetOrientedXSize(this.keepOrientation);
-                height = this.metadata!.GetOrientedYSize(this.keepOrientation);
+                width = this.metadata.GetOrientedXSize(this.keepOrientation);
+                height = this.metadata.GetOrientedYSize(this.keepOrientation);
 
                 if (!this.coalescing)
                 {
@@ -534,7 +525,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                     width = dim.XSizeUpsampled;
                     height = dim.YSizeUpsampled;
 
-                    if (!this.keepOrientation && this.metadata.ImageMetadata!.Orientation > 4)
+                    if (!this.keepOrientation && this.metadata.ImageMetadata.Orientation > 4)
                     {
                         RuntimeUtility.Swap(ref width, ref height);
                     }
@@ -851,7 +842,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         }
         else if (bitDepth.Type == JxlBitDepthType.FromCodeStream)
         {
-            return metadata.BitDepth!.BitsPerSample;
+            return metadata.BitDepth.BitsPerSample;
         }
         else if (bitDepth.Type == JxlBitDepthType.Custom)
         {
@@ -1239,6 +1230,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     /// additionally, releases memory used by buffers and replaces
     /// them with new fresh copies.
     /// </summary>
+    [MemberNotNull(nameof(metadata))]
     public void RewindDecodingState()
     {
         this.decoderStage = JxlDecoderStage.Initialized;
@@ -1250,8 +1242,6 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         this.gotTransformData = false;
         this.gotAllHeaders = false;
         this.postHeaders = false;
-
-        this.iccProfile = null;
 
         this.gotPreviewImage = false;
         this.previewFrame = false;
@@ -1329,9 +1319,11 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         this.nextSection = 0;
         this.sectionProcessed.Clear();
 
-        this.imageBundle.Reset();
+        this.imageBundle = null;
+
+        // A rewind starts a new codestream. Its frames share this metadata, including the original profile.
+        // Constructing metadata here prevents a later frame from retaining the previous codestream's profile.
         this.metadata = new JxlCodecMetadata();
-        this.imageMetadata = this.metadata.ImageMetadata;
 
         this.frameHeader = new()
         {
@@ -1357,6 +1349,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     /// <summary>
     /// Resets the decoder to its default values.
     /// </summary>
+    [MemberNotNull(nameof(metadata))]
     public void Reset()
     {
         this.RewindDecodingState();
@@ -1520,12 +1513,12 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
 
         JxlBitReader bitReader = new(stream);
 
-        if (!this.ReadBundle(stream, bitReader, this.metadata!.Size!))
+        if (!this.ReadBundle(stream, bitReader, this.metadata.Size))
         {
             throw new InvalidDataException("Could not parse the size header");
         }
 
-        if (!this.ReadBundle(stream, bitReader, this.metadata!.ImageMetadata!))
+        if (!this.ReadBundle(stream, bitReader, this.metadata.ImageMetadata))
         {
             throw new InvalidDataException("Could not parse the image metadata");
         }
@@ -1538,9 +1531,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         this.codestreamBitsAhead = rem;
         this.gotBasicInfo = true;
         this.basicInfoSizeHint = 0;
-        this.imageMetadata = this.metadata.ImageMetadata;
-
-        if (!CheckSizeLimit(this.metadata.Size!.XSize, this.metadata.Size.YSize))
+        if (!CheckSizeLimit(this.metadata.Size.XSize, this.metadata.Size.YSize))
         {
             throw new InvalidOperationException("The image is too large");
         }
@@ -1559,7 +1550,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
             JxlBitReader reader = new(this.stream);
             reader.SkipBits64((ulong)this.codestreamBitsAhead);
 
-            this.metadata!.CustomTransformData!.NonserializedXybEncoded = this.metadata.ImageMetadata!.XybEncoded;
+            this.metadata.CustomTransformData.NonserializedXybEncoded = this.metadata.ImageMetadata.XybEncoded;
 
             if (!this.ReadBundle(span, reader, this.metadata.CustomTransformData))
             {
@@ -1579,20 +1570,16 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         JxlBitReader bitReader = new(sp);
         bitReader.SkipBits64((ulong)this.codestreamBitsAhead);
 
-        if (this.metadata!.ImageMetadata!.ColorEncoding!.NeedsIcc)
+        if (this.metadata.ImageMetadata.ColorEncoding.NeedsIcc)
         {
-            // TODO: optimize this? ImageSharp ICC doesn't support spans
-            // so we need to allocate an array.
+            // TODO: Decode the JPEG XL compressed ICC payload before constructing the profile.
             IccDataReader reader = new(sp.ToArray());
             IccProfileHeader header = IccReader.ReadHeader(reader);
             IccTagDataEntry[] tagData = IccReader.ReadTagData(reader);
 
-            IccProfile icc = new(header, tagData);
-            this.iccProfile = icc;
+            // Keep the profile on its original encoding. Frame bundles and JPEG reconstruction share this owner.
+            this.metadata.ImageMetadata.ColorEncoding.IccProfile = new IccProfile(header, tagData);
             sp = sp[reader.Index..];
-
-            byte[] iccRawData = icc.ToByteArray();
-            this.metadata.ImageMetadata.ColorEncoding.SetIccRaw(iccRawData);
         }
 
         this.gotAllHeaders = true;
@@ -1608,8 +1595,6 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
         {
             this.passesState.OutputEncodingInfo.DesiredIntensityTarget = this.desiredIntensityTarget;
         }
-
-        this.imageMetadata = this.metadata.ImageMetadata;
     }
 
     /// <summary>
@@ -1720,7 +1705,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
 
         this.postHeaders = true;
 
-        if (!this.gotPreviewImage && this.metadata!.ImageMetadata!.HavePreview)
+        if (!this.gotPreviewImage && this.metadata.ImageMetadata.HavePreview)
         {
             this.previewFrame = true;
         }
@@ -1740,14 +1725,11 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                     throw new InvalidOperationException("Cannot decode frames following a JPEG reconstruction frame");
                 }
 
-                this.imageBundle ??= new(this.imageMetadata!);
+                // Create a frame bundle only when a frame is needed, after its codestream headers have been read.
+                this.imageBundle ??= new(this.metadata.ImageMetadata);
+                this.jpegDecoder.SetImageBundleJpegData(this.imageBundle);
 
-                if (!this.jpegDecoder.SetImageBundleJpegData(this.imageBundle!))
-                {
-                    throw new InvalidOperationException("Cannot set JXL->JPEG decoder image bundle");
-                }
-
-                this.frameDecoder = new(this.passesState!, this.metadata!, useSlowRenderingPipeline: false);
+                this.frameDecoder = new(this.passesState!, this.metadata, useSlowRenderingPipeline: false);
                 this.frameHeader = new()
                 {
                     Metadata = this.metadata
@@ -1756,7 +1738,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                 Span<byte> span = this.GetCodeStreamSpan();
                 JxlBitReader reader = new(span);
 
-                this.frameDecoder.InitializeFrame(reader, this.imageBundle!, this.previewFrame);
+                this.frameDecoder.InitializeFrame(reader, this.imageBundle, this.previewFrame);
 
                 this.AdvanceCodeStream(reader.TotalBitsConsumed / JxlMath.BitsPerByte);
                 this.frameHeader = this.frameDecoder.GetFrameHeader();
@@ -1921,7 +1903,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                     if (this.imageOutBufferSet)
                     {
                         Size dimensions = this.CurrentDimensions;
-                        int bitsPerSample = GetBitDepth(this.imageOutputBitDepth, this.metadata!.ImageMetadata!, this.imageOutputFormat);
+                        int bitsPerSample = GetBitDepth(this.imageOutputBitDepth, this.metadata.ImageMetadata, this.imageOutputFormat);
 
                         this.frameDecoder.SetImageOutput(
                             new PixelCallback(
@@ -1940,7 +1922,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                         for (int i = 0; i < this.extraChannelOutputs.Count; i++)
                         {
                             JxlExtraChannelOutput extra = this.extraChannelOutputs[i];
-                            int ecBitsPerSample = GetBitDepth(this.imageOutputBitDepth, this.metadata.ImageMetadata!.ExtraChannels[i], extra.Format);
+                            int ecBitsPerSample = GetBitDepth(this.imageOutputBitDepth, this.metadata.ImageMetadata.ExtraChannels[i], extra.Format);
 
                             this.frameDecoder.AddExtraChannelOutput(
                                 extra.Buffer,
@@ -2011,7 +1993,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                 }
 
                 this.frameStage = JxlFrameStage.Header;
-                this.imageBundle.Reset();
+                this.imageBundle = null;
 
                 if (this.previewFrame)
                 {
@@ -2261,7 +2243,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
                 this.jpegDecoder!.WriteOutput(this.imageBundle!.JpegData);
 
                 this.reconstructionOutputJpeg = JpegReconstructionStage.None;
-                this.imageBundle.Reset();
+                this.imageBundle = null;
 
                 if ((this.eventsWanted & JxlDecoderStatus.FullImage) != 0)
                 {

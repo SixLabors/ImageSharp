@@ -132,7 +132,7 @@ internal class JxlImageBundleEncoder
         JxlImage3<float> output)
         => TryApplyColorTransform(
             configuration,
-            ib.CurrentColorEncoding!,
+            ib.CurrentColorEncoding,
             metadata.IntensityTarget,
             ib.Color!,
             ib.Black!,
@@ -149,7 +149,7 @@ internal class JxlImageBundleEncoder
         JxlImageBundle store,
         ref JxlImageBundle output)
     {
-        if (input.CurrentColorEncoding!.IsSameColorEncoding(desiredEncoding) && !input.ContainsBlack)
+        if (input.CurrentColorEncoding.IsSameColorEncoding(desiredEncoding) && !input.ContainsBlack)
         {
             output = input;
             return true;
@@ -162,7 +162,7 @@ internal class JxlImageBundleEncoder
             return false;
         }
 
-        if (!store.SetFromImage(color, input.CurrentColorEncoding!))
+        if (!store.SetFromImage(color, input.CurrentColorEncoding))
         {
             return false;
         }

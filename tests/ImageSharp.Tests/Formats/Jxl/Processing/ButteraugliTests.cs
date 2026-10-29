@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
@@ -172,6 +173,155 @@ public class ButteraugliTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             width,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks that standalone comparison reads initialized DC and AC errors and leaves output padding unchanged.
+    /// </summary>
+    /// <param name="width">The row width, including SIMD tails.</param>
+    [Theory]
+    [InlineData(17)]
+    [InlineData(33)]
+    public void InPlaceComparison_IdenticalSamplesHaveZeroDifference(int width)
+    {
+        static void RunTest(string serialized)
+        {
+            int sampleWidth = FeatureTestRunner.Deserialize<int>(serialized);
+            const int height = 8;
+            const float padding = -123F;
+            Configuration configuration = TestEnvironment.Configuration.Clone();
+            configuration.MemoryAllocator = new TestMemoryAllocator();
+            using JxlImage3<float> reference = new(configuration, sampleWidth, height);
+            using JxlImage3<float> distorted = new(configuration, sampleWidth, height);
+            using JxlPlane<float> difference = new(configuration, sampleWidth, height);
+            JxlImageOperations.ZeroFillImage(reference);
+            JxlImageOperations.ZeroFillImage(distorted);
+            Span<float> result = difference.GetRow(0);
+            result.Fill(padding);
+
+            // Equal samples have zero error in every frequency band. Dirty allocations expose an uninitialized AC result.
+            Assert.True(Butteraugli.ButteraugliDiffmapInPlace(configuration, reference, distorted, new ButteraugliParameters(), difference));
+
+            for (int y = 0; y < height; y++)
+            {
+                ReadOnlySpan<float> row = result.Slice(y * difference.PixelsPerRow, difference.PixelsPerRow);
+                for (int x = 0; x < sampleWidth; x++)
+                {
+                    Assert.Equal(0F, row[x]);
+                }
+
+                for (int x = sampleWidth; x < row.Length; x++)
+                {
+                    Assert.Equal(padding, row[x]);
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            width,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks the retained comparison's middle-frequency orchestration against the native band weights and scaling.
+    /// </summary>
+    /// <param name="component">The X or Y middle-frequency component to change.</param>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void PsychoComparison_MiddleFrequencyUsesNativeWeights(int component)
+    {
+        static void RunTest(string serialized)
+        {
+            int changedComponent = FeatureTestRunner.Deserialize<int>(serialized);
+            const int width = 33;
+            const int height = 8;
+            Configuration configuration = TestEnvironment.Configuration;
+            ButteraugliParameters parameters = new();
+            using JxlImage3<float> reference = new(configuration, width, height);
+            JxlImageOperations.ZeroFillImage(reference);
+            using ButteraugliComparator comparator = ButteraugliComparator.Make(configuration, reference, parameters);
+            using ButteraugliBlurTemp blur = new(configuration, width, height);
+            using JxlImage3<float> blurred = new(configuration, width, height);
+            using JxlImage3<float> transformed = new(configuration, width, height);
+            using ButteraugliPsychoImage referenceBands = new();
+            using ButteraugliPsychoImage distortedBands = new();
+            referenceBands.Allocate(configuration, width, height);
+            distortedBands.Allocate(configuration, width, height);
+            Assert.True(Butteraugli.OpsinDynamicsImage(configuration, reference, parameters, blurred, blur, transformed));
+            Assert.True(Butteraugli.SeparateFrequencies(configuration, blur, transformed, referenceBands));
+            JxlImageOperations.CopyImage(referenceBands.Lf, distortedBands.Lf);
+            JxlImageOperations.CopyImage(referenceBands.Mf, distortedBands.Mf);
+            for (int c = 0; c < 2; c++)
+            {
+                JxlImageOperations.CopyImage(referenceBands.Hf[c], distortedBands.Hf[c]);
+                JxlImageOperations.CopyImage(referenceBands.Uhf[c], distortedBands.Uhf[c]);
+            }
+
+            // Alter only one MF band. LF, HF and UHF remain identical, so their errors and mask correction are zero.
+            Span<float> middleSamples = distortedBands.Mf.Plane(changedComponent).GetRow(0);
+            int middleStride = distortedBands.Mf.Plane(changedComponent).PixelsPerRow;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    middleSamples[(y * middleStride) + x] += ((x % 3) - 1) * 0.125F;
+                }
+            }
+
+            using JxlImage3<float> dc = new(configuration, width, height);
+            using JxlImage3<float> ac = new(configuration, width, height);
+            using JxlPlane<float> scratch = new(configuration, width, height);
+            using JxlPlane<float> mask = new(configuration, width, height);
+            using JxlPlane<float> expected = new(configuration, width, height);
+            using JxlPlane<float> actual = new(configuration, width, height);
+            JxlImageOperations.ZeroFillImage(dc);
+            JxlImageOperations.ZeroFillImage(ac);
+
+            // Native butteraugli.cc assigns these MF penalties to both error directions, independently of HF weights.
+            // The named single-plane LF kernel owns native scaling 0.611612573796; the retained API must select that same kernel.
+            float maltaWeight = changedComponent == 0 ? 8246.75321353F : 37.0819870399F;
+            float normalization = changedComponent == 0 ? 1009002.70582F : 130262059.556F;
+            float squaredErrorWeight = changedComponent == 0 ? 2150F : 10.6195433239F;
+            Assert.True(Butteraugli.MaltaDiffMapLf(
+                referenceBands.Mf.Plane(changedComponent),
+                distortedBands.Mf.Plane(changedComponent),
+                maltaWeight,
+                maltaWeight,
+                normalization,
+                scratch,
+                ac.Plane(changedComponent)));
+
+            Butteraugli.L2Diff(
+                referenceBands.Mf.Plane(changedComponent),
+                distortedBands.Mf.Plane(changedComponent),
+                squaredErrorWeight,
+                ac.Plane(changedComponent));
+
+            Assert.True(comparator.Mask(configuration, mask));
+            Assert.True(Butteraugli.CombineChannelsToDiffmap(mask, dc, ac, 1F, expected));
+            Assert.True(comparator.DiffmapPsychoImage(configuration, distortedBands, actual));
+            ReadOnlySpan<float> expectedSamples = expected.GetRow(0);
+            ReadOnlySpan<float> actualSamples = actual.GetRow(0);
+            bool hasError = false;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    float expectedValue = expectedSamples[(y * expected.PixelsPerRow) + x];
+                    Assert.Equal(expectedValue, actualSamples[(y * actual.PixelsPerRow) + x]);
+                    hasError |= expectedValue > 0;
+                }
+            }
+
+            Assert.True(hasError);
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            component,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 

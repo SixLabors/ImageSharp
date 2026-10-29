@@ -1293,6 +1293,18 @@ internal static class Butteraugli
         return isLf ? MaltaUnitLF(borderImage, center, paddedStride)[0] : MaltaUnit(borderImage, center, paddedStride)[0];
     }
 
+    /// <summary>
+    /// Accumulates a Malta difference with the native scaling for its frequency range.
+    /// </summary>
+    /// <param name="isLf">Whether to use the low-frequency Malta neighborhood and scaling.</param>
+    /// <param name="lum0">The borrowed reference band.</param>
+    /// <param name="lum1">The borrowed distorted band.</param>
+    /// <param name="w0Gt1">The penalty for the first error direction.</param>
+    /// <param name="w0Lt1">The penalty for the opposite error direction.</param>
+    /// <param name="norm1">The band-specific normalization.</param>
+    /// <param name="diffs">The preallocated difference workspace.</param>
+    /// <param name="blockDiffAc">The existing AC error accumulation plane.</param>
+    /// <returns>Whether the input and workspace dimensions match.</returns>
     public static bool MaltaDiffMap(
         bool isLf,
         JxlPlane<float> lum0,
@@ -1302,22 +1314,10 @@ internal static class Butteraugli
         float norm1,
         JxlPlane<float> diffs,
         JxlPlane<float> blockDiffAc)
-    {
-        if (isLf)
-        {
-            const float len = 3.75f;
-            const float mulli = 0.39905817637f;
-
-            return MaltaDiffMap(true, lum0, lum1, w0Gt1, w0Lt1, norm1, len, mulli, diffs, blockDiffAc);
-        }
-        else
-        {
-            const float len = 3.75f;
-            const float mulli = 0.611612573796f;
-
-            return MaltaDiffMap(false, lum0, lum1, w0Gt1, w0Lt1, norm1, len, mulli, diffs, blockDiffAc);
-        }
-    }
+        // Keep neighborhood selection and its normalization together in the existing frequency-specific entry points.
+        => isLf
+            ? MaltaDiffMapLf(lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc)
+            : MaltaDiffMap(lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc);
 
     public static bool MaltaDiffMap(
         bool isLf,
@@ -2091,6 +2091,59 @@ internal static class Butteraugli
     }
 
     /// <summary>
+    /// Applies the native low- and high-frequency masks to independently accumulated squared errors.
+    /// </summary>
+    private readonly struct MaskedDifferenceOperator : TensorPrimitives_.ITernaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+            => MathF.Sqrt((second * MaskDcY(first)) + (third * MaskY(first)));
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            // The mask plane controls sensitivity; second and third retain separate DC and AC squared-error totals.
+            Vector128<float> dcMask = Vector128.Create(MaskDcYMultiplier) / ((Vector128.Create(MaskDcYScaler) * first) + Vector128.Create(MaskDcYOffset));
+            Vector128<float> acMask = Vector128.Create(MaskYMultiplier) / ((Vector128.Create(MaskYScaler) * first) + Vector128.Create(MaskYOffset));
+            dcMask = Vector128.Create(GlobalScale) * (Vector128<float>.One + dcMask);
+            acMask = Vector128.Create(GlobalScale) * (Vector128<float>.One + acMask);
+            dcMask *= dcMask;
+            acMask *= acMask;
+            return Vector128.Sqrt((second * dcMask) + (third * acMask));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            // The mask plane controls sensitivity; second and third retain separate DC and AC squared-error totals.
+            Vector256<float> dcMask = Vector256.Create(MaskDcYMultiplier) / ((Vector256.Create(MaskDcYScaler) * first) + Vector256.Create(MaskDcYOffset));
+            Vector256<float> acMask = Vector256.Create(MaskYMultiplier) / ((Vector256.Create(MaskYScaler) * first) + Vector256.Create(MaskYOffset));
+            dcMask = Vector256.Create(GlobalScale) * (Vector256<float>.One + dcMask);
+            acMask = Vector256.Create(GlobalScale) * (Vector256<float>.One + acMask);
+            dcMask *= dcMask;
+            acMask *= acMask;
+            return Vector256.Sqrt((second * dcMask) + (third * acMask));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            // The mask plane controls sensitivity; second and third retain separate DC and AC squared-error totals.
+            Vector512<float> dcMask = Vector512.Create(MaskDcYMultiplier) / ((Vector512.Create(MaskDcYScaler) * first) + Vector512.Create(MaskDcYOffset));
+            Vector512<float> acMask = Vector512.Create(MaskYMultiplier) / ((Vector512.Create(MaskYScaler) * first) + Vector512.Create(MaskYOffset));
+            dcMask = Vector512.Create(GlobalScale) * (Vector512<float>.One + dcMask);
+            acMask = Vector512.Create(GlobalScale) * (Vector512<float>.One + acMask);
+            dcMask *= dcMask;
+            acMask *= acMask;
+            return Vector512.Sqrt((second * dcMask) + (third * acMask));
+        }
+    }
+
+    /// <summary>
     /// Accumulates a weighted squared difference without changing the subtraction or multiplication order.
     /// </summary>
     /// <param name="weight">The fixed squared-error weight.</param>
@@ -2507,6 +2560,15 @@ internal static class Butteraugli
         return true;
     }
 
+    /// <summary>
+    /// Compares two linear RGB images while replacing their samples with intermediate frequency bands.
+    /// </summary>
+    /// <param name="configuration">The configuration used for temporary comparison storage.</param>
+    /// <param name="image0">The reference samples, overwritten during comparison.</param>
+    /// <param name="image1">The distorted samples, overwritten during comparison.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The preallocated output plane, with the same dimensions as the inputs.</param>
+    /// <returns>Whether all comparison stages succeeded.</returns>
     public static bool ButteraugliDiffmapInPlace(
         Configuration configuration,
         JxlImage3<float> image0,
@@ -2717,34 +2779,30 @@ internal static class Butteraugli
         DeallocateHFAndUHF(hf0, uhf0);
         DeallocateHFAndUHF(hf1, uhf1);
 
-        using JxlPlane<float> newBlockDiffAc = new(configuration, xSize, ySize);
-        if (!Mask(configuration, mask0, mask1, blurTemp, mask, newBlockDiffAc, image0.Plane(0), image0.Plane(1), image0.Plane(2), image1.Plane(0)))
+        // Native Mask adds its correction to the accumulated AC errors and writes the mask separately.
+        // DC errors remain independent: the final equation applies a different mask to each frequency range.
+        if (!Mask(configuration, mask0, mask1, blurTemp, blockDiffAc, mask, image0.Plane(0), image0.Plane(1), image0.Plane(2), image1.Plane(0)))
         {
             return false;
         }
 
+        ReadOnlySpan<float> maskSamples = mask.GetRow(0);
+        ReadOnlySpan<float> dcSamples = blockDiffDc.GetRow(0);
+        ReadOnlySpan<float> acSamples = blockDiffAc.GetRow(0);
+        Span<float> outputSamples = diffmap.GetRow(0);
+
+        for (int y = 0; y < ySize; y++)
         {
-            ReadOnlySpan<float> combinedSamples = newBlockDiffAc.GetRow(0);
-            Span<float> outputSamples = diffmap.GetRow(0);
-            ReadOnlySpan<float> maskSamples = mask.GetRow(0);
+            ReadOnlySpan<float> maskRow = maskSamples.Slice(y * mask.PixelsPerRow, xSize);
+            ReadOnlySpan<float> dcRow = dcSamples.Slice(y * blockDiffDc.PixelsPerRow, xSize);
+            ReadOnlySpan<float> acRow = acSamples.Slice(y * blockDiffAc.PixelsPerRow, xSize);
+            Span<float> outputRow = outputSamples.Slice(y * diffmap.PixelsPerRow, xSize);
 
-            for (int y = 0; y < ySize; y++)
-            {
-                ReadOnlySpan<float> dc = combinedSamples[(y * newBlockDiffAc.PixelsPerRow)..];
-                ReadOnlySpan<float> ac = dc;
-                Span<float> output = outputSamples[(y * diffmap.PixelsPerRow)..];
-                ReadOnlySpan<float> maskRow = maskSamples[(y * mask.PixelsPerRow)..];
-
-                for (int x = 0; x < xSize; x++)
-                {
-                    float m = maskRow[x];
-
-                    output[x] = MathF.Sqrt((dc[x] * (float)MaskDcY(m)) + (ac[x] * (float)MaskY(m)));
-                }
-            }
-
-            return true;
+            // Each lane is one pixel. The shared traversal selects 512-, 256-, 128-bit or scalar arithmetic and handles row tails.
+            TensorPrimitives_.Invoke(maskRow, dcRow, acRow, outputRow, default(MaskedDifferenceOperator));
         }
+
+        return true;
     }
 
     /// <summary>

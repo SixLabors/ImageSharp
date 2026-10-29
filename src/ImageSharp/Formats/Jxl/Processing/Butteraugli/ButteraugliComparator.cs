@@ -90,12 +90,12 @@ internal sealed class ButteraugliComparator : IDisposable
     public JxlImage3<float> Temp => this.temp;
 
     /// <summary>
-    /// Builds the owned reference decomposition and its lower-resolution comparisons from borrowed RGB samples.
+    /// Builds the owned reference decomposition and the half-resolution reference used by comparison.
     /// </summary>
     /// <param name="configuration">The configuration used for owned sample allocations.</param>
     /// <param name="rgb0">The borrowed reference pixels.</param>
     /// <param name="parameters">The perceptual comparison parameters.</param>
-    /// <returns>The comparator that owns the completed reference decomposition.</returns>
+    /// <returns>The comparator that owns both required reference decompositions.</returns>
     public static ButteraugliComparator Make(Configuration configuration, JxlImage3<float> rgb0, ButteraugliParameters parameters)
     {
         int xSize = rgb0.XSize;
@@ -110,22 +110,17 @@ internal sealed class ButteraugliComparator : IDisposable
                 return result;
             }
 
-            if (!Butteraugli.OpsinDynamicsImage(configuration, rgb0, parameters, result.Temp, result.blurTemp, result.transformedActual))
-            {
-                throw new InvalidOperationException("OpsinDynamicsImage failed");
-            }
-
-            if (!Butteraugli.SeparateFrequencies(configuration, result.blurTemp, result.transformedActual, result.pi0))
-            {
-                throw new InvalidOperationException("Could not separate frequencies");
-            }
+            result.InitializeReference(configuration, rgb0);
 
             // Smaller comparisons return only zero. Do not construct their frequency bands or blur workspace.
             if ((xSize + 1) / 2 >= 8 && (ySize + 1) / 2 >= 8)
             {
                 using JxlImage3<float> subsampledRgb0 = Butteraugli.SubSample2x(configuration, rgb0);
-                result.sub = Make(configuration, subsampledRgb0, parameters);
+                result.sub = new(configuration, subsampledRgb0.XSize, subsampledRgb0.YSize, parameters);
+                result.sub.InitializeReference(configuration, subsampledRgb0);
 
+                // Diffmap reads the child's frequency bands directly. It does not run the child's lower-resolution comparison.
+                // Prepare only that half-size reference; quarter-size and smaller decompositions would remain unread.
                 using JxlPlane<float> subResult = new(configuration, result.sub.xSize, result.sub.ySize);
                 result.subsampledDifference.Swap(subResult);
             }
@@ -402,5 +397,23 @@ internal sealed class ButteraugliComparator : IDisposable
         this.sub?.Dispose();
         this.sub = null;
         this.blurTemp.Dispose();
+    }
+
+    /// <summary>
+    /// Prepares this comparator's reference bands in its existing buffers without constructing another resolution level.
+    /// </summary>
+    /// <param name="configuration">The configuration used by the comparison stages.</param>
+    /// <param name="rgb">The borrowed reference, with the dimensions supplied to this comparator's constructor.</param>
+    private void InitializeReference(Configuration configuration, JxlImage3<float> rgb)
+    {
+        if (!Butteraugli.OpsinDynamicsImage(configuration, rgb, this.parameters, this.Temp, this.blurTemp, this.transformedActual))
+        {
+            throw new InvalidOperationException("OpsinDynamicsImage failed");
+        }
+
+        if (!Butteraugli.SeparateFrequencies(configuration, this.blurTemp, this.transformedActual, this.pi0))
+        {
+            throw new InvalidOperationException("Could not separate frequencies");
+        }
     }
 }

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 /// useful for variable-length coding where the amount
 /// of bits depend on how large the number is.
 /// </remarks>
-internal sealed class JxlQuantizer
+internal sealed partial class JxlQuantizer
 {
     /// <summary>
     /// Denominator for the global_scale value.

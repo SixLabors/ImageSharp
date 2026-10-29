@@ -33,63 +33,37 @@ internal static class JxlGroupDecoder
         }
     }
 
-    public static void DequantLane(
-        JxlDctAcType acType,
-        Vector<float> scaledDequantX,
-        Vector<float> scaledDequantY,
-        Vector<float> scaledDequantB,
-        ReadOnlySpan<float> dequantMatrices,
-        int size,
-        int k,
-        Vector<float> xCCMul,
-        Vector<float> bCCMul,
-        ReadOnlySpan<float> biases,
-        JxlDctAcPointer qblock0,
-        JxlDctAcPointer qblock1,
-        JxlDctAcPointer qblock2,
-        Span<float> block)
-    {
-        Vector<float> xMul = Vector.Create(dequantMatrices[k..]) * scaledDequantX;
-        Vector<float> yMul = Vector.Create(dequantMatrices[(k + size)..]) * scaledDequantY;
-        Vector<float> bMul = Vector.Create(dequantMatrices[(k + (size * 2))..]) * scaledDequantB;
-
-        Vector<int> quantizedXInt;
-        Vector<int> quantizedYInt;
-        Vector<int> quantizedBInt;
-
-        if (acType == JxlDctAcType.Ac16)
-        {
-            quantizedXInt = Vector.WidenLower(Vector.Create<short>(qblock0.Pointer16[k..]));
-            quantizedYInt = Vector.WidenLower(Vector.Create<short>(qblock1.Pointer16[k..]));
-            quantizedBInt = Vector.WidenLower(Vector.Create<short>(qblock2.Pointer16[k..]));
-        }
-        else
-        {
-            quantizedXInt = Vector.Create<int>(qblock0.Pointer32[k..]);
-            quantizedYInt = Vector.Create<int>(qblock1.Pointer32[k..]);
-            quantizedBInt = Vector.Create<int>(qblock2.Pointer32[k..]);
-        }
-
-        Vector<float> dequantXCC = JxlQuantizerSimd.AdjustQuantBias(0, quantizedXInt, biases) * xMul;
-        Vector<float> dequantY = JxlQuantizerSimd.AdjustQuantBias(1, quantizedYInt, biases) * yMul;
-        Vector<float> dequantBCC = JxlQuantizerSimd.AdjustQuantBias(2, quantizedBInt, biases) * bMul;
-
-        Vector<float> dequantX = (xCCMul * dequantY) + dequantXCC;
-        Vector<float> dequantB = (bCCMul * dequantY) + dequantBCC;
-
-        dequantX.CopyTo(block[k..]);
-        dequantY.CopyTo(block[(k + size)..]);
-        dequantB.CopyTo(block[(k + (size * 2))..]);
-    }
-
+    /// <summary>
+    /// Restores one transform's AC planes, color correlation and separately coded lowest frequencies.
+    /// </summary>
+    /// <param name="acType">The stored integer coefficient width.</param>
+    /// <param name="invGlobalScale">The inverse frame quantization scale.</param>
+    /// <param name="quant">The positive block quantizer.</param>
+    /// <param name="xDmMultiplier">The X matrix multiplier.</param>
+    /// <param name="bDmMultiplier">The B matrix multiplier.</param>
+    /// <param name="xCcMul">The Y contribution to X.</param>
+    /// <param name="bCcMul">The Y contribution to B.</param>
+    /// <param name="kind">The transform strategy.</param>
+    /// <param name="size">The coefficient count per channel.</param>
+    /// <param name="quantizer">The prepared frame quantizer and matrices.</param>
+    /// <param name="coveredBlocks">The number of 8-by-8 blocks covered by the transform.</param>
+    /// <param name="sbx">The DC image's horizontal offset for each channel.</param>
+    /// <param name="dcRow">The current DC samples.</param>
+    /// <param name="dcStride">The DC row stride, in samples.</param>
+    /// <param name="biases">The channel biases and shared reciprocal numerator.</param>
+    /// <param name="qblock0">The X integer coefficients.</param>
+    /// <param name="qblock1">The Y integer coefficients.</param>
+    /// <param name="qblock2">The B integer coefficients.</param>
+    /// <param name="block">The caller-owned consecutive X, Y and B float planes.</param>
+    /// <param name="scratch">The caller-owned transform scratch.</param>
     private static void DequantBlock(
         JxlDctAcType acType,
         float invGlobalScale,
         int quant,
         float xDmMultiplier,
         float bDmMultiplier,
-        Vector<float> xCcMul,
-        Vector<float> bCcMul,
+        float xCcMul,
+        float bCcMul,
         JxlAcStrategyType kind,
         int size,
         JxlQuantizer quantizer,
@@ -104,19 +78,46 @@ internal static class JxlGroupDecoder
         Span<float> block,
         Span<float> scratch)
     {
-        float scaledDequantS = invGlobalScale / quant;
+        float inverseQuantization = invGlobalScale / quant;
+        float xScale = inverseQuantization * xDmMultiplier;
+        float bScale = inverseQuantization * bDmMultiplier;
+        ReadOnlySpan<float> matrices = quantizer.DequantMatrix(kind, 0);
+        int coefficientCount = coveredBlocks * JxlFrameDimensions.DctBlockSize;
 
-        Vector<float> scaledDequantX = new(scaledDequantS * xDmMultiplier);
-        Vector<float> scaledDequantY = new(scaledDequantS);
-        Vector<float> scaledDequantB = new(scaledDequantS * bDmMultiplier);
-
-        ReadOnlySpan<float> dequantMatrices = quantizer.DequantMatrix(kind, 0);
-
-        for (int k = 0; k < coveredBlocks * JxlFrameDimensions.DctBlockSize; k += Vector<float>.Count)
+        // The matrix table stores X, Y and B consecutively for this transform. Only logical coefficients participate.
+        // Select the stored integer width once. Both paths share numeric conversion, bias correction and correlation.
+        if (acType == JxlDctAcType.Ac16)
         {
-            DequantLane(acType, scaledDequantX, scaledDequantY, scaledDequantB, dequantMatrices, size, k, xCcMul, bCcMul, biases, qblock0, qblock1, qblock2, block);
+            JxlQuantizer.Dequantize(
+                qblock0.Pointer16[..coefficientCount],
+                qblock1.Pointer16[..coefficientCount],
+                qblock2.Pointer16[..coefficientCount],
+                matrices,
+                xScale,
+                inverseQuantization,
+                bScale,
+                xCcMul,
+                bCcMul,
+                biases,
+                block);
+        }
+        else
+        {
+            JxlQuantizer.Dequantize(
+                qblock0.Pointer32[..coefficientCount],
+                qblock1.Pointer32[..coefficientCount],
+                qblock2.Pointer32[..coefficientCount],
+                matrices,
+                xScale,
+                inverseQuantization,
+                bScale,
+                xCcMul,
+                bCcMul,
+                biases,
+                block);
         }
 
+        // AC dequantization does not supply the transform's lowest frequencies. Restore them from the separate DC image.
         for (int c = 0; c < 3; c++)
         {
             JxlTransformsDecoder.LowestFrequenciesFromDc(kind, dcRow[sbx[c]..], dcStride, block[(c * size)..], scratch);

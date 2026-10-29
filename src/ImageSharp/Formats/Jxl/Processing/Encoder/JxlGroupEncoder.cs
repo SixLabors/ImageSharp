@@ -3,8 +3,6 @@
 
 using System.Buffers;
 using System.Numerics.Tensors;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
@@ -455,47 +453,10 @@ internal static class JxlGroupEncoder
 
         ReadOnlySpan<float> dequantMatrix = quantizer.DequantMatrix(quantKind, 1);
 
-        /*
-           Implementing this is slightly tricky as we have to
-           process at 64 lanes at a time.
-
-           This is the reference code snippet from libjxl:
-
-           HWY_CAPPED(float, kDCTBlockSize) df;
-           HWY_CAPPED(int32_t, kDCTBlockSize) di;
-           const auto inv_qac = Set(df, quantizer.inv_quant_ac(*quant));
-           for (size_t k = 0; k < kDCTBlockSize * xsize * ysize; k += Lanes(df)) {
-             const auto oquant = Load(di, quantized + size + k);
-             const auto adj_quant = AdjustQuantBias(di, 1, oquant, biases);
-             const auto dequantm = Load(df, dequant_matrix + k);
-             Store(Mul(Mul(adj_quant, dequantm), inv_qac), df, inout + size + k);
-           }
-         */
-
-        // Don't call .Clear(). All items will be populated.
-        Span<float> shared = stackalloc float[64 * 6];
-
-        Span<float> inverseQAc = shared.Slice(64 * 0, 64);
-        Span<int> oquant = MemoryMarshal.Cast<float, int>(shared.Slice(64 * 1, 64));
-        Span<float> adjQuant = shared.Slice(64 * 2, 64);
-        Span<float> dequantm = shared.Slice(64 * 3, 64);
-
-        Span<float> mulAdjQuantDequantm = shared.Slice(64 * 4, 64);
-        Span<float> mulAdjQuantDequantmInverseQAc = shared.Slice(64 * 5, 64);
-
-        inverseQAc.Fill(quantizer.InverseQuantAc(quant));
-
-        for (int k = 0; k < JxlFrameDimensions.DctBlockSize * width * height; k += 64)
-        {
-            quantized.Slice(size + k, 64).CopyTo(oquant);
-            JxlQuantizerSimd.AdjustQuantBias64(1, oquant, biases, adjQuant);
-            dequantMatrix.Slice(k, 64).CopyTo(dequantm);
-
-            TensorPrimitives.Multiply(adjQuant, dequantm, mulAdjQuantDequantm);
-            TensorPrimitives.Multiply(mulAdjQuantDequantm, inverseQAc, mulAdjQuantDequantmInverseQAc);
-
-            inverseQAc.CopyTo(inOut.Slice(size + k, 64));
-        }
+        // Reconstruct Y before quantizing its correlated X/B residuals. Bias, matrix and scale stay in registers;
+        // the quantizer writes directly into the existing float coefficient plane and leaves integer output unchanged.
+        int coefficientCount = JxlFrameDimensions.DctBlockSize * width * height;
+        JxlQuantizer.Dequantize(quantized.Slice(size, coefficientCount), dequantMatrix, quantizer.InverseQuantAc(quant), 1, biases, inOut[size..]);
     }
 
     public static void ComputeCoefficients(

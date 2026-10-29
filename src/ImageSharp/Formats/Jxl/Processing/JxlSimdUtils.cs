@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
@@ -14,8 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 /// </summary>
 internal static partial class JxlSimdUtils
 {
-    public static int MaxVectorSize => Vector<float>.Count * sizeof(float);
-
     /// <summary>
     /// Fills consecutive integers, starting with the supplied value.
     /// </summary>

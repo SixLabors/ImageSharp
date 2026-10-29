@@ -17,18 +17,23 @@ using Tree = System.Collections.Generic.List<SixLabors.ImageSharp.Formats.Jxl.Pr
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 
 /// <summary>
-/// Decodes JPEG-XL images coded in Modular mode.
+/// Decodes global modular data and owns its integer sample channels for one frame.
 /// </summary>
-/// <param name="configuration">Global configuration</param>
-/// <param name="fd">Frame dimensions for the image.</param>
-internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFrameDimensions fd)
+/// <param name="configuration">The configuration used for owned sample allocations.</param>
+/// <param name="frameDimensions">The borrowed parsed frame dimensions.</param>
+internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFrameDimensions frameDimensions) : IDisposable
 {
     private const float AlmostZero = 1e-8f;
 
     private readonly Configuration configuration = configuration;
+
+    /// <summary>
+    /// The owned global channels. A failed replacement leaves its partial channels local to DecodeGlobalInfo.
+    /// </summary>
     private JxlModularImage fullImage = new();
-    private List<JxlTransform> globalTransform = [];
-    private readonly JxlFrameDimensions frameDimensions = fd;
+
+    private readonly List<JxlTransform> globalTransform = [];
+    private readonly JxlFrameDimensions frameDimensions = frameDimensions;
     private bool doColor;
     private bool haveSomething;
     private bool useFullImage = true;
@@ -246,10 +251,12 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
         for (int c = 0; c < 3; c++)
         {
             JxlModularChannel currentChannel = img.Channels[c];
+            Span<int> channelSamples = currentChannel.GetRow(0);
+            int channelStride = currentChannel.Plane.PixelsPerRow;
 
             for (int y = 0; y < requiredSizeY; y++)
             {
-                Span<int> row = currentChannel.GetRow(y);
+                Span<int> row = channelSamples[(y * channelStride)..];
 
                 for (int x = 0; x < requiredSizeX; x++)
                 {
@@ -265,6 +272,12 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
         }
     }
 
+    /// <summary>
+    /// Decodes the global modular channels and replaces this decoder's previous owned image only after success.
+    /// </summary>
+    /// <param name="reader">The global modular bitstream.</param>
+    /// <param name="frameHeader">The parsed frame header that determines channel dimensions and sampling.</param>
+    /// <param name="allowTruncatedGroup">Whether the existing modular decoder may accept a truncated group.</param>
     public void DecodeGlobalInfo(JxlBitReader reader, JxlFrameHeader frameHeader, bool allowTruncatedGroup)
     {
         bool decodeColor = frameHeader.Encoding == JxlFrameEncoding.Modular;
@@ -304,12 +317,15 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
         {
             if (hasTree)
             {
-                // Trees cannot be larger than the tree size limit.
-                // The absolute maximum size of a tree is 1 << 22,
-                // or 4,194,304.
-                int treeSizeLimit = Math.Min(
-                    1 << 22,
-                    1024 + (this.frameDimensions.XSize * this.frameDimensions.YSize * (numberOfChannels + extraChannelCount) / 16));
+                const int initialTreeNodes = 1024;
+                const long samplesPerTreeNode = 16;
+
+                // The format allows 1024 base nodes and one additional node per 16 samples, up to MaxTreeSize.
+                // At least one color channel exists here. Limit pixels first: larger counts already reach the node cap with one channel.
+                // This keeps both multiplications within signed 64-bit bounds for int-sized dimensions and channel counts.
+                long pixels = Math.Min((long)this.frameDimensions.XSize * this.frameDimensions.YSize, JxlMaConstants.MaxTreeSize * samplesPerTreeNode);
+                long channels = numberOfChannels + (long)extraChannelCount;
+                int treeSizeLimit = (int)Math.Min(JxlMaConstants.MaxTreeSize, initialTreeNodes + (pixels * channels / samplesPerTreeNode));
 
                 // Decoding the actual MA tree now, followed by the ANS histograms.
                 JxlMaDecoder.DecodeTree(this.configuration, reader, this.tree, treeSizeLimit);
@@ -371,190 +387,203 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
             (int)metadata.BitDepth.BitsPerSample,
             numberOfChannels + extraChannelCount);
 
-        this.allSameShift = true;
-
-        if (frameHeader.ColorTransform == JxlColorTransform.YCbCr)
+        try
         {
-            JxlYCbCrChromaSubsampling subsampling = frameHeader.ChromaSubsampling!;
+            this.allSameShift = true;
 
-            // For Y'Cb'Cr color transforms, we adjust our image
-            // for chroma subsampling.
-            for (int c = 0; c < numberOfChannels; c++)
+            if (frameHeader.ColorTransform == JxlColorTransform.YCbCr)
             {
+                JxlYCbCrChromaSubsampling subsampling = frameHeader.ChromaSubsampling!;
+
+                // For Y'Cb'Cr color transforms, we adjust our image
+                // for chroma subsampling.
+                for (int c = 0; c < numberOfChannels; c++)
+                {
+                    // Reference to the channel of the current index.
+                    JxlModularChannel channel = img.Channels[c];
+
+                    // First, we compute the shifts, which are for the
+                    // chroma subsampling and therefore specific to the
+                    // Y'Cb'Cr chroma transform.
+                    channel.HorizontalShift = subsampling.HShift(c);
+                    channel.VerticalShift = subsampling.VShift(c);
+
+                    // Then we compute the widths and heights that are
+                    // divided by the shifts. That's because in Y'Cb'Cr
+                    // chroma subsampling, the luma (Y) part is usually
+                    // the same, while the Chroma (Cb, Cr) part is downsampled.
+                    // So the size for the chroma channel is not the same
+                    // as the original image.
+                    // See https://en.wikipedia.org/wiki/Chroma_subsampling
+                    int xSizeShifted = JxlMath.DivCeil(this.frameDimensions.XSize, 1 << channel.HorizontalShift);
+                    int ySizeShifted = JxlMath.DivCeil(this.frameDimensions.YSize, 1 << channel.VerticalShift);
+
+                    // The chroma plane should be shrinked down to its downsampled
+                    // size, as part of chroma subsampling.
+                    //
+                    // Note that if this is channel 0, which is a Luma channel,
+                    // xSizeShifted and ySizeShifted will be the same as the channel's
+                    // original width or height. There's no shift as Luma channels
+                    // do not have downsampling; it's the Chroma channels that are
+                    // downsampled. Meaning, this .Shrink() call wouldn't really do
+                    // anything.
+                    channel.Shrink(xSizeShifted, ySizeShifted);
+
+                    // Now we check if the shift is the same for all channels.
+                    // If they are not, then we know that the shift isn't
+                    // the same for all channels.
+                    //
+                    // This wouldn't really work for the 0 channel, but that's
+                    // expected as the 0 channel is the Luma channel which isn't
+                    // really downsampled. For channels 1 and 2 which are chroma
+                    // channels, this should work.
+                    if (channel.HorizontalShift != img.Channels[0].HorizontalShift ||
+                        channel.VerticalShift != img.Channels[0].VerticalShift)
+                    {
+                        this.allSameShift = false;
+                    }
+                }
+            }
+
+            // For the extra channels, we do almost the same as the
+            // chroma subsampling for Y'Cb'Cr. Except, extra channels have
+            // their own upsampling matrix, which we use.
+            //
+            // The upsampling matrix is a List<uint>, which can be
+            // slow. So we can use a Span<uint> wrapper which is more
+            // lightweight and faster.
+            Span<uint> extraChannelUpsampling = CollectionsMarshal.AsSpan(frameHeader.ExtraChannelUpsampling);
+
+            // We have two loop variables.
+            //
+            // 'ec', short for Extra Channel, is the index of the extra channel.
+            // We need this to access the upsampling matrix which is specific for extra channels.
+            //
+            // 'c', on the other hand, just means channel. It is initially set to
+            // numberOfChannels, because that's where the first extra channel starts.
+            //
+            // Suppose our image is coded using RGB and we have two extra channels, one
+            // alpha channel and one black channel. In such a case:
+            //   - numberOfChannels would be 3. We have 3 channels - R, G, and B.
+            //   - That also means the first index of the extra channel is the last index
+            //     of the RGB channel (2), plus 1. So that's 3.
+            //
+            // From then on, 'c' would keep incrementing, to access a generic list of channels.
+            for (int ec = 0, c = numberOfChannels; ec < extraChannelCount; ec++, c++)
+            {
+                // Upsampling for this specific extra channel
+                int upsampling = (int)extraChannelUpsampling[ec];
+
                 // Reference to the channel of the current index.
                 JxlModularChannel channel = img.Channels[c];
 
-                // First, we compute the shifts, which are for the
-                // chroma subsampling and therefore specific to the
-                // Y'Cb'Cr chroma transform.
-                channel.HorizontalShift = subsampling.HShift(c);
-                channel.VerticalShift = subsampling.VShift(c);
+                // We shrink the channel, so it becomes 'upsampling' times smaller
+                // than its upsampled size.
+                channel.Shrink(
+                    JxlMath.DivCeil(this.frameDimensions.XSizeUpsampled, upsampling),
+                    JxlMath.DivCeil(this.frameDimensions.YSizeUpsampled, upsampling));
 
-                // Then we compute the widths and heights that are
-                // divided by the shifts. That's because in Y'Cb'Cr
-                // chroma subsampling, the luma (Y) part is usually
-                // the same, while the Chroma (Cb, Cr) part is downsampled.
-                // So the size for the chroma channel is not the same
-                // as the original image.
-                // See https://en.wikipedia.org/wiki/Chroma_subsampling
-                int xSizeShifted = JxlMath.DivCeil(this.frameDimensions.XSize, 1 << channel.HorizontalShift);
-                int ySizeShifted = JxlMath.DivCeil(this.frameDimensions.YSize, 1 << channel.VerticalShift);
+                // Then we have to adjust the shifts.
+                // Both the horizontal shift and the vertical shift are
+                // equal to Ceil(Log2(upsampling for this channel)) - Ceil(Log2(upsampling for the frame sizes)).
+                channel.HorizontalShift = channel.VerticalShift =
+                    JxlMath.CeilLog2Nonzero(upsampling) - JxlMath.CeilLog2Nonzero((int)frameHeader.Upsampling);
 
-                // The chroma plane should be shrinked down to its downsampled
-                // size, as part of chroma subsampling.
-                //
-                // Note that if this is channel 0, which is a Luma channel,
-                // xSizeShifted and ySizeShifted will be the same as the channel's
-                // original width or height. There's no shift as Luma channels
-                // do not have downsampling; it's the Chroma channels that are
-                // downsampled. Meaning, this .Shrink() call wouldn't really do
-                // anything.
-                channel.Shrink(this.configuration, xSizeShifted, ySizeShifted);
-
-                // Now we check if the shift is the same for all channels.
-                // If they are not, then we know that the shift isn't
-                // the same for all channels.
-                //
-                // This wouldn't really work for the 0 channel, but that's
-                // expected as the 0 channel is the Luma channel which isn't
-                // really downsampled. For channels 1 and 2 which are chroma
-                // channels, this should work.
+                // Now we want to make sure whether or not are shifts different
+                // for each channel.
                 if (channel.HorizontalShift != img.Channels[0].HorizontalShift ||
                     channel.VerticalShift != img.Channels[0].VerticalShift)
                 {
                     this.allSameShift = false;
                 }
             }
-        }
 
-        // For the extra channels, we do almost the same as the
-        // chroma subsampling for Y'Cb'Cr. Except, extra channels have
-        // their own upsampling matrix, which we use.
-        //
-        // The upsampling matrix is a List<uint>, which can be
-        // slow. So we can use a Span<uint> wrapper which is more
-        // lightweight and faster.
-        Span<uint> extraChannelUpsampling = CollectionsMarshal.AsSpan(frameHeader.ExtraChannelUpsampling);
+            // Main Modular decoding logic here. The result is stored
+            // into img.
+            JxlModularOptions options = new()
+            {
+                // Both the maximum channel size and the group dimension
+                // is set equal to the group dimension specified in the
+                // frame dimensions.
+                MaxChannelSize = this.frameDimensions.GroupDimension,
+                GroupDimension = this.frameDimensions.GroupDimension
+            };
 
-        // We have two loop variables.
-        //
-        // 'ec', short for Extra Channel, is the index of the extra channel.
-        // We need this to access the upsampling matrix which is specific for extra channels.
-        //
-        // 'c', on the other hand, just means channel. It is initially set to
-        // numberOfChannels, because that's where the first extra channel starts.
-        //
-        // Suppose our image is coded using RGB and we have two extra channels, one
-        // alpha channel and one black channel. In such a case:
-        //   - numberOfChannels would be 3. We have 3 channels - R, G, and B.
-        //   - That also means the first index of the extra channel is the last index
-        //     of the RGB channel (2), plus 1. So that's 3.
-        //
-        // From then on, 'c' would keep incrementing, to access a generic list of channels.
-        for (int ec = 0, c = numberOfChannels; ec < extraChannelCount; ec++, c++)
-        {
-            // Upsampling for this specific extra channel
-            int upsampling = (int)extraChannelUpsampling[ec];
-
-            // Reference to the channel of the current index.
-            JxlModularChannel channel = img.Channels[c];
-
-            // We shrink the channel, so it becomes 'upsampling' times smaller
-            // than its upsampled size.
-            channel.Shrink(
+            // Do the actual Modular decode using the JxlModularOptions.
+            bool decompressedSuccessfully = JxlModularEncoding.ModularGenericDecompress(
                 this.configuration,
-                JxlMath.DivCeil(this.frameDimensions.XSizeUpsampled, upsampling),
-                JxlMath.DivCeil(this.frameDimensions.YSizeUpsampled, upsampling));
+                reader,
+                img,
+                this.groupHeader,
+                JxlModularStreamId.Global.GetId(this.frameDimensions),
+                options,
+                undoTransforms: false,
+                this.tree,
+                this.code,
+                this.contextMap,
+                allowTruncatedGroup);
 
-            // Then we have to adjust the shifts.
-            // Both the horizontal shift and the vertical shift are
-            // equal to Ceil(Log2(upsampling for this channel)) - Ceil(Log2(upsampling for the frame sizes)).
-            channel.HorizontalShift = channel.VerticalShift =
-                JxlMath.CeilLog2Nonzero(upsampling) - JxlMath.CeilLog2Nonzero((int)frameHeader.Upsampling);
-
-            // Now we want to make sure whether or not are shifts different
-            // for each channel.
-            if (channel.HorizontalShift != img.Channels[0].HorizontalShift ||
-                channel.VerticalShift != img.Channels[0].VerticalShift)
+            // The ModularGenericDecompress method returns a boolean indicating
+            // whether or not has the modular decoding process completed successfully.
+            // When this is false, we know that the decoding process failed, so
+            // throw an exception.
+            if (!decompressedSuccessfully)
             {
-                this.allSameShift = false;
+                throw new InvalidOperationException("Could not decode global Modular info");
             }
-        }
 
-        // Main Modular decoding logic here. The result is stored
-        // into img.
-        JxlModularOptions options = new()
-        {
-            // Both the maximum channel size and the group dimension
-            // is set equal to the group dimension specified in the
-            // frame dimensions.
-            MaxChannelSize = this.frameDimensions.GroupDimension,
-            GroupDimension = this.frameDimensions.GroupDimension
-        };
-
-        // Do the actual Modular decode using the JxlModularOptions.
-        bool decompressedSuccessfully = JxlModularEncoding.ModularGenericDecompress(
-            this.configuration,
-            reader,
-            img,
-            this.groupHeader,
-            JxlModularStreamId.Global.GetId(this.frameDimensions),
-            options,
-            undoTransforms: false,
-            this.tree,
-            this.code,
-            this.contextMap,
-            allowTruncatedGroup);
-
-        // The ModularGenericDecompress method returns a boolean indicating
-        // whether or not has the modular decoding process completed successfully.
-        // When this is false, we know that the decoding process failed, so
-        // throw an exception.
-        if (!decompressedSuccessfully)
-        {
-            throw new InvalidOperationException("Could not decode global Modular info");
-        }
-
-        // Initially we mark this Modular decoder as empty.
-        // Then, go through each channel. If each channel is
-        // within the frame dimensions, then at least one channel is
-        // therefore usable, so we will mark this Modular
-        // decoder as not empty.
-        this.haveSomething = false;
-        for (int c = 0; c < img.Channels.Count; c++)
-        {
-            JxlModularChannel channel = img.Channels[c];
-
-            // We want to make sure that the number of channels are >= the number
-            // of meta channels, and that each dimension fits within group dimensions.
-            if (c >= img.MetaChannels &&
-                channel.Width <= this.frameDimensions.GroupDimension &&
-                channel.Height <= this.frameDimensions.GroupDimension)
+            // Initially we mark this Modular decoder as empty.
+            // Then, go through each channel. If each channel is
+            // within the frame dimensions, then at least one channel is
+            // therefore usable, so we will mark this Modular
+            // decoder as not empty.
+            this.haveSomething = false;
+            for (int c = 0; c < img.Channels.Count; c++)
             {
-                this.haveSomething = true;
-                break;
-            }
-        }
+                JxlModularChannel channel = img.Channels[c];
 
-        // We have to move global transforms to groups, if both of these things happen:
-        //   - Number of channels are < number of meta channels,
-        //     or some channels are larger than group dimensions
-        //   - Chroma subsampling is 4:4:4 or 4:0:0 (if the image uses Y'Cb'Cr),
-        //     there are no extra channels, OR there are extra channels but they
-        //     aren't upsampled - therefore, every channel has the same exact shift.
-        if (!this.haveSomething && this.allSameShift)
-        {
-            // If we only have one transform and that transform is the Reversible
-            // Color Transform (RCT), then we set the global transform to the RCT,
-            // and we remove it from 'img'.
-            if (img.Transforms.Count == 1 && img.Transforms[0].TransformType == JxlTransformType.Rct)
+                // We want to make sure that the number of channels are >= the number
+                // of meta channels, and that each dimension fits within group dimensions.
+                if (c >= img.MetaChannels &&
+                    channel.Width <= this.frameDimensions.GroupDimension &&
+                    channel.Height <= this.frameDimensions.GroupDimension)
+                {
+                    this.haveSomething = true;
+                    break;
+                }
+            }
+
+            // We have to move global transforms to groups, if both of these things happen:
+            //   - Number of channels are < number of meta channels,
+            //     or some channels are larger than group dimensions
+            //   - Chroma subsampling is 4:4:4 or 4:0:0 (if the image uses Y'Cb'Cr),
+            //     there are no extra channels, OR there are extra channels but they
+            //     aren't upsampled - therefore, every channel has the same exact shift.
+            if (!this.haveSomething && this.allSameShift)
             {
-                this.globalTransform = img.Transforms[0];
-                img.Transforms.Clear();
+                // If we only have one transform and that transform is the Reversible
+                // Color Transform (RCT), then we set the global transform to the RCT,
+                // and we remove it from 'img'.
+                if (img.Transforms.Count == 1 && img.Transforms[0].TransformType == JxlTransformType.Rct)
+                {
+                    this.globalTransform.Clear();
+                    this.globalTransform.Add(img.Transforms[0]);
+                    img.Transforms.Clear();
+                }
             }
-        }
 
-        // Finally, set the full image.
-        this.fullImage = img;
+            // Release the previous owned image only after the replacement is complete. No channel storage is borrowed from img.
+            this.fullImage.Dispose();
+            this.fullImage = img;
+        }
+        catch
+        {
+            // The decoder takes ownership only after global parsing and transform preparation both succeed.
+            img.Dispose();
+            throw;
+        }
     }
+
+    /// <inheritdoc />
+    public void Dispose() => this.fullImage.Dispose();
 }

@@ -775,7 +775,7 @@ internal static class JxlModularEncoding
 
         foreach (JxlTransform transform in image.Transforms)
         {
-            transform.MetaApply(image);
+            transform.MetaApply(configuration, image);
         }
 
         if (image.IsInvalid)
@@ -956,7 +956,7 @@ internal static class JxlModularEncoding
 
         if (undoTransforms)
         {
-            image.UndoTransforms(header.WeightedHeader);
+            image.UndoTransforms(configuration, header.WeightedHeader);
         }
 
         if (image.IsInvalid)

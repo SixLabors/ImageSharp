@@ -185,6 +185,15 @@ internal static class JxlPalette
         return palette[(c * oneRow) + index];
     }
 
+    /// <summary>
+    /// Replaces equal-shaped channels with their index channel and an owned palette metachannel before decoding.
+    /// </summary>
+    /// <param name="configuration">The configuration used for palette sample allocation.</param>
+    /// <param name="input">The image that owns the retained index channel and new palette.</param>
+    /// <param name="beginC">The first channel replaced by palette indices.</param>
+    /// <param name="endC">The last channel replaced by palette indices.</param>
+    /// <param name="numberOfColors">The number of explicit palette entries.</param>
+    /// <param name="numberOfDeltas">The number of predictive delta entries.</param>
     public static void MetaPalette(Configuration configuration, JxlModularImage input, int beginC, int endC, int numberOfColors, int numberOfDeltas)
     {
         JxlTransform.CheckEqualChannels(input, beginC, endC);
@@ -205,15 +214,23 @@ internal static class JxlPalette
             input.MetaChannels += 2 - nb;
         }
 
-        input.Channels.RemoveRange(beginC + 1, endC - beginC);
+        // Reserve references before allocating samples. The first selected channel remains as the index plane.
+        input.Channels.EnsureCapacity(input.Channels.Count + 1);
         JxlModularChannel ch = new(configuration, numberOfColors + numberOfDeltas, nb, -1, -1);
+
+        for (int c = beginC + 1; c <= endC; c++)
+        {
+            input.Channels[c].Dispose();
+        }
+
+        input.Channels.RemoveRange(beginC + 1, endC - beginC);
         input.Channels.Insert(0, ch);
     }
 
     /// <summary>
     /// Decodes palette/indexed images.
     /// </summary>
-    /// <param name="configuration">Configuration for parallelism.</param>
+    /// <param name="configuration">The configuration used for restored channel samples.</param>
     /// <param name="input">Input &amp; out images.</param>
     /// <param name="beginC">Offset of output channel.</param>
     /// <param name="nbColors">Number of colors.</param>
@@ -253,6 +270,9 @@ internal static class JxlPalette
             throw new InvalidOperationException("Transforms are corrupted");
         }
 
+        // Each new channel belongs to input as soon as its samples are allocated. A later failure leaves no unattached owner.
+        input.Channels.EnsureCapacity(input.Channels.Count + nb - 1);
+
         for (int i = 1; i < nb; i++)
         {
             JxlModularChannel newChannel = new(configuration, w, h, channel.HorizontalShift, channel.VerticalShift);
@@ -262,8 +282,8 @@ internal static class JxlPalette
         JxlModularChannel palette = input.Channels[0];
 
         int oneRow = palette.Plane.PixelsPerRow;
-        int oneRowImage = channel.Plane.PixelsPerRow;
         int bitDepth = Math.Min(input.BitDepth, 24);
+        Span<int> paletteData = palette.GetRow(0);
 
         if (w == 0)
         {
@@ -273,10 +293,12 @@ internal static class JxlPalette
         {
             if (nb == 1)
             {
+                Span<int> channel0Samples = channel.GetRow(0);
+                int channel0Stride = channel.Plane.PixelsPerRow;
+
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> p = channel.GetRow(y);
-                    Span<int> paletteData = palette.GetRow(0);
+                    Span<int> p = channel0Samples[(y * channel0Stride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -288,11 +310,15 @@ internal static class JxlPalette
             }
             else if (nb == 2)
             {
+                Span<int> channel0Samples = channel.GetRow(0);
+                int channel0Stride = channel.Plane.PixelsPerRow;
+                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
+                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
+
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> paletteData = palette.GetRow(0);
-                    Span<int> p0 = channel.GetRow(y);
-                    Span<int> p1 = input.Channels[c0 + 1].GetRow(y);
+                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
+                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -306,12 +332,18 @@ internal static class JxlPalette
             }
             else if (nb == 3)
             {
+                Span<int> channel0Samples = channel.GetRow(0);
+                int channel0Stride = channel.Plane.PixelsPerRow;
+                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
+                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
+                Span<int> channel2Samples = input.Channels[c0 + 2].GetRow(0);
+                int channel2Stride = input.Channels[c0 + 2].Plane.PixelsPerRow;
+
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> paletteData = palette.GetRow(0);
-                    Span<int> p0 = channel.GetRow(y);
-                    Span<int> p1 = input.Channels[c0 + 1].GetRow(y);
-                    Span<int> p2 = input.Channels[c0 + 2].GetRow(y);
+                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
+                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
+                    Span<int> p2 = channel2Samples[(y * channel2Stride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -327,13 +359,21 @@ internal static class JxlPalette
             }
             else if (nb == 4)
             {
+                Span<int> channel0Samples = channel.GetRow(0);
+                int channel0Stride = channel.Plane.PixelsPerRow;
+                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
+                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
+                Span<int> channel2Samples = input.Channels[c0 + 2].GetRow(0);
+                int channel2Stride = input.Channels[c0 + 2].Plane.PixelsPerRow;
+                Span<int> channel3Samples = input.Channels[c0 + 3].GetRow(0);
+                int channel3Stride = input.Channels[c0 + 3].Plane.PixelsPerRow;
+
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> paletteData = palette.GetRow(0);
-                    Span<int> p0 = channel.GetRow(y);
-                    Span<int> p1 = input.Channels[c0 + 1].GetRow(y);
-                    Span<int> p2 = input.Channels[c0 + 2].GetRow(y);
-                    Span<int> p3 = input.Channels[c0 + 3].GetRow(y);
+                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
+                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
+                    Span<int> p2 = channel2Samples[(y * channel2Stride)..];
+                    Span<int> p3 = channel3Samples[(y * channel3Stride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -351,14 +391,24 @@ internal static class JxlPalette
             }
             else if (nb == 5)
             {
+                Span<int> channel0Samples = channel.GetRow(0);
+                int channel0Stride = channel.Plane.PixelsPerRow;
+                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
+                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
+                Span<int> channel2Samples = input.Channels[c0 + 2].GetRow(0);
+                int channel2Stride = input.Channels[c0 + 2].Plane.PixelsPerRow;
+                Span<int> channel3Samples = input.Channels[c0 + 3].GetRow(0);
+                int channel3Stride = input.Channels[c0 + 3].Plane.PixelsPerRow;
+                Span<int> channel4Samples = input.Channels[c0 + 4].GetRow(0);
+                int channel4Stride = input.Channels[c0 + 4].Plane.PixelsPerRow;
+
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> paletteData = palette.GetRow(0);
-                    Span<int> p0 = channel.GetRow(y);
-                    Span<int> p1 = input.Channels[c0 + 1].GetRow(y);
-                    Span<int> p2 = input.Channels[c0 + 2].GetRow(y);
-                    Span<int> p3 = input.Channels[c0 + 3].GetRow(y);
-                    Span<int> p4 = input.Channels[c0 + 4].GetRow(y);
+                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
+                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
+                    Span<int> p2 = channel2Samples[(y * channel2Stride)..];
+                    Span<int> p3 = channel3Samples[(y * channel3Stride)..];
+                    Span<int> p4 = channel4Samples[(y * channel4Stride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -384,21 +434,29 @@ internal static class JxlPalette
         else
         {
             JxlPlane<int> plane = input.Channels[c0].Plane;
-            JxlPlane<int> indices = new(configuration, plane.XSize, plane.YSize);
-            input.Channels[c0].Plane = indices;
+            using JxlPlane<int> indices = new(configuration, plane.XSize, plane.YSize);
 
+            // Keep the original index samples separate from reconstructed output. The channel retains its plane wrapper;
+            // the scoped temporary receives the old index allocation and releases it after every output channel has read it.
+            plane.Swap(indices);
+
+            Span<int> indexSamples = indices.GetRow(0);
+            int indexStride = indices.PixelsPerRow;
+
+            // Read each output stride after the swap. The original indices can retain wider storage from a metadata shrink.
             if (predictor == JxlPredictor.Weighted)
             {
                 for (int c = 0; c < nb; c++)
                 {
                     JxlModularChannel outputChannel = input.Channels[c0 + c];
+                    int oneRowImage = outputChannel.Plane.PixelsPerRow;
+                    Span<int> outputSamples = outputChannel.GetRow(0);
                     JxlModularState wpState = new(weightedHeader, outputChannel.Width);
-                    Span<int> paletteData = palette.GetRow(0);
 
                     for (int y = 0; y < outputChannel.Height; y++)
                     {
-                        Span<int> p = outputChannel.GetRow(y);
-                        Span<int> idx = indices.GetRow(y);
+                        Span<int> p = outputSamples[(y * oneRowImage)..];
+                        Span<int> idx = indexSamples[(y * indexStride)..];
 
                         for (int x = 0; x < outputChannel.Width; x++)
                         {
@@ -434,12 +492,13 @@ internal static class JxlPalette
                 for (int c = 0; c < nb; c++)
                 {
                     JxlModularChannel outputChannel = input.Channels[c0 + c];
-                    Span<int> paletteData = palette.GetRow(0);
+                    int oneRowImage = outputChannel.Plane.PixelsPerRow;
+                    Span<int> outputSamples = outputChannel.GetRow(0);
 
                     for (int y = 0; y < outputChannel.Height; y++)
                     {
-                        Span<int> p = outputChannel.GetRow(y);
-                        Span<int> idx = indices.GetRow(y);
+                        Span<int> p = outputSamples[(y * oneRowImage)..];
+                        Span<int> idx = indexSamples[(y * indexStride)..];
 
                         for (int x = 0; x < outputChannel.Width; x++)
                         {
@@ -477,20 +536,23 @@ internal static class JxlPalette
         }
         else
         {
-            if (input.MetaChannels >= 2 - nb)
+            if (input.MetaChannels < 2 - nb)
             {
                 throw new InvalidOperationException("Too many meta channels");
             }
 
             input.MetaChannels -= 2 - nb;
 
-            if (beginC + nb - 1 < input.MetaChannels)
+            if (beginC + nb - 1 >= input.MetaChannels)
             {
                 throw new InvalidOperationException("Too many meta channels");
             }
 
-            input.Channels.RemoveAt(0);
         }
+
+        // Both normal-channel and metachannel palettes consume the leading palette after its final read.
+        palette.Dispose();
+        input.Channels.RemoveAt(0);
     }
 
     private static float ColorDistance(Span<float> a, Span<int> b)
@@ -663,6 +725,20 @@ internal static class JxlPalette
             paletteIterationData);
     }
 
+    /// <summary>
+    /// Searches palette entries with scoped quantized samples and transfers a completed palette to the image.
+    /// </summary>
+    /// <param name="configuration">The configuration used for temporary and output samples.</param>
+    /// <param name="input">The owner of the source channels and any completed palette.</param>
+    /// <param name="beginC">The first source channel.</param>
+    /// <param name="endC">The last source channel.</param>
+    /// <param name="numberOfColors">The palette size limit, replaced with the selected count.</param>
+    /// <param name="numberOfDeltas">The delta-entry count, updated by the search.</param>
+    /// <param name="ordered">Whether to order selected colors.</param>
+    /// <param name="lossy">Whether to quantize source colors.</param>
+    /// <param name="predictor">The selected prediction method.</param>
+    /// <param name="wpHeader">The weighted-prediction settings.</param>
+    /// <param name="paletteIterationData">The search statistics and final-pass selection.</param>
     private static void ForwardPaletteIteration(
         Configuration configuration,
         JxlModularImage input,
@@ -688,6 +764,11 @@ internal static class JxlPalette
         JxlModularChannel beginCChannel = input.Channels[beginC];
         int w = beginCChannel.Width;
         int h = beginCChannel.Height;
+        Span<int> sourceSamples = beginCChannel.GetRow(0);
+        int sourceStride = beginCChannel.Plane.PixelsPerRow;
+
+        // Every successful palette adds one leading channel. Reserve its reference slot before allocating palette samples.
+        input.Channels.EnsureCapacity(input.Channels.Count + 1);
 
         if (input.BitDepth >= 32)
         {
@@ -717,7 +798,7 @@ internal static class JxlPalette
 
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> p = beginCChannel.GetRow(y);
+                    Span<int> p = sourceSamples[(y * sourceStride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -735,8 +816,9 @@ internal static class JxlPalette
                     }
                 }
 
-                // Don't dispose. The channel is stored into the input.
+                // Attach the owner before filling its samples. The image releases it if a later encoding step fails.
                 JxlModularChannel modularChannel = new(configuration, idx, 1, -1, -1);
+                input.Channels.Insert(0, modularChannel);
 
                 numberOfColors = idx;
                 idx = 0;
@@ -750,7 +832,7 @@ internal static class JxlPalette
 
                 for (int y = 0; y < h; y++)
                 {
-                    Span<int> p = beginCChannel.GetRow(y);
+                    Span<int> p = sourceSamples[(y * sourceStride)..];
 
                     for (int x = 0; x < w; x++)
                     {
@@ -765,8 +847,6 @@ internal static class JxlPalette
 
                 predictor = JxlPredictor.Zero;
                 input.MetaChannels++;
-                input.Channels.Insert(0, modularChannel);
-
                 return;
             }
 
@@ -775,7 +855,7 @@ internal static class JxlPalette
 
             for (int y = 0; y < h; y++)
             {
-                Span<int> p = beginCChannel.GetRow(y);
+                Span<int> p = sourceSamples[(y * sourceStride)..];
                 for (int x = 0; x < w; x++)
                 {
                     if (lookup[p[x] - minValue] == 0)
@@ -791,8 +871,9 @@ internal static class JxlPalette
                 }
             }
 
-            // Don't dispose. The channel is stored into the input.
+            // Attach before filling so input owns the palette on success and on partial failure.
             JxlModularChannel channel = new(configuration, idx, 1, -1, -1);
+            input.Channels.Insert(0, channel);
             numberOfColors = idx;
             idx = 0;
             Span<int> pPalette = channel.GetRow(0);
@@ -809,7 +890,7 @@ internal static class JxlPalette
 
             for (int y = 0; y < h; y++)
             {
-                Span<int> p = beginCChannel.GetRow(y);
+                Span<int> p = sourceSamples[(y * sourceStride)..];
 
                 for (int x = 0; x < w; x++)
                 {
@@ -819,18 +900,14 @@ internal static class JxlPalette
 
             predictor = JxlPredictor.Zero;
             input.MetaChannels++;
-            input.Channels.Insert(0, channel);
-
             return;
         }
 
-        JxlModularImage quantizedInput = new(configuration, 1, 1, -1, -1);
+        // Only the lossy path needs quantized sample channels. Both paths use the real image dimensions and one scoped owner.
+        using JxlModularImage quantizedInput = JxlModularImage.Create(configuration, w, h, input.BitDepth, lossy ? nb : 0);
 
         if (lossy)
         {
-            quantizedInput.Dispose();
-            quantizedInput = new(configuration, w, h, input.BitDepth, nb);
-
             for (int c = 0; c < nb; c++)
             {
                 if (!JxlImageOperations.CopyImage(input.Channels[beginC + c].Plane, quantizedInput.Channels[c].Plane))
@@ -989,332 +1066,361 @@ internal static class JxlPalette
             inversePalette[color] = numberOfColors + k;
         }
 
-        // Don't dispose this.
+        // This owner transfers to input only when the final encoding pass completes.
         JxlModularChannel newChannel = new(configuration, numberOfColors, nb, -1, -1);
-        Span<int> palette = newChannel.GetRow(0);
-        int oneRow = newChannel.Plane.PixelsPerRow;
-        int oneRowImage = beginCChannel.Plane.PixelsPerRow;
-        int bitDepth = Math.Min(input.BitDepth, 24); // max. 24 bits, cannot be greater
+        bool transferred = false;
 
-        if (lossy)
+        try
         {
-            for (int i = 0; i < numberOfDeltas; i++)
-            {
-                for (int c = 0; c < 3; c++)
-                {
-                    palette[(c * oneRow) + i] = paletteIterationData.FrequentDeltas[c][i];
-                }
-            }
-        }
-
-        float frequencyThreshold = 4f;
-        int clr = 0;
-
-        if (ordered && nb >= 3)
-        {
-            candidatePaletteImageOrder.Sort((ap, bp) =>
-            {
-                float ay = (0.299f * ap[0]) + (0.587f * ap[1]) + (0.114f * ap[2]) + 0.1f;
-
-                if (ap.Length > 3)
-                {
-                    ay *= 1f + ap[3];
-                }
-
-                float by = (0.299f * bp[0]) + (0.587f * bp[1]) + (0.114f * bp[2]) + 0.1f;
-
-                if (bp.Length > 3)
-                {
-                    by *= 1f + bp[3];
-                }
-
-                ay = colorFreqMap[ap] > frequencyThreshold ? -ay : ay;
-                by = colorFreqMap[bp] > frequencyThreshold ? -by : by;
-
-                return ay.CompareTo(by);
-            });
-        }
-
-        foreach (int[] pcol in candidatePaletteImageOrder)
-        {
-            Span<int> pcolSpan = pcol.AsSpan();
-
-            for (int i = 0; i < nb; i++)
-            {
-                palette[numberOfDeltas + (i * oneRow) + clr] = pcolSpan[i];
-            }
-
-            inversePalette[pcol] = clr++;
-        }
-
-        List<JxlModularState> wpStates = [];
-
-        for (int c = 0; c < nb; c++)
-        {
-            wpStates.Add(new JxlModularState(wpHeader, w));
-        }
-
-        InlineArray3<DenseMatrix<float>> errorRow = default;
-
-        if (lossy)
-        {
-            errorRow[0] = new(nb, w + 4);
-            errorRow[1] = new(nb, w + 4);
-            errorRow[2] = new(nb, w + 4);
-        }
-
-        Span<int> tmp = stackalloc int[32]; // Power of 2
-        Span<int> bestValue = tmp.Slice(0 * nb, nb);
-        Span<int> idealResidual = tmp.Slice(1 * nb, nb);
-        Span<int> quantizedValue = tmp.Slice(2 * nb, nb);
-        Span<int> predictions = tmp.Slice(30 * nb, nb);
-
-        // This is a temporary buffer, values are copied here.
-        // It is so we can swap spans. Since spans are just a view
-        // of memory, using CopyTo as a swap means we need a
-        // separate buffer like this for the swapping value.
-        Span<float> tempBuffer = stackalloc float[w + 4];
-
-        for (int y = 0; y < h; y++)
-        {
-            for (int c = 0; c < nb; c++)
-            {
-                p_in[c] = input.channel[beginC + c].Row(y);
-                if (lossy)
-                    p_quant[c] = quantized_input.channel[c].Row(y);
-            }
-
-            Span<int> p = beginCChannel.GetRow(y);
-
-            for (int x = 0; x < w; x++)
-            {
-                int index;
-                if (!lossy)
-                {
-                    for (int c = 0; c < nb; c++)
-                    {
-                        color[c] = p_in[c][x];
-                    }
-
-                    index = inversePalette[color];
-                }
-                else
-                {
-                    int best_index = 0;
-                    bool best_is_delta = false;
-                    float best_distance = float.PositiveInfinity;
-
-                    tmp.Clear();
-
-                    foreach (double diffusion_multiplier in (Span<double>)[0.55, 0.75])
-                    {
-                        for (int c = 0; c < nb; c++)
-                        {
-                            colorWithError[c] =
-                                p_in[c][x] + ((paletteIterationData.IsFinalRun ? 1 : 0) *
-                                                 diffusion_multiplier * errorRow[0][c, x + 2]);
-                            color[c] = (int)Math.Clamp(MathF.Round(colorWithError[c]), 0, (1 << input.BitDepth) - 1);
-                        }
-
-                        for (int c = 0; c < nb; c++)
-                        {
-                            predictions[c] = PredictTreeNoWeightedPrediction(w, p_quant[c] + x, oneRowImage, x, y, predictor, wpStates[c]).Guess;
-                        }
-
-                        void TryIndex(int index, Span<int> predictions, Span<int> idealResidual, Span<float> colorWithError, ref Span<int> bestValue, ref Span<int> quantizedValue, Span<int> palette, ref int numberOfColors, ref int numberOfDeltas)
-                        {
-                            for (int c = 0; c < nb; c++)
-                            {
-                                quantizedValue[c] = GetPaletteValue(palette, index, c, oneRow, bitDepth);
-                                if (index < numberOfDeltas)
-                                {
-                                    quantizedValue[c] += predictions[c];
-                                }
-                            }
-
-                            float color_distance = 32.0f / (1 << Math.Max(0, 2 * (bitDepth - 8))) * ColorDistance(colorWithError, quantizedValue);
-
-                            float indexPenalty = 0;
-                            if (index == -1)
-                            {
-                                indexPenalty = -124;
-                            }
-                            else if (index < 0)
-                            {
-                                indexPenalty = -2 * index;
-                            }
-                            else if (index < numberOfDeltas)
-                            {
-                                indexPenalty = 250;
-                            }
-                            else if (index < numberOfColors)
-                            {
-                                indexPenalty = 150;
-                            }
-                            else if (index < numberOfColors + LargeCubeOffset)
-                            {
-                                indexPenalty = 70;
-                            }
-                            else
-                            {
-                                indexPenalty = 256;
-                            }
-
-                            float distance = color_distance + indexPenalty;
-                            if (distance < best_distance)
-                            {
-                                best_distance = distance;
-                                best_index = index;
-                                best_is_delta = index < numberOfDeltas;
-
-                                RuntimeUtility.Swap(ref bestValue, ref quantizedValue);
-
-                                for (int c = 0; c < nb; c++)
-                                {
-                                    idealResidual[c] = (int)(colorWithError[c] - predictions[c]);
-                                }
-                            }
-                        }
-
-                        for (index = MinimumImplicitPaletteIndex; index < numberOfColors; index++)
-                        {
-                            TryIndex(index);
-                        }
-
-                        TryIndex(QuantizeColorToImplicitPaletteIndex(color, numberOfColors, bitDepth, false));
-
-                        if (EncodeToHighQualityImplicitPalette)
-                        {
-                            TryIndex(QuantizeColorToImplicitPaletteIndex(color, numberOfColors, bitDepth, true));
-                        }
-                    }
-
-                    index = best_index;
-                    deltaUsed |= best_is_delta;
-
-                    if (!paletteIterationData.IsFinalRun)
-                    {
-                        for (int c = 0; c < 3; c++)
-                        {
-                            paletteIterationData.Deltas[c].Add(idealResidual[c]);
-                        }
-
-                        paletteIterationData.DeltaDistances.Add(best_distance);
-                    }
-
-                    for (int c = 0; c < nb; c++)
-                    {
-                        wpStates[c].UpdatePredictionErrors(bestValue[c], x, y, w);
-                        p_quant[c][x] = bestValue[c];
-                    }
-
-                    float len_error = 0;
-                    for (int c = 0; c < nb; c++)
-                    {
-                        float local_error = colorWithError[c] - bestValue[c];
-                        len_error += local_error * local_error;
-                    }
-
-                    len_error = MathF.Sqrt(len_error);
-                    float modulate = 1f;
-                    long len_limit = 38 << Math.Max(0, bitDepth - 8);
-                    if (len_error > len_limit)
-                    {
-                        modulate *= len_limit / len_error;
-                    }
-
-                    DenseMatrix<int> offsets = new(12, 2);
-
-                    for (int c = 0; c < nb; c++)
-                    {
-                        float total_error = colorWithError[c] - bestValue[c];
-
-                        DefaultOffsets.Data.AsSpan().CopyTo(offsets.Data);
-
-                        float total_available = 0;
-                        for (int i = 0; i < 11; i++)
-                        {
-                            int row = offsets[i, 0];
-                            int col = offsets[i, 1];
-
-                            if (Math.Sign(errorRow[row][c, x + col]) != Math.Sign(total_error))
-                            {
-                                total_available += errorRow[row][c, x + col];
-                            }
-                        }
-
-                        float weight = MathF.Abs(total_error) / (MathF.Abs(total_available) + 1e-3f);
-                        weight = MathF.Min(weight, 1.0f);
-
-                        for (int i = 0; i < 11; ++i)
-                        {
-                            int row = offsets[i, 0];
-                            int col = offsets[i, 1];
-
-                            if (Math.Sign(errorRow[row][c, x + col]) != Math.Sign(total_error))
-                            {
-                                total_error += weight * errorRow[row][c, x + col];
-                                errorRow[row][c, x + col] *= 1 - weight;
-                            }
-                        }
-
-                        total_error *= modulate;
-                        float remaining_error = (1.0f / 14f) * total_error;
-                        errorRow[0][c, x + 3] += 2 * remaining_error;
-                        errorRow[0][c, x + 4] += remaining_error;
-                        errorRow[1][c, x + 0] += remaining_error;
-
-                        for (int i = 0; i < 5; ++i)
-                        {
-                            errorRow[1][c, x + i] += remaining_error;
-                            errorRow[2][c, x + i] += remaining_error;
-                        }
-                    }
-                }
-
-                if (paletteIterationData.IsFinalRun)
-                {
-                    p[x] = index;
-                }
-            }
+            Span<int> palette = newChannel.GetRow(0);
+            int oneRow = newChannel.Plane.PixelsPerRow;
+            int oneRowImage = beginCChannel.Plane.PixelsPerRow;
+            int bitDepth = Math.Min(input.BitDepth, 24); // max. 24 bits, cannot be greater
 
             if (lossy)
             {
-                for (int c = 0; c < nb; c++)
+                for (int i = 0; i < numberOfDeltas; i++)
                 {
-                    // Variables for swapping
-                    Span<float> pos0 = errorRow[0].Data.AsSpan(c, w + 4);
-                    Span<float> pos1 = errorRow[1].Data.AsSpan(c, w + 4);
-                    Span<float> pos2 = errorRow[2].Data.AsSpan(c, w + 4);
-
-                    // we need to swap:
-                    //     error_row[0][c].swap(error_row[1][c]);
-                    pos0.CopyTo(tempBuffer);
-                    pos1.CopyTo(pos0);
-                    tempBuffer.CopyTo(pos1);
-
-                    // swap old1, old2
-                    pos1.CopyTo(tempBuffer);
-                    pos2.CopyTo(pos1);
-
-                    pos2.Clear();
+                    for (int c = 0; c < 3; c++)
+                    {
+                        palette[(c * oneRow) + i] = paletteIterationData.FrequentDeltas[c][i];
+                    }
                 }
             }
-        }
 
-        if (!deltaUsed)
+            float frequencyThreshold = 4f;
+            int clr = 0;
+
+            if (ordered && nb >= 3)
+            {
+                candidatePaletteImageOrder.Sort((ap, bp) =>
+                {
+                    float ay = (0.299f * ap[0]) + (0.587f * ap[1]) + (0.114f * ap[2]) + 0.1f;
+
+                    if (ap.Length > 3)
+                    {
+                        ay *= 1f + ap[3];
+                    }
+
+                    float by = (0.299f * bp[0]) + (0.587f * bp[1]) + (0.114f * bp[2]) + 0.1f;
+
+                    if (bp.Length > 3)
+                    {
+                        by *= 1f + bp[3];
+                    }
+
+                    ay = colorFreqMap[ap] > frequencyThreshold ? -ay : ay;
+                    by = colorFreqMap[bp] > frequencyThreshold ? -by : by;
+
+                    return ay.CompareTo(by);
+                });
+            }
+
+            foreach (int[] pcol in candidatePaletteImageOrder)
+            {
+                Span<int> pcolSpan = pcol.AsSpan();
+
+                for (int i = 0; i < nb; i++)
+                {
+                    palette[numberOfDeltas + (i * oneRow) + clr] = pcolSpan[i];
+                }
+
+                inversePalette[pcol] = clr++;
+            }
+
+            List<JxlModularState> wpStates = [];
+
+            for (int c = 0; c < nb; c++)
+            {
+                wpStates.Add(new JxlModularState(wpHeader, w));
+            }
+
+            InlineArray3<DenseMatrix<float>> errorRow = default;
+
+            if (lossy)
+            {
+                errorRow[0] = new(nb, w + 4);
+                errorRow[1] = new(nb, w + 4);
+                errorRow[2] = new(nb, w + 4);
+            }
+
+            Span<int> tmp = stackalloc int[32]; // Power of 2
+            Span<int> bestValue = tmp.Slice(0 * nb, nb);
+            Span<int> idealResidual = tmp.Slice(1 * nb, nb);
+            Span<int> quantizedValue = tmp.Slice(2 * nb, nb);
+            Span<int> predictions = tmp.Slice(30 * nb, nb);
+
+            // This is a temporary buffer, values are copied here.
+            // It is so we can swap spans. Since spans are just a view
+            // of memory, using CopyTo as a swap means we need a
+            // separate buffer like this for the swapping value.
+            Span<float> tempBuffer = stackalloc float[w + 4];
+
+            for (int y = 0; y < h; y++)
+            {
+                for (int c = 0; c < nb; c++)
+                {
+                    p_in[c] = input.channel[beginC + c].Row(y);
+                    if (lossy)
+                        p_quant[c] = quantized_input.channel[c].Row(y);
+                }
+
+                Span<int> p = sourceSamples[(y * sourceStride)..];
+
+                for (int x = 0; x < w; x++)
+                {
+                    int index;
+                    if (!lossy)
+                    {
+                        for (int c = 0; c < nb; c++)
+                        {
+                            color[c] = p_in[c][x];
+                        }
+
+                        index = inversePalette[color];
+                    }
+                    else
+                    {
+                        int best_index = 0;
+                        bool best_is_delta = false;
+                        float best_distance = float.PositiveInfinity;
+
+                        tmp.Clear();
+
+                        foreach (double diffusion_multiplier in (Span<double>)[0.55, 0.75])
+                        {
+                            for (int c = 0; c < nb; c++)
+                            {
+                                colorWithError[c] =
+                                    p_in[c][x] + ((paletteIterationData.IsFinalRun ? 1 : 0) *
+                                                     diffusion_multiplier * errorRow[0][c, x + 2]);
+                                color[c] = (int)Math.Clamp(MathF.Round(colorWithError[c]), 0, (1 << input.BitDepth) - 1);
+                            }
+
+                            for (int c = 0; c < nb; c++)
+                            {
+                                predictions[c] = PredictTreeNoWeightedPrediction(w, p_quant[c] + x, oneRowImage, x, y, predictor, wpStates[c]).Guess;
+                            }
+
+                            void TryIndex(
+                                int index,
+                                Span<int> predictions,
+                                Span<int> idealResidual,
+                                Span<float> colorWithError,
+                                ref Span<int> bestValue,
+                                ref Span<int> quantizedValue,
+                                Span<int> palette,
+                                ref int numberOfColors,
+                                ref int numberOfDeltas)
+                            {
+                                for (int c = 0; c < nb; c++)
+                                {
+                                    quantizedValue[c] = GetPaletteValue(palette, index, c, oneRow, bitDepth);
+                                    if (index < numberOfDeltas)
+                                    {
+                                        quantizedValue[c] += predictions[c];
+                                    }
+                                }
+
+                                float color_distance = 32.0f / (1 << Math.Max(0, 2 * (bitDepth - 8))) * ColorDistance(colorWithError, quantizedValue);
+
+                                float indexPenalty = 0;
+                                if (index == -1)
+                                {
+                                    indexPenalty = -124;
+                                }
+                                else if (index < 0)
+                                {
+                                    indexPenalty = -2 * index;
+                                }
+                                else if (index < numberOfDeltas)
+                                {
+                                    indexPenalty = 250;
+                                }
+                                else if (index < numberOfColors)
+                                {
+                                    indexPenalty = 150;
+                                }
+                                else if (index < numberOfColors + LargeCubeOffset)
+                                {
+                                    indexPenalty = 70;
+                                }
+                                else
+                                {
+                                    indexPenalty = 256;
+                                }
+
+                                float distance = color_distance + indexPenalty;
+                                if (distance < best_distance)
+                                {
+                                    best_distance = distance;
+                                    best_index = index;
+                                    best_is_delta = index < numberOfDeltas;
+
+                                    RuntimeUtility.Swap(ref bestValue, ref quantizedValue);
+
+                                    for (int c = 0; c < nb; c++)
+                                    {
+                                        idealResidual[c] = (int)(colorWithError[c] - predictions[c]);
+                                    }
+                                }
+                            }
+
+                            for (index = MinimumImplicitPaletteIndex; index < numberOfColors; index++)
+                            {
+                                TryIndex(index);
+                            }
+
+                            TryIndex(QuantizeColorToImplicitPaletteIndex(color, numberOfColors, bitDepth, false));
+
+                            if (EncodeToHighQualityImplicitPalette)
+                            {
+                                TryIndex(QuantizeColorToImplicitPaletteIndex(color, numberOfColors, bitDepth, true));
+                            }
+                        }
+
+                        index = best_index;
+                        deltaUsed |= best_is_delta;
+
+                        if (!paletteIterationData.IsFinalRun)
+                        {
+                            for (int c = 0; c < 3; c++)
+                            {
+                                paletteIterationData.Deltas[c].Add(idealResidual[c]);
+                            }
+
+                            paletteIterationData.DeltaDistances.Add(best_distance);
+                        }
+
+                        for (int c = 0; c < nb; c++)
+                        {
+                            wpStates[c].UpdatePredictionErrors(bestValue[c], x, y, w);
+                            p_quant[c][x] = bestValue[c];
+                        }
+
+                        float len_error = 0;
+                        for (int c = 0; c < nb; c++)
+                        {
+                            float local_error = colorWithError[c] - bestValue[c];
+                            len_error += local_error * local_error;
+                        }
+
+                        len_error = MathF.Sqrt(len_error);
+                        float modulate = 1f;
+                        long len_limit = 38 << Math.Max(0, bitDepth - 8);
+                        if (len_error > len_limit)
+                        {
+                            modulate *= len_limit / len_error;
+                        }
+
+                        DenseMatrix<int> offsets = new(12, 2);
+
+                        for (int c = 0; c < nb; c++)
+                        {
+                            float total_error = colorWithError[c] - bestValue[c];
+
+                            DefaultOffsets.Data.AsSpan().CopyTo(offsets.Data);
+
+                            float total_available = 0;
+                            for (int i = 0; i < 11; i++)
+                            {
+                                int row = offsets[i, 0];
+                                int col = offsets[i, 1];
+
+                                if (Math.Sign(errorRow[row][c, x + col]) != Math.Sign(total_error))
+                                {
+                                    total_available += errorRow[row][c, x + col];
+                                }
+                            }
+
+                            float weight = MathF.Abs(total_error) / (MathF.Abs(total_available) + 1e-3f);
+                            weight = MathF.Min(weight, 1.0f);
+
+                            for (int i = 0; i < 11; ++i)
+                            {
+                                int row = offsets[i, 0];
+                                int col = offsets[i, 1];
+
+                                if (Math.Sign(errorRow[row][c, x + col]) != Math.Sign(total_error))
+                                {
+                                    total_error += weight * errorRow[row][c, x + col];
+                                    errorRow[row][c, x + col] *= 1 - weight;
+                                }
+                            }
+
+                            total_error *= modulate;
+                            float remaining_error = (1.0f / 14f) * total_error;
+                            errorRow[0][c, x + 3] += 2 * remaining_error;
+                            errorRow[0][c, x + 4] += remaining_error;
+                            errorRow[1][c, x + 0] += remaining_error;
+
+                            for (int i = 0; i < 5; ++i)
+                            {
+                                errorRow[1][c, x + i] += remaining_error;
+                                errorRow[2][c, x + i] += remaining_error;
+                            }
+                        }
+                    }
+
+                    if (paletteIterationData.IsFinalRun)
+                    {
+                        p[x] = index;
+                    }
+                }
+
+                if (lossy)
+                {
+                    for (int c = 0; c < nb; c++)
+                    {
+                        // Variables for swapping
+                        Span<float> pos0 = errorRow[0].Data.AsSpan(c, w + 4);
+                        Span<float> pos1 = errorRow[1].Data.AsSpan(c, w + 4);
+                        Span<float> pos2 = errorRow[2].Data.AsSpan(c, w + 4);
+
+                        // we need to swap:
+                        //     error_row[0][c].swap(error_row[1][c]);
+                        pos0.CopyTo(tempBuffer);
+                        pos1.CopyTo(pos0);
+                        tempBuffer.CopyTo(pos1);
+
+                        // swap old1, old2
+                        pos1.CopyTo(tempBuffer);
+                        pos2.CopyTo(pos1);
+
+                        pos2.Clear();
+                    }
+                }
+            }
+
+            if (!deltaUsed)
+            {
+                predictor = JxlPredictor.Zero;
+            }
+
+            if (paletteIterationData.IsFinalRun)
+            {
+                input.MetaChannels++;
+
+                // The first channel now contains indices. Release the other selected source channels before removing their references.
+                for (int c = beginC + 1; c <= endC; c++)
+                {
+                    input.Channels[c].Dispose();
+                }
+
+                input.Channels.RemoveRange(beginC + 1, endC - beginC);
+                input.Channels.Insert(0, newChannel);
+                transferred = true;
+            }
+
+            numberOfColors -= numberOfDeltas;
+        }
+        finally
         {
-            predictor = JxlPredictor.Zero;
+            if (!transferred)
+            {
+                newChannel.Dispose();
+            }
         }
-
-        if (paletteIterationData.IsFinalRun)
-        {
-            input.MetaChannels++;
-            input.Channels.RemoveRange(beginC + 1, endC - beginC);
-            input.Channels.Insert(0, newChannel);
-        }
-
-        numberOfColors -= numberOfDeltas;
     }
 
     /// <summary>

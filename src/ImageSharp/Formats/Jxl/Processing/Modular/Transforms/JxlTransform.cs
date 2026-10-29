@@ -8,7 +8,10 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPredic
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Transforms;
 
-internal sealed class JxlTransform : IJxlFields
+/// <summary>
+/// Stores one modular transform and owns its mutable squeeze steps.
+/// </summary>
+internal sealed class JxlTransform : IJxlFields, IDeepCloneable<JxlTransform>
 {
     public JxlTransform()
         : this(JxlTransformType.Invalid)
@@ -19,6 +22,27 @@ internal sealed class JxlTransform : IJxlFields
     {
         JxlBundle.Init(this);
         this.TransformType = id;
+    }
+
+    /// <summary>
+    /// Copies transform metadata without sharing the list that default squeeze expansion can change.
+    /// </summary>
+    /// <param name="source">The parsed transform to copy.</param>
+    private JxlTransform(JxlTransform source)
+    {
+        this.TransformType = source.TransformType;
+        this.BeginC = source.BeginC;
+        this.RctType = source.RctType;
+        this.NumC = source.NumC;
+        this.Colors = source.Colors;
+        this.Deltas = source.Deltas;
+        this.MaxDeltaError = source.MaxDeltaError;
+        this.Predictor = source.Predictor;
+        this.OrderedPalette = source.OrderedPalette;
+        this.LossyPalette = source.LossyPalette;
+
+        // Squeeze steps are value types. Copying them into this owned list separates all mutable transform metadata.
+        this.Squeezes.AddRange(source.Squeezes);
     }
 
     public JxlTransformType TransformType { get; set; }
@@ -33,7 +57,10 @@ internal sealed class JxlTransform : IJxlFields
 
     public int Deltas { get; set; }
 
-    public List<JxlSqueezeParameters> Squeezes { get; set; } = [];
+    /// <summary>
+    /// Gets the owned squeeze steps. An empty parsed list selects image-dependent default steps during metadata application.
+    /// </summary>
+    public List<JxlSqueezeParameters> Squeezes { get; } = [];
 
     public int MaxDeltaError { get; set; }
 
@@ -42,6 +69,9 @@ internal sealed class JxlTransform : IJxlFields
     public bool OrderedPalette { get; set; } = true;
 
     public bool LossyPalette { get; set; }
+
+    /// <inheritdoc />
+    public JxlTransform DeepClone() => new(this);
 
     public bool Visit(JxlVisitor visitor) => throw new NotImplementedException();
 

@@ -7,44 +7,59 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 /// <summary>
-/// Raw bits coder
+/// Reads and writes fixed-width unsigned fields.
 /// </summary>
 internal static class JxlBitsCoder
 {
     /// <summary>
-    /// Maximum number of encodeable bits. Since this coder encodes
-    /// bits raw, this happens to be whatever is passed to it.
+    /// Returns the wire length of a fixed-width field.
     /// </summary>
-    // Looks like that's what the function does (fields.cc:406):
-    // it returns whatever is passed to it.
+    /// <param name="bits">The field width, from zero through 32.</param>
+    /// <returns>The unchanged field width.</returns>
     public static int MaxEncodedBits(int bits) => bits;
 
+    /// <summary>
+    /// Checks whether an unsigned value fits the supplied field width.
+    /// </summary>
+    /// <param name="bits">The field width, from zero through 32.</param>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="encodedBits">The field width, including when the value cannot be encoded.</param>
+    /// <returns>Whether the value fits the field.</returns>
     public static bool CanEncode(int bits, uint value, ref int encodedBits)
     {
         encodedBits = bits;
-        if (value >= (1 << bits))
-        {
-            DebugGuard.IsTrue(false, "Value is too large");
 
+        // A UInt32 shift by 32 wraps its count to zero. Use UInt64 for the exclusive endpoint so a full-width field accepts every UInt32.
+        return value < (1UL << bits);
+    }
+
+    /// <summary>
+    /// Writes a fixed-width field when the value fits without truncation.
+    /// </summary>
+    /// <param name="bits">The field width, from zero through 32.</param>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <returns>Whether the value fits the field. An invalid value writes no bits.</returns>
+    public static bool Write(int bits, uint value, JxlBitWriter writer)
+    {
+        int encodedBits = 0;
+        if (!CanEncode(bits, value, ref encodedBits))
+        {
             return false;
         }
 
+        writer.Write(bits, value);
         return true;
     }
 
-    public static void Write(int bits, uint value, JxlBitWriter writer)
-    {
-        if (value >= (1u << bits))
-        {
-            throw new InvalidOperationException("Value is too large to encode in " + bits + " bits");
-        }
-
-        writer.Write(bits, value);
-    }
-
-    // NOTE: BitsCoder::Read (fields.cc:418) returns a uint32_t,
-    // suggesting the input bit size does not exceed 32 bits.
+    /// <summary>
+    /// Reads a fixed-width unsigned field.
+    /// </summary>
+    /// <param name="bits">The field width, from zero through 32.</param>
+    /// <param name="reader">The input bit reader.</param>
+    /// <returns>The unsigned field value.</returns>
     public static uint Read(uint bits, JxlBitReader reader) => reader.ReadBits32(bits);
 
+    /// <inheritdoc cref="Read(uint, JxlBitReader)" />
     public static uint Read(int bits, JxlBitReader reader) => reader.ReadBits32((uint)bits);
 }

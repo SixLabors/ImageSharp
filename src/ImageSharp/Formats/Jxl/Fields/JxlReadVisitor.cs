@@ -61,6 +61,28 @@ internal sealed class JxlReadVisitor(JxlBitReader reader) : JxlVisitor
     public override void SetDefault(IJxlFields fields) => JxlBundle.SetDefault(fields);
 
     /// <inheritdoc />
+    public override bool VisitNested(IJxlFields fields)
+    {
+        ulong parentExtensionBits = this.totalExtensionBits;
+        long parentExtensionPosition = this.posAfterExtSize;
+
+        // Each nested bundle carries its own extension lengths. A child with no extensions must not skip the parent's remaining payload.
+        // Preserve both counters in call locals while JxlVisitor maintains the nested begun/ended flags.
+        this.totalExtensionBits = 0;
+        this.posAfterExtSize = 0;
+
+        try
+        {
+            return base.VisitNested(fields);
+        }
+        finally
+        {
+            this.totalExtensionBits = parentExtensionBits;
+            this.posAfterExtSize = parentExtensionPosition;
+        }
+    }
+
+    /// <inheritdoc />
     public override bool BeginExtensions(ref ulong extensions)
     {
         if (!base.BeginExtensions(ref extensions))

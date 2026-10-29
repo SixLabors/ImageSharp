@@ -412,6 +412,135 @@ public class FieldsTests
         Assert.False(visitor.EndExtensions());
     }
 
+    /// <summary>
+    /// Checks full-width raw fields against explicit least-significant-bit-first wire bytes.
+    /// </summary>
+    [Theory]
+    [InlineData(32, 0U, new byte[] { 0x00, 0x00, 0x00, 0x00 })]
+    [InlineData(32, uint.MaxValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF })]
+    [InlineData(31, 0x7FFFFFFFU, new byte[] { 0xFF, 0xFF, 0xFF, 0x7F })]
+    public void WriteRawBits_PreservesFullWidthValues(int bits, uint value, byte[] expected)
+    {
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+        int encodedBits = 0;
+
+        Assert.True(JxlBitsCoder.CanEncode(bits, value, ref encodedBits));
+        Assert.Equal(bits, encodedBits);
+        Assert.True(JxlBitsCoder.Write(bits, value, writer));
+        Assert.Equal(bits, writer.BitsWritten);
+
+        // Flush completes the final byte without adding another field bit. A 31-bit value leaves its last high bit clear.
+        writer.Flush();
+        Assert.Equal(expected, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks that invalid raw values fail before the writer emits a partial field.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 1U)]
+    [InlineData(31, uint.MaxValue)]
+    public void WriteRawBits_RejectsValuesOutsideWidth(int bits, uint value)
+    {
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+        int encodedBits = 0;
+
+        Assert.False(JxlBitsCoder.CanEncode(bits, value, ref encodedBits));
+        Assert.False(JxlBitsCoder.Write(bits, value, writer));
+        Assert.Equal(0, writer.BitsWritten);
+        Assert.Equal(0, output.Length);
+    }
+
+    /// <summary>
+    /// Checks nested extension lengths, scope restoration, statistics and bit alignment against one fixed wire vector.
+    /// </summary>
+    [Fact]
+    public void WriteNestedExtensions_PreservesEachBundleBitBudget()
+    {
+        NestedExtensionBundle inner = new(new OldBundle(), 3);
+        NestedExtensionBundle outer = new(inner, 1);
+        int extensionBits = 0;
+        long totalBits = 0;
+
+        // The default OldBundle uses 2 + 16 + 9 + 2 = 29 bits.
+        // Inner flags 3 need 6 flag bits and lengths of 10 + 2 bits: its complete length is 47 bits.
+        // Outer flags 1 need 6 flag bits and a 10-bit length: its payload is 47 bits and its complete length is 63 bits.
+        Assert.True(JxlBundle.CanEncode(outer, ref extensionBits, ref totalBits));
+        Assert.Equal(47, extensionBits);
+        Assert.Equal(63, totalBits);
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+        JxlAuxiliaryOutput statistics = new();
+
+        Assert.True(JxlBundle.Write(outer, writer, JxlLayerType.Header, statistics));
+        Assert.Equal(63, writer.BitsWritten);
+        Assert.Equal(63, statistics.Layers[(int)JxlLayerType.Header].TotalBits);
+
+        // The following one-bit marker completes byte eight. Extension payloads have no intervening byte padding.
+        writer.Write(1, 1);
+        writer.Flush();
+        Assert.Equal(new byte[] { 0x81, 0x1E, 0x89, 0x0C, 0x00, 0xC8, 0x03, 0x80 }, output.ToArray());
+
+        output.Position = 0;
+        JxlBitReader reader = new(output);
+        OldBundle decodedFields = new() { OldSmall = 7, OldF = -7F, OldLarge = 777 };
+        NestedExtensionBundle decodedInner = new(decodedFields, 0);
+        NestedExtensionBundle decodedOuter = new(decodedInner, 0);
+
+        Assert.True(JxlBundle.Read(reader, decodedOuter));
+        Assert.Equal(63, reader.TotalBitsConsumed);
+        Assert.Equal(1UL, decodedOuter.Extensions);
+        Assert.Equal(3UL, decodedInner.Extensions);
+        Assert.Equal(1U, decodedFields.OldSmall);
+        Assert.Equal(1.125F, decodedFields.OldF);
+        Assert.Equal(0U, decodedFields.OldLarge);
+        Assert.Equal(1U, reader.ReadBits32(1));
+    }
+
+    /// <summary>
+    /// Carries a nested bundle inside the first extension payload.
+    /// </summary>
+    private sealed class NestedExtensionBundle : IJxlFields
+    {
+        private readonly IJxlFields nested;
+        private ulong extensions;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NestedExtensionBundle"/> class.
+        /// </summary>
+        /// <param name="nested">The nested fields present when extension bit zero is set.</param>
+        /// <param name="extensions">The initial extension flags, overwritten when reading.</param>
+        public NestedExtensionBundle(IJxlFields nested, ulong extensions)
+        {
+            this.nested = nested;
+            this.extensions = extensions;
+        }
+
+        /// <summary>
+        /// Gets the extension flags read or written for this bundle.
+        /// </summary>
+        public ulong Extensions => this.extensions;
+
+        /// <inheritdoc />
+        public bool Visit(JxlVisitor visitor)
+        {
+            if (!visitor.BeginExtensions(ref this.extensions))
+            {
+                return false;
+            }
+
+            if (visitor.Conditional((this.extensions & 1) != 0) && !visitor.VisitNested(this.nested))
+            {
+                return false;
+            }
+
+            return visitor.EndExtensions();
+        }
+    }
+
     private sealed class OldBundle : IJxlFields
     {
         private uint oldSmall;

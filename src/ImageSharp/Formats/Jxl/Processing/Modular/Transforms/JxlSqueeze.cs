@@ -11,472 +11,586 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Transforms;
 
 /// <summary>
-/// Implements the <em>squeeze transform</em>.
+/// Splits modular channels into pair averages and predicted differences, or restores their original samples.
 /// </summary>
 /// <remarks>
-/// The squeeze transform in JXL is a reversible
-/// wavelet-like decomposition used in the modular mode
-/// to reduce redundancy and improve compression,
-/// especially for structured or synthetic images.
-/// It works by hierarchically splitting channesl
-/// into lower-resolution representations plus
-/// residuals, giving us multi-resolution coding while
-/// remaining lossless.
+/// Horizontal reconstruction depends on the preceding restored sample. Transposed row tiles put independent rows in SIMD lanes.
+/// Vertical reconstruction puts independent columns in SIMD lanes. Both paths preserve the scalar signed division and stored Int32 results.
 /// </remarks>
-internal static class JxlSqueeze
+internal static partial class JxlSqueeze
 {
     private const int MaxFirstPreviewSize = 8;
 
     /// <summary>
-    /// Computes the average of two integers.
+    /// Computes the squeeze average with its first-sample-dependent rounding.
     /// </summary>
-    /// <remarks>
-    /// This method is specific to the Squeeze transform.
-    /// It is not a generic average method.
-    /// </remarks>
-    /// <param name="x">First integer</param>
-    /// <param name="y">Second integer</param>
-    /// <returns>The average of x, y.</returns>
+    /// <param name="first">The first original sample.</param>
+    /// <param name="second">The second original sample.</param>
+    /// <returns>The biased average. The sum uses Int64 so every Int32 pair is representable before division.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Average(int x, int y) => (x + y + ((x > y) ? 1 : 0)) >> 1;
+    public static int Average(int first, int second) => (int)(((long)first + second + (first > second ? 1 : 0)) >> 1);
 
     /// <summary>
-    /// Computes a smoothed prediction tendency from three neighboring values.
+    /// Estimates the difference inside a pair from its predecessor and adjacent averages.
     /// </summary>
-    /// <param name="b">
-    /// The value preceding <paramref name="a"/>.
-    /// </param>
-    /// <param name="a">
-    /// The central value used to determine the local gradient.
-    /// </param>
-    /// <param name="n">
-    /// The value following <paramref name="a"/>.
-    /// </param>
-    /// <returns>
-    /// The smoothed prediction tendency, constrained according to the local
-    /// gradients when the three values are monotonically ordered; otherwise,
-    /// zero.
-    /// </returns>
-    /// <remarks>
-    /// <para>
-    /// When the input values are monotonically non-increasing or non-decreasing,
-    /// this method estimates a tendency using a weighted combination of the
-    /// neighboring values.
-    /// </para>
-    /// <para>
-    /// The result is adjusted to respect the gradients between <paramref name="b"/>
-    /// and <paramref name="a"/>, and between <paramref name="a"/> and
-    /// <paramref name="n"/>. These adjustments use parity-sensitive bounds
-    /// to constrain the tendency.
-    /// </para>
-    /// <para>
-    /// If the values are not monotonically ordered, the method returns zero,
-    /// indicating no prediction tendency.
-    /// </para>
-    /// </remarks>
+    /// <param name="previous">The preceding original or restored odd sample.</param>
+    /// <param name="average">The current pair average.</param>
+    /// <param name="nextAverage">The following pair average.</param>
+    /// <returns>The parity-limited tendency, using native 64-bit arithmetic throughout.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int SmoothTendency(int b, int a, int n)
+    private static long SmoothTendency(long previous, long average, long nextAverage)
     {
-        int diff = 0;
-
-        if (b >= a && a >= n)
+        long difference = 0;
+        if (previous >= average && average >= nextAverage)
         {
-            diff = ((4 * b) - (3 * n) - a + 6) / 12;
-
-            if (diff - (diff & 1) > 2 * (b - a))
+            // Estimate the difference only along a monotonic run. Division truncates toward zero, as in the native scalar decoder.
+            difference = ((4 * previous) - (3 * nextAverage) - average + 6) / 12;
+            if (difference - (difference & 1) > 2 * (previous - average))
             {
-                diff = (2 * (b - a)) + 1;
+                difference = (2 * (previous - average)) + 1;
             }
 
-            if (diff + (diff & 1) > 2 * (a - n))
+            if (difference + (difference & 1) > 2 * (average - nextAverage))
             {
-                diff = 2 * (a - n);
+                difference = 2 * (average - nextAverage);
             }
         }
-        else if (b <= a && a <= n)
+        else if (previous <= average && average <= nextAverage)
         {
-            diff = ((4 * b) - (3 * n) - a - 6) / 12;
-
-            if (diff + (diff & 1) < 2 * (b - a))
+            difference = ((4 * previous) - (3 * nextAverage) - average - 6) / 12;
+            if (difference + (difference & 1) < 2 * (previous - average))
             {
-                diff = (2 * (b - a)) - 1;
+                difference = (2 * (previous - average)) - 1;
             }
 
-            if (diff - (diff & 1) < 2 * (a - n))
+            if (difference - (difference & 1) < 2 * (average - nextAverage))
             {
-                diff = 2 * (a - n);
+                difference = 2 * (average - nextAverage);
             }
         }
 
-        return diff;
-    }
-
-    // The function operates on 256-bit fixed size vectors,
-    // 8 elements at a time. It should still work even on CPUs
-    // without 256-bit vector support (the JIT will translate
-    // these into 128-bit halves, or scalar without SIMD support).
-    //
-    // The FastUnsqueeze method CAN operate on vectors below
-    // 256-bit, but not above. It's better to simply use Vector256
-    // rather than duplicate everything. Vector<T> may be a problem
-    // as its number of elements can be greater than 8 which is too
-    // much for this method.
-    [MethodImpl(InliningOptions.HotPath)] // Called on an entire image
-    private static void FastUnsqueeze(Span<int> pResidual, Span<int> pAvg, Span<int> pNAvg, Span<int> pPout, Span<int> pOut, Span<int> pNOut)
-    {
-        Vector256<int> oneThird = Vector256.Create(0x55555556);
-
-        ref int pAvgRef = ref MemoryMarshal.GetReference(pAvg);
-        ref int pNAvgRef = ref MemoryMarshal.GetReference(pNAvg);
-        ref int pPoutReference = ref MemoryMarshal.GetReference(pPout);
-        ref int pResidualRef = ref MemoryMarshal.GetReference(pResidual);
-        ref int pOutRef = ref MemoryMarshal.GetReference(pOut);
-        ref int pNOutRef = ref MemoryMarshal.GetReference(pNOut);
-
-        Vector256<int> avg = Vector256.LoadUnsafe(ref pAvgRef);
-        Vector256<int> nextAvg = Vector256.LoadUnsafe(ref pNAvgRef);
-        Vector256<int> top = Vector256.LoadUnsafe(ref pPoutReference);
-
-        Vector256<int> ba = top - avg;
-        Vector256<int> an = avg - nextAvg;
-        Vector256<int> nonmono = ba ^ an;
-        Vector256<int> absba = Vector256.Abs(ba);
-        Vector256<int> absan = Vector256.Abs(an);
-        Vector256<int> absbn = Vector256.Abs(top - nextAvg);
-
-        Vector256<long> a3eh = Vector256_.MultiplyEven(absba, oneThird);
-        Vector256<long> a3oh = Vector256_.MultiplyOdd(absba, oneThird);
-
-        Vector256<int> a3 = BitConverter.IsLittleEndian
-            ? Vector256_.InterleaveOdd(a3eh.AsInt32(), a3oh.AsInt32())
-            : Vector256_.InterleaveEven(a3eh.AsInt32(), a3oh.AsInt32());
-
-        a3 += absbn + Vector256.Create(2);
-
-        Vector256<int> absdiff = a3 >> 2;
-
-        Vector256<int> skipdiff = Vector256_.NotEqual(ba, Vector256<int>.Zero);
-        skipdiff &= Vector256_.NotEqual(an, Vector256<int>.Zero);
-        skipdiff &= Vector256.LessThan(nonmono, Vector256<int>.Zero);
-
-        Vector256<int> absBa2 = (absba << 1) + (absdiff & Vector256<int>.One);
-
-        absdiff = Vector256.ConditionalSelect(
-            Vector256.GreaterThan(absdiff, absBa2),
-            (absba << 1) + Vector256<int>.One,
-            absdiff);
-
-        Vector256<int> absan2 = absan << 1;
-        absdiff = Vector256.ConditionalSelect(
-            Vector256.GreaterThan(absdiff + (absdiff & Vector256<int>.One), absan2),
-            absan2,
-            absdiff);
-
-        Vector256<int> diff1 = Vector256.ConditionalSelect(
-            Vector256.LessThan(top, nextAvg),
-            -absdiff,
-            absdiff);
-
-        Vector256<int> tendency = diff1 & ~skipdiff;
-        Vector256<int> diffMinusTendency = Vector256.LoadUnsafe(ref pResidualRef);
-        Vector256<int> diff = diffMinusTendency + tendency;
-        Vector256<int> output = avg + (diff + (diff << 31));
-
-        output.StoreUnsafe(ref pOutRef);
-        (output - diff).StoreUnsafe(ref pNOutRef);
+        // These bounds prevent a predicted pair from extending beyond a monotonic neighborhood.
+        // Parity matters because inverse reconstruction divides a signed difference toward zero.
+        return difference;
     }
 
     /// <summary>
     /// Restores a horizontal channel from its average and residual planes, then releases the displaced average storage.
     /// </summary>
-    /// <param name="configuration">The configuration used for the restored samples.</param>
+    /// <param name="configuration">The configuration used for restored samples.</param>
     /// <param name="input">The owner of the average and residual channels.</param>
     /// <param name="c">The average channel index, which receives the restored samples.</param>
-    /// <param name="rc">The borrowed residual channel index. InverseSqueeze removes it after reconstruction.</param>
+    /// <param name="rc">The residual channel index. InverseSqueeze removes it after reconstruction.</param>
     public static void InverseHorizontalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
-        // Channel offsets should not overflow.
         DebugGuard.MustBeLessThan(c, input.Channels.Count, nameof(c));
-        DebugGuard.MustBeLessThan(rc, input.Channels.Count, nameof(c));
 
-        JxlModularChannel inputChannel = input.Channels[c];
-        JxlModularChannel inputResidualChannel = input.Channels[rc];
-
-        if (inputChannel.Width != JxlMath.DivCeil(inputChannel.Width + inputResidualChannel.Width, 2))
+        DebugGuard.MustBeLessThan(rc, input.Channels.Count, nameof(rc));
+        JxlModularChannel average = input.Channels[c];
+        JxlModularChannel residual = input.Channels[rc];
+        if (average.Width != JxlMath.DivCeil(average.Width + residual.Width, 2))
         {
             throw new InvalidOperationException("Invalid width");
         }
 
-        if (inputChannel.Height != inputResidualChannel.Height)
+        if (average.Height != residual.Height)
         {
             throw new InvalidOperationException("Height of the input channel must be equal to the height of the residual channel");
         }
 
-        if (inputResidualChannel.Width == 0)
+        if (residual.Width == 0)
         {
-            input.Channels[c].HorizontalShift--;
+            average.HorizontalShift--;
             return;
         }
 
-        // Keep the image's channel wrapper stable. Swapping at completion transfers the result and releases the old average allocation.
-        using JxlModularChannel outputChannel = new(
-            configuration,
-            inputChannel.Width + inputResidualChannel.Width,
-            inputChannel.Height,
-            inputChannel.HorizontalShift - 1,
-            inputChannel.VerticalShift);
+        using JxlModularChannel output = new(configuration, average.Width + residual.Width, average.Height, average.HorizontalShift - 1, average.VerticalShift);
 
-        if (inputResidualChannel.Height == 0)
+        // Reconstruction changes channel resolution but retains the represented component.
+        output.Component = average.Component;
+
+        if (residual.Height != 0)
         {
-            inputChannel.Swap(outputChannel);
-            return;
-        }
+            ReadOnlySpan<int> averages = average.GetRow(0);
+            ReadOnlySpan<int> residuals = residual.GetRow(0);
+            Span<int> restored = output.GetRow(0);
 
-        // Transposition works on eight rows at a time. Reuse its stack storage for all blocks.
-        const int rowsPerBlock = 8;
+            int averageStride = average.Plane.PixelsPerRow;
+            int residualStride = residual.Plane.PixelsPerRow;
+            int outputStride = output.Plane.PixelsPerRow;
 
-        // The average block has one extra column for the next-sample predictor. Each of the
-        // other planes contains an eight-by-eight block. Allocate them once, outside traversal.
-        Span<int> bpAvg = stackalloc int[rowsPerBlock * 9];
-        Span<int> bpResidual = stackalloc int[rowsPerBlock * 8];
-        Span<int> bpOutEven = stackalloc int[rowsPerBlock * 8];
-        Span<int> bpOutOdd = stackalloc int[rowsPerBlock * 8];
-        Span<int> bpOutEvenT = stackalloc int[rowsPerBlock * 8];
-        Span<int> bpOutOddT = stackalloc int[rowsPerBlock * 8];
-        int rowBlockCount = JxlMath.DivCeil(inputChannel.Height, rowsPerBlock);
+            // Three 16-by-16 buffers use at most 3 KiB. Every active tile is written before reading; unused capacity is never addressed.
+            // Reuse consumed average/residual columns for even/odd output, then reuse dead average storage during the final transpose.
+            Unsafe.SkipInit(out InlineArray256<int> averageStorage);
+            Unsafe.SkipInit(out InlineArray256<int> residualStorage);
+            Unsafe.SkipInit(out InlineArray256<int> rowStorage);
 
-        // Borrow all three allocations before traversal. Their strides remain fixed until the completed output is swapped into the channel.
-        Span<int> residualSamples = inputResidualChannel.GetRow(0);
-        Span<int> averageSamples = inputChannel.GetRow(0);
-        Span<int> outputSamples = outputChannel.GetRow(0);
-        int onerow_in = inputChannel.Plane.PixelsPerRow;
-        int onerow_inr = inputResidualChannel.Plane.PixelsPerRow;
-        int onerow_out = outputChannel.Plane.PixelsPerRow;
+            Span<int> averageTile = averageStorage;
+            Span<int> residualTile = residualStorage;
+            Span<int> rowTile = rowStorage;
+            int y = 0;
 
-        for (int idx = 0; idx < rowBlockCount; idx++)
-        {
-            int y0 = idx * rowsPerBlock;
-            int rows = Math.Min(rowsPerBlock, inputChannel.Height - y0);
-            int x = 0;
-
-            Span<int> pResidual = residualSamples[(y0 * onerow_inr)..];
-            Span<int> pAverage = averageSamples[(y0 * onerow_in)..];
-            Span<int> pOut = outputSamples[(y0 * onerow_out)..];
-            ref int pOutRef = ref MemoryMarshal.GetReference(pOut);
-
-            ref int bpOutEvenTRef = ref MemoryMarshal.GetReference(bpOutEvenT);
-            ref int bpOutOddTRef = ref MemoryMarshal.GetReference(bpOutOddT);
-
-            int n = Vector256<int>.Count;
-
-            if (inputResidualChannel.Width > 16 && rows == rowsPerBlock)
+            if (Vector512.IsHardwareAccelerated && residual.Width >= Vector512<int>.Count)
             {
-                for (; x < inputResidualChannel.Width - 9; x += 8)
+                for (; y <= average.Height - Vector512<int>.Count; y += Vector512<int>.Count)
                 {
-                    JxlSimdUtils.Transpose8x8Block(pResidual[x..], bpResidual, onerow_inr);
-                    JxlSimdUtils.Transpose8x8Block(pAverage[x..], bpAvg, onerow_in);
-
-                    for (int y = 0; y < rowsPerBlock; y++)
-                    {
-                        bpAvg[64 + y] = pAverage[x + 8 + (onerow_in * y)];
-                    }
-
-                    for (int i = 0; i < 8; i++)
-                    {
-                        // i * 8
-                        int i8 = i << 3;
-
-                        FastUnsqueeze(
-                            bpResidual[i8..],
-                            bpAvg[i8..],
-                            bpAvg[(8 * (i + 1))..],
-                            (x + i > 0) ? bpOutOdd[(8 * ((x + i - 1) & 7))..] : bpAvg[i8..],
-                            bpOutEven[i8..],
-                            bpOutOdd[i8..]);
-                    }
-
-                    JxlSimdUtils.Transpose8x8Block(bpOutEven, bpOutEvenT, 8);
-                    JxlSimdUtils.Transpose8x8Block(bpOutOdd, bpOutOddT, 8);
-
-                    for (int y = 0; y < rowsPerBlock; y++)
-                    {
-                        // y * 8
-                        int y8 = y << 3;
-
-                        for (int i = 0; i < rowsPerBlock; i += n)
-                        {
-                            int offset = y8 + i;
-
-                            Vector256<int> even = Vector256.LoadUnsafe(ref Unsafe.Add(ref bpOutEvenTRef, offset));
-                            Vector256<int> odd = Vector256.LoadUnsafe(ref Unsafe.Add(ref bpOutOddTRef, offset));
-
-                            SimdUtils.Interleave2(even, odd, ref Unsafe.Add(ref pOutRef, ((x + i) << 1) + (onerow_out * y)));
-                        }
-                    }
+                    InverseHorizontalRows(
+                        averages,
+                        residuals,
+                        restored,
+                        averageStride,
+                        residualStride,
+                        outputStride,
+                        average.Width,
+                        residual.Width,
+                        output.Width,
+                        y,
+                        Vector512<int>.Count,
+                        averageTile,
+                        residualTile,
+                        rowTile);
                 }
             }
 
-            for (int y = 0; y < rows; y++)
+            if (Vector256.IsHardwareAccelerated && residual.Width >= Vector256<int>.Count)
             {
-                UnsqueezeRow(y0 + y, x, residualSamples, averageSamples, outputSamples);
+                for (; y <= average.Height - Vector256<int>.Count; y += Vector256<int>.Count)
+                {
+                    InverseHorizontalRows(
+                        averages,
+                        residuals,
+                        restored,
+                        averageStride,
+                        residualStride,
+                        outputStride,
+                        average.Width,
+                        residual.Width,
+                        output.Width,
+                        y,
+                        Vector256<int>.Count,
+                        averageTile,
+                        residualTile,
+                        rowTile);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated && residual.Width >= Vector128<int>.Count)
+            {
+                for (; y <= average.Height - Vector128<int>.Count; y += Vector128<int>.Count)
+                {
+                    InverseHorizontalRows(
+                        averages,
+                        residuals,
+                        restored,
+                        averageStride,
+                        residualStride,
+                        outputStride,
+                        average.Width,
+                        residual.Width,
+                        output.Width,
+                        y,
+                        Vector128<int>.Count,
+                        averageTile,
+                        residualTile,
+                        rowTile);
+                }
+            }
+
+            for (; y < average.Height; y++)
+            {
+                InverseHorizontalRow(
+                    averages.Slice(y * averageStride, average.Width),
+                    residuals.Slice(y * residualStride, residual.Width),
+                    restored.Slice(y * outputStride, output.Width),
+                    0);
             }
         }
 
-        inputChannel.Swap(outputChannel);
+        // The channel keeps its identity. The temporary receives and releases the old average allocation.
+        average.Swap(output);
+    }
 
-        // Restore the scalar remainder of row y, starting at residual x0. The three spans borrow complete allocations
-        // at their logical origins. Pass them explicitly because a local function cannot capture spans from its caller.
-        void UnsqueezeRow(int y, int x0, Span<int> residualStorage, Span<int> averageStorage, Span<int> outputStorage)
+    /// <summary>
+    /// Restores complete horizontal tiles across independent rows and finishes each row's scalar remainder.
+    /// </summary>
+    /// <param name="averages">The borrowed average allocation from its logical origin.</param>
+    /// <param name="residuals">The borrowed residual allocation from its logical origin.</param>
+    /// <param name="output">The restored allocation from its logical origin.</param>
+    /// <param name="averageStride">The average row stride in integers.</param>
+    /// <param name="residualStride">The residual row stride in integers.</param>
+    /// <param name="outputStride">The restored row stride in integers.</param>
+    /// <param name="averageWidth">The logical average width.</param>
+    /// <param name="residualWidth">The logical residual width.</param>
+    /// <param name="outputWidth">The logical restored width.</param>
+    /// <param name="firstRow">The first row in this group.</param>
+    /// <param name="rows">The selected register's lane count: four, eight or sixteen.</param>
+    /// <param name="averageTile">Reusable storage for at least rows squared integers.</param>
+    /// <param name="residualTile">Reusable storage for at least rows squared integers.</param>
+    /// <param name="rowTile">Reusable storage for at least rows squared integers.</param>
+    private static void InverseHorizontalRows(
+        ReadOnlySpan<int> averages,
+        ReadOnlySpan<int> residuals,
+        Span<int> output,
+        int averageStride,
+        int residualStride,
+        int outputStride,
+        int averageWidth,
+        int residualWidth,
+        int outputWidth,
+        int firstRow,
+        int rows,
+        Span<int> averageTile,
+        Span<int> residualTile,
+        Span<int> rowTile)
+    {
+        int area = rows * rows;
+        averageTile = averageTile[..area];
+        residualTile = residualTile[..area];
+        rowTile = rowTile[..area];
+        int x = 0;
+
+        for (; x <= residualWidth - rows; x += rows)
         {
-            Span<int> residual = residualStorage[(y * onerow_inr)..];
-            Span<int> average = averageStorage[(y * onerow_in)..];
-            Span<int> output = outputStorage[(y * onerow_out)..];
-            int inputChannelWidth = inputChannel.Width;
-            int outputChannelWidth = outputChannel.Width;
+            // Transposed columns put different image rows in SIMD lanes. Horizontal dependency remains between consecutive columns, not lanes.
+            SimdUtils.Transpose(averages[((firstRow * averageStride) + x)..], averageStride, averageTile, rows, rows, rows);
 
-            for (int x = x0; x < inputResidualChannel.Width; x++)
+            SimdUtils.Transpose(residuals[((firstRow * residualStride) + x)..], residualStride, residualTile, rows, rows, rows);
+
+            // Until arithmetic finishes, the third tile holds only the predecessor and the one-column average lookahead.
+            if (x == 0)
             {
-                int xLsh1 = x << 1; // Prevents left shifting three times. Saves on CPU cycles.
-
-                int diffMinusTendency = residual[x];
-                int avg = average[x];
-                int nextAverage = x + 1 < inputChannelWidth ? average[x + 1] : avg;
-
-                int left = x > 0 ? output[xLsh1 - 1] : avg;
-                int tendency = SmoothTendency(left, avg, nextAverage);
-                int diff = diffMinusTendency + tendency;
-
-                int a = avg + (diff / 2);
-                output[xLsh1] = a;
-
-                int b = a - diff;
-                output[xLsh1 + 1] = b;
+                averageTile[..rows].CopyTo(rowTile);
+            }
+            else
+            {
+                CopyColumn(output, outputStride, firstRow, (2 * x) - 1, rowTile[..rows]);
             }
 
-            if ((outputChannelWidth & 1) > 0)
+            if (x + rows < averageWidth)
             {
-                output[outputChannelWidth - 1] = average[inputChannelWidth - 1];
+                CopyColumn(averages, averageStride, firstRow, x + rows, rowTile.Slice(rows, rows));
             }
+            else
+            {
+                averageTile.Slice((rows - 1) * rows, rows).CopyTo(rowTile.Slice(rows, rows));
+            }
+
+            InverseSqueezeOperator operation = default;
+            ref int averageStart = ref MemoryMarshal.GetReference(averageTile);
+
+            ref int residualStart = ref MemoryMarshal.GetReference(residualTile);
+            ref int neighbors = ref MemoryMarshal.GetReference(rowTile);
+
+            // Select the width outside the dependent column loop. Keep the preceding restored odd samples in a register.
+            if (rows == Vector512<int>.Count)
+            {
+                Vector512<int> previous = Vector512.LoadUnsafe(ref neighbors);
+
+                Vector512<int> current = Vector512.LoadUnsafe(ref averageStart);
+
+                for (int column = 0; column < rows; column++)
+                {
+                    uint offset = (uint)(column * rows);
+
+                    Vector512<int> next = column + 1 < rows
+                        ? Vector512.LoadUnsafe(ref averageStart, offset + (uint)rows)
+                        : Vector512.LoadUnsafe(ref neighbors, (uint)rows);
+
+                    operation.Invoke(current, Vector512.LoadUnsafe(ref residualStart, offset), next, previous, out Vector512<int> even, out previous);
+                    even.StoreUnsafe(ref averageStart, offset);
+                    previous.StoreUnsafe(ref residualStart, offset);
+                    current = next;
+                }
+            }
+            else if (rows == Vector256<int>.Count)
+            {
+                Vector256<int> previous = Vector256.LoadUnsafe(ref neighbors);
+
+                Vector256<int> current = Vector256.LoadUnsafe(ref averageStart);
+
+                for (int column = 0; column < rows; column++)
+                {
+                    uint offset = (uint)(column * rows);
+
+                    Vector256<int> next = column + 1 < rows
+                        ? Vector256.LoadUnsafe(ref averageStart, offset + (uint)rows)
+                        : Vector256.LoadUnsafe(ref neighbors, (uint)rows);
+
+                    operation.Invoke(current, Vector256.LoadUnsafe(ref residualStart, offset), next, previous, out Vector256<int> even, out previous);
+                    even.StoreUnsafe(ref averageStart, offset);
+                    previous.StoreUnsafe(ref residualStart, offset);
+                    current = next;
+                }
+            }
+            else
+            {
+                Vector128<int> previous = Vector128.LoadUnsafe(ref neighbors);
+
+                Vector128<int> current = Vector128.LoadUnsafe(ref averageStart);
+
+                for (int column = 0; column < rows; column++)
+                {
+                    uint offset = (uint)(column * rows);
+
+                    Vector128<int> next = column + 1 < rows
+                        ? Vector128.LoadUnsafe(ref averageStart, offset + (uint)rows)
+                        : Vector128.LoadUnsafe(ref neighbors, (uint)rows);
+
+                    operation.Invoke(current, Vector128.LoadUnsafe(ref residualStart, offset), next, previous, out Vector128<int> even, out previous);
+                    even.StoreUnsafe(ref averageStart, offset);
+                    previous.StoreUnsafe(ref residualStart, offset);
+                    current = next;
+                }
+            }
+
+            SimdUtils.Transpose(averageTile, rows, rowTile, rows, rows, rows);
+
+            SimdUtils.Transpose(residualTile, rows, averageTile, rows, rows, rows);
+
+            // Both transposed buffers now contain image rows. Select the width before storing them; each store writes exactly two samples per pair.
+            if (rows == Vector512<int>.Count)
+            {
+                for (int row = 0; row < rows; row++)
+                {
+                    ref int even = ref rowTile[row * rows];
+                    ref int odd = ref averageTile[row * rows];
+                    ref int destination = ref output[((firstRow + row) * outputStride) + (2 * x)];
+                    SimdUtils.Interleave2(Vector512.LoadUnsafe(ref even), Vector512.LoadUnsafe(ref odd), ref destination);
+                }
+            }
+            else if (rows == Vector256<int>.Count)
+            {
+                for (int row = 0; row < rows; row++)
+                {
+                    ref int even = ref rowTile[row * rows];
+                    ref int odd = ref averageTile[row * rows];
+                    ref int destination = ref output[((firstRow + row) * outputStride) + (2 * x)];
+                    SimdUtils.Interleave2(Vector256.LoadUnsafe(ref even), Vector256.LoadUnsafe(ref odd), ref destination);
+                }
+            }
+            else
+            {
+                for (int row = 0; row < rows; row++)
+                {
+                    ref int even = ref rowTile[row * rows];
+                    ref int odd = ref averageTile[row * rows];
+                    ref int destination = ref output[((firstRow + row) * outputStride) + (2 * x)];
+                    SimdUtils.Interleave2(Vector128.LoadUnsafe(ref even), Vector128.LoadUnsafe(ref odd), ref destination);
+                }
+            }
+        }
+
+        for (int row = 0; row < rows; row++)
+        {
+            InverseHorizontalRow(
+                averages.Slice((firstRow + row) * averageStride, averageWidth),
+                residuals.Slice((firstRow + row) * residualStride, residualWidth),
+                output.Slice((firstRow + row) * outputStride, outputWidth),
+                x);
+        }
+    }
+
+    /// <summary>
+    /// Borrows a strided matrix column into a complete-register scratch span.
+    /// </summary>
+    /// <param name="source">The complete source allocation from its logical origin.</param>
+    /// <param name="stride">The physical row stride in integers.</param>
+    /// <param name="firstRow">The first source row.</param>
+    /// <param name="column">The source column.</param>
+    /// <param name="destination">Exactly four, eight or sixteen scratch samples, matching a supported register width.</param>
+    private static void CopyColumn(ReadOnlySpan<int> source, int stride, int firstRow, int column, Span<int> destination)
+    {
+        ref int input = ref MemoryMarshal.GetReference(source);
+
+        ref int output = ref MemoryMarshal.GetReference(destination);
+        int offset = (firstRow * stride) + column;
+
+        // Each index addresses one real sample. Plane allocation already bounds row offsets to Int32; the shared gather owns its pin scope.
+        if (destination.Length == Vector512<int>.Count)
+        {
+            Vector512<int> offsets = (Vector512<int>.Indices * Vector512.Create(stride)) + Vector512.Create(offset);
+
+            Vector512_.Gather(ref input, offsets).StoreUnsafe(ref output);
+        }
+        else if (destination.Length == Vector256<int>.Count)
+        {
+            Vector256<int> offsets = (Vector256<int>.Indices * Vector256.Create(stride)) + Vector256.Create(offset);
+
+            Vector256_.Gather(ref input, offsets).StoreUnsafe(ref output);
+        }
+        else
+        {
+            Vector128<int> offsets = (Vector128<int>.Indices * Vector128.Create(stride)) + Vector128.Create(offset);
+
+            Vector128_.Gather(ref input, offsets).StoreUnsafe(ref output);
+        }
+    }
+
+    /// <summary>
+    /// Restores the remaining pairs of one row with exact 64-bit intermediate arithmetic.
+    /// </summary>
+    /// <param name="averages">The logical average row.</param>
+    /// <param name="residuals">The logical residual row.</param>
+    /// <param name="output">The logical restored row.</param>
+    /// <param name="firstPair">The first pair not already restored by tiled SIMD traversal.</param>
+    private static void InverseHorizontalRow(ReadOnlySpan<int> averages, ReadOnlySpan<int> residuals, Span<int> output, int firstPair)
+    {
+        InverseSqueezeOperator operation = default;
+        for (int x = firstPair; x < residuals.Length; x++)
+        {
+            int average = averages[x];
+            int nextAverage = x + 1 < averages.Length ? averages[x + 1] : average;
+            int previous = x > 0 ? output[(2 * x) - 1] : average;
+            operation.Invoke(average, residuals[x], nextAverage, previous, out int even, out int odd);
+
+            output[2 * x] = even;
+            output[(2 * x) + 1] = odd;
+        }
+
+        if ((output.Length & 1) != 0)
+        {
+            output[^1] = averages[^1];
         }
     }
 
     /// <summary>
     /// Restores a vertical channel from its average and residual planes, then releases the displaced average storage.
     /// </summary>
-    /// <param name="configuration">The configuration used for the restored samples.</param>
+    /// <param name="configuration">The configuration used for restored samples.</param>
     /// <param name="input">The owner of the average and residual channels.</param>
-    /// <param name="c">The average channel index, which receives the restored samples.</param>
-    /// <param name="rc">The borrowed residual channel index. InverseSqueeze removes it after reconstruction.</param>
+    /// <param name="c">The average channel index, which receives restored samples.</param>
+    /// <param name="rc">The residual channel index. InverseSqueeze removes it after reconstruction.</param>
     public static void InverseVerticalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
-        // Channel offsets should not overflow.
         DebugGuard.MustBeLessThan(c, input.Channels.Count, nameof(c));
-        DebugGuard.MustBeLessThan(rc, input.Channels.Count, nameof(c));
 
-        JxlModularChannel inputChannel = input.Channels[c];
-        JxlModularChannel inputResidualChannel = input.Channels[rc];
-
-        if (inputChannel.Height != JxlMath.DivCeil(inputChannel.Height + inputResidualChannel.Height, 2))
+        DebugGuard.MustBeLessThan(rc, input.Channels.Count, nameof(rc));
+        JxlModularChannel average = input.Channels[c];
+        JxlModularChannel residual = input.Channels[rc];
+        if (average.Height != JxlMath.DivCeil(average.Height + residual.Height, 2))
         {
             throw new InvalidOperationException("Invalid height");
         }
 
-        if (inputChannel.Width != inputResidualChannel.Width)
+        if (average.Width != residual.Width)
         {
             throw new InvalidOperationException("Width of the input channel must be equal to the width of the residual channel");
         }
 
-        if (inputResidualChannel.Height == 0)
+        if (residual.Height == 0)
         {
-            input.Channels[c].VerticalShift--;
+            average.VerticalShift--;
             return;
         }
 
-        using JxlModularChannel outputChannel = new(
+        using JxlModularChannel output = new(
             configuration,
-            inputChannel.Width,
-            inputChannel.Height + inputResidualChannel.Height,
-            inputChannel.HorizontalShift,
-            inputChannel.VerticalShift - 1);
+            average.Width,
+            average.Height + residual.Height,
+            average.HorizontalShift,
+            average.VerticalShift - 1);
 
-        if (inputResidualChannel.Width == 0)
+        // Reconstruction changes channel resolution but retains the represented component.
+        output.Component = average.Component;
+
+        ReadOnlySpan<int> averages = average.GetRow(0);
+        ReadOnlySpan<int> residuals = residual.GetRow(0);
+        Span<int> restored = output.GetRow(0);
+
+        int averageStride = average.Plane.PixelsPerRow;
+        int residualStride = residual.Plane.PixelsPerRow;
+        int outputStride = output.Plane.PixelsPerRow;
+        int width = average.Width;
+        InverseSqueezeOperator operation = default;
+
+        // Columns are independent. Each vector contains adjacent columns of the same row; rows remain sequential for predecessor reconstruction.
+        for (int y = 0; y < residual.Height; y++)
         {
-            inputChannel.Swap(outputChannel);
-            return;
-        }
+            ReadOnlySpan<int> currentAverage = averages.Slice(y * averageStride, width);
+            ReadOnlySpan<int> currentResidual = residuals.Slice(y * residualStride, width);
+            int nextRow = y + 1 < average.Height ? y + 1 : y;
+            ReadOnlySpan<int> nextAverage = averages.Slice(nextRow * averageStride, width);
+            ReadOnlySpan<int> previous = y > 0 ? restored.Slice(((2 * y) - 1) * outputStride, width) : currentAverage;
+            Span<int> evenRow = restored.Slice(2 * y * outputStride, width);
+            Span<int> oddRow = restored.Slice(((2 * y) + 1) * outputStride, width);
+            ref int a = ref MemoryMarshal.GetReference(currentAverage);
 
-        // Process one vector-width column block at a time. The previous output row
-        // remains available for prediction while traversal stays on the calling thread.
-        const int columnsPerBlock = 8;
-        int columnBlockCount = JxlMath.DivCeil(inputChannel.Width, columnsPerBlock);
+            ref int r = ref MemoryMarshal.GetReference(currentResidual);
+            ref int n = ref MemoryMarshal.GetReference(nextAverage);
 
-        Span<int> residualSamples = inputResidualChannel.GetRow(0);
-        Span<int> averageSamples = inputChannel.GetRow(0);
-        Span<int> outputSamples = outputChannel.GetRow(0);
-        int residualStride = inputResidualChannel.Plane.PixelsPerRow;
-        int averageStride = inputChannel.Plane.PixelsPerRow;
-        int outputStride = outputChannel.Plane.PixelsPerRow;
+            ref int p = ref MemoryMarshal.GetReference(previous);
+            ref int evenOutput = ref MemoryMarshal.GetReference(evenRow);
 
-        for (int idx = 0; idx < columnBlockCount; idx++)
-        {
-            int x0 = idx * columnsPerBlock;
-            int x1 = Math.Min((idx + 1) * columnsPerBlock, inputChannel.Width);
-            int w = x1 - x0;
+            ref int oddOutput = ref MemoryMarshal.GetReference(oddRow);
+            int x = 0;
 
-            for (int y = 0; y < inputResidualChannel.Height; y++)
+            if (Vector512.IsHardwareAccelerated)
             {
-                int yLsh1 = y << 1;
-
-                Span<int> pResidual = residualSamples[((y * residualStride) + x0)..];
-                Span<int> pAverage = averageSamples[((y * averageStride) + x0)..];
-                int nextAverageRow = y + 1 < inputChannel.Height ? y + 1 : y;
-                Span<int> pNAvg = averageSamples[((nextAverageRow * averageStride) + x0)..];
-                Span<int> pOut = outputSamples[((yLsh1 * outputStride) + x0)..];
-                Span<int> pNOut = outputSamples[(((yLsh1 + 1) * outputStride) + x0)..];
-                Span<int> pPOut = y > 0 ? outputSamples[(((yLsh1 - 1) * outputStride) + x0)..] : pNAvg;
-                int x = 0;
-
-                for (; x + 7 < w; x += 8)
+                for (; x <= width - Vector512<int>.Count; x += Vector512<int>.Count)
                 {
-                    FastUnsqueeze(
-                        pResidual[x..],
-                        pAverage[x..],
-                        pNAvg[x..],
-                        pPOut[x..],
-                        pOut[x..],
-                        pNOut[x..]);
-                }
+                    operation.Invoke(
+                        Vector512.LoadUnsafe(ref a, (uint)x),
+                        Vector512.LoadUnsafe(ref r, (uint)x),
+                        Vector512.LoadUnsafe(ref n, (uint)x),
+                        Vector512.LoadUnsafe(ref p, (uint)x),
+                        out Vector512<int> even,
+                        out Vector512<int> odd);
 
-                // Remainder
-                for (; x < w; x++)
-                {
-                    int avg = pNAvg[x];
-                    int nextAvg = pNAvg[x];
-                    int top = pPOut[x];
-                    int tendency = SmoothTendency(top, avg, nextAvg);
-                    int diffMinusTendency = pResidual[x];
-                    int diff = diffMinusTendency + tendency;
-                    int output = avg + (diff >> 1);
-                    pOut[x] = output;
-                    pNOut[x] = output - diff;
+                    even.StoreUnsafe(ref evenOutput, (uint)x);
+                    odd.StoreUnsafe(ref oddOutput, (uint)x);
                 }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<int>.Count; x += Vector256<int>.Count)
+                {
+                    operation.Invoke(
+                        Vector256.LoadUnsafe(ref a, (uint)x),
+                        Vector256.LoadUnsafe(ref r, (uint)x),
+                        Vector256.LoadUnsafe(ref n, (uint)x),
+                        Vector256.LoadUnsafe(ref p, (uint)x),
+                        out Vector256<int> even,
+                        out Vector256<int> odd);
+
+                    even.StoreUnsafe(ref evenOutput, (uint)x);
+                    odd.StoreUnsafe(ref oddOutput, (uint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<int>.Count; x += Vector128<int>.Count)
+                {
+                    operation.Invoke(
+                        Vector128.LoadUnsafe(ref a, (uint)x),
+                        Vector128.LoadUnsafe(ref r, (uint)x),
+                        Vector128.LoadUnsafe(ref n, (uint)x),
+                        Vector128.LoadUnsafe(ref p, (uint)x),
+                        out Vector128<int> even,
+                        out Vector128<int> odd);
+
+                    even.StoreUnsafe(ref evenOutput, (uint)x);
+                    odd.StoreUnsafe(ref oddOutput, (uint)x);
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                operation.Invoke(currentAverage[x], currentResidual[x], nextAverage[x], previous[x], out int even, out int odd);
+
+                evenRow[x] = even;
+                oddRow[x] = odd;
             }
         }
 
-        if ((outputChannel.Height & 1) > 0)
+        if ((output.Height & 1) != 0)
         {
-            int y = inputChannel.Height - 1;
-
-            Span<int> pAverage = averageSamples[(y * averageStride)..];
-            Span<int> pOutput = outputSamples[((y << 1) * outputStride)..];
-
-            for (int x = 0; x < inputChannel.Width; x++)
-            {
-                pOutput[x] = pAverage[x];
-            }
+            // An unmatched final average is already a complete source row, not another pair with a residual.
+            averages.Slice((average.Height - 1) * averageStride, width).CopyTo(restored.Slice((output.Height - 1) * outputStride, width));
         }
 
-        inputChannel.Swap(outputChannel);
+        average.Swap(output);
     }
 
     /// <summary>
@@ -577,6 +691,7 @@ internal static class JxlSqueeze
             };
 
             squeezeParameters.Add(parameters);
+
             parameters.Horizontal = false;
             squeezeParameters.Add(parameters);
         }
@@ -594,6 +709,7 @@ internal static class JxlSqueeze
             {
                 newParameters.Horizontal = false;
                 squeezeParameters.Add(newParameters);
+
                 h = (h + 1) >> 1;
             }
         }
@@ -604,6 +720,7 @@ internal static class JxlSqueeze
             {
                 newParameters.Horizontal = true;
                 squeezeParameters.Add(newParameters);
+
                 w = (w + 1) >> 1;
             }
 
@@ -611,6 +728,7 @@ internal static class JxlSqueeze
             {
                 newParameters.Horizontal = false;
                 squeezeParameters.Add(newParameters);
+
                 h = (h + 1) >> 1;
             }
         }
@@ -733,157 +851,296 @@ internal static class JxlSqueeze
     /// <summary>
     /// Splits a horizontal channel into owned average and residual planes and releases its original samples.
     /// </summary>
-    /// <param name="configuration">The configuration used for the output samples.</param>
-    /// <param name="input">The owner of all input and output channels.</param>
+    /// <param name="configuration">The configuration used for output samples.</param>
+    /// <param name="input">The owner of input and output channels.</param>
     /// <param name="c">The channel to split.</param>
-    /// <param name="rc">The insertion index for the residual channel.</param>
+    /// <param name="rc">The insertion index for its residual channel.</param>
     public static void ForwardHorizontalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
-        JxlModularChannel inputChannel = input.Channels[c];
-
-        // Attach the residual before processing. The image then owns it even if reconstruction of another output fails.
+        JxlModularChannel source = input.Channels[c];
         input.Channels.EnsureCapacity(input.Channels.Count + 1);
-        using JxlModularChannel outputChannel = new(
-            configuration, (inputChannel.Width + 1) >> 1, inputChannel.Height, inputChannel.HorizontalShift + 1, inputChannel.VerticalShift);
 
-        JxlModularChannel outputChannelResidual = new(
-            configuration, inputChannel.Width - outputChannel.Width, outputChannel.Height, inputChannel.HorizontalShift + 1, inputChannel.VerticalShift);
+        using JxlModularChannel average = new(configuration, JxlMath.DivCeil(source.Width, 2), source.Height, source.HorizontalShift + 1, source.VerticalShift);
 
-        input.Channels.Insert(rc, outputChannelResidual);
+        JxlModularChannel residual = new(configuration, source.Width - average.Width, source.Height, source.HorizontalShift + 1, source.VerticalShift);
 
-        outputChannel.Component = inputChannel.Component;
-        outputChannelResidual.Component = inputChannel.Component;
+        // Attach the second owner before processing. The image releases it if any later operation fails.
+        input.Channels.Insert(rc, residual);
 
-        Span<int> inputSamples = inputChannel.GetRow(0);
-        Span<int> outputSamples = outputChannel.GetRow(0);
-        Span<int> residualSamples = outputChannelResidual.GetRow(0);
-        int inputStride = inputChannel.Plane.PixelsPerRow;
-        int outputStride = outputChannel.Plane.PixelsPerRow;
-        int residualStride = outputChannelResidual.Plane.PixelsPerRow;
+        average.Component = source.Component;
+        residual.Component = source.Component;
+        ReadOnlySpan<int> samples = source.GetRow(0);
+        Span<int> averages = average.GetRow(0);
+        Span<int> residuals = residual.GetRow(0);
 
-        for (int y = 0; y < outputChannel.Height; y++)
+        int sourceStride = source.Plane.PixelsPerRow;
+        int averageStride = average.Plane.PixelsPerRow;
+        int residualStride = residual.Plane.PixelsPerRow;
+
+        for (int y = 0; y < source.Height; y++)
         {
-            Span<int> pIn = inputSamples[(y * inputStride)..];
-            Span<int> pOut = outputSamples[(y * outputStride)..];
-            Span<int> pRes = residualSamples[(y * residualStride)..];
+            ForwardHorizontalRow(
+                samples.Slice(y * sourceStride, source.Width),
+                averages.Slice(y * averageStride, average.Width),
+                residuals.Slice(y * residualStride, residual.Width));
+        }
 
-            for (int x = 0; x < outputChannelResidual.Width; x++)
+        source.Swap(average);
+    }
+
+    /// <summary>
+    /// Splits a complete source row using independent original sample pairs.
+    /// </summary>
+    /// <param name="source">The logical source row.</param>
+    /// <param name="averages">The logical average row.</param>
+    /// <param name="residuals">The logical residual row, one sample shorter for an odd source width.</param>
+    private static void ForwardHorizontalRow(ReadOnlySpan<int> source, Span<int> averages, Span<int> residuals)
+    {
+        ref int input = ref MemoryMarshal.GetReference(source);
+
+        ref int averageOutput = ref MemoryMarshal.GetReference(averages);
+        ref int residualOutput = ref MemoryMarshal.GetReference(residuals);
+
+        ForwardSqueezeOperator operation = default;
+        int x = 0;
+
+        // Forward prediction reads original neighbors, so adjacent pairs are independent and require no transposed tile.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector512<int>.Count; x += Vector512<int>.Count)
             {
-                int x2 = x << 1; // x * 2
+                SimdUtils.Deinterleave2(
+                    Vector512.LoadUnsafe(ref input, (uint)(2 * x)),
+                    Vector512.LoadUnsafe(ref input, (uint)((2 * x) + Vector512<int>.Count)),
+                    out Vector512<int> even,
+                    out Vector512<int> odd);
 
-                int a = pIn[x2];
-                int b = pIn[x2 + 1];
-                int avg = Average(a, b);
-                pOut[x] = avg;
-                int diff = a - b;
-                int nextAvg = avg;
+                Vector512<int> average = Average(even, odd);
 
-                if (x + 1 < outputChannelResidual.Width)
-                {
-                    int c2 = pIn[x2 + 2]; // actually C, but 1. variable 'c' already defined 2. names should be camelCase
-                    int d = pIn[x2 + 3];
+                int nextPair = x + Vector512<int>.Count;
+                int lastAverage = nextPair < residuals.Length ? Average(source[2 * nextPair], source[(2 * nextPair) + 1])
+                    : (source.Length & 1) != 0 ? source[^1] : average.GetElement(Vector512<int>.Count - 1);
 
-                    nextAvg = Average(c2, d);
-                }
-                else if ((inputChannel.Width & 1) != 0)
-                {
-                    nextAvg = pIn[x2 + 2];
-                }
+                // Shift the already calculated averages rather than reloading each following pair. Only the final lane needs a new average.
+                Vector512<int> nextAverage = Vector512.ShuffleNative(average, Vector512.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15));
+                nextAverage = nextAverage.WithElement(Vector512<int>.Count - 1, lastAverage);
+                Vector512<int> previous = Vector512.ShuffleNative(odd, Vector512.Create(0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14));
+                previous = previous.WithElement(0, x > 0 ? source[(2 * x) - 1] : average.ToScalar());
+                average.StoreUnsafe(ref averageOutput, (uint)x);
 
-                int left = x > 0 ? pIn[x2 - 1] : avg;
-                int tendency = SmoothTendency(left, avg, nextAvg);
-
-                pRes[x] = diff - tendency;
-            }
-
-            if ((inputChannel.Width & 1) != 0)
-            {
-                int x = outputChannel.Width - 1;
-                pOut[x] = pIn[x * 2];
+                operation.Invoke(even, odd, average, nextAverage, previous).StoreUnsafe(ref residualOutput, (uint)x);
             }
         }
 
-        inputChannel.Swap(outputChannel);
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector256<int>.Count; x += Vector256<int>.Count)
+            {
+                SimdUtils.Deinterleave2(
+                    Vector256.LoadUnsafe(ref input, (uint)(2 * x)),
+                    Vector256.LoadUnsafe(ref input, (uint)((2 * x) + Vector256<int>.Count)),
+                    out Vector256<int> even,
+                    out Vector256<int> odd);
+
+                Vector256<int> average = Average(even, odd);
+
+                int nextPair = x + Vector256<int>.Count;
+                int lastAverage = nextPair < residuals.Length ? Average(source[2 * nextPair], source[(2 * nextPair) + 1])
+                    : (source.Length & 1) != 0 ? source[^1] : average.GetElement(Vector256<int>.Count - 1);
+
+                // Shift the already calculated averages rather than reloading each following pair. Only the final lane needs a new average.
+                Vector256<int> nextAverage = Vector256.ShuffleNative(average, Vector256.Create(1, 2, 3, 4, 5, 6, 7, 7));
+                nextAverage = nextAverage.WithElement(Vector256<int>.Count - 1, lastAverage);
+                Vector256<int> previous = Vector256.ShuffleNative(odd, Vector256.Create(0, 0, 1, 2, 3, 4, 5, 6));
+                previous = previous.WithElement(0, x > 0 ? source[(2 * x) - 1] : average.ToScalar());
+                average.StoreUnsafe(ref averageOutput, (uint)x);
+
+                operation.Invoke(even, odd, average, nextAverage, previous).StoreUnsafe(ref residualOutput, (uint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector128<int>.Count; x += Vector128<int>.Count)
+            {
+                SimdUtils.Deinterleave2(
+                    Vector128.LoadUnsafe(ref input, (uint)(2 * x)),
+                    Vector128.LoadUnsafe(ref input, (uint)((2 * x) + Vector128<int>.Count)),
+                    out Vector128<int> even,
+                    out Vector128<int> odd);
+
+                Vector128<int> average = Average(even, odd);
+
+                int nextPair = x + Vector128<int>.Count;
+                int lastAverage = nextPair < residuals.Length ? Average(source[2 * nextPair], source[(2 * nextPair) + 1])
+                    : (source.Length & 1) != 0 ? source[^1] : average.GetElement(Vector128<int>.Count - 1);
+
+                // Shift the already calculated averages rather than reloading each following pair. Only the final lane needs a new average.
+                Vector128<int> nextAverage = Vector128.ShuffleNative(average, Vector128.Create(1, 2, 3, 3));
+                nextAverage = nextAverage.WithElement(Vector128<int>.Count - 1, lastAverage);
+                Vector128<int> previous = Vector128.ShuffleNative(odd, Vector128.Create(0, 0, 1, 2));
+                previous = previous.WithElement(0, x > 0 ? source[(2 * x) - 1] : average.ToScalar());
+                average.StoreUnsafe(ref averageOutput, (uint)x);
+
+                operation.Invoke(even, odd, average, nextAverage, previous).StoreUnsafe(ref residualOutput, (uint)x);
+            }
+        }
+
+        for (; x < residuals.Length; x++)
+        {
+            int even = source[2 * x];
+            int odd = source[(2 * x) + 1];
+            int average = Average(even, odd);
+
+            int nextAverage = x + 1 < residuals.Length ? Average(source[(2 * x) + 2], source[(2 * x) + 3])
+                : (source.Length & 1) != 0 ? source[^1] : average;
+
+            int previous = x > 0 ? source[(2 * x) - 1] : average;
+            averages[x] = average;
+            residuals[x] = operation.Invoke(even, odd, average, nextAverage, previous);
+        }
+
+        if ((source.Length & 1) != 0)
+        {
+            averages[^1] = source[^1];
+        }
     }
 
     /// <summary>
     /// Splits a vertical channel into owned average and residual planes and releases its original samples.
     /// </summary>
-    /// <param name="configuration">The configuration used for the output samples.</param>
-    /// <param name="input">The owner of all input and output channels.</param>
+    /// <param name="configuration">The configuration used for output samples.</param>
+    /// <param name="input">The owner of input and output channels.</param>
     /// <param name="c">The channel to split.</param>
-    /// <param name="rc">The insertion index for the residual channel.</param>
+    /// <param name="rc">The insertion index for its residual channel.</param>
     public static void ForwardVerticalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
-        JxlModularChannel inputChannel = input.Channels[c];
-
+        JxlModularChannel source = input.Channels[c];
         input.Channels.EnsureCapacity(input.Channels.Count + 1);
-        using JxlModularChannel outputChannel = new(
-            configuration, inputChannel.Width, (inputChannel.Height + 1) >> 1, inputChannel.HorizontalShift, inputChannel.VerticalShift + 1);
 
-        JxlModularChannel outputResidualChannel = new(
-            configuration, inputChannel.Width, inputChannel.Height - outputChannel.Height, inputChannel.HorizontalShift, inputChannel.VerticalShift + 1);
+        using JxlModularChannel average = new(configuration, source.Width, JxlMath.DivCeil(source.Height, 2), source.HorizontalShift, source.VerticalShift + 1);
 
-        input.Channels.Insert(rc, outputResidualChannel);
+        JxlModularChannel residual = new(configuration, source.Width, source.Height - average.Height, source.HorizontalShift, source.VerticalShift + 1);
 
-        outputChannel.Component = inputChannel.Component;
-        outputResidualChannel.Component = inputChannel.Component;
+        input.Channels.Insert(rc, residual);
 
-        int oneRowInput = inputChannel.Plane.PixelsPerRow;
+        average.Component = source.Component;
+        residual.Component = source.Component;
+        ReadOnlySpan<int> samples = source.GetRow(0);
+        Span<int> averages = average.GetRow(0);
+        Span<int> residuals = residual.GetRow(0);
 
-        Span<int> inputSamples = inputChannel.GetRow(0);
-        Span<int> outputSamples = outputChannel.GetRow(0);
-        Span<int> residualSamples = outputResidualChannel.GetRow(0);
-        int outputStride = outputChannel.Plane.PixelsPerRow;
-        int residualStride = outputResidualChannel.Plane.PixelsPerRow;
+        int sourceStride = source.Plane.PixelsPerRow;
+        int averageStride = average.Plane.PixelsPerRow;
+        int residualStride = residual.Plane.PixelsPerRow;
+        int width = source.Width;
+        ForwardSqueezeOperator operation = default;
 
-        for (int y = 0; y < outputChannel.Height; y++)
+        // Only paired rows have residuals. The final unpaired row is copied below and must not enter this loop.
+        for (int y = 0; y < residual.Height; y++)
         {
-            Span<int> pIn = inputSamples[(y * 2 * oneRowInput)..];
-            Span<int> pOut = outputSamples[(y * outputStride)..];
-            Span<int> pResidual = residualSamples[(y * residualStride)..];
-
-            for (int x = 0; x < outputChannel.Width; x++)
+            ReadOnlySpan<int> evenRow = samples.Slice(2 * y * sourceStride, width);
+            ReadOnlySpan<int> oddRow = samples.Slice(((2 * y) + 1) * sourceStride, width);
+            ReadOnlySpan<int> previousRow = y > 0 ? samples.Slice(((2 * y) - 1) * sourceStride, width) : evenRow;
+            ReadOnlySpan<int> nextEvenRow = evenRow;
+            ReadOnlySpan<int> nextOddRow = oddRow;
+            if (y + 1 < residual.Height)
             {
-                int a = pIn[x];
-                int b = pIn[x + oneRowInput];
-                int avg = Average(a, b);
-                pOut[x] = avg;
-                int diff = a - b;
-                int nextAvg = avg;
+                nextEvenRow = samples.Slice(((2 * y) + 2) * sourceStride, width);
 
-                if (y + 1 < outputResidualChannel.Height)
+                nextOddRow = samples.Slice(((2 * y) + 3) * sourceStride, width);
+            }
+            else if ((source.Height & 1) != 0)
+            {
+                // Treating the same unpaired row as both samples leaves its average unchanged.
+                nextEvenRow = samples.Slice((source.Height - 1) * sourceStride, width);
+
+                nextOddRow = nextEvenRow;
+            }
+
+            Span<int> averageRow = averages.Slice(y * averageStride, width);
+            Span<int> residualRow = residuals.Slice(y * residualStride, width);
+            ref int a = ref MemoryMarshal.GetReference(evenRow);
+
+            ref int b = ref MemoryMarshal.GetReference(oddRow);
+            ref int nextA = ref MemoryMarshal.GetReference(nextEvenRow);
+
+            ref int nextB = ref MemoryMarshal.GetReference(nextOddRow);
+            ref int p = ref MemoryMarshal.GetReference(previousRow);
+
+            ref int averageOutput = ref MemoryMarshal.GetReference(averageRow);
+            ref int residualOutput = ref MemoryMarshal.GetReference(residualRow);
+
+            int x = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector512<int>.Count; x += Vector512<int>.Count)
                 {
-                    int c2 = pIn[x + (2 * oneRowInput)]; // actually C, but 1. variable 'c' already defined 2. names should be camelCase
-                    int d = pIn[x + (3 * oneRowInput)];
-                    nextAvg = Average(c2, d);
+                    Vector512<int> even = Vector512.LoadUnsafe(ref a, (uint)x);
+
+                    Vector512<int> odd = Vector512.LoadUnsafe(ref b, (uint)x);
+                    Vector512<int> averageValue = Average(even, odd);
+
+                    Vector512<int> nextAverage = Average(Vector512.LoadUnsafe(ref nextA, (uint)x), Vector512.LoadUnsafe(ref nextB, (uint)x));
+                    Vector512<int> previous = y > 0 ? Vector512.LoadUnsafe(ref p, (uint)x) : averageValue;
+                    averageValue.StoreUnsafe(ref averageOutput, (uint)x);
+
+                    operation.Invoke(even, odd, averageValue, nextAverage, previous).StoreUnsafe(ref residualOutput, (uint)x);
                 }
-                else if ((inputChannel.Height & 1) != 0)
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<int>.Count; x += Vector256<int>.Count)
                 {
-                    nextAvg = pIn[x + (2 * oneRowInput)];
+                    Vector256<int> even = Vector256.LoadUnsafe(ref a, (uint)x);
+
+                    Vector256<int> odd = Vector256.LoadUnsafe(ref b, (uint)x);
+                    Vector256<int> averageValue = Average(even, odd);
+
+                    Vector256<int> nextAverage = Average(Vector256.LoadUnsafe(ref nextA, (uint)x), Vector256.LoadUnsafe(ref nextB, (uint)x));
+                    Vector256<int> previous = y > 0 ? Vector256.LoadUnsafe(ref p, (uint)x) : averageValue;
+                    averageValue.StoreUnsafe(ref averageOutput, (uint)x);
+
+                    operation.Invoke(even, odd, averageValue, nextAverage, previous).StoreUnsafe(ref residualOutput, (uint)x);
                 }
+            }
 
-                int top = y > 0 ? pIn[x - oneRowInput] : avg;
-                int tendency = SmoothTendency(top, avg, nextAvg);
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<int>.Count; x += Vector128<int>.Count)
+                {
+                    Vector128<int> even = Vector128.LoadUnsafe(ref a, (uint)x);
 
-                pResidual[x] = diff - tendency;
+                    Vector128<int> odd = Vector128.LoadUnsafe(ref b, (uint)x);
+                    Vector128<int> averageValue = Average(even, odd);
+
+                    Vector128<int> nextAverage = Average(Vector128.LoadUnsafe(ref nextA, (uint)x), Vector128.LoadUnsafe(ref nextB, (uint)x));
+                    Vector128<int> previous = y > 0 ? Vector128.LoadUnsafe(ref p, (uint)x) : averageValue;
+                    averageValue.StoreUnsafe(ref averageOutput, (uint)x);
+
+                    operation.Invoke(even, odd, averageValue, nextAverage, previous).StoreUnsafe(ref residualOutput, (uint)x);
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                int averageValue = Average(evenRow[x], oddRow[x]);
+
+                int nextAverage = Average(nextEvenRow[x], nextOddRow[x]);
+                int previous = y > 0 ? previousRow[x] : averageValue;
+                averageRow[x] = averageValue;
+                residualRow[x] = operation.Invoke(evenRow[x], oddRow[x], averageValue, nextAverage, previous);
             }
         }
 
-        if ((inputChannel.Height & 1) != 0)
+        if ((source.Height & 1) != 0)
         {
-            int y = outputChannel.Height - 1;
-
-            Span<int> pIn = inputSamples[(y * 2 * oneRowInput)..];
-            Span<int> pOut = outputSamples[(y * outputStride)..];
-
-            for (int x = 0; x < outputChannel.Width; x++)
-            {
-                pOut[x] = pIn[x];
-            }
+            samples.Slice((source.Height - 1) * sourceStride, width).CopyTo(averages.Slice((average.Height - 1) * averageStride, width));
         }
 
-        inputChannel.Swap(outputChannel);
+        source.Swap(average);
     }
 
     public static void ForwardSqueeze(Configuration configuration, JxlModularImage input, List<JxlSqueezeParameters> parameters)

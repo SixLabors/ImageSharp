@@ -15,6 +15,79 @@ namespace SixLabors.ImageSharp.Tests.Common;
 public partial class SimdUtilsTests
 {
     /// <summary>
+    /// Checks every separated lane against independently packed integer pairs, including complete-register lane boundaries.
+    /// </summary>
+    [Fact]
+    public void Deinterleave2_PreservesPairOrder()
+    {
+        static void RunTest()
+        {
+            int[] packed = new int[2 * Vector512<int>.Count];
+            for (int i = 0; i < packed.Length / 2; i++)
+            {
+                packed[2 * i] = int.MinValue + (i * 12345);
+                packed[(2 * i) + 1] = int.MaxValue - (i * 54321);
+            }
+
+            ref int source = ref MemoryMarshal.GetArrayDataReference(packed);
+            foreach (int count in new[] { Vector128<int>.Count, Vector256<int>.Count, Vector512<int>.Count })
+            {
+                int[] separated = new int[(2 * count) + 2];
+                separated.AsSpan().Fill(123);
+                ref int evenDestination = ref separated[1];
+                ref int oddDestination = ref separated[count + 1];
+                if (count == Vector512<int>.Count)
+                {
+                    SimdUtils.Deinterleave2(
+                        Vector512.LoadUnsafe(ref source),
+                        Vector512.LoadUnsafe(ref source, (uint)count),
+                        out Vector512<int> even,
+                        out Vector512<int> odd);
+
+                    even.StoreUnsafe(ref evenDestination);
+                    odd.StoreUnsafe(ref oddDestination);
+                }
+                else if (count == Vector256<int>.Count)
+                {
+                    SimdUtils.Deinterleave2(
+                        Vector256.LoadUnsafe(ref source),
+                        Vector256.LoadUnsafe(ref source, (uint)count),
+                        out Vector256<int> even,
+                        out Vector256<int> odd);
+
+                    even.StoreUnsafe(ref evenDestination);
+                    odd.StoreUnsafe(ref oddDestination);
+                }
+                else
+                {
+                    SimdUtils.Deinterleave2(
+                        Vector128.LoadUnsafe(ref source),
+                        Vector128.LoadUnsafe(ref source, (uint)count),
+                        out Vector128<int> even,
+                        out Vector128<int> odd);
+
+                    even.StoreUnsafe(ref evenDestination);
+                    odd.StoreUnsafe(ref oddDestination);
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    Assert.Equal(packed[2 * i], separated[1 + i]);
+                    Assert.Equal(packed[(2 * i) + 1], separated[1 + count + i]);
+                }
+
+                Assert.Equal(123, separated[0]);
+                Assert.Equal(123, separated[^1]);
+            }
+        }
+
+        // Explicit calls also check the portable implementation of each fixed register width when hardware acceleration is disabled.
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
     /// Checks two-stream alternation, complete-register boundaries and exact floating-point bits with each hardware configuration.
     /// </summary>
     [Fact]

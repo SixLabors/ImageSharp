@@ -13,6 +13,55 @@ namespace SixLabors.ImageSharp;
 internal static partial class SimdUtils
 {
     /// <summary>
+    /// Separates four consecutive integer pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="lower">The first two pairs.</param>
+    /// <param name="upper">The following two pairs.</param>
+    /// <param name="even">The first value of every pair, in source order.</param>
+    /// <param name="odd">The second value of every pair, in source order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Deinterleave2(Vector128<int> lower, Vector128<int> upper, out Vector128<int> even, out Vector128<int> odd)
+    {
+        // Each shuffle places one component's two samples in the low 64 bits. Joining those halves restores the complete source order.
+        Vector128<int> lowEven = Vector128.ShuffleNative(lower, Vector128.Create(0, 2, 0, 2));
+        Vector128<int> highEven = Vector128.ShuffleNative(upper, Vector128.Create(0, 2, 0, 2));
+        Vector128<int> lowOdd = Vector128.ShuffleNative(lower, Vector128.Create(1, 3, 1, 3));
+        Vector128<int> highOdd = Vector128.ShuffleNative(upper, Vector128.Create(1, 3, 1, 3));
+        even = Vector128.Create(lowEven.GetLower(), highEven.GetLower());
+        odd = Vector128.Create(lowOdd.GetLower(), highOdd.GetLower());
+    }
+
+    /// <summary>
+    /// Separates eight consecutive integer pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="lower">The first four pairs.</param>
+    /// <param name="upper">The following four pairs.</param>
+    /// <param name="even">The first value of every pair, in source order.</param>
+    /// <param name="odd">The second value of every pair, in source order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Deinterleave2(Vector256<int> lower, Vector256<int> upper, out Vector256<int> even, out Vector256<int> odd)
+    {
+        // Indices 0..7 select lower and 8..15 select upper. Full-register selection crosses 128-bit lane boundaries in source order.
+        even = Vector256_.PermuteVar8x32x2(lower, Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14), upper);
+        odd = Vector256_.PermuteVar8x32x2(lower, Vector256.Create(1, 3, 5, 7, 9, 11, 13, 15), upper);
+    }
+
+    /// <summary>
+    /// Separates sixteen consecutive integer pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="lower">The first eight pairs.</param>
+    /// <param name="upper">The following eight pairs.</param>
+    /// <param name="even">The first value of every pair, in source order.</param>
+    /// <param name="odd">The second value of every pair, in source order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Deinterleave2(Vector512<int> lower, Vector512<int> upper, out Vector512<int> even, out Vector512<int> odd)
+    {
+        // One native permutation selects each component from the combined 32-word input. The shared helper supplies its portable fallback.
+        even = Vector512_.PermuteVar16x32x2(lower, Vector512.Create(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30), upper);
+        odd = Vector512_.PermuteVar16x32x2(lower, Vector512.Create(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31), upper);
+    }
+
+    /// <summary>
     /// Interleaves four integer pairs without changing their stored bits.
     /// </summary>
     /// <param name="left">The first value of each pair.</param>
@@ -1337,114 +1386,5 @@ internal static partial class SimdUtils
             Unsafe.Add(ref packedRef, packedOffset + 2) = (maxValue - Unsafe.Add(ref zLaneRef, sourceOffset)) * scale;
             Unsafe.Add(ref packedRef, packedOffset + 3) = (maxValue - Unsafe.Add(ref wLaneRef, sourceOffset)) * scale;
         }
-    }
-
-    /// <summary>
-    /// Transposes four four-lane rows into four four-lane columns.
-    /// </summary>
-    /// <param name="row0">The first matrix row.</param>
-    /// <param name="row1">The second matrix row.</param>
-    /// <param name="row2">The third matrix row.</param>
-    /// <param name="row3">The fourth matrix row.</param>
-    /// <param name="column0">The first matrix column.</param>
-    /// <param name="column1">The second matrix column.</param>
-    /// <param name="column2">The third matrix column.</param>
-    /// <param name="column3">The fourth matrix column.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Transpose4(
-        Vector128<float> row0,
-        Vector128<float> row1,
-        Vector128<float> row2,
-        Vector128<float> row3,
-        out Vector128<float> column0,
-        out Vector128<float> column1,
-        out Vector128<float> column2,
-        out Vector128<float> column3)
-    {
-        // The first unpack interleaves adjacent 32-bit lanes from rows 0/1 and 2/3:
-        //   row01Low = [r0c0 r1c0 r0c1 r1c1]
-        //   row23Low = [r2c0 r3c0 r2c1 r3c1]
-        // A second unpack treats each adjacent pair as one 64-bit lane and combines
-        // the row01 and row23 pairs into complete columns. The integer views only
-        // expose the cross-platform unpack helpers; every floating-point bit is preserved.
-        Vector128<int> row01Low = Vector128_.UnpackLow(row0.AsInt32(), row1.AsInt32());
-        Vector128<int> row01High = Vector128_.UnpackHigh(row0.AsInt32(), row1.AsInt32());
-        Vector128<int> row23Low = Vector128_.UnpackLow(row2.AsInt32(), row3.AsInt32());
-        Vector128<int> row23High = Vector128_.UnpackHigh(row2.AsInt32(), row3.AsInt32());
-
-        column0 = Vector128_.UnpackLow(row01Low.AsInt64(), row23Low.AsInt64()).AsSingle();
-        column1 = Vector128_.UnpackHigh(row01Low.AsInt64(), row23Low.AsInt64()).AsSingle();
-        column2 = Vector128_.UnpackLow(row01High.AsInt64(), row23High.AsInt64()).AsSingle();
-        column3 = Vector128_.UnpackHigh(row01High.AsInt64(), row23High.AsInt64()).AsSingle();
-    }
-
-    /// <summary>
-    /// Transposes four-by-four matrices independently within each 128-bit group.
-    /// </summary>
-    /// <param name="row0">The first rows of the matrices.</param>
-    /// <param name="row1">The second rows of the matrices.</param>
-    /// <param name="row2">The third rows of the matrices.</param>
-    /// <param name="row3">The fourth rows of the matrices.</param>
-    /// <param name="column0">The first columns of the matrices.</param>
-    /// <param name="column1">The second columns of the matrices.</param>
-    /// <param name="column2">The third columns of the matrices.</param>
-    /// <param name="column3">The fourth columns of the matrices.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Transpose4(
-        Vector256<float> row0,
-        Vector256<float> row1,
-        Vector256<float> row2,
-        Vector256<float> row3,
-        out Vector256<float> column0,
-        out Vector256<float> column1,
-        out Vector256<float> column2,
-        out Vector256<float> column3)
-    {
-        // Match the 128-bit transpose: first pair adjacent 32-bit words, then pair the resulting 64-bit groups.
-        // Unpack keeps 128-bit groups separate. Callers permute those groups when they need consecutive color indices.
-        Vector256<int> row01Low = Vector256_.UnpackLow(row0.AsInt32(), row1.AsInt32());
-        Vector256<int> row01High = Vector256_.UnpackHigh(row0.AsInt32(), row1.AsInt32());
-        Vector256<int> row23Low = Vector256_.UnpackLow(row2.AsInt32(), row3.AsInt32());
-        Vector256<int> row23High = Vector256_.UnpackHigh(row2.AsInt32(), row3.AsInt32());
-
-        column0 = Vector256_.UnpackLow(row01Low.AsInt64(), row23Low.AsInt64()).AsSingle();
-        column1 = Vector256_.UnpackHigh(row01Low.AsInt64(), row23Low.AsInt64()).AsSingle();
-        column2 = Vector256_.UnpackLow(row01High.AsInt64(), row23High.AsInt64()).AsSingle();
-        column3 = Vector256_.UnpackHigh(row01High.AsInt64(), row23High.AsInt64()).AsSingle();
-    }
-
-    /// <summary>
-    /// Transposes four-by-four matrices independently within each 128-bit group.
-    /// </summary>
-    /// <param name="row0">The first rows of the matrices.</param>
-    /// <param name="row1">The second rows of the matrices.</param>
-    /// <param name="row2">The third rows of the matrices.</param>
-    /// <param name="row3">The fourth rows of the matrices.</param>
-    /// <param name="column0">The first columns of the matrices.</param>
-    /// <param name="column1">The second columns of the matrices.</param>
-    /// <param name="column2">The third columns of the matrices.</param>
-    /// <param name="column3">The fourth columns of the matrices.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Transpose4(
-        Vector512<float> row0,
-        Vector512<float> row1,
-        Vector512<float> row2,
-        Vector512<float> row3,
-        out Vector512<float> column0,
-        out Vector512<float> column1,
-        out Vector512<float> column2,
-        out Vector512<float> column3)
-    {
-        // Match the 128-bit transpose: first pair adjacent 32-bit words, then pair the resulting 64-bit groups.
-        // Unpack keeps 128-bit groups separate. Callers permute those groups when they need consecutive color indices.
-        Vector512<int> row01Low = Vector512_.UnpackLow(row0.AsInt32(), row1.AsInt32());
-        Vector512<int> row01High = Vector512_.UnpackHigh(row0.AsInt32(), row1.AsInt32());
-        Vector512<int> row23Low = Vector512_.UnpackLow(row2.AsInt32(), row3.AsInt32());
-        Vector512<int> row23High = Vector512_.UnpackHigh(row2.AsInt32(), row3.AsInt32());
-
-        column0 = Vector512_.UnpackLow(row01Low.AsInt64(), row23Low.AsInt64()).AsSingle();
-        column1 = Vector512_.UnpackHigh(row01Low.AsInt64(), row23Low.AsInt64()).AsSingle();
-        column2 = Vector512_.UnpackLow(row01High.AsInt64(), row23High.AsInt64()).AsSingle();
-        column3 = Vector512_.UnpackHigh(row01High.AsInt64(), row23High.AsInt64()).AsSingle();
     }
 }

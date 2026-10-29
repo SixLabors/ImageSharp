@@ -14,6 +14,9 @@ internal sealed class JxlCustomTransformData : IJxlFields
     private uint customWeightsMask;
     private bool allDefault;
 
+    /// <summary>
+    /// Initializes the transform and upsampling coefficients to the bitstream defaults.
+    /// </summary>
     public JxlCustomTransformData() => JxlBundle.Init(this);
 
     private static ReadOnlySpan<float> Weights2 =>
@@ -84,22 +87,35 @@ internal sealed class JxlCustomTransformData : IJxlFields
         0.11452620f,  -0.03348048f, -0.01605681f, -0.02070339f, -0.00458223f
     ];
 
+    /// <summary>
+    /// Gets or sets whether the owning image header uses XYB. This selects the inverse-matrix fields and is not serialized here.
+    /// </summary>
     public bool NonserializedXybEncoded { get; set; }
 
+    /// <summary>
+    /// Gets or sets whether the wire header uses its one-bit default shortcut.
+    /// </summary>
     public bool AllDefault
     {
         get => this.allDefault;
         set => this.allDefault = value;
     }
 
-    public JxlOpsinInverseMatrix? OpsinInverseMatrix { get; set; }
+    /// <summary>
+    /// Gets or sets the inverse XYB transform owned by this codestream header, including its default coefficients.
+    /// </summary>
+    public JxlOpsinInverseMatrix OpsinInverseMatrix { get; set; } = new();
 
+    /// <summary>
+    /// Gets or sets the three flags that select custom 2x, 4x and 8x upsampling weights.
+    /// </summary>
     public uint CustomWeightsMask
     {
         get => this.customWeightsMask;
         set => this.customWeightsMask = value;
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
         if (visitor.AllDefault(this, ref this.allDefault))
@@ -110,7 +126,7 @@ internal sealed class JxlCustomTransformData : IJxlFields
 
         if (visitor.Conditional(this.NonserializedXybEncoded))
         {
-            if (!visitor.VisitNested(this.OpsinInverseMatrix!))
+            if (!visitor.VisitNested(this.OpsinInverseMatrix))
             {
                 return false;
             }

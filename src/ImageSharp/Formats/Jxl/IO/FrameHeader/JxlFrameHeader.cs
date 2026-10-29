@@ -20,11 +20,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 internal sealed class JxlFrameHeader : IJxlFields
 {
     // The following are backing fields for properties.
+    private bool allDefault;
     private JxlFrameEncoding encoding = JxlFrameEncoding.Modular;
     private JxlFrameType frameType = JxlFrameType.RegularFrame;
     private ulong flags;
     private JxlColorTransform colorTransform = JxlColorTransform.Xyb;
-    private JxlYCbCrChromaSubsampling? chromaSubsampling;
+    private JxlYCbCrChromaSubsampling chromaSubsampling = new();
     private uint groupSizeShift;
     private uint xQmScale;
     private uint bQmScale;
@@ -34,18 +35,25 @@ internal sealed class JxlFrameHeader : IJxlFields
     private uint upsampling;
     private List<uint> extraChannelUpsampling = [];
     private Point frameOrigin;
-    private JxlBlendingInfo? blendingInfo;
+    private JxlBlendingInfo blendingInfo = new();
     private List<JxlBlendingInfo> extraChannelBlendingInfo = [];
-    private readonly JxlAnimationFrame? animationFrame;
+    private readonly JxlAnimationFrame animationFrame = new();
+    private readonly JxlPasses passes = new();
     private bool isLast;
     private uint saveAsReference;
     private bool saveBeforeColorTransform;
     private uint dcLevel;
     private JxlCodecMetadata? metadata;
-    private JxlLoopFilter? loopFilter;
+    private JxlLoopFilter loopFilter = new();
     private ulong extensions;
 
     private bool isPreviewFrame;    // Non-serialized
+
+    /// <summary>
+    /// Initializes the frame fields and their owned nested headers to the bitstream defaults.
+    /// </summary>
+    /// <remarks>Set <see cref="Metadata"/> before reading a frame so conditional fields use the codestream's metadata.</remarks>
+    public JxlFrameHeader() => JxlBundle.Init(this);
 
     /// <summary>
     /// Gets or sets the frame encoding method (e.g., Modular or VarDCT).
@@ -86,7 +94,7 @@ internal sealed class JxlFrameHeader : IJxlFields
     /// <summary>
     /// Gets or sets the chroma subsampling information.
     /// </summary>
-    public JxlYCbCrChromaSubsampling? ChromaSubsampling
+    public JxlYCbCrChromaSubsampling ChromaSubsampling
     {
         get => this.chromaSubsampling;
         set => this.chromaSubsampling = value;
@@ -176,7 +184,7 @@ internal sealed class JxlFrameHeader : IJxlFields
     /// <summary>
     /// Gets or sets the blending information for the frame.
     /// </summary>
-    public JxlBlendingInfo? BlendingInfo
+    public JxlBlendingInfo BlendingInfo
     {
         get => this.blendingInfo;
         set => this.blendingInfo = value;
@@ -192,9 +200,14 @@ internal sealed class JxlFrameHeader : IJxlFields
     }
 
     /// <summary>
-    /// Gets the associated animation frame, if any.
+    /// Gets the animation timing fields owned by this frame header.
     /// </summary>
-    public JxlAnimationFrame? AnimationFrame => this.animationFrame;
+    public JxlAnimationFrame AnimationFrame => this.animationFrame;
+
+    /// <summary>
+    /// Gets the progressive passes owned by this frame header.
+    /// </summary>
+    public JxlPasses Passes => this.passes;
 
     /// <summary>
     /// Gets or sets a value indicating whether this is the last frame.
@@ -238,13 +251,17 @@ internal sealed class JxlFrameHeader : IJxlFields
     public JxlCodecMetadata? Metadata
     {
         get => this.metadata;
-        set => this.metadata = value;
+        set
+        {
+            this.metadata = value;
+            this.animationFrame.CodecMetadata = value;
+        }
     }
 
     /// <summary>
     /// Gets or sets the loop filter applied to the frame.
     /// </summary>
-    public JxlLoopFilter? LoopFilter
+    public JxlLoopFilter LoopFilter
     {
         get => this.loopFilter;
         set => this.loopFilter = value;
@@ -268,6 +285,9 @@ internal sealed class JxlFrameHeader : IJxlFields
         set => this.extensions = value;
     }
 
+    /// <summary>
+    /// Gets the image or preview width used when the frame does not supply a custom width.
+    /// </summary>
     public int DefaultXSize
     {
         get
@@ -279,13 +299,16 @@ internal sealed class JxlFrameHeader : IJxlFields
 
             if (this.isPreviewFrame)
             {
-                return this.metadata.ImageMetadata?.PreviewSize?.XSize ?? 0;
+                return this.metadata.ImageMetadata.PreviewSize.XSize;
             }
 
             return this.metadata.XSize;
         }
     }
 
+    /// <summary>
+    /// Gets the image or preview height used when the frame does not supply a custom height.
+    /// </summary>
     public int DefaultYSize
     {
         get
@@ -297,7 +320,7 @@ internal sealed class JxlFrameHeader : IJxlFields
 
             if (this.isPreviewFrame)
             {
-                return this.metadata.ImageMetadata?.PreviewSize?.YSize ?? 0;
+                return this.metadata.ImageMetadata.PreviewSize.YSize;
             }
 
             return this.metadata.YSize;
@@ -324,8 +347,8 @@ internal sealed class JxlFrameHeader : IJxlFields
                 xsize,
                 ysize,
                 (int)this.groupSizeShift,
-                this.chromaSubsampling?.MaxHShift ?? 0,
-                this.chromaSubsampling?.MaxVShift ?? 0,
+                this.chromaSubsampling.MaxHShift,
+                this.chromaSubsampling.MaxVShift,
                 this.encoding == JxlFrameEncoding.Modular,
                 (int)this.upsampling);
 
@@ -345,7 +368,7 @@ internal sealed class JxlFrameHeader : IJxlFields
                                    // A non-duration 0 frame may or may not be referenced.
                                    !this.isLast &&
                                        this.frameType != JxlFrameType.DcFrame &&
-                                       (this.animationFrame?.Duration == 0 || this.saveAsReference != 0);
+                                       (this.animationFrame.Duration == 0 || this.saveAsReference != 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void JpegOrder(JxlColorTransform transform, bool isGray, out InlineArray3<int> result)
@@ -397,19 +420,30 @@ internal sealed class JxlFrameHeader : IJxlFields
         }
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
-        bool allDefault = false;
-        if (visitor.AllDefault(this, ref allDefault))
+        if (visitor.AllDefault(this, ref this.allDefault))
         {
             visitor.SetDefault(this);
             return true;
         }
 
-        if (!VisitFrameType(visitor, JxlFrameType.RegularFrame, ref this.frameType))
+        // All four frame types have a direct two-bit selector. This is not the generic enum distribution.
+        uint encodedFrameType = (uint)this.frameType;
+
+        if (!visitor.U32(
+            JxlFieldExpressions.Value((uint)JxlFrameType.RegularFrame),
+            JxlFieldExpressions.Value((uint)JxlFrameType.DcFrame),
+            JxlFieldExpressions.Value((uint)JxlFrameType.ReferenceOnly),
+            JxlFieldExpressions.Value((uint)JxlFrameType.SkipProgressive),
+            (uint)JxlFrameType.RegularFrame,
+            ref encodedFrameType))
         {
             return false;
         }
+
+        this.frameType = (JxlFrameType)encodedFrameType;
 
         if (visitor.IsReading && this.isPreviewFrame && this.frameType != JxlFrameType.RegularFrame)
         {
@@ -434,7 +468,8 @@ internal sealed class JxlFrameHeader : IJxlFields
         }
 
         // Color transform
-        bool xybEncoded = this.metadata?.ImageMetadata?.XybEncoded == true;
+        // Construction initializes defaults before codestream metadata is bound. The format's default color transform is XYB.
+        bool xybEncoded = this.metadata is null || this.metadata.ImageMetadata.XybEncoded;
         if (xybEncoded)
         {
             this.colorTransform = JxlColorTransform.Xyb;
@@ -456,13 +491,13 @@ internal sealed class JxlFrameHeader : IJxlFields
         if (visitor.Conditional(this.colorTransform == JxlColorTransform.YCbCr &&
                                 ((this.flags & (ulong)JxlFrameHeaderFlags.Dc) == 0)))
         {
-            if (!visitor.VisitNested(this.chromaSubsampling!))
+            if (!visitor.VisitNested(this.chromaSubsampling))
             {
                 return false;
             }
         }
 
-        int numExtraChannels = this.metadata?.ImageMetadata?.ExtraChannelCount ?? 0;
+        int numExtraChannels = this.metadata?.ImageMetadata.ExtraChannelCount ?? 0;
 
         // Upsampling
         if (visitor.Conditional((this.flags & (ulong)JxlFrameHeaderFlags.Dc) == 0))
@@ -478,16 +513,25 @@ internal sealed class JxlFrameHeader : IJxlFields
                 return false;
             }
 
-            if (this.metadata != null && visitor.Conditional(numExtraChannels != 0))
+            if (this.metadata is not null && visitor.Conditional(numExtraChannels != 0))
             {
-                List<JxlExtraChannelInfo> extraChannels = this.metadata!.ImageMetadata?.ExtraChannels ?? [];
-                this.extraChannelUpsampling = new List<uint>(extraChannels.Count);
+                List<JxlExtraChannelInfo> extraChannels = this.metadata.ImageMetadata.ExtraChannels;
+
+                // Preserve encoder settings when measuring and writing. Reading or resetting updates these same owned entries.
+                if (this.extraChannelUpsampling.Count > extraChannels.Count)
+                {
+                    this.extraChannelUpsampling.RemoveRange(extraChannels.Count, this.extraChannelUpsampling.Count - extraChannels.Count);
+                }
+
+                while (this.extraChannelUpsampling.Count < extraChannels.Count)
+                {
+                    this.extraChannelUpsampling.Add(1);
+                }
 
                 for (int i = 0; i < extraChannels.Count; i++)
                 {
                     uint dimShift = (uint)extraChannels[i].DimensionShift;
-                    uint ecUpsampling = 1;
-                    ecUpsampling >>= (int)dimShift;
+                    uint ecUpsampling = this.extraChannelUpsampling[i] >> (int)dimShift;
 
                     if (!visitor.U32(
                         JxlFieldExpressions.Value(1),
@@ -512,7 +556,7 @@ internal sealed class JxlFrameHeader : IJxlFields
                         throw new InvalidOperationException("EC upsampling too large");
                     }
 
-                    this.extraChannelUpsampling.Add(ecUpsampling);
+                    this.extraChannelUpsampling[i] = ecUpsampling;
                 }
             }
             else
@@ -571,7 +615,9 @@ internal sealed class JxlFrameHeader : IJxlFields
                 return false;
             }
         }
-        else
+
+        // Default visitors visit every conditional field. Only a DC frame may retain the resulting pyramid level.
+        if (this.frameType != JxlFrameType.DcFrame)
         {
             this.dcLevel = 0;
         }
@@ -625,6 +671,9 @@ internal sealed class JxlFrameHeader : IJxlFields
                     return false;
                 }
 
+                // The 30-bit size alternative plus its offset fits Int32. Publish both dimensions before checking the crop.
+                this.frameSize = new Size((int)frameSizeWidth, (int)frameSizeHeight);
+
                 if (this.customSizeOrOrigin && (this.frameSize.Width == 0 || this.frameSize.Height == 0))
                 {
                     throw new InvalidOperationException("Invalid crop dimensions for frame");
@@ -646,7 +695,7 @@ internal sealed class JxlFrameHeader : IJxlFields
         // Blending, animation, last frame
         if (visitor.Conditional(this.frameType is JxlFrameType.RegularFrame or JxlFrameType.SkipProgressive))
         {
-            this.blendingInfo!.ExtraChannelCount = numExtraChannels;
+            this.blendingInfo.ExtraChannelCount = numExtraChannels;
             this.blendingInfo.IsPartialFrame = isPartialFrame;
 
             if (!visitor.VisitNested(this.blendingInfo))
@@ -656,21 +705,28 @@ internal sealed class JxlFrameHeader : IJxlFields
 
             bool replaceAll = this.blendingInfo.BlendMode == JxlBlendMode.Replace;
 
-            this.extraChannelBlendingInfo = new List<JxlBlendingInfo>(numExtraChannels);
+            // These headers belong to the frame. Replacing the list here would discard the encoder's selected blend modes.
+            if (this.extraChannelBlendingInfo.Count > numExtraChannels)
+            {
+                this.extraChannelBlendingInfo.RemoveRange(numExtraChannels, this.extraChannelBlendingInfo.Count - numExtraChannels);
+            }
+
+            while (this.extraChannelBlendingInfo.Count < numExtraChannels)
+            {
+                this.extraChannelBlendingInfo.Add(new JxlBlendingInfo());
+            }
+
             for (int i = 0; i < numExtraChannels; i++)
             {
-                JxlBlendingInfo ecBlendingInfo = new()
-                {
-                    IsPartialFrame = isPartialFrame,
-                    ExtraChannelCount = numExtraChannels
-                };
+                JxlBlendingInfo ecBlendingInfo = this.extraChannelBlendingInfo[i];
+                ecBlendingInfo.IsPartialFrame = isPartialFrame;
+                ecBlendingInfo.ExtraChannelCount = numExtraChannels;
 
                 if (!visitor.VisitNested(ecBlendingInfo))
                 {
                     return false;
                 }
 
-                this.extraChannelBlendingInfo.Add(ecBlendingInfo);
                 replaceAll &= ecBlendingInfo.BlendMode == JxlBlendMode.Replace;
             }
 
@@ -682,11 +738,11 @@ internal sealed class JxlFrameHeader : IJxlFields
                 }
             }
 
-            if (visitor.Conditional(this.metadata?.ImageMetadata?.HaveAnimation == true))
+            if (visitor.Conditional(this.metadata?.ImageMetadata.HaveAnimation == true))
             {
-                this.animationFrame!.CodecMetadata = this.metadata;
+                this.animationFrame.CodecMetadata = this.metadata;
 
-                if (!visitor.VisitNested(this.animationFrame!))
+                if (!visitor.VisitNested(this.animationFrame))
                 {
                     return false;
                 }
@@ -762,13 +818,14 @@ internal sealed class JxlFrameHeader : IJxlFields
             this.saveBeforeColorTransform = true;
         }
 
-        if (!VisitNameString(visitor, ref this.name))
+        if (!visitor.Name(ref this.name))
         {
             return false;
         }
 
-        this.loopFilter!.IsModular = isModular;
-        if (!visitor.VisitNested(this.loopFilter!))
+        this.loopFilter.IsModular = isModular;
+
+        if (!visitor.VisitNested(this.loopFilter))
         {
             return false;
         }

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 
@@ -169,6 +170,63 @@ internal abstract class JxlVisitor
     /// <param name="value">The field to process.</param>
     /// <returns>Whether the field operation succeeded.</returns>
     public abstract bool F16(float defaultValue, ref float value);
+
+    /// <summary>
+    /// Visits the UTF-8 name shared by frame and extra-channel headers.
+    /// </summary>
+    /// <param name="value">The name to read, write, compare or reset. Null and empty names encode identically.</param>
+    /// <returns>Whether the byte length and every name byte can be processed.</returns>
+    public bool Name(ref string? value)
+    {
+        // Name lengths count encoded bytes, not UTF-16 characters. The longest wire alternative stores 48 plus ten bits.
+        const int MaximumNameBytes = 1071;
+        uint byteLength = this.IsReading ? 0U : (uint)Encoding.UTF8.GetByteCount(value.AsSpan());
+
+        if (!this.U32(
+            JxlFieldExpressions.Value(0),
+            JxlFieldExpressions.Bits(4),
+            JxlFieldExpressions.BitsOffset(5, 16),
+            JxlFieldExpressions.BitsOffset(10, 48),
+            0,
+            ref byteLength)
+            || byteLength > MaximumNameBytes)
+        {
+            return false;
+        }
+
+        // Reset visitors also set the byte length to zero. Do not encode an earlier name into their empty destination.
+        if (byteLength == 0)
+        {
+            value = string.Empty;
+            return true;
+        }
+
+        Span<byte> bytes = stackalloc byte[(int)byteLength];
+
+        if (!this.IsReading)
+        {
+            Encoding.UTF8.GetBytes(value.AsSpan(), bytes);
+        }
+
+        for (int i = 0; i < bytes.Length; i++)
+        {
+            uint encoded = this.IsReading ? 0U : bytes[i];
+
+            if (!this.Bits(8, 0, ref encoded))
+            {
+                return false;
+            }
+
+            bytes[i] = (byte)encoded;
+        }
+
+        if (this.IsReading)
+        {
+            value = Encoding.UTF8.GetString(bytes);
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Selects whether a conditional group of fields is visited.

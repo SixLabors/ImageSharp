@@ -11,6 +11,10 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Transforms;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 
@@ -1577,6 +1581,181 @@ public class FieldsTests
         Assert.Equal((false, 8U, 0U), (depth.FloatingPointSample, depth.BitsPerSample, depth.ExponentBitsPerSample));
         Assert.Equal((1, 1), (preview.XSize, preview.YSize));
         Assert.Equal((1U, 1U, 0U, false), (animation.TpsNumerator, animation.TpsDenominator, animation.LoopCount, animation.ContainsTimecodes));
+    }
+
+    /// <summary>
+    /// Checks the owned bit-depth header, UTF-8 byte length and default reset of an extra-channel header.
+    /// </summary>
+    [Fact]
+    public void ExtraChannelHeader_ReadNameAndRestoreDefaults()
+    {
+        // all_default=0, Depth, integer8, dimension shift0, two-byte UTF-8 name C3 A9. The complete header occupies 30 bits.
+        byte[] wire = [0x02, 0xC9, 0x70, 0x2A];
+        JxlExtraChannelInfo channel = new();
+        JxlBitDepthMetadata ownedDepth = channel.BitDepth;
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, channel));
+        Assert.Equal(30, reader.TotalBitsConsumed);
+        Assert.Equal(JxlExtraChannel.Depth, channel.Type);
+        Assert.Equal("é", channel.Name);
+        Assert.Equal(8U, channel.BitDepth.BitsPerSample);
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(channel, writer, JxlLayerType.Header, null));
+        Assert.Equal(30, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+
+        // A one-bit shortcut resets the existing child. It does not replace it with a separate bit-depth model.
+        using MemoryStream defaults = new([0x01]);
+
+        Assert.True(JxlBundle.Read(new JxlBitReader(defaults), channel));
+        Assert.Same(ownedDepth, channel.BitDepth);
+        Assert.Equal(JxlExtraChannel.Alpha, channel.Type);
+        Assert.Equal(string.Empty, channel.Name);
+        Assert.Equal(8U, channel.BitDepth.BitsPerSample);
+    }
+
+    /// <summary>
+    /// Checks all sixteen transform coefficients, including the fourth quantization bias, and the native default shortcut.
+    /// </summary>
+    [Fact]
+    public void OpsinHeader_ReadAndWriteRetainsAllCoefficients()
+    {
+        // all_default=0, nine row-major matrix values 1..9, three opsin biases, then four quantization biases.
+        // Each coefficient is an independently specified IEEE half value. The complete header occupies 257 bits.
+        byte[] wire =
+        [
+            0x00, 0x78, 0x00, 0x80, 0x00, 0x84, 0x00, 0x88, 0x00, 0x8A, 0x00,
+            0x8C, 0x00, 0x8E, 0x00, 0x90, 0x00, 0x91, 0x00, 0x68, 0x00, 0x70,
+            0x01, 0x78, 0x00, 0x70, 0x00, 0x74, 0x00, 0x78, 0x00, 0x80, 0x00
+        ];
+
+        JxlOpsinInverseMatrix transform = new();
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, transform));
+        Assert.Equal(257, reader.TotalBitsConsumed);
+
+        JxlMatrix3x3F matrix = transform.InverseMatrix;
+        InlineArray3<float> opsinBiases = transform.OpsinBiases;
+        InlineArray4<float> quantBiases = transform.QuantBiases;
+        ReadOnlySpan<float> opsin = opsinBiases;
+        ReadOnlySpan<float> quantization = quantBiases;
+
+        Assert.True(matrix.AsReadOnlySpan().SequenceEqual(new float[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+        Assert.True(opsin.SequenceEqual(new float[] { 0.25F, -0.5F, 1 }));
+        Assert.True(quantization.SequenceEqual(new float[] { 0.5F, 0.75F, 1, 2 }));
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(transform, writer, JxlLayerType.Header, null));
+        Assert.Equal(257, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+
+        using MemoryStream defaults = new([0x01]);
+
+        Assert.True(JxlBundle.Read(new JxlBitReader(defaults), transform));
+        Assert.Equal(11.031566901960783F, transform.InverseMatrix[0, 0]);
+        Assert.Equal(0.145F, transform.QuantBiases[3]);
+    }
+
+    /// <summary>
+    /// Checks disabled filters and default restoration without changing the owning frame's Modular context.
+    /// </summary>
+    [Fact]
+    public void LoopFilterHeader_ReadAndRestoreDefaults()
+    {
+        // all_default=0, Gaborish disabled, zero EPF iterations, zero extensions: six zero bits.
+        JxlLoopFilter filter = new() { IsModular = true };
+        using MemoryStream input = new([0x00]);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, filter));
+        Assert.Equal(6, reader.TotalBitsConsumed);
+        Assert.False(filter.UseGaborishConvolution);
+        Assert.Equal(0, filter.EpfIterations);
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(filter, writer, JxlLayerType.Header, null));
+        Assert.Equal(6, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(new byte[] { 0x00 }, output.ToArray());
+
+        using MemoryStream defaults = new([0x01]);
+
+        Assert.True(JxlBundle.Read(new JxlBitReader(defaults), filter));
+        Assert.True(filter.IsModular);
+        Assert.True(filter.UseGaborishConvolution);
+        Assert.Equal(2, filter.EpfIterations);
+        Assert.Equal(1F, filter.EpfSigmaForModular);
+    }
+
+    /// <summary>
+    /// Checks native rejection of unusable kernel normalization and Modular sigma divisors.
+    /// </summary>
+    /// <param name="wire">The fixed filter header containing an invalid divisor.</param>
+    /// <param name="modular">Whether the owning frame uses Modular encoding.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x06, 0xA0, 0x05, 0x00, 0x00 }, false)]
+    [InlineData(new byte[] { 0x04, 0x00, 0x00 }, true)]
+    public void ReadLoopFilterHeader_RejectsInvalidDivisors(byte[] wire, bool modular)
+    {
+        // The first kernel has weights -0.25 and zero, so its total is 1 + 4 * -0.25 = 0.
+        // The Modular header enables one EPF pass with a zero sigma.
+        using MemoryStream input = new(wire, false);
+
+        Assert.False(JxlBundle.Read(new JxlBitReader(input), new JxlLoopFilter { IsModular = modular }));
+    }
+
+    /// <summary>
+    /// Checks that a frame's one-bit shortcut resets its owned headers before frame decoding uses them.
+    /// </summary>
+    [Fact]
+    public void FrameHeader_DefaultShortcutRestoresOwnedHeaders()
+    {
+        // Frame defaults are initialized before metadata is available. That state selects XYB and its default X quantization scale.
+        JxlFrameHeader frame = new();
+        Assert.Equal(JxlColorTransform.Xyb, frame.ColorTransform);
+        Assert.Equal(3U, frame.XQmScale);
+        Assert.Equal(0U, frame.DcLevel);
+
+        frame.Metadata = new JxlCodecMetadata();
+        frame.Encoding = JxlFrameEncoding.Modular;
+        frame.CustomSizeOrOrigin = true;
+        frame.FrameSize = new Size(5, 7);
+        frame.Name = "previous";
+
+        frame.AnimationFrame.Duration = 5;
+        frame.Passes.NumberOfPasses = 2;
+        frame.LoopFilter.EpfIterations = 0;
+        using MemoryStream input = new([0x01]);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, frame));
+        Assert.Equal(1, reader.TotalBitsConsumed);
+        Assert.Equal(JxlFrameEncoding.VarDct, frame.Encoding);
+        Assert.Equal(0U, frame.DcLevel);
+        Assert.Equal(default, frame.FrameSize);
+        Assert.Equal(string.Empty, frame.Name);
+        Assert.Equal(0U, frame.AnimationFrame.Duration);
+        Assert.Equal(1U, frame.Passes.NumberOfPasses);
+        Assert.Equal(2, frame.LoopFilter.EpfIterations);
     }
 
     [Fact]

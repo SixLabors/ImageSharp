@@ -810,4 +810,178 @@ public class QuantizationTests
             Assert.Equal(JxlQuantizerConstants.InverseDcQuant[c], matrices.GetInverseDcQuant(c));
         }
     }
+
+    /// <summary>Checks native block modulation, final-row bounds and damping through the complete adaptive-map entry.</summary>
+    [Fact]
+    public void AdaptiveQuantizationMap_PreservesModulationAndDamping()
+    {
+        static void RunTest()
+        {
+            // A constant Y field has zero spatial differences. Four-row accumulation and two-to-one erosion give
+            // 16 * MaskingSqrt(0) * .29959705784054957. This closed form does not call the production filter or modulation helpers.
+            double erosion = 16D * (0.25D * Math.Sqrt(27.505837037000106F)) * 0.29959705784054957F;
+            double value = Math.Max(erosion * 0.80061762862741759F, 0.001F);
+            double maskExponent = -0.7647F + (9.4708735624378946F / ((value * value) + (0.25F * 3.7179635626140772F)))
+                + (17.35036561631863F / (value + 302.59587815579727F)) + (6.7943250517376494F / ((value * value) + 3.7179635626140772F));
+
+            // X=Y=0 gives the same red and green derivative ratio at the native .16 photon offset.
+            // Use double evaluation of the equation as an independent oracle; the production path retains float arithmetic and SIMD reductions.
+            double gammaExponent = maskExponent + (0.1005613337192697F * Math.Log2(1D / DerivativeRatio(0.16F)));
+            ReadOnlySpan<int> widths = [8, 16, 24];
+            ReadOnlySpan<float> targets = [2F, 14F];
+            const int height = 8;
+            const float scale = 0.75F;
+            const float sentinel = -123F;
+
+            foreach (int width in widths)
+            {
+                for (int blueCase = 0; blueCase < 3; blueCase++)
+                {
+                    using JxlImage3<float> source = new(TestEnvironment.Configuration, width, height);
+                    Span<float> xSamples = source.PlaneRow(0, 0);
+                    Span<float> ySamples = source.PlaneRow(1, 0);
+                    Span<float> blueSamples = source.PlaneRow(2, 0);
+                    xSamples.Fill(sentinel);
+                    ySamples.Fill(sentinel);
+                    blueSamples.Fill(sentinel);
+                    int stride = source.PixelsPerRow;
+
+                    // The three cases have 0,16,64 blue-excess samples per block. Native folds the full-blue response back to zero.
+                    // Sixteen saturated samples reach the fitted blue cap, below the HF correction of .42 for these constant Y fields.
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            xSamples[(y * stride) + x] = 0F;
+                            ySamples[(y * stride) + x] = 0F;
+                            blueSamples[(y * stride) + x] = blueCase == 2 || (blueCase == 1 && y < 4 && (x % 8) < 4) ? 1F : 0F;
+                        }
+                    }
+
+                    double blueCorrection = blueCase == 1 ? 15.463398341612438F * 0.010474084867598155F * 0.90590804735610064F : 0D;
+                    double expected = Math.Pow(2D, (gammaExponent + blueCorrection) * 1.442695041F) * scale;
+
+                    foreach (float target in targets)
+                    {
+                        using JxlPlane<float> map = JxlAdaptiveQuantization.AdaptiveQuantizationMap(
+                            TestEnvironment.Configuration,
+                            target,
+                            source,
+                            source.GetRectangle(),
+                            scale,
+                            out JxlPlane<float> mask,
+                            out JxlPlane<float> pixelMask);
+
+                        using (mask)
+                        using (pixelMask)
+                        {
+                            ReadOnlySpan<float> result = map.GetRow(0);
+                            ReadOnlySpan<float> maskSamples = mask.GetRow(0);
+                            ReadOnlySpan<float> pixelMaskSamples = pixelMask.GetRow(0);
+                            for (int x = 0; x < width / 8; x++)
+                            {
+                                if (target == 14F)
+                                {
+                                    // The native ramp reaches zero modulation at fourteen, leaving only the scale-dependent base level.
+                                    Assert.Equal(0.48F * scale, result[x]);
+                                }
+                                else
+                                {
+                                    // The response is below one. A 128-term float reduction and the fitted exponent add less than 1e-4 absolute error.
+                                    // This bound includes different SIMD reduction trees and float multiply-add estimates, without a reference-image tolerance.
+                                    Assert.InRange(Math.Abs(result[x] - expected), 0D, 0.0001D);
+                                }
+                            }
+
+                            Assert.Equal(-1, result[map.XSize..map.PixelsPerRow].IndexOfAnyExcept(0F));
+                            Assert.Equal(-1, maskSamples[mask.XSize..mask.PixelsPerRow].IndexOfAnyExcept(0F));
+                            for (int y = 0; y < pixelMask.YSize; y++)
+                            {
+                                ReadOnlySpan<float> padding = pixelMaskSamples.Slice(
+                                    (y * pixelMask.PixelsPerRow) + pixelMask.XSize,
+                                    pixelMask.PixelsPerRow - pixelMask.XSize);
+
+                                Assert.Equal(-1, padding.IndexOfAnyExcept(0F));
+                            }
+                        }
+                    }
+
+                    // The kernel borrows the source. It cannot change samples or consume poisoned padding at the final physical row.
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < stride; x++)
+                        {
+                            bool logical = x < width;
+                            Assert.Equal(logical ? 0F : sentinel, xSamples[(y * stride) + x]);
+                            Assert.Equal(logical ? 0F : sentinel, ySamples[(y * stride) + x]);
+                            float expectedBlue = blueCase == 2 || (blueCase == 1 && y < 4 && (x % 8) < 4) ? 1F : 0F;
+                            Assert.Equal(logical ? expectedBlue : sentinel, blueSamples[(y * stride) + x]);
+                        }
+                    }
+                }
+            }
+
+            // The center block of a 24-by-24 checkerboard has 56 horizontal and 56 vertical Y edges of magnitude .25.
+            // Its erosion neighborhoods exclude global image edges. Each four-by-four cell contains eight samples of each Y value.
+            using JxlImage3<float> checkerboard = new(TestEnvironment.Configuration, 24, 24);
+            checkerboard.PlaneRow(0, 0).Clear();
+            checkerboard.PlaneRow(2, 0).Clear();
+            Span<float> checkerY = checkerboard.PlaneRow(1, 0);
+            for (int y = 0; y < 24; y++)
+            {
+                for (int x = 0; x < 24; x++)
+                {
+                    checkerY[(y * checkerboard.PixelsPerRow) + x] = ((x + y) & 1) == 0 ? 0F : 0.25F;
+                }
+            }
+
+            // Constant four-connected neighborhoods alternate only between these two derivative-scaled differences.
+            // A four-row accumulation, four-column mean, and two-to-one erosion give 8*(maskLow+maskHigh)*totalWeight.
+            double lowDifference = 0.25D * DerivativeRatio(0.019F);
+            double highDifference = 0.25D * DerivativeRatio(0.25F + 0.019F);
+            double maskingMultiplier = Math.Sqrt(211.66567973503678F * 1e8F);
+            double lowMask = 0.25D * Math.Sqrt((Math.Min(lowDifference * lowDifference, 0.2F) * maskingMultiplier) + 27.505837037000106F);
+            double highMask = 0.25D * Math.Sqrt((Math.Min(highDifference * highDifference, 0.2F) * maskingMultiplier) + 27.505837037000106F);
+            double checkerErosion = 8D * (lowMask + highMask) * 0.29959705784054957F;
+            double checkerValue = checkerErosion * 0.80061762862741759F;
+            double checkerMask = -0.7647F + (9.4708735624378946F / ((checkerValue * checkerValue) + (0.25F * 3.7179635626140772F)))
+                + (17.35036561631863F / (checkerValue + 302.59587815579727F))
+                + (6.7943250517376494F / ((checkerValue * checkerValue) + 3.7179635626140772F));
+
+            double averageRatio = 0.5D * ((1D / DerivativeRatio(0.16F)) + (1D / DerivativeRatio(0.25F + 0.16F)));
+            double checkerGamma = checkerMask + (0.1005613337192697F * Math.Log2(averageRatio));
+            double highFrequencyCorrection = (112D * 0.0206F * -0.38F) + 0.42F;
+            double checkerExpected = Math.Pow(2D, (checkerGamma + highFrequencyCorrection) * 1.442695041F) * scale;
+            using JxlPlane<float> checkerMap = JxlAdaptiveQuantization.AdaptiveQuantizationMap(
+                TestEnvironment.Configuration,
+                2F,
+                checkerboard,
+                checkerboard.GetRectangle(),
+                scale,
+                out JxlPlane<float> checkerMaskMap,
+                out JxlPlane<float> checkerPixelMask);
+
+            using (checkerMaskMap)
+            using (checkerPixelMask)
+            {
+                // Blue contributes zero. The negative HF correction must win, including exactly seven edges in each block row/column.
+                Assert.InRange(Math.Abs(checkerMap.GetRow(1)[1] - checkerExpected), 0D, 0.0001D);
+            }
+
+            // Native coefficient products are float constants. Evaluate their continuous equation in double for the independent expected response.
+            static double DerivativeRatio(double photon)
+            {
+                float sgMul = 226.77216153508914F;
+                float inverseLog2E = 0.6931471805599453F;
+                float sgRetMul = (1F / 73.377132366608819F) * 18.6580932135F * inverseLog2E;
+                double numerator = ((sgRetMul * 3F * sgMul) * photon * photon) + 0.01F;
+                double denominator = ((inverseLog2E * sgMul) * photon * photon * photon) + ((7.7825991679894591F * inverseLog2E) + 0.01F);
+                return denominator / numerator;
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
 }

@@ -5,6 +5,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -228,6 +230,88 @@ internal static class JxlConvolve
         return true;
     }
 
+    /// <summary>
+    /// Applies a symmetric three-by-three stencil to three borrowed rows with an explicit one-sample horizontal halo.
+    /// </summary>
+    /// <param name="top">The row above the output, including one sample before and after its requested range.</param>
+    /// <param name="middle">The center row, with the same halo and logical origin as top.</param>
+    /// <param name="bottom">The row below the output, with the same halo and logical origin as top.</param>
+    /// <param name="centerWeight">The center sample weight.</param>
+    /// <param name="axialWeight">The weight for each horizontal and vertical neighbor.</param>
+    /// <param name="diagonalWeight">The weight for each diagonal neighbor.</param>
+    /// <param name="output">The exact output range, distinct from all three inputs.</param>
+    /// <remarks>
+    /// Each input contains output.Length plus two samples. The caller supplies image-edge extension in the halo.
+    /// The stencil uses the pairwise sums and nested multiply-add operations from native stage_gaborish.cc.
+    /// </remarks>
+    public static void Symmetric3Row(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> middle,
+        ReadOnlySpan<float> bottom,
+        float centerWeight,
+        float axialWeight,
+        float diagonalWeight,
+        Span<float> output)
+    {
+        ref float topReference = ref MemoryMarshal.GetReference(top);
+        ref float middleReference = ref MemoryMarshal.GetReference(middle);
+        ref float bottomReference = ref MemoryMarshal.GetReference(bottom);
+        ref float outputReference = ref MemoryMarshal.GetReference(output);
+        Symmetric3Operator operation = new(centerWeight, axialWeight, diagonalWeight);
+        int x = 0;
+
+        // Input index x+1 is output pixel x. Neighbor loads start at x and x+2, so each full vector consumes only its declared halo.
+        // Loads can be unaligned. No output register crosses the requested range, and tails use the identical scalar equation.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= output.Length - Vector512<float>.Count; x += Vector512<float>.Count)
+            {
+                Vector512<float> center = Vector512.LoadUnsafe(ref middleReference, (uint)(x + 1));
+                Vector512<float> horizontal = Vector512.LoadUnsafe(ref middleReference, (uint)x) + Vector512.LoadUnsafe(ref middleReference, (uint)(x + 2));
+                Vector512<float> vertical = Vector512.LoadUnsafe(ref topReference, (uint)(x + 1)) + Vector512.LoadUnsafe(ref bottomReference, (uint)(x + 1));
+                Vector512<float> topDiagonal = Vector512.LoadUnsafe(ref topReference, (uint)x) + Vector512.LoadUnsafe(ref topReference, (uint)(x + 2));
+                Vector512<float> bottomDiagonal = Vector512.LoadUnsafe(ref bottomReference, (uint)x) + Vector512.LoadUnsafe(ref bottomReference, (uint)(x + 2));
+                Vector512<float> result = operation.Invoke(center, horizontal + vertical, topDiagonal + bottomDiagonal);
+                result.StoreUnsafe(ref outputReference, (uint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= output.Length - Vector256<float>.Count; x += Vector256<float>.Count)
+            {
+                Vector256<float> center = Vector256.LoadUnsafe(ref middleReference, (uint)(x + 1));
+                Vector256<float> horizontal = Vector256.LoadUnsafe(ref middleReference, (uint)x) + Vector256.LoadUnsafe(ref middleReference, (uint)(x + 2));
+                Vector256<float> vertical = Vector256.LoadUnsafe(ref topReference, (uint)(x + 1)) + Vector256.LoadUnsafe(ref bottomReference, (uint)(x + 1));
+                Vector256<float> topDiagonal = Vector256.LoadUnsafe(ref topReference, (uint)x) + Vector256.LoadUnsafe(ref topReference, (uint)(x + 2));
+                Vector256<float> bottomDiagonal = Vector256.LoadUnsafe(ref bottomReference, (uint)x) + Vector256.LoadUnsafe(ref bottomReference, (uint)(x + 2));
+                Vector256<float> result = operation.Invoke(center, horizontal + vertical, topDiagonal + bottomDiagonal);
+                result.StoreUnsafe(ref outputReference, (uint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= output.Length - Vector128<float>.Count; x += Vector128<float>.Count)
+            {
+                Vector128<float> center = Vector128.LoadUnsafe(ref middleReference, (uint)(x + 1));
+                Vector128<float> horizontal = Vector128.LoadUnsafe(ref middleReference, (uint)x) + Vector128.LoadUnsafe(ref middleReference, (uint)(x + 2));
+                Vector128<float> vertical = Vector128.LoadUnsafe(ref topReference, (uint)(x + 1)) + Vector128.LoadUnsafe(ref bottomReference, (uint)(x + 1));
+                Vector128<float> topDiagonal = Vector128.LoadUnsafe(ref topReference, (uint)x) + Vector128.LoadUnsafe(ref topReference, (uint)(x + 2));
+                Vector128<float> bottomDiagonal = Vector128.LoadUnsafe(ref bottomReference, (uint)x) + Vector128.LoadUnsafe(ref bottomReference, (uint)(x + 2));
+                Vector128<float> result = operation.Invoke(center, horizontal + vertical, topDiagonal + bottomDiagonal);
+                result.StoreUnsafe(ref outputReference, (uint)x);
+            }
+        }
+
+        for (; x < output.Length; x++)
+        {
+            float sum1 = (middle[x] + middle[x + 2]) + (top[x + 1] + bottom[x + 1]);
+            float sum2 = (top[x] + top[x + 2]) + (bottom[x] + bottom[x + 2]);
+            output[x] = operation.Invoke(middle[x + 1], sum1, sum2);
+        }
+    }
+
     public static float SlowSymmetric3Pixel(
         JxlPlane<float> image,
         int x,
@@ -429,6 +513,64 @@ internal static class JxlConvolve
         for (int i = 2; i < dst.Length; i++)
         {
             dst[i] = c[i - 2];
+        }
+    }
+
+    /// <summary>
+    /// Combines a symmetric stencil's center, axial sum and diagonal sum with native Gaborish multiply-add order.
+    /// </summary>
+    private readonly struct Symmetric3Operator : TensorPrimitives_.ITernaryOperator
+    {
+        private readonly float centerWeight;
+        private readonly float axialWeight;
+        private readonly float diagonalWeight;
+
+        /// <summary>
+        /// Retains the normalized weights shared by every sample in one output row.
+        /// </summary>
+        /// <param name="centerWeight">The center sample weight.</param>
+        /// <param name="axialWeight">The weight for each sample in the axial sum.</param>
+        /// <param name="diagonalWeight">The weight for each sample in the diagonal sum.</param>
+        public Symmetric3Operator(float centerWeight, float axialWeight, float diagonalWeight)
+        {
+            this.centerWeight = centerWeight;
+            this.axialWeight = axialWeight;
+            this.diagonalWeight = diagonalWeight;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+        {
+            float result = float.MultiplyAddEstimate(second, this.axialWeight, first * this.centerWeight);
+            return float.MultiplyAddEstimate(third, this.diagonalWeight, result);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            // Each lane keeps one output sample. Weight the center first, then add axial and diagonal contributions in native order.
+            Vector128<float> result = Vector128.MultiplyAddEstimate(second, Vector128.Create(this.axialWeight), first * Vector128.Create(this.centerWeight));
+            return Vector128.MultiplyAddEstimate(third, Vector128.Create(this.diagonalWeight), result);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            // Each lane keeps one output sample. Weight the center first, then add axial and diagonal contributions in native order.
+            Vector256<float> result = Vector256.MultiplyAddEstimate(second, Vector256.Create(this.axialWeight), first * Vector256.Create(this.centerWeight));
+            return Vector256.MultiplyAddEstimate(third, Vector256.Create(this.diagonalWeight), result);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            // Each lane keeps one output sample. Weight the center first, then add axial and diagonal contributions in native order.
+            Vector512<float> result = Vector512.MultiplyAddEstimate(second, Vector512.Create(this.axialWeight), first * Vector512.Create(this.centerWeight));
+            return Vector512.MultiplyAddEstimate(third, Vector512.Create(this.diagonalWeight), result);
         }
     }
 

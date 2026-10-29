@@ -108,249 +108,80 @@ internal static partial class JxlSimdUtils
     }
 
     /// <summary>
-    ///   <para>
-    ///     Fills the span so its first value is equal to <paramref name="start"/>
-    ///     and subsequent values increment by one. For example, with start=5,
-    ///     the span's values will be:
-    ///     <code>
-    ///       { start, start+1, start+2, start+3, start+4, ... to the end of the span }
-    ///     </code>
-    ///   </para>
-    ///   <para>
-    ///     or, more precisely:
-    ///     <code>
-    ///       { 5, 6, 7, 8, 9, 10, 11, ... to the end of the span }
-    ///     </code>
-    ///   </para>
-    ///   <seealso href="https://en.cppreference.com/cpp/algorithm/iota" />
+    /// Fills consecutive integers, starting with the supplied value.
     /// </summary>
-    /// <param name="span">The span where the values are filled.</param>
-    /// <param name="start">Initial value.</param>
-    public static void Iota(Span<int> span, int start)
+    /// <typeparam name="T">The integer component type.</typeparam>
+    /// <param name="span">The destination. An empty span is unchanged.</param>
+    /// <param name="start">The first value. Arithmetic wraps within the component type.</param>
+    public static void Iota<T>(Span<T> span, T start)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        ref int spanRef = ref MemoryMarshal.GetReference(span);
+        ref T destination = ref MemoryMarshal.GetReference(span);
+        int i = 0;
+        T value = start;
 
-        // Using fixed-size vectors so we can construct an
-        // incrementMask more easily.
-        if (Vector512.IsHardwareAccelerated)
+        // Runtime indices supply 0..N-1. Every subsequent block adds N to every lane, not a different increment to each lane.
+        // Integer vector addition and the scalar tail both wrap within T. A complete store never touches the tail or an empty span.
+        if (Vector512.IsHardwareAccelerated && Vector512<T>.IsSupported && span.Length >= Vector512<T>.Count)
         {
-            Vector512<int> incrementMask = Vector512.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
-            Vector512<int> v = Vector512.Create(start) + (incrementMask - Vector512<int>.One);
+            int count = Vector512<T>.Count;
+            nuint vectorCount = span.Length.Vector512Count<T>();
+            Vector512<T> current = Vector512.Create(value) + Vector512<T>.Indices;
+            Vector512<T> increment = Vector512.Create(T.CreateTruncating(count));
 
-            if ((span.Length % Vector512<int>.Count) == 0)
+            for (nuint block = 0; block < vectorCount; block++, i += count)
             {
-                // Aligned length
-                for (int i = 0; i < span.Length; i += Vector512<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
+                current.StoreUnsafe(ref destination, (uint)i);
+                current += increment;
             }
-            else
-            {
-                // We will need a scalar remainder
-                int vectorLength = span.Length - (span.Length % Vector512<int>.Count);
 
-                int i;
-                for (i = 0; i < vectorLength; i += Vector512<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-
-                int val = v.ToScalar();
-                for (; i < span.Length; i++)
-                {
-                    Unsafe.Add(ref spanRef, i) = val++;
-                }
-            }
+            value = current.ToScalar();
         }
-        else if (Vector256.IsHardwareAccelerated)
+        else if (Vector256.IsHardwareAccelerated && Vector256<T>.IsSupported && span.Length >= Vector256<T>.Count)
         {
-            Vector256<int> incrementMask = Vector256.Create(1, 2, 3, 4, 5, 6, 7, 8);
-            Vector256<int> v = Vector256.Create(start) + (incrementMask - Vector256<int>.One);
+            int count = Vector256<T>.Count;
+            nuint vectorCount = span.Length.Vector256Count<T>();
+            Vector256<T> current = Vector256.Create(value) + Vector256<T>.Indices;
+            Vector256<T> increment = Vector256.Create(T.CreateTruncating(count));
 
-            if ((span.Length % Vector256<int>.Count) == 0)
+            for (nuint block = 0; block < vectorCount; block++, i += count)
             {
-                // Aligned length
-                for (int i = 0; i < span.Length; i += Vector256<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
+                current.StoreUnsafe(ref destination, (uint)i);
+                current += increment;
             }
-            else
-            {
-                // We will need a scalar remainder
-                int vectorLength = span.Length - (span.Length % Vector256<int>.Count);
 
-                int i;
-                for (i = 0; i < vectorLength; i += Vector256<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-
-                int val = v.ToScalar();
-                for (; i < span.Length; i++)
-                {
-                    Unsafe.Add(ref spanRef, i) = val++;
-                }
-            }
+            value = current.ToScalar();
         }
-        else if (Vector128.IsHardwareAccelerated)
+        else if (Vector128.IsHardwareAccelerated && Vector128<T>.IsSupported && span.Length >= Vector128<T>.Count)
         {
-            Vector128<int> incrementMask = Vector128.Create(1, 2, 3, 4);
-            Vector128<int> v = Vector128.Create(start) + (incrementMask - Vector128<int>.One);
+            int count = Vector128<T>.Count;
+            nuint vectorCount = span.Length.Vector128Count<T>();
+            Vector128<T> current = Vector128.Create(value) + Vector128<T>.Indices;
+            Vector128<T> increment = Vector128.Create(T.CreateTruncating(count));
 
-            if ((span.Length % Vector128<int>.Count) == 0)
+            for (nuint block = 0; block < vectorCount; block++, i += count)
             {
-                // Aligned length
-                for (int i = 0; i < span.Length; i += Vector128<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
+                current.StoreUnsafe(ref destination, (uint)i);
+                current += increment;
             }
-            else
-            {
-                // We will need a scalar remainder
-                int vectorLength = span.Length - (span.Length % Vector128<int>.Count);
 
-                int i;
-                for (i = 0; i < vectorLength; i += Vector128<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-
-                int val = v.ToScalar();
-                for (; i < span.Length; i++)
-                {
-                    Unsafe.Add(ref spanRef, i) = val++;
-                }
-            }
+            value = current.ToScalar();
         }
-        else if (Vector64.IsHardwareAccelerated)
+
+        for (; i < span.Length; i++)
         {
-            Vector64<int> incrementMask = Vector64.Create(1, 2);
-            Vector64<int> v = Vector64.Create(start) + (incrementMask - Vector64<int>.One);
-
-            if ((span.Length % Vector64<int>.Count) == 0)
-            {
-                // Aligned length
-                for (int i = 0; i < span.Length; i += Vector64<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-            }
-            else
-            {
-                // We will need a scalar remainder
-                int vectorLength = span.Length - (span.Length % Vector64<int>.Count);
-
-                int i;
-                for (i = 0; i < vectorLength; i += Vector64<int>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-
-                int val = v.ToScalar();
-                for (; i < span.Length; i++)
-                {
-                    Unsafe.Add(ref spanRef, i) = val++;
-                }
-            }
-        }
-        else
-        {
-            // No SIMD
-            int value = start;
-            spanRef = value;
-            value++;
-            for (int i = 1; i < span.Length; i++)
-            {
-                Unsafe.Add(ref spanRef, i) = value++;
-            }
+            Unsafe.Add(ref destination, i) = value;
+            value = unchecked(value + T.One);
         }
     }
 
     /// <summary>
-    ///   <para>
-    ///     Fills the span so its first value is equal to <paramref name="start"/>
-    ///     and subsequent values increment by one. For example, with start=5,
-    ///     the span's values will be:
-    ///     <code>
-    ///       { start, start+1, start+2, start+3, start+4, ... to the end of the span }
-    ///     </code>
-    ///   </para>
-    ///   <para>
-    ///     or, more precisely:
-    ///     <code>
-    ///       { 5, 6, 7, 8, 9, 10, 11, ... to the end of the span }
-    ///     </code>
-    ///   </para>
-    ///   <seealso href="https://en.cppreference.com/cpp/algorithm/iota" />
+    /// Creates consecutive unsigned integers, starting with the supplied value.
     /// </summary>
-    /// <param name="span">The span where the values are filled.</param>
-    /// <param name="start">Initial value.</param>
-    public static void Iota<T>(Span<T> span, T start)
-        where T : unmanaged, INumber<T>
-    {
-        // Slightly slower than the int variant
-        ref T spanRef = ref MemoryMarshal.GetReference(span);
-
-        if (Vector<T>.IsSupported && Vector.IsHardwareAccelerated)
-        {
-            Vector<T> incrementMask = IotaMask<T>.IncrementMask;
-            Vector<T> v = Vector.Create(start) + (incrementMask - Vector<T>.One);
-
-            if ((span.Length % Vector<T>.Count) == 0)
-            {
-                // Aligned length
-                for (int i = 0; i < span.Length; i += Vector<T>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-            }
-            else
-            {
-                // Remainder needed
-                int vectorLength = span.Length - (span.Length % Vector<T>.Count);
-
-                int i;
-                for (i = 0; i < vectorLength; i += Vector<T>.Count)
-                {
-                    v.StoreUnsafe(ref Unsafe.Add(ref spanRef, i));
-                    v += incrementMask;
-                }
-
-                T val = v.ToScalar();
-                for (; i < span.Length; i++)
-                {
-                    Unsafe.Add(ref spanRef, i) = val++;
-                }
-            }
-        }
-        else
-        {
-            // Scalar (slow)
-            T value = start;
-            spanRef = value;
-            value++;
-            for (int i = 1; i < span.Length; i++)
-            {
-                Unsafe.Add(ref spanRef, i) = value++;
-            }
-        }
-    }
-
-    public static Vector<T> Iota<T>(T start)
-        where T : unmanaged, INumber<T>
-        => IotaMask<T>.BaseMask + Vector.Create(start);
+    /// <param name="start">The first value. Arithmetic wraps within UInt32.</param>
+    /// <returns>One register containing start, start + 1, and the following integers.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector<uint> Iota(uint start) => Vector<uint>.Indices + Vector.Create(start);
 
     /// <summary>
     /// Vectorized floating-point error function (precise approximate).
@@ -546,39 +377,6 @@ internal static partial class JxlSimdUtils
             }
 
             return new Vector<T>(value);
-        }
-    }
-
-    /// <summary>
-    /// Incrementing values to compute the Iota function.
-    /// </summary>
-    /// <remarks>
-    /// Creating a Vector&lt;T&gt; incrementing values would be
-    /// slow as Vector&lt;T&gt; is not a fixed-size vector, leaving
-    /// no other option but a slow loop. This class caches these
-    /// vectors for significantly better performance, though still
-    /// not as fast as an int variant.
-    /// </remarks>
-    /// <typeparam name="T">Type of the vector.</typeparam>
-    private static class IotaMask<T>
-        where T : unmanaged, INumber<T>
-    {
-        public static readonly Vector<T> IncrementMask;
-        public static readonly Vector<T> BaseMask;
-
-        static IotaMask()
-        {
-            Span<T> values = stackalloc T[Vector<T>.Count];
-            Span<T> baseValues = stackalloc T[Vector<T>.Count];
-
-            for (int i = 0; i < Vector<T>.Count; i++)
-            {
-                values[i] = T.CreateSaturating(i + 1);
-                baseValues[i] = T.CreateSaturating(i);
-            }
-
-            IncrementMask = Vector.Create<T>(values);
-            BaseMask = Vector.Create<T>(baseValues);
         }
     }
 }

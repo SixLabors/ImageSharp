@@ -310,10 +310,7 @@ internal static class JxlSqueeze
                             Vector256<int> even = Vector256.LoadUnsafe(ref Unsafe.Add(ref bpOutEvenTRef, offset));
                             Vector256<int> odd = Vector256.LoadUnsafe(ref Unsafe.Add(ref bpOutOddTRef, offset));
 
-                            JxlSimdUtils.StoreInterleaved(
-                                even,
-                                odd,
-                                ref Unsafe.Add(ref pOutRef, ((x + i) << 1) + (onerow_out * y)));
+                            SimdUtils.Interleave2(even, odd, ref Unsafe.Add(ref pOutRef, ((x + i) << 1) + (onerow_out * y)));
                         }
                     }
                 }

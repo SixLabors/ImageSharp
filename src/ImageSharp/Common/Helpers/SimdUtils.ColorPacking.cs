@@ -13,6 +13,106 @@ namespace SixLabors.ImageSharp;
 internal static partial class SimdUtils
 {
     /// <summary>
+    /// Interleaves four integer pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of eight destination integers.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector128<int> left, Vector128<int> right, ref int destination)
+    {
+        // Unpack covers a complete 128-bit register: the first store writes pairs 0/1, and the second writes pairs 2/3.
+        Vector128_.UnpackLow(left, right).StoreUnsafe(ref destination);
+        Vector128_.UnpackHigh(left, right).StoreUnsafe(ref destination, 4U);
+    }
+
+    /// <summary>
+    /// Interleaves eight integer pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of sixteen destination integers.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector256<int> left, Vector256<int> right, ref int destination)
+    {
+        // Native unpack works within each 128-bit lane. Join matching low/high lanes so the stores contain pairs 0..3, then 4..7.
+        Vector256<int> low = Vector256_.UnpackLow(left, right);
+        Vector256<int> high = Vector256_.UnpackHigh(left, right);
+        Vector256.Create(low.GetLower(), high.GetLower()).StoreUnsafe(ref destination);
+        Vector256.Create(low.GetUpper(), high.GetUpper()).StoreUnsafe(ref destination, 8U);
+    }
+
+    /// <summary>
+    /// Interleaves sixteen integer pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of thirty-two destination integers.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector512<int> left, Vector512<int> right, ref int destination)
+    {
+        // Indices 0..15 select left; 16..31 select right. Two complete-register permutations retain pair order across 128-bit lanes.
+        Vector512<int> lower = Vector512.Create(0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23);
+        Vector512<int> upper = Vector512.Create(8, 24, 9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31);
+        Vector512_.PermuteVar16x32x2(left, lower, right).StoreUnsafe(ref destination);
+        Vector512_.PermuteVar16x32x2(left, upper, right).StoreUnsafe(ref destination, 16U);
+    }
+
+    /// <summary>
+    /// Interleaves four floating-point pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of eight destination floats.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector128<float> left, Vector128<float> right, ref float destination)
+        => Interleave2(left.AsInt32(), right.AsInt32(), ref Unsafe.As<float, int>(ref destination));
+
+    /// <summary>
+    /// Interleaves eight floating-point pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of sixteen destination floats.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector256<float> left, Vector256<float> right, ref float destination)
+        => Interleave2(left.AsInt32(), right.AsInt32(), ref Unsafe.As<float, int>(ref destination));
+
+    /// <summary>
+    /// Interleaves sixteen floating-point pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of thirty-two destination floats.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector512<float> left, Vector512<float> right, ref float destination)
+        => Interleave2(left.AsInt32(), right.AsInt32(), ref Unsafe.As<float, int>(ref destination));
+
+    /// <summary>
+    /// Interleaves two floating-point registers into consecutive pairs.
+    /// </summary>
+    /// <param name="left">The first value of each pair.</param>
+    /// <param name="right">The second value of each pair.</param>
+    /// <param name="destination">The first of twice <see cref="Vector{T}.Count"/> destination floats.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector<float> left, Vector<float> right, ref float destination)
+    {
+        // Vector<T>'s register width is fixed by the runtime. These constant size checks leave only the matching store after compilation.
+        if (Vector<float>.Count == Vector512<float>.Count)
+        {
+            Interleave2(left.AsVector512(), right.AsVector512(), ref destination);
+        }
+        else if (Vector<float>.Count == Vector256<float>.Count)
+        {
+            Interleave2(left.AsVector256(), right.AsVector256(), ref destination);
+        }
+        else
+        {
+            Interleave2(left.AsVector128(), right.AsVector128(), ref destination);
+        }
+    }
+
+    /// <summary>
     /// Interleaves 32 values from four byte planes into consecutive quadruples.
     /// </summary>
     /// <param name="x">The x component plane.</param>

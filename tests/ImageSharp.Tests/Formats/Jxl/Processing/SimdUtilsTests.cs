@@ -1,68 +1,65 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
+/// <summary>
+/// Tests JPEG XL integer sequence generation.
+/// </summary>
 public class SimdUtilsTests
 {
+    /// <summary>
+    /// Checks consecutive values, integer wraparound, scalar tails and destination guards across all supported SIMD widths.
+    /// </summary>
     [Fact]
-    public void TestInterleave2()
+    public void Iota_FillsOnlyTheDestination() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        ValidateIota,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks empty, complete-register and partial-register spans for each production integer type.
+    /// </summary>
+    private static void ValidateIota()
     {
-        Span<float> mem = [0.0f, 0.0f];
-
-        Vector<float> vec1 = JxlSimdUtils.Iota(0f);
-        Vector<float> vec2 = JxlSimdUtils.Iota(128.0f);
-
-        JxlSimdUtils.StoreInterleaved(vec1, vec2, ref MemoryMarshal.GetReference(mem));
-
-        for (int j = 0; j < 2; j++)
+        ReadOnlySpan<int> lengths = [0, 1, 3, 4, 7, 8, 15, 16, 17, 31, 32, 33, 63, 64, 65, 129];
+        foreach (int length in lengths)
         {
-            Assert.Equal(mem[j], j * 128.0f);
+            byte[] bytes = new byte[length + 2];
+            int[] integers = new int[length + 2];
+            uint[] unsigned = new uint[length + 2];
+            bytes.AsSpan().Fill(123);
+            integers.AsSpan().Fill(123);
+            unsigned.AsSpan().Fill(123);
+
+            JxlSimdUtils.Iota(bytes.AsSpan(1, length), (byte)250);
+            JxlSimdUtils.Iota(integers.AsSpan(1, length), int.MaxValue - 9);
+            JxlSimdUtils.Iota(unsigned.AsSpan(1, length), uint.MaxValue - 9);
+
+            // Check every value against scalar integer arithmetic. Guard values also detect writes to an empty destination.
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(unchecked((byte)(250 + i)), bytes[i + 1]);
+                Assert.Equal(unchecked(int.MaxValue - 9 + i), integers[i + 1]);
+                Assert.Equal(unchecked(uint.MaxValue - 9 + (uint)i), unsigned[i + 1]);
+            }
+
+            Assert.Equal((byte)123, bytes[0]);
+            Assert.Equal((byte)123, bytes[^1]);
+            Assert.Equal(123, integers[0]);
+            Assert.Equal(123, integers[^1]);
+            Assert.Equal(123U, unsigned[0]);
+            Assert.Equal(123U, unsigned[^1]);
         }
-    }
 
-    [Fact]
-    public void TestInterleave4()
-    {
-        Span<float> mem = [0.0f, 0.0f, 0.0f, 0.0f];
-
-        Vector<float> vec1 = JxlSimdUtils.Iota(0f);
-        Vector<float> vec2 = JxlSimdUtils.Iota(128.0f);
-        Vector<float> vec3 = JxlSimdUtils.Iota(256.0f);
-        Vector<float> vec4 = JxlSimdUtils.Iota(384.0f);
-
-        JxlSimdUtils.StoreInterleaved(vec1, vec2, vec3, vec4, ref MemoryMarshal.GetReference(mem));
-
-        for (int j = 0; j < 4; j++)
+        // The modular encoder uses the register-returning form. Check its full register, including unsigned wraparound.
+        Vector<uint> vector = JxlSimdUtils.Iota(uint.MaxValue - 3);
+        for (int i = 0; i < Vector<uint>.Count; i++)
         {
-            Assert.Equal(mem[j], j * 128.0f);
-        }
-    }
-
-    [Fact]
-    public void TestInterleave8()
-    {
-        Span<float> mem = [0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f];
-
-        Vector<float> vec1 = JxlSimdUtils.Iota(0f);
-        Vector<float> vec2 = JxlSimdUtils.Iota(1 * 128.0f);
-        Vector<float> vec3 = JxlSimdUtils.Iota(2 * 128.0f);
-        Vector<float> vec4 = JxlSimdUtils.Iota(3 * 128.0f);
-        Vector<float> vec5 = JxlSimdUtils.Iota(4 * 128.0f);
-        Vector<float> vec6 = JxlSimdUtils.Iota(5 * 128.0f);
-        Vector<float> vec7 = JxlSimdUtils.Iota(6 * 128.0f);
-        Vector<float> vec8 = JxlSimdUtils.Iota(7 * 128.0f);
-
-        JxlSimdUtils.StoreInterleaved(vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8, ref MemoryMarshal.GetReference(mem));
-
-        for (int j = 0; j < 8; j++)
-        {
-            Assert.Equal(mem[j], j * 128.0f);
+            Assert.Equal(unchecked(uint.MaxValue - 3 + (uint)i), vector[i]);
         }
     }
 }

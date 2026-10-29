@@ -14,6 +14,99 @@ namespace SixLabors.ImageSharp.Tests.Common;
 /// </summary>
 public partial class SimdUtilsTests
 {
+    /// <summary>
+    /// Checks two-stream alternation, complete-register boundaries and exact floating-point bits with each hardware configuration.
+    /// </summary>
+    [Fact]
+    public void Interleave2_PreservesPairsAndDestinationGuards() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        ValidateInterleave2,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks every stored lane against independent alternating inputs for all fixed register widths and the runtime-sized register.
+    /// </summary>
+    private static void ValidateInterleave2()
+    {
+        int[] left = new int[Vector512<int>.Count];
+        int[] right = new int[Vector512<int>.Count];
+        for (int i = 0; i < left.Length; i++)
+        {
+            left[i] = int.MinValue + (i * 12345);
+            right[i] = int.MaxValue - (i * 54321);
+        }
+
+        // Treat these words as both integers and floats. Interleaving must preserve NaN payloads, infinities and negative zero.
+        left[0] = unchecked((int)0x7FC01234);
+        left[1] = unchecked((int)0x80000000);
+        right[0] = 0x7F800000;
+        right[1] = unchecked((int)0xFF800000);
+        ref int leftRef = ref MemoryMarshal.GetArrayDataReference(left);
+        ref int rightRef = ref MemoryMarshal.GetArrayDataReference(right);
+
+        foreach (int count in new[] { Vector128<int>.Count, Vector256<int>.Count, Vector512<int>.Count })
+        {
+            int[] integers = new int[(2 * count) + 2];
+            float[] floats = new float[integers.Length];
+            integers.AsSpan().Fill(123);
+            MemoryMarshal.Cast<float, int>(floats).Fill(123);
+            ref int intDestination = ref integers[1];
+            ref float floatDestination = ref floats[1];
+
+            // Call each fixed-width overload even without acceleration. Its shared helper must retain a correct portable implementation.
+            if (count == Vector512<int>.Count)
+            {
+                Vector512<int> a = Vector512.LoadUnsafe(ref leftRef);
+                Vector512<int> b = Vector512.LoadUnsafe(ref rightRef);
+                SimdUtils.Interleave2(a, b, ref intDestination);
+                SimdUtils.Interleave2(a.AsSingle(), b.AsSingle(), ref floatDestination);
+            }
+            else if (count == Vector256<int>.Count)
+            {
+                Vector256<int> a = Vector256.LoadUnsafe(ref leftRef);
+                Vector256<int> b = Vector256.LoadUnsafe(ref rightRef);
+                SimdUtils.Interleave2(a, b, ref intDestination);
+                SimdUtils.Interleave2(a.AsSingle(), b.AsSingle(), ref floatDestination);
+            }
+            else
+            {
+                Vector128<int> a = Vector128.LoadUnsafe(ref leftRef);
+                Vector128<int> b = Vector128.LoadUnsafe(ref rightRef);
+                SimdUtils.Interleave2(a, b, ref intDestination);
+                SimdUtils.Interleave2(a.AsSingle(), b.AsSingle(), ref floatDestination);
+            }
+
+            ReadOnlySpan<int> floatBits = MemoryMarshal.Cast<float, int>(floats);
+            for (int i = 0; i < count; i++)
+            {
+                Assert.Equal(left[i], integers[1 + (2 * i)]);
+                Assert.Equal(right[i], integers[2 + (2 * i)]);
+                Assert.Equal(left[i], floatBits[1 + (2 * i)]);
+                Assert.Equal(right[i], floatBits[2 + (2 * i)]);
+            }
+
+            Assert.Equal(123, integers[0]);
+            Assert.Equal(123, integers[^1]);
+            Assert.Equal(123, floatBits[0]);
+            Assert.Equal(123, floatBits[^1]);
+        }
+
+        float[] runtime = new float[(2 * Vector<float>.Count) + 2];
+        MemoryMarshal.Cast<float, int>(runtime).Fill(123);
+        Vector<float> runtimeLeft = Vector.AsVectorSingle(new Vector<int>(left));
+        Vector<float> runtimeRight = Vector.AsVectorSingle(new Vector<int>(right));
+        SimdUtils.Interleave2(runtimeLeft, runtimeRight, ref runtime[1]);
+
+        ReadOnlySpan<int> runtimeBits = MemoryMarshal.Cast<float, int>(runtime);
+        for (int i = 0; i < Vector<float>.Count; i++)
+        {
+            Assert.Equal(left[i], runtimeBits[1 + (2 * i)]);
+            Assert.Equal(right[i], runtimeBits[2 + (2 * i)]);
+        }
+
+        Assert.Equal(123, runtimeBits[0]);
+        Assert.Equal(123, runtimeBits[^1]);
+    }
+
     private static readonly int[] Lengths = [0, 1, 2, 3, 4, 5, 7, 8, 15, 16, 17, 31, 32, 33, 129];
 
     /// <summary>

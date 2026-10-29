@@ -3,9 +3,20 @@
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
 
-internal struct JxlSplineSegmentSpan(int startInclusive, int endInclusive)
+/// <summary>
+/// Identifies the image rows touched by one cached spline segment.
+/// </summary>
+/// <param name="startInclusive">The first row that can contain samples.</param>
+/// <param name="endExclusive">The row immediately after the affected range.</param>
+internal struct JxlSplineSegmentSpan(int startInclusive, int endExclusive)
 {
+    /// <summary>
+    /// Gets or sets the first affected row.
+    /// </summary>
     public int StartInclusive { get; set; } = startInclusive;
 
-    public int EndInclusive { get; set; } = endInclusive;
+    /// <summary>
+    /// Gets or sets the row immediately after the affected range.
+    /// </summary>
+    public int EndExclusive { get; set; } = endExclusive;
 }

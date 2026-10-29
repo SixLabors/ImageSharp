@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
 
 internal static class JxlSplineUtils
 {
+    /// <summary>
+    /// The spacing, in image pixels along the curve, between reconstructed sample points.
+    /// </summary>
     public const float DesiredRenderingDistance = 1f;
 
     private const float PiBy32 = MathF.PI / 32;
@@ -26,11 +29,16 @@ internal static class JxlSplineUtils
         PiBy32 * 30, PiBy32 * 31,
     ];
 
-    public static float ContinuousInverseDCT(in Dct32 dct, float t)
+    /// <summary>
+    /// Evaluates a 32-coefficient inverse DCT at a continuous spline position.
+    /// </summary>
+    /// <param name="dct">The 32 coefficients borrowed from the spline.</param>
+    /// <param name="t">The position within the 32-sample DCT domain.</param>
+    /// <returns>The reconstructed value at that position.</returns>
+    public static float ContinuousInverseDCT(ReadOnlySpan<float> dct, float t)
     {
         ref float multipliers = ref MemoryMarshal.GetReference(ContinuousIDCTMultipliers);
-        ReadOnlySpan<float> dctData = dct;
-        ref float dctDataRef = ref MemoryMarshal.GetReference(dctData);
+        ref float dctDataRef = ref MemoryMarshal.GetReference(dct);
 
         if (Vector<float>.Count <= 32 && Vector.IsHardwareAccelerated)
         {
@@ -136,7 +144,8 @@ internal static class JxlSplineUtils
         Vector<float> oneOver2s2 = Vector.Create(0.353553391f);
         Vector<float> sigmaOver4TimesIntensity = Vector.Create(segment.SigmaOver4TimesIntensity);
 
-        Vector<float> dx = JxlSimdUtils.Iota(x + x0).As<int, float>() - Vector.Create(segment.Center.X);
+        // Lane i is image column x0 + x + i. Convert the integer columns numerically before measuring distance from the center.
+        Vector<float> dx = Vector.ConvertToSingle(Vector.CreateSequence(x + x0, 1)) - Vector.Create(segment.Center.X);
         Vector<float> dy = Vector.Create(y - segment.Center.Y);
 
         Vector<float> sqd = (dx * dx) + (dy * dy);
@@ -204,9 +213,12 @@ internal static class JxlSplineUtils
         int spanX1 = Math.Min(x1, end + 1) - x0;
 
         int x = spanX0;
-        for (; x + Vector<float>.Count <= spanX1; x += Vector<float>.Count)
+        if (Vector.IsHardwareAccelerated)
         {
-            DrawSegmentPacked(ref segment, add, y, x, x0, rows);
+            for (; x + Vector<float>.Count <= spanX1; x += Vector<float>.Count)
+            {
+                DrawSegmentPacked(ref segment, add, y, x, x0, rows);
+            }
         }
 
         for (; x < spanX1; ++x)
@@ -215,15 +227,31 @@ internal static class JxlSplineUtils
         }
     }
 
-    public static void ComputeSegments(int imageYSize, PointF center, float intensity, InlineArray3<float> color, float sigma, List<JxlSplineSegment> segments, List<JxlSplineSegmentSpan> segmentSpans)
+    /// <summary>
+    /// Adds a Gaussian spline sample and the image rows that its bounded tail can affect.
+    /// </summary>
+    /// <param name="imageYSize">The frame height in rows.</param>
+    /// <param name="center">The sample's image coordinates.</param>
+    /// <param name="intensity">The arc-length weight of the sample.</param>
+    /// <param name="color">The sample's three color contributions.</param>
+    /// <param name="sigma">The Gaussian width.</param>
+    /// <param name="segments">The caller-owned segment cache.</param>
+    /// <param name="segmentSpans">The affected image-row interval for each cached segment.</param>
+    public static void ComputeSegments(
+        int imageYSize,
+        PointF center,
+        float intensity,
+        InlineArray3<float> color,
+        float sigma,
+        List<JxlSplineSegment> segments,
+        List<JxlSplineSegmentSpan> segmentSpans)
     {
         if (!(float.IsFinite(sigma) && sigma != 0.0f && float.IsFinite(1.0f / sigma) && float.IsFinite(intensity)))
         {
             return;
         }
 
-        // This is about 30% faster, but for higher precision
-        // one can change this to 5 instead.
+        // The native renderer truncates the Gaussian tail at 10^-3, adjusted by the largest channel contribution.
         const float distanceExp = 3f;
 
         float maxColor = MathF.Max(0.01f, MathF.Abs(color[0] * intensity));
@@ -256,7 +284,30 @@ internal static class JxlSplineUtils
         segmentSpans.Add(new JxlSplineSegmentSpan(y0, y1));
     }
 
-    public static void DrawSegments(Memory<float> rowX, Memory<float> rowY, Memory<float> rowB, int y, int x0, int x1, bool add, Span<JxlSplineSegment> segments, Span<int> segmentIndices, Span<int> segmentYStart)
+    /// <summary>
+    /// Applies the indexed spline segments that intersect one color row.
+    /// </summary>
+    /// <param name="rowX">The X color samples starting at x0.</param>
+    /// <param name="rowY">The Y color samples starting at x0.</param>
+    /// <param name="rowB">The B color samples starting at x0.</param>
+    /// <param name="y">The image row.</param>
+    /// <param name="x0">The first image column, inclusive.</param>
+    /// <param name="x1">The final image column, exclusive.</param>
+    /// <param name="add">Whether to add or subtract spline samples.</param>
+    /// <param name="segments">The cached spline segments.</param>
+    /// <param name="segmentIndices">The indices of the segments assigned to each row.</param>
+    /// <param name="segmentYStart">The offsets delimiting each row's range within segmentIndices.</param>
+    public static void DrawSegments(
+        Memory<float> rowX,
+        Memory<float> rowY,
+        Memory<float> rowB,
+        int y,
+        int x0,
+        int x1,
+        bool add,
+        Span<JxlSplineSegment> segments,
+        ReadOnlySpan<int> segmentIndices,
+        ReadOnlySpan<int> segmentYStart)
     {
         InlineArray3<Memory<float>> rows = default;
         rows[0] = rowX;
@@ -269,7 +320,22 @@ internal static class JxlSplineUtils
         }
     }
 
-    public static void SegmentsFromPoints(int imageYSize, JxlSpline spline, List<(PointF Point, float Multiplier)> pointsToDraw, float arcLength, List<JxlSplineSegment> segments, List<JxlSplineSegmentSpan> segmentsSpans)
+    /// <summary>
+    /// Evaluates color and width along a spline and appends its Gaussian sample segments.
+    /// </summary>
+    /// <param name="imageYSize">The frame height in rows.</param>
+    /// <param name="spline">The reconstructed color and width coefficients.</param>
+    /// <param name="pointsToDraw">The unit-spaced positions and their distance weights.</param>
+    /// <param name="arcLength">The complete path length in pixels.</param>
+    /// <param name="segments">The caller-owned segment cache.</param>
+    /// <param name="segmentsSpans">The image-row interval for each segment.</param>
+    public static void SegmentsFromPoints(
+        int imageYSize,
+        JxlSpline spline,
+        List<(PointF Point, float Multiplier)> pointsToDraw,
+        float arcLength,
+        List<JxlSplineSegment> segments,
+        List<JxlSplineSegmentSpan> segmentsSpans)
     {
         float inverseArcLength = 1.0f / arcLength;
         int k = 0;
@@ -288,109 +354,108 @@ internal static class JxlSplineUtils
         }
     }
 
-    public static void DrawCentripetalCatmullRomSpline(Span<PointF> points, List<PointF> result)
+    /// <summary>
+    /// Appends the centripetal Catmull-Rom curve through the supplied control points.
+    /// </summary>
+    /// <param name="points">The validated control points, with no equal adjacent points.</param>
+    /// <param name="result">The caller-owned list that receives 16 samples per interval and the final endpoint.</param>
+    public static void DrawCentripetalCatmullRomSpline(ReadOnlySpan<PointF> points, List<PointF> result)
     {
-        if (points.Length == 0)
-        {
-            return;
-        }
-
         if (points.Length == 1)
         {
             result.Add(points[0]);
             return;
         }
 
-        List<PointF> pointsCopy = [];
-        for (int i = 0; i < points.Length; i++)
-        {
-            pointsCopy.Add(points[i]);
-        }
+        const int samplesPerInterval = 16;
 
-        const int numPoints = 16;
-        pointsCopy.Insert(0, pointsCopy[0] + (pointsCopy[0] - pointsCopy[1]));
-        pointsCopy.Add(pointsCopy[^1] + (pointsCopy[^1] - pointsCopy[^2]));
-
-        for (int start = 0; start < pointsCopy.Count - 3; start++)
+        // Each interval needs four points. Extrapolate the two endpoint neighbors in a fixed local block,
+        // rather than copying and extending the complete control-point list.
+        for (int start = 0; start < points.Length - 1; start++)
         {
-            Span<PointF> p = CollectionsMarshal.AsSpan(pointsCopy)[start..];
+            InlineArray4<PointF> pointStorage = default;
+            Span<PointF> p = pointStorage;
+            p[0] = start == 0 ? points[0] + (points[0] - points[1]) : points[start - 1];
+            p[1] = points[start];
+            p[2] = points[start + 1];
+            p[3] = start + 2 == points.Length ? points[^1] + (points[^1] - points[^2]) : points[start + 2];
             result.Add(p[1]);
 
-            InlineArray3<float> d = default;
-            InlineArray4<float> t = default;
+            InlineArray3<float> distanceStorage = default;
+            InlineArray4<float> parameterStorage = default;
+            Span<float> distances = distanceStorage;
+            Span<float> parameters = parameterStorage;
 
-            for (int k = 0; k < 3; ++k)
+            // Centripetal parameter steps are the square roots of Euclidean distances.
+            // Adjacent control points differ, so every interpolation denominator is positive.
+            for (int k = 0; k < 3; k++)
             {
-                d[k] = MathF.Sqrt(JxlMath.Hypot(p[k + 1].X - p[k].X, p[k + 1].Y - p[k].Y));
-                t[k + 1] = t[k] + d[k];
+                distances[k] = MathF.Sqrt(float.Hypot(p[k + 1].X - p[k].X, p[k + 1].Y - p[k].Y));
+                parameters[k + 1] = parameters[k] + distances[k];
             }
 
-            for (int i = 1; i < numPoints; ++i)
+            for (int i = 1; i < samplesPerInterval; i++)
             {
-                float tt = d[0] + (((float)i / numPoints) * d[1]);
+                float position = distances[0] + (((float)i / samplesPerInterval) * distances[1]);
                 InlineArray3<PointF> a = default;
 
-                for (int k = 0; k < 3; ++k)
+                for (int k = 0; k < 3; k++)
                 {
-                    a[k] = p[k] + (((tt - t[k]) / d[k]) * (p[k + 1] - p[k]));
+                    a[k] = p[k] + (((position - parameters[k]) / distances[k]) * (p[k + 1] - p[k]));
                 }
 
-                InlineArray3<PointF> b = default;
+                InlineArray2<PointF> b = default;
 
-                for (int k = 0; k < 2; ++k)
+                for (int k = 0; k < 2; k++)
                 {
-                    b[k] = a[k] + (((tt - t[k]) / (d[k] + d[k + 1])) * (a[k + 1] - a[k]));
+                    b[k] = a[k] + (((position - parameters[k]) / (distances[k] + distances[k + 1])) * (a[k + 1] - a[k]));
                 }
 
-                result.Add(b[0] + (((tt - t[1]) / d[1]) * (b[1] - b[0])));
+                result.Add(b[0] + (((position - parameters[1]) / distances[1]) * (b[1] - b[0])));
             }
         }
 
-        result.Add(pointsCopy[^2]);
+        result.Add(points[^1]);
     }
 
-    public static void ForEachEquallySpacedPoint(Span<PointF> points, Action<PointF, float> functor)
+    /// <summary>
+    /// Appends points at unit arc-length steps and the final residual endpoint.
+    /// </summary>
+    /// <param name="points">The nonempty interpolated path.</param>
+    /// <param name="result">The caller-owned list of positions and their distance weights.</param>
+    public static void GetEquallySpacedPoints(ReadOnlySpan<PointF> points, List<(PointF Point, float Multiplier)> result)
     {
         PointF current = points[0];
-        functor(current, DesiredRenderingDistance);
+        result.Add((current, DesiredRenderingDistance));
+        int next = 0;
 
-        ref PointF next = ref points[0];
-        ref PointF end = ref points[^1]; // last
-
-        while (!Unsafe.AreSame(ref next, ref end))
+        while (next < points.Length)
         {
-            ref PointF previous = ref current;
-            float arcLengthFromPrevious = 0f;
+            PointF previous = current;
+            float distanceFromPrevious = 0F;
 
             while (true)
             {
-                if (next == end)
+                if (next == points.Length)
                 {
-                    functor(previous, arcLengthFromPrevious);
+                    // Keep the final weight even when it is zero. The caller uses it to recover the exact path length.
+                    result.Add((previous, distanceFromPrevious));
                     return;
                 }
 
-                float arcLengthToNext = MathF.Sqrt(SquaredNorm(next - previous));
+                PointF delta = points[next] - previous;
+                float distanceToNext = MathF.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
 
-                if (arcLengthFromPrevious + arcLengthToNext >= DesiredRenderingDistance)
+                if (distanceFromPrevious + distanceToNext >= DesiredRenderingDistance)
                 {
-                    current = previous + (((DesiredRenderingDistance - arcLengthFromPrevious) / arcLengthToNext) * (next - previous));
-                    functor(current, DesiredRenderingDistance);
+                    current = previous + (((DesiredRenderingDistance - distanceFromPrevious) / distanceToNext) * delta);
+                    result.Add((current, DesiredRenderingDistance));
                     break;
                 }
 
-                arcLengthFromPrevious += arcLengthToNext;
-                previous = ref next;
-                next = ref Unsafe.Add(ref next, 1);
+                distanceFromPrevious += distanceToNext;
+                previous = points[next++];
             }
         }
-    }
-
-    private static float SquaredNorm(PointF pointF)
-    {
-        float x = pointF.X;
-        float y = pointF.Y;
-
-        return (x * x) + (y * y);
     }
 }

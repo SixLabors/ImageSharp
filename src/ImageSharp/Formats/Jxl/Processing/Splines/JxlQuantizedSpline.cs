@@ -167,122 +167,140 @@ internal sealed class JxlQuantizedSpline : IDisposable
         }
     }
 
+    /// <summary>
+    /// Reconstructs control points and coefficients while limiting the estimated spline rendering work.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns the reconstructed control points.</param>
+    /// <param name="startingPoint">The separately decoded first point.</param>
+    /// <param name="quantizationAdjustment">The encoded coefficient quantization adjustment.</param>
+    /// <param name="yToX">The Y contribution restored to X.</param>
+    /// <param name="yToB">The Y contribution restored to B.</param>
+    /// <param name="imagePixelCount">The frame area in pixels, used only for the rendering-work limit.</param>
+    /// <param name="totalEstimatedAreaReached">The accumulated work estimate for all splines in this frame.</param>
+    /// <param name="result">The caller-owned spline whose existing point storage can be reused.</param>
+    /// <returns>True after reconstruction. Invalid geometry or excessive work throws an image-content exception.</returns>
     public bool Dequantize(
         Configuration configuration,
         PointF startingPoint,
         int quantizationAdjustment,
         float yToX,
         float yToB,
-        long imageSize,
-        ref long totalEstimatedAreaReached,
+        ulong imagePixelCount,
+        ref ulong totalEstimatedAreaReached,
         JxlSpline result)
     {
-        long areaLimit = Math.Min(1024 * imageSize * (1L << 32), 1L << 42);
-        result.ClearControlPoints();
-        result.ReserveControlPoints(configuration, this.ControlPoints.Length + 1);
+        const ulong initialAreaAllowance = 1UL << 32;
+        const ulong maximumAreaAllowance = 1UL << 42;
+        const ulong areaPerImagePixel = 1024;
 
-        float px = MathF.Round(startingPoint.X);
-        float py = MathF.Round(startingPoint.Y);
+        // Native reconstruction permits 1024 * image pixels + 2^32 units, capped at 2^42.
+        // Cap the pixel count before multiplication so even a large frame cannot wrap the work limit.
+        ulong cappedPixelCount = Math.Min(imagePixelCount, (maximumAreaAllowance - initialAreaAllowance) / areaPerImagePixel);
+        ulong areaLimit = (areaPerImagePixel * cappedPixelCount) + initialAreaAllowance;
 
-        if (!this.ValidateSplinePointPos(px, py))
+        try
         {
-            throw new InvalidOperationException("Spline points out of range");
-        }
-
-        int currentX = (int)px;
-        int currentY = (int)py;
-
-        Span<PointF> controlPoints = result.ControlPoints.Span;
-        Span<JxlControlPoint> thisControlPoints = this.ControlPoints.Span;
-
-        controlPoints[0] = new(currentX, currentY);
-
-        int currentDx = 0;  // D stands for delta
-        int currentDy = 0;  // D stands for delta
-
-        long manhattanDistance = 0;
-
-        int length = this.ControlPoints.Length;
-
-        for (int i = 0; i < length; i++)
-        {
-            JxlControlPoint point = thisControlPoints[i];
-            currentDx += point.First;
-            currentDy += point.Second;
-            manhattanDistance = Math.Abs(currentDx) + Math.Abs(currentDy);
-
-            if (manhattanDistance > areaLimit)
+            checked
             {
-                throw new InvalidOperationException("Manhattan distance is too large");
+                // Round only at the spline's integer geometry boundary. Checked conversion rejects nonfinite starting points.
+                long currentX = (long)MathF.Round(startingPoint.X, MidpointRounding.AwayFromZero);
+                long currentY = (long)MathF.Round(startingPoint.Y, MidpointRounding.AwayFromZero);
+                JxlSpline.ValidatePosition(currentX, currentY);
+
+                result.ReserveControlPoints(configuration, this.ControlPoints.Length + 1);
+                Span<PointF> controlPoints = result.ControlPoints.Span;
+                ReadOnlySpan<JxlControlPoint> deltas = this.ControlPoints.Span;
+                controlPoints[0] = new(currentX, currentY);
+
+                long deltaX = 0;
+                long deltaY = 0;
+                ulong manhattanDistance = 0;
+
+                for (int i = 0; i < deltas.Length; i++)
+                {
+                    // The stream stores changes to the previous delta. Accumulate in Int64 before applying the geometry bound.
+                    deltaX += deltas[i].First;
+                    deltaY += deltas[i].Second;
+                    JxlSpline.ValidatePosition(deltaX, deltaY);
+                    manhattanDistance += (ulong)(Math.Abs(deltaX) + Math.Abs(deltaY));
+
+                    if (manhattanDistance > areaLimit)
+                    {
+                        throw new InvalidImageContentException("JPEG XL spline length exceeds the rendering limit.");
+                    }
+
+                    currentX += deltaX;
+                    currentY += deltaY;
+                    JxlSpline.ValidatePosition(currentX, currentY);
+                    controlPoints[i + 1] = new(currentX, currentY);
+                }
+
+                float inverseQuant = InverseAdjustedQuant(quantizationAdjustment);
+                Span<InlineArray32<float>> colorDct = result.ColorDct;
+
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    for (int i = 0; i < 32; i++)
+                    {
+                        float inverseDctFactor = i == 0 ? JxlDctScales.Sqrt05 : 1F;
+                        colorDct[channel][i] = this.ColorDct[channel][i] * inverseDctFactor * ChannelWeight[channel] * inverseQuant;
+                    }
+                }
+
+                for (int i = 0; i < 32; i++)
+                {
+                    colorDct[0][i] += yToX * colorDct[1][i];
+                    colorDct[2][i] += yToB * colorDct[1][i];
+                }
+
+                // These unsigned sums estimate rendering work, not stored color values. Start every channel at zero.
+                // Checked arithmetic rejects extreme decoded coefficients before a wrapped sum can appear inexpensive.
+                InlineArray3<ulong> colorStorage = default;
+                Span<ulong> color = colorStorage;
+
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    for (int i = 0; i < 32; i++)
+                    {
+                        color[channel] += (ulong)MathF.Ceiling(inverseQuant * MathF.Abs(this.ColorDct[channel][i]));
+                    }
+                }
+
+                color[0] += (ulong)MathF.Ceiling(MathF.Abs(yToX)) * color[1];
+                color[2] += (ulong)MathF.Ceiling(MathF.Abs(yToB)) * color[1];
+
+                ulong maximumColor = Math.Max(color[1], Math.Max(color[0], color[2]));
+                ulong logColor = Math.Max(1UL, JxlMath.CeilLog2Nonzero(1UL + maximumColor));
+
+                // Width squared, color magnitude and path length jointly estimate the rendering area.
+                // Both divisors belong inside the square root, as in the native work estimate.
+                float weightLimit = MathF.Ceiling(MathF.Sqrt(((float)areaLimit / logColor) / Math.Max(1UL, manhattanDistance)));
+                Span<float> sigmaDct = result.SigmaDct;
+                ulong widthEstimate = 0;
+
+                for (int i = 0; i < 32; i++)
+                {
+                    float inverseDctFactor = i == 0 ? JxlDctScales.Sqrt05 : 1F;
+                    sigmaDct[i] = this.SigmaDct[i] * inverseDctFactor * ChannelWeight[3] * inverseQuant;
+                    float weightF = MathF.Ceiling(inverseQuant * MathF.Abs(this.SigmaDct[i]));
+                    ulong weight = (ulong)MathF.Min(weightLimit, MathF.Max(1F, weightF));
+                    widthEstimate += weight * weight * logColor;
+                }
+
+                ulong estimatedArea = widthEstimate * manhattanDistance;
+                if (estimatedArea > areaLimit - totalEstimatedAreaReached)
+                {
+                    throw new InvalidImageContentException("JPEG XL splines exceed the rendering-work limit.");
+                }
+
+                totalEstimatedAreaReached += estimatedArea;
+                return true;
             }
-
-            if (!ValidateSplinePointPos(currentDx, currentDy))
-            {
-                throw new InvalidOperationException("Delta points out of range");
-            }
-
-            currentX += currentDx;
-            currentY += currentDy;
-
-            if (!ValidateSplinePointPos(currentX, currentY))
-            {
-                throw new InvalidOperationException("Current points out of range");
-            }
-
-            controlPoints[i + 1] = new(currentX, currentY);
         }
-
-        float inverseQuant = InverseAdjustedQuant(quantizationAdjustment);
-
-        for (int c = 0; c < 3; c++)
+        catch (OverflowException exception)
         {
-            for (int i = 0; i < 32; i++)
-            {
-                float inverseDctFactor = (i == 0) ? JxlDctScales.Sqrt05 : 1.0f;
-                result.ColorDct[c][i] = this.ColorDct[c][i] * inverseDctFactor * ChannelWeight[c] * inverseQuant;
-            }
+            throw new InvalidImageContentException("JPEG XL spline work estimate exceeds the supported range.", exception);
         }
-
-        for (int i = 0; i < 32; i++)
-        {
-            result.ColorDct[0][i] += yToX * result.ColorDct[1][i];
-            result.ColorDct[2][i] += yToB * result.ColorDct[1][i];
-        }
-
-        long widthEstimate = 0;
-        Span<long> color = stackalloc long[3];
-
-        for (int c = 0; c < 3; c++)
-        {
-            for (int i = 0; i < 32; i++)
-            {
-                color[c] += (long)MathF.Ceiling(inverseQuant * MathF.Abs(this.ColorDct[c][i]));
-            }
-        }
-
-        color[0] += (long)MathF.Ceiling(MathF.Abs(yToX)) * color[1];
-        color[2] += (long)MathF.Ceiling(MathF.Abs(yToB)) * color[1];
-
-        long maxColor = Math.Max(color[1], Math.Max(color[0], color[2]));
-        long logColor = Math.Max(1L, JxlMath.CeilLog2Nonzero(1L + maxColor));
-        float weightLimit = MathF.Ceiling(MathF.Sqrt((float)areaLimit / logColor) / MathF.Max(1, manhattanDistance));
-
-        for (int i = 0; i < 32; i++)
-        {
-            float inverseDctFactor = (i == 0) ? JxlDctScales.Sqrt05 : 1.0f;
-            result.SigmaDct[i] = this.SigmaDct[i] * inverseDctFactor * ChannelWeight[3] * inverseQuant;
-            float weightF = MathF.Ceiling(inverseQuant * MathF.Abs(this.SigmaDct[i]));
-            long weight = (long)Math.Min(weightLimit, Math.Max(1.0f, weightF));
-            widthEstimate += weight * weight * logColor;
-        }
-
-        totalEstimatedAreaReached = widthEstimate * manhattanDistance;
-        if (totalEstimatedAreaReached > areaLimit)
-        {
-            throw new InvalidOperationException("Total estimated area is too large");
-        }
-
-        return true;
     }
 
     /// <summary>

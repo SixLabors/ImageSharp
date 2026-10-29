@@ -393,8 +393,8 @@ public class ButteraugliTests
 
             // Native butteraugli.cc assigns these MF penalties to both error directions, independently of HF weights.
             // The named single-plane LF kernel owns native scaling 0.611612573796; the retained API must select that same kernel.
-            float maltaWeight = changedComponent == 0 ? 8246.75321353F : 37.0819870399F;
-            float normalization = changedComponent == 0 ? 1009002.70582F : 130262059.556F;
+            double maltaWeight = changedComponent == 0 ? 8246.75321353D : 37.0819870399D;
+            double normalization = changedComponent == 0 ? 1009002.70582D : 130262059.556D;
             float squaredErrorWeight = changedComponent == 0 ? 2150F : 10.6195433239F;
             Assert.True(Butteraugli.MaltaDiffMapLf(
                 referenceBands.Mf.Plane(changedComponent),
@@ -1007,4 +1007,278 @@ public class ButteraugliTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
+    /// <summary>
+    /// Checks native Malta ray responses, zero-extension, accumulation and logical bounds through the retained comparison API.
+    /// </summary>
+    [Fact]
+    public void MaltaDifference_AccumulatesKnownImpulseRaysAndPreservesPadding()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            ReadOnlySpan<Size> sizes = [new(8, 8), new(13, 9), new(17, 9), new(33, 9), new(41, 10)];
+            ReadOnlySpan<(int X, int Y, int HfRays, int LfRays)> checks =
+            [
+                (0, 0, 16, 16), (4, 0, 1, 1), (1, 0, 5, 0), (3, 3, 1, 1), (4, 4, 0, 0),
+                (-4, 0, 1, 1), (-1, 0, 5, 0), (-3, -3, 1, 1), (-4, -4, 0, 0), (5, 0, 0, 0)
+            ];
+
+            foreach (Size size in sizes)
+            {
+                using JxlPlane<float> reference = new(TestEnvironment.Configuration, size.Width + 3, size.Height);
+                using JxlPlane<float> distorted = new(TestEnvironment.Configuration, size.Width + 19, size.Height);
+                using JxlPlane<float> differences = new(TestEnvironment.Configuration, size.Width + 35, size.Height);
+                using JxlPlane<float> output = new(TestEnvironment.Configuration, size.Width + 51, size.Height);
+                reference.ShrinkTo(size.Width, size.Height);
+                distorted.ShrinkTo(size.Width, size.Height);
+                differences.ShrinkTo(size.Width, size.Height);
+                output.ShrinkTo(size.Width, size.Height);
+                Span<float> referenceSamples = reference.GetRow(0);
+                Span<float> distortedSamples = distorted.GetRow(0);
+                Span<float> differenceSamples = differences.GetRow(0);
+                Span<float> outputSamples = output.GetRow(0);
+
+                for (int mode = 0; mode < 2; mode++)
+                {
+                    bool lowFrequency = mode != 0;
+                    // With w0Gt1=2 and norm1=0.5, a reference impulse of one has denominator one. Native setup gives
+                    // amplitude mulli/17, rounded once: HF=0x3CC04C91 and LF=0x3D135CD7. The secondary penalty is disabled.
+                    float amplitude = BitConverter.Int32BitsToSingle(lowFrequency ? 0x3D135CD7 : 0x3CC04C91);
+                    for (int position = 0; position < 2; position++)
+                    {
+                        int impulseX = position == 0 ? size.Width / 2 : 0;
+                        int impulseY = position == 0 ? size.Height / 2 : 0;
+                        referenceSamples.Fill(padding);
+                        distortedSamples.Fill(padding);
+                        differenceSamples.Fill(padding);
+                        outputSamples.Fill(padding);
+                        for (int y = 0; y < size.Height; y++)
+                        {
+                            referenceSamples.Slice(y * reference.PixelsPerRow, size.Width).Clear();
+                            distortedSamples.Slice(y * distorted.PixelsPerRow, size.Width).Clear();
+                            outputSamples.Slice(y * output.PixelsPerRow, size.Width).Fill(7F);
+                        }
+
+                        referenceSamples[(impulseY * reference.PixelsPerRow) + impulseX] = 1F;
+                        Assert.True(Butteraugli.MaltaDiffMap(lowFrequency, reference, distorted, 2D, 0D, 0.5D, differences, output));
+
+                        // Every ray contains its center. Exactly one horizontal ray reaches offset (4,0); five full rays
+                        // cross (1,0), which sparse LF rays omit. The diagonal ray ends at (3,3), not the absent (4,4).
+                        // A single impulse therefore needs only the known ray multiplicity, not another stencil implementation.
+                        foreach ((int dx, int dy, int hfRays, int lfRays) in checks)
+                        {
+                            int x = impulseX + dx;
+                            int y = impulseY + dy;
+                            if ((uint)x < (uint)size.Width && (uint)y < (uint)size.Height)
+                            {
+                                int rays = lowFrequency ? lfRays : hfRays;
+                                float energy = 0F;
+                                for (int ray = 0; ray < rays; ray++)
+                                {
+                                    energy = float.MultiplyAddEstimate(amplitude, amplitude, energy);
+                                }
+
+                                Assert.Equal(7F + energy, outputSamples[(y * output.PixelsPerRow) + x]);
+                            }
+                        }
+
+                        for (int y = 0; y < size.Height; y++)
+                        {
+                            for (int x = 0; x < size.Width; x++)
+                            {
+                                bool impulse = x == impulseX && y == impulseY;
+                                Assert.Equal(impulse ? 1F : 0F, referenceSamples[(y * reference.PixelsPerRow) + x]);
+                                Assert.Equal(0F, distortedSamples[(y * distorted.PixelsPerRow) + x]);
+                                Assert.Equal(impulse ? amplitude : 0F, differenceSamples[(y * differences.PixelsPerRow) + x]);
+                            }
+
+                            Assert.Equal(
+                                -1,
+                                referenceSamples.Slice((y * reference.PixelsPerRow) + size.Width, reference.PixelsPerRow - size.Width)
+                                    .IndexOfAnyExcept(padding));
+
+                            Assert.Equal(
+                                -1,
+                                distortedSamples.Slice((y * distorted.PixelsPerRow) + size.Width, distorted.PixelsPerRow - size.Width)
+                                    .IndexOfAnyExcept(padding));
+
+                            Assert.Equal(
+                                -1,
+                                differenceSamples.Slice((y * differences.PixelsPerRow) + size.Width, differences.PixelsPerRow - size.Width)
+                                    .IndexOfAnyExcept(padding));
+
+                            Assert.Equal(
+                                -1,
+                                outputSamples.Slice((y * output.PixelsPerRow) + size.Width, output.PixelsPerRow - size.Width).IndexOfAnyExcept(padding));
+
+                        }
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks nonzero masking magnitudes across different physical strides, all SIMD widths and scalar tails.
+    /// </summary>
+    [Fact]
+    public void MaskingMagnitude_CombinesFourBandsWithoutChangingPadding()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+            foreach (int width in widths)
+            {
+                using JxlPlane<float> hfX = new(TestEnvironment.Configuration, width + 3, 3);
+                using JxlPlane<float> hfY = new(TestEnvironment.Configuration, width + 19, 3);
+                using JxlPlane<float> uhfX = new(TestEnvironment.Configuration, width + 35, 3);
+                using JxlPlane<float> uhfY = new(TestEnvironment.Configuration, width + 51, 3);
+                using JxlPlane<float> output = new(TestEnvironment.Configuration, width, 3);
+                hfX.ShrinkTo(width, 3);
+                hfY.ShrinkTo(width, 3);
+                uhfX.ShrinkTo(width, 3);
+                uhfY.ShrinkTo(width, 3);
+                InlineArray2<JxlPlane<float>> hf = default;
+                InlineArray2<JxlPlane<float>> uhf = default;
+                hf[0] = hfX;
+                hf[1] = hfY;
+                uhf[0] = uhfX;
+                uhf[1] = uhfY;
+                Span<float> hfXSamples = hfX.GetRow(0);
+                Span<float> hfYSamples = hfY.GetRow(0);
+                Span<float> uhfXSamples = uhfX.GetRow(0);
+                Span<float> uhfYSamples = uhfY.GetRow(0);
+                Span<float> outputSamples = output.GetRow(0);
+                hfXSamples.Fill(padding);
+                hfYSamples.Fill(padding);
+                uhfXSamples.Fill(padding);
+                uhfYSamples.Fill(padding);
+                outputSamples.Fill(padding);
+
+                for (int y = 0; y < 3; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        float xSign = (x & 1) == 0 ? 1F : -1F;
+                        float ySign = ((x + y) & 1) == 0 ? 1F : -1F;
+                        hfXSamples[(y * hfX.PixelsPerRow) + x] = xSign;
+                        uhfXSamples[(y * uhfX.PixelsPerRow) + x] = xSign;
+                        hfYSamples[(y * hfY.PixelsPerRow) + x] = 22.5F * ySign;
+                        uhfYSamples[(y * uhfY.PixelsPerRow) + x] = 7.5F * ySign;
+                    }
+                }
+
+                Butteraugli.CombineChannelsForMasking(hf, uhf, output);
+
+                // X gives magnitude 5; the separate Y products give 3 + 9 = 12. The known 5-12-13 triangle is independent
+                // of the SIMD implementation and checks both signs without copying its square/square-root expression.
+                for (int y = 0; y < 3; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        float xSign = (x & 1) == 0 ? 1F : -1F;
+                        float ySign = ((x + y) & 1) == 0 ? 1F : -1F;
+                        Assert.Equal(13F, outputSamples[(y * output.PixelsPerRow) + x]);
+                        Assert.Equal(xSign, hfXSamples[(y * hfX.PixelsPerRow) + x]);
+                        Assert.Equal(xSign, uhfXSamples[(y * uhfX.PixelsPerRow) + x]);
+                        Assert.Equal(22.5F * ySign, hfYSamples[(y * hfY.PixelsPerRow) + x]);
+                        Assert.Equal(7.5F * ySign, uhfYSamples[(y * uhfY.PixelsPerRow) + x]);
+                    }
+
+                    Assert.Equal(-1, hfXSamples.Slice((y * hfX.PixelsPerRow) + width, hfX.PixelsPerRow - width).IndexOfAnyExcept(padding));
+                    Assert.Equal(-1, hfYSamples.Slice((y * hfY.PixelsPerRow) + width, hfY.PixelsPerRow - width).IndexOfAnyExcept(padding));
+                    Assert.Equal(-1, uhfXSamples.Slice((y * uhfX.PixelsPerRow) + width, uhfX.PixelsPerRow - width).IndexOfAnyExcept(padding));
+                    Assert.Equal(-1, uhfYSamples.Slice((y * uhfY.PixelsPerRow) + width, uhfY.PixelsPerRow - width).IndexOfAnyExcept(padding));
+                    Assert.Equal(-1, outputSamples.Slice((y * output.PixelsPerRow) + width, output.PixelsPerRow - width).IndexOfAnyExcept(padding));
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks the float directional-penalty contract through both retained Malta APIs at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void MaltaDifference_PreparesBothPenaltyDirectionsWithFloatArithmetic()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            ReadOnlySpan<int> widths = [13, 17, 33];
+            ReadOnlySpan<(float Reference, float Actual, float Denominator, float Difference, float Penalty)> cases =
+            [
+                (1F, 0F, 1F, 1F, 0.55F), (-1F, 0F, 1F, -1F, -0.55F),
+                (1F, 2F, 2F, -1F, 1.05F - 2F), (-1F, -2F, 2F, 1F, 2F - 1.05F),
+                (1F, 1F, 1.5F, 0F, 0F), (-1F, -1F, 1.5F, 0F, 0F),
+                (0F, 1F, 1F, -1F, -1F), (0F, -1F, 1F, 1F, 1F),
+                (1F, 0.5F, 1.25F, 0.5F, 0.55F - 0.5F), (-1F, -0.5F, 1.25F, -0.5F, 0.5F - 0.55F)
+            ];
+
+            foreach (int width in widths)
+            {
+                using JxlPlane<float> reference = new(TestEnvironment.Configuration, width, 8);
+                using JxlPlane<float> distorted = new(TestEnvironment.Configuration, width, 8);
+                using JxlPlane<float> differences = new(TestEnvironment.Configuration, width, 8);
+                using JxlPlane<float> output = new(TestEnvironment.Configuration, width, 8);
+                Span<float> referenceSamples = reference.GetRow(0);
+                Span<float> distortedSamples = distorted.GetRow(0);
+                Span<float> differenceSamples = differences.GetRow(0);
+                Span<float> outputSamples = output.GetRow(0);
+                referenceSamples.Fill(padding);
+                distortedSamples.Fill(padding);
+                for (int y = 0; y < 8; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        var sample = cases[(x + y) % cases.Length];
+                        referenceSamples[(y * reference.PixelsPerRow) + x] = sample.Reference;
+                        distortedSamples[(y * distorted.PixelsPerRow) + x] = sample.Actual;
+                    }
+                }
+
+                for (int mode = 0; mode < 2; mode++)
+                {
+                    bool lowFrequency = mode != 0;
+                    // These bits are native double setup for weights 2,2 and normalization 0.5, rounded once to float.
+                    // They are independent of the per-sample float thresholds and final multiply-add checked below.
+                    float firstCoefficient = BitConverter.Int32BitsToSingle(lowFrequency ? 0x3D135CD7 : 0x3CC04C91);
+                    float secondCoefficient = BitConverter.Int32BitsToSingle(lowFrequency ? 0x3CEF6F9C : 0x3C9C397A);
+                    differenceSamples.Fill(padding);
+                    outputSamples.Fill(padding);
+                    output.Clear();
+                    Assert.True(Butteraugli.MaltaDiffMap(lowFrequency, reference, distorted, 2D, 2D, 0.5D, differences, output));
+
+                    for (int y = 0; y < 8; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            var sample = cases[(x + y) % cases.Length];
+                            float primary = (firstCoefficient / sample.Denominator) * sample.Difference;
+                            float expected = float.MultiplyAddEstimate(secondCoefficient / sample.Denominator, sample.Penalty, primary);
+                            Assert.Equal(expected, differenceSamples[(y * differences.PixelsPerRow) + x]);
+                        }
+
+                        Assert.Equal(
+                            -1,
+                            differenceSamples.Slice((y * differences.PixelsPerRow) + width, differences.PixelsPerRow - width).IndexOfAnyExcept(padding));
+
+                        Assert.Equal(-1, outputSamples.Slice((y * output.PixelsPerRow) + width, output.PixelsPerRow - width).IndexOfAnyExcept(padding));
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
 }

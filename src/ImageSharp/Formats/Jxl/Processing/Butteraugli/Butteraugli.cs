@@ -46,6 +46,48 @@ internal static class Butteraugli
     private const float GlobalScale =
         1.0f / InternalGoodQualityThreshold;
 
+    /// <summary>The red contribution to the first perceptual absorbance.</summary>
+    private const float Absorbance0Red = 0.29956550340058319F;
+
+    /// <summary>The green contribution to the first perceptual absorbance.</summary>
+    private const float Absorbance0Green = 0.63373087833825936F;
+
+    /// <summary>The blue contribution to the first perceptual absorbance.</summary>
+    private const float Absorbance0Blue = 0.077705617820981968F;
+
+    /// <summary>The red contribution to the second perceptual absorbance.</summary>
+    private const float Absorbance1Red = 0.22158691104574774F;
+
+    /// <summary>The green contribution to the second perceptual absorbance.</summary>
+    private const float Absorbance1Green = 0.69391388044116142F;
+
+    /// <summary>The blue contribution to the second perceptual absorbance.</summary>
+    private const float Absorbance1Blue = 0.0987313588422F;
+
+    /// <summary>The red and green contributions to the third perceptual absorbance.</summary>
+    private const float Absorbance2RedGreen = 0.02F;
+
+    /// <summary>The blue contribution to the third perceptual absorbance.</summary>
+    private const float Absorbance2Blue = 0.20480129041026129F;
+
+    /// <summary>The native positive offset and reconstruction floor for the first two absorbances.</summary>
+    private const float Absorbance01Bias = 1.7557483643287353F;
+
+    /// <summary>The native positive offset and reconstruction floor for the third absorbance.</summary>
+    private const float Absorbance2Bias = 12.226454707163354F;
+
+    /// <summary>The native lower bound for the blurred image's sensitivity response.</summary>
+    private const float MinimumOpsinSensitivity = 1e-4F;
+
+    /// <summary>The positive offset inside the perceptual response's logarithm.</summary>
+    private const float OpsinGammaInputBias = 9.9710635769299145F;
+
+    /// <summary>The native float product that converts log2 to the scaled natural-log response.</summary>
+    private const float OpsinGammaSlope = 19.245013259874995F * JxlMath.InverseLog2E;
+
+    /// <summary>The offset applied after the perceptual logarithm.</summary>
+    private const float OpsinGammaOffset = -23.16046239805755F;
+
 #pragma warning disable // Just indentation warnings
     /// <summary>
     /// Underlying data for <see cref="Heatmap"/>.
@@ -2640,66 +2682,13 @@ internal static class Butteraugli
         }
     }
 
-    public static void OpsinAbsorbance(
-        bool clamp,
-        Vector<float> in0,
-        Vector<float> in1,
-        Vector<float> in2,
-        out Vector<float> out0,
-        out Vector<float> out1,
-        out Vector<float> out2)
-    {
-        Vector<float> mix0 = new(0.29956550340058319f);
-        Vector<float> mix1 = new(0.63373087833825936f);
-        Vector<float> mix2 = new(0.077705617820981968f);
-        Vector<float> mix3 = new(1.7557483643287353f);
-
-        Vector<float> mix4 = new(0.22158691104574774f);
-        Vector<float> mix5 = new(0.69391388044116142f);
-        Vector<float> mix6 = new(0.0987313588422f);
-        Vector<float> mix7 = new(1.7557483643287353f);
-
-        Vector<float> mix8 = new(0.02f);
-        Vector<float> mix9 = new(0.02f);
-        Vector<float> mix10 = new(0.20480129041026129f);
-        Vector<float> mix11 = new(12.226454707163354f);
-
-        out0 = (mix0 * in0) + ((mix1 * in1) + ((mix2 * in2) + mix3));
-        out1 = (mix4 * in0) + ((mix5 * in1) + ((mix6 * in2) + mix7));
-        out2 = (mix8 * in0) + ((mix9 * in1) + ((mix10 * in2) + mix11));
-
-        if (clamp)
-        {
-            out0 = Vector.Max(out0, mix3);
-            out1 = Vector.Max(out1, mix7);
-            out2 = Vector.Max(out2, mix11);
-        }
-    }
-
-    // A simple HDR-compatible gamma function
-    private static Vector<float> Gamma(Vector<float> v)
-    {
-        Vector<float> kRetMul = Vector.Create(19.245013259874995f * JxlMath.InverseLog2E);
-        Vector<float> kRetAdd = Vector.Create(-23.16046239805755f);
-
-        // if (value < 0) value = 0;
-        v = Vector.ConditionalSelect(Vector.LessThan(v, Vector<float>.Zero), Vector<float>.Zero, v);
-
-        Vector<float> biased = v + Vector.Create(9.9710635769299145f);
-        Vector<float> log = Vector.Log2(biased);
-
-        return (kRetMul * log) + kRetAdd;
-    }
-
-    /// <summary>
-    /// Transforms borrowed RGB samples into the perceptual XYB representation using prepared blur and output storage.
-    /// </summary>
+    /// <summary>Transforms borrowed RGB samples with the prepared comparison blur and output storage.</summary>
     /// <param name="configuration">The comparison configuration.</param>
-    /// <param name="rgb">The borrowed RGB image. It may also supply the output storage.</param>
-    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="rgb">The borrowed RGB image. It can also supply the output storage.</param>
+    /// <param name="parameters">The perceptual comparison parameters, including the intensity of one input unit in nits.</param>
     /// <param name="blurred">The distinct preallocated three-plane blur workspace.</param>
     /// <param name="blurTemp">The prepared transposed blur workspace.</param>
-    /// <param name="xyb">The preallocated transformed output.</param>
+    /// <param name="xyb">The preallocated transformed output, with the same logical dimensions as the input.</param>
     /// <returns>Whether all blur stages completed.</returns>
     public static bool OpsinDynamicsImage(
         Configuration configuration,
@@ -2709,12 +2698,6 @@ internal static class Butteraugli
         ButteraugliBlurTemp blurTemp,
         JxlImage3<float> xyb)
     {
-        if (blurred == null)
-        {
-            return false;
-        }
-
-
         if (!Blur(rgb.Plane(0), OpsinDynamicsKernel, blurTemp, blurred.Plane(0)))
         {
             return false;
@@ -2730,91 +2713,505 @@ internal static class Butteraugli
             return false;
         }
 
-        Vector<float> intensityMultiplier = new((float)parameters.IntensityTarget);
+        // Blur finishes before any source samples are replaced. All nine row views borrow existing owners.
+        // Retained planes can have different physical strides despite equal logical dimensions.
+        ReadOnlySpan<float> source0 = rgb.PlaneRow(0, 0);
+        ReadOnlySpan<float> source1 = rgb.PlaneRow(1, 0);
+        ReadOnlySpan<float> source2 = rgb.PlaneRow(2, 0);
+        ReadOnlySpan<float> blurred0 = blurred.PlaneRow(0, 0);
+        ReadOnlySpan<float> blurred1 = blurred.PlaneRow(1, 0);
+        ReadOnlySpan<float> blurred2 = blurred.PlaneRow(2, 0);
+        Span<float> destination0 = xyb.PlaneRow(0, 0);
+        Span<float> destination1 = xyb.PlaneRow(1, 0);
+        Span<float> destination2 = xyb.PlaneRow(2, 0);
+        int sourceStride0 = rgb.Plane(0).PixelsPerRow;
+        int sourceStride1 = rgb.Plane(1).PixelsPerRow;
+        int sourceStride2 = rgb.Plane(2).PixelsPerRow;
+        int blurredStride0 = blurred.Plane(0).PixelsPerRow;
+        int blurredStride1 = blurred.Plane(1).PixelsPerRow;
+        int blurredStride2 = blurred.Plane(2).PixelsPerRow;
+        int destinationStride0 = xyb.Plane(0).PixelsPerRow;
+        int destinationStride1 = xyb.Plane(1).PixelsPerRow;
+        int destinationStride2 = xyb.Plane(2).PixelsPerRow;
+        int width = rgb.XSize;
+        float intensity = parameters.IntensityTarget;
 
-        int lanes = Vector<float>.Count;
-
-        Vector<float> minValue = new(1e-4f);
-
-        Span<float> rgbSamples0 = rgb.Plane(0).GetRow(0);
-        Span<float> rgbSamples1 = rgb.Plane(1).GetRow(0);
-        Span<float> rgbSamples2 = rgb.Plane(2).GetRow(0);
-        Span<float> blurredSamples0 = blurred.Plane(0).GetRow(0);
-        Span<float> blurredSamples1 = blurred.Plane(1).GetRow(0);
-        Span<float> blurredSamples2 = blurred.Plane(2).GetRow(0);
-        Span<float> xybSamples0 = xyb.Plane(0).GetRow(0);
-        Span<float> xybSamples1 = xyb.Plane(1).GetRow(0);
-        Span<float> xybSamples2 = xyb.Plane(2).GetRow(0);
-
-        for (int y = 0; y < rgb.YSize; ++y)
+        for (int y = 0; y < rgb.YSize; y++)
         {
-            ReadOnlySpan<float> rowR = rgbSamples0[(y * rgb.Plane(0).PixelsPerRow)..];
-            ReadOnlySpan<float> rowG = rgbSamples1[(y * rgb.Plane(1).PixelsPerRow)..];
-            ReadOnlySpan<float> rowB = rgbSamples2[(y * rgb.Plane(2).PixelsPerRow)..];
+            ReadOnlySpan<float> row0 = source0.Slice(y * sourceStride0, width);
+            ReadOnlySpan<float> row1 = source1.Slice(y * sourceStride1, width);
+            ReadOnlySpan<float> row2 = source2.Slice(y * sourceStride2, width);
+            ReadOnlySpan<float> blur0 = blurred0.Slice(y * blurredStride0, width);
+            ReadOnlySpan<float> blur1 = blurred1.Slice(y * blurredStride1, width);
+            ReadOnlySpan<float> blur2 = blurred2.Slice(y * blurredStride2, width);
+            Span<float> output0 = destination0.Slice(y * destinationStride0, width);
+            Span<float> output1 = destination1.Slice(y * destinationStride1, width);
+            Span<float> output2 = destination2.Slice(y * destinationStride2, width);
+            ref float input0 = ref MemoryMarshal.GetReference(row0);
+            ref float input1 = ref MemoryMarshal.GetReference(row1);
+            ref float input2 = ref MemoryMarshal.GetReference(row2);
+            ref float smoothed0 = ref MemoryMarshal.GetReference(blur0);
+            ref float smoothed1 = ref MemoryMarshal.GetReference(blur1);
+            ref float smoothed2 = ref MemoryMarshal.GetReference(blur2);
+            ref float result0 = ref MemoryMarshal.GetReference(output0);
+            ref float result1 = ref MemoryMarshal.GetReference(output1);
+            ref float result2 = ref MemoryMarshal.GetReference(output2);
+            int x = 0;
 
-            ReadOnlySpan<float> blurredR = blurredSamples0[(y * blurred.Plane(0).PixelsPerRow)..];
-            ReadOnlySpan<float> blurredG = blurredSamples1[(y * blurred.Plane(1).PixelsPerRow)..];
-            ReadOnlySpan<float> blurredB = blurredSamples2[(y * blurred.Plane(2).PixelsPerRow)..];
-
-            Span<float> outX = xybSamples0[(y * xyb.Plane(0).PixelsPerRow)..];
-            Span<float> outY = xybSamples1[(y * xyb.Plane(1).PixelsPerRow)..];
-            Span<float> outB = xybSamples2[(y * xyb.Plane(2).PixelsPerRow)..];
-
-            for (int x = 0; x < rgb.XSize; x += lanes)
+            // One register holds one component from consecutive pixels. Each block reads all six inputs before any output store.
+            // Only full registers enter each loop. Narrower widths and the scalar remainder never access logical row padding.
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector<float> sensitivity0;
-                Vector<float> sensitivity1;
-                Vector<float> sensitivity2;
+                Vector512<float> multiplier = Vector512.Create(intensity);
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
                 {
-                    OpsinAbsorbance(
-                        true,
-                        new Vector<float>(blurredR[x..]) * intensityMultiplier,
-                        new Vector<float>(blurredG[x..]) * intensityMultiplier,
-                        new Vector<float>(blurredB[x..]) * intensityMultiplier,
-                        out Vector<float> pre0,
-                        out Vector<float> pre1,
-                        out Vector<float> pre2);
+                    OpsinDynamics(
+                        Vector512.LoadUnsafe(ref input0, (uint)x),
+                        Vector512.LoadUnsafe(ref input1, (uint)x),
+                        Vector512.LoadUnsafe(ref input2, (uint)x),
+                        Vector512.LoadUnsafe(ref smoothed0, (uint)x),
+                        Vector512.LoadUnsafe(ref smoothed1, (uint)x),
+                        Vector512.LoadUnsafe(ref smoothed2, (uint)x),
+                        multiplier,
+                        out Vector512<float> value0,
+                        out Vector512<float> value1,
+                        out Vector512<float> value2);
 
-                    pre0 = Vector.Max(pre0, minValue);
-                    pre1 = Vector.Max(pre1, minValue);
-                    pre2 = Vector.Max(pre2, minValue);
-
-                    sensitivity0 = Gamma(pre0) / pre0;
-                    sensitivity1 = Gamma(pre1) / pre1;
-                    sensitivity2 = Gamma(pre2) / pre2;
-
-                    sensitivity0 = Vector.Max(sensitivity0, minValue);
-                    sensitivity1 = Vector.Max(sensitivity1, minValue);
-                    sensitivity2 = Vector.Max(sensitivity2, minValue);
+                    value0.StoreUnsafe(ref result0, (uint)x);
+                    value1.StoreUnsafe(ref result1, (uint)x);
+                    value2.StoreUnsafe(ref result2, (uint)x);
                 }
+            }
 
-                OpsinAbsorbance(
-                    false,
-                    new Vector<float>(rowR[x..]) * intensityMultiplier,
-                    new Vector<float>(rowG[x..]) * intensityMultiplier,
-                    new Vector<float>(rowB[x..]) * intensityMultiplier,
-                    out Vector<float> cur0,
-                    out Vector<float> cur1,
-                    out Vector<float> cur2);
+            if (Vector256.IsHardwareAccelerated)
+            {
+                Vector256<float> multiplier = Vector256.Create(intensity);
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    OpsinDynamics(
+                        Vector256.LoadUnsafe(ref input0, (uint)x),
+                        Vector256.LoadUnsafe(ref input1, (uint)x),
+                        Vector256.LoadUnsafe(ref input2, (uint)x),
+                        Vector256.LoadUnsafe(ref smoothed0, (uint)x),
+                        Vector256.LoadUnsafe(ref smoothed1, (uint)x),
+                        Vector256.LoadUnsafe(ref smoothed2, (uint)x),
+                        multiplier,
+                        out Vector256<float> value0,
+                        out Vector256<float> value1,
+                        out Vector256<float> value2);
 
-                cur0 *= sensitivity0;
-                cur1 *= sensitivity1;
-                cur2 *= sensitivity2;
+                    value0.StoreUnsafe(ref result0, (uint)x);
+                    value1.StoreUnsafe(ref result1, (uint)x);
+                    value2.StoreUnsafe(ref result2, (uint)x);
+                }
+            }
 
-                Vector<float> min01 = new(1.7557483643287353f);
-                Vector<float> min2 = new(12.226454707163354f);
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Vector128<float> multiplier = Vector128.Create(intensity);
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    OpsinDynamics(
+                        Vector128.LoadUnsafe(ref input0, (uint)x),
+                        Vector128.LoadUnsafe(ref input1, (uint)x),
+                        Vector128.LoadUnsafe(ref input2, (uint)x),
+                        Vector128.LoadUnsafe(ref smoothed0, (uint)x),
+                        Vector128.LoadUnsafe(ref smoothed1, (uint)x),
+                        Vector128.LoadUnsafe(ref smoothed2, (uint)x),
+                        multiplier,
+                        out Vector128<float> value0,
+                        out Vector128<float> value1,
+                        out Vector128<float> value2);
 
-                cur0 = Vector.Max(cur0, min01);
-                cur1 = Vector.Max(cur1, min01);
-                cur2 = Vector.Max(cur2, min2);
+                    value0.StoreUnsafe(ref result0, (uint)x);
+                    value1.StoreUnsafe(ref result1, (uint)x);
+                    value2.StoreUnsafe(ref result2, (uint)x);
+                }
+            }
 
-                (cur0 - cur1).CopyTo(outX[x..]);
-                (cur0 + cur1).CopyTo(outY[x..]);
-                cur2.CopyTo(outB[x..]);
+            for (; x < width; x++)
+            {
+                OpsinDynamics(
+                    row0[x],
+                    row1[x],
+                    row2[x],
+                    blur0[x],
+                    blur1[x],
+                    blur2[x],
+                    intensity,
+                    out float value0,
+                    out float value1,
+                    out float value2);
+
+                output0[x] = value0;
+                output1[x] = value1;
+                output2[x] = value2;
             }
         }
 
         return true;
+    }
+
+    /// <summary>Adapts one RGB pixel using its blurred sensitivity in the native arithmetic order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        float r,
+        float g,
+        float b,
+        float blurredR,
+        float blurredG,
+        float blurredB,
+        float intensity,
+        out float x,
+        out float y,
+        out float blue)
+    {
+        OpsinAbsorbance(blurredR * intensity, blurredG * intensity, blurredB * intensity, out float pre0, out float pre1, out float pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = MathF.Max(pre0, Absorbance01Bias);
+        pre1 = MathF.Max(pre1, Absorbance01Bias);
+        pre2 = MathF.Max(pre2, Absorbance2Bias);
+        float sensitivity0 = MathF.Max(Gamma(pre0) / pre0, MinimumOpsinSensitivity);
+        float sensitivity1 = MathF.Max(Gamma(pre1) / pre1, MinimumOpsinSensitivity);
+        float sensitivity2 = MathF.Max(Gamma(pre2) / pre2, MinimumOpsinSensitivity);
+
+        OpsinAbsorbance(r * intensity, g * intensity, b * intensity, out float current0, out float current1, out float current2);
+        current0 = MathF.Max(current0 * sensitivity0, Absorbance01Bias);
+        current1 = MathF.Max(current1 * sensitivity1, Absorbance01Bias);
+        current2 = MathF.Max(current2 * sensitivity2, Absorbance2Bias);
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes one RGB sample into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(float r, float g, float b, out float first, out float second, out float third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = float.MultiplyAddEstimate(Absorbance0Blue, b, Absorbance01Bias);
+        first = float.MultiplyAddEstimate(Absorbance0Green, g, first);
+        first = float.MultiplyAddEstimate(Absorbance0Red, r, first);
+
+        second = float.MultiplyAddEstimate(Absorbance1Blue, b, Absorbance01Bias);
+        second = float.MultiplyAddEstimate(Absorbance1Green, g, second);
+        second = float.MultiplyAddEstimate(Absorbance1Red, r, second);
+
+        third = float.MultiplyAddEstimate(Absorbance2Blue, b, Absorbance2Bias);
+        third = float.MultiplyAddEstimate(Absorbance2RedGreen, g, third);
+        third = float.MultiplyAddEstimate(Absorbance2RedGreen, r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for one positive absorbance.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Gamma(float value)
+        => float.MultiplyAddEstimate(OpsinGammaSlope, MathF.Log2(value + OpsinGammaInputBias), OpsinGammaOffset);
+
+    /// <summary>Adapts 4 independent RGB pixels using their blurred sensitivities, without changing pixel lane order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        Vector128<float> r,
+        Vector128<float> g,
+        Vector128<float> b,
+        Vector128<float> blurredR,
+        Vector128<float> blurredG,
+        Vector128<float> blurredB,
+        Vector128<float> intensity,
+        out Vector128<float> x,
+        out Vector128<float> y,
+        out Vector128<float> blue)
+    {
+        OpsinAbsorbance(
+            blurredR * intensity,
+            blurredG * intensity,
+            blurredB * intensity,
+            out Vector128<float> pre0,
+            out Vector128<float> pre1,
+            out Vector128<float> pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = Vector128.Max(pre0, Vector128.Create(Absorbance01Bias));
+        pre1 = Vector128.Max(pre1, Vector128.Create(Absorbance01Bias));
+        pre2 = Vector128.Max(pre2, Vector128.Create(Absorbance2Bias));
+        Vector128<float> sensitivity0 = Vector128.Max(Gamma(pre0) / pre0, Vector128.Create(MinimumOpsinSensitivity));
+        Vector128<float> sensitivity1 = Vector128.Max(Gamma(pre1) / pre1, Vector128.Create(MinimumOpsinSensitivity));
+        Vector128<float> sensitivity2 = Vector128.Max(Gamma(pre2) / pre2, Vector128.Create(MinimumOpsinSensitivity));
+
+        OpsinAbsorbance(
+            r * intensity,
+            g * intensity,
+            b * intensity,
+            out Vector128<float> current0,
+            out Vector128<float> current1,
+            out Vector128<float> current2);
+
+        current0 = Vector128.Max(current0 * sensitivity0, Vector128.Create(Absorbance01Bias));
+        current1 = Vector128.Max(current1 * sensitivity1, Vector128.Create(Absorbance01Bias));
+        current2 = Vector128.Max(current2 * sensitivity2, Vector128.Create(Absorbance2Bias));
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes 4 independent RGB samples into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(
+        Vector128<float> r,
+        Vector128<float> g,
+        Vector128<float> b,
+        out Vector128<float> first,
+        out Vector128<float> second,
+        out Vector128<float> third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance0Blue), b, Vector128.Create(Absorbance01Bias));
+        first = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance0Green), g, first);
+        first = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance0Red), r, first);
+
+        second = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance1Blue), b, Vector128.Create(Absorbance01Bias));
+        second = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance1Green), g, second);
+        second = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance1Red), r, second);
+
+        third = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance2Blue), b, Vector128.Create(Absorbance2Bias));
+        third = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance2RedGreen), g, third);
+        third = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance2RedGreen), r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for 4 positive absorbance lanes.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<float> Gamma(Vector128<float> value)
+    {
+        Vector128<float> logarithm = Vector128.Log2(value + Vector128.Create(OpsinGammaInputBias));
+        return Vector128.MultiplyAddEstimate(Vector128.Create(OpsinGammaSlope), logarithm, Vector128.Create(OpsinGammaOffset));
+    }
+
+    /// <summary>Adapts 8 independent RGB pixels using their blurred sensitivities, without changing pixel lane order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        Vector256<float> r,
+        Vector256<float> g,
+        Vector256<float> b,
+        Vector256<float> blurredR,
+        Vector256<float> blurredG,
+        Vector256<float> blurredB,
+        Vector256<float> intensity,
+        out Vector256<float> x,
+        out Vector256<float> y,
+        out Vector256<float> blue)
+    {
+        OpsinAbsorbance(
+            blurredR * intensity,
+            blurredG * intensity,
+            blurredB * intensity,
+            out Vector256<float> pre0,
+            out Vector256<float> pre1,
+            out Vector256<float> pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = Vector256.Max(pre0, Vector256.Create(Absorbance01Bias));
+        pre1 = Vector256.Max(pre1, Vector256.Create(Absorbance01Bias));
+        pre2 = Vector256.Max(pre2, Vector256.Create(Absorbance2Bias));
+        Vector256<float> sensitivity0 = Vector256.Max(Gamma(pre0) / pre0, Vector256.Create(MinimumOpsinSensitivity));
+        Vector256<float> sensitivity1 = Vector256.Max(Gamma(pre1) / pre1, Vector256.Create(MinimumOpsinSensitivity));
+        Vector256<float> sensitivity2 = Vector256.Max(Gamma(pre2) / pre2, Vector256.Create(MinimumOpsinSensitivity));
+
+        OpsinAbsorbance(
+            r * intensity,
+            g * intensity,
+            b * intensity,
+            out Vector256<float> current0,
+            out Vector256<float> current1,
+            out Vector256<float> current2);
+
+        current0 = Vector256.Max(current0 * sensitivity0, Vector256.Create(Absorbance01Bias));
+        current1 = Vector256.Max(current1 * sensitivity1, Vector256.Create(Absorbance01Bias));
+        current2 = Vector256.Max(current2 * sensitivity2, Vector256.Create(Absorbance2Bias));
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes 8 independent RGB samples into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(
+        Vector256<float> r,
+        Vector256<float> g,
+        Vector256<float> b,
+        out Vector256<float> first,
+        out Vector256<float> second,
+        out Vector256<float> third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance0Blue), b, Vector256.Create(Absorbance01Bias));
+        first = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance0Green), g, first);
+        first = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance0Red), r, first);
+
+        second = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance1Blue), b, Vector256.Create(Absorbance01Bias));
+        second = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance1Green), g, second);
+        second = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance1Red), r, second);
+
+        third = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance2Blue), b, Vector256.Create(Absorbance2Bias));
+        third = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance2RedGreen), g, third);
+        third = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance2RedGreen), r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for 8 positive absorbance lanes.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<float> Gamma(Vector256<float> value)
+    {
+        Vector256<float> logarithm = Vector256.Log2(value + Vector256.Create(OpsinGammaInputBias));
+        return Vector256.MultiplyAddEstimate(Vector256.Create(OpsinGammaSlope), logarithm, Vector256.Create(OpsinGammaOffset));
+    }
+
+    /// <summary>Adapts 16 independent RGB pixels using their blurred sensitivities, without changing pixel lane order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        Vector512<float> r,
+        Vector512<float> g,
+        Vector512<float> b,
+        Vector512<float> blurredR,
+        Vector512<float> blurredG,
+        Vector512<float> blurredB,
+        Vector512<float> intensity,
+        out Vector512<float> x,
+        out Vector512<float> y,
+        out Vector512<float> blue)
+    {
+        OpsinAbsorbance(
+            blurredR * intensity,
+            blurredG * intensity,
+            blurredB * intensity,
+            out Vector512<float> pre0,
+            out Vector512<float> pre1,
+            out Vector512<float> pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = Vector512.Max(pre0, Vector512.Create(Absorbance01Bias));
+        pre1 = Vector512.Max(pre1, Vector512.Create(Absorbance01Bias));
+        pre2 = Vector512.Max(pre2, Vector512.Create(Absorbance2Bias));
+        Vector512<float> sensitivity0 = Vector512.Max(Gamma(pre0) / pre0, Vector512.Create(MinimumOpsinSensitivity));
+        Vector512<float> sensitivity1 = Vector512.Max(Gamma(pre1) / pre1, Vector512.Create(MinimumOpsinSensitivity));
+        Vector512<float> sensitivity2 = Vector512.Max(Gamma(pre2) / pre2, Vector512.Create(MinimumOpsinSensitivity));
+
+        OpsinAbsorbance(
+            r * intensity,
+            g * intensity,
+            b * intensity,
+            out Vector512<float> current0,
+            out Vector512<float> current1,
+            out Vector512<float> current2);
+
+        current0 = Vector512.Max(current0 * sensitivity0, Vector512.Create(Absorbance01Bias));
+        current1 = Vector512.Max(current1 * sensitivity1, Vector512.Create(Absorbance01Bias));
+        current2 = Vector512.Max(current2 * sensitivity2, Vector512.Create(Absorbance2Bias));
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes 16 independent RGB samples into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(
+        Vector512<float> r,
+        Vector512<float> g,
+        Vector512<float> b,
+        out Vector512<float> first,
+        out Vector512<float> second,
+        out Vector512<float> third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance0Blue), b, Vector512.Create(Absorbance01Bias));
+        first = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance0Green), g, first);
+        first = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance0Red), r, first);
+
+        second = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance1Blue), b, Vector512.Create(Absorbance01Bias));
+        second = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance1Green), g, second);
+        second = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance1Red), r, second);
+
+        third = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance2Blue), b, Vector512.Create(Absorbance2Bias));
+        third = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance2RedGreen), g, third);
+        third = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance2RedGreen), r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for 16 positive absorbance lanes.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<float> Gamma(Vector512<float> value)
+    {
+        Vector512<float> logarithm = Vector512.Log2(value + Vector512.Create(OpsinGammaInputBias));
+        return Vector512.MultiplyAddEstimate(Vector512.Create(OpsinGammaSlope), logarithm, Vector512.Create(OpsinGammaOffset));
     }
 
     /// <summary>

@@ -861,4 +861,150 @@ public class ButteraugliTests
             RunTest,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
+
+    /// <summary>Checks native comparison-opsin equations, zero and RGB basis fields, in-place output and logical guards at all SIMD widths.</summary>
+    [Fact]
+    public void OpsinDynamics_UsesNativeResponseAndPreservesLogicalBounds()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+            ReadOnlySpan<float> weights =
+            [
+                0.29956550340058319F, 0.63373087833825936F, 0.077705617820981968F, 1.7557483643287353F,
+                0.22158691104574774F, 0.69391388044116142F, 0.0987313588422F, 1.7557483643287353F,
+                0.02F, 0.02F, 0.20480129041026129F, 12.226454707163354F
+            ];
+
+            const int height = 3;
+            const float untouched = -123F;
+
+            // Native's log2 test allows 3.1e-6 logarithm units. Two gamma terms amplify that to less than 0.000083 comparison units.
+            // Round the absolute component bound to 0.0001 to include the remaining float blur, division and multiplication rounding.
+            const float responseBound = 0.0001F;
+            Configuration configuration = TestEnvironment.Configuration;
+            ButteraugliParameters parameters = new();
+            foreach (int width in widths)
+            {
+                using JxlImage3<float> source = new(configuration, width + 19, height + 2);
+                using JxlImage3<float> blurred = new(configuration, width + 35, height + 2);
+                using JxlImage3<float> transformed = new(configuration, width + 51, height + 2);
+                Assert.True(source.ShrinkTo(width, height));
+                Assert.True(blurred.ShrinkTo(width, height));
+                Assert.True(transformed.ShrinkTo(width, height));
+                using ButteraugliBlurTemp scratch = new(configuration, width, height);
+                Span<float> source0 = source.PlaneRow(0, 0);
+                Span<float> source1 = source.PlaneRow(1, 0);
+                Span<float> source2 = source.PlaneRow(2, 0);
+                Span<float> blurred0 = blurred.PlaneRow(0, 0);
+                Span<float> blurred1 = blurred.PlaneRow(1, 0);
+                Span<float> blurred2 = blurred.PlaneRow(2, 0);
+                Span<float> output0 = transformed.PlaneRow(0, 0);
+                Span<float> output1 = transformed.PlaneRow(1, 0);
+                Span<float> output2 = transformed.PlaneRow(2, 0);
+
+                // Zero and three constant RGB basis fields remain constant under the normalized mirrored blur.
+                // The larger retained allocations give source, blur and output different physical row strides.
+                for (int basis = 0; basis < 4; basis++)
+                {
+                    source0.Fill(untouched);
+                    source1.Fill(untouched);
+                    source2.Fill(untouched);
+                    blurred0.Fill(untouched);
+                    blurred1.Fill(untouched);
+                    blurred2.Fill(untouched);
+                    output0.Fill(untouched);
+                    output1.Fill(untouched);
+                    output2.Fill(untouched);
+                    for (int c = 0; c < 3; c++)
+                    {
+                        Span<float> samples = c == 0 ? source0 : c == 1 ? source1 : source2;
+                        float value = basis == c + 1 ? 0.25F : 0F;
+                        for (int y = 0; y < height; y++)
+                        {
+                            samples.Slice(y * source.PixelsPerRow, width).Fill(value);
+                        }
+                    }
+
+                    float red = (basis == 1 ? 0.25F : 0F) * parameters.IntensityTarget;
+                    float green = (basis == 2 ? 0.25F : 0F) * parameters.IntensityTarget;
+                    float blue = (basis == 3 ? 0.25F : 0F) * parameters.IntensityTarget;
+                    InlineArray3<float> response = default;
+                    for (int c = 0; c < 3; c++)
+                    {
+                        // Evaluate native equations with independent frozen weights and the mathematical logarithm.
+                        // No production opsin helper or output sample contributes to this reference calculation.
+                        float absorbance = float.MultiplyAddEstimate(weights[(c * 4) + 2], blue, weights[(c * 4) + 3]);
+                        absorbance = float.MultiplyAddEstimate(weights[(c * 4) + 1], green, absorbance);
+                        absorbance = float.MultiplyAddEstimate(weights[c * 4], red, absorbance);
+                        float pre = MathF.Max(absorbance, weights[(c * 4) + 3]);
+                        float gamma = float.MultiplyAddEstimate(
+                            19.245013259874995F * 0.6931471805599453F,
+                            MathF.Log2(pre + 9.9710635769299145F),
+                            -23.16046239805755F);
+
+                        float sensitivity = MathF.Max(gamma / pre, 1e-4F);
+                        response[c] = MathF.Max(absorbance * sensitivity, weights[(c * 4) + 3]);
+                    }
+
+                    Assert.True(Butteraugli.OpsinDynamicsImage(configuration, source, parameters, blurred, scratch, transformed));
+                    for (int c = 0; c < 3; c++)
+                    {
+                        float expected = c == 0 ? response[0] - response[1] : c == 1 ? response[0] + response[1] : response[2];
+                        ReadOnlySpan<float> actual = c == 0 ? output0 : c == 1 ? output1 : output2;
+                        for (int y = 0; y < height; y++)
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                Assert.Equal(expected, actual[(y * transformed.PixelsPerRow) + x], responseBound);
+                            }
+                        }
+                    }
+
+                    // Reuse the prepared scratch and source allocation. In-place execution must produce the same samples as disjoint output.
+                    Assert.True(Butteraugli.OpsinDynamicsImage(configuration, source, parameters, blurred, scratch, source));
+                    for (int c = 0; c < 3; c++)
+                    {
+                        ReadOnlySpan<float> input = c == 0 ? source0 : c == 1 ? source1 : source2;
+                        ReadOnlySpan<float> actual = c == 0 ? output0 : c == 1 ? output1 : output2;
+                        ReadOnlySpan<float> smooth = c == 0 ? blurred0 : c == 1 ? blurred1 : blurred2;
+                        for (int i = 0; i < input.Length; i++)
+                        {
+                            int y = i / source.PixelsPerRow;
+                            int x = i % source.PixelsPerRow;
+                            if (y < height && x < width)
+                            {
+                                Assert.Equal(actual[(y * transformed.PixelsPerRow) + x], input[i]);
+                            }
+                            else
+                            {
+                                Assert.Equal(untouched, input[i]);
+                            }
+                        }
+
+                        for (int i = 0; i < actual.Length; i++)
+                        {
+                            if (i / transformed.PixelsPerRow >= height || i % transformed.PixelsPerRow >= width)
+                            {
+                                Assert.Equal(untouched, actual[i]);
+                            }
+                        }
+
+                        for (int i = 0; i < smooth.Length; i++)
+                        {
+                            if (i / blurred.PixelsPerRow >= height || i % blurred.PixelsPerRow >= width)
+                            {
+                                Assert.Equal(untouched, smooth[i]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
 }

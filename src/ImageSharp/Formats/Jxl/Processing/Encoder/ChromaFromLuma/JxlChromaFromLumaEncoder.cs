@@ -31,6 +31,16 @@ internal static class JxlChromaFromLumaEncoder
         return dcValues;
     }
 
+    /// <summary>
+    /// Selects the signed luma-to-chroma multiplier adjustment from observed coefficient pairs.
+    /// </summary>
+    /// <param name="valuesM">The luma-derived multipliers for the observations.</param>
+    /// <param name="valuesS">The chroma values for the observations.</param>
+    /// <param name="num">The number of observations, excluding storage padding.</param>
+    /// <param name="baseValue">The base luma-to-chroma multiplier before the encoded adjustment.</param>
+    /// <param name="distanceMul">The regularization strength for the encoded adjustment.</param>
+    /// <param name="fast">Whether to use the quadratic estimate instead of the iterative loss.</param>
+    /// <returns>The adjustment in [-128,127]. Midpoints round away from zero.</returns>
     public static int FindBestMultiplier(Span<float> valuesM, Span<float> valuesS, int num, float baseValue, float distanceMul, bool fast)
     {
         if (num == 0)
@@ -123,7 +133,8 @@ internal static class JxlChromaFromLumaEncoder
             x = 0;
         }
 
-        return (int)Math.Clamp(MathF.Round(x), -128.0f, 127.0f);
+        // The encoded adjustment uses native std::round midpoint rules. Ties-to-even would choose a different correlation table entry.
+        return (int)Math.Clamp(MathF.Round(x, MidpointRounding.AwayFromZero), -128.0f, 127.0f);
     }
 
     /// <summary>

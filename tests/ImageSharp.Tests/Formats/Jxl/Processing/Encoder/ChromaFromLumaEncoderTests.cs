@@ -13,7 +13,7 @@ public class ChromaFromLumaEncoderTests
     /// Checks logical counts, signed derivatives and scalar tails at every supported vector width.
     /// </summary>
     [Fact]
-    public void CorrelationLoss_UsesEveryLogicalObservation()
+    public void CorrelationSearch_UsesEveryLogicalObservation()
     {
         static void RunTest()
         {
@@ -40,6 +40,18 @@ public class ChromaFromLumaEncoderTests
                     Assert.Equal((float)(sign * length), actual);
                     Assert.Equal((float)(sign * length), plus);
                     Assert.Equal((float)(sign * length), minus);
+                }
+
+                if (length > 0)
+                {
+                    chroma.AsSpan(0, length).Fill(2F);
+
+                    // For a=1 and distance=2, the denominator is 2*num. With base zero, b=-2 gives adjustment 1.
+                    // With base 0.5, b=(0.5*84)-2=40 gives adjustment -20. Both cases have exact sums at these lengths.
+                    JxlCflFunction zeroBase = new(luma, chroma, length, 0F, 2F);
+                    JxlCflFunction nonzeroBase = new(luma, chroma, length, 0.5F, 2F);
+                    Assert.Equal(1F, zeroBase.EstimateMinimum());
+                    Assert.Equal(-20F, nonzeroBase.EstimateMinimum());
                 }
             }
 

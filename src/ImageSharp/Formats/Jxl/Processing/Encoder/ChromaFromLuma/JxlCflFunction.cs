@@ -44,6 +44,97 @@ internal readonly ref struct JxlCflFunction
     }
 
     /// <summary>
+    /// Finds the minimum of the quadratic correlation estimate from one pass over nonempty coefficient pairs.
+    /// </summary>
+    /// <returns>The unrounded adjustment before the search's bias toward zero.</returns>
+    public float EstimateMinimum()
+    {
+        ref float luma = ref MemoryMarshal.GetReference(this.luma);
+        ref float chroma = ref MemoryMarshal.GetReference(this.chroma);
+        float sumSquares = 0F;
+        float sumProducts = 0F;
+        nuint i = 0;
+        nuint length = (nuint)this.luma.Length;
+
+        // The residual is a*x+b, where a=luma/colorFactor and b=base*luma-chroma. Accumulate a*a and a*b
+        // together so coefficient storage is read once. No transformed arrays or separate dot-product passes are needed.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> squares = Vector512<float>.Zero;
+            Vector512<float> products = Vector512<float>.Zero;
+            Vector512<float> inverseFactor = Vector512.Create(InverseColorFactor);
+            Vector512<float> baseValue = Vector512.Create(this.baseMultiplier);
+            nuint end = this.luma.Vector512Count<float>() * (nuint)Vector512<float>.Count;
+
+            for (; i < end; i += (nuint)Vector512<float>.Count)
+            {
+                Vector512<float> value = Vector512.LoadUnsafe(ref luma, i);
+                Vector512<float> a = inverseFactor * value;
+                Vector512<float> b = (baseValue * value) - Vector512.LoadUnsafe(ref chroma, i);
+                squares += a * a;
+                products += a * b;
+            }
+
+            sumSquares += Vector512.Sum(squares);
+            sumProducts += Vector512.Sum(products);
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> squares = Vector256<float>.Zero;
+            Vector256<float> products = Vector256<float>.Zero;
+            Vector256<float> inverseFactor = Vector256.Create(InverseColorFactor);
+            Vector256<float> baseValue = Vector256.Create(this.baseMultiplier);
+            nuint end = this.luma.Vector256Count<float>() * (nuint)Vector256<float>.Count;
+
+            for (; i < end; i += (nuint)Vector256<float>.Count)
+            {
+                Vector256<float> value = Vector256.LoadUnsafe(ref luma, i);
+                Vector256<float> a = inverseFactor * value;
+                Vector256<float> b = (baseValue * value) - Vector256.LoadUnsafe(ref chroma, i);
+                squares += a * a;
+                products += a * b;
+            }
+
+            sumSquares += Vector256.Sum(squares);
+            sumProducts += Vector256.Sum(products);
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> squares = Vector128<float>.Zero;
+            Vector128<float> products = Vector128<float>.Zero;
+            Vector128<float> inverseFactor = Vector128.Create(InverseColorFactor);
+            Vector128<float> baseValue = Vector128.Create(this.baseMultiplier);
+            nuint end = this.luma.Vector128Count<float>() * (nuint)Vector128<float>.Count;
+
+            for (; i < end; i += (nuint)Vector128<float>.Count)
+            {
+                Vector128<float> value = Vector128.LoadUnsafe(ref luma, i);
+                Vector128<float> a = inverseFactor * value;
+                Vector128<float> b = (baseValue * value) - Vector128.LoadUnsafe(ref chroma, i);
+                squares += a * a;
+                products += a * b;
+            }
+
+            sumSquares += Vector128.Sum(squares);
+            sumProducts += Vector128.Sum(products);
+        }
+
+        for (; i < length; i++)
+        {
+            float value = Unsafe.Add(ref luma, i);
+            float a = InverseColorFactor * value;
+            float b = (this.baseMultiplier * value) - Unsafe.Add(ref chroma, i);
+            sumSquares += a * a;
+            sumProducts += a * b;
+        }
+
+        // The fast estimate uses half the per-observation regularization weight in its denominator.
+        return -sumProducts / (sumSquares + (this.luma.Length * this.distanceMultiplier * 0.5F));
+    }
+
+    /// <summary>
     /// Computes the derivative at an adjustment and at its two finite-difference neighbors.
     /// </summary>
     /// <param name="x">The current encoded-adjustment estimate.</param>

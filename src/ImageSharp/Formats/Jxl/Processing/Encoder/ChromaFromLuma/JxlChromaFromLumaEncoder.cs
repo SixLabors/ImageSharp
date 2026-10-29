@@ -48,61 +48,25 @@ internal static class JxlChromaFromLumaEncoder
             return 0;
         }
 
+        JxlCflFunction function = new(valuesM, valuesS, num, baseValue, distanceMul);
         float x;
 
         if (fast)
         {
-            const float inverseColorFactor = 1.0f / JxlChromaFromLuma.DefaultColorFactor;
-
-            Vector<float> ca = Vector<float>.Zero;
-            Vector<float> cb = Vector<float>.Zero;
-            Vector<float> invColorFactor = new(inverseColorFactor);
-            Vector<float> baseV = new(baseValue);
-
-            int i = 0;
-            int lanes = Vector<float>.Count;
-
-            for (; i + lanes <= num; i += lanes)
-            {
-                Vector<float> m = new(valuesM[i..]);
-                Vector<float> s = new(valuesS[i..]);
-
-                Vector<float> a = invColorFactor * m;
-                Vector<float> b = (baseV * m) - s;
-
-                ca += a * a;
-                cb += a * b;
-            }
-
-            float sumCa = Vector.Sum(ca);
-            float sumCb = Vector.Sum(cb);
-
-            for (; i < num; i++)
-            {
-                float m = valuesM[i];
-                float s = valuesS[i];
-                float a = inverseColorFactor * m;
-                float b = (baseValue * m) - s;
-
-                sumCa += a * a;
-                sumCb += a * b;
-            }
-
-            x = -sumCb / (sumCa + (num * distanceMul * 0.5f));
+            x = function.EstimateMinimum();
         }
         else
         {
             const float eps = 100.0f;
             const float clamp = 20.0f;
 
-            JxlCflFunction fn = new(valuesM, valuesS, num, baseValue, distanceMul);
             x = 0;
 
             for (int i = 0; i < 20; i++)
             {
                 float dFPeps = 0;
                 float dFMeps = 0;
-                float dF = fn.Compute(x, eps, ref dFPeps, ref dFMeps);
+                float dF = function.Compute(x, eps, ref dFPeps, ref dFMeps);
 
                 float ddF = (dFPeps - dFMeps) / (2.0f * eps);
                 const float experimentalInsignificantStabilizer = 0.85f;

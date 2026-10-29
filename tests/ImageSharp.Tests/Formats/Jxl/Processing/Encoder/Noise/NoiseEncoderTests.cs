@@ -22,7 +22,7 @@ public class NoiseEncoderTests
     {
         // These intensities produce exact lookup positions or half-way fractions. A flat curve has zero fitting and smoothing error.
         // Its gradient is zero before the first search step, so the optimizer must not divide by the direction's zero length.
-        List<JxlNoiseLevel> measurements =
+        ReadOnlySpan<JxlNoiseLevel> measurements =
         [
             new(noiseLevel, 0F),
             new(noiseLevel, 0.25F),

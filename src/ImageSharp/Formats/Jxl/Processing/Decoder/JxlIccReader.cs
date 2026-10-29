@@ -88,9 +88,9 @@ internal static class JxlIccReader
 
         JxlAnsCode code = new();
         List<byte> contextMap = [];
-        JxlAnsReader.DecodeHistograms(configuration, bitReader, ContextCount, code, ref contextMap, disallowLz77: false);
+        JxlAnsReader.DecodeHistograms(configuration, bitReader, ContextCount, code, ref contextMap, false);
 
-        using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(configuration, code, bitReader, distanceMultiplier: 0);
+        using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(configuration, code, bitReader, 0);
         Span<int> window = reader.Lz77Window;
         ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
 

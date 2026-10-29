@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
@@ -301,6 +302,49 @@ public class FieldsTests
 
         Assert.Equal(valid, JxlF16Coder.Read(reader, ref value));
         Assert.Equal(expectedBits, BitConverter.SingleToUInt32Bits(value));
+    }
+
+    /// <summary>
+    /// Checks nearest rounding and ties-to-even against fixed single- and half-precision bit patterns.
+    /// </summary>
+    /// <param name="sourceBits">The exact single-precision input.</param>
+    /// <param name="expectedBits">The nearest half-precision encoding.</param>
+    [Theory]
+    [InlineData(0x3F801000U, (ushort)0x3C00)]
+    [InlineData(0x3F803000U, (ushort)0x3C02)]
+    [InlineData(0x3F801001U, (ushort)0x3C01)]
+    [InlineData(0xBF801001U, (ushort)0xBC01)]
+    [InlineData(0x33000001U, (ushort)0x0001)]
+    [InlineData(0x80000000U, (ushort)0x8000)]
+    [InlineData(0x477FE000U, (ushort)0x7BFF)]
+    public void WriteF16_RoundsToNearestHalf(uint sourceBits, ushort expectedBits)
+    {
+        // Around 1, halfway mantissas select an even low bit. Just past a midpoint must round toward the nearer value.
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlF16Coder.Write(BitConverter.UInt32BitsToSingle(sourceBits), writer));
+        Assert.Equal(16, writer.BitsWritten);
+        Assert.Equal(expectedBits, BinaryPrimitives.ReadUInt16LittleEndian(output.GetBuffer()));
+    }
+
+    /// <summary>
+    /// Checks that invalid half fields are rejected before any output is written.
+    /// </summary>
+    /// <param name="value">A nonfinite value or a finite value outside the half-precision range.</param>
+    [Theory]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    [InlineData(float.NegativeInfinity)]
+    [InlineData(65505F)]
+    [InlineData(-65505F)]
+    public void WriteF16_RejectsValuesOutsideFiniteRange(float value)
+    {
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.False(JxlF16Coder.Write(value, writer));
+        Assert.Equal(0, writer.BitsWritten);
     }
 
     /// <summary>
@@ -767,8 +811,8 @@ public class FieldsTests
 
         // These values are out of range and cannot be represented
         // by an F16 coder, so they're expected to throw.
-        Assert.Throws<Exception>(() => TestF16Coder(65504.01f));
-        Assert.Throws<Exception>(() => TestF16Coder(-65505.0f));
+        Assert.Throws<InvalidOperationException>(() => TestF16Coder(65504.01f));
+        Assert.Throws<InvalidOperationException>(() => TestF16Coder(-65505.0f));
     }
 
     [Fact]

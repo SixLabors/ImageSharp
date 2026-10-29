@@ -19,20 +19,18 @@ internal static class JxlF16Coder
     public static int MaxEncodedBits() => 16;
 
     /// <summary>
-    /// Returns a boolean indicating whether the input float
-    /// can be represented properly when encoded into a bit-stream.
-    /// Also stores the maximum encodeable bits into encodedBits (which is
-    /// always 16).
+    /// Checks whether a value is finite and within the half-precision range.
     /// </summary>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="encodedBits">The field width, set to 16 even when the value is invalid.</param>
+    /// <returns>Whether the value can be rounded to a finite half without saturation.</returns>
     public static bool CanEncode(float value, ref int encodedBits)
     {
         encodedBits = MaxEncodedBits();
-        if (float.IsNaN(value) || float.IsInfinity(value))
-        {
-            return false; // NaN and Infinity are not valid
-        }
 
-        return MathF.Abs(value) <= 65504.0f;
+        // Use the shared finite-range rules. A changed value is outside the wire field's accepted range;
+        // NaN also fails equality. In-range values, including either signed zero, remain valid.
+        return value == ColorNumerics.ClampToFinite(value, (float)Half.MinValue, (float)Half.MaxValue);
     }
 
     /// <summary>
@@ -56,69 +54,24 @@ internal static class JxlF16Coder
         return true;
     }
 
+    /// <summary>
+    /// Rounds a finite value to the nearest half-precision value and writes its 16-bit field.
+    /// </summary>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <returns>Whether the value is finite and within the half-precision range. Invalid values write no bits.</returns>
+    /// <remarks>Halfway values round to the value with an even low mantissa bit. Signed zero is preserved.</remarks>
     public static bool Write(float value, JxlBitWriter writer)
     {
-        uint bits32 = BitConverter.SingleToUInt32Bits(value);
-
-        uint sign = bits32 >> 31;
-        uint biasedExp32 = (bits32 >> 23) & 0xFF;
-        uint mantissa32 = bits32 & 0x7FFFFF;
-
-        int exp = (int)biasedExp32 - 127;
-        if (exp > 15)
-        {
-            throw new InvalidOperationException("Too big to encode, CanEncode should return false");
-        }
-
-        // Tiny or zero => zero.
-        if (exp < -24)
-        {
-            writer.Write(16, 0);
-            return true;
-        }
-
-        uint biasedExp16 = 0;
-        uint mantissa16 = 0;
-
-        if (exp < -14)
-        {
-            biasedExp16 = 0;
-
-            uint subExp = unchecked((uint)(-14 - exp));
-
-            if (subExp is not (>= 1 and < 11))
-            {
-                return false;
-            }
-
-            mantissa16 = (1u << (int)(10 - subExp)) + (mantissa32 >> (int)(13 + subExp));
-        }
-        else
-        {
-            // exp = [-14, 15]
-            biasedExp16 = unchecked((uint)(exp + 15));
-
-            if (biasedExp16 is not (>= 1 and < 31))
-            {
-                return false;
-            }
-
-            mantissa16 = mantissa32 >> 13;
-        }
-
-        if (mantissa16 >= 1024)
+        int encodedBits = 0;
+        if (!CanEncode(value, ref encodedBits))
         {
             return false;
         }
 
-        uint bits16 = (sign << 15) | (biasedExp16 << 10) | mantissa16;
-
-        if (bits16 >= 0x10000)
-        {
-            return false;
-        }
-
-        writer.Write(16, bits16);
+        // Shared half packing supplies nearest rounding, including subnormal boundaries and signed zero.
+        // The range check excludes values that can produce a nonfinite wire encoding.
+        writer.Write(encodedBits, HalfTypeHelper.Pack(value));
         return true;
     }
 }

@@ -143,7 +143,7 @@ public class AnsCommonTests
     {
         // Both vectors are copied unchanged from libjxl/lib/jxl/icc_codec_test.cc:
         // kEncodedTestProfile and kTestProfile. Neither expectation is produced by this decoder.
-        using MemoryStream input = new(EncodedIccProfile, writable: false);
+        using MemoryStream input = new(EncodedIccProfile, false);
         byte[] decoded = JxlIccReader.Read(Configuration.Default, new JxlBitReader(input));
 
         Assert.True(ExpectedIccProfile.SequenceEqual(decoded));

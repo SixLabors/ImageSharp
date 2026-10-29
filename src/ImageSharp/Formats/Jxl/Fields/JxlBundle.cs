@@ -27,7 +27,7 @@ internal static class JxlBundle
     /// <param name="fields">The JXL fields.</param>
     public static void Init(IJxlFields fields)
     {
-        JxlSetDefaultVisitor initVisitor = new(visitNested: false);
+        JxlSetDefaultVisitor initVisitor = new(false);
 
         if (!initVisitor.Visit(fields))
         {
@@ -41,7 +41,7 @@ internal static class JxlBundle
     /// <param name="fields">The JXL fields.</param>
     public static void SetDefault(IJxlFields fields)
     {
-        JxlSetDefaultVisitor visitor = new(visitNested: true);
+        JxlSetDefaultVisitor visitor = new(true);
 
         if (!visitor.Visit(fields))
         {

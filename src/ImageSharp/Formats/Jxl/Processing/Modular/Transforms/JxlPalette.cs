@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
@@ -228,17 +230,15 @@ internal static class JxlPalette
     }
 
     /// <summary>
-    /// Decodes palette/indexed images.
+    /// Restores palette components from the retained index channel.
     /// </summary>
-    /// <param name="configuration">The configuration used for restored channel samples.</param>
-    /// <param name="input">Input &amp; out images.</param>
-    /// <param name="beginC">Offset of output channel.</param>
-    /// <param name="nbColors">Number of colors.</param>
-    /// <param name="nbDeltas">Number of deltas.</param>
-    /// <param name="predictor">Kind of predictor mode to use.</param>
-    /// <param name="weightedHeader">For weighted prediction.</param>
-    /// <exception cref="InvalidOperationException">Thrown when the input for prediction is invalid.</exception>
-    /// <exception cref="NotImplementedException">Thrown when there are too many channels.</exception>
+    /// <param name="configuration">The configuration that owns restored channel samples and weighted-prediction storage.</param>
+    /// <param name="input">The modular image whose palette and index channel are consumed.</param>
+    /// <param name="beginC">The first restored component, excluding the leading palette metachannel.</param>
+    /// <param name="nbColors">The number of absolute colors declared by the transform. The palette width also includes delta entries.</param>
+    /// <param name="nbDeltas">The explicit delta count. Every smaller index, including a negative index, receives prediction.</param>
+    /// <param name="predictor">The prediction method applied to delta entries.</param>
+    /// <param name="weightedHeader">The settings used when predictor is Weighted.</param>
     public static void InversePalette(
         Configuration configuration,
         JxlModularImage input,
@@ -253,310 +253,399 @@ internal static class JxlPalette
             throw new InvalidOperationException("A palette transform was invoked without a palette");
         }
 
-        int nb = input.Channels[0].Height;
-        int c0 = beginC + 1;
-
-        if (c0 >= input.Channels.Count)
+        int components = input.Channels[0].Height;
+        int firstChannel = beginC + 1;
+        if (firstChannel >= input.Channels.Count)
         {
             throw new InvalidOperationException("Channel is out of range");
         }
 
-        JxlModularChannel channel = input.Channels[c0];
-        int w = channel.Width;
-        int h = channel.Height;
-
-        if (nb < 1)
+        if (components < 1)
         {
             throw new InvalidOperationException("Transforms are corrupted");
         }
 
-        // Each new channel belongs to input as soon as its samples are allocated. A later failure leaves no unattached owner.
-        input.Channels.EnsureCapacity(input.Channels.Count + nb - 1);
+        JxlModularChannel indexChannel = input.Channels[firstChannel];
+        int width = indexChannel.Width;
+        int height = indexChannel.Height;
 
-        for (int i = 1; i < nb; i++)
+        // Reserve references before allocating samples. Each completed channel immediately belongs to input, including on a later failure.
+        input.Channels.EnsureCapacity(input.Channels.Count + components - 1);
+        for (int component = 1; component < components; component++)
         {
-            JxlModularChannel newChannel = new(configuration, w, h, channel.HorizontalShift, channel.VerticalShift);
-            input.Channels.Insert(c0 + 1, newChannel);
+            JxlModularChannel restored = new(configuration, width, height, indexChannel.HorizontalShift, indexChannel.VerticalShift);
+            input.Channels.Insert(firstChannel + 1, restored);
         }
 
         JxlModularChannel palette = input.Channels[0];
-
-        int oneRow = palette.Plane.PixelsPerRow;
-        int bitDepth = Math.Min(input.BitDepth, 24);
-        Span<int> paletteData = palette.GetRow(0);
-
-        if (w == 0)
+        if (width != 0)
         {
-            // Channel is empty. Don't do anything.
-        }
-        else if (nbDeltas == 0 && predictor == JxlPredictor.Zero)
-        {
-            if (nb == 1)
-            {
-                Span<int> channel0Samples = channel.GetRow(0);
-                int channel0Stride = channel.Plane.PixelsPerRow;
+            ReadOnlySpan<int> paletteSamples = palette.GetRow(0);
+            ReadOnlySpan<int> indices = indexChannel.GetRow(0);
+            int paletteStride = palette.Plane.PixelsPerRow;
+            int indexStride = indexChannel.Plane.PixelsPerRow;
+            int bitDepth = Math.Min(input.BitDepth, 24);
 
-                for (int y = 0; y < h; y++)
-                {
-                    Span<int> p = channel0Samples[(y * channel0Stride)..];
+            // Retain the native one-component shortcut when an explicit table exists. An empty table has no endpoint to clamp to;
+            // its entries use the general implicit-color rules. Multi-component and predictive transforms retain their complete signed indices.
+            bool clampIndices = components == 1 && nbDeltas == 0 && predictor == JxlPredictor.Zero && palette.Width != 0;
 
-                    for (int x = 0; x < w; x++)
-                    {
-                        int index = Math.Clamp(p[x], 0, palette.Width - 1);
-
-                        p[x] = GetPaletteValue(paletteData, index, 0, palette.Width, oneRow, bitDepth);
-                    }
-                }
-            }
-            else if (nb == 2)
-            {
-                Span<int> channel0Samples = channel.GetRow(0);
-                int channel0Stride = channel.Plane.PixelsPerRow;
-                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
-                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
-
-                for (int y = 0; y < h; y++)
-                {
-                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
-                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
-
-                    for (int x = 0; x < w; x++)
-                    {
-                        int index0 = Math.Clamp(p0[x], 0, palette.Width - 1);
-                        int index1 = Math.Clamp(p1[x], 0, palette.Width - 1);
-
-                        p0[x] = GetPaletteValue(paletteData, index0, 0, palette.Width, oneRow, bitDepth);
-                        p1[x] = GetPaletteValue(paletteData, index1, 0, palette.Width, oneRow, bitDepth);
-                    }
-                }
-            }
-            else if (nb == 3)
-            {
-                Span<int> channel0Samples = channel.GetRow(0);
-                int channel0Stride = channel.Plane.PixelsPerRow;
-                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
-                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
-                Span<int> channel2Samples = input.Channels[c0 + 2].GetRow(0);
-                int channel2Stride = input.Channels[c0 + 2].Plane.PixelsPerRow;
-
-                for (int y = 0; y < h; y++)
-                {
-                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
-                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
-                    Span<int> p2 = channel2Samples[(y * channel2Stride)..];
-
-                    for (int x = 0; x < w; x++)
-                    {
-                        int index0 = Math.Clamp(p0[x], 0, palette.Width - 1);
-                        int index1 = Math.Clamp(p1[x], 0, palette.Width - 1);
-                        int index2 = Math.Clamp(p2[x], 0, palette.Width - 1);
-
-                        p0[x] = GetPaletteValue(paletteData, index0, 0, palette.Width, oneRow, bitDepth);
-                        p1[x] = GetPaletteValue(paletteData, index1, 0, palette.Width, oneRow, bitDepth);
-                        p2[x] = GetPaletteValue(paletteData, index2, 0, palette.Width, oneRow, bitDepth);
-                    }
-                }
-            }
-            else if (nb == 4)
-            {
-                Span<int> channel0Samples = channel.GetRow(0);
-                int channel0Stride = channel.Plane.PixelsPerRow;
-                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
-                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
-                Span<int> channel2Samples = input.Channels[c0 + 2].GetRow(0);
-                int channel2Stride = input.Channels[c0 + 2].Plane.PixelsPerRow;
-                Span<int> channel3Samples = input.Channels[c0 + 3].GetRow(0);
-                int channel3Stride = input.Channels[c0 + 3].Plane.PixelsPerRow;
-
-                for (int y = 0; y < h; y++)
-                {
-                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
-                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
-                    Span<int> p2 = channel2Samples[(y * channel2Stride)..];
-                    Span<int> p3 = channel3Samples[(y * channel3Stride)..];
-
-                    for (int x = 0; x < w; x++)
-                    {
-                        int index0 = Math.Clamp(p0[x], 0, palette.Width - 1);
-                        int index1 = Math.Clamp(p1[x], 0, palette.Width - 1);
-                        int index2 = Math.Clamp(p2[x], 0, palette.Width - 1);
-                        int index3 = Math.Clamp(p3[x], 0, palette.Width - 1);
-
-                        p0[x] = GetPaletteValue(paletteData, index0, 0, palette.Width, oneRow, bitDepth);
-                        p1[x] = GetPaletteValue(paletteData, index1, 0, palette.Width, oneRow, bitDepth);
-                        p2[x] = GetPaletteValue(paletteData, index2, 0, palette.Width, oneRow, bitDepth);
-                        p3[x] = GetPaletteValue(paletteData, index3, 0, palette.Width, oneRow, bitDepth);
-                    }
-                }
-            }
-            else if (nb == 5)
-            {
-                Span<int> channel0Samples = channel.GetRow(0);
-                int channel0Stride = channel.Plane.PixelsPerRow;
-                Span<int> channel1Samples = input.Channels[c0 + 1].GetRow(0);
-                int channel1Stride = input.Channels[c0 + 1].Plane.PixelsPerRow;
-                Span<int> channel2Samples = input.Channels[c0 + 2].GetRow(0);
-                int channel2Stride = input.Channels[c0 + 2].Plane.PixelsPerRow;
-                Span<int> channel3Samples = input.Channels[c0 + 3].GetRow(0);
-                int channel3Stride = input.Channels[c0 + 3].Plane.PixelsPerRow;
-                Span<int> channel4Samples = input.Channels[c0 + 4].GetRow(0);
-                int channel4Stride = input.Channels[c0 + 4].Plane.PixelsPerRow;
-
-                for (int y = 0; y < h; y++)
-                {
-                    Span<int> p0 = channel0Samples[(y * channel0Stride)..];
-                    Span<int> p1 = channel1Samples[(y * channel1Stride)..];
-                    Span<int> p2 = channel2Samples[(y * channel2Stride)..];
-                    Span<int> p3 = channel3Samples[(y * channel3Stride)..];
-                    Span<int> p4 = channel4Samples[(y * channel4Stride)..];
-
-                    for (int x = 0; x < w; x++)
-                    {
-                        int index0 = Math.Clamp(p0[x], 0, palette.Width - 1);
-                        int index1 = Math.Clamp(p1[x], 0, palette.Width - 1);
-                        int index2 = Math.Clamp(p2[x], 0, palette.Width - 1);
-                        int index3 = Math.Clamp(p3[x], 0, palette.Width - 1);
-                        int index4 = Math.Clamp(p4[x], 0, palette.Width - 1);
-
-                        p0[x] = GetPaletteValue(paletteData, index0, 0, palette.Width, oneRow, bitDepth);
-                        p1[x] = GetPaletteValue(paletteData, index1, 0, palette.Width, oneRow, bitDepth);
-                        p2[x] = GetPaletteValue(paletteData, index2, 0, palette.Width, oneRow, bitDepth);
-                        p3[x] = GetPaletteValue(paletteData, index3, 0, palette.Width, oneRow, bitDepth);
-                        p4[x] = GetPaletteValue(paletteData, index4, 0, palette.Width, oneRow, bitDepth);
-                    }
-                }
-            }
-            else
-            {
-                throw new NotImplementedException($"Too many channels for palette compressed images: {nb}");
-            }
-        }
-        else
-        {
-            JxlPlane<int> plane = input.Channels[c0].Plane;
-            using JxlPlane<int> indices = new(configuration, plane.XSize, plane.YSize);
-
-            // Keep the original index samples separate from reconstructed output. The channel retains its plane wrapper;
-            // the scoped temporary receives the old index allocation and releases it after every output channel has read it.
-            plane.Swap(indices);
-
-            Span<int> indexSamples = indices.GetRow(0);
-            int indexStride = indices.PixelsPerRow;
-
-            // Read each output stride after the swap. The original indices can retain wider storage from a metadata shrink.
             if (predictor == JxlPredictor.Weighted)
             {
-                using JxlModularState wpState = new(configuration, weightedHeader, indices.XSize, 1);
+                using JxlModularState weightedState = new(configuration, weightedHeader, width, 1);
 
-                for (int c = 0; c < nb; c++)
+                // Components have independent prediction histories. Reconstruct component zero last so every other component
+                // finishes reading the original index plane before its samples are replaced. No separate index image is needed.
+                for (int component = components - 1; component >= 0; component--)
                 {
-                    JxlModularChannel outputChannel = input.Channels[c0 + c];
-                    int oneRowImage = outputChannel.Plane.PixelsPerRow;
-                    Span<int> outputSamples = outputChannel.GetRow(0);
-                    Span<uint> weightedStorage = wpState.Reset(weightedHeader, outputChannel.Width);
+                    JxlModularChannel output = input.Channels[firstChannel + component];
+                    Span<int> outputSamples = output.GetRow(0);
+                    int outputStride = output.Plane.PixelsPerRow;
+                    Span<uint> weightedStorage = weightedState.Reset(weightedHeader, width);
 
-                    for (int y = 0; y < outputChannel.Height; y++)
+                    for (int y = 0; y < height; y++)
                     {
-                        Span<int> p = outputSamples[(y * oneRowImage)..];
-                        Span<int> idx = indexSamples[(y * indexStride)..];
+                        ReadOnlySpan<int> indexRow = indices.Slice(y * indexStride, width);
+                        Span<int> outputRow = outputSamples.Slice(y * outputStride, width);
 
-                        for (int x = 0; x < outputChannel.Width; x++)
+                        for (int x = 0; x < width;)
                         {
-                            int index = idx[x];
-                            int value = 0;
-                            int paletteEntry = GetPaletteValue(paletteData, index, c, palette.Width, oneRow, bitDepth);
-                            JxlPredictionResult pred = JxlContextPrediction.PredictNoTreeWeightedPrediction(
-                                outputChannel.Width,
-                                ref p[x],
-                                oneRowImage,
-                                x,
-                                y,
-                                predictor,
-                                wpState,
-                                weightedStorage,
-                                0);
+                            int count = ExpandPaletteBlock(
+                                indexRow[x..],
+                                outputRow[x..],
+                                paletteSamples,
+                                component,
+                                palette.Width,
+                                paletteStride,
+                                bitDepth,
+                                nbDeltas,
+                                clampIndices,
+                                out uint deltaMask);
 
-                            if (index < nbDeltas)
+                            // Gather independent palette values first. Prediction then runs left to right because each sample uses restored neighbors.
+                            // The mask retains the original index test even when component zero has overwritten that block of indices.
+                            for (int lane = 0; lane < count; lane++)
                             {
-                                value = pred.Guess + paletteEntry;
-                            }
-                            else
-                            {
-                                value = paletteEntry;
+                                int sampleX = x + lane;
+                                JxlPredictionResult prediction = JxlContextPrediction.PredictNoTreeWeightedPrediction(
+                                    width, ref outputRow[sampleX], outputStride, sampleX, y, predictor, weightedState, weightedStorage, 0);
+
+                                if ((deltaMask & (1U << lane)) != 0)
+                                {
+                                    outputRow[sampleX] = unchecked(outputRow[sampleX] + prediction.Guess);
+                                }
+
+                                // Absolute palette entries also update the weighted history. Skipping them changes later delta predictions.
+                                weightedState.UpdatePredictionErrors(outputRow[sampleX], sampleX, y, weightedStorage, 0);
                             }
 
-                            p[x] = value;
-                            wpState.UpdatePredictionErrors(p[x], x, y, weightedStorage, 0);
+                            x += count;
                         }
                     }
                 }
             }
             else
             {
-                for (int c = 0; c < nb; c++)
+                // Use the same descending ownership order for zero and fixed prediction. Component zero consumes each index before replacing it.
+                for (int component = components - 1; component >= 0; component--)
                 {
-                    JxlModularChannel outputChannel = input.Channels[c0 + c];
-                    int oneRowImage = outputChannel.Plane.PixelsPerRow;
-                    Span<int> outputSamples = outputChannel.GetRow(0);
+                    JxlModularChannel output = input.Channels[firstChannel + component];
+                    Span<int> outputSamples = output.GetRow(0);
+                    int outputStride = output.Plane.PixelsPerRow;
 
-                    for (int y = 0; y < outputChannel.Height; y++)
+                    for (int y = 0; y < height; y++)
                     {
-                        Span<int> p = outputSamples[(y * oneRowImage)..];
-                        Span<int> idx = indexSamples[(y * indexStride)..];
+                        ReadOnlySpan<int> indexRow = indices.Slice(y * indexStride, width);
+                        Span<int> outputRow = outputSamples.Slice(y * outputStride, width);
 
-                        for (int x = 0; x < outputChannel.Width; x++)
+                        for (int x = 0; x < width;)
                         {
-                            int index = idx[x];
-                            int value = 0;
-                            int paletteEntry = GetPaletteValue(paletteData, index, c, palette.Width, oneRow, bitDepth);
+                            int count = ExpandPaletteBlock(
+                                indexRow[x..],
+                                outputRow[x..],
+                                paletteSamples,
+                                component,
+                                palette.Width,
+                                paletteStride,
+                                bitDepth,
+                                nbDeltas,
+                                clampIndices,
+                                out uint deltaMask);
 
-                            if (index < nbDeltas)
+                            if (predictor != JxlPredictor.Zero)
                             {
-                                JxlPredictionResult pred = JxlContextPrediction.PredictNoTreeNoWeightedPrediction(
-                                    outputChannel.Width,
-                                    p[x..],
-                                    oneRowImage,
-                                    x,
-                                    y,
-                                    predictor);
+                                for (int lane = 0; lane < count; lane++)
+                                {
+                                    if ((deltaMask & (1U << lane)) != 0)
+                                    {
+                                        int sampleX = x + lane;
+                                        JxlPredictionResult prediction = JxlContextPrediction.PredictNoTreeNoWeightedPrediction(
+                                            width, ref outputRow[sampleX], outputStride, sampleX, y, predictor);
 
-                                value = pred.Guess + paletteEntry;
-                            }
-                            else
-                            {
-                                value = paletteEntry;
+                                        outputRow[sampleX] = unchecked(outputRow[sampleX] + prediction.Guess);
+                                    }
+                                }
                             }
 
-                            p[x] = value;
+                            x += count;
                         }
                     }
                 }
             }
         }
 
-        if (c0 >= input.MetaChannels)
+        if (firstChannel >= input.MetaChannels)
         {
             input.MetaChannels--;
         }
         else
         {
-            if (input.MetaChannels < 2 - nb)
+            if (input.MetaChannels < 2 - components)
             {
                 throw new InvalidOperationException("Too many meta channels");
             }
 
-            input.MetaChannels -= 2 - nb;
-
-            if (beginC + nb - 1 >= input.MetaChannels)
+            input.MetaChannels -= 2 - components;
+            if (beginC + components - 1 >= input.MetaChannels)
             {
                 throw new InvalidOperationException("Too many meta channels");
             }
-
         }
 
-        // Both normal-channel and metachannel palettes consume the leading palette after its final read.
+        // The palette remains owned and readable until every restored component has consumed it.
         palette.Dispose();
         input.Channels.RemoveAt(0);
+    }
+
+    /// <summary>
+    /// Expands one complete SIMD block or one scalar remainder and retains its original predictive-delta decisions.
+    /// </summary>
+    /// <param name="indices">The remaining index samples in the row.</param>
+    /// <param name="destination">The equally positioned output, which can begin at the same address as indices.</param>
+    /// <param name="palette">The complete palette storage, including component rows and padding.</param>
+    /// <param name="component">The palette component to restore.</param>
+    /// <param name="paletteSize">The logical explicit table width, including explicit delta entries.</param>
+    /// <param name="paletteStride">The distance between component rows, in integers.</param>
+    /// <param name="bitDepth">The implicit-color precision, capped to 24 bits by the caller.</param>
+    /// <param name="deltaCount">The threshold below which entries receive prediction.</param>
+    /// <param name="clampIndices">Whether to retain the nonempty one-component compatibility shortcut.</param>
+    /// <param name="deltaMask">One bit per written sample whose original index is below deltaCount.</param>
+    /// <returns>The number of expanded samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ExpandPaletteBlock(
+        ReadOnlySpan<int> indices,
+        Span<int> destination,
+        ReadOnlySpan<int> palette,
+        int component,
+        int paletteSize,
+        int paletteStride,
+        int bitDepth,
+        int deltaCount,
+        bool clampIndices,
+        out uint deltaMask)
+    {
+        ref int input = ref MemoryMarshal.GetReference(indices);
+        ref int output = ref MemoryMarshal.GetReference(destination);
+
+        // Load the complete index register and its delta mask before storing. This permits exact in-place expansion of component zero.
+        if (Vector512.IsHardwareAccelerated && indices.Length >= Vector512<int>.Count)
+        {
+            Vector512<int> index = Vector512.LoadUnsafe(ref input);
+            deltaMask = (uint)Vector512.ExtractMostSignificantBits(Vector512.LessThan(index, Vector512.Create(deltaCount)));
+            if (clampIndices)
+            {
+                index = Vector512.Clamp(index, Vector512<int>.Zero, Vector512.Create(paletteSize - 1));
+            }
+
+            GetPaletteValue(palette, index, component, paletteSize, paletteStride, bitDepth).StoreUnsafe(ref output);
+            return Vector512<int>.Count;
+        }
+
+        if (Vector256.IsHardwareAccelerated && indices.Length >= Vector256<int>.Count)
+        {
+            Vector256<int> index = Vector256.LoadUnsafe(ref input);
+            deltaMask = Vector256.ExtractMostSignificantBits(Vector256.LessThan(index, Vector256.Create(deltaCount)));
+            if (clampIndices)
+            {
+                index = Vector256.Clamp(index, Vector256<int>.Zero, Vector256.Create(paletteSize - 1));
+            }
+
+            GetPaletteValue(palette, index, component, paletteSize, paletteStride, bitDepth).StoreUnsafe(ref output);
+            return Vector256<int>.Count;
+        }
+
+        if (Vector128.IsHardwareAccelerated && indices.Length >= Vector128<int>.Count)
+        {
+            Vector128<int> index = Vector128.LoadUnsafe(ref input);
+            deltaMask = Vector128.ExtractMostSignificantBits(Vector128.LessThan(index, Vector128.Create(deltaCount)));
+            if (clampIndices)
+            {
+                index = Vector128.Clamp(index, Vector128<int>.Zero, Vector128.Create(paletteSize - 1));
+            }
+
+            GetPaletteValue(palette, index, component, paletteSize, paletteStride, bitDepth).StoreUnsafe(ref output);
+            return Vector128<int>.Count;
+        }
+
+        int scalarIndex = input;
+        deltaMask = scalarIndex < deltaCount ? 1U : 0U;
+        if (clampIndices)
+        {
+            scalarIndex = Math.Clamp(scalarIndex, 0, paletteSize - 1);
+        }
+
+        output = GetPaletteValue(palette, scalarIndex, component, paletteSize, paletteStride, bitDepth);
+        return 1;
+    }
+
+    /// <summary>
+    /// Resolves 4 explicit or implicit palette values without changing lane order.
+    /// </summary>
+    /// <param name="palette">The complete borrowed palette storage.</param>
+    /// <param name="indices">The original signed palette indices.</param>
+    /// <param name="component">The component to restore.</param>
+    /// <param name="paletteSize">The explicit table width, excluding padding.</param>
+    /// <param name="paletteStride">The distance between palette component rows, in integers.</param>
+    /// <param name="bitDepth">The implicit-color precision, capped to 24 bits.</param>
+    /// <returns>The resolved values. Negative indices and implicit cubes use the scalar format rules.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> GetPaletteValue(
+        ReadOnlySpan<int> palette,
+        Vector128<int> indices,
+        int component,
+        int paletteSize,
+        int paletteStride,
+        int bitDepth)
+    {
+        // An unsigned comparison excludes negative indices as well as the implicit cubes beyond the explicit table.
+        Vector128<int> explicitMask = Vector128.LessThan(indices.AsUInt32(), Vector128.Create((uint)paletteSize)).AsInt32();
+        Vector128<int> values = Vector128<int>.Zero;
+        if (paletteSize != 0)
+        {
+            ref int table = ref Unsafe.Add(ref MemoryMarshal.GetReference(palette), component * paletteStride);
+
+            // Every gather address must be valid, including lanes later replaced by implicit values. Entry zero exists only in a nonempty table.
+            Vector128<int> safeIndices = Vector128.ConditionalSelect(explicitMask, indices, Vector128<int>.Zero);
+            values = Vector128_.Gather(ref table, safeIndices);
+        }
+
+        if (component >= RgbChannels)
+        {
+            // Implicit colors and deltas define only three components. Extra components keep explicit entries and otherwise become zero.
+            return Vector128.ConditionalSelect(explicitMask, values, Vector128<int>.Zero);
+        }
+
+        uint implicitMask = ~Vector128.ExtractMostSignificantBits(explicitMask) & ((1U << Vector128<int>.Count) - 1);
+        while (implicitMask != 0)
+        {
+            // Resolve only exceptional lanes. Keep their original indices; the safe gather indices are not color-clipping decisions.
+            int lane = BitOperations.TrailingZeroCount(implicitMask);
+            int value = GetPaletteValue(palette, indices.GetElement(lane), component, paletteSize, paletteStride, bitDepth);
+            values = values.WithElement(lane, value);
+            implicitMask &= implicitMask - 1;
+        }
+
+        return values;
+    }
+
+    /// <summary>
+    /// Resolves 8 explicit or implicit palette values without changing lane order.
+    /// </summary>
+    /// <param name="palette">The complete borrowed palette storage.</param>
+    /// <param name="indices">The original signed palette indices.</param>
+    /// <param name="component">The component to restore.</param>
+    /// <param name="paletteSize">The explicit table width, excluding padding.</param>
+    /// <param name="paletteStride">The distance between palette component rows, in integers.</param>
+    /// <param name="bitDepth">The implicit-color precision, capped to 24 bits.</param>
+    /// <returns>The resolved values. Negative indices and implicit cubes use the scalar format rules.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<int> GetPaletteValue(
+        ReadOnlySpan<int> palette,
+        Vector256<int> indices,
+        int component,
+        int paletteSize,
+        int paletteStride,
+        int bitDepth)
+    {
+        // An unsigned comparison excludes negative indices as well as the implicit cubes beyond the explicit table.
+        Vector256<int> explicitMask = Vector256.LessThan(indices.AsUInt32(), Vector256.Create((uint)paletteSize)).AsInt32();
+        Vector256<int> values = Vector256<int>.Zero;
+        if (paletteSize != 0)
+        {
+            ref int table = ref Unsafe.Add(ref MemoryMarshal.GetReference(palette), component * paletteStride);
+
+            // Every gather address must be valid, including lanes later replaced by implicit values. Entry zero exists only in a nonempty table.
+            Vector256<int> safeIndices = Vector256.ConditionalSelect(explicitMask, indices, Vector256<int>.Zero);
+            values = Vector256_.Gather(ref table, safeIndices);
+        }
+
+        if (component >= RgbChannels)
+        {
+            // Implicit colors and deltas define only three components. Extra components keep explicit entries and otherwise become zero.
+            return Vector256.ConditionalSelect(explicitMask, values, Vector256<int>.Zero);
+        }
+
+        uint implicitMask = ~Vector256.ExtractMostSignificantBits(explicitMask) & ((1U << Vector256<int>.Count) - 1);
+        while (implicitMask != 0)
+        {
+            // Resolve only exceptional lanes. Keep their original indices; the safe gather indices are not color-clipping decisions.
+            int lane = BitOperations.TrailingZeroCount(implicitMask);
+            int value = GetPaletteValue(palette, indices.GetElement(lane), component, paletteSize, paletteStride, bitDepth);
+            values = values.WithElement(lane, value);
+            implicitMask &= implicitMask - 1;
+        }
+
+        return values;
+    }
+
+    /// <summary>
+    /// Resolves 16 explicit or implicit palette values without changing lane order.
+    /// </summary>
+    /// <param name="palette">The complete borrowed palette storage.</param>
+    /// <param name="indices">The original signed palette indices.</param>
+    /// <param name="component">The component to restore.</param>
+    /// <param name="paletteSize">The explicit table width, excluding padding.</param>
+    /// <param name="paletteStride">The distance between palette component rows, in integers.</param>
+    /// <param name="bitDepth">The implicit-color precision, capped to 24 bits.</param>
+    /// <returns>The resolved values. Negative indices and implicit cubes use the scalar format rules.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<int> GetPaletteValue(
+        ReadOnlySpan<int> palette,
+        Vector512<int> indices,
+        int component,
+        int paletteSize,
+        int paletteStride,
+        int bitDepth)
+    {
+        // An unsigned comparison excludes negative indices as well as the implicit cubes beyond the explicit table.
+        Vector512<int> explicitMask = Vector512.LessThan(indices.AsUInt32(), Vector512.Create((uint)paletteSize)).AsInt32();
+        Vector512<int> values = Vector512<int>.Zero;
+        if (paletteSize != 0)
+        {
+            ref int table = ref Unsafe.Add(ref MemoryMarshal.GetReference(palette), component * paletteStride);
+
+            // Every gather address must be valid, including lanes later replaced by implicit values. Entry zero exists only in a nonempty table.
+            Vector512<int> safeIndices = Vector512.ConditionalSelect(explicitMask, indices, Vector512<int>.Zero);
+            values = Vector512_.Gather(ref table, safeIndices);
+        }
+
+        if (component >= RgbChannels)
+        {
+            // Implicit colors and deltas define only three components. Extra components keep explicit entries and otherwise become zero.
+            return Vector512.ConditionalSelect(explicitMask, values, Vector512<int>.Zero);
+        }
+
+        uint implicitMask = ~(uint)Vector512.ExtractMostSignificantBits(explicitMask) & ((1U << Vector512<int>.Count) - 1);
+        while (implicitMask != 0)
+        {
+            // Resolve only exceptional lanes. Keep their original indices; the safe gather indices are not color-clipping decisions.
+            int lane = BitOperations.TrailingZeroCount(implicitMask);
+            int value = GetPaletteValue(palette, indices.GetElement(lane), component, paletteSize, paletteStride, bitDepth);
+            values = values.WithElement(lane, value);
+            implicitMask &= implicitMask - 1;
+        }
+
+        return values;
     }
 
     /// <summary>

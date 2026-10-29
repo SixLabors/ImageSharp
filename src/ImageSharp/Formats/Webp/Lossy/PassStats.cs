@@ -16,7 +16,7 @@ internal class PassStats
         this.Dq = 10.0f;
         this.Qmin = qMin;
         this.Qmax = qMax;
-        this.Q = Numerics.Clamp(quality, qMin, qMax);
+        this.Q = ColorNumerics.ClampToFinite(quality, qMin, qMax);
         this.LastQ = this.Q;
         this.Target = doSizeSearch ? targetSize
             : targetPsnr > 0.0f ? targetPsnr
@@ -65,10 +65,10 @@ internal class PassStats
         }
 
         // Limit variable to avoid large swings.
-        this.Dq = Numerics.Clamp(dq, -30.0f, 30.0f);
+        this.Dq = ColorNumerics.ClampToFinite(dq, -30.0f, 30.0f);
         this.LastQ = this.Q;
         this.LastValue = this.Value;
-        this.Q = Numerics.Clamp(this.Q + this.Dq, this.Qmin, this.Qmax);
+        this.Q = ColorNumerics.ClampToFinite(this.Q + this.Dq, this.Qmin, this.Qmax);
 
         return this.Q;
     }

@@ -22,7 +22,10 @@ internal sealed class JxlAnsCode
 
     public int MaxNumBits { get; set; }
 
-    public JxlAnsEntry[]? AliasTables { get; set; }
+    /// <summary>
+    /// Gets or sets the ANS lookup tables. Prefix-coded streams do not use these tables.
+    /// </summary>
+    public JxlAnsEntry[] AliasTables { get; set; } = [];
 
     public void UpdateMaxNumBits(int ctx, int symbol)
     {

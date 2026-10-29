@@ -43,7 +43,7 @@ internal class HorizontalChromaUpsamplingStage : RenderPipelineStageBase
             Vector<float> left = (oneFour * prev) + current;
             Vector<float> right = (oneFour * next) + current;
 
-            JxlSimdUtils.StoreInterleaved(left, right, ref Unsafe.Add(ref rRowOut, x * 2));
+            SimdUtils.Interleave2(left, right, ref Unsafe.Add(ref rRowOut, x * 2));
         }
     }
 

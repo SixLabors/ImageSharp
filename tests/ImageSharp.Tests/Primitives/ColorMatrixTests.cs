@@ -142,14 +142,33 @@ public class ColorMatrixTests
 
         CultureInfo ci = CultureInfo.CurrentCulture;
 
-#pragma warning disable SA1117 // Parameters should be on same line or separate lines
-        string expected = string.Format(ci, "{{ {{M11:{0} M12:{1} M13:{2} M14:{3}}} {{M21:{4} M22:{5} M23:{6} M24:{7}}} {{M31:{8} M32:{9} M33:{10} M34:{11}}} {{M41:{12} M42:{13} M43:{14} M44:{15}}} {{M51:{16} M52:{17} M53:{18} M54:{19}}} }}",
-            m.M11.ToString(ci), m.M12.ToString(ci), m.M13.ToString(ci), m.M14.ToString(ci),
-            m.M21.ToString(ci), m.M22.ToString(ci), m.M23.ToString(ci), m.M24.ToString(ci),
-            m.M31.ToString(ci), m.M32.ToString(ci), m.M33.ToString(ci), m.M34.ToString(ci),
-            m.M41.ToString(ci), m.M42.ToString(ci), m.M43.ToString(ci), m.M44.ToString(ci),
-            m.M51.ToString(ci), m.M52.ToString(ci), m.M53.ToString(ci), m.M54.ToString(ci));
-#pragma warning restore SA1117 // Parameters should be on same line or separate lines
+        const string format =
+            "{{ {{M11:{0} M12:{1} M13:{2} M14:{3}}} {{M21:{4} M22:{5} M23:{6} M24:{7}}} {{M31:{8} M32:{9} M33:{10} M34:{11}}} {{M41:{12} M42:{13} " +
+            "M43:{14} M44:{15}}} {{M51:{16} M52:{17} M53:{18} M54:{19}}} }}";
+
+        string expected = string.Format(
+            ci,
+            format,
+            m.M11.ToString(ci),
+            m.M12.ToString(ci),
+            m.M13.ToString(ci),
+            m.M14.ToString(ci),
+            m.M21.ToString(ci),
+            m.M22.ToString(ci),
+            m.M23.ToString(ci),
+            m.M24.ToString(ci),
+            m.M31.ToString(ci),
+            m.M32.ToString(ci),
+            m.M33.ToString(ci),
+            m.M34.ToString(ci),
+            m.M41.ToString(ci),
+            m.M42.ToString(ci),
+            m.M43.ToString(ci),
+            m.M44.ToString(ci),
+            m.M51.ToString(ci),
+            m.M52.ToString(ci),
+            m.M53.ToString(ci),
+            m.M54.ToString(ci));
 
         Assert.Equal(expected, m.ToString());
     }

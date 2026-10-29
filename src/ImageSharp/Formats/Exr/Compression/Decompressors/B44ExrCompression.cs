@@ -39,7 +39,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
     }
 
     /// <inheritdoc/>
-    public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
+    public override void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
         Span<ushort> outputBuffer = MemoryMarshal.Cast<byte, ushort>(buffer);
         Span<ushort> decompressed = this.tmpBuffer.GetSpan();

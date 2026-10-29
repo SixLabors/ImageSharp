@@ -13,6 +13,11 @@ internal sealed class JxlYCbCrChromaSubsampling : IJxlFields
 {
     private readonly int[] channelMode = new int[3];
 
+    /// <summary>
+    /// Initializes three full-resolution channels and their derived sampling shifts.
+    /// </summary>
+    public JxlYCbCrChromaSubsampling() => JxlBundle.Init(this);
+
     private static ReadOnlySpan<byte> HShiftData => [0, 1, 1, 0];
 
     private static ReadOnlySpan<byte> VShiftData => [0, 1, 0, 1];
@@ -125,6 +130,7 @@ internal sealed class JxlYCbCrChromaSubsampling : IJxlFields
         }
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
         for (int i = 0; i < 3; i++)
@@ -141,6 +147,9 @@ internal sealed class JxlYCbCrChromaSubsampling : IJxlFields
 
             this.channelMode[i] = (int)unsignedChannel;
         }
+
+        // The frame dimensions use these maxima. Recompute them after reading or resetting the serialized channel modes.
+        this.Recompute();
 
         return true;
     }

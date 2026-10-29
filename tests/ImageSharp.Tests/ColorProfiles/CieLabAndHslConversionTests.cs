@@ -10,7 +10,8 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// </summary>
 public class CieLabAndHslConversionTests
 {
-    private static readonly ApproximateColorProfileComparer Comparer = new(.0002f);
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
 
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
@@ -32,11 +33,11 @@ public class CieLabAndHslConversionTests
         converter.Convert<Hsl, CieLab>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], CompandingComparer);
         }
     }
 
@@ -60,11 +61,11 @@ public class CieLabAndHslConversionTests
         converter.Convert<CieLab, Hsl>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], CompandingComparer);
         }
     }
 }

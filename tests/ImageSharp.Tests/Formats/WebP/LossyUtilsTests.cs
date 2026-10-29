@@ -87,6 +87,7 @@ public class LossyUtilsTests
             a[i] = (byte)rand.Next(byte.MaxValue);
             b[i] = (byte)rand.Next(byte.MaxValue);
         }
+
         int[] expected = [2533110, 2818581, 2984663, 2891188, 2855134, 2634604, 2466504, 3061747, 2626010, 2640965];
 
         // act + assert
@@ -111,6 +112,7 @@ public class LossyUtilsTests
             a[i] = (byte)rand.Next(byte.MaxValue);
             b[i] = (byte)rand.Next(byte.MaxValue);
         }
+
         int[] expected = [1298274, 1234836, 1325264, 1493317, 1551995, 1432668, 1407891, 1483297, 1537930, 1317204];
 
         // act + assert
@@ -135,6 +137,7 @@ public class LossyUtilsTests
             a[i] = (byte)rand.Next(byte.MaxValue);
             b[i] = (byte)rand.Next(byte.MaxValue);
         }
+
         int[] expected = [194133, 125861, 165966, 195688, 106491, 173015, 266960, 200272, 311224, 122545];
 
         // act + assert

@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -18,7 +17,7 @@ public partial struct Bgra32
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Bgra32>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Bgra32>
     {
         /// <inheritdoc />
         public override void FromBgra32(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Bgra32> destination)
@@ -38,40 +37,6 @@ public partial struct Bgra32
             source.CopyTo(destination.Slice(0, source.Length));
         }
 
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<Bgra32> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
-
-            destination = destination[..sourceVectors.Length];
-            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers.Remove(PixelConversionModifiers.Scale));
-
-            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
-
-            // The SIMD saturating conversion produces RGBA byte order. Reusing the destination
-            // buffer and shuffling it in place avoids the row-sized Rgba32 temporary used by
-            // the generic Rgba-compatible path for non-Rgba32 formats.
-            SimdUtils.NormalizedFloatToByteSaturate(
-                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                destinationBytes);
-            PixelConverter.FromRgba32.ToBgra32(destinationBytes, destinationBytes);
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<Bgra32> source,
-            Span<Vector4> destination,
-            PixelConversionModifiers modifiers)
-        {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(PixelConversionModifiers.Scale));
-        }
-    
         /// <inheritdoc />
         public override void ToRgba32(
             Configuration configuration,
@@ -85,7 +50,7 @@ public partial struct Bgra32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
             PixelConverter.FromBgra32.ToRgba32(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromRgba32(
             Configuration configuration,
@@ -98,8 +63,8 @@ public partial struct Bgra32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Rgba32, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromRgba32.ToBgra32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToArgb32(
             Configuration configuration,
@@ -113,7 +78,7 @@ public partial struct Bgra32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Argb32, byte>(destination);
             PixelConverter.FromBgra32.ToArgb32(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromArgb32(
             Configuration configuration,
@@ -126,8 +91,8 @@ public partial struct Bgra32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Argb32, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromArgb32.ToBgra32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToAbgr32(
             Configuration configuration,
@@ -141,7 +106,7 @@ public partial struct Bgra32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Abgr32, byte>(destination);
             PixelConverter.FromBgra32.ToAbgr32(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromAbgr32(
             Configuration configuration,
@@ -154,8 +119,8 @@ public partial struct Bgra32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Abgr32, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromAbgr32.ToBgra32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToRgb24(
             Configuration configuration,
@@ -169,7 +134,7 @@ public partial struct Bgra32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgb24, byte>(destination);
             PixelConverter.FromBgra32.ToRgb24(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromRgb24(
             Configuration configuration,
@@ -182,8 +147,8 @@ public partial struct Bgra32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Rgb24, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromRgb24.ToBgra32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToBgr24(
             Configuration configuration,
@@ -197,7 +162,7 @@ public partial struct Bgra32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgr24, byte>(destination);
             PixelConverter.FromBgra32.ToBgr24(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromBgr24(
             Configuration configuration,
@@ -210,7 +175,7 @@ public partial struct Bgra32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgr24, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromBgr24.ToBgra32(sourceBytes, destinationBytes);
-        }        
+        }
 
         /// <inheritdoc />
         public override void ToL8(
@@ -339,12 +304,12 @@ public partial struct Bgra32
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<Bgra32> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToBgra32(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToBgra32(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

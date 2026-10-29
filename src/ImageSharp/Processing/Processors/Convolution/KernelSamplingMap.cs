@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -117,8 +118,8 @@ internal sealed class KernelSamplingMap : IDisposable
             switch (borderMode)
             {
                 case BorderWrappingMode.Repeat:
-                    Numerics.Clamp(span[..affectedSize], min, max);
-                    Numerics.Clamp(span[^affectedSize..], min, max);
+                    TensorPrimitives.Clamp(span[..affectedSize], min, max, span[..affectedSize]);
+                    TensorPrimitives.Clamp(span[^affectedSize..], min, max, span[^affectedSize..]);
                     break;
                 case BorderWrappingMode.Mirror:
                     int min2dec = min + min - 1;
@@ -195,7 +196,7 @@ internal sealed class KernelSamplingMap : IDisposable
         switch (borderMode)
         {
             case BorderWrappingMode.Repeat:
-                Numerics.Clamp(span, min, max);
+                TensorPrimitives.Clamp(span, min, max, span);
                 break;
 
             case BorderWrappingMode.Mirror:

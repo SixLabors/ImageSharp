@@ -5,7 +5,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 
 internal class JpegFrameConfig
 {
-    public JpegFrameConfig(JpegColorSpace colorType, JpegColorType encodingColor, JpegComponentConfig[] components, JpegHuffmanTableConfig[] huffmanTables, JpegQuantizationTableConfig[] quantTables)
+    public JpegFrameConfig(
+        JpegColorSpace colorType,
+        JpegColorType encodingColor,
+        JpegComponentConfig[] components,
+        JpegHuffmanTableConfig[] huffmanTables,
+        JpegQuantizationTableConfig[] quantTables)
     {
         this.ColorType = colorType;
         this.EncodingColor = encodingColor;

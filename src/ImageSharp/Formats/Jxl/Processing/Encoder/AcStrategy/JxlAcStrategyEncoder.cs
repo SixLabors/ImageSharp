@@ -656,6 +656,24 @@ internal static class JxlAcStrategyEncoder
         return true;
     }
 
+    /// <summary>
+    /// Compares a square transform with its horizontal and vertical divisions and updates the selected strategies.
+    /// </summary>
+    /// <param name="blocks">The square's side length in eight-pixel blocks.</param>
+    /// <param name="allowSquareTransform">Whether the full square transform is a candidate.</param>
+    /// <param name="bx">The search rectangle's first block column.</param>
+    /// <param name="by">The search rectangle's first block row.</param>
+    /// <param name="cx">The square's block column within the search rectangle.</param>
+    /// <param name="cy">The square's block row within the search rectangle.</param>
+    /// <param name="config">The borrowed source views, matrices and search weights.</param>
+    /// <param name="cmapFactors">The three channel correlation factors.</param>
+    /// <param name="acStrategy">The selected strategies to update.</param>
+    /// <param name="entropyMulJXK">The existing entropy multiplier for divided candidates.</param>
+    /// <param name="entropyMulJXJ">The existing entropy multiplier for the square candidate.</param>
+    /// <param name="entropyEstimate">The rectangle's reusable per-block entropy estimates.</param>
+    /// <param name="block">The borrowed candidate coefficient storage.</param>
+    /// <param name="scratchSpace">The borrowed reconstruction-error and transform workspace.</param>
+    /// <returns>Whether every required entropy estimate and strategy update succeeded.</returns>
     public static bool FindBestFirstLevelDivisionForSquare(
         int blocks,
         bool allowSquareTransform,
@@ -670,8 +688,7 @@ internal static class JxlAcStrategyEncoder
         float entropyMulJXJ,
         Span<float> entropyEstimate,
         Span<float> block,
-        Span<float> scratchSpace,
-        ref int quantized)
+        Span<float> scratchSpace)
     {
         int blocksHalf = blocks / 2;
         JxlAcStrategyType acsRawJXK = AcsVerticalSplit(blocks);
@@ -864,16 +881,28 @@ internal static class JxlAcStrategyEncoder
         return true;
     }
 
+    /// <summary>
+    /// Selects transform strategies for one rectangle using floating-point entropy and reconstruction estimates.
+    /// </summary>
+    /// <param name="cparams">The fixed compression settings.</param>
+    /// <param name="config">The borrowed source views, matrices and search weights.</param>
+    /// <param name="rect">The rectangle in block coordinates, at most eight by eight blocks.</param>
+    /// <param name="cmap">The frame's color-correlation maps.</param>
+    /// <param name="block">The borrowed float allocation: three coefficient regions followed by error and transform scratch.</param>
+    /// <param name="acStrategy">The destination strategy image.</param>
+    /// <returns>Whether all strategy updates succeeded.</returns>
     public static bool ProcessAcStrategyRectangle(
         JxlCompressionParameters cparams,
         JxlAcStrategyConfiguration config,
         Rectangle rect,
         JxlColorCorrelationMap cmap,
         Span<float> block,
-        ref int quantized,
         JxlAcStrategyImage acStrategy)
     {
         float butteraugliTarget = cparams.ButteraugliDistance;
+
+        // EstimateEntropy places rounded coefficients in float vectors. It needs no separate integer coefficient buffer.
+        // The first three maximum-area regions hold channel coefficients; the remaining regions hold error and transform scratch.
         Span<float> scratchSpace = block[(3 * JxlAcStrategy.MaximumCoefficientArea)..];
         int bx = rect.X0();
         int by = rect.Y0();
@@ -887,9 +916,9 @@ internal static class JxlAcStrategyEncoder
         int ty = by / JxlChromaFromLuma.ColorTileDimensionInBlocks;
 
         InlineArray3<float> cmapFactors = default;
-        cmapFactors[0] = cmap.Base.YToXRatio(cmap.YToXMap!.GetRow(ty)[tx]);
+        cmapFactors[0] = cmap.Base.YToXRatio(cmap.YToXMap.GetRow(ty)[tx]);
         cmapFactors[1] = 0f;
-        cmapFactors[2] = cmap.Base.YToBRatio(cmap.YToBMap!.GetRow(ty)[tx]);
+        cmapFactors[2] = cmap.Base.YToBRatio(cmap.YToBMap.GetRow(ty)[tx]);
 
         if (cparams.SpeedTier > JxlSpeedTier.Hare)
         {
@@ -915,10 +944,8 @@ internal static class JxlAcStrategyEncoder
                     butteraugliTarget,
                     config,
                     cmapFactors,
-                    acStrategy,
                     block,
                     scratchSpace,
-                    quantized,
                     out float entropy,
                     out JxlAcStrategyType bestOf8x8s);
 
@@ -988,8 +1015,7 @@ internal static class JxlAcStrategyEncoder
                                     entropy_mul64X64,
                                     entropyEstimate,
                                     block,
-                                    scratchSpace,
-                                    ref quantized))
+                                    scratchSpace))
                                 {
                                     return false;
                                 }
@@ -1028,8 +1054,7 @@ internal static class JxlAcStrategyEncoder
                                     entropy_mul32X32,
                                     entropyEstimate,
                                     block,
-                                    scratchSpace,
-                                    ref quantized))
+                                    scratchSpace))
                                 {
                                     return false;
                                 }
@@ -1069,8 +1094,7 @@ internal static class JxlAcStrategyEncoder
                                     entropy_mul16X16,
                                     entropyEstimate,
                                     block,
-                                    scratchSpace,
-                                    ref quantized))
+                                    scratchSpace))
                                 {
                                     return false;
                                 }
@@ -1137,8 +1161,7 @@ internal static class JxlAcStrategyEncoder
                         entropy_mul16X16,
                         entropyEstimate,
                         block,
-                        scratchSpace,
-                        ref quantized))
+                        scratchSpace))
                     {
                         return false;
                     }
@@ -1171,8 +1194,7 @@ internal static class JxlAcStrategyEncoder
                     entropy_mul32X32,
                     entropyEstimate,
                     block,
-                    scratchSpace,
-                    ref quantized))
+                    scratchSpace))
                 {
                     return false;
                 }

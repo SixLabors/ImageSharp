@@ -80,12 +80,12 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     internal abstract void Accept(IImageFrameVisitor visitor);
 
     /// <summary>
-    /// Copies the pixel data of the image frame to a <see cref="Buffer2D{TDestinationPixel}"/> of a specific pixel type.
+    /// Copies the pixel data of the image frame to a <see cref="Buffer2D{TPixelTo}"/> of a specific pixel type.
     /// </summary>
-    /// <typeparam name="TDestinationPixel">The pixel type of the destination buffer.</typeparam>
+    /// <typeparam name="TPixelTo">The pixel type of the destination buffer.</typeparam>
     /// <param name="destination">The buffer to copy the pixel data to.</param>
-    internal abstract void CopyPixelsTo<TDestinationPixel>(Buffer2D<TDestinationPixel> destination)
-        where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>;
+    internal abstract void CopyPixelsTo<TPixelTo>(Buffer2D<TPixelTo> destination)
+        where TPixelTo : unmanaged, IPixel<TPixelTo>;
 
     /// <summary>
     /// Updates the size of the image frame after mutation.

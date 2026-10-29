@@ -164,7 +164,7 @@ internal sealed partial class IccDataWriter
             count += this.WriteUInt32((uint)value.CurveData.Length);
             for (int i = 0; i < value.CurveData.Length; i++)
             {
-                count += this.WriteUInt16((ushort)Numerics.Clamp((value.CurveData[i] * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
+                count += this.WriteUInt16((ushort)ColorNumerics.ClampToFinite((value.CurveData[i] * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
             }
         }
 

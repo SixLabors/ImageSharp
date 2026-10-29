@@ -36,6 +36,18 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     /// <param name="vector">The vector containing the component values.</param>
     public Rgba1010102(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgba1010102"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Bits 0-9 store red, bits 10-19 store green, bits 20-29 store blue, and bits 30-31 store alpha.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgba1010102(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
 
@@ -62,6 +74,21 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     public static bool operator !=(Rgba1010102 left, Rgba1010102 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Rgba1010102 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgba1010102 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgba1010102 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgba1010102 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
@@ -82,6 +109,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
         => PixelTypeInfo.Create<Rgba1010102>(
             PixelComponentInfo.Create<Rgba1010102>(4, 10, 10, 10, 2),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -115,10 +143,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba1010102 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -207,7 +232,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Multiplier;
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One) * Multiplier;
 
         return (uint)(
             (((int)Math.Round(vector.X) & 0x03FF) << 0)

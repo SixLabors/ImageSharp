@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
@@ -126,7 +125,7 @@ internal static class JxlGroupDecoder
 
     private static bool DecodeGroupCore(
         JxlFrameHeader frameHeader,
-        JxlGetBlock getBlock,
+        IJxlGetBlock getBlock,
         JxlGroupDecoderCache groupDecCache,
         JxlPassesDecoderContext decState,
         int thread,
@@ -278,8 +277,8 @@ internal static class JxlGroupDecoder
 
             JxlAcStrategyRow acsRow = acStrategy.GetRow(blockRect, by);
 
-            ReadOnlySpan<sbyte> rowCMap0 = decState.Shared.ColorMap.YToXMap!.GetRow(ty);
-            ReadOnlySpan<sbyte> rowCMap2 = decState.Shared.ColorMap.YToBMap!.GetRow(ty);
+            ReadOnlySpan<sbyte> rowCMap0 = decState.Shared.ColorMap.YToXMap.GetRow(ty);
+            ReadOnlySpan<sbyte> rowCMap2 = decState.Shared.ColorMap.YToBMap.GetRow(ty);
 
             Span<float> idctRow0;
             Span<float> idctRow1;
@@ -397,7 +396,7 @@ internal static class JxlGroupDecoder
                         }
                     }
 
-                    if (!getBlock.LoadBlock(bx, by, acs, size, log2CoveredBlocks, qblock0, qblock1, qblock2, acType))
+                    if (!getBlock.TryLoadBlock(bx, by, acs, size, log2CoveredBlocks, qblock0, qblock1, qblock2, acType))
                     {
                         return false;
                     }
@@ -541,7 +540,7 @@ internal static class JxlGroupDecoder
         ReadOnlySpan<int> qfRow,
         JxlBlockContextMap blockCtxMap,
         JxlDctAcPointer block,
-        int shift = 0)
+        int shift)
     {
         // Equal to number of LLF coefficients.
         int coveredBlocks = 1 << log2CoveredBlocks;
@@ -553,9 +552,12 @@ internal static class JxlGroupDecoder
 
         int blockCtx = blockCtxMap.Context(qdcRow[lbx], (uint)qfRow[bx], ord, c);
         int nzeroCtx = blockCtxMap.NonZeroContext(predictedNzeros, blockCtx) + ctxOffset;
-        int nzeros = decoder.ReadHybridUintInlined(usesLz77, nzeroCtx, br, contextMap);
 
-        if (nzeros > size - coveredBlocks)
+        // Borrow history once for this block. Every coefficient advances the same pass reader.
+        Span<int> window = decoder.Lz77Window;
+        int nzeros = decoder.ReadHybridUInt(usesLz77, nzeroCtx, br, contextMap, window);
+
+        if ((uint)nzeros > (uint)(size - coveredBlocks))
         {
             return false;
         }
@@ -583,14 +585,10 @@ internal static class JxlGroupDecoder
                     log2CoveredBlocks,
                     prev);
 
-            int uCoeff = decoder.ReadHybridUintInlined(usesLz77, ctx, br, contextMap);
+            int uCoeff = decoder.ReadHybridUInt(usesLz77, ctx, br, contextMap, window);
 
-            // Hand-rolled version of UnpackSigned, shifting before conversion
-            // to signed integer to avoid undefined behavior.
-            int magnitude = uCoeff >> 1;
-            int negSign = (~uCoeff) & 1;
-
-            int coeff = (magnitude ^ (negSign - 1)) << shift;
+            // Interpret the complete unsigned code before applying the progressive pass's coefficient shift.
+            int coeff = JxlPackSigned.UnpackSigned((uint)uCoeff) << shift;
 
             if (acType == JxlDctAcType.Ac16)
             {
@@ -613,7 +611,26 @@ internal static class JxlGroupDecoder
         return true;
     }
 
+    /// <summary>
+    /// Decodes the requested coefficient passes and draws the group when the frame settings require it.
+    /// </summary>
+    /// <param name="configuration">The configuration whose allocator owns entropy histories.</param>
+    /// <param name="frameHeader">The parsed frame and pass settings.</param>
+    /// <param name="readers">One bit reader per requested pass.</param>
+    /// <param name="numPasses">The number of passes to decode.</param>
+    /// <param name="groupIndex">The frame's group index.</param>
+    /// <param name="decState">The owner of frame tables and reconstructed coefficients.</param>
+    /// <param name="groupDecCache">The reusable coefficient and transform workspace.</param>
+    /// <param name="thread">The existing render-workspace index.</param>
+    /// <param name="renderPipelineInput">The destination group buffers.</param>
+    /// <param name="jpegData">The JPEG reconstruction destination, when requested.</param>
+    /// <param name="firstPass">The first frame pass to decode.</param>
+    /// <param name="forceDraw">Whether to draw before the last pass.</param>
+    /// <param name="dcOnly">Whether this request contains only DC data.</param>
+    /// <param name="shouldRunPipeline">Whether the decoded group requires rendering.</param>
+    /// <returns>Whether coefficient decoding and entropy-state checks succeeded.</returns>
     public static bool DecodeGroup(
+        Configuration configuration,
         JxlFrameHeader frameHeader,
         JxlBitReader[] readers,
         int numPasses,
@@ -628,7 +645,7 @@ internal static class JxlGroupDecoder
         bool dcOnly,
         ref bool shouldRunPipeline)
     {
-        bool draw = numPasses + firstPass == frameHeader.Passes.NumPasses || forceDraw;
+        bool draw = numPasses + firstPass == frameHeader.Passes.NumberOfPasses || forceDraw;
 
         shouldRunPipeline = draw;
 
@@ -698,7 +715,7 @@ internal static class JxlGroupDecoder
                 JxlRenderPipelineBuffer buffer = renderPipelineInput.GetBuffer(c);
 
                 Rectangle dstRect = buffer.Bounds;
-                JxlImageF upsamplingDst = buffer.Image;
+                JxlPlane<float> upsamplingDst = buffer.Image;
 
                 if (!dstRect.IsInside(upsamplingDst.GetRectangle()))
                 {
@@ -769,31 +786,23 @@ internal static class JxlGroupDecoder
 
         Rectangle blockGroupRect = decState.Shared.FrameDimensions.BlockGroupRect(groupIndex);
 
-        JxlBitStreamBlockLoader getBlock = new();
-
-        if (!getBlock.Init(
-            frameHeader,
-            readers,
-            numPasses,
-            groupIndex,
-            histogramSelectorBits,
-            blockGroupRect,
-            decState,
-            firstPass))
+        // The group owns its entropy readers. Dispose them on all exits, including partial initialization.
+        using JxlBitStreamBlockLoader getBlock = new(frameHeader, decState, groupDecCache, readers, firstPass, numPasses, blockGroupRect);
+        if (!getBlock.Init(configuration, histogramSelectorBits, decState.Shared.NumHistograms))
         {
             return false;
         }
 
         if (!DecodeGroupCore(
             frameHeader,
-            ref getBlock,
+            getBlock,
             groupDecCache,
             decState,
             thread,
             groupIndex,
             renderPipelineInput,
             jpegData,
-            draw))
+            draw ? JxlDrawMode.Draw : JxlDrawMode.DoNotDraw))
         {
             return false;
         }
@@ -832,13 +841,13 @@ internal static class JxlGroupDecoder
 
         return DecodeGroupCore(
             frameHeader,
-            ref getBlock,
+            getBlock,
             groupDecCache,
             decState,
             thread,
             groupIndex,
             renderPipelineInput,
             jpegData,
-            true);
+            JxlDrawMode.Draw);
     }
 }

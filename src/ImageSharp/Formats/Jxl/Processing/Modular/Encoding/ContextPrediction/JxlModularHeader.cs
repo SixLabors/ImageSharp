@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
@@ -22,6 +21,11 @@ internal sealed class JxlModularHeader : IJxlFields
     private int p3Cd;
     private int p3Ce;
     private InlineArray4<uint> w;
+
+    /// <summary>
+    /// Initializes the weighted-prediction coefficients to their serialized defaults.
+    /// </summary>
+    public JxlModularHeader() => JxlBundle.Init(this);
 
     /// <summary>
     /// Gets or sets a value indicating whether all values are default.
@@ -101,6 +105,7 @@ internal sealed class JxlModularHeader : IJxlFields
     /// <returns>Reference to w</returns>
     public Span<uint> GetW() => this.w;
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor v)
     {
         if (v.AllDefault(this, ref this.allDefault))
@@ -126,10 +131,18 @@ internal sealed class JxlModularHeader : IJxlFields
 
         return true;
 
-        bool VisitP(int value, ref int p)
+        // Coefficients use unsigned five-bit fields. Keep the wire local separate from the signed predictor coefficient.
+        bool VisitP(int defaultValue, ref int coefficient)
         {
-            ref uint unsignedP = ref Unsafe.As<int, uint>(ref p);
-            return v.Bits(5, (uint)value, ref unsignedP);
+            uint value = (uint)coefficient;
+
+            if (!v.Bits(5, (uint)defaultValue, ref value))
+            {
+                return false;
+            }
+
+            coefficient = (int)value;
+            return true;
         }
     }
 }

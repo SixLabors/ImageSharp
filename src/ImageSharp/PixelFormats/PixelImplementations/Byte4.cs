@@ -38,6 +38,18 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// </param>
     public Byte4(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Byte4"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Unsigned X, Y, Z, and W codes occupy consecutive eight-bit fields, from least to most significant.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Byte4(uint packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
 
@@ -64,6 +76,21 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     public static bool operator !=(Byte4 left, Byte4 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Byte4 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Byte4 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Byte4 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Byte4 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32 ToRgba32() => new() { PackedValue = this.PackedValue };
 
@@ -84,6 +111,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
         => PixelTypeInfo.Create<Byte4>(
             PixelComponentInfo.Create<Byte4>(4, 8, 8, 8, 8),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -113,7 +141,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
         Vector4 vector = this.ToAssociatedScaledVector4();
 
         // Native components use [0, 255], so association occurs in scaled [0, 1] space before mapping the result back.
-        return vector * MaxBytes;
+        return Vector4.MultiplyAddEstimate(vector, MaxBytes, Vector4.Zero);
     }
 
     /// <inheritdoc />
@@ -123,10 +151,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Byte4 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -225,7 +250,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         uint byte4 = (uint)Math.Round(vector.X) & 0xFF;
         uint byte3 = ((uint)Math.Round(vector.Y) & 0xFF) << 0x8;

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -8,7 +9,6 @@ using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -225,7 +225,7 @@ internal static class JxlAdaptiveQuantization
         return scalarSumY + outVal;
     }
 
-    private static Vector<float> HfModulationVectorized(int x, int y, JxlImageF xybY, Rectangle rect, Vector<float> outVal)
+    private static Vector<float> HfModulationVectorized(int x, int y, JxlPlane<float> xybY, Rectangle rect, Vector<float> outVal)
     {
         const float valueMinY = 0.0206f;
         const float mulY = -0.38f;
@@ -267,7 +267,7 @@ internal static class JxlAdaptiveQuantization
         return new Vector<float>(scalarSumY) + outVal;
     }
 
-    public static Vector<float> HfModulation(int x, int y, JxlImageF xybY, Rectangle rect, Vector<float> outVal)
+    public static Vector<float> HfModulation(int x, int y, JxlPlane<float> xybY, Rectangle rect, Vector<float> outVal)
     {
         if (Vector<float>.Count == 1)
         {
@@ -285,7 +285,15 @@ internal static class JxlAdaptiveQuantization
         }
     }
 
-    private static void PerBlockModulations(float butteraugliTarget, JxlPlane<float> xybX, JxlPlane<float> xybY, JxlPlane<float> xybB, Rectangle rectIn, float scale, Rectangle rectOut, JxlImageF output)
+    private static void PerBlockModulations(
+        float butteraugliTarget,
+        JxlPlane<float> xybX,
+        JxlPlane<float> xybY,
+        JxlPlane<float> xybB,
+        Rectangle rectIn,
+        float scale,
+        Rectangle rectOut,
+        JxlPlane<float> output)
     {
         float baseLevel = 0.48f * scale;
 
@@ -376,7 +384,7 @@ internal static class JxlAdaptiveQuantization
     // Look for smooth areas near the area of degradation.
     // If the areas are generally smooth, don't do masking.
     // Output is downsampled by 2x.
-    public static bool FuzzyErosion(float butteraugliTarget, Rectangle fromRect, JxlImageF from, Rectangle toRect, JxlImageF to)
+    public static bool FuzzyErosion(float butteraugliTarget, Rectangle fromRect, JxlPlane<float> from, Rectangle toRect, JxlPlane<float> to)
     {
         int width = from.XSize;
         int height = from.YSize;
@@ -494,7 +502,7 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    private static void Blur1x1Masking(Configuration configuration, ref JxlImageF mask1x1, Rectangle rect)
+    private static void Blur1x1Masking(Configuration configuration, JxlPlane<float> mask1x1, Rectangle rect)
     {
         const float filterMask1x1_0 = 0.364911248f;
         const float filterMask1x1_1 = 0.05f;
@@ -522,17 +530,35 @@ internal static class JxlAdaptiveQuantization
         weights.D2 = JxlWeightsSymmetric5.CreateVector4(normalize * filterMask1x1_4);
         weights.L = JxlWeightsSymmetric5.CreateVector4(normalize * filterMask1x1_3);
 
-        JxlImageF temp = new(configuration, rect.Width, rect.Height);
+        using JxlPlane<float> temp = new(configuration, rect.Width, rect.Height);
 
         if (!JxlConvolve.Symmetric5(mask1x1, in rect, ref weights, temp, temp.GetRectangle()))
         {
             throw new InvalidOperationException("Symmetric5 convolution failed");
         }
 
-        mask1x1 = temp;
+        mask1x1.Swap(temp);
     }
 
-    public static JxlImageF AdaptiveQuantizationMap(Configuration configuration, float butteraugliTarget, JxlImageF xyb, Rectangle rect, float scale, out JxlImageF mask, out JxlImageF mask1x1)
+    /// <summary>
+    /// Computes the block quantization map and masking planes with reusable tile scratch storage.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns the allocator.</param>
+    /// <param name="butteraugliTarget">The requested perceptual error target.</param>
+    /// <param name="xyb">The source XYB planes.</param>
+    /// <param name="rect">The source region with dimensions divisible by eight.</param>
+    /// <param name="scale">The quantization scale.</param>
+    /// <param name="mask">The returned block masking plane.</param>
+    /// <param name="mask1x1">The returned full-resolution masking plane.</param>
+    /// <returns>The owned block quantization map. The caller owns all three output planes.</returns>
+    public static JxlPlane<float> AdaptiveQuantizationMap(
+        Configuration configuration,
+        float butteraugliTarget,
+        JxlImage3<float> xyb,
+        Rectangle rect,
+        float scale,
+        out JxlPlane<float> mask,
+        out JxlPlane<float> mask1x1)
     {
         if ((rect.Width & 7) != 0)
         {
@@ -544,57 +570,72 @@ internal static class JxlAdaptiveQuantization
             throw new ArgumentException("Rectangle height must be divisible by 8", nameof(rect));
         }
 
-        AdaptiveQuantizationInternal impl = new();
-
         int xSizeBlocks = rect.Width / 8;
         int ySizeBlocks = rect.Height / 8;
+        JxlPlane<float> quantizationMap = new(configuration, xSizeBlocks, ySizeBlocks);
+        JxlPlane<float>? allocatedMask = null;
+        JxlPlane<float>? allocatedMask1x1 = null;
 
-        impl.AdaptiveQuantizationMap = new JxlImageF(configuration, xSizeBlocks, ySizeBlocks);
-        mask = new JxlImageF(configuration, xSizeBlocks, ySizeBlocks);
-        mask1x1 = new JxlImageF(configuration, xyb.XSize, xyb.YSize);
-
-        // out variables cannot be captured in a local function
-        JxlImageF maskRef = mask;
-        JxlImageF mask1x1Ref = mask1x1;
-
-        impl.InitializeBuffer(configuration);
-
-        void ProcessTile(int idx)
+        try
         {
+            allocatedMask = new(configuration, xSizeBlocks, ySizeBlocks);
+            allocatedMask1x1 = new(configuration, xyb.XSize, xyb.YSize);
+            mask = allocatedMask;
+            mask1x1 = allocatedMask1x1;
+
+            using AdaptiveQuantizationInternal impl = new(configuration, quantizationMap);
             int numTilesX = JxlMath.DivCeil(xSizeBlocks, JxlEncoderParameters.TileDimensionsInBlocks);
+            int numTilesY = JxlMath.DivCeil(ySizeBlocks, JxlEncoderParameters.TileDimensionsInBlocks);
 
-            int tx = (int)(idx % (uint)numTilesX);
-            int ty = (int)(idx / (uint)numTilesX);
-
-            int by0 = ty * JxlEncoderParameters.TileDimensionsInBlocks;
-            int by1 = Math.Min((ty + 1) * JxlEncoderParameters.TileDimensionsInBlocks, ySizeBlocks);
-
-            int bx0 = tx * JxlEncoderParameters.TileDimensionsInBlocks;
-            int bx1 = Math.Min((tx + 1) * JxlEncoderParameters.TileDimensionsInBlocks, xSizeBlocks);
-
-            Rectangle rectOut = new(bx0, by0, bx1 - bx0, by1 - by0);
-
-            if (!impl.TryComputeTile(butteraugliTarget, scale, xyb, rect, rectOut, idx, maskRef, mask1x1Ref))
+            // Tiles run sequentially and reuse one difference row and one erosion plane.
+            // Tile coordinates select the output region; they never select a scratch allocation.
+            for (int ty = 0; ty < numTilesY; ty++)
             {
-                throw new InvalidOperationException("Couldn't process tile");
+                int by0 = ty * JxlEncoderParameters.TileDimensionsInBlocks;
+                int by1 = Math.Min(by0 + JxlEncoderParameters.TileDimensionsInBlocks, ySizeBlocks);
+
+                for (int tx = 0; tx < numTilesX; tx++)
+                {
+                    int bx0 = tx * JxlEncoderParameters.TileDimensionsInBlocks;
+                    int bx1 = Math.Min(bx0 + JxlEncoderParameters.TileDimensionsInBlocks, xSizeBlocks);
+                    Rectangle rectOut = new(bx0, by0, bx1 - bx0, by1 - by0);
+
+                    if (!impl.TryComputeTile(butteraugliTarget, scale, xyb, rect, rectOut, mask, mask1x1))
+                    {
+                        throw new InvalidOperationException("Could not process the quantization tile.");
+                    }
+                }
             }
+
+            Blur1x1Masking(configuration, mask1x1, rect);
+            return quantizationMap;
         }
-
-        int numTiles = JxlMath.DivCeil(xSizeBlocks, JxlEncoderParameters.TileDimensionsInBlocks) *
-                       JxlMath.DivCeil(ySizeBlocks, JxlEncoderParameters.TileDimensionsInBlocks);
-
-        _ = Parallel.For(0, numTiles, configuration.GetParallelOptions(), ProcessTile);
-        Blur1x1Masking(configuration, ref mask1x1, rect);
-
-        return impl.AdaptiveQuantizationMap!;
+        catch
+        {
+            // Output ownership transfers only on success. Nullable locals record which allocations
+            // completed, so an allocation or transform failure releases every acquired output.
+            allocatedMask1x1?.Dispose();
+            allocatedMask?.Dispose();
+            quantizationMap.Dispose();
+            throw;
+        }
     }
 
-    private static JxlImageF TileDistMap(Configuration configuration, JxlImageF distMap, int tileSize, int margin, JxlAcStrategyImage acStrategy)
+    /// <summary>
+    /// Writes one perceptual error per transform block into reusable search storage.
+    /// </summary>
+    /// <param name="distMap">The full-resolution perceptual differences.</param>
+    /// <param name="tileSize">The pixel width and height of one quantization block.</param>
+    /// <param name="margin">The additional sampled pixels around each transform.</param>
+    /// <param name="acStrategy">The selected transforms and their covered blocks.</param>
+    /// <param name="tileDistMap">The preallocated per-block result.</param>
+    private static void TileDistMap(JxlPlane<float> distMap, int tileSize, int margin, JxlAcStrategyImage acStrategy, JxlPlane<float> tileDistMap)
     {
-        int tileXSize = (distMap.XSize + tileSize - 1) / tileSize;
-        int tileYSize = (distMap.YSize + tileSize - 1) / tileSize;
-
-        JxlImageF tileDistMap = new(configuration, tileXSize, tileYSize);
+        int tileXSize = tileDistMap.XSize;
+        int tileYSize = tileDistMap.YSize;
+        ReadOnlySpan<float> differences = distMap.GetRow(0);
+        Span<float> tileDifferences = tileDistMap.GetRow(0);
+        ReadOnlySpan<byte> strategies = acStrategy.GetRows();
 
         const float borderMul = 0.98f;
         const float cornerMul = 0.7f;
@@ -602,8 +643,7 @@ internal static class JxlAdaptiveQuantization
 
         for (int tileY = 0; tileY < tileYSize; tileY++)
         {
-            JxlAcStrategyRow acStrategyRow = acStrategy.GetRow(tileY);
-            Span<float> distRow = tileDistMap.GetRow(tileY);
+            JxlAcStrategyRow acStrategyRow = new(strategies.Slice(tileY * acStrategy.PixelsPerRow, acStrategy.XSize));
 
             for (int tileX = 0; tileX < tileXSize; tileX++)
             {
@@ -635,7 +675,7 @@ internal static class JxlAdaptiveQuantization
                         yMul = borderMul;
                     }
 
-                    ReadOnlySpan<float> row = distMap.GetRow(y);
+                    ReadOnlySpan<float> row = differences[(y * distMap.PixelsPerRow)..];
 
                     for (int x = xBegin; x < xEnd; x++)
                     {
@@ -672,28 +712,31 @@ internal static class JxlAdaptiveQuantization
 
                 float tileDist = tileNorm * MathF.Pow((float)(distNorm / pixels), 1.0f / 16.0f);
 
-                distRow[tileX] = tileDist;
-
+                // All blocks of a multi-block transform share its error. Slice the existing result span rather than reacquiring row memory.
                 for (int iy = 0; iy < acs.CoveredBlocksY; iy++)
                 {
-                    for (int ix = 0; ix < acs.CoveredBlocksX; ix++)
-                    {
-                        tileDistMap.GetRow(tileY + iy)[tileX + ix] = tileDist;
-                    }
+                    tileDifferences.Slice(((tileY + iy) * tileDistMap.PixelsPerRow) + tileX, acs.CoveredBlocksX).Fill(tileDist);
                 }
             }
         }
-
-        return tileDistMap;
     }
 
-    private static JxlImageBundle RoundtripImage(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F opsin, JxlPassesEncoderState encState, JxlCmsInterface cms)
+    /// <summary>
+    /// Renders an encoder's prepared coefficients while borrowing its shared controls.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns temporary decoded samples.</param>
+    /// <param name="frameHeader">The frame settings used to prepare the coefficients.</param>
+    /// <param name="opsin">The borrowed encoder input used for the frame extent.</param>
+    /// <param name="encState">The encoder that owns shared controls and coefficient images.</param>
+    /// <param name="cms">The color conversion provider used by the existing encoder pipeline.</param>
+    /// <returns>The decoded bundle, which the caller owns and must dispose.</returns>
+    private static JxlImageBundle RoundtripImage(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3<float> opsin,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms)
     {
-        JxlPassesDecoderContext decState = new(frameHeader, configuration);
-
-        decState.OutputEncodingInfo.SetFromMetadata(encState.Shared.Metadata);
-        decState.Shared = encState.Shared;
-
         if (opsin.YSize % JxlFrameDimensions.BlockDimensions != 0)
         {
             throw new InvalidOperationException("The opsin height must be divisible by the block dimension.");
@@ -702,80 +745,77 @@ internal static class JxlAdaptiveQuantization
         int xSizeGroups = JxlMath.DivCeil(opsin.XSize, JxlFrameDimensions.GroupDimensions);
         int ySizeGroups = JxlMath.DivCeil(opsin.YSize, JxlFrameDimensions.GroupDimensions);
         int numGroups = xSizeGroups * ySizeGroups;
-
         int numSpecialFrames = encState.SpecialFrames.Count;
-        int numPasses = encState.ProgressiveSplitter.GetNumPasses();
-
         JxlModularFrameEncoder modularFrameEncoder = JxlModularFrameEncoder.Create(configuration, frameHeader, encState.CParams, false);
 
         InitializePassesEncoder(configuration, frameHeader, opsin, opsin.GetRectangle(), cms, encState, modularFrameEncoder, null);
 
-        decState.Initialize(frameHeader);
-        decState.InitializeForAc(configuration, numPasses);
+        // The encoder has prepared its controls. Borrow that exact state instead of allocating another frame's planes and replacing a pointer.
+        // Memory block loading supplies AC coefficients directly, so this path must not resize or overwrite decoded coefficient orders.
+        using JxlPassesDecoderState decState = new(encState.Shared);
+        decState.InitializeFrame(frameHeader);
 
-        JxlImageBundle decoded = new(configuration, encState.Shared.Metadata.M)
+        JxlImageBundle decoded = new(encState.Shared.CodecMetadata.ImageMetadata)
         {
             Origin = frameHeader.FrameOrigin
         };
 
-        JxlImage3F tmp = new(configuration, opsin.XSize, opsin.YSize);
-
-        if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
+        try
         {
-            throw new InvalidOperationException("Could not set image bundle");
-        }
+            using JxlImage3<float> tmp = new(configuration, opsin.XSize, opsin.YSize);
 
-        JxlPassesDecoderContext.PipelineOptions options = new()
-        {
-            UseSlowRenderPipeline = false,
-            Coalescing = false,
-            RenderSpotcolors = false,
-            RenderNoise = false
-        };
-
-        JxlImageMetadata metadata = decoded.Metadata!;
-
-        decState.PreparePipeline(frameHeader, encState.Shared.Metadata.ImageMetadata!, decoded, options);
-
-        JxlGroupDecoderCache[] groupDecCaches = new JxlGroupDecoderCache[numThreads];
-
-        decState.RenderPipeline.PrepareForThreads(numThreads, useGroupIds: false);
-
-        void ProcessGroup(int groupIndex)
-        {
-            if (frameHeader.LoopFilter!.EpfIterations > 0)
+            if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
             {
-                JxlLoopFilter.ComputeSigma(
-                    decState.Shared.FrameDimensions.BlockGroupRect(groupIndex),
-                    decState);
+                throw new InvalidOperationException("Could not set image bundle");
             }
 
-            RenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, groupIndex);
-
-            JxlGroupDecoder.DecodeGroupForRoundtrip(
-                frameHeader,
-                encState.Coeffs,
-                groupIndex,
-                decState,
-                groupDecCaches[groupIndex],
-                groupIndex,
-                input,
-                null,
-                null);
-
-            for (int c = 0; c < metadata.ExtraChannelCount; c++)
+            JxlPassesDecoderState.PipelineOptions options = new()
             {
-                (JxlImageF plane, Rectangle rect) = input.GetBuffer(3 + c);
-                JxlImageOperations.FillPlane(0.0f, plane, rect);
+                UseSlowRenderPipeline = false,
+                Coalescing = false,
+                RenderSpotcolors = false,
+                RenderNoise = false
+            };
+
+            JxlImageMetadata metadata = decoded.Metadata;
+            decState.PreparePipeline(frameHeader, encState.Shared.CodecMetadata.ImageMetadata, decoded, options);
+
+            using JxlGroupDecoderCache groupDecCache = new(configuration);
+            decState.RenderPipeline.PrepareForThreads(1, false);
+
+            void ProcessGroup(int groupIndex)
+            {
+                if (frameHeader.LoopFilter!.EpfIterations > 0)
+                {
+                    JxlLoopFilter.ComputeSigma(decState.Shared.FrameDimensions.BlockGroupRect(groupIndex), decState);
+                }
+
+                RenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, 0);
+                JxlGroupDecoder.DecodeGroupForRoundtrip(frameHeader, encState.Coeffs, groupIndex, decState, groupDecCache, 0, input, null, null);
+
+                for (int c = 0; c < metadata.ExtraChannelCount; c++)
+                {
+                    (JxlPlane<float> plane, Rectangle rect) = input.GetBuffer(3 + c);
+                    JxlImageOperations.FillPlane(0.0f, plane, rect);
+                }
+
+                input.Done();
             }
 
-            input.Done();
+            for (int i = 0; i < numGroups; i++)
+            {
+                ProcessGroup(i);
+            }
+
+            encState.SpecialFrames.RemoveRange(numSpecialFrames, encState.SpecialFrames.Count - numSpecialFrames);
+            return decoded;
         }
-
-        _ = Parallel.For(0, numGroups, configuration.GetParallelOptions(), ProcsesGr);
-        encState.SpecialFrames.RemoveRange(numSpecialFrames, encState.SpecialFrames.Count - numSpecialFrames);
-
-        return decoded;
+        catch
+        {
+            // Success transfers this bundle to the caller. Failure releases only the locally decoded output, never the encoder's shared planes.
+            decoded.Dispose();
+            throw;
+        }
     }
 
     public static float InitialQuantDc(float butteraugliTarget)
@@ -788,9 +828,11 @@ internal static class JxlAdaptiveQuantization
         return MathF.Min(DcQuant / butteraugliTargetDc, 50f);
     }
 
-    public static bool AdjustQuantField(JxlAcStrategyImage acStrategy, Rectangle rect, float butteraugliTarget, JxlImageF quantField)
+    public static bool AdjustQuantField(JxlAcStrategyImage acStrategy, Rectangle rect, float butteraugliTarget, JxlPlane<float> quantField)
     {
         int stride = quantField.PixelsPerRow;
+        ReadOnlySpan<byte> strategies = acStrategy.GetRows();
+        Span<float> quantizationSamples = quantField.GetRow(0);
         float meanMaxMixer = 1.0f;
         {
             const float limit = 1.54138f;
@@ -810,8 +852,8 @@ internal static class JxlAdaptiveQuantization
 
         for (int y = 0; y < rect.Height; y++)
         {
-            JxlAcStrategyRow acStrategyRow = acStrategy.GetRow(in rect, y);
-            Span<float> quantRow = quantField.GetRow(rect, y);
+            JxlAcStrategyRow acStrategyRow = new(strategies.Slice(((rect.Top + y) * acStrategy.PixelsPerRow) + rect.Left, rect.Width));
+            Span<float> quantRow = quantizationSamples[(((rect.Top + y) * stride) + rect.Left)..];
 
             for (int x = 0; x < rect.Width; x++)
             {
@@ -830,9 +872,10 @@ internal static class JxlAdaptiveQuantization
                 float max = quantRow[x];
                 float mean = 0f;
 
-                for (int iy = 0; iy < acs.CoveredBlocksY; y++)
+                // Each transform owns a rectangular set of quantization blocks. Visit that set without advancing the outer block coordinates.
+                for (int iy = 0; iy < acs.CoveredBlocksY; iy++)
                 {
-                    for (int ix = 0; ix < acs.CoveredBlocksX; x++)
+                    for (int ix = 0; ix < acs.CoveredBlocksX; ix++)
                     {
                         mean += quantRow[x + ix + (iy * stride)];
                         max = MathF.Max(quantRow[x + ix + (iy * stride)], max);
@@ -849,10 +892,7 @@ internal static class JxlAdaptiveQuantization
 
                 for (int iy = 0; iy < acs.CoveredBlocksY; iy++)
                 {
-                    for (int ix = 0; ix < acs.CoveredBlocksX; ix++)
-                    {
-                        quantRow[x + ix + (iy * stride)] = max;
-                    }
+                    quantRow.Slice(x + (iy * stride), acs.CoveredBlocksX).Fill(max);
                 }
             }
         }
@@ -860,7 +900,15 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    public static bool FindBestQuantization(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F linear, JxlImage3F opsin, JxlImageF quantField, JxlPassesEncoderState encState, JxlCmsInterface cms, JxlAuxiliaryOutput auxOut)
+    public static bool FindBestQuantization(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3<float> linear,
+        JxlImage3<float> opsin,
+        JxlPlane<float> quantField,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms,
+        JxlAuxiliaryOutput auxOut)
     {
         JxlCompressionParameters cparams = encState.CompressionParameters;
 
@@ -873,16 +921,16 @@ internal static class JxlAdaptiveQuantization
         }
 
         JxlQuantizer quantizer = encState.Shared.Quantizer;
-        JxlImageI rawQuantField = encState.Shared.RawQuantField;
+        JxlPlane<int> rawQuantField = encState.Shared.RawQuantField;
         float butteraugliTarget = cparams.ButteraugliDistance;
         float originalButteraugli = cparams.OriginalButteraugliDistance;
 
         ButteraugliParameters parameters = new();
-        JxlCustomTransferFunction tf = frameHeader.Metadata!.ImageMetadata!.ColorEncoding!.TransferFunction;
+        JxlCustomTransferFunction tf = frameHeader.Metadata!.ImageMetadata.ColorEncoding.TransferFunction;
 
         parameters.IntensityTarget = tf.IsPq || tf.IsHlg ? frameHeader.Metadata.ImageMetadata.IntensityTarget : 0;
 
-        ButteraugliJxlComparator comparator = new(parameters, cms);
+        using JxlComparator comparator = new(parameters, cms);
         comparator.SetReferenceImage(configuration, linear);
 
         bool lowerIsBetter = comparator.GoodQualityScore < comparator.BadQualityScore;
@@ -893,7 +941,7 @@ internal static class JxlAdaptiveQuantization
             return false;
         }
 
-        using JxlImageF initialQuantField = new(configuration, quantField.XSize, quantField.YSize);
+        using JxlPlane<float> initialQuantField = new(configuration, quantField.XSize, quantField.YSize);
 
         if (!JxlImageOperations.CopyImage(quantField, initialQuantField))
         {
@@ -927,18 +975,25 @@ internal static class JxlAdaptiveQuantization
             iters = MaxButteraugliIterations;
         }
 
-        JxlImageF tileDistmap = new();
+        // The search keeps these allocations through every attempt. Each attempt overwrites the result maps and reuses the median scratch.
+        int tileSize = JxlFrameDimensions.BlockDimensions * cparams.Resampling;
+        using JxlPlane<float> tileDistmap = new(configuration, (linear.XSize + tileSize - 1) / tileSize, (linear.YSize + tileSize - 1) / tileSize);
+        using JxlPlane<float> diffmap = new(configuration, linear.XSize, linear.YSize);
+        using IMemoryOwner<float> quantizationScratch = configuration.MemoryAllocator.Allocate<float>(quantField.XSize * quantField.YSize);
+        Span<float> scratch = quantizationScratch.Memory.Span;
+        Span<float> quantizationSamples = quantField.GetRow(0);
+        ReadOnlySpan<float> initialSamples = initialQuantField.GetRow(0);
+        ReadOnlySpan<float> tileSamples = tileDistmap.GetRow(0);
 
         for (int i = 0; i < iters + 1; i++)
         {
-            if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+            if (!quantizer.SetQuantField(initialQuantDc, quantField, rawQuantField, scratch))
             {
                 return false;
             }
 
-            JxlImageBundle decLinear = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
+            using JxlImageBundle decLinear = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
 
-            JxlImageF diffmap = new();
             comparator.CompareWith(configuration, decLinear, diffmap, out float score);
 
             if (!lowerIsBetter)
@@ -947,7 +1002,7 @@ internal static class JxlAdaptiveQuantization
                 ScoreImage(-1.0f, diffmap);
             }
 
-            tileDistmap = TileDistMap(configuration, diffmap, 8 * cparams.Resampling, 0, encState.Shared.AcStrategy);
+            TileDistMap(diffmap, tileSize, 0, encState.Shared.AcStrategy, tileDistmap);
 
             auxOut.NumberOfButteraugliIterations++;
             if (i == iters)
@@ -965,8 +1020,8 @@ internal static class JxlAdaptiveQuantization
 
                 for (int y = 0; y < quantField.YSize; y++)
                 {
-                    Span<float> rowQ = quantField.GetRow(y);
-                    Span<float> rowInit = initialQuantField.GetRow(y);
+                    Span<float> rowQ = quantizationSamples[(y * quantField.PixelsPerRow)..];
+                    ReadOnlySpan<float> rowInit = initialSamples[(y * initialQuantField.PixelsPerRow)..];
 
                     for (int x = 0; x < quantField.XSize; x++)
                     {
@@ -1006,8 +1061,8 @@ internal static class JxlAdaptiveQuantization
             {
                 for (int y = 0; y < quantField.YSize; y++)
                 {
-                    Span<float> rowDist = tileDistmap.GetRow(y);
-                    Span<float> rowQ = quantField.GetRow(y);
+                    ReadOnlySpan<float> rowDist = tileSamples[(y * tileDistmap.PixelsPerRow)..];
+                    Span<float> rowQ = quantizationSamples[(y * quantField.PixelsPerRow)..];
 
                     for (int x = 0; x < quantField.XSize; x++)
                     {
@@ -1041,8 +1096,8 @@ internal static class JxlAdaptiveQuantization
             {
                 for (int y = 0; y < quantField.YSize; y++)
                 {
-                    Span<float> rowDist = tileDistmap.GetRow(y);
-                    Span<float> rowQ = quantField.GetRow(y);
+                    ReadOnlySpan<float> rowDist = tileSamples[(y * tileDistmap.PixelsPerRow)..];
+                    Span<float> rowQ = quantizationSamples[(y * quantField.PixelsPerRow)..];
 
                     for (int x = 0; x < quantField.XSize; x++)
                     {
@@ -1080,7 +1135,7 @@ internal static class JxlAdaptiveQuantization
             }
         }
 
-        if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+        if (!quantizer.SetQuantField(initialQuantDc, quantField, rawQuantField, scratch))
         {
             return false;
         }
@@ -1088,11 +1143,18 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    public static bool FindBestQuantizationMaxError(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F opsin, JxlImageF quantField, JxlPassesEncoderState encState, JxlCmsInterface cms, JxlAuxiliaryOutput auxOut)
+    public static bool FindBestQuantizationMaxError(
+        Configuration configuration,
+        JxlFrameHeader frameHeader,
+        JxlImage3<float> opsin,
+        JxlPlane<float> quantField,
+        JxlPassesEncoderState encState,
+        JxlCmsInterface cms,
+        JxlAuxiliaryOutput auxOut)
     {
         JxlCompressionParameters cparams = encState.CompressionParameters;
         JxlQuantizer quantizer = encState.Shared.Quantizer;
-        JxlImageI rawQuantField = encState.Shared.RawQuantField;
+        JxlPlane<int> rawQuantField = encState.Shared.RawQuantField;
 
         float initialQuantDc = 16f * MathF.Sqrt(0.1f / cparams.ButteraugliDistance);
 
@@ -1106,18 +1168,31 @@ internal static class JxlAdaptiveQuantization
         inverseMaxError[1] = 1.0f / cparams.MaxError[1];
         inverseMaxError[2] = 1.0f / cparams.MaxError[2];
 
+        // Median selection mutates only this search-owned copy. Reuse its allocation for every attempt and the final field update.
+        using IMemoryOwner<float> quantizationScratch = configuration.MemoryAllocator.Allocate<float>(quantField.XSize * quantField.YSize);
+        Span<float> scratch = quantizationScratch.Memory.Span;
+        Span<float> quantizationSamples = quantField.GetRow(0);
+        ReadOnlySpan<byte> strategies = encState.Shared.AcStrategy.GetRows();
+        ReadOnlySpan<float> source0 = opsin.Plane(0).GetRow(0);
+        ReadOnlySpan<float> source1 = opsin.Plane(1).GetRow(0);
+        ReadOnlySpan<float> source2 = opsin.Plane(2).GetRow(0);
+
         for (int i = 0; i < MaxButteraugliIterations + 1; i++)
         {
-            if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+            if (!quantizer.SetQuantField(initialQuantDc, quantField, rawQuantField, scratch))
             {
                 return false;
             }
 
-            JxlImageBundle decoded = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
+            using JxlImageBundle decoded = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
+            JxlImage3<float> reconstructed = decoded.Color;
+            ReadOnlySpan<float> decoded0 = reconstructed.Plane(0).GetRow(0);
+            ReadOnlySpan<float> decoded1 = reconstructed.Plane(1).GetRow(0);
+            ReadOnlySpan<float> decoded2 = reconstructed.Plane(2).GetRow(0);
 
             for (int by = 0; by < encState.Shared.FrameDimensions.YSizeBlocks; by++)
             {
-                JxlAcStrategyRow acStrategyRow = encState.Shared.AcStrategy.GetRow(by);
+                JxlAcStrategyRow acStrategyRow = new(strategies.Slice(by * encState.Shared.AcStrategy.PixelsPerRow, encState.Shared.AcStrategy.XSize));
 
                 for (int bx = 0; bx < encState.Shared.FrameDimensions.XSizeBlocks; bx++)
                 {
@@ -1132,6 +1207,10 @@ internal static class JxlAdaptiveQuantization
 
                     for (int c = 0; c < 3; c++)
                     {
+                        // Borrow all planes once per image. Channel selection changes spans, not memory ownership or row acquisition.
+                        ReadOnlySpan<float> sourceSamples = c == 0 ? source0 : c == 1 ? source1 : source2;
+                        ReadOnlySpan<float> decodedSamples = c == 0 ? decoded0 : c == 1 ? decoded1 : decoded2;
+
                         for (int y = by * JxlFrameDimensions.BlockDimensions; y < (by + acs.CoveredBlocksY) * JxlFrameDimensions.BlockDimensions; y++)
                         {
                             if (y >= decoded.YSize)
@@ -1139,8 +1218,8 @@ internal static class JxlAdaptiveQuantization
                                 continue;
                             }
 
-                            Span<float> inRow = opsin.PlaneRow(c, y);
-                            Span<float> decRow = decoded.Color!.PlaneRow(c, y);
+                            ReadOnlySpan<float> inRow = sourceSamples[(y * opsin.PixelsPerRow)..];
+                            ReadOnlySpan<float> decRow = decodedSamples[(y * reconstructed.PixelsPerRow)..];
 
                             for (int x = bx * JxlFrameDimensions.BlockDimensions; x < (bx + acs.CoveredBlocksX) * JxlFrameDimensions.BlockDimensions; x++)
                             {
@@ -1168,7 +1247,7 @@ internal static class JxlAdaptiveQuantization
 
                     for (int qy = by; qy < by + acs.CoveredBlocksY; qy++)
                     {
-                        Span<float> qfRow = quantField.GetRow(qy);
+                        Span<float> qfRow = quantizationSamples[(qy * quantField.PixelsPerRow)..];
 
                         for (int qx = bx; qx < bx + acs.CoveredBlocksX; qx++)
                         {
@@ -1179,7 +1258,7 @@ internal static class JxlAdaptiveQuantization
             }
         }
 
-        if (!quantizer.SetQuantField(configuration, initialQuantDc, quantField, rawQuantField))
+        if (!quantizer.SetQuantField(initialQuantDc, quantField, rawQuantField, scratch))
         {
             return false;
         }
@@ -1187,7 +1266,14 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    public static JxlImageF InitialQuantField(Configuration configuration, float butteraugliTarget, JxlImage3F opsin, Rectangle rect, float rescale, JxlImageF mask, JxlImageF mask1x1)
+    public static JxlPlane<float> InitialQuantField(
+        Configuration configuration,
+        float butteraugliTarget,
+        JxlImage3<float> opsin,
+        Rectangle rect,
+        float rescale,
+        JxlPlane<float> mask,
+        JxlPlane<float> mask1x1)
     {
         float quantAc = AcQuant / butteraugliTarget;
 
@@ -1197,9 +1283,9 @@ internal static class JxlAdaptiveQuantization
     public static bool FindBestQuantizer(
         Configuration configuration,
         JxlFrameHeader frameHeader,
-        JxlImage3F linear,
-        JxlImage3F opsin,
-        JxlImageF quantField,
+        JxlImage3<float> linear,
+        JxlImage3<float> opsin,
+        JxlPlane<float> quantField,
         JxlPassesEncoderState encState,
         JxlCmsInterface cms,
         JxlAuxiliaryOutput auxOut,
@@ -1220,38 +1306,78 @@ internal static class JxlAdaptiveQuantization
         return true;
     }
 
-    private sealed class AdaptiveQuantizationInternal
+    /// <summary>
+    /// Owns the scratch storage reused by sequential quantization tiles.
+    /// </summary>
+    private sealed class AdaptiveQuantizationInternal : IDisposable
     {
-        public List<JxlImageF> PreErosion { get; set; } = [];
-
-        public JxlImageF? AdaptiveQuantizationMap { get; set; }
-
-        public JxlImageF? DiffBuffer { get; set; }
-
-        public void InitializeBuffer(Configuration configuration)
+        /// <summary>
+        /// Initializes the tile scratch storage and borrows the caller's output map.
+        /// </summary>
+        /// <param name="configuration">The configuration that owns the allocator.</param>
+        /// <param name="quantizationMap">The output map, which remains owned by the caller.</param>
+        public AdaptiveQuantizationInternal(Configuration configuration, JxlPlane<float> quantizationMap)
         {
-            int numThreads = configuration.MaxDegreeOfParallelism == -1 ? Environment.ProcessorCount : configuration.MaxDegreeOfParallelism;
+            this.AdaptiveQuantizationMap = quantizationMap;
+            this.PreErosion = new(
+                configuration,
+                (JxlEncoderParameters.TileDimensionsInBlocks * 2) + 2,
+                (JxlEncoderParameters.TileDimensionsInBlocks * 2) + 2);
 
-            this.DiffBuffer = new(configuration, JxlEncoderParameters.TileDimensions + 8, numThreads);
-
-            for (int i = this.PreErosion.Count; i < numThreads; i++)
+            try
             {
-                this.PreErosion.Add(
-                    new JxlImageF(
-                        configuration,
-                        (JxlEncoderParameters.TileDimensionsInBlocks * 2) + 2,
-                        (JxlEncoderParameters.TileDimensionsInBlocks * 2) + 2));
+                this.DiffBuffer = new(configuration, JxlEncoderParameters.TileDimensions + 8, 1);
+            }
+            catch
+            {
+                this.PreErosion.Dispose();
+                throw;
             }
         }
 
-        public bool TryComputeTile(float butteraugliTarget, float scale, JxlImage3F xyb, Rectangle rectIn, Rectangle rectOut, int parallelIndex, JxlImageF mask, JxlImageF mask1x1)
+        /// <summary>
+        /// Gets the erosion plane reused for each tile.
+        /// </summary>
+        public JxlPlane<float> PreErosion { get; }
+
+        /// <summary>
+        /// Gets the borrowed block quantization output.
+        /// </summary>
+        public JxlPlane<float> AdaptiveQuantizationMap { get; }
+
+        /// <summary>
+        /// Gets the difference row reused while accumulating four input rows.
+        /// </summary>
+        public JxlPlane<float> DiffBuffer { get; }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            this.DiffBuffer.Dispose();
+            this.PreErosion.Dispose();
+        }
+
+        /// <summary>
+        /// Computes one tile using the shared difference row and erosion plane.
+        /// </summary>
+        /// <param name="butteraugliTarget">The requested perceptual error target.</param>
+        /// <param name="scale">The quantization scale.</param>
+        /// <param name="xyb">The source XYB planes.</param>
+        /// <param name="rectIn">The source region.</param>
+        /// <param name="rectOut">The tile region in the output map.</param>
+        /// <param name="mask">The caller-owned block masking plane.</param>
+        /// <param name="mask1x1">The caller-owned full-resolution masking plane.</param>
+        /// <returns>Whether the tile could be computed from the supplied regions.</returns>
+        public bool TryComputeTile(
+            float butteraugliTarget,
+            float scale,
+            JxlImage3<float> xyb,
+            Rectangle rectIn,
+            Rectangle rectOut,
+            JxlPlane<float> mask,
+            JxlPlane<float> mask1x1)
         {
             const float matchGammaOffset = 0.019f;
-
-            if (this.DiffBuffer is null)
-            {
-                return false;
-            }
 
             if (rectIn.X0() % JxlFrameDimensions.BlockDimensions != 0 || rectIn.Y0() % JxlFrameDimensions.BlockDimensions != 0)
             {
@@ -1341,7 +1467,7 @@ internal static class JxlAdaptiveQuantization
                 yEnd += 4;
             }
 
-            if (!this.PreErosion[parallelIndex].ShrinkTo((xEnd - xStart) / 4, (yEnd - yStart) / 4))
+            if (!this.PreErosion.ShrinkTo((xEnd - xStart) / 4, (yEnd - yStart) / 4))
             {
                 return false;
             }
@@ -1356,7 +1482,7 @@ internal static class JxlAdaptiveQuantization
                 Span<float> rowIn = xyb.PlaneRow(1, y);
                 Span<float> rowIn1 = xyb.PlaneRow(1, y1);
                 Span<float> rowIn2 = xyb.PlaneRow(1, y2);
-                Span<float> rowOut = this.DiffBuffer!.GetRow(parallelIndex);
+                Span<float> rowOut = this.DiffBuffer.GetRow(0);
 
                 // Pass Span<T> variables instead of capturing them as a ref struct
                 // variable cannot be captured.
@@ -1432,7 +1558,7 @@ internal static class JxlAdaptiveQuantization
 
                 if (y % 4 == 3)
                 {
-                    Span<float> rowDOut = this.PreErosion[parallelIndex].GetRow((y - yStart) / 4);
+                    Span<float> rowDOut = this.PreErosion.GetRow((y - yStart) / 4);
 
                     for (int qx = 0; qx < (xEnd - xStart) / 4; qx++)
                     {
@@ -1452,14 +1578,14 @@ internal static class JxlAdaptiveQuantization
                 width: rectOut.Width * 2,
                 height: rectOut.Height * 2);
 
-            if (!FuzzyErosion(butteraugliTarget, fromRect, this.PreErosion[parallelIndex], rectOut, this.AdaptiveQuantizationMap!))
+            if (!FuzzyErosion(butteraugliTarget, fromRect, this.PreErosion, rectOut, this.AdaptiveQuantizationMap))
             {
                 return false;
             }
 
             for (int y = 0; y < rectOut.Height; y++)
             {
-                Span<float> aqMapRow = this.AdaptiveQuantizationMap!.GetRow(rectOut, y);
+                Span<float> aqMapRow = this.AdaptiveQuantizationMap.GetRow(rectOut, y);
                 Span<float> maskRow = mask.GetRow(rectOut, y);
 
                 for (int x = 0; x < rectOut.Width; x++)
@@ -1468,7 +1594,7 @@ internal static class JxlAdaptiveQuantization
                 }
             }
 
-            PerBlockModulations(butteraugliTarget, xyb.Plane(0), xyb.Plane(1), xyb.Plane(2), rectIn, scale, rectOut, this.AdaptiveQuantizationMap!);
+            PerBlockModulations(butteraugliTarget, xyb.Plane(0), xyb.Plane(1), xyb.Plane(2), rectIn, scale, rectOut, this.AdaptiveQuantizationMap);
             return true;
         }
     }

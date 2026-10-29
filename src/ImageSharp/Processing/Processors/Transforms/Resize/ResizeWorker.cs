@@ -5,6 +5,8 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -24,7 +26,13 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
     private readonly Configuration configuration;
 
-    private readonly PixelConversionModifiers conversionModifiers;
+    private readonly bool premultiply;
+
+    private readonly bool compand;
+
+    private readonly int componentBitDepth;
+
+    private readonly PixelColorRange colorRange;
 
     private readonly ResizeKernelMap horizontalKernelMap;
 
@@ -48,10 +56,22 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
     private RowInterval currentWindow;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ResizeWorker{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration used for memory allocation.</param>
+    /// <param name="source">The source pixel region.</param>
+    /// <param name="compand">Whether to interpolate RGB in linear light by expanding and recompressing the sRGB transfer function.</param>
+    /// <param name="premultiplyAlpha">Whether to interpolate color components with associated alpha.</param>
+    /// <param name="horizontalKernelMap">The horizontal resampling kernels.</param>
+    /// <param name="verticalKernelMap">The vertical resampling kernels.</param>
+    /// <param name="targetWorkingRect">The target rectangle processed by this worker.</param>
+    /// <param name="targetOrigin">The origin of the target image.</param>
     public ResizeWorker(
         Configuration configuration,
         Buffer2DRegion<TPixel> source,
-        PixelConversionModifiers conversionModifiers,
+        bool compand,
+        bool premultiplyAlpha,
         ResizeKernelMap horizontalKernelMap,
         ResizeKernelMap verticalKernelMap,
         Rectangle targetWorkingRect,
@@ -60,7 +80,13 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         this.configuration = configuration;
         this.source = source;
         this.sourceRectangle = source.Bounds;
-        this.conversionModifiers = conversionModifiers;
+        this.compand = compand;
+
+        // Resolve precision once for both passes. Missing custom-pixel precision requires analytic conversion.
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
+        this.colorRange = pixelInfo.ColorRange;
+        this.premultiply = premultiplyAlpha;
         this.horizontalKernelMap = horizontalKernelMap;
         this.verticalKernelMap = verticalKernelMap;
         this.targetWorkingRect = targetWorkingRect;
@@ -169,7 +195,25 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             }
 
             Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
+            if (this.compand)
+            {
+                // The resampler stores associated vectors only when requested; companding needs straight color first.
+                if (this.premultiply)
+                {
+                    Numerics.UnPremultiply(tempColSpan);
+                }
+
+                SRgbCompanding.Compress(tempColSpan, this.componentBitDepth, this.colorRange);
+                PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, tempColSpan, targetRowSpan);
+            }
+            else if (this.premultiply)
+            {
+                PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, tempColSpan, targetRowSpan);
+            }
+            else
+            {
+                PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, tempColSpan, targetRowSpan);
+            }
         }
     }
 
@@ -214,7 +258,25 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
         {
             Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, tempRowSpan, this.conversionModifiers);
+            if (this.compand)
+            {
+                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
+                SRgbCompanding.Expand(tempRowSpan, this.componentBitDepth, this.colorRange);
+
+                // Interpolate in associated alpha only after expanding the straight color values.
+                if (this.premultiply)
+                {
+                    Numerics.Premultiply(tempRowSpan);
+                }
+            }
+            else if (this.premultiply)
+            {
+                PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
+            }
+            else
+            {
+                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
+            }
 
             ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - currentWindowMin];
 

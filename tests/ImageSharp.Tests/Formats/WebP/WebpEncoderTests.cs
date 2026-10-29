@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Heif;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -18,9 +20,73 @@ using static SixLabors.ImageSharp.Tests.TestImages.Webp;
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 
 [Trait("Format", "Webp")]
-public class WebpEncoderTests
+public partial class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
+
+    /// <summary>
+    /// Selected EXIF parts are respected whether the lazy profile is installed before or after synchronization.
+    /// </summary>
+    /// <param name="reentrant">Whether the stream installs the profile after metadata synchronization.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Encode_LazyExifProfile_AppliesSelectedParts(bool reentrant)
+    {
+        ExifProfile source = new();
+        source.SetValue(ExifTag.Make, "POC");
+        source.SetValue(ExifTag.GPSLatitudeRef, "N");
+        ExifProfile filteredLazy = new(source.ToByteArray())
+        {
+            Parts = ExifParts.IfdTags | ExifParts.ExifTags
+        };
+
+        using Image<Rgba32> image = new(1, 1);
+        using MemoryStream output = reentrant
+            ? new SwapOnCanSeekStream(() => image.Metadata.ExifProfile = filteredLazy)
+            : new MemoryStream();
+
+        if (!reentrant)
+        {
+            image.Metadata.ExifProfile = filteredLazy;
+        }
+
+        image.SaveAsWebp(output);
+        output.Position = 0;
+        using Image decoded = Image.Load(output);
+
+        Assert.NotNull(decoded.Metadata.ExifProfile);
+        Assert.True(decoded.Metadata.ExifProfile.TryGetValue(ExifTag.Make, out IExifValue<string> make));
+        Assert.Equal("POC", make.Value);
+        Assert.False(decoded.Metadata.ExifProfile.TryGetValue(ExifTag.GPSLatitudeRef, out _));
+    }
+
+    /// <summary>
+    /// Replaces metadata at the stream capability check, after encoder synchronization has completed.
+    /// </summary>
+    private sealed class SwapOnCanSeekStream : MemoryStream
+    {
+        private Action callback;
+
+        /// <summary>
+        /// Initializes a stream that invokes the callback on its first capability check.
+        /// </summary>
+        /// <param name="callback">The metadata replacement callback.</param>
+        public SwapOnCanSeekStream(Action callback) => this.callback = callback;
+
+        /// <inheritdoc/>
+        public override bool CanSeek
+        {
+            get
+            {
+                Action action = this.callback;
+                this.callback = null;
+                action?.Invoke();
+
+                return base.CanSeek;
+            }
+        }
+    }
 
     [Theory]
     [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
@@ -113,9 +179,11 @@ public class WebpEncoderTests
     }
 
     [Theory]
+
     // [WithFile(AlphaBlend, PixelTypes.Rgba32)]
     // [WithFile(AlphaBlend2, PixelTypes.Rgba32)]
     [WithFile(AlphaBlend3, PixelTypes.Rgba32)]
+
     // [WithFile(AlphaBlend4, PixelTypes.Rgba32)]
     public void Encode_AlphaBlended<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -224,6 +292,45 @@ public class WebpEncoderTests
                     Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
                     break;
             }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Heif.AnimatedLeo, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromHeif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new WebpEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        File.WriteAllBytes(provider.Utility.GetTestOutputFileName("webp"), memStream.ToArray());
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        HeifMetadata heif = image.Metadata.GetHeifMetadata();
+        WebpMetadata webp = output.Metadata.GetWebpMetadata();
+
+        Assert.Equal(heif.RepeatCount, webp.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            HeifFrameMetadata heifF = image.Frames[i].Metadata.GetHeifMetadata();
+            WebpFrameMetadata webpF = output.Frames[i].Metadata.GetWebpMetadata();
+
+            Assert.Equal((uint)(heifF.FrameDelay.ToDouble() * 1000), webpF.FrameDelay);
+
+            // HEIF frames are complete images, so they replace the canvas and are not disposed.
+            Assert.Equal(FrameBlendMode.Source, webpF.BlendMode);
+            Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
         }
     }
 
@@ -483,9 +590,9 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating point differences result in minor pixel differences affecting compression.
-        // Output have been manually verified.
-        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 64060 : 64020;
+        // All quantizer paths apply the same luma AC sharpening. This stored fixture therefore uses
+        // one size bound for the scalar, SSE4.1 and AVX2 paths.
+        const int expectedFileSize = 64060;
 
         WebpEncoder encoder = new()
         {
@@ -511,9 +618,9 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Floating point differences result in minor pixel differences affecting compression.
-        // Output have been manually verified.
-        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 16240 : 16200;
+        // All quantizer paths apply the same luma AC sharpening. This stored fixture therefore uses
+        // one size bound for the scalar, SSE4.1 and AVX2 paths.
+        const int expectedFileSize = 16240;
 
         WebpEncoder encoder = new()
         {
@@ -600,10 +707,12 @@ public class WebpEncoderTests
     }
 
     [Fact]
-    public void RunEncodeLossy_WithPeakImage_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.AllowAll);
+    public void RunEncodeLossy_WithPeakImage_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
+    public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
 
     [Theory]
     [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]

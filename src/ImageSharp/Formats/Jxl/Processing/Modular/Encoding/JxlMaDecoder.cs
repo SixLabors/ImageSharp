@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
@@ -93,11 +94,23 @@ internal static class JxlMaDecoder
         }
     }
 
-    public static void DecodeTree(JxlBitReader br, JxlAnsSymbolReader reader, List<byte> contextMap, Tree tree, int treeSizeLimit)
+    /// <summary>
+    /// Reads a modular prediction tree using an initialized entropy reader.
+    /// </summary>
+    /// <param name="bitReader">The source bit reader.</param>
+    /// <param name="symbolReader">The entropy reader for the tree symbols.</param>
+    /// <param name="contextMap">The mapping from tree fields to entropy contexts.</param>
+    /// <param name="tree">The destination tree nodes.</param>
+    /// <param name="treeSizeLimit">The maximum permitted number of nodes.</param>
+    public static void DecodeTree(JxlBitReader bitReader, JxlAnsSymbolReader symbolReader, List<byte> contextMap, Tree tree, int treeSizeLimit)
     {
         int leafId = 0;
         int toDecode = 1;
         tree.Clear();
+
+        // The reader remains the window owner. Neither this loop nor the context map resizes its borrowed storage.
+        Span<int> window = symbolReader.Lz77Window;
+        ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
 
         while (toDecode > 0)
         {
@@ -107,8 +120,8 @@ internal static class JxlMaDecoder
             }
 
             toDecode--;
-            int prop1 = reader.ReadHybridUint(JxlMaTreeContext.Property, br, contextMap);
-            if (prop1 > 256)
+            int prop1 = symbolReader.ReadHybridUInt((int)JxlMaTreeContext.Property, bitReader, contexts, window);
+            if ((uint)prop1 > 256)
             {
                 throw new InvalidOperationException("Invalid tree property value");
             }
@@ -116,24 +129,24 @@ internal static class JxlMaDecoder
             int property = prop1 - 1;
             if (property == -1)
             {
-                int predictor = reader.ReadHybridUint(JxlMaTreeContext.Predictor, br, contextMap);
+                int predictor = symbolReader.ReadHybridUInt((int)JxlMaTreeContext.Predictor, bitReader, contexts, window);
 
-                if (predictor >= JxlPredictorFacts.ModularPredictors)
+                if ((uint)predictor >= JxlPredictorFacts.ModularPredictors)
                 {
                     throw new InvalidOperationException("Invalid predictor");
                 }
 
-                int predictor_offset = JxlPackSigned.UnpackSigned(reader.ReadHybridUint(JxlMaTreeContext.Offset, br, contextMap));
-                int mul_log = reader.ReadHybridUint(JxlMaTreeContext.MultiplierLog, br, contextMap);
+                int predictor_offset = JxlPackSigned.UnpackSigned((uint)symbolReader.ReadHybridUInt((int)JxlMaTreeContext.Offset, bitReader, contexts, window));
+                int mul_log = symbolReader.ReadHybridUInt((int)JxlMaTreeContext.MultiplierLog, bitReader, contexts, window);
 
-                if (mul_log >= 31)
+                if ((uint)mul_log >= 31)
                 {
                     throw new InvalidOperationException("Invalid multiplier logarithm");
                 }
 
-                int mul_bits = reader.ReadHybridUint(JxlMaTreeContext.MultiplierBits, br, contextMap);
+                int mul_bits = symbolReader.ReadHybridUInt((int)JxlMaTreeContext.MultiplierBits, bitReader, contexts, window);
 
-                if (mul_bits >= (1 << (31 - mul_log)) - 1)
+                if ((uint)mul_bits >= (1u << (31 - mul_log)) - 1)
                 {
                     throw new InvalidOperationException("Invalid multiplier");
                 }
@@ -146,7 +159,7 @@ internal static class JxlMaDecoder
                 continue;
             }
 
-            int splitval = JxlPackSigned.UnpackSigned(reader.ReadHybridUint(JxlMaTreeContext.SplitValue, br, contextMap));
+            int splitval = JxlPackSigned.UnpackSigned((uint)symbolReader.ReadHybridUInt((int)JxlMaTreeContext.SplitValue, bitReader, contexts, window));
             tree.Add(
                 new JxlPropertyDecisionNode(
                     property,
@@ -163,20 +176,28 @@ internal static class JxlMaDecoder
         ValidateTree(tree);
     }
 
-    public static void DecodeTree(Configuration configuration, JxlBitReader reader, Tree tree, int treeSizeLimit)
+    /// <summary>
+    /// Reads the entropy tables and modular prediction tree.
+    /// </summary>
+    /// <param name="configuration">The configuration used to decode entropy tables.</param>
+    /// <param name="bitReader">The source bit reader.</param>
+    /// <param name="tree">The destination tree nodes.</param>
+    /// <param name="treeSizeLimit">The maximum permitted number of nodes.</param>
+    public static void DecodeTree(Configuration configuration, JxlBitReader bitReader, Tree tree, int treeSizeLimit)
     {
         List<byte> treeContextMap = [];
         JxlAnsCode code = new();
 
-        JxlAnsReader.DecodeHistograms(configuration, reader, JxlMaConstants.NumTreeContexts, code, treeContextMap);
+        JxlAnsReader.DecodeHistograms(configuration, bitReader, JxlMaConstants.NumTreeContexts, code, ref treeContextMap, false);
 
         if (code.DegenerateSymbols[treeContextMap[(int)JxlMaTreeContext.Property]] > 0)
         {
             throw new InvalidOperationException("Infinite tree");
         }
 
-        JxlAnsSymbolReader symbolReader = JxlAnsSymbolReader.Create(code, reader);
-        DecodeTree(reader, symbolReader, treeContextMap, tree, Math.Min(treeSizeLimit, JxlMaConstants.MaxTreeSize));
+        // Tree fields use direct LZ77 distances. A zero multiplier disables image-row distance shortcuts.
+        using JxlAnsSymbolReader symbolReader = JxlAnsSymbolReader.Create(configuration, code, bitReader, 0);
+        DecodeTree(bitReader, symbolReader, treeContextMap, tree, Math.Min(treeSizeLimit, JxlMaConstants.MaxTreeSize));
 
         if (!symbolReader.CheckAnsFinalState())
         {

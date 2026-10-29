@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -37,6 +36,26 @@ public partial struct L16
 
             source.CopyTo(destination.Slice(0, source.Length));
         }
+
+        /// <inheritdoc />
+        public override void ToVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToScaledVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
+            => this.ToUnassociatedVector4(configuration, source, destination);
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<L16> source, Span<Vector4> destination)
+            => this.ToAssociatedVector4(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToArgb32(
@@ -255,12 +274,12 @@ public partial struct L16
         }
 
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
+        public override void From<TPixelFrom>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> source,
+            ReadOnlySpan<TPixelFrom> source,
             Span<L16> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.ToL16(configuration, source, destination.Slice(0, source.Length));
+            PixelOperations<TPixelFrom>.Instance.ToL16(configuration, source, destination.Slice(0, source.Length));
         }
     }
 }

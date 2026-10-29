@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -21,6 +22,154 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores inverted CMYK. Subtract before normalization to retain the existing operation order.
+            c0 = (maximumValue - c0) * scale;
+            c1 = (maximumValue - c1) * scale;
+            c2 = (maximumValue - c2) * scale;
+            c3 = (maximumValue - c3) * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores inverted CMYK. Subtract before normalization to retain the existing operation order.
+            c0 = (maximumValue - c0) * scale;
+            c1 = (maximumValue - c1) * scale;
+            c2 = (maximumValue - c2) * scale;
+            c3 = (maximumValue - c3) * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores inverted CMYK. Subtract before normalization to retain the existing operation order.
+            c0 = (maximumValue - c0) * scale;
+            c1 = (maximumValue - c1) * scale;
+            c2 = (maximumValue - c2) * scale;
+            c3 = (maximumValue - c3) * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertToProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            // Adobe stores inverted CMYK. Subtract before normalization to retain the existing operation order.
+            c0 = (maximumValue - c0) * scale;
+            c1 = (maximumValue - c1) * scale;
+            c2 = (maximumValue - c2) * scale;
+            c3 = (maximumValue - c3) * scale;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref float c0,
+            ref float c1,
+            ref float c2,
+            ref float c3,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            IccColorSpaceType profileSpace)
+        {
+            c0 = (c0 - 1F) * -maximumValue;
+            c1 = (c1 - 1F) * -maximumValue;
+            c2 = (c2 - 1F) * -maximumValue;
+            c3 = (c3 - 1F) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            ref Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            c0 = (c0 - Vector128<float>.One) * -maximumValue;
+            c1 = (c1 - Vector128<float>.One) * -maximumValue;
+            c2 = (c2 - Vector128<float>.One) * -maximumValue;
+            c3 = (c3 - Vector128<float>.One) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            ref Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            c0 = (c0 - Vector256<float>.One) * -maximumValue;
+            c1 = (c1 - Vector256<float>.One) * -maximumValue;
+            c2 = (c2 - Vector256<float>.One) * -maximumValue;
+            c3 = (c3 - Vector256<float>.One) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvertFromProfile(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            ref Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            IccColorSpaceType profileSpace)
+        {
+            c0 = (c0 - Vector512<float>.One) * -maximumValue;
+            c1 = (c1 - Vector512<float>.One) * -maximumValue;
+            c2 = (c2 - Vector512<float>.One) * -maximumValue;
+            c3 = (c3 - Vector512<float>.One) * -maximumValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref float c0, ref float c1, ref float c2, float c3, float maximumValue, float halfValue, float scale)
         {
             // Adobe-style CMYK stores inverted component samples. Multiplying K by scale twice folds the
@@ -33,7 +182,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, Vector128<float> c3, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale)
+        public static void ConvertToRgb(
+            ref Vector128<float> c0,
+            ref Vector128<float> c1,
+            ref Vector128<float> c2,
+            Vector128<float> c3,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale)
         {
             // Each K lane supplies the common modulation factor for the corresponding C, M, and Y lanes.
             Vector128<float> scaledK = c3 * scale * scale;
@@ -44,7 +200,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, Vector256<float> c3, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale)
+        public static void ConvertToRgb(
+            ref Vector256<float> c0,
+            ref Vector256<float> c1,
+            ref Vector256<float> c2,
+            Vector256<float> c3,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale)
         {
             // Eight independent CMYK samples remain lane-aligned throughout the modulation.
             Vector256<float> scaledK = c3 * scale * scale;
@@ -55,7 +218,14 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, Vector512<float> c3, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale)
+        public static void ConvertToRgb(
+            ref Vector512<float> c0,
+            ref Vector512<float> c1,
+            ref Vector512<float> c2,
+            Vector512<float> c3,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale)
         {
             // Sixteen independent CMYK samples remain lane-aligned throughout the modulation.
             Vector512<float> scaledK = c3 * scale * scale;
@@ -66,7 +236,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(float r, float g, float b, float maximumValue, float halfValue, float scale, out float c0, out float c1, out float c2, out float c3)
+        public static void ConvertFromRgb(
+            float r,
+            float g,
+            float b,
+            float maximumValue,
+            float halfValue,
+            float scale,
+            out float c0,
+            out float c1,
+            out float c2,
+            out float c3)
         {
             float c = maximumValue - r;
             float m = maximumValue - g;
@@ -100,7 +280,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector128<float> r, Vector128<float> g, Vector128<float> b, Vector128<float> maximumValue, Vector128<float> halfValue, Vector128<float> scale, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2, out Vector128<float> c3)
+        public static void ConvertFromRgb(
+            Vector128<float> r,
+            Vector128<float> g,
+            Vector128<float> b,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            out Vector128<float> c0,
+            out Vector128<float> c1,
+            out Vector128<float> c2,
+            out Vector128<float> c3)
         {
             Vector128<float> c = maximumValue - r;
             Vector128<float> m = maximumValue - g;
@@ -122,7 +312,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector256<float> r, Vector256<float> g, Vector256<float> b, Vector256<float> maximumValue, Vector256<float> halfValue, Vector256<float> scale, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2, out Vector256<float> c3)
+        public static void ConvertFromRgb(
+            Vector256<float> r,
+            Vector256<float> g,
+            Vector256<float> b,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            out Vector256<float> c0,
+            out Vector256<float> c1,
+            out Vector256<float> c2,
+            out Vector256<float> c3)
         {
             Vector256<float> c = maximumValue - r;
             Vector256<float> m = maximumValue - g;
@@ -144,7 +344,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertFromRgb(Vector512<float> r, Vector512<float> g, Vector512<float> b, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3)
+        public static void ConvertFromRgb(
+            Vector512<float> r,
+            Vector512<float> g,
+            Vector512<float> b,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            out Vector512<float> c0,
+            out Vector512<float> c1,
+            out Vector512<float> c2,
+            out Vector512<float> c3)
         {
             Vector512<float> c = maximumValue - r;
             Vector512<float> m = maximumValue - g;

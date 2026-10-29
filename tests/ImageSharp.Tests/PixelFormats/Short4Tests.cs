@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class Short4Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        Short4 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void Short4_PackedValues()
     {
@@ -70,13 +84,21 @@ public class Short4Tests
         }
 
         Vector4[] actualVectors = new Vector4[length];
-        PixelOperations<Short4>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        PixelOperations<Short4>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         Vector4[] destructiveSource = [.. expectedVectors];
         Short4[] actualPixels = new Short4[length];
-        PixelOperations<Short4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<Short4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.Equal(source, actualPixels);
+
+        Vector4 special = new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 2F);
+        const ulong expectedSpecial = 0x7FFF80007FFF8000UL;
+        Assert.Equal(expectedSpecial, Short4.FromScaledVector4(special).PackedValue);
+
+        Array.Fill(destructiveSource, special);
+        PixelOperations<Short4>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
+        Assert.All(actualPixels, actual => Assert.Equal(expectedSpecial, actual.PackedValue));
     }
 
     [Fact]
@@ -216,6 +238,7 @@ public class Short4Tests
         Assert.Equal(Unsafe.SizeOf<Short4>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

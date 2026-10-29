@@ -1,28 +1,95 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Buffers.Binary;
+
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 /// <summary>
-/// Reads and parses ICC data from a byte array
+/// Reads ICC profiles from complete or segmented data.
 /// </summary>
 internal sealed class IccReader
 {
+    // The smallest complete profile has a 128-byte header and a 4-byte tag count.
+    private readonly ArrayBufferWriter<byte> profileData = new(132);
+    private readonly int maxLength;
+
     /// <summary>
-    /// Reads an ICC profile
+    /// Initializes a new instance of the <see cref="IccReader"/> class with the maximum ICC profile length.
     /// </summary>
-    /// <param name="data">The raw ICC data</param>
-    /// <returns>The read ICC profile</returns>
-    public static IccProfile Read(byte[] data)
+    public IccReader()
+        : this(IccProfile.MaxProfileSize - 1)
     {
-        Guard.NotNull(data, nameof(data));
-        Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
+    }
 
-        IccDataReader reader = new(data);
-        IccProfileHeader header = ReadHeader(reader);
-        IccTagDataEntry[] tagData = ReadTagData(reader);
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IccReader"/> class with a maximum retained profile length.
+    /// </summary>
+    /// <param name="maxLength">The maximum number of profile bytes to retain.</param>
+    public IccReader(int maxLength)
+    {
+        Guard.MustBeGreaterThanOrEqualTo(maxLength, 0, nameof(maxLength));
+        this.maxLength = Math.Min(maxLength, IccProfile.MaxProfileSize - 1);
+    }
 
-        return new IccProfile(header, tagData);
+    /// <summary>
+    /// Appends up to the requested number of bytes, returning the count actually read.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the segment payload.</param>
+    /// <param name="length">The segment payload length.</param>
+    /// <returns>The number of bytes appended.</returns>
+    public int Read(Stream stream, int length)
+    {
+        if ((uint)length > (uint)(this.maxLength - this.profileData.WrittenCount))
+        {
+            // Bound the accumulated length before growing storage for this segment.
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        int totalRead = 0;
+        while (totalRead < length)
+        {
+            Span<byte> destination = this.profileData.GetSpan(1);
+            int read = stream.Read(destination[..Math.Min(destination.Length, length - totalRead)]);
+            if (read == 0)
+            {
+                break;
+            }
+
+            this.profileData.Advance(read);
+            totalRead += read;
+        }
+
+        return totalRead;
+    }
+
+    /// <summary>
+    /// Creates a validated profile from the accumulated data without clearing the reader.
+    /// </summary>
+    /// <returns>The validated profile.</returns>
+    public IccProfile ToProfile()
+    {
+        ReadOnlySpan<byte> data = this.profileData.WrittenSpan;
+        int declaredSize = GetValidatedProfileLength(data);
+
+        // The accumulator remains reusable. Copy only the declared profile into the retained array.
+        return CreateProfile(data[..declaredSize].ToArray());
+    }
+
+    /// <summary>
+    /// Creates a validated profile from a complete, caller-owned byte array.
+    /// </summary>
+    /// <param name="data">The complete profile bytes. The caller must not change these bytes after this call.</param>
+    /// <returns>The validated profile, retaining the array when it contains exactly the declared profile.</returns>
+    /// <remarks>Trailing bytes are excluded from the retained profile. This requires a copy only when trailing bytes are present.</remarks>
+    public static IccProfile ToProfile(byte[] data)
+    {
+        int declaredSize = GetValidatedProfileLength(data);
+
+        // Decompressors can supply the final array directly. Preserve the same declared-size boundary
+        // as the segmented reader without copying an already complete profile.
+        return CreateProfile(declaredSize == data.Length ? data : data.AsSpan(0, declaredSize).ToArray());
     }
 
     /// <summary>
@@ -48,6 +115,11 @@ internal sealed class IccReader
     {
         Guard.NotNull(data, nameof(data));
         Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
+
+        if (!IsTagTableValid(data))
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile tag table.");
+        }
 
         IccDataReader reader = new(data);
         return ReadTagData(reader);
@@ -119,6 +191,7 @@ internal sealed class IccReader
         }
 
         List<IccTagTableEntry> table = new((int)tagCount);
+        uint dataLength = (uint)reader.DataLength;
         for (int i = 0; i < tagCount; i++)
         {
             uint tagSignature = reader.ReadUInt32();
@@ -126,12 +199,65 @@ internal sealed class IccReader
             uint tagSize = reader.ReadUInt32();
 
             // Exclude entries that have nonsense values and could cause exceptions further on
-            if (tagOffset < reader.DataLength && tagSize < reader.DataLength - 128)
+            if (tagSize >= 8 && tagOffset <= dataLength && tagSize <= dataLength - tagOffset)
             {
                 table.Add(new IccTagTableEntry((IccProfileTag)tagSignature, tagOffset, tagSize));
             }
         }
 
         return [.. table];
+    }
+
+    /// <summary>
+    /// Checks profile-length and tag-table boundaries before retaining profile bytes.
+    /// </summary>
+    /// <param name="data">The available profile bytes, which can include trailing data.</param>
+    /// <returns>The declared profile length.</returns>
+    private static int GetValidatedProfileLength(ReadOnlySpan<byte> data)
+    {
+        // Even a profile with no tags requires the 128-byte ICC header and the 4-byte tag count.
+        if (data.Length < 132)
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        uint declaredSize = BinaryPrimitives.ReadUInt32BigEndian(data);
+
+        // Bound the table by the declared profile, not by any readable bytes after that profile.
+        if (declaredSize < 132 || declaredSize > data.Length || declaredSize >= IccProfile.MaxProfileSize ||
+            !IsTagTableValid(data[..(int)declaredSize]))
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        return (int)declaredSize;
+    }
+
+    /// <summary>
+    /// Creates a profile from validated length and table boundaries, then checks its parsed header.
+    /// </summary>
+    /// <param name="data">The owned array containing exactly the declared profile bytes.</param>
+    /// <returns>The profile with a valid header.</returns>
+    private static IccProfile CreateProfile(byte[] data)
+    {
+        IccProfile profile = new(data);
+        if (!profile.CheckIsValid())
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        return profile;
+    }
+
+    /// <summary>
+    /// Checks that the count and complete fixed-size tag table fit in the payload.
+    /// </summary>
+    /// <param name="data">The raw profile bytes.</param>
+    /// <returns>Whether the tag table is complete.</returns>
+    private static bool IsTagTableValid(ReadOnlySpan<byte> data)
+    {
+        // The tag count follows the 128-byte header. Each table entry is 12 bytes: signature, offset, and size.
+        // Divide the bytes remaining after the 132-byte prefix to bound the count without multiplication overflow.
+        return data.Length >= 132 && BinaryPrimitives.ReadUInt32BigEndian(data[128..]) <= (uint)((data.Length - 132) / 12);
     }
 }

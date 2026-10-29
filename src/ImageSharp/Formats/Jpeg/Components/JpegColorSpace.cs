@@ -4,42 +4,49 @@
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 /// <summary>
-/// Identifies the colorspace of a Jpeg image.
+/// Selects the component arithmetic and stored sample convention used by the JPEG color converters.
 /// </summary>
+/// <remarks>
+/// The decoder and encoder share these conversion models. Chroma sampling is configured separately in the JPEG frame.
+/// The public <see cref="JpegColorType"/> includes YCbCr sampling ratios and standalone Adobe CMYK/YCCK choices.
+/// This internal enum has one YCbCr model and distinct TIFF CMYK/YCCK models because their stored ink conventions differ.
+/// Container callers must select the matching internal model so JPEG reads or writes the correct ink values.
+/// </remarks>
 internal enum JpegColorSpace
 {
     /// <summary>
-    /// Color space with 1 component.
+    /// One luminance component.
     /// </summary>
-    Grayscale,
+    Luminance,
 
     /// <summary>
-    /// Color space with 4 components.
+    /// Four Adobe YCCK components. The YCbCr matrix represents CMY inks, and the stored black component is inverted.
     /// </summary>
     Ycck,
 
     /// <summary>
-    /// Color space with 4 components.
+    /// Four Adobe CMYK components. Zero means full ink and the maximum sample value means no ink.
     /// </summary>
     Cmyk,
 
     /// <summary>
-    /// YccK color space with 4 components, used with tiff images, which use jpeg compression.
+    /// Four TIFF YCCK components. The YCbCr matrix represents the complements of CMY inks; black retains its conventional value.
+    /// Zero means no black ink and the maximum sample value means full black ink.
     /// </summary>
     TiffYccK,
 
     /// <summary>
-    /// Cmyk color space with 4 components, used with tiff images, which use jpeg compression.
+    /// Four conventional TIFF CMYK components. Zero means no ink and the maximum sample value means full ink.
     /// </summary>
     TiffCmyk,
 
     /// <summary>
-    /// Color space with 3 components.
+    /// Three red, green and blue components without a YCbCr transform.
     /// </summary>
     RGB,
 
     /// <summary>
-    /// Color space with 3 components.
+    /// Three Y, Cb and Cr components. All chroma sampling ratios use this same conversion model.
     /// </summary>
     YCbCr
 }

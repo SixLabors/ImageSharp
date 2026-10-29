@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
@@ -26,7 +26,7 @@ public class OpsinImageTests
     /// <param name="xybB">Output B channel</param>
     private static void LinearSRgbToOpsin(float rgbR, float rgbG, float rgbB, out float xybX, out float xybY, out float xybB)
     {
-        using JxlImage3F linear = new(TestEnvironment.Configuration, 1, 1);
+        using JxlImage3<float> linear = new(TestEnvironment.Configuration, 1, 1);
         linear.PlaneRow(0, 0)[0] = rgbR;
         linear.PlaneRow(1, 0)[0] = rgbG;
         linear.PlaneRow(2, 0)[0] = rgbB;
@@ -35,7 +35,7 @@ public class OpsinImageTests
             JxlColorEncoding.LinearSRgb,
             JxlShared.DefaultIntensityTarget,
             null,
-            new JxlImage3F(),
+            new JxlImage3<float>(),
             JxlCmsInterface.CreateDefaultCms(),
             null));
         xybX = linear.PlaneRow(0, 0)[0];
@@ -55,12 +55,12 @@ public class OpsinImageTests
     /// <param name="rgbB">Output Blue channel</param>
     private static void OpsinToLinearSRgb(float xybX, float xybY, float xybB, out float rgbR, out float rgbG, out float rgbB)
     {
-        using JxlImage3F opsin = new(TestEnvironment.Configuration, 1, 1);
+        using JxlImage3<float> opsin = new(TestEnvironment.Configuration, 1, 1);
         opsin.PlaneRow(0, 0)[0] = xybX;
         opsin.PlaneRow(1, 0)[0] = xybY;
         opsin.PlaneRow(2, 0)[0] = xybB;
 
-        using JxlImage3F linear = new(TestEnvironment.Configuration, 1, 1);
+        using JxlImage3<float> linear = new(TestEnvironment.Configuration, 1, 1);
 
         JxlOpsinParameters opsinParameters = new();
         opsinParameters.Initialize(intensityTarget: 255.0f);

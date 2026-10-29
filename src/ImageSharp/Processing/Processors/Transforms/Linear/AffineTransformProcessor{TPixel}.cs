@@ -243,7 +243,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
                     span[x] = sum;
                 }
 
-                pixelOperations.FromVector4Destructive(this.configuration, span, destinationRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, span, destinationRowSpan);
             }
         }
     }

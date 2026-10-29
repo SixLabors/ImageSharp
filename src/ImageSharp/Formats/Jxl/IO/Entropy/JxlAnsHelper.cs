@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
@@ -16,22 +17,24 @@ internal static class JxlAnsHelper
     public static int GetPopulationCountPrecision(int logCount, int shift)
         => Math.Max(0, Math.Min(logCount, shift - ((JxlAnsConstants.AnsLogTableSize - logCount) >> 1)));
 
-    // NOTE: The result may potentially be large, so prefer using a memory allocator
+    /// <summary>
+    /// Distributes a total frequency as evenly as possible across an alphabet.
+    /// </summary>
+    /// <param name="configuration">The configuration whose allocator owns the returned counts.</param>
+    /// <param name="length">The alphabet size, from one through the total frequency.</param>
+    /// <param name="totalCount">The total frequency required by the entropy table.</param>
+    /// <returns>The count owner, which the caller must dispose.</returns>
     public static IMemoryOwner<uint> CreateFlatHistogram(Configuration configuration, int length, int totalCount)
     {
-        DebugGuard.MustBeLessThanOrEqualTo(length, 0, nameof(length));
-        DebugGuard.MustBeGreaterThan(length, totalCount, nameof(length));
+        DebugGuard.MustBeGreaterThan(length, 0, nameof(length));
+        DebugGuard.MustBeLessThanOrEqualTo(length, totalCount, nameof(length));
 
         int count = totalCount / length;
         IMemoryOwner<uint> result = configuration.MemoryAllocator.Allocate<uint>(length);
-        Span<uint> resultSpan = result.Memory.Span;
-        uint unsignedCount = (uint)count;
+        Span<uint> resultSpan = result.GetSpan();
+        resultSpan.Fill((uint)count);
 
-        for (int i = 0; i < length; i++)
-        {
-            resultSpan[i] = unsignedCount;
-        }
-
+        // Add the division remainder to the first symbols so the table retains the exact required total.
         int remCounts = totalCount % length;
         for (int i = 0; i < remCounts; i++)
         {
@@ -67,9 +70,17 @@ internal static class JxlAnsHelper
         return symbol;
     }
 
-    public static bool InitAliasTable(Span<uint> preDistribution, uint logRange, int logAlphaSize, Span<JxlAnsEntry> entries)
+    /// <summary>
+    /// Builds alias buckets whose frequencies sum to the supplied range.
+    /// </summary>
+    /// <param name="preDistribution">The symbol frequencies. Trailing zeros are ignored; an empty alphabet represents symbol zero.</param>
+    /// <param name="logRange">The exponent of the total frequency.</param>
+    /// <param name="logAlphaSize">The exponent of the bucket count, no greater than the range exponent.</param>
+    /// <param name="entries">Storage for every alias bucket.</param>
+    /// <returns>Whether the frequencies form a valid normalized distribution.</returns>
+    public static bool InitAliasTable(ReadOnlySpan<uint> preDistribution, uint logRange, int logAlphaSize, Span<JxlAnsEntry> entries)
     {
-        DebugGuard.MustBeLessThan(logAlphaSize, (int)logRange, nameof(logAlphaSize));
+        DebugGuard.MustBeLessThanOrEqualTo(logAlphaSize, (int)logRange, nameof(logAlphaSize));
 
         int range = 1 << (int)logRange;
         int tableSize = 1 << logAlphaSize;
@@ -81,13 +92,7 @@ internal static class JxlAnsHelper
             distributionPointer--;
         }
 
-        if (distributionPointer < 0)
-        {
-            preDistribution[0] = (uint)range;
-            distributionPointer = 0;
-        }
-
-        Span<uint> distribution = preDistribution[..(distributionPointer + 1)];
+        ReadOnlySpan<uint> distribution = preDistribution[..(distributionPointer + 1)];
 
         if (distribution.Length > tableSize)
         {
@@ -95,15 +100,18 @@ internal static class JxlAnsHelper
         }
 
         int entrySize = range >> logAlphaSize;
-        int singleSymbol = -1;
-        uint sum = 0;
+
+        // An empty alphabet is the degenerate symbol zero, with the full range as its frequency.
+        // Keep the input unchanged; this case writes its complete table below without a temporary distribution.
+        int singleSymbol = distribution.IsEmpty ? 0 : -1;
+        uint sum = distribution.IsEmpty ? (uint)range : 0;
 
         for (int sym = 0; sym < distribution.Length; sym++)
         {
             uint value = distribution[sym];
             sum += value;
 
-            if (value == JxlAnsConstants.AnsTableSize)
+            if (value == range)
             {
                 if (singleSymbol != -1)
                 {
@@ -135,18 +143,20 @@ internal static class JxlAnsHelper
                 jxlEntry.Cutoff = 0;
                 jxlEntry.Offsets1 = (ushort)(entrySize * i);
                 jxlEntry.Frequency0 = 0;
-                jxlEntry.Frequency1XorFrequency0 = JxlAnsConstants.AnsTableSize;
+                jxlEntry.Frequency1XorFrequency0 = (ushort)range;
             }
 
             return true;
         }
 
-        Span<uint> underfullPosn = stackalloc uint[distribution.Length];
-        Span<uint> overfullPosn = stackalloc uint[distribution.Length];
-        Span<uint> cutoffs = stackalloc uint[1 << logAlphaSize];
+        // Missing symbols still occupy empty buckets. Each work list must therefore cover the full table,
+        // rather than only the encoded alphabet. Counts below delimit initialized stack entries.
+        Span<uint> underfullPosn = stackalloc uint[tableSize];
+        Span<uint> overfullPosn = stackalloc uint[tableSize];
+        Span<uint> cutoffs = stackalloc uint[tableSize];
 
-        int underfullPointer = 0;
-        int overfullPointer = 0;
+        int underfullCount = 0;
+        int overfullCount = 0;
 
         for (int i = 0; i < distribution.Length; i++)
         {
@@ -156,37 +166,37 @@ internal static class JxlAnsHelper
 
             if (currentCutoff > entrySize)
             {
-                overfullPosn[overfullPointer] = (uint)i;
-                overfullPointer++;
+                overfullPosn[overfullCount] = (uint)i;
+                overfullCount++;
             }
             else if (currentCutoff < entrySize)
             {
-                underfullPosn[underfullPointer] = (uint)i;
-                underfullPointer++;
+                underfullPosn[underfullCount] = (uint)i;
+                underfullCount++;
             }
         }
 
         for (int i = distribution.Length; i < tableSize; i++)
         {
             cutoffs[i] = 0;
-            underfullPosn[underfullPointer] = (uint)i;
-            underfullPointer++;
+            underfullPosn[underfullCount] = (uint)i;
+            underfullCount++;
         }
 
         uint unsignedEntrySize = (uint)entrySize;
 
-        while (overfullPointer >= 0)
+        // Fill one underfull bucket from the tail of one overfull symbol. Pop before reading because
+        // the counters hold element counts. Only the donor can need another work-list entry afterward.
+        while (overfullCount > 0)
         {
-            uint overfullIndex = overfullPosn[overfullPointer];
-            overfullPointer--;
+            uint overfullIndex = overfullPosn[--overfullCount];
 
-            if (underfullPointer <= -1)
+            if (underfullCount == 0)
             {
                 return false;
             }
 
-            uint underfullIndex = underfullPosn[underfullPointer];
-            underfullPointer--;
+            uint underfullIndex = underfullPosn[--underfullCount];
 
             int signedOverfullIndex = (int)overfullIndex;
             int signedUnderfullIndex = (int)underfullIndex;
@@ -203,13 +213,13 @@ internal static class JxlAnsHelper
 
             if (currentCutoff < entrySize)
             {
-                underfullPosn[underfullPointer] = overfullIndex;
-                underfullPointer++;
+                underfullPosn[underfullCount] = overfullIndex;
+                underfullCount++;
             }
             else if (currentCutoff > entrySize)
             {
-                overfullPosn[overfullPointer] = overfullIndex;
-                overfullPointer++;
+                overfullPosn[overfullCount] = overfullIndex;
+                overfullCount++;
             }
         }
 
@@ -226,6 +236,8 @@ internal static class JxlAnsHelper
             }
             else
             {
+                // The borrowed range starts after this bucket's own symbols. Remove that prefix from
+                // the donor offset so Lookup can add the bucket-local position for either symbol.
                 entry.Offsets1 -= (ushort)currentCutoff;
                 entry.Cutoff = (byte)currentCutoff;
             }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.IO;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Chunks;
 
 internal readonly struct WebpFrameData
@@ -119,13 +121,14 @@ internal readonly struct WebpFrameData
     /// Reads the animation frame header.
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
+    /// <param name="containerEnd">The end of the RIFF payload containing this frame.</param>
     /// <returns>Animation frame data.</returns>
-    public static WebpFrameData Parse(Stream stream)
+    public static WebpFrameData Parse(BufferedReadStream stream, long containerEnd)
     {
         Span<byte> buffer = stackalloc byte[4];
 
         return new WebpFrameData(
-            dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
+            dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer, containerEnd, 16, false),
             x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             width: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,

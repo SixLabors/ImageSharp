@@ -1,10 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 
@@ -35,7 +36,16 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
     /// <param name="tileWidth">Number of pixels in a tile row.</param>
     /// <param name="tileHeight">Number of rows in a tile.</param>
-    public LzwTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian, bool isTiled, int tileWidth, int tileHeight)
+    public LzwTiffCompression(
+        MemoryAllocator memoryAllocator,
+        int width,
+        int bitsPerPixel,
+        TiffColorType colorType,
+        TiffPredictor predictor,
+        bool isBigEndian,
+        bool isTiled,
+        int tileWidth,
+        int tileHeight)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
         this.colorType = colorType;
@@ -46,7 +56,8 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     }
 
     /// <inheritdoc/>
-    protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
+    protected override void Decompress<TPixel>(
+        BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, Buffer2DRegion<TPixel> pixels, CancellationToken cancellationToken)
     {
         TiffLzwDecoder decoder = new(stream);
         decoder.DecodePixels(buffer);

@@ -40,7 +40,8 @@ public enum PixelColorType
     Exponent = 1 << 4,
 
     /// <summary>
-    /// Indicates that the color is in luminance (grayscale) format.
+    /// Represents the luminance component of the color.
+    /// Its interpretation and scale depend on the color model. Grayscale is represented by this component alone.
     /// </summary>
     Luminance = 1 << 5,
 
@@ -80,17 +81,17 @@ public enum PixelColorType
     YCbCr = Luminance | ChrominanceBlue | ChrominanceRed | (1 << 12),
 
     /// <summary>
-    /// Represents the Cyan component in CMYK.
+    /// Represents the Cyan component of the color.
     /// </summary>
     Cyan = 1 << 13,
 
     /// <summary>
-    /// Represents the Magenta component in CMYK.
+    /// Represents the Magenta component of the color.
     /// </summary>
     Magenta = 1 << 14,
 
     /// <summary>
-    /// Represents the Yellow component in CMYK.
+    /// Represents the Yellow component of the color.
     /// </summary>
     Yellow = 1 << 15,
 
@@ -98,6 +99,11 @@ public enum PixelColorType
     /// Represents the Key (black) component in CMYK and YCCK.
     /// </summary>
     Key = 1 << 16,
+
+    /// <summary>
+    /// Indicates that the color is in CMY (Cyan, Magenta, Yellow) format.
+    /// </summary>
+    CMY = Cyan | Magenta | Yellow,
 
     /// <summary>
     /// Indicates that the color is in CMYK (Cyan, Magenta, Yellow, Key) format.
@@ -110,7 +116,47 @@ public enum PixelColorType
     YCCK = Luminance | ChrominanceBlue | ChrominanceRed | Key,
 
     /// <summary>
+    /// Indicates that the color is in CIE XYZ format.
+    /// </summary>
+    XYZ = Luminance | (1 << 17),
+
+    /// <summary>
+    /// Indicates that the color is in CIE Yxy format.
+    /// </summary>
+    Yxy = Luminance | (1 << 18),
+
+    /// <summary>
+    /// Indicates that the color is in CIE Lab format.
+    /// </summary>
+    Lab = Luminance | (1 << 19),
+
+    /// <summary>
+    /// Indicates that the color is in CIE Luv format.
+    /// </summary>
+    Luv = Luminance | (1 << 20),
+
+    /// <summary>
+    /// Represents the hue component of the color.
+    /// </summary>
+    Hue = 1 << 21,
+
+    /// <summary>
+    /// Represents the saturation component of the color.
+    /// </summary>
+    Saturation = 1 << 22,
+
+    /// <summary>
+    /// Indicates that the color is in HSV format.
+    /// </summary>
+    HSV = Hue | Saturation | Luminance | (1 << 23),
+
+    /// <summary>
+    /// Indicates that the color is in HLS format.
+    /// </summary>
+    HLS = Hue | Luminance | Saturation | (1 << 24),
+
+    /// <summary>
     /// Indicates that the color is of a type not specified in this enum.
     /// </summary>
-    Other = 1 << 17
+    Other = 1 << 25
 }

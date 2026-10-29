@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
@@ -14,6 +16,45 @@ namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 public class ExrDecoderTests
 {
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Exr;
+
+    [Theory]
+    [InlineData(TestImages.Exr.UncompressedFloatRgb, typeof(Image<RgbaVector>))]
+    [InlineData(TestImages.Exr.UncompressedRgba, typeof(Image<RgbaHalfP>))]
+    [InlineData(TestImages.Exr.Rgb, typeof(Image<RgbaHalf>))]
+    public void DefaultLoad_UsesFloatingStorageForExrSamples(string imagePath, Type expectedImageType)
+    {
+        TestFile file = TestFile.Create(imagePath);
+        using MemoryStream stream = new(file.Bytes, false);
+        using Image image = Image.Load(stream);
+
+        Assert.Equal(expectedImageType, image.GetType());
+    }
+
+    [Fact]
+    public void ExrDecoder_PreservesHdrSamplesFromOpenExrFile()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertHdrSamplesFromOpenExrFile,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks decoded samples from the OpenEXR fixture at positions inside the vector body and scalar tail.
+    /// </summary>
+    private static void AssertHdrSamplesFromOpenExrFile()
+    {
+        TestFile file = TestFile.Create(TestImages.Exr.OpenExrHdrHalf);
+        using MemoryStream stream = new(file.Bytes, false);
+        using Image image = Image.Load(stream);
+        Image<RgbaHalfP> pixels = Assert.IsType<Image<RgbaHalfP>>(image);
+
+        Assert.Equal(587, pixels.Width);
+        Assert.Equal(675, pixels.Height);
+
+        // These values come from the uncompressed half samples in OpenEXR's comp_none.exr.
+        Assert.Equal(new Vector4(319F, 423F, 501F, 1F), pixels[272, 180].ToVector4());
+        Assert.Equal(new Vector4(0.001132965087890625F, -0.002262115478515625F, -0.0014476776123046875F, 1F), pixels[73, 639].ToVector4());
+        Assert.Equal(new Vector4(0.91748046875F, 1.01953125F, 1.18359375F, 1F), pixels[59, 49].ToVector4());
+        Assert.Equal(new Vector4(0.037841796875F, 0.021148681640625F, 0.0201263427734375F, 1F), pixels[586, 180].ToVector4());
+    }
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]

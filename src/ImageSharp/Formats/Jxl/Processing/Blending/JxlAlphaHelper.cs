@@ -1,189 +1,71 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
+using System.Numerics.Tensors;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Blending;
 
-// TODO: SIMD support
-internal sealed class JxlAlphaHelper
+/// <summary>
+/// Applies JPEG XL's native alpha representation using its nonzero divisor floor.
+/// </summary>
+internal static class JxlAlphaHelper
 {
-    private const float SmallAlpha = 1f / (1 << 26);
+    // JPEG XL retains color at zero alpha by using this nonzero factor for both directions.
+    // Use the same floor as libjxl alpha.h so association can be reversed without losing those samples.
+    private const float SmallAlpha = 1F / (1 << 26);
 
-    // Force x to stay within the range of 0 through 1
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Clamp(float x) => Math.Clamp(x, 0f, 1f);
-
-    public static void PerformAlphaBlending(
-        JxlAlphaBlendingInputLayer background,
-        JxlAlphaBlendingInputLayer foreground,
-        JxlAlphaBlendingOutput output,
-        int pixelCount,
-        bool alphaIsPremultiplied,
-        bool clamp)
+    /// <summary>
+    /// Associates planar RGB samples using JPEG XL's nonzero alpha floor.
+    /// </summary>
+    /// <param name="red">The red samples, modified in place.</param>
+    /// <param name="green">The green samples, modified in place.</param>
+    /// <param name="blue">The blue samples, modified in place.</param>
+    /// <param name="alpha">The unchanged alpha samples.</param>
+    /// <param name="pixelCount">The number of samples per channel.</param>
+    public static void PremultiplyAlpha(Span<float> red, Span<float> green, Span<float> blue, ReadOnlySpan<float> alpha, int pixelCount)
     {
-        ReadOnlySpan<float> fgR = foreground.R;
-        ReadOnlySpan<float> fgG = foreground.G;
-        ReadOnlySpan<float> fgB = foreground.B;
-        ReadOnlySpan<float> fgA = foreground.A;
+        // Reuse one register-sized block for the three channels. This bounds stack storage and avoids a full alpha-row copy.
+        InlineArray16<float> storage = default;
+        Span<float> factors = storage;
 
-        ReadOnlySpan<float> bgR = background.R;
-        ReadOnlySpan<float> bgG = background.G;
-        ReadOnlySpan<float> bgB = background.B;
-        ReadOnlySpan<float> bgA = background.A;
-
-        Span<float> outR = output.R;
-        Span<float> outG = output.G;
-        Span<float> outB = output.B;
-        Span<float> outA = output.A;
-
-        if (alphaIsPremultiplied)
+        for (int offset = 0; offset < pixelCount; offset += factors.Length)
         {
-            for (int x = 0; x < pixelCount; x++)
-            {
-                float fga = clamp ? Clamp(fgA[x]) : fgA[x];
-                outR[x] = fgR[x] + (bgR[x] * (1f - fga));
-                outG[x] = fgG[x] + (bgG[x] * (1f - fga));
-                outB[x] = fgB[x] + (bgB[x] * (1f - fga));
-                outA[x] = 1f - ((1f - fga) * (1f - bgA[x]));
-            }
-        }
-        else
-        {
-            for (int x = 0; x < pixelCount; x++)
-            {
-                float fga = clamp ? Clamp(fgA[x]) : fgA[x];
-                float newA = 1f - ((1f - fga) * (1f - bgA[x]));
-                float rnewA = newA > 0 ? 1f / newA : 0f;
-                outR[x] = ((fgR[x] * fga) + (bgR[x] * bgA[x] * (1f - fga))) * rnewA;
-                outG[x] = ((fgG[x] * fga) + (bgG[x] * bgA[x] * (1f - fga))) * rnewA;
-                outB[x] = ((fgB[x] * fga) + (bgB[x] * bgA[x] * (1f - fga))) * rnewA;
-                outA[x] = newA;
-            }
+            int count = Math.Min(factors.Length, pixelCount - offset);
+            Span<float> block = factors[..count];
+            // Native std::max places the finite floor first, so NaN selects that floor rather than propagating.
+            TensorPrimitives.MaxNumber(alpha.Slice(offset, count), SmallAlpha, block);
+
+            TensorPrimitives.Multiply(red.Slice(offset, count), block, red.Slice(offset, count));
+            TensorPrimitives.Multiply(green.Slice(offset, count), block, green.Slice(offset, count));
+            TensorPrimitives.Multiply(blue.Slice(offset, count), block, blue.Slice(offset, count));
         }
     }
 
-    public static void PerformAlphaBlending(
-        ReadOnlySpan<float> bg,
-        ReadOnlySpan<float> bga,
-        ReadOnlySpan<float> fg,
-        ReadOnlySpan<float> fga,
-        Span<float> output,
-        int pixelCount,
-        bool alphaIsPremultiplied,
-        bool clamp)
+    /// <summary>
+    /// Restores unassociated planar RGB samples using JPEG XL's nonzero alpha floor.
+    /// </summary>
+    /// <param name="red">The red samples, modified in place.</param>
+    /// <param name="green">The green samples, modified in place.</param>
+    /// <param name="blue">The blue samples, modified in place.</param>
+    /// <param name="alpha">The unchanged alpha samples.</param>
+    /// <param name="pixelCount">The number of samples per channel.</param>
+    public static void UnpremultiplyAlpha(Span<float> red, Span<float> green, Span<float> blue, ReadOnlySpan<float> alpha, int pixelCount)
     {
-        if (bg == bga && fg == fga)
-        {
-            for (int x = 0; x < pixelCount; x++)
-            {
-                float fa = clamp ? Clamp(fga[x]) : fga[x];
-                output[x] = 1f - ((1f - fa) * (1f - bga[x]));
-            }
-        }
-        else
-        {
-            if (alphaIsPremultiplied)
-            {
-                for (int x = 0; x < pixelCount; x++)
-                {
-                    float fa = clamp ? Clamp(fga[x]) : fga[x];
-                    output[x] = fg[x] + (bg[x] * (1f - fa));
-                }
-            }
-            else
-            {
-                for (int x = 0; x < pixelCount; x++)
-                {
-                    float fa = clamp ? Clamp(fga[x]) : fga[x];
-                    float new_a = 1f - ((1f - fa) * (1f - bga[x]));
-                    float rnew_a = new_a > 0 ? 1f / new_a : 0f;
-                    output[x] = ((fg[x] * fa) + (bg[x] * bga[x] * (1f - fa))) * rnew_a;
-                }
-            }
-        }
-    }
+        // Reuse one register-sized block for the three channels. This bounds stack storage and avoids a full alpha-row copy.
+        InlineArray16<float> storage = default;
+        Span<float> factors = storage;
 
-    public static void PerformAlphaWeightedAdd(
-        ReadOnlySpan<float> bg,
-        ReadOnlySpan<float> fg,
-        ReadOnlySpan<float> fga,
-        Span<float> output,
-        int pixelCount,
-        bool clamp)
-    {
-        if (fg == fga)
+        for (int offset = 0; offset < pixelCount; offset += factors.Length)
         {
-            bg[pixelCount..].CopyTo(output);
-        }
-        else if (clamp)
-        {
-            for (int x = 0; x < pixelCount; x++)
-            {
-                output[x] = bg[x] + (fg[x] * Clamp(fga[x]));
-            }
-        }
-        else
-        {
-            for (int x = 0; x < pixelCount; ++x)
-            {
-                output[x] = bg[x] + (fg[x] * fga[x]);
-            }
-        }
-    }
+            int count = Math.Min(factors.Length, pixelCount - offset);
+            Span<float> block = factors[..count];
+            // Use the same finite floor for both directions, including native NaN handling.
+            TensorPrimitives.MaxNumber(alpha.Slice(offset, count), SmallAlpha, block);
+            TensorPrimitives.Divide(1F, block, block);
 
-    public static void PerformMultiplyBlending(
-        ReadOnlySpan<float> bg,
-        ReadOnlySpan<float> fg,
-        Span<float> output,
-        int pixelCount,
-        bool clamp)
-    {
-        if (clamp)
-        {
-            for (int x = 0; x < pixelCount; x++)
-            {
-                output[x] = bg[x] * Clamp(fg[x]);
-            }
-        }
-        else
-        {
-            for (int x = 0; x < pixelCount; x++)
-            {
-                output[x] = bg[x] * fg[x];
-            }
-        }
-    }
-
-    public static void PremultiplyAlpha(
-        Span<float> r,
-        Span<float> g,
-        Span<float> b,
-        ReadOnlySpan<float> a,
-        int pixelCount)
-    {
-        for (int x = 0; x < pixelCount; x++)
-        {
-            float multiplier = Math.Max(SmallAlpha, a[x]);
-            r[x] *= multiplier;
-            g[x] *= multiplier;
-            b[x] *= multiplier;
-        }
-    }
-
-    public static void UnpremultiplyAlpha(
-        Span<float> r,
-        Span<float> g,
-        Span<float> b,
-        ReadOnlySpan<float> a,
-        int pixelCount)
-    {
-        for (int x = 0; x < pixelCount; x++)
-        {
-            float multiplier = 1f / Math.Max(SmallAlpha, a[x]);
-            r[x] *= multiplier;
-            g[x] *= multiplier;
-            b[x] *= multiplier;
+            TensorPrimitives.Multiply(red.Slice(offset, count), block, red.Slice(offset, count));
+            TensorPrimitives.Multiply(green.Slice(offset, count), block, green.Slice(offset, count));
+            TensorPrimitives.Multiply(blue.Slice(offset, count), block, blue.Slice(offset, count));
         }
     }
 }

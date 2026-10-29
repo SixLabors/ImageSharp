@@ -27,6 +27,7 @@ internal readonly struct ApproximateColorProfileComparer :
     IEqualityComparer<YccK>
 {
     private readonly float epsilon;
+    private readonly bool scaled;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApproximateColorProfileComparer"/> struct.
@@ -34,35 +35,106 @@ internal readonly struct ApproximateColorProfileComparer :
     /// <param name="epsilon">The comparison error difference epsilon to use.</param>
     public ApproximateColorProfileComparer(float epsilon = 1f) => this.epsilon = epsilon;
 
-    public bool Equals(CieLab x, CieLab y) => this.Equals(x.L, y.L) && this.Equals(x.A, y.A) && this.Equals(x.B, y.B);
+    /// <summary>
+    /// Initializes a comparer for native or scaled color components.
+    /// </summary>
+    /// <param name="epsilon">The absolute error allowed in the selected component units.</param>
+    /// <param name="scaled">Whether to compare the color model's scaled components instead of its native units.</param>
+    public ApproximateColorProfileComparer(float epsilon, bool scaled)
+    {
+        this.epsilon = epsilon;
+        this.scaled = scaled;
+    }
 
-    public bool Equals(CieXyz x, CieXyz y) => this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z);
+    /// <inheritdoc />
+    public bool Equals(CieLab x, CieLab y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L) && this.Equals(x.A, y.A) && this.Equals(x.B, y.B);
 
-    public bool Equals(Lms x, Lms y) => this.Equals(x.L, y.L) && this.Equals(x.M, y.M) && this.Equals(x.S, y.S);
+    /// <inheritdoc />
+    public bool Equals(CieXyz x, CieXyz y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z);
 
-    public bool Equals(CieLch x, CieLch y) => this.Equals(x.L, y.L) && this.Equals(x.C, y.C) && this.Equals(x.H, y.H);
+    /// <inheritdoc />
+    public bool Equals(Lms x, Lms y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L) && this.Equals(x.M, y.M) && this.Equals(x.S, y.S);
 
-    public bool Equals(Rgb x, Rgb y) => this.Equals(x.R, y.R) && this.Equals(x.G, y.G) && this.Equals(x.B, y.B);
+    /// <inheritdoc />
+    public bool Equals(CieLch x, CieLch y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L) && this.Equals(x.C, y.C) && this.Equals(x.H, y.H);
 
-    public bool Equals(YCbCr x, YCbCr y) => this.Equals(x.Y, y.Y) && this.Equals(x.Cb, y.Cb) && this.Equals(x.Cr, y.Cr);
+    /// <inheritdoc />
+    public bool Equals(Rgb x, Rgb y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.R, y.R) && this.Equals(x.G, y.G) && this.Equals(x.B, y.B);
 
-    public bool Equals(CieLchuv x, CieLchuv y) => this.Equals(x.L, y.L) && this.Equals(x.C, y.C) && this.Equals(x.H, y.H);
+    /// <inheritdoc />
+    public bool Equals(YCbCr x, YCbCr y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.Y, y.Y) && this.Equals(x.Cb, y.Cb) && this.Equals(x.Cr, y.Cr);
 
-    public bool Equals(CieLuv x, CieLuv y) => this.Equals(x.L, y.L) && this.Equals(x.U, y.U) && this.Equals(x.V, y.V);
+    /// <inheritdoc />
+    public bool Equals(CieLchuv x, CieLchuv y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L) && this.Equals(x.C, y.C) && this.Equals(x.H, y.H);
 
-    public bool Equals(CieXyy x, CieXyy y) => this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Yl, y.Yl);
+    /// <inheritdoc />
+    public bool Equals(CieLuv x, CieLuv y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L) && this.Equals(x.U, y.U) && this.Equals(x.V, y.V);
 
-    public bool Equals(Cmyk x, Cmyk y) => this.Equals(x.C, y.C) && this.Equals(x.M, y.M) && this.Equals(x.Y, y.Y) && this.Equals(x.K, y.K);
+    /// <inheritdoc />
+    public bool Equals(CieXyy x, CieXyy y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Yl, y.Yl);
 
-    public bool Equals(Hsl x, Hsl y) => this.Equals(x.H, y.H) && this.Equals(x.S, y.S) && this.Equals(x.L, y.L);
+    /// <inheritdoc />
+    public bool Equals(Cmyk x, Cmyk y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.C, y.C) && this.Equals(x.M, y.M) && this.Equals(x.Y, y.Y) && this.Equals(x.K, y.K);
 
-    public bool Equals(Hsv x, Hsv y) => this.Equals(x.H, y.H) && this.Equals(x.S, y.S) && this.Equals(x.V, y.V);
+    /// <inheritdoc />
+    public bool Equals(Hsl x, Hsl y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.H, y.H) && this.Equals(x.S, y.S) && this.Equals(x.L, y.L);
 
-    public bool Equals(HunterLab x, HunterLab y) => this.Equals(x.L, y.L) && this.Equals(x.A, y.A) && this.Equals(x.B, y.B);
+    /// <inheritdoc />
+    public bool Equals(Hsv x, Hsv y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.H, y.H) && this.Equals(x.S, y.S) && this.Equals(x.V, y.V);
 
-    public bool Equals(Y x, Y y) => this.Equals(x.L, y.L);
+    /// <inheritdoc />
+    public bool Equals(HunterLab x, HunterLab y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L) && this.Equals(x.A, y.A) && this.Equals(x.B, y.B);
 
-    public bool Equals(YccK x, YccK y) => this.Equals(x.Y, y.Y) && this.Equals(x.Cb, y.Cb) && this.Equals(x.Cr, y.Cr) && this.Equals(x.K, y.K);
+    /// <inheritdoc />
+    public bool Equals(Y x, Y y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.L, y.L);
+
+    /// <inheritdoc />
+    public bool Equals(YccK x, YccK y)
+        => this.scaled
+            ? this.EqualsScaled(x, y)
+            : this.Equals(x.Y, y.Y) && this.Equals(x.Cb, y.Cb) && this.Equals(x.Cr, y.Cr) && this.Equals(x.K, y.K);
 
     public int GetHashCode([DisallowNull] CieLab obj) => obj.GetHashCode();
 
@@ -93,6 +165,17 @@ internal readonly struct ApproximateColorProfileComparer :
     public int GetHashCode([DisallowNull] Y obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] YccK obj) => obj.GetHashCode();
+
+    /// <summary>
+    /// Compares colors in the units defined by their scaled-vector API without clipping extended values.
+    /// </summary>
+    /// <typeparam name="TColor">The color model.</typeparam>
+    /// <param name="x">The expected color.</param>
+    /// <param name="y">The actual color.</param>
+    /// <returns>Whether all scaled components are within the error bound.</returns>
+    private bool EqualsScaled<TColor>(TColor x, TColor y)
+        where TColor : struct, IColorProfile<TColor>
+        => new ApproximateFloatComparer(this.epsilon).Equals(x.ToScaledVector4(), y.ToScaledVector4());
 
     private bool Equals(float x, float y)
     {

@@ -15,7 +15,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp;
 
 [Trait("Format", "Bmp")]
-public class BmpEncoderTests
+public partial class BmpEncoderTests
 {
     private static BmpEncoder BmpEncoder => new();
 
@@ -332,7 +332,7 @@ public class BmpEncoderTests
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new BmpDecoderOptions());
+        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new BmpDecoderOptions(new DecoderOptions(Configuration.Default)));
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 

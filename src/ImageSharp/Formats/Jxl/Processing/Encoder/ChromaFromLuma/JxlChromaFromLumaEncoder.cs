@@ -4,7 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.ChromaFromLuma;
 
 internal static class JxlChromaFromLumaEncoder
 {
-    public static JxlImageF InitializeDcStorage(Configuration configuration, int numBlocks)
+    public static JxlPlane<float> InitializeDcStorage(Configuration configuration, int numBlocks)
     {
-        JxlImageF dcValues = new(configuration, JxlMath.RoundUpTo(numBlocks, Vector<float>.Count), 4);
+        JxlPlane<float> dcValues = new(configuration, JxlMath.RoundUpTo(numBlocks, Vector<float>.Count), 4);
 
         for (int y = 0; y < 4; y++)
         {
@@ -31,6 +31,16 @@ internal static class JxlChromaFromLumaEncoder
         return dcValues;
     }
 
+    /// <summary>
+    /// Selects the signed luma-to-chroma multiplier adjustment from observed coefficient pairs.
+    /// </summary>
+    /// <param name="valuesM">The luma-derived multipliers for the observations.</param>
+    /// <param name="valuesS">The chroma values for the observations.</param>
+    /// <param name="num">The number of observations, excluding storage padding.</param>
+    /// <param name="baseValue">The base luma-to-chroma multiplier before the encoded adjustment.</param>
+    /// <param name="distanceMul">The regularization strength for the encoded adjustment.</param>
+    /// <param name="fast">Whether to use the quadratic estimate instead of the iterative loss.</param>
+    /// <returns>The adjustment in [-128,127]. Midpoints round away from zero.</returns>
     public static int FindBestMultiplier(Span<float> valuesM, Span<float> valuesS, int num, float baseValue, float distanceMul, bool fast)
     {
         if (num == 0)
@@ -38,61 +48,25 @@ internal static class JxlChromaFromLumaEncoder
             return 0;
         }
 
+        JxlCflFunction function = new(valuesM, valuesS, num, baseValue, distanceMul);
         float x;
 
         if (fast)
         {
-            const float inverseColorFactor = 1.0f / JxlChromaFromLuma.DefaultColorFactor;
-
-            Vector<float> ca = Vector<float>.Zero;
-            Vector<float> cb = Vector<float>.Zero;
-            Vector<float> invColorFactor = new(inverseColorFactor);
-            Vector<float> baseV = new(baseValue);
-
-            int i = 0;
-            int lanes = Vector<float>.Count;
-
-            for (; i + lanes <= num; i += lanes)
-            {
-                Vector<float> m = new(valuesM[i..]);
-                Vector<float> s = new(valuesS[i..]);
-
-                Vector<float> a = invColorFactor * m;
-                Vector<float> b = (baseV * m) - s;
-
-                ca += a * a;
-                cb += a * b;
-            }
-
-            float sumCa = Vector.Sum(ca);
-            float sumCb = Vector.Sum(cb);
-
-            for (; i < num; i++)
-            {
-                float m = valuesM[i];
-                float s = valuesS[i];
-                float a = inverseColorFactor * m;
-                float b = (baseValue * m) - s;
-
-                sumCa += a * a;
-                sumCb += a * b;
-            }
-
-            x = -sumCb / (sumCa + (num * distanceMul * 0.5f));
+            x = function.EstimateMinimum();
         }
         else
         {
             const float eps = 100.0f;
             const float clamp = 20.0f;
 
-            JxlCflFunction fn = new(valuesM, valuesS, num, baseValue, distanceMul);
             x = 0;
 
             for (int i = 0; i < 20; i++)
             {
                 float dFPeps = 0;
                 float dFMeps = 0;
-                float dF = fn.Compute(x, eps, ref dFPeps, ref dFMeps);
+                float dF = function.Compute(x, eps, ref dFPeps, ref dFMeps);
 
                 float ddF = (dFPeps - dFMeps) / (2.0f * eps);
                 const float experimentalInsignificantStabilizer = 0.85f;
@@ -123,10 +97,40 @@ internal static class JxlChromaFromLumaEncoder
             x = 0;
         }
 
-        return (int)Math.Clamp(MathF.Round(x), -128.0f, 127.0f);
+        // The encoded adjustment uses native std::round midpoint rules. Ties-to-even would choose a different correlation table entry.
+        return (int)Math.Clamp(MathF.Round(x, MidpointRounding.AwayFromZero), -128.0f, 127.0f);
     }
 
-    public static void ComputeTile(JxlImage3F opsin, Rectangle opsinRect, JxlDequantMatrices dequant, JxlAcStrategyImage? acStrategy, JxlImageI? rawQuantField, JxlQuantizer quantizer, Rectangle rect, bool fast, bool useDct8, JxlImageSB mapX, JxlImageSB mapB, JxlImageF dcValues, Span<float> mem)
+    /// <summary>
+    /// Computes the X and B correlation multipliers for one tile and records its frame-wide DC pairs.
+    /// </summary>
+    /// <param name="opsin">The borrowed XYB source planes.</param>
+    /// <param name="opsinRect">The block-aligned source region in pixels.</param>
+    /// <param name="dequant">The prepared dequantization matrices.</param>
+    /// <param name="acStrategy">The selected strategies, unused when <paramref name="useDct8"/> is true.</param>
+    /// <param name="rawQuantField">The quantization field, or null to use a unit field.</param>
+    /// <param name="quantizer">The frame's quantization controls.</param>
+    /// <param name="rect">The tile in block coordinates relative to <paramref name="opsinRect"/>, at most eight by eight blocks.</param>
+    /// <param name="fast">Whether to use the existing fast correlation estimate.</param>
+    /// <param name="useDct8">Whether to use DCT8 rather than reading selected strategies.</param>
+    /// <param name="mapX">The destination X-correlation map.</param>
+    /// <param name="mapB">The destination B-correlation map.</param>
+    /// <param name="dcValues">Four owned-by-caller DC rows, with vector-rounded frame block count as their logical width.</param>
+    /// <param name="mem">The borrowed float workspace, partitioned into transform blocks, tile coefficients, DC values and transform scratch.</param>
+    public static void ComputeTile(
+        JxlImage3<float> opsin,
+        Rectangle opsinRect,
+        JxlDequantMatrices dequant,
+        JxlAcStrategyImage? acStrategy,
+        JxlPlane<int>? rawQuantField,
+        JxlQuantizer quantizer,
+        Rectangle rect,
+        bool fast,
+        bool useDct8,
+        JxlPlane<sbyte> mapX,
+        JxlPlane<sbyte> mapB,
+        JxlPlane<float> dcValues,
+        Span<float> mem)
     {
         int widthBlocks = opsinRect.Width / JxlFrameDimensions.BlockDimensions;
         const float distanceMultiplierAC = 1e-9f;
@@ -148,6 +152,8 @@ internal static class JxlChromaFromLumaEncoder
         Span<float> dcValuesYB = dcValues.GetRow(2);
         Span<float> dcValuesB = dcValues.GetRow(3);
 
+        // Maximum transform blocks hold 256 by 256 samples, including candidates too large for this color tile.
+        // The kernel records their DC values but uses only transforms that fit the tile for its AC correlation estimate.
         Span<float> blockY = mem;
         Span<float> blockX = blockY[JxlAcStrategy.MaximumCoefficientArea..];
         Span<float> blockB = blockX[JxlAcStrategy.MaximumCoefficientArea..];
@@ -159,7 +165,9 @@ internal static class JxlChromaFromLumaEncoder
         Span<float> coeffsYB = coeffsX[(JxlChromaFromLuma.ColorTileDimension * JxlChromaFromLuma.ColorTileDimension)..];
         Span<float> coeffsB = coeffsYB[(JxlChromaFromLuma.ColorTileDimension * JxlChromaFromLuma.ColorTileDimension)..];
 
-        mem = mem[(4 * JxlAcStrategy.MaximumCoefficientArea)..];
+        // The four coefficient arrays hold one color tile each, not one maximum-size transform each.
+        // Advance by exactly those tile arrays so the following DC arrays and transform scratch match the owner's allocation.
+        mem = mem[(4 * JxlChromaFromLuma.ColorTileDimension * JxlChromaFromLuma.ColorTileDimension)..];
 
         const int dcSize = JxlAcStrategy.MaximumCoefficientBlocks * JxlAcStrategy.MaximumCoefficientBlocks;
 

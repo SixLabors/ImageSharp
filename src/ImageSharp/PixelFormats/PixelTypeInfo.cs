@@ -12,16 +12,18 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// <summary>
 /// Contains information about the pixels that make up an images visual data.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="PixelTypeInfo"/> struct.
-/// </remarks>
-/// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
-public readonly struct PixelTypeInfo(int bitsPerPixel)
+public readonly struct PixelTypeInfo
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PixelTypeInfo"/> struct.
+    /// </summary>
+    /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
+    public PixelTypeInfo(int bitsPerPixel) => this.BitsPerPixel = bitsPerPixel;
+
     /// <summary>
     /// Gets color depth, in number of bits per pixel.
     /// </summary>
-    public int BitsPerPixel { get; init; } = bitsPerPixel;
+    public int BitsPerPixel { get; init; }
 
     /// <summary>
     /// Gets the component bit depth and padding within the pixel.
@@ -34,8 +36,12 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     public PixelColorType ColorType { get; init; }
 
     /// <summary>
+    /// Gets the normalized RGB component range supported by the pixel format's color conversions.
+    /// </summary>
+    public PixelColorRange ColorRange { get; init; }
+
+    /// <summary>
     /// Gets the pixel alpha transparency behavior.
-    /// <see langword="null"/> means unknown, unspecified.
     /// </summary>
     public PixelAlphaRepresentation AlphaRepresentation { get; init; }
 
@@ -45,11 +51,13 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="info">The pixel component info.</param>
     /// <param name="colorType">The pixel color type.</param>
+    /// <param name="colorRange">The color range supported by the pixel format.</param>
     /// <param name="alphaRepresentation">The pixel alpha representation.</param>
-    /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
+    /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
     public static PixelTypeInfo Create<TPixel>(
         PixelComponentInfo info,
         PixelColorType colorType,
+        PixelColorRange colorRange,
         PixelAlphaRepresentation alphaRepresentation)
         where TPixel : unmanaged, IPixel<TPixel>
         => new()
@@ -57,6 +65,7 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
             BitsPerPixel = Unsafe.SizeOf<TPixel>() * 8,
             ComponentInfo = info,
             ColorType = colorType,
+            ColorRange = colorRange,
             AlphaRepresentation = alphaRepresentation
         };
 }

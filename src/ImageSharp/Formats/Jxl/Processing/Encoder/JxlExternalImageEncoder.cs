@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -21,7 +20,16 @@ internal class JxlExternalImageEncoder
         _ => 0
     };
 
-    private static void ConvertFromExternalPlaneNoSizeCheck(Configuration configuration, Memory<byte> data, int xSize, int ySize, int stride, int bitsPerSample, JxlPixelFormat format, int c, JxlImageF channel)
+    private static void ConvertFromExternalPlaneNoSizeCheck(
+        Configuration configuration,
+        Memory<byte> data,
+        int xSize,
+        int ySize,
+        int stride,
+        int bitsPerSample,
+        JxlPixelFormat format,
+        int c,
+        JxlPlane<float> channel)
     {
         if (format.DataType == JxlDataType.Byte)
         {
@@ -81,10 +89,21 @@ internal class JxlExternalImageEncoder
             LoadFloatRow(data[offset..], xSize, bytesPerPixel, format.DataType, littleEndian, scale, SaveValue);
         }
 
-        _ = Parallel.For(0, ySize, configuration.GetParallelOptions(), ConvertRow);
+        for (int i = 0; i < ySize; i++)
+        {
+            ConvertRow(i);
+        }
     }
 
-    private static bool ConvertFromExternal(Configuration configuration, Memory<byte> data, int xSize, int ySize, int bitsPerSample, JxlPixelFormat format, int c, JxlPlane<float> channel)
+    private static bool ConvertFromExternal(
+        Configuration configuration,
+        Memory<byte> data,
+        int xSize,
+        int ySize,
+        int bitsPerSample,
+        JxlPixelFormat format,
+        int c,
+        JxlPlane<float> channel)
     {
         int bytesPerChannel = JxlDataTypeBytes(format.DataType);
 
@@ -131,7 +150,16 @@ internal class JxlExternalImageEncoder
         return ConvertFromExternalPlaneNoSizeCheck(configuration, data, (ulong)xSize, ySize, rowSize, bitsPerSample, format, c, channel);
     }
 
-    public static bool ConvertFromExternal(Configuration configuration, Memory<byte> bytes, int xSize, int ySize, JxlColorEncoding currentColorEncoding, int bitsPerSample, JxlPixelFormat format, JxlImageBundle imageBundle, bool setAlpha)
+    public static bool ConvertFromExternal(
+        Configuration configuration,
+        Memory<byte> bytes,
+        int xSize,
+        int ySize,
+        JxlColorEncoding currentColorEncoding,
+        int bitsPerSample,
+        JxlPixelFormat format,
+        JxlImageBundle imageBundle,
+        bool setAlpha)
     {
         int colorChannels = currentColorEncoding.Channels;
         bool hasAlpha = format.Channels is 2 or 4;
@@ -141,7 +169,7 @@ internal class JxlExternalImageEncoder
             throw new InvalidOperationException($"Expected {colorChannels} color channels, received only {format.Channels} channels.");
         }
 
-        JxlImage3F color = new(configuration, xSize, ySize);
+        using JxlImage3<float> color = new(configuration, xSize, ySize);
 
         for (int c = 0; c < colorChannels; c++)
         {
@@ -162,38 +190,62 @@ internal class JxlExternalImageEncoder
             throw new InvalidOperationException("Could not set image bundle");
         }
 
+        // The bundle now owns the copied samples; the local image wrapper is empty. The supplied byte memory remains borrowed.
         if (setAlpha)
         {
-            JxlImageF alpha = new(configuration, xSize, ySize);
+            JxlPlane<float>? alpha = new(configuration, xSize, ySize);
 
-            if (hasAlpha)
+            try
             {
-                if (!ConvertFromExternal(configuration, bytes, xSize, ySize, bitsPerSample, format, format.Channels - 1, alpha))
+                if (hasAlpha)
                 {
-                    return false;
+                    if (!ConvertFromExternal(configuration, bytes, xSize, ySize, bitsPerSample, format, format.Channels - 1, alpha))
+                    {
+                        return false;
+                    }
                 }
-            }
-            else
-            {
-                JxlImageOperations.FillImage(1.0F, alpha);
-            }
+                else
+                {
+                    JxlImageOperations.FillImage(1.0F, alpha);
+                }
 
-            if (!imageBundle.TrySetAlpha(alpha))
+                if (!imageBundle.TrySetAlpha(alpha))
+                {
+                    throw new InvalidOperationException("Failed to set alpha channel");
+                }
+
+                alpha = null;
+            }
+            finally
             {
-                throw new InvalidOperationException("Failed to set alpha channel");
+                alpha?.Dispose();
             }
         }
 
         return true;
     }
 
-    public static bool BufferToImageF(Configuration configuration, JxlPixelFormat pixelFormat, int xSize, int ySize, Memory<byte> buffer, JxlImageF channel)
+    public static bool BufferToImageF(
+        Configuration configuration,
+        JxlPixelFormat pixelFormat,
+        int xSize,
+        int ySize,
+        Memory<byte> buffer,
+        JxlPlane<float> channel)
     {
         int bitDepth = JxlDataTypeBytes(pixelFormat.DataType) * 8;
         return ConvertFromExternal(configuration, buffer, xSize, ySize, bitDepth, pixelFormat, 0, channel);
     }
 
-    public static bool BufferToImageBundle(Configuration configuration, JxlPixelFormat pixelFormat, int xSize, int ySize, Memory<byte> buffer, JxlColorEncoding currentColorEncoding, JxlImageBundle imageBundle, bool setAlpha)
+    public static bool BufferToImageBundle(
+        Configuration configuration,
+        JxlPixelFormat pixelFormat,
+        int xSize,
+        int ySize,
+        Memory<byte> buffer,
+        JxlColorEncoding currentColorEncoding,
+        JxlImageBundle imageBundle,
+        bool setAlpha)
     {
         int bitDepth = JxlDataTypeBytes(pixelFormat.DataType) * 8;
 

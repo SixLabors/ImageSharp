@@ -15,6 +15,9 @@ public class ColorProfileConverterChomaticAdaptationTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001F);
 
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
+
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(1, 1, 1, 1, 1, 1)]
@@ -80,7 +83,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieLab actual = converter.Convert<CieLab, CieLab>(input);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
     }
 
     [Theory]
@@ -198,6 +201,6 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieLch actual = converter.Convert<CieLch, CieLch>(input);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
     }
 }

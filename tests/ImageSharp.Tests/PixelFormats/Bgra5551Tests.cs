@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 public class Bgra5551Tests
 {
     /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData(ushort.MaxValue)]
+    [InlineData((ushort)0xA53C)]
+    public void Constructor_FromPackedValue(ushort packed)
+    {
+        Bgra5551 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
+    /// <summary>
     /// Tests the equality operators for equality.
     /// </summary>
     [Fact]
@@ -263,6 +277,7 @@ public class Bgra5551Tests
         Assert.Equal(Unsafe.SizeOf<Bgra5551>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.BGR | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

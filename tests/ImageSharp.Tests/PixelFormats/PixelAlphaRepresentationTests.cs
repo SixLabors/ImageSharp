@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -61,7 +62,8 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             }
             else
             {
-                // Reversing association can introduce one final float rounding step, but this still rejects an unassociated no-op by several orders of magnitude.
+                // Reversing association can introduce one final float rounding step.
+                // This bound still rejects an unassociated result by several orders of magnitude.
                 AlphaRepresentationTestAssertions.EqualWithinOneUlp(expectedAssociatedScaled, actualAssociatedScaled);
             }
 
@@ -77,14 +79,53 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
         }
     }
 
+    /// <summary>
+    /// High-alpha input follows the destination's alpha representation and component bounds.
+    /// </summary>
     [Fact]
-    public void ScalarScaledConversionsClampHighAlphaConsistently()
+    public void ScaledConversionsClampHighAlphaConsistently()
     {
         Vector4 unassociated = new(.8F, .4F, .2F, 1.5F);
-        Vector4 associated = Associate(unassociated);
+        Vector4[] inputs =
+        [
+            Associate(unassociated),
+            new(float.MaxValue, float.MaxValue / 2F, 0F, float.MaxValue),
+            new(float.MaxValue, float.MaxValue / 2F, 0F, float.PositiveInfinity)
+        ];
 
-        // Both entry points describe the same logical color, so clamping opacity at the storage boundary must not change RGB differently between them.
-        Assert.Equal(TPixel.FromUnassociatedScaledVector4(unassociated), TPixel.FromAssociatedScaledVector4(associated));
+        TPixel[] expected =
+        [
+            TPixel.FromUnassociatedScaledVector4(unassociated),
+            TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F)),
+            TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F))
+        ];
+
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        if (pixelInfo.ColorRange == PixelColorRange.Extended && pixelInfo.AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            // Associated floating-point destinations bound each component without undoing association.
+            // Native packing supplies only the destination's storage rounding for these explicit bounded values.
+            expected[0] = TPixel.FromAssociatedVector4(new Vector4(inputs[0].X, inputs[0].Y, inputs[0].Z, 1F));
+            expected[1] = TPixel.FromAssociatedVector4(new Vector4(65504F, 65504F, 0F, 1F));
+            expected[2] = expected[1];
+        }
+
+        Vector4[] source = new Vector4[65];
+        TPixel[] destination = new TPixel[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = inputs[i % inputs.Length];
+            Assert.Equal(expected[i % expected.Length], TPixel.FromAssociatedScaledVector4(source[i]));
+        }
+
+        // Mixed SIMD groups and a scalar tail must follow the same destination rules as the single-pixel API.
+        PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination);
+
+        for (int i = 0; i < destination.Length; i++)
+        {
+            Assert.Equal(expected[i % expected.Length], destination[i]);
+        }
     }
 
     [Fact]
@@ -153,15 +194,53 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             pixels[i] = TPixel.FromUnassociatedScaledVector4(source);
         }
 
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToUnassociatedVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.UnPremultiply));
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToAssociatedVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.Premultiply));
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToUnassociatedScaledVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
-        AssertBulkToMatchesScalar(pixels, static pixel => pixel.ToAssociatedScaledVector4(), static (operations, source, destination) => operations.ToVector4(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedVector4(),
+            static (operations, source, destination) => operations.ToUnassociatedVector4(Configuration.Default, source, destination));
 
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToUnassociatedVector4(), static vector => TPixel.FromUnassociatedVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.UnPremultiply));
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToAssociatedVector4(), static vector => TPixel.FromAssociatedVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Premultiply));
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToUnassociatedScaledVector4(), static vector => TPixel.FromUnassociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
-        AssertBulkFromMatchesScalar(pixels, static pixel => pixel.ToAssociatedScaledVector4(), static vector => TPixel.FromAssociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedVector4(),
+            static (operations, source, destination) => operations.ToAssociatedVector4(Configuration.Default, source, destination));
+
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedScaledVector4(),
+            static (operations, source, destination) => operations.ToUnassociatedScaledVector4(Configuration.Default, source, destination));
+
+        AssertBulkToMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedScaledVector4(),
+            static (operations, source, destination) => operations.ToAssociatedScaledVector4(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedVector4(),
+            static vector => TPixel.FromUnassociatedVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromUnassociatedVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedVector4(),
+            static vector => TPixel.FromAssociatedVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromAssociatedVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToUnassociatedScaledVector4(),
+            static vector => TPixel.FromUnassociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            pixels,
+            static pixel => pixel.ToAssociatedScaledVector4(),
+            static vector => TPixel.FromAssociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination));
     }
 
     [Fact]
@@ -174,8 +253,17 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             associated[i] = Associate(OutOfRangeUnassociatedScaledVectors[i]);
         }
 
-        AssertBulkFromMatchesScalar(OutOfRangeUnassociatedScaledVectors, static vector => TPixel.FromUnassociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
-        AssertBulkFromMatchesScalar(associated, static vector => TPixel.FromAssociatedScaledVector4(vector), static (operations, source, destination) => operations.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+        AssertBulkFromMatchesScalar(
+            OutOfRangeUnassociatedScaledVectors,
+            static vector => TPixel.FromUnassociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination));
+
+        AssertBulkFromMatchesScalar(
+            associated,
+            static vector => TPixel.FromAssociatedScaledVector4(vector),
+            static (operations, source, destination) =>
+                operations.FromAssociatedScaledVector4Destructive(Configuration.Default, source, destination));
     }
 
     [Theory]
@@ -183,8 +271,9 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void BulkCompandingHonorsRequestedAlphaRepresentationAndRange(bool scaled, bool associated)
+    public void PixelRowProcessingCompandsStraightRgbAndPreservesRequestedRepresentation(bool scaled, bool associated)
     {
+        // Exercise multiple vector blocks and a tail row span in the processing path.
         const int length = 259;
         TPixel[] pixels = new TPixel[length];
 
@@ -193,54 +282,62 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             pixels[i] = TPixel.FromUnassociatedScaledVector4(UnassociatedScaledVectors[i % UnassociatedScaledVectors.Length]);
         }
 
+        // The row-processing API owns transfer-function conversion; these options describe its vector range and alpha contract.
         PixelConversionModifiers modifiers = PixelConversionModifiers.SRgbCompand
             | (scaled ? PixelConversionModifiers.Scale : PixelConversionModifiers.None)
             | (associated ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply);
 
-        Vector4[] expectedVectors = new Vector4[length];
+        using Image<TPixel> image = new(length, 1);
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            image[i, 0] = pixels[i];
+        }
+
+        image.Mutate(context => context.ProcessPixelRowsAsVector4(
+            row =>
+            {
+                // Halving linear red makes transfer-function ordering observable in the final encoded pixel.
+                for (int i = 0; i < row.Length; i++)
+                {
+                    row[i].X *= .5F;
+                }
+            },
+            modifiers));
+
+        // This test checks row-processing order and alpha handling. Use the scalar companding API with the same
+        // requested precision and range. Separate formula tests check accuracy; table and direct results can pack differently.
+        PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
+        int componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
 
         for (int i = 0; i < pixels.Length; i++)
         {
-            expectedVectors[i] = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
+            Vector4 expected = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
+            expected = scaled
+                ? SRgbCompanding.Expand(expected, componentBitDepth, pixelInfo.ColorRange)
+                : SRgbCompanding.Expand(expected);
+
+            if (associated)
+            {
+                Numerics.Premultiply(ref expected);
+            }
+
+            expected.X *= .5F;
+
+            if (associated)
+            {
+                Numerics.UnPremultiply(ref expected);
+            }
+
+            expected = scaled
+                ? SRgbCompanding.Compress(expected, componentBitDepth, pixelInfo.ColorRange)
+                : SRgbCompanding.Compress(expected);
+
+            TPixel expectedPixel = scaled
+                ? TPixel.FromUnassociatedScaledVector4(expected)
+                : TPixel.FromUnassociatedVector4(expected);
+
+            Assert.Equal(expectedPixel, image[i, 0]);
         }
-
-        // Transfer functions operate on straight RGB. Association is therefore applied after expansion on the outbound path.
-        SRgbCompanding.Expand(expectedVectors);
-
-        if (associated)
-        {
-            Numerics.Premultiply(expectedVectors);
-        }
-
-        Vector4[] actualVectors = new Vector4[length];
-        PixelOperations<TPixel>.Instance.ToVector4(Configuration.Default, pixels, actualVectors, modifiers);
-
-        Assert.Equal(expectedVectors, actualVectors);
-
-        Vector4[] expectedPixelSource = [.. expectedVectors];
-
-        if (associated)
-        {
-            Numerics.UnPremultiply(expectedPixelSource);
-        }
-
-        // Reverse the transfer only after restoring straight RGB, matching the observable modifier order for inbound vectors.
-        SRgbCompanding.Compress(expectedPixelSource);
-
-        TPixel[] expectedPixels = new TPixel[length];
-
-        for (int i = 0; i < expectedPixels.Length; i++)
-        {
-            expectedPixels[i] = scaled
-                ? TPixel.FromUnassociatedScaledVector4(expectedPixelSource[i])
-                : TPixel.FromUnassociatedVector4(expectedPixelSource[i]);
-        }
-
-        Vector4[] actualPixelSource = [.. expectedVectors];
-        TPixel[] actualPixels = new TPixel[length];
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, actualPixelSource, actualPixels, modifiers);
-
-        Assert.Equal(expectedPixels, actualPixels);
     }
 
     private static void AssertBulkToMatchesScalar(TPixel[] pixels, Func<TPixel, Vector4> scalar, BulkToVector4 bulk)
@@ -326,37 +423,59 @@ public class RgbaCompatiblePixelOperationsTests
         AssertBulkConversionsMatchScalarForPixel<Rgb24>();
     }
 
+    /// <summary>
+    /// Checks normalized RGB-byte conversion, alpha restoration and destination bounds around each bulk threshold.
+    /// </summary>
+    /// <typeparam name="TPixel">The RGB-byte pixel format.</typeparam>
     private static void AssertBulkConversionsMatchScalarForPixel<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        const int length = 259;
-        Vector4 sourceVector = new(.5F, .25F, .125F, 1F);
-        TPixel expectedPixel = TPixel.FromUnassociatedScaledVector4(sourceVector);
-        TPixel[] pixels = new TPixel[length];
-        Array.Fill(pixels, expectedPixel);
+        // The shared RGB-byte converter selects its bulk path at 128, 256 or 512 pixels.
+        // Check either side of every threshold, including tails after the first optimized block.
+        foreach (int length in new[] { 127, 128, 129, 255, 256, 257, 511, 512, 513 })
+        {
+            Vector4 sourceVector = new(.5F, .25F, .125F, 1F);
+            TPixel expectedPixel = TPixel.FromUnassociatedScaledVector4(sourceVector);
+            TPixel[] pixels = new TPixel[length];
+            Array.Fill(pixels, expectedPixel);
 
-        Vector4 expectedVector = expectedPixel.ToUnassociatedScaledVector4();
-        Vector4 vectorSentinel = new(.125F, .5F, .75F, 1F);
-        Vector4[] vectors = new Vector4[length + 3];
-        vectors.AsSpan(length).Fill(vectorSentinel);
+            Vector4 expectedVector = expectedPixel.ToUnassociatedScaledVector4();
+            Vector4 vectorSentinel = new(.125F, .5F, .75F, 1F);
+            Vector4[] vectors = new Vector4[length + 3];
+            vectors.AsSpan(length).Fill(vectorSentinel);
 
-        PixelOperations<TPixel>.Instance.ToVector4(Configuration.Default, pixels, vectors, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(Configuration.Default, pixels, vectors);
 
-        Assert.All(vectors[..length], vector => Assert.Equal(expectedVector, vector));
-        Assert.All(vectors[length..], vector => Assert.Equal(vectorSentinel, vector));
+            Assert.All(vectors[..length], vector => Assert.Equal(expectedVector, vector));
+            Assert.All(vectors[length..], vector => Assert.Equal(vectorSentinel, vector));
 
-        Vector4[] source = new Vector4[length];
-        source.AsSpan().Fill(sourceVector);
+            Vector4[] source = new Vector4[length];
+            source.AsSpan().Fill(sourceVector);
 
-        TPixel pixelSentinel = TPixel.FromUnassociatedScaledVector4(vectorSentinel);
-        TPixel[] destination = new TPixel[length + 3];
-        destination.AsSpan(length).Fill(pixelSentinel);
+            TPixel pixelSentinel = TPixel.FromUnassociatedScaledVector4(vectorSentinel);
+            TPixel[] destination = new TPixel[length + 3];
+            destination.AsSpan(length).Fill(pixelSentinel);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(Configuration.Default, source, destination);
 
-        // A 259-pixel source crosses the 128- and 256-bit optimized thresholds while leaving spare destination capacity to detect writes beyond the source length.
-        Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));
-        Assert.All(destination[length..], pixel => Assert.Equal(pixelSentinel, pixel));
+            Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));
+            Assert.All(destination[length..], pixel => Assert.Equal(pixelSentinel, pixel));
+
+            // Associated input must use a finite alpha divisor in both the short scalar path and the optimized byte path.
+            // These inputs describe straight RGB (1, 0.5, 0), independently of the stored opacity limit.
+            expectedPixel = TPixel.FromUnassociatedScaledVector4(new Vector4(1F, .5F, 0F, 1F));
+
+            for (int i = 0; i < source.Length; i++)
+            {
+                source[i] = new Vector4(float.MaxValue, float.MaxValue / 2F, 0F, i % 2 == 0 ? float.PositiveInfinity : float.MaxValue);
+                Assert.Equal(expectedPixel, TPixel.FromAssociatedVector4(source[i]));
+            }
+
+            PixelOperations<TPixel>.Instance.FromAssociatedVector4Destructive(Configuration.Default, source, destination);
+
+            Assert.All(destination[..length], pixel => Assert.Equal(expectedPixel, pixel));
+            Assert.All(destination[length..], pixel => Assert.Equal(pixelSentinel, pixel));
+        }
     }
 }
 
@@ -374,7 +493,7 @@ public class AffineNativeAlphaRepresentationTests
 
     [Fact]
     public void Short4NativeConversionsUseScaledAlpha()
-        => AssertNativeConversions<Short4>(static vector => (vector * ushort.MaxValue) - new Vector4(32768F));
+        => AssertNativeConversions<Short4>(static vector => Vector4.MultiplyAddEstimate(vector, new Vector4(ushort.MaxValue), new Vector4(-32768F)));
 
     [Fact]
     public void NormalizedByte4NativeConversionsUseScaledAlpha()
@@ -389,20 +508,20 @@ public class AffineNativeAlphaRepresentationTests
         => AssertSignedNormalizedNativeConversions<NormalizedShort4>(static vector => (vector * 2F) - Vector4.One);
 
     [Fact]
-    public void HalfVector4NativeConversionsUseScaledAlpha()
-        => AssertNativeConversions<HalfVector4>(static vector => (vector * 131008F) - new Vector4(65504F));
+    public void HalfVector4NativeConversionsUseStoredAlpha()
+        => AssertNativeConversions<HalfVector4>(static vector => vector);
 
     [Fact]
-    public void HalfVector4PNativeConversionsUseScaledAlpha()
-        => AssertNativeConversions<HalfVector4P>(static vector => (vector * 131008F) - new Vector4(65504F));
+    public void HalfVector4PNativeConversionsUseStoredAlpha()
+        => AssertNativeConversions<HalfVector4P>(static vector => vector);
 
     [Fact]
-    public void HalfSingleFromAssociatedNativeVectorUsesScaledAlpha()
-        => AssertAlphaLessNativeFrom<HalfSingle>(static vector => new Vector4((vector.X * 131008F) - 65504F, 0F, 0F, vector.W));
+    public void HalfSingleFromAssociatedNativeVectorUsesStoredAlpha()
+        => AssertAlphaLessNativeFrom<HalfSingle>(static vector => vector);
 
     [Fact]
-    public void HalfVector2FromAssociatedNativeVectorUsesScaledAlpha()
-        => AssertAlphaLessNativeFrom<HalfVector2>(static vector => new Vector4((vector.X * 131008F) - 65504F, (vector.Y * 131008F) - 65504F, 0F, vector.W));
+    public void HalfVector2FromAssociatedNativeVectorUsesStoredAlpha()
+        => AssertAlphaLessNativeFrom<HalfVector2>(static vector => vector);
 
     [Fact]
     public void NormalizedByte2FromAssociatedNativeVectorUsesScaledAlpha()
@@ -414,7 +533,8 @@ public class AffineNativeAlphaRepresentationTests
 
     [Fact]
     public void Short2FromAssociatedNativeVectorUsesScaledAlpha()
-        => AssertAlphaLessNativeFrom<Short2>(static vector => new Vector4((vector.X * ushort.MaxValue) - 32768F, (vector.Y * ushort.MaxValue) - 32768F, 0F, vector.W));
+        => AssertAlphaLessNativeFrom<Short2>(
+            static vector => new Vector4((vector.X * ushort.MaxValue) - 32768F, (vector.Y * ushort.MaxValue) - 32768F, 0F, vector.W));
 
     private static void AssertNativeConversions<TPixel>(Func<Vector4, Vector4> encodeNative)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -423,9 +543,19 @@ public class AffineNativeAlphaRepresentationTests
         Vector4 unassociatedScaled = pixel.ToUnassociatedScaledVector4();
         Vector4 associatedScaled = Associate(unassociatedScaled);
 
-        // Native alpha can be signed or use an integer component range, so multiplying native RGB by native W would not represent opacity.
-        AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(unassociatedScaled), pixel.ToUnassociatedVector4());
-        AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(associatedScaled), pixel.ToAssociatedVector4());
+        // The matching native representation reads storage directly. Do not reconstruct it by reversing a rounded scaled value.
+        // In particular, fused Short4 scaling can expose a small division error near native zero that separate arithmetic cancels.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            Assert.Equal(pixel.ToVector4(), pixel.ToAssociatedVector4());
+            AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(unassociatedScaled), pixel.ToUnassociatedVector4());
+        }
+        else
+        {
+            Assert.Equal(pixel.ToVector4(), pixel.ToUnassociatedVector4());
+            AlphaRepresentationTestAssertions.EqualWithinOneUlp(encodeNative(associatedScaled), pixel.ToAssociatedVector4());
+        }
+
         Assert.Equal(pixel, TPixel.FromUnassociatedVector4(encodeNative(unassociatedScaled)));
         Assert.Equal(pixel, TPixel.FromAssociatedVector4(encodeNative(associatedScaled)));
     }
@@ -506,43 +636,162 @@ internal static class AlphaRepresentationTestAssertions
     }
 }
 
-public class A8AlphaRepresentationTests : PixelAlphaRepresentationTests<A8> { }
-public class Abgr32AlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32> { }
-public class Abgr32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32P> { }
-public class Argb32AlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32> { }
-public class Argb32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32P> { }
-public class Bgr24AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr24> { }
-public class Bgr565AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr565> { }
-public class Bgra32AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32> { }
-public class Bgra32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32P> { }
-public class Bgra4444AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra4444> { }
-public class Bgra5551AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra5551> { }
-public class Byte4AlphaRepresentationTests : PixelAlphaRepresentationTests<Byte4> { }
-public class HalfSingleAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfSingle> { }
-public class HalfVector2AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector2> { }
-public class HalfVector4AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4> { }
-public class HalfVector4PAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4P> { }
-public class L16AlphaRepresentationTests : PixelAlphaRepresentationTests<L16> { }
-public class L8AlphaRepresentationTests : PixelAlphaRepresentationTests<L8> { }
-public class La16AlphaRepresentationTests : PixelAlphaRepresentationTests<La16> { }
-public class La32AlphaRepresentationTests : PixelAlphaRepresentationTests<La32> { }
-public class NormalizedByte2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte2> { }
-public class NormalizedByte4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4> { }
-public class NormalizedByte4PAlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4P> { }
-public class NormalizedShort2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort2> { }
-public class NormalizedShort4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort4> { }
-public class Rg32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rg32> { }
-public class Rgb24AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb24> { }
-public class Rgb48AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb48> { }
-public class Rgb96AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb96> { }
-public class Rgba1010102AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba1010102> { }
-public class Rgba128AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba128> { }
-public class Rgba32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32> { }
-public class Rgba32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32P> { }
-public class RgbaHalfAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalf> { }
-public class RgbaHalfPAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalfP> { }
-public class Rgba64AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba64> { }
-public class RgbaVectorAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaVector> { }
-public class Short2AlphaRepresentationTests : PixelAlphaRepresentationTests<Short2> { }
-public class Short4AlphaRepresentationTests : PixelAlphaRepresentationTests<Short4> { }
-public class RgbaDoubleAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaDouble> { }
+public class A8AlphaRepresentationTests : PixelAlphaRepresentationTests<A8>
+{
+}
+
+public class Abgr32AlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32>
+{
+}
+
+public class Abgr32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Abgr32P>
+{
+}
+
+public class Argb32AlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32>
+{
+}
+
+public class Argb32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Argb32P>
+{
+}
+
+public class Bgr24AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr24>
+{
+}
+
+public class Bgr565AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgr565>
+{
+}
+
+public class Bgra32AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32>
+{
+}
+
+public class Bgra32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra32P>
+{
+}
+
+public class Bgra4444AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra4444>
+{
+}
+
+public class Bgra5551AlphaRepresentationTests : PixelAlphaRepresentationTests<Bgra5551>
+{
+}
+
+public class Byte4AlphaRepresentationTests : PixelAlphaRepresentationTests<Byte4>
+{
+}
+
+public class HalfSingleAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfSingle>
+{
+}
+
+public class HalfVector2AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector2>
+{
+}
+
+public class HalfVector4AlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4>
+{
+}
+
+public class HalfVector4PAlphaRepresentationTests : PixelAlphaRepresentationTests<HalfVector4P>
+{
+}
+
+public class L16AlphaRepresentationTests : PixelAlphaRepresentationTests<L16>
+{
+}
+
+public class L8AlphaRepresentationTests : PixelAlphaRepresentationTests<L8>
+{
+}
+
+public class La16AlphaRepresentationTests : PixelAlphaRepresentationTests<La16>
+{
+}
+
+public class La32AlphaRepresentationTests : PixelAlphaRepresentationTests<La32>
+{
+}
+
+public class NormalizedByte2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte2>
+{
+}
+
+public class NormalizedByte4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4>
+{
+}
+
+public class NormalizedByte4PAlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedByte4P>
+{
+}
+
+public class NormalizedShort2AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort2>
+{
+}
+
+public class NormalizedShort4AlphaRepresentationTests : PixelAlphaRepresentationTests<NormalizedShort4>
+{
+}
+
+public class Rg32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rg32>
+{
+}
+
+public class Rgb24AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb24>
+{
+}
+
+public class Rgb48AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb48>
+{
+}
+
+public class Rgb96AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgb96>
+{
+}
+
+public class Rgba1010102AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba1010102>
+{
+}
+
+public class Rgba128AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba128>
+{
+}
+
+public class Rgba32AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32>
+{
+}
+
+public class Rgba32PAlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba32P>
+{
+}
+
+public class RgbaHalfAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalf>
+{
+}
+
+public class RgbaHalfPAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaHalfP>
+{
+}
+
+public class Rgba64AlphaRepresentationTests : PixelAlphaRepresentationTests<Rgba64>
+{
+}
+
+public class RgbaVectorAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaVector>
+{
+}
+
+public class Short2AlphaRepresentationTests : PixelAlphaRepresentationTests<Short2>
+{
+}
+
+public class Short4AlphaRepresentationTests : PixelAlphaRepresentationTests<Short4>
+{
+}
+
+public class RgbaDoubleAlphaRepresentationTests : PixelAlphaRepresentationTests<RgbaDouble>
+{
+}

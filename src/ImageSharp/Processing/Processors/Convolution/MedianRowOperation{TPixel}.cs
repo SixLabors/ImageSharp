@@ -28,7 +28,14 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
     private readonly int kernelSize;
     private readonly bool preserveAlpha;
 
-    public MedianRowOperation(Rectangle bounds, Buffer2D<TPixel> targetPixels, Buffer2D<TPixel> sourcePixels, KernelSamplingMap map, int kernelSize, Configuration configuration, bool preserveAlpha)
+    public MedianRowOperation(
+        Rectangle bounds,
+        Buffer2D<TPixel> targetPixels,
+        Buffer2D<TPixel> sourcePixels,
+        KernelSamplingMap map,
+        int kernelSize,
+        Configuration configuration,
+        bool preserveAlpha)
     {
         this.bounds = bounds;
         this.configuration = configuration;
@@ -78,7 +85,7 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
             int currentYIndex = Unsafe.Add(ref sampleRowBase, (uint)i);
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(currentYIndex).Slice(boundsX, boundsWidth);
             Span<Vector4> sourceVectorRow = sourceVectorBuffer.Slice(i * boundsWidth, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceVectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, sourceVectorRow);
         }
 
         if (this.preserveAlpha)
@@ -130,7 +137,7 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
         }
 
         Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

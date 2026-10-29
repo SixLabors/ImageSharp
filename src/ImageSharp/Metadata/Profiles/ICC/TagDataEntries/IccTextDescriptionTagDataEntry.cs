@@ -33,7 +33,13 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     /// <param name="unicodeLanguageCode">Unicode Language-Code</param>
     /// <param name="scriptCodeCode">ScriptCode Code</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccTextDescriptionTagDataEntry(string ascii, string unicode, string scriptCode, uint unicodeLanguageCode, ushort scriptCodeCode, IccProfileTag tagSignature)
+    public IccTextDescriptionTagDataEntry(
+        string ascii,
+        string unicode,
+        string scriptCode,
+        uint unicodeLanguageCode,
+        ushort scriptCodeCode,
+        IccProfileTag tagSignature)
         : base(IccTypeSignature.TextDescription, tagSignature)
     {
         this.Ascii = ascii;

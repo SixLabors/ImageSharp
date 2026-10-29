@@ -46,10 +46,49 @@ public class OilPaintTest
             $"{levels}-{brushSize}",
             ImageComparer.TolerantPercentage(0.01F));
 
-    [Fact]
-    public void Issue2518_PixelComponentOutsideOfRange_ThrowsImageProcessingException()
+    /// <summary>
+    /// A uniform image retains finite HDR components. Nonfinite color input uses the pixel format's finite endpoints.
+    /// </summary>
+    /// <param name="component">The unbounded component.</param>
+    /// <param name="expected">The finite color-conversion result required by RgbaVector.</param>
+    [Theory]
+    [InlineData(2F, 2F)]
+    [InlineData(100F, 100F)]
+    [InlineData(float.PositiveInfinity, 65504F)]
+    [InlineData(float.NegativeInfinity, -65504F)]
+    [InlineData(float.NaN, -65504F)]
+    public void Issue2518_PixelComponentOutsideOfRange_UsesBoundedIntensityBin(float component, float expected)
     {
-        using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, 100));
-        Assert.Throws<ImageProcessingException>(() => image.Mutate(ctx => ctx.OilPaint()));
+        using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, component));
+
+        image.Mutate(ctx => ctx.OilPaint());
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                float actual = image[x, y].ToVector4().Z;
+                Assert.Equal(expected, actual);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Distinct HDR magnitudes occupy separate bins; an equal-count tie retains the first selected bin.
+    /// </summary>
+    [Fact]
+    public void OilPaint_HdrSamplesUseDistinctMagnitudeBins()
+    {
+        using Image<RgbaVector> image = new(2, 2);
+        image[0, 0] = new RgbaVector(2F, 2F, 2F);
+        image[1, 0] = new RgbaVector(4F, 4F, 4F);
+        image[0, 1] = new RgbaVector(2F, 2F, 2F);
+        image[1, 1] = new RgbaVector(4F, 4F, 4F);
+
+        image.Mutate(ctx => ctx.OilPaint(2, 2));
+
+        // The neighborhood contains two samples of each value. The 2.0 bin reaches each
+        // new maximum first, so the existing strict-greater tie rule selects its own mean.
+        Assert.Equal(new RgbaVector(2F, 2F, 2F), image[1, 1]);
     }
 }

@@ -296,6 +296,7 @@ public class Rgb96Tests
         Assert.Equal(Unsafe.SizeOf<Rgb96>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo? maybeComponentInfo = info.ComponentInfo;
         Assert.NotNull(maybeComponentInfo);

@@ -36,6 +36,18 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     /// </param>
     public Bgra5551(Vector4 vector) => this.PackedValue = Pack(vector);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bgra5551"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// Bits 0-4 store blue, bits 5-9 store green, bits 10-14 store red, and bit 15 stores alpha.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Bgra5551(ushort packed)
+        : this() => this.PackedValue = packed;
+
     /// <inheritdoc/>
     public ushort PackedValue { get; set; }
 
@@ -62,6 +74,21 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     public static bool operator !=(Bgra5551 left, Bgra5551 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Bgra5551 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgra5551 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgra5551 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Bgra5551 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
@@ -82,6 +109,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
         => PixelTypeInfo.Create<Bgra5551>(
             PixelComponentInfo.Create<Bgra5551>(4, 5, 5, 5, 1),
             PixelColorType.BGR | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -115,10 +143,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Bgra5551 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -207,7 +232,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One);
         return (ushort)(
                (((int)Math.Round(vector.X * 31F) & 0x1F) << 10)
                | (((int)Math.Round(vector.Y * 31F) & 0x1F) << 5)

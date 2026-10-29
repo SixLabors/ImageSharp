@@ -86,7 +86,8 @@ internal sealed class AniEncoderCore
             // Positive sequence numbers group adjacent resolution variants; non-positive values form independent steps.
             if (metadata.SequenceNumber > 0)
             {
-                while (frameIndex + groupSize < image.Frames.Count && image.Frames[frameIndex + groupSize].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
+                while (frameIndex + groupSize < image.Frames.Count
+                    && image.Frames[frameIndex + groupSize].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
                 {
                     groupSize++;
                 }
@@ -141,7 +142,10 @@ internal sealed class AniEncoderCore
         };
 
         // One allocator-owned directory buffer is sliced and reused for every icon resource; its capacity is the largest group.
-        using IMemoryOwner<IconEncoderCore.EncodingFrameMetadata>? iconEntriesOwner = bitmapResources ? null : image.Configuration.MemoryAllocator.Allocate<IconEncoderCore.EncodingFrameMetadata>(maxGroupSize);
+        using IMemoryOwner<IconEncoderCore.EncodingFrameMetadata>? iconEntriesOwner = bitmapResources
+            ? null
+            : image.Configuration.MemoryAllocator.Allocate<IconEncoderCore.EncodingFrameMetadata>(maxGroupSize);
+
         Span<IconEncoderCore.EncodingFrameMetadata> iconEntries = iconEntriesOwner is null ? [] : iconEntriesOwner.GetSpan();
 
         // ImageEncoder guarantees a seekable destination, allowing direct nested encoding and RIFF size backpatching.
@@ -174,7 +178,8 @@ internal sealed class AniEncoderCore
             int groupSize = 1;
             if (metadata.SequenceNumber > 0)
             {
-                while (frameIndex + groupSize < image.Frames.Count && image.Frames[frameIndex + groupSize].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
+                while (frameIndex + groupSize < image.Frames.Count
+                    && image.Frames[frameIndex + groupSize].Metadata.GetAniMetadata().SequenceNumber == metadata.SequenceNumber)
                 {
                     groupSize++;
                 }
@@ -317,7 +322,15 @@ internal sealed class AniEncoderCore
     /// <param name="bitCount">The bitmap bit depth declared by the ANI header.</param>
     /// <param name="iconEntries">The reusable icon directory metadata buffer.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void WriteFrameResource<TPixel>(Image<TPixel> image, Stream stream, int frameIndex, int frameCount, AniFrameFormat format, uint bitCount, Span<IconEncoderCore.EncodingFrameMetadata> iconEntries, CancellationToken cancellationToken)
+    private void WriteFrameResource<TPixel>(
+        Image<TPixel> image,
+        Stream stream,
+        int frameIndex,
+        int frameCount,
+        AniFrameFormat format,
+        uint bitCount,
+        Span<IconEncoderCore.EncodingFrameMetadata> iconEntries,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         switch (format)
@@ -508,7 +521,11 @@ internal sealed class AniEncoderCore
         {
             AniFrameMetadata metadata = frame.Metadata.GetAniMetadata();
             colorTable = metadata.ColorTable;
-            return new IconEncoderCore.EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, CreateIconDirEntry(metadata, this.format, frame.Size));
+
+            return new IconEncoderCore.EncodingFrameMetadata(
+                metadata.Compression,
+                metadata.BmpBitsPerPixel,
+                CreateIconDirEntry(metadata, this.format, frame.Size));
         }
     }
 }

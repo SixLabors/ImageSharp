@@ -116,7 +116,33 @@ public partial class SimdUtilsTests
     public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new() { 0, 32, 512 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy64 = new() { 0, 64, 512 };
 
-    public static readonly TheoryData<int> ArbitraryArraySizes = new() { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520 };
+    public static readonly TheoryData<int> ArbitraryArraySizes = new()
+    {
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        9,
+        15,
+        16,
+        17,
+        63,
+        64,
+        255,
+        511,
+        512,
+        513,
+        514,
+        515,
+        516,
+        517,
+        518,
+        519,
+        520
+    };
 
     [Theory]
     [MemberData(nameof(ArraySizesDivisibleBy64))]
@@ -172,6 +198,7 @@ public partial class SimdUtilsTests
     {
         byte[] source = [.. Enumerable.Range(0, count).Select(i => (byte)i)];
         float[] result = new float[count];
+
         // A double-precision oracle keeps this expectation independent from either production implementation.
         float[] expected = [.. source.Select(b => (float)(b / (double)byte.MaxValue))];
 
@@ -271,8 +298,80 @@ public partial class SimdUtilsTests
             (r, g, b, actual) =>
                 SimdUtils.PackFromRgbPlanes(r, g, b, actual));
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(31)]
+    [InlineData(32)]
+    [InlineData(33)]
+    public void PackFromRgbPlanes_Rgba32_DoesNotReadOrWritePadding(int count)
+    {
+        byte[] red = new byte[count + 3];
+        byte[] green = new byte[count + 3];
+        byte[] blue = new byte[count + 3];
+        Rgba32 sentinel = new(17, 18, 19, 20);
+        Rgba32[] destination = new Rgba32[count + 3];
+        Array.Fill(destination, sentinel);
+
+        for (int i = 0; i < count; i++)
+        {
+            red[i] = (byte)i;
+            green[i] = (byte)(i + 40);
+            blue[i] = (byte)(i + 80);
+        }
+
+        // Backing arrays extend past the passed source slices, so a stray read stays addressable
+        // and becomes visible in the output instead of relying on a memory fault.
+        SimdUtils.PackFromRgbPlanes(red.AsSpan(0, count), green.AsSpan(0, count), blue.AsSpan(0, count), destination);
+
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(new Rgba32(red[i], green[i], blue[i]), destination[i]);
+        }
+
+        for (int i = count; i < destination.Length; i++)
+        {
+            Assert.Equal(sentinel, destination[i]);
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(31)]
+    public void PackFromRgbPlanes_Rgb24_ScalarRemainderStopsAtSourceLength(int count)
+    {
+        byte[] red = new byte[count + 3];
+        byte[] green = new byte[count + 3];
+        byte[] blue = new byte[count + 3];
+        Rgb24 sentinel = new(17, 18, 19);
+        Rgb24[] destination = new Rgb24[count + 3];
+        Array.Fill(destination, sentinel);
+
+        for (int i = 0; i < count; i++)
+        {
+            red[i] = (byte)i;
+            green[i] = (byte)(i + 40);
+            blue[i] = (byte)(i + 80);
+        }
+
+        // All counts stay below the AVX2 group of 32, whose stores legitimately use
+        // the three destination padding pixels; only the scalar remainder runs here.
+        SimdUtils.PackFromRgbPlanes(red.AsSpan(0, count), green.AsSpan(0, count), blue.AsSpan(0, count), destination);
+
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(new Rgb24(red[i], green[i], blue[i]), destination[i]);
+        }
+
+        for (int i = count; i < destination.Length; i++)
+        {
+            Assert.Equal(sentinel, destination[i]);
+        }
+    }
+
     [Fact]
-    public void PackFromRgbPlanesAvx2Reduce_Rgb24()
+    public void PackFromRgbPlanesReduce_Rgb24()
     {
         if (!Avx2.IsSupported)
         {
@@ -282,15 +381,14 @@ public partial class SimdUtilsTests
         byte[] r = [.. Enumerable.Range(0, 32).Select(x => (byte)x)];
         byte[] g = [.. Enumerable.Range(100, 32).Select(x => (byte)x)];
         byte[] b = [.. Enumerable.Range(200, 32).Select(x => (byte)x)];
-        const int padding = 4;
-        Rgb24[] d = new Rgb24[32 + padding];
+        Rgb24[] d = new Rgb24[32];
 
         ReadOnlySpan<byte> rr = r.AsSpan();
         ReadOnlySpan<byte> gg = g.AsSpan();
         ReadOnlySpan<byte> bb = b.AsSpan();
         Span<Rgb24> dd = d.AsSpan();
 
-        SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+        SimdUtils.HwIntrinsics.PackFromRgbPlanesReduce(ref rr, ref gg, ref bb, ref dd);
 
         for (int i = 0; i < 32; i++)
         {
@@ -302,11 +400,11 @@ public partial class SimdUtilsTests
         Assert.Equal(0, rr.Length);
         Assert.Equal(0, gg.Length);
         Assert.Equal(0, bb.Length);
-        Assert.Equal(padding, dd.Length);
+        Assert.Equal(0, dd.Length);
     }
 
     [Fact]
-    public void PackFromRgbPlanesAvx2Reduce_Rgba32()
+    public void PackFromRgbPlanesReduce_Rgba32()
     {
         if (!Avx2.IsSupported)
         {
@@ -324,7 +422,7 @@ public partial class SimdUtilsTests
         ReadOnlySpan<byte> bb = b.AsSpan();
         Span<Rgba32> dd = d.AsSpan();
 
-        SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+        SimdUtils.HwIntrinsics.PackFromRgbPlanesReduce(ref rr, ref gg, ref bb, ref dd);
 
         for (int i = 0; i < 32; i++)
         {
@@ -354,10 +452,10 @@ public partial class SimdUtilsTests
             expected[i] = TPixel.FromRgb24(new Rgb24(r[i], g[i], b[i]));
         }
 
-        TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
+        TPixel[] actual = new TPixel[count];
         packMethod(r, g, b, actual);
 
-        Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan()[..count]));
+        Assert.True(expected.AsSpan().SequenceEqual(actual));
     }
 
     private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
@@ -368,6 +466,14 @@ public partial class SimdUtilsTests
     {
         seed = seed > 0 ? seed : count;
         float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
+        ReadOnlySpan<float> specialValues = [float.NaN, float.NegativeInfinity, float.PositiveInfinity, 2F, -2F, -0F];
+
+        // Place exceptional values in successive SIMD blocks while retaining random values in the other lanes.
+        for (int i = 0; i < source.Length; i += 16)
+        {
+            source[i] = specialValues[(i / 16) % specialValues.Length];
+        }
+
         byte[] expected = [.. source.Select(NormalizedFloatToByte)];
         byte[] actual = new byte[count];
 
@@ -376,7 +482,7 @@ public partial class SimdUtilsTests
         Assert.Equal(expected, actual);
     }
 
-    private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
+    private static byte NormalizedFloatToByte(float f) => float.IsNaN(f) ? (byte)0 : (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
 
     private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)
     {

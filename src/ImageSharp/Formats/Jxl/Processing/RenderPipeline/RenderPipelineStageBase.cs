@@ -68,20 +68,57 @@ internal abstract class RenderPipelineStageBase(Configuration configuration) : I
     {
     }
 
-    public Span<float> GetInputRow(Buffer2D<Memory<float>> inputRows, int c, int offset)
-        => inputRows[c, this.Settings.BorderY + offset].Span[RenderPipelineXOffset..];
+    /// <summary>
+    /// Borrows an input row, including its remaining right-border storage.
+    /// </summary>
+    /// <param name="inputRows">The input row table, indexed by channel and vertical position.</param>
+    /// <param name="channelIndex">The channel index.</param>
+    /// <param name="rowOffset">The vertical offset from the current row, in rows.</param>
+    /// <returns>The row storage without the unused left prefix.</returns>
+    public Span<float> GetInputRow(Buffer2D<Memory<float>> inputRows, int channelIndex, int rowOffset)
+        => inputRows[channelIndex, this.Settings.BorderY + rowOffset].Span[RenderPipelineXOffset..];
 
-    public Span<float> GetInputRow(Buffer2D<Memory<float>> inputRows, int c, int offset, int xExtraLeft)
-        => inputRows[c, this.Settings.BorderY + offset].Span[(RenderPipelineXOffset - xExtraLeft)..];
+    /// <summary>
+    /// Borrows an input row, including its remaining right-border storage.
+    /// </summary>
+    /// <param name="inputRows">The input row table, indexed by channel and vertical position.</param>
+    /// <param name="channelIndex">The channel index.</param>
+    /// <param name="rowOffset">The vertical offset from the current row, in rows.</param>
+    /// <param name="xExtraLeft">The number of left-border samples to include.</param>
+    /// <returns>The row storage without the unused left prefix.</returns>
+    public Span<float> GetInputRow(Buffer2D<Memory<float>> inputRows, int channelIndex, int rowOffset, int xExtraLeft)
+        => inputRows[channelIndex, this.Settings.BorderY + rowOffset].Span[(RenderPipelineXOffset - xExtraLeft)..];
 
-    public Memory<float> GetInputRowMemory(Buffer2D<Memory<float>> inputRows, int c, int offset)
-        => inputRows[c, this.Settings.BorderY + offset][RenderPipelineXOffset..];
+    /// <summary>
+    /// Borrows an input row, including its remaining right-border storage.
+    /// </summary>
+    /// <param name="inputRows">The input row table, indexed by channel and vertical position.</param>
+    /// <param name="channelIndex">The channel index.</param>
+    /// <param name="rowOffset">The vertical offset from the current row, in rows.</param>
+    /// <returns>The row storage without the unused left prefix.</returns>
+    public Memory<float> GetInputRowMemory(Buffer2D<Memory<float>> inputRows, int channelIndex, int rowOffset)
+        => inputRows[channelIndex, this.Settings.BorderY + rowOffset][RenderPipelineXOffset..];
 
-    public Memory<float> GetInputRowMemory(Buffer2D<Memory<float>> inputRows, int c, int offset, int xExtraLeft)
-        => inputRows[c, this.Settings.BorderY + offset][(RenderPipelineXOffset - xExtraLeft)..];
+    /// <summary>
+    /// Borrows an input row, including its remaining right-border storage.
+    /// </summary>
+    /// <param name="inputRows">The input row table, indexed by channel and vertical position.</param>
+    /// <param name="channelIndex">The channel index.</param>
+    /// <param name="rowOffset">The vertical offset from the current row, in rows.</param>
+    /// <param name="xExtraLeft">The number of left-border samples to include.</param>
+    /// <returns>The row storage without the unused left prefix.</returns>
+    public Memory<float> GetInputRowMemory(Buffer2D<Memory<float>> inputRows, int channelIndex, int rowOffset, int xExtraLeft)
+        => inputRows[channelIndex, this.Settings.BorderY + rowOffset][(RenderPipelineXOffset - xExtraLeft)..];
 
-    public static Span<float> GetOutputRow(Buffer2D<Memory<float>> outputRows, int c, int offset)
-        => outputRows[c, offset].Span[RenderPipelineXOffset..];
+    /// <summary>
+    /// Borrows an output row without the unused left prefix.
+    /// </summary>
+    /// <param name="outputRows">The output row table, indexed by channel and vertical position.</param>
+    /// <param name="channelIndex">The channel index.</param>
+    /// <param name="rowOffset">The row index within the output table.</param>
+    /// <returns>The output samples and remaining right-border storage.</returns>
+    public static Span<float> GetOutputRow(Buffer2D<Memory<float>> outputRows, int channelIndex, int rowOffset)
+        => outputRows[channelIndex, rowOffset].Span[RenderPipelineXOffset..];
 
     public virtual void GetImageDimensions(out int width, out int height, out Point frameOrigin)
     {

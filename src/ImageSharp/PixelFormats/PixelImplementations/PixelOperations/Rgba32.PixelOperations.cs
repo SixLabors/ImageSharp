@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -15,38 +14,32 @@ public partial struct Rgba32
     /// <summary>
     /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="Rgba32"/>.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Rgba32>
+    internal partial class PixelOperations : RgbaCompatiblePixelOperations<Rgba32>
     {
         /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<Rgba32> source,
-            Span<Vector4> destinationVectors,
-            PixelConversionModifiers modifiers)
+        public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination)
         {
-            Guard.DestinationShouldNotBeTooShort(source, destinationVectors, nameof(destinationVectors));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destinationVectors = destinationVectors[..source.Length];
-            SimdUtils.ByteToNormalizedFloat(
-                MemoryMarshal.Cast<Rgba32, byte>(source),
-                MemoryMarshal.Cast<Vector4, float>(destinationVectors));
-            Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
+            // RGBA already has vector component order. Widen directly without staging or channel shuffles.
+            SimdUtils.ByteToNormalizedFloat(MemoryMarshal.AsBytes(source), MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
         }
 
         /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<Rgba32> destination,
-            PixelConversionModifiers modifiers)
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination)
         {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
+            // Canonical RGBA needs no staging threshold. Retain bulk normalization before association at every row length.
+            this.ToUnassociatedVector4(configuration, source, destination);
+            Numerics.Premultiply(destination[..source.Length]);
+        }
 
-            destination = destination[..sourceVectors.Length];
-            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
-            SimdUtils.NormalizedFloatToByteSaturate(
-                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                MemoryMarshal.Cast<Rgba32, byte>(destination));
+        /// <inheritdoc />
+        public override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32> destination)
+        {
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Canonical RGBA output needs neither a temporary row nor a typed shuffle after byte packing.
+            SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.AsBytes(destination[..source.Length]));
         }
 
         /// <inheritdoc />

@@ -8,7 +8,14 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
-internal sealed class Vp8Histogram
+/// <summary>
+/// Summarizes the coefficient distribution of one prediction candidate during macroblock analysis.
+/// This is a value type so that mode analysis, which evaluates several candidates per macroblock,
+/// does not allocate. Create instances with <c>new()</c> rather than <see langword="default"/>:
+/// the constructor sets the last-non-zero index to 1, which the alpha computation of an
+/// accumulated histogram expects.
+/// </summary>
+internal struct Vp8Histogram
 {
     /// <summary>
     /// Size of histogram used by CollectHistogram.
@@ -20,7 +27,7 @@ internal sealed class Vp8Histogram
     private int lastNonZero;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Vp8Histogram" /> class.
+    /// Initializes a new instance of the <see cref="Vp8Histogram" /> struct.
     /// </summary>
     public Vp8Histogram()
     {
@@ -28,7 +35,7 @@ internal sealed class Vp8Histogram
         this.lastNonZero = 1;
     }
 
-    public int GetAlpha()
+    public readonly int GetAlpha()
     {
         // 'alpha' will later be clipped to [0..MAX_ALPHA] range, clamping outer
         // values which happen to be mostly noise. This leaves the maximum precision
@@ -87,7 +94,12 @@ internal sealed class Vp8Histogram
         this.SetHistogramData(distribution);
     }
 
-    public void Merge(Vp8Histogram other)
+    /// <summary>
+    /// Raises the maximum value and the last-non-zero index of <paramref name="other"/> to those of this
+    /// histogram, so that <paramref name="other"/> accumulates the best candidate of every block.
+    /// </summary>
+    /// <param name="other">The accumulated histogram to merge into.</param>
+    public readonly void Merge(ref Vp8Histogram other)
     {
         if (this.maxValue > other.maxValue)
         {

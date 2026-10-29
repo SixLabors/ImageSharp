@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
@@ -40,7 +40,7 @@ internal class JxlFrameEncoder
 #pragma warning restore format
     }
 
-    public static unsafe void SimplifyInvisible(JxlImage3F image, JxlImageF alpha, bool lossless)
+    public static unsafe void SimplifyInvisible(JxlImage3<float> image, JxlPlane<float> alpha, bool lossless)
     {
         for (int c = 0; c < 3; c++)
         {

@@ -85,6 +85,10 @@ internal class Vp8EncIterator
         this.Scratch = new byte[WebpConstants.Bps * 16];
         this.Scratch2 = new short[17 * 16];
         this.Scratch3 = new int[16];
+        this.RdScratch = new Vp8ModeScore();
+        this.RdScratch2 = new Vp8ModeScore();
+        this.RdScratch3 = new Vp8ModeScore();
+        this.ResidualScratch = new Vp8Residual();
 
         // To match the C initial values of the reference implementation, initialize all with 204.
         const byte defaultInitVal = 204;
@@ -233,6 +237,30 @@ internal class Vp8EncIterator
     /// Gets the int scratch buffer.
     /// </summary>
     public int[] Scratch3 { get; }
+
+    /// <summary>
+    /// Gets or sets the first reusable rate-distortion score accumulator.
+    /// <see cref="QuantEnc"/> uses the three accumulators as scratch state while it evaluates the
+    /// prediction modes of a macroblock, so mode evaluation does not allocate per macroblock.
+    /// <see cref="QuantEnc.PickBestIntra16"/> exchanges this instance with the caller's accumulator
+    /// when the best mode ends up in the scratch instance, which is why the property has a setter.
+    /// </summary>
+    public Vp8ModeScore RdScratch { get; set; }
+
+    /// <summary>
+    /// Gets the second reusable rate-distortion score accumulator.
+    /// </summary>
+    public Vp8ModeScore RdScratch2 { get; }
+
+    /// <summary>
+    /// Gets the third reusable rate-distortion score accumulator.
+    /// </summary>
+    public Vp8ModeScore RdScratch3 { get; }
+
+    /// <summary>
+    /// Gets the reusable residual used to cost the candidate modes of a macroblock.
+    /// </summary>
+    public Vp8Residual ResidualScratch { get; }
 
     public Vp8MacroBlockInfo CurrentMacroBlockInfo => this.Mb[this.currentMbIdx];
 
@@ -416,18 +444,20 @@ internal class Vp8EncIterator
         const int maxMode = MaxIntra4Mode;
         Vp8Histogram totalHisto = new();
         int curHisto = 0;
+
+        // The two entries alternate between the candidate under test and the best candidate so far.
+        // CollectHistogram fully initializes an entry before it is read, so no per-block reset is needed.
+        Span<Vp8Histogram> histos = stackalloc Vp8Histogram[2];
         this.StartI4();
         do
         {
             int mode;
             int bestModeAlpha = DefaultAlpha;
-            Vp8Histogram[] histos = new Vp8Histogram[2];
             Span<byte> src = this.YuvIn.AsSpan(YOffEnc + WebpLookupTables.Vp8Scan[this.I4]);
 
             this.MakeIntra4Preds();
             for (mode = 0; mode < maxMode; ++mode)
             {
-                histos[curHisto] = new Vp8Histogram();
                 histos[curHisto].CollectHistogram(src, this.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]), 0, 1);
 
                 int alpha = histos[curHisto].GetAlpha();
@@ -442,7 +472,7 @@ internal class Vp8EncIterator
             }
 
             // Accumulate best histogram.
-            histos[curHisto ^ 1].Merge(totalHisto);
+            histos[curHisto ^ 1].Merge(ref totalHisto);
         }
         while (this.RotateI4(this.YuvIn.AsSpan(YOffEnc))); // Note: we reuse the original samples for predictors.
 

@@ -43,7 +43,7 @@ public class BrightnessTest : BaseImageOperationsExtensionTest
 
         Assert.Equal(new Rgb24(20, 20, 20), rgbImage[0, 0]);
 
-        // HalfSingle normalizes the complete finite binary16 interval, making -65504 logical zero and -32752 logical .25.
+        // Brightness can exceed the storage range. Color conversion saturates to the finite Half endpoint before packing.
         Image<HalfSingle> halfSingleImage = new(Configuration.Default, 100, 100, new HalfSingle((float)Half.MinValue));
 
         halfSingleImage.Mutate(x => x.ApplyProcessor(new BrightnessProcessor(2)));
@@ -54,6 +54,6 @@ public class BrightnessTest : BaseImageOperationsExtensionTest
 
         halfSingleImage.Mutate(x => x.ApplyProcessor(new BrightnessProcessor(2)));
 
-        Assert.Equal(new HalfSingle(0), halfSingleImage[0, 0]);
+        Assert.Equal(new HalfSingle((float)Half.MinValue), halfSingleImage[0, 0]);
     }
 }

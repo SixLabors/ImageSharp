@@ -31,8 +31,9 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     /// </summary>
     /// <param name="stream">The buffered stream to decompress.</param>
     /// <param name="compressedBytes">The compressed bytes.</param>
+    /// <param name="uncompressedBytes">The expected byte count for the current block.</param>
     /// <param name="buffer">The buffer to write the decompressed data to.</param>
-    public abstract void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer);
+    public abstract void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer);
 
     /// <summary>
     /// Decompresses zip compressed data.
@@ -52,13 +53,19 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
                        int left = (int)(compressedBytes - (stream.Position - pos));
                        return left > 0 ? left : 0;
                    });
-        inflateStream.AllocateNewBytes((int)compressedBytes, true);
-        using DeflateStream dataStream = inflateStream.CompressedStream!;
+
+        // Incomplete headers return false even for critical chunks, leaving no stream to read.
+        if (!inflateStream.AllocateNewBytes((int)compressedBytes, true))
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("ZIP compressed EXR block has an incomplete zlib header.");
+        }
+
+        using DeflateStream dataStream = inflateStream.CompressedStream;
 
         int totalRead = 0;
         while (totalRead < uncompressedBytes)
         {
-            int bytesRead = dataStream.Read(uncompressed, totalRead, (int)uncompressedBytes - totalRead);
+            int bytesRead = dataStream.Read(uncompressed.Slice(totalRead, (int)uncompressedBytes - totalRead));
             if (bytesRead <= 0)
             {
                 break;
@@ -67,9 +74,9 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
             totalRead += bytesRead;
         }
 
-        if (totalRead == 0)
+        if (totalRead != uncompressedBytes || dataStream.ReadByte() != -1)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed EXR image data!");
+            ExrThrowHelper.ThrowInvalidImageContentException("ZIP compressed EXR block has an invalid decompressed length.");
         }
 
         return totalRead;

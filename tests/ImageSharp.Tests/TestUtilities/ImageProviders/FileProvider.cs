@@ -275,7 +275,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         }
 
         private Image<TPixel> DecodeImage<T>(ISpecializedImageDecoder<T> decoder, T options)
-            where T : class, ISpecializedDecoderOptions, new()
+            where T : class, ISpecializedDecoderOptions
         {
             options.GeneralOptions.SetConfiguration(this.Configuration);
 

@@ -9,13 +9,13 @@ using System.Text;
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Container;
 
 /// <summary>
-/// Header for JPEG XL container format.
+/// Stores a JPEG XL container box's type, total size, and header width.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 16)]
 internal struct JxlBoxHeader
 {
     /// <summary>
-    /// Box size in bytes.
+    /// Total box size in bytes, including its header. Zero extends the box through the end of the input.
     /// </summary>
     public ulong Size;
 
@@ -25,19 +25,19 @@ internal struct JxlBoxHeader
     public uint Type;
 
     /// <summary>
-    /// True if the size field extends until the end of the file.
+    /// Whether the box extends through the end of the input. This box cannot be followed by another box.
     /// </summary>
     public bool SizeExtendsTillEnd;
 
     /// <summary>
-    /// True if the size is 64-bit.
+    /// Whether the header contains an explicit 64-bit size after its type, even when that size is zero.
     /// </summary>
     public bool ContainsLargeSize;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlBoxHeader"/> struct.
     /// </summary>
-    /// <param name="size">The size of the box.</param>
+    /// <param name="size">The total size, including the 8-byte or 16-byte header. Zero denotes an unbounded box.</param>
     /// <param name="type">The type of the box.</param>
     /// <param name="sizeExtendsTillEnd">Does the box size extend till the end of the file?</param>
     /// <param name="containsLargeSize">Is there a 64-bit size field?</param>
@@ -99,60 +99,53 @@ internal struct JxlBoxHeader
     }
 
     /// <summary>
-    /// Parses the JPEG XL box header.
+    /// Reads the JPEG XL box's size and type, followed by its extended size when present.
     /// </summary>
     /// <param name="stream">A stream to parse the header from.</param>
     /// <returns>The box header.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the header is invalid.</exception>
+    /// <exception cref="InvalidOperationException">A nonzero box size is smaller than its header.</exception>
+    /// <exception cref="EndOfStreamException">The input ends before the complete header.</exception>
     public static JxlBoxHeader ReadHeader(Stream stream)
     {
+        // Every header begins with size32 and type. The value one selects a following size64;
+        // it does not move the type behind that field. All integers use big-endian byte order.
         ulong size = BinaryUtils.ReadUInt32BigEndian(stream);
-        bool haveSize64 = false;
-
-        if (size == 1)
-        {
-            // When the size value is equal to 1, a new 64-bit
-            // size field follows.
-            haveSize64 = true;
-            size = BinaryUtils.ReadUInt64BigEndian(stream);
-        }
-
-        // Read the 4-byte type field.
         uint type = BinaryUtils.ReadUInt32BigEndian(stream);
+        bool haveSize64 = size == 1;
 
         if (haveSize64)
         {
-            // When the 64-bit largesize was read,
-            // the size cannot proceed till the end of the file.
-            if (size is 0 or 1)
-            {
-                throw new InvalidOperationException("Large size cannot have another large size or extend till the end of the file");
-            }
+            size = BinaryUtils.ReadUInt64BigEndian(stream);
+        }
 
-            return new JxlBoxHeader(size, type, sizeExtendsTillEnd: false, containsLargeSize: true);
-        }
-        else
+        // Match the native container parser: zero remains unbounded with either header width.
+        // Every bounded size includes at least the complete header, so later payload subtraction cannot underflow.
+        ulong headerSize = haveSize64 ? 16UL : 8UL;
+        if (size != 0 && size < headerSize)
         {
-            return new JxlBoxHeader(size, type, sizeExtendsTillEnd: size == 0, containsLargeSize: false);
+            throw new InvalidOperationException("JPEG XL box size is smaller than its header.");
         }
+
+        return new JxlBoxHeader(size, type, size == 0, haveSize64);
     }
 
     /// <summary>
-    /// Writes the box header to the specified stream.
+    /// Writes the box header in big-endian order and retains an explicitly selected extended header.
     /// </summary>
     /// <param name="writer">The stream to write the box header to.</param>
     public readonly void WriteHeader(Stream writer)
     {
-        if (this.Size is > uint.MaxValue or 1)
-        {
-            BinaryUtils.WriteUInt32BigEndian(writer, 1); // Indicates a large size is present
-            BinaryUtils.WriteUInt64BigEndian(writer, this.Size);
-        }
-        else
-        {
-            BinaryUtils.WriteUInt32BigEndian(writer, (uint)this.Size);
-        }
+        ulong size = this.SizeExtendsTillEnd ? 0 : this.Size;
+        bool haveSize64 = this.ContainsLargeSize || size > uint.MaxValue;
 
+        // Preserve the header width of parsed boxes, including an extended zero-size final box.
+        // The type always occupies bytes 4 through 7; an optional extended size occupies bytes 8 through 15.
+        BinaryUtils.WriteUInt32BigEndian(writer, haveSize64 ? 1U : (uint)size);
         BinaryUtils.WriteUInt32BigEndian(writer, this.Type);
+
+        if (haveSize64)
+        {
+            BinaryUtils.WriteUInt64BigEndian(writer, size);
+        }
     }
 }

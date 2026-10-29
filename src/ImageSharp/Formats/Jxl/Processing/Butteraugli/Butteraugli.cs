@@ -2,10 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -69,16 +71,86 @@ internal static class Butteraugli
         29.2353797994f, 0.844626970982f, 0.703646627719f,
     ];
 
-    public static ReadOnlySpan<float> ComputeKernel(float sigma)
+    /// <summary>
+    /// The offset in the high-frequency masking denominator.
+    /// </summary>
+    private const float MaskYOffset = 0.829591754942F;
+
+    /// <summary>
+    /// The scale in the high-frequency masking denominator.
+    /// </summary>
+    private const float MaskYScaler = 0.451936922203F;
+
+    /// <summary>
+    /// The numerator in the high-frequency masking response.
+    /// </summary>
+    private const float MaskYMultiplier = 2.5485944793F;
+
+    /// <summary>
+    /// The offset in the low-frequency masking denominator.
+    /// </summary>
+    private const float MaskDcYOffset = 0.20025578522F;
+
+    /// <summary>
+    /// The scale in the low-frequency masking denominator.
+    /// </summary>
+    private const float MaskDcYScaler = 3.87449418804F;
+
+    /// <summary>
+    /// The numerator in the low-frequency masking response.
+    /// </summary>
+    private const float MaskDcYMultiplier = 0.505054525019F;
+
+    // These five Gaussian kernels are fixed by the comparison equations. Build them once, outside repeated comparisons.
+    private static readonly float[] OpsinDynamicsKernel = ComputeKernel(1.2F);
+    private static readonly float[] LowFrequencyKernel = ComputeKernel(7.15593339443F);
+    private static readonly float[] HighFrequencyKernel = ComputeKernel(3.22489901262F);
+    private static readonly float[] UltraHighFrequencyKernel = ComputeKernel(1.56416327805F);
+    private static readonly float[] MaskingKernel = ComputeKernel(2.7F);
+
+    /// <summary>
+    /// The normalized five-tap weights used by the mirrored single-scan Opsin blur.
+    /// </summary>
+    private static readonly JxlWeightsSeparable5 OpsinBlurWeights;
+
+    /// <summary>
+    /// Prepares the five-tap weights once using the native Gaussian normalization and replicated coefficient layout.
+    /// </summary>
+    static Butteraugli()
+    {
+        float weightSum = 0F;
+        foreach (float weight in OpsinDynamicsKernel)
+        {
+            weightSum += weight;
+        }
+
+        float scale = 1F / weightSum;
+        float center = OpsinDynamicsKernel[2] * scale;
+        float near = OpsinDynamicsKernel[1] * scale;
+        float far = OpsinDynamicsKernel[0] * scale;
+        JxlWeightsSeparable5 weights = default;
+
+        // The shared convolution stores each coefficient four times for native SIMD broadcasts.
+        for (int i = 0; i < 4; i++)
+        {
+            weights.Horizontal[i] = weights.Vertical[i] = center;
+            weights.Horizontal[4 + i] = weights.Vertical[4 + i] = near;
+            weights.Horizontal[8 + i] = weights.Vertical[8 + i] = far;
+        }
+
+        OpsinBlurWeights = weights;
+    }
+
+    /// <summary>
+    /// Builds one fixed Gaussian kernel without normalizing its border weights.
+    /// </summary>
+    /// <param name="sigma">The standard deviation fixed by the comparison stage.</param>
+    /// <returns>The symmetric samples from minus to plus two-and-one-quarter standard deviations.</returns>
+    private static float[] ComputeKernel(float sigma)
     {
         const float m = 2.25f;  // Accuracy increases when m is increased
         float scaler = -1.0f / (2.0f * sigma * sigma);
         int diff = Math.Max(1, (int)(m * MathF.Abs(sigma)));
-
-        // If sigma is very large we should not return a 'new float[]' allocation.
-        // This guard is temporary so we can verify the range of the number of elements.
-        // TODO: remove guard if the value doesn't exceed the limit for many JXL files
-        DebugGuard.MustBeLessThanOrEqualTo(sigma, 32f, nameof(sigma));
 
         float[] kernel = new float[(2 * diff) + 1];
 
@@ -90,16 +162,22 @@ internal static class Butteraugli
         return kernel;
     }
 
-    public static void ConvolveBorderColumn(
-        JxlPlane<float> input,
-        ReadOnlySpan<float> kernel,
-        int x,
-        Span<float> rowOut)
+    /// <summary>
+    /// Convolves one border column, normalizing only the Gaussian weights whose source samples exist.
+    /// </summary>
+    /// <param name="input">The complete borrowed source storage.</param>
+    /// <param name="width">The logical source width.</param>
+    /// <param name="height">The logical source height.</param>
+    /// <param name="stride">The physical source row stride.</param>
+    /// <param name="kernel">The fixed symmetric Gaussian coefficients.</param>
+    /// <param name="x">The source column to convolve.</param>
+    /// <param name="rowOut">The destination row in the transposed output.</param>
+    public static void ConvolveBorderColumn(ReadOnlySpan<float> input, int width, int height, int stride, ReadOnlySpan<float> kernel, int x, Span<float> rowOut)
     {
         int offset = kernel.Length / 2;
 
         int minX = x < offset ? 0 : x - offset;
-        int maxX = Math.Min(input.XSize - 1, x + offset);
+        int maxX = Math.Min(width - 1, x + offset);
 
         float weight = 0.0f;
 
@@ -110,9 +188,9 @@ internal static class Butteraugli
 
         float scale = 1.0f / weight;
 
-        for (int y = 0; y < input.YSize; y++)
+        for (int y = 0; y < height; y++)
         {
-            Span<float> rowIn = input.GetRow(y);
+            ReadOnlySpan<float> rowIn = input[(y * stride)..];
 
             float sum = 0.0f;
 
@@ -125,10 +203,14 @@ internal static class Butteraugli
         }
     }
 
-    public static bool ConvolutionWithTranspose(
-        JxlPlane<float> input,
-        ReadOnlySpan<float> kernel,
-        JxlPlane<float> output)
+    /// <summary>
+    /// Applies the native truncated Gaussian FIR and transposes its output into prepared storage.
+    /// </summary>
+    /// <param name="input">The borrowed source plane.</param>
+    /// <param name="kernel">The fixed symmetric Gaussian coefficients.</param>
+    /// <param name="output">The distinct preallocated output with width and height exchanged.</param>
+    /// <returns>Whether the output has the required transposed dimensions.</returns>
+    public static bool ConvolutionWithTranspose(JxlPlane<float> input, ReadOnlySpan<float> kernel, JxlPlane<float> output)
     {
         if (output.XSize != input.YSize)
         {
@@ -162,6 +244,9 @@ internal static class Butteraugli
             scaledKernel[i] = kernel[i] * scaleNoBorder;
         }
 
+        ReadOnlySpan<float> inputSamples = input.GetRow(0);
+        Span<float> outputSamples = output.GetRow(0);
+
         // Middle
         switch (len)
         {
@@ -174,7 +259,7 @@ internal static class Butteraugli
 
                 for (int y = 0; y < input.YSize; y++)
                 {
-                    Span<float> rowIn = input.GetRow(y);
+                    ReadOnlySpan<float> rowIn = inputSamples[(y * input.PixelsPerRow)..];
 
                     for (int x = border1; x < border2; x++)
                     {
@@ -185,7 +270,7 @@ internal static class Butteraugli
                         float sum2 = (rowIn[i + 2] + rowIn[i + 4]) * sk2;
                         float sum = (rowIn[i + 3] * sk3) + sum0 + sum1 + sum2;
 
-                        output.GetRow(x)[y] = sum;
+                        outputSamples[(x * output.PixelsPerRow) + y] = sum;
                     }
                 }
 
@@ -196,7 +281,7 @@ internal static class Butteraugli
             {
                 for (int y = 0; y < input.YSize; y++)
                 {
-                    Span<float> rowIn = input.GetRow(y);
+                    ReadOnlySpan<float> rowIn = inputSamples[(y * input.PixelsPerRow)..];
 
                     for (int x = border1; x < border2; x++)
                     {
@@ -212,7 +297,7 @@ internal static class Butteraugli
 
                         float sum = rowIn[i + 6] * scaledKernel[6];
 
-                        output.GetRow(x)[y] = sum + sum0 + sum1 + sum2 + sum3;
+                        outputSamples[(x * output.PixelsPerRow) + y] = sum + sum0 + sum1 + sum2 + sum3;
                     }
                 }
 
@@ -223,7 +308,7 @@ internal static class Butteraugli
             {
                 for (int y = 0; y < input.YSize; y++)
                 {
-                    Span<float> rowIn = input.GetRow(y);
+                    ReadOnlySpan<float> rowIn = inputSamples[(y * input.PixelsPerRow)..];
 
                     for (int x = border1; x < border2; x++)
                     {
@@ -240,7 +325,7 @@ internal static class Butteraugli
 
                         float sum = rowIn[i + 7] * scaledKernel[7];
 
-                        output.GetRow(x)[y] = sum + sum0 + sum1 + sum2 + sum3;
+                        outputSamples[(x * output.PixelsPerRow) + y] = sum + sum0 + sum1 + sum2 + sum3;
                     }
                 }
 
@@ -251,7 +336,7 @@ internal static class Butteraugli
             {
                 for (int y = 0; y < input.YSize; y++)
                 {
-                    Span<float> rowIn = input.GetRow(y);
+                    ReadOnlySpan<float> rowIn = inputSamples[(y * input.PixelsPerRow)..];
 
                     for (int x = border1; x < border2; x++)
                     {
@@ -279,7 +364,7 @@ internal static class Butteraugli
 
                         float sum = rowIn[i + 16] * scaledKernel[16];
 
-                        output.GetRow(x)[y] = sum + sum0 + sum1 + sum2 + sum3;
+                        outputSamples[(x * output.PixelsPerRow) + y] = sum + sum0 + sum1 + sum2 + sum3;
                     }
                 }
 
@@ -293,82 +378,39 @@ internal static class Butteraugli
         // Left border
         for (int x = 0; x < border1; x++)
         {
-            ConvolveBorderColumn(input, kernel, x, output.GetRow(x));
+            ConvolveBorderColumn(inputSamples, input.XSize, input.YSize, input.PixelsPerRow, kernel, x, outputSamples[(x * output.PixelsPerRow)..]);
         }
 
         // Right border
         for (int x = border2; x < input.XSize; x++)
         {
-            ConvolveBorderColumn(input, kernel, x, output.GetRow(x));
-        }
-
-        return true;
-    }
-
-    private static bool Blur(
-        Configuration configuration,
-        JxlPlane<float> input,
-        float sigma,
-        ButteraugliBlurTemp temp,
-        JxlPlane<float> output)
-    {
-        ReadOnlySpan<float> kernel = ComputeKernel(sigma);
-
-        // Separable5 does an in-place convolution, so this fast path is not safe
-        // if input aliases output.
-        if (kernel.Length == 5 && !ReferenceEquals(input, output))
-        {
-            float sumWeights = 0.0f;
-
-            foreach (float w in kernel)
-            {
-                sumWeights += w;
-            }
-
-            float scale = 1.0f / sumWeights;
-
-            float w0 = kernel[2] * scale;
-            float w1 = kernel[1] * scale;
-            float w2 = kernel[0] * scale;
-
-            JxlWeightsSeparable5 weights = default;
-            FillRep4(ref weights.Horizontal, w0, w1, w2);
-            FillRep4(ref weights.Vertical, w0, w1, w2);
-
-            if (!Separable5(input, input.GetRectangle(), weights, null, output))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        JxlPlane<float> tempT = temp.GetTransposed(configuration, input);
-
-        if (!ConvolutionWithTranspose(input, kernel, tempT))
-        {
-            return false;
-        }
-
-        if (!ConvolutionWithTranspose(tempT, kernel, output))
-        {
-            return false;
+            ConvolveBorderColumn(inputSamples, input.XSize, input.YSize, input.PixelsPerRow, kernel, x, outputSamples[(x * output.PixelsPerRow)..]);
         }
 
         return true;
     }
 
     /// <summary>
-    /// Equivalent to HWY_REP4.
+    /// Applies a separable Gaussian blur using prepared storage and the native border rule for its fixed kernel.
     /// </summary>
-    private static void FillRep4(ref InlineArray12<float> values, float a, float b, float c)
+    /// <param name="input">The borrowed source samples.</param>
+    /// <param name="kernel">The fixed, symmetric kernel for this stage.</param>
+    /// <param name="temp">The prepared transposed scratch plane, distinct from input and output.</param>
+    /// <param name="output">The preallocated result plane, distinct from input for the five-tap Opsin kernel.</param>
+    /// <returns>Whether both passes completed with matching dimensions.</returns>
+    /// <remarks>Other kernels can update input in place because their first pass writes only transposed scratch.</remarks>
+    private static bool Blur(JxlPlane<float> input, ReadOnlySpan<float> kernel, ButteraugliBlurTemp temp, JxlPlane<float> output)
     {
-        for (int i = 0; i < 4; i++)
+        if (kernel.Length == 5)
         {
-            values[i] = a;
-            values[4 + i] = b;
-            values[8 + i] = c;
+            // The native five-tap path mirrors edges and combines both dimensions in one scan.
+            // Other kernels use the truncated, renormalized FIR below; these border rules are intentionally different.
+            return JxlConvolve.Separable5(input, input.GetRectangle(), OpsinBlurWeights, output);
         }
+
+        // The first pass writes only transposed scratch. The second pass can therefore overwrite the original input safely.
+        JxlPlane<float> transposed = temp.TransposedTemp;
+        return ConvolutionWithTranspose(input, kernel, transposed) && ConvolutionWithTranspose(transposed, kernel, output);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -433,15 +475,23 @@ internal static class Butteraugli
         valY = y * yMul;
     }
 
-    public static void XybLowFrequencyToValues(JxlImage3F xybLf)
+    /// <summary>
+    /// Converts low-frequency XYB planes to the weighted values used by the comparison equations.
+    /// </summary>
+    /// <param name="xybLf">The preallocated low-frequency image, updated in place.</param>
+    public static void XybLowFrequencyToValues(JxlImage3<float> xybLf)
     {
         int lanes = Vector<float>.Count;
 
+        Span<float> samples0 = xybLf.Plane(0).GetRow(0);
+        Span<float> samples1 = xybLf.Plane(1).GetRow(0);
+        Span<float> samples2 = xybLf.Plane(2).GetRow(0);
+
         for (int y = 0; y < xybLf.YSize; y++)
         {
-            Span<float> rowX = xybLf.PlaneRow(0, y);
-            Span<float> rowY = xybLf.PlaneRow(1, y);
-            Span<float> rowB = xybLf.PlaneRow(2, y);
+            Span<float> rowX = samples0[(y * xybLf.Plane(0).PixelsPerRow)..];
+            Span<float> rowY = samples1[(y * xybLf.Plane(1).PixelsPerRow)..];
+            Span<float> rowB = samples2[(y * xybLf.Plane(2).PixelsPerRow)..];
 
             for (int x = 0; x < xybLf.XSize; x += lanes)
             {
@@ -464,6 +514,12 @@ internal static class Butteraugli
         }
     }
 
+    /// <summary>
+    /// Reduces high-frequency X according to the corresponding Y magnitude.
+    /// </summary>
+    /// <param name="inY">The borrowed Y frequency samples.</param>
+    /// <param name="inOutX">The equally sized X frequency samples, updated in place.</param>
+    /// <returns>Whether both plane dimensions match.</returns>
     public static bool SuppressXByY(JxlPlane<float> inY, JxlPlane<float> inOutX)
     {
         if (!JxlImageOperations.SameSize(inOutX, inY))
@@ -482,10 +538,13 @@ internal static class Butteraugli
         Vector<float> oneMinusS = new(1.0f - s);
         Vector<float> ywv = new(suppress);
 
+        Span<float> samplesY = inY.GetRow(0);
+        Span<float> samplesX = inOutX.GetRow(0);
+
         for (int y = 0; y < ySize; y++)
         {
-            ReadOnlySpan<float> rowY = inY.GetRow(y);
-            Span<float> rowX = inOutX.GetRow(y);
+            ReadOnlySpan<float> rowY = samplesY[(y * inY.PixelsPerRow)..];
+            Span<float> rowX = samplesX[(y * inOutX.PixelsPerRow)..];
 
             for (int x = 0; x < xSize; x += lanes)
             {
@@ -502,43 +561,46 @@ internal static class Butteraugli
         return true;
     }
 
+    /// <summary>
+    /// Subtracts equally sized sample planes into preallocated output, which may alias either input.
+    /// </summary>
+    /// <param name="a">The minuend plane.</param>
+    /// <param name="b">The subtrahend plane.</param>
+    /// <param name="c">The preallocated result plane.</param>
     public static void Subtract(JxlPlane<float> a, JxlPlane<float> b, JxlPlane<float> c)
     {
-        int lanes = Vector<float>.Count;
+        ReadOnlySpan<float> samplesA = a.GetRow(0);
+        ReadOnlySpan<float> samplesB = b.GetRow(0);
+        Span<float> samplesC = c.GetRow(0);
 
         for (int y = 0; y < a.YSize; y++)
         {
-            ReadOnlySpan<float> rowA = a.GetRow(y);
-            ReadOnlySpan<float> rowB = b.GetRow(y);
-            Span<float> rowC = c.GetRow(y);
-
-            for (int x = 0; x < a.XSize; x += lanes)
-            {
-                Vector<float> va = new(rowA.Slice(x, lanes));
-                Vector<float> vb = new(rowB.Slice(x, lanes));
-
-                (va - vb).CopyTo(rowC.Slice(x, lanes));
-            }
+            ReadOnlySpan<float> rowA = samplesA.Slice(y * a.PixelsPerRow, a.XSize);
+            ReadOnlySpan<float> rowB = samplesB.Slice(y * b.PixelsPerRow, a.XSize);
+            Span<float> rowC = samplesC.Slice(y * c.PixelsPerRow, a.XSize);
+            TensorPrimitives.Subtract(rowA, rowB, rowC);
         }
     }
 
+    /// <summary>
+    /// Writes low-frequency samples and the remaining middle-frequency samples into prepared images.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="xyb">The borrowed transformed input.</param>
+    /// <param name="lf">The preallocated low-frequency output.</param>
+    /// <param name="mf">The preallocated middle-frequency output.</param>
+    /// <param name="blurTemp">The prepared transposed blur workspace.</param>
+    /// <returns>Whether the frequency blur completed.</returns>
     public static bool SeparateLFAndMF(
         Configuration configuration,
-        JxlImage3F xyb,
-        JxlImage3F lf,
-        JxlImage3F mf,
+        JxlImage3<float> xyb,
+        JxlImage3<float> lf,
+        JxlImage3<float> mf,
         ButteraugliBlurTemp blurTemp)
     {
-        const float sigmaLf = 7.15593339443f;
-
         for (int i = 0; i < 3; i++)
         {
-            if (!Blur(
-                    configuration,
-                    xyb.Plane(i),
-                    sigmaLf,
-                    blurTemp,
-                    lf.Plane(i)))
+            if (!Blur(xyb.Plane(i), LowFrequencyKernel, blurTemp, lf.Plane(i)))
             {
                 return false;
             }
@@ -554,19 +616,18 @@ internal static class Butteraugli
         return true;
     }
 
-    public static bool SeparateMfAndHf(
-        Configuration configuration,
-        JxlImage3F mf,
-        ref InlineArray2<JxlPlane<float>> hf,
-        ButteraugliBlurTemp blurTemp)
+    /// <summary>
+    /// Splits the middle-frequency XYB image in place and writes the high-frequency X and Y planes.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="mf">The caller-owned middle-frequency image, updated in place.</param>
+    /// <param name="hf">Two preallocated, caller-owned planes in X, Y order. Their identities remain unchanged.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <returns>Whether all blur and frequency-separation stages succeeded.</returns>
+    public static bool SeparateMfAndHf(Configuration configuration, JxlImage3<float> mf, Span<JxlPlane<float>> hf, ButteraugliBlurTemp blurTemp)
     {
-        const float sigmaHf = 3.22489901262f;
-
         int xSize = mf.XSize;
         int ySize = mf.YSize;
-
-        hf[0] = JxlPlane<float>.Create(configuration, xSize, ySize);
-        hf[1] = JxlPlane<float>.Create(configuration, xSize, ySize);
 
         int lanes = Vector<float>.Count;
 
@@ -574,7 +635,7 @@ internal static class Butteraugli
         {
             if (i == 2)
             {
-                if (!Blur(configuration, mf.Plane(i), sigmaHf, blurTemp, mf.Plane(i)))
+                if (!Blur(mf.Plane(i), HighFrequencyKernel, blurTemp, mf.Plane(i)))
                 {
                     return false;
                 }
@@ -582,10 +643,13 @@ internal static class Butteraugli
                 break;
             }
 
+            Span<float> firstSamples = mf.Plane(i).GetRow(0);
+            Span<float> secondSamples = hf[i].GetRow(0);
+
             for (int y = 0; y < ySize; y++)
             {
-                Span<float> rowMf = mf.PlaneRow(i, y);
-                Span<float> rowHf = hf[i].GetRow(y);
+                Span<float> rowMf = firstSamples[(y * mf.Plane(i).PixelsPerRow)..];
+                Span<float> rowHf = secondSamples[(y * hf[i].PixelsPerRow)..];
 
                 for (int x = 0; x < xSize; x += lanes)
                 {
@@ -594,7 +658,7 @@ internal static class Butteraugli
                 }
             }
 
-            if (!Blur(configuration, mf.Plane(i), sigmaHf, blurTemp, mf.Plane(i)))
+            if (!Blur(mf.Plane(i), HighFrequencyKernel, blurTemp, mf.Plane(i)))
             {
                 return false;
             }
@@ -605,8 +669,8 @@ internal static class Butteraugli
 
                 for (int y = 0; y < ySize; y++)
                 {
-                    Span<float> rowMf = mf.PlaneRow(0, y);
-                    Span<float> rowHf = hf[0].GetRow(y);
+                    Span<float> rowMf = firstSamples[(y * mf.Plane(0).PixelsPerRow)..];
+                    Span<float> rowHf = secondSamples[(y * hf[0].PixelsPerRow)..];
 
                     for (int x = 0; x < xSize; x += lanes)
                     {
@@ -626,8 +690,8 @@ internal static class Butteraugli
 
                 for (int y = 0; y < ySize; y++)
                 {
-                    Span<float> rowMf = mf.PlaneRow(1, y);
-                    Span<float> rowHf = hf[1].GetRow(y);
+                    Span<float> rowMf = firstSamples[(y * mf.Plane(1).PixelsPerRow)..];
+                    Span<float> rowHf = secondSamples[(y * hf[1].PixelsPerRow)..];
 
                     for (int x = 0; x < xSize; x += lanes)
                     {
@@ -646,28 +710,30 @@ internal static class Butteraugli
         return SuppressXByY(hf[1], hf[0]);
     }
 
-    public static bool SeparateHFAndUHF(
-        Configuration configuration,
-        InlineArray2<JxlPlane<float>> hf,
-        InlineArray2<JxlPlane<float>> uhf,
-        ButteraugliBlurTemp blurTemp)
+    /// <summary>
+    /// Splits the high-frequency X and Y planes in place and writes their ultra-high-frequency planes.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="hf">Two borrowed high-frequency planes in X, Y order, updated in place.</param>
+    /// <param name="uhf">Two preallocated, caller-owned output planes in X, Y order. Their identities remain unchanged.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <returns>Whether both frequency separations succeeded.</returns>
+    public static bool SeparateHFAndUHF(Configuration configuration, Span<JxlPlane<float>> hf, Span<JxlPlane<float>> uhf, ButteraugliBlurTemp blurTemp)
     {
-        const float sigmaUhf = 1.56416327805f;
-
         int xSize = hf[0].XSize;
         int ySize = hf[0].YSize;
-
-        uhf[0] = JxlPlane<float>.Create(configuration, xSize, ySize);
-        uhf[1] = JxlPlane<float>.Create(configuration, xSize, ySize);
 
         int lanes = Vector<float>.Count;
 
         for (int i = 0; i < 2; i++)
         {
+            Span<float> firstSamples = hf[i].GetRow(0);
+            Span<float> secondSamples = uhf[i].GetRow(0);
+
             for (int y = 0; y < ySize; y++)
             {
-                Span<float> rowUhf = uhf[i].GetRow(y);
-                Span<float> rowHf = hf[i].GetRow(y);
+                Span<float> rowUhf = secondSamples[(y * uhf[i].PixelsPerRow)..];
+                Span<float> rowHf = firstSamples[(y * hf[i].PixelsPerRow)..];
 
                 for (int x = 0; x < xSize; x += lanes)
                 {
@@ -675,7 +741,7 @@ internal static class Butteraugli
                 }
             }
 
-            if (!Blur(configuration, hf[i], sigmaUhf, blurTemp, hf[i]))
+            if (!Blur(hf[i], UltraHighFrequencyKernel, blurTemp, hf[i]))
             {
                 return false;
             }
@@ -687,8 +753,8 @@ internal static class Butteraugli
 
                 for (int y = 0; y < ySize; y++)
                 {
-                    Span<float> rowUhf = uhf[0].GetRow(y);
-                    Span<float> rowHf = hf[0].GetRow(y);
+                    Span<float> rowUhf = secondSamples[(y * uhf[0].PixelsPerRow)..];
+                    Span<float> rowHf = firstSamples[(y * hf[0].PixelsPerRow)..];
 
                     for (int x = 0; x < xSize; x += lanes)
                     {
@@ -716,8 +782,8 @@ internal static class Butteraugli
 
                 for (int y = 0; y < ySize; y++)
                 {
-                    Span<float> rowUhf = uhf[1].GetRow(y);
-                    Span<float> rowHf = hf[1].GetRow(y);
+                    Span<float> rowUhf = secondSamples[(y * uhf[1].PixelsPerRow)..];
+                    Span<float> rowHf = firstSamples[(y * hf[1].PixelsPerRow)..];
 
                     for (int x = 0; x < xSize; x += lanes)
                     {
@@ -743,58 +809,41 @@ internal static class Butteraugli
         return true;
     }
 
-    public static void DeallocateHFAndUHF(InlineArray2<JxlPlane<float>> hf, InlineArray2<JxlPlane<float>> uhf)
+    /// <summary>
+    /// Releases high- and ultra-high-frequency sample storage after masking has consumed it.
+    /// </summary>
+    /// <param name="hf">The two borrowed high-frequency planes.</param>
+    /// <param name="uhf">The two borrowed ultra-high-frequency planes.</param>
+    public static void DeallocateHFAndUHF(Span<JxlPlane<float>> hf, Span<JxlPlane<float>> uhf)
     {
         for (int i = 0; i < 2; i++)
         {
             hf[i].Dispose();
             uhf[i].Dispose();
-
-            hf[i] = new JxlPlane<float>();
-            uhf[i] = new JxlPlane<float>();
         }
     }
 
-    public static bool SeparateFrequencies(
-        Configuration configuration,
-        ButteraugliBlurTemp blurTemp,
-        JxlImage3F xyb,
-        ButteraugliPsychoImage ps)
+    /// <summary>
+    /// Writes all frequency bands into the supplied preallocated owner.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="blurTemp">The borrowed blur workspace.</param>
+    /// <param name="xyb">The borrowed transformed input image.</param>
+    /// <param name="ps">The owner of every preallocated output plane. Frequency separation does not resize or replace its storage.</param>
+    /// <returns>Whether all frequency bands were produced.</returns>
+    public static bool SeparateFrequencies(Configuration configuration, ButteraugliBlurTemp blurTemp, JxlImage3<float> xyb, ButteraugliPsychoImage ps)
     {
-        ps.Lf = new JxlImage3F(
-            configuration,
-            xyb.XSize,
-            xyb.YSize);
-
-        ps.Mf = new JxlImage3F(
-            configuration,
-            xyb.XSize,
-            xyb.YSize);
-
-        if (!SeparateLFAndMF(
-                configuration,
-                xyb,
-                ps.Lf,
-                ps.Mf,
-                blurTemp))
+        if (!SeparateLFAndMF(configuration, xyb, ps.Lf, ps.Mf, blurTemp))
         {
             return false;
         }
 
-        if (!SeparateMfAndHf(
-                configuration,
-                ps.Mf,
-                ref ps.Hf,
-                blurTemp))
+        if (!SeparateMfAndHf(configuration, ps.Mf, ps.Hf, blurTemp))
         {
             return false;
         }
 
-        if (!SeparateHFAndUHF(
-                configuration,
-                ps.Hf,
-                ps.Uhf,
-                blurTemp))
+        if (!SeparateHFAndUHF(configuration, ps.Hf, ps.Uhf, blurTemp))
         {
             return false;
         }
@@ -1193,65 +1242,55 @@ internal static class Butteraugli
         return retval;
     }
 
+    /// <summary>
+    /// Evaluates one Malta result using a zero-padded neighborhood when a complete SIMD load would cross an image edge.
+    /// </summary>
+    /// <param name="diffs">The complete borrowed difference plane, starting at its first logical sample.</param>
+    /// <param name="width">The logical plane width.</param>
+    /// <param name="height">The logical plane height.</param>
+    /// <param name="stride">The physical row stride.</param>
+    /// <param name="x0">The sample column.</param>
+    /// <param name="y0">The sample row.</param>
+    /// <param name="isLf">Whether to use the low-frequency Malta equation.</param>
+    /// <returns>The first lane of the selected Malta equation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float PaddedMaltaUnit(
-        JxlPlane<float> diffs,
-        int x0,
-        int y0,
-        bool isLF)
+    private static float PaddedMaltaUnit(ReadOnlySpan<float> diffs, int width, int height, int stride, int x0, int y0, bool isLf)
     {
-        if (x0 >= 4 &&
-            y0 >= 4 &&
-            x0 < diffs.XSize - 4 &&
-            y0 < diffs.YSize - 4)
+        int index = (y0 * stride) + x0;
+        if (x0 >= 4 && y0 >= 4 && x0 + Vector<float>.Count + 4 <= width && y0 < height - 4)
         {
-            return isLF
-                ? MaltaUnitLF(
-                    diffs.GetRow(y0),
-                    x0,
-                    diffs.PixelsPerRow)[0]
-                : MaltaUnit(
-                    diffs.GetRow(y0),
-                    x0,
-                    diffs.PixelsPerRow)[0];
+            return isLf ? MaltaUnitLF(diffs, index, stride)[0] : MaltaUnit(diffs, index, stride)[0];
         }
 
-        Span<float> borderImage = stackalloc float[12 * 9];
+        // The equation reaches four rows and columns from the center. Extra columns keep every SIMD load
+        // inside this local buffer even though only its first result lane is used at image borders.
+        int paddedStride = 8 + Vector<float>.Count;
+        Span<float> borderImage = stackalloc float[9 * paddedStride];
+        borderImage.Clear();
 
         for (int dy = 0; dy < 9; dy++)
         {
             int y = y0 + dy - 4;
-
-            if (y < 0 || y >= diffs.YSize)
+            if ((uint)y >= (uint)height)
             {
-                borderImage.Slice(dy * 12, 12).Clear();
                 continue;
             }
 
-            ReadOnlySpan<float> rowDiffs = diffs.GetRow(y);
+            ReadOnlySpan<float> rowDiffs = diffs[(y * stride)..];
+            Span<float> paddedRow = borderImage[(dy * paddedStride)..];
 
             for (int dx = 0; dx < 9; dx++)
             {
                 int x = x0 + dx - 4;
-
-                borderImage[(dy * 12) + dx] =
-                    x < 0 || x >= diffs.XSize
-                        ? 0.0f
-                        : rowDiffs[x];
+                if ((uint)x < (uint)width)
+                {
+                    paddedRow[dx] = rowDiffs[x];
+                }
             }
-
-            borderImage.Slice((dy * 12) + 9, 3).Clear();
         }
 
-        return isLF
-                ? MaltaUnitLF(
-                    diffs.GetRow(y0),
-                    x0,
-                    diffs.PixelsPerRow)[0]
-                : MaltaUnit(
-                    borderImage,
-                    (4 * 12) + 4,
-                    12)[0];
+        int center = (4 * paddedStride) + 4;
+        return isLf ? MaltaUnitLF(borderImage, center, paddedStride)[0] : MaltaUnit(borderImage, center, paddedStride)[0];
     }
 
     public static bool MaltaDiffMap(
@@ -1309,11 +1348,18 @@ internal static class Butteraugli
         float norm2_0Lt1 =
             (float)(mulli * MathF.Sqrt(weight1 * w0Lt1) / ((len * 2) + 1) * norm1);
 
+        // Malta neighborhoods reach four rows and four columns from each center. Borrow complete planes once,
+        // then retain global indices so negative relative offsets never refer to a sliced-away preceding row.
+        ReadOnlySpan<float> samples0 = lum0.GetRow(0);
+        ReadOnlySpan<float> samples1 = lum1.GetRow(0);
+        Span<float> differenceSamples = diffs.GetRow(0);
+        Span<float> outputSamples = blockDiffAc.GetRow(0);
+
         for (int y = 0; y < height; y++)
         {
-            ReadOnlySpan<float> row0 = lum0.GetRow(y);
-            ReadOnlySpan<float> row1 = lum1.GetRow(y);
-            Span<float> rowDiffs = diffs.GetRow(y);
+            ReadOnlySpan<float> row0 = samples0[(y * lum0.PixelsPerRow)..];
+            ReadOnlySpan<float> row1 = samples1[(y * lum1.PixelsPerRow)..];
+            Span<float> rowDiffs = differenceSamples[(y * diffs.PixelsPerRow)..];
 
             for (int x = 0; x < width; x++)
             {
@@ -1362,11 +1408,11 @@ internal static class Butteraugli
 
         for (; y0 < 4; y0++)
         {
-            Span<float> row = blockDiffAc.GetRow(y0);
+            Span<float> row = outputSamples[(y0 * blockDiffAc.PixelsPerRow)..];
 
             for (int x = 0; x < width; x++)
             {
-                row[x] += PaddedMaltaUnit(diffs, x, y0, isLf);
+                row[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
             }
         }
 
@@ -1377,41 +1423,41 @@ internal static class Butteraugli
 
         for (; y0 < height - 4; y0++)
         {
-            ReadOnlySpan<float> input = diffs.GetRow(y0);
-            Span<float> output = blockDiffAc.GetRow(y0);
+            Span<float> output = outputSamples[(y0 * blockDiffAc.PixelsPerRow)..];
             ref float outputReference = ref MemoryMarshal.GetReference(output);
 
             int x = 0;
 
-            for (; x < alignedX; x++)
+            for (; x < Math.Min(alignedX, width); x++)
             {
-                output[x] += PaddedMaltaUnit(diffs, x, y0, isLf);
+                output[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
             }
 
+            // Every lane and its four neighboring columns remain inside the logical width. Border calls use the zero-padded scalar-lane path.
             for (; x + lanes + 4 <= width; x += lanes)
             {
                 Vector<float> value = Vector.LoadUnsafe(ref Unsafe.Add(ref outputReference, x));
 
                 Vector<float> malta = isLf
-                    ? MaltaUnitLF(input, x, stride)
-                    : MaltaUnit(input, x, stride);
+                    ? MaltaUnitLF(differenceSamples, (y0 * stride) + x, stride)
+                    : MaltaUnit(differenceSamples, (y0 * stride) + x, stride);
 
                 (value + malta).CopyTo(output[x..]);
             }
 
             for (; x < width; x++)
             {
-                output[x] += PaddedMaltaUnit(diffs, x, y0, isLf);
+                output[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
             }
         }
 
         for (; y0 < height; y0++)
         {
-            Span<float> row = blockDiffAc.GetRow(y0);
+            Span<float> row = outputSamples[(y0 * blockDiffAc.PixelsPerRow)..];
 
             for (int x = 0; x < width; x++)
             {
-                row[x] += PaddedMaltaUnit(diffs, x, y0, isLf);
+                row[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
             }
         }
 
@@ -1419,13 +1465,13 @@ internal static class Butteraugli
     }
 
     public static bool MaltaDiffMap(
-        JxlImageF lum0,
-        JxlImageF lum1,
+        JxlPlane<float> lum0,
+        JxlPlane<float> lum1,
         float w0Gt1,
         float w0Lt1,
         float norm1,
-        JxlImageF diffs,
-        JxlImageF blockDiffAc)
+        JxlPlane<float> diffs,
+        JxlPlane<float> blockDiffAc)
     {
         const float len = 3.75f;
         const float mulli = 0.39905817637f;
@@ -1468,10 +1514,13 @@ internal static class Butteraugli
             blockDiffAc);
     }
 
-    public static void CombineChannelsForMasking(
-        InlineArray2<JxlPlane<float>> hf,
-        InlineArray2<JxlPlane<float>> uhf,
-        JxlPlane<float> output)
+    /// <summary>
+    /// Combines X and Y high-frequency bands into the perceptual masking response.
+    /// </summary>
+    /// <param name="hf">The borrowed high-frequency X and Y planes.</param>
+    /// <param name="uhf">The borrowed ultra-high-frequency X and Y planes.</param>
+    /// <param name="output">The distinct preallocated masking output.</param>
+    public static void CombineChannelsForMasking(InlineArray2<JxlPlane<float>> hf, InlineArray2<JxlPlane<float>> uhf, JxlPlane<float> output)
     {
         // Only X and Y components are involved in masking.
         ReadOnlySpan<float> muls =
@@ -1484,16 +1533,32 @@ internal static class Butteraugli
         int width = hf[0].XSize;
         int height = hf[0].YSize;
 
+        Span<float> hfSamples0 = hf[0].GetRow(0);
+        Span<float> hfSamples1 = hf[1].GetRow(0);
+        Span<float> uhfSamples0 = uhf[0].GetRow(0);
+        Span<float> uhfSamples1 = uhf[1].GetRow(0);
+        Span<float> outputSamples = output.GetRow(0);
+
         for (int y = 0; y < height; y++)
         {
-            ReadOnlySpan<float> rowYHf = hf[1].GetRow(y);
-            ReadOnlySpan<float> rowYUhf = uhf[1].GetRow(y);
-            ReadOnlySpan<float> rowXHf = hf[0].GetRow(y);
-            ReadOnlySpan<float> rowXUhf = uhf[0].GetRow(y);
+            ReadOnlySpan<float> rowYHf = hfSamples1[(y * hf[1].PixelsPerRow)..];
+            ReadOnlySpan<float> rowYUhf = uhfSamples1[(y * uhf[1].PixelsPerRow)..];
+            ReadOnlySpan<float> rowXHf = hfSamples0[(y * hf[0].PixelsPerRow)..];
+            ReadOnlySpan<float> rowXUhf = uhfSamples0[(y * uhf[0].PixelsPerRow)..];
 
-            Span<float> row = output.GetRow(y);
+            Span<float> row = outputSamples[(y * output.PixelsPerRow)..];
 
-            for (int x = 0; x < width; x++)
+            int x = 0;
+
+            // Each lane processes one logical sample. The scalar remainder retains the same arithmetic order.
+            for (; x <= width - Vector<float>.Count; x += Vector<float>.Count)
+            {
+                Vector<float> xDiff = (new Vector<float>(rowXUhf[x..]) + new Vector<float>(rowXHf[x..])) * Vector.Create(muls[0]);
+                Vector<float> yDiff = (new Vector<float>(rowYUhf[x..]) * Vector.Create(muls[1])) + (new Vector<float>(rowYHf[x..]) * Vector.Create(muls[2]));
+                Vector.SquareRoot((xDiff * xDiff) + (yDiff * yDiff)).CopyTo(row[x..]);
+            }
+
+            for (; x < width; x++)
             {
                 float xDiff = (rowXUhf[x] + rowXHf[x]) * muls[0];
                 float yDiff = (rowYUhf[x] * muls[1]) + (rowYHf[x] * muls[2]);
@@ -1503,11 +1568,14 @@ internal static class Butteraugli
         }
     }
 
-    public static void DiffPrecompute(
-        JxlImageF xyb,
-        float mul,
-        float biasArg,
-        JxlImageF output)
+    /// <summary>
+    /// Writes the biased square-root response used before masking blur and erosion.
+    /// </summary>
+    /// <param name="xyb">The borrowed input samples.</param>
+    /// <param name="mul">The fixed scale applied to the absolute samples.</param>
+    /// <param name="biasArg">The bias before multiplication by the scale.</param>
+    /// <param name="output">The preallocated output plane.</param>
+    public static void DiffPrecompute(JxlPlane<float> xyb, float mul, float biasArg, JxlPlane<float> output)
     {
         int width = xyb.XSize;
         int height = xyb.YSize;
@@ -1515,18 +1583,17 @@ internal static class Butteraugli
         float bias = mul * biasArg;
         float sqrtBias = MathF.Sqrt(bias);
 
+        Span<float> inputSamples = xyb.GetRow(0);
+        Span<float> outputSamples = output.GetRow(0);
+
+        MaskPrecomputeOperator operation = new(mul, bias, sqrtBias);
+
         for (int y = 0; y < height; y++)
         {
-            ReadOnlySpan<float> rowIn = xyb.GetRow(y);
-            Span<float> rowOut = output.GetRow(y);
+            ReadOnlySpan<float> rowIn = inputSamples[(y * xyb.PixelsPerRow)..];
+            Span<float> rowOut = outputSamples[(y * output.PixelsPerRow)..];
 
-            for (int x = 0; x < width; x++)
-            {
-                rowOut[x] =
-                    MathF.Sqrt(
-                        (mul * MathF.Abs(rowIn[x])) + bias)
-                    - sqrtBias;
-            }
+            TensorPrimitives_.Invoke(rowIn[..width], rowOut[..width], operation);
         }
     }
 
@@ -1557,165 +1624,261 @@ internal static class Butteraugli
         }
     }
 
-    public static void FuzzyErosion(JxlImageF from, JxlImageF to)
+    /// <summary>
+    /// Writes the weighted three-smallest neighborhood response into distinct, preallocated storage.
+    /// </summary>
+    /// <param name="from">The borrowed input plane, retained unchanged during neighboring reads.</param>
+    /// <param name="to">The distinct preallocated output plane.</param>
+    public static void FuzzyErosion(JxlPlane<float> from, JxlPlane<float> to)
     {
         int width = from.XSize;
         int height = from.YSize;
-
         const int step = 3;
+        ReadOnlySpan<float> inputSamples = from.GetRow(0);
+        Span<float> outputSamples = to.GetRow(0);
 
         for (int y = 0; y < height; y++)
         {
-            Span<float> output = to.GetRow(y);
+            Span<float> output = outputSamples[(y * to.PixelsPerRow)..];
+            int x = 0;
+            int firstVector = y >= step && y < height - step ? Math.Min(step, width) : width;
 
-            for (int x = 0; x < width; x++)
+            for (; x < firstVector; x++)
             {
-                float min0 = from.GetRow(y)[x];
-                float min1 = 2 * min0;
-                float min2 = min1;
+                output[x] = FuzzyErosionAt(inputSamples, from.PixelsPerRow, width, height, x, y);
+            }
 
-                if (x >= step)
-                {
-                    StoreMin3(
-                        from.GetRow(y)[x - step],
-                        ref min0,
-                        ref min1,
-                        ref min2);
+            // Each lane selects the same three minima from its nine neighbors. The border path omits unavailable neighbors.
+            for (; x <= width - step - Vector<float>.Count; x += Vector<float>.Count)
+            {
+                int center = (y * from.PixelsPerRow) + x;
+                Vector<float> min0 = new(inputSamples[center..]);
+                Vector<float> min1 = Vector.Create(2F) * min0;
+                Vector<float> min2 = min1;
+                int above = center - (step * from.PixelsPerRow);
+                int below = center + (step * from.PixelsPerRow);
 
-                    if (y >= step)
-                    {
-                        StoreMin3(
-                            from.GetRow(y - step)[x - step],
-                            ref min0,
-                            ref min1,
-                            ref min2);
-                    }
+                StoreMin3(new Vector<float>(inputSamples[(center - step)..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[(above - step)..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[(below - step)..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[(center + step)..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[(above + step)..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[(below + step)..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[above..]), ref min0, ref min1, ref min2);
+                StoreMin3(new Vector<float>(inputSamples[below..]), ref min0, ref min1, ref min2);
+                ((Vector.Create(0.45F) * min0) + (Vector.Create(0.3F) * min1) + (Vector.Create(0.25F) * min2)).CopyTo(output[x..]);
+            }
 
-                    if (y < height - step)
-                    {
-                        StoreMin3(
-                            from.GetRow(y + step)[x - step],
-                            ref min0,
-                            ref min1,
-                            ref min2);
-                    }
-                }
-
-                if (x < width - step)
-                {
-                    StoreMin3(
-                        from.GetRow(y)[x + step],
-                        ref min0,
-                        ref min1,
-                        ref min2);
-
-                    if (y >= step)
-                    {
-                        StoreMin3(
-                            from.GetRow(y - step)[x + step],
-                            ref min0,
-                            ref min1,
-                            ref min2);
-                    }
-
-                    if (y < height - step)
-                    {
-                        StoreMin3(
-                            from.GetRow(y + step)[x + step],
-                            ref min0,
-                            ref min1,
-                            ref min2);
-                    }
-                }
-
-                if (y >= step)
-                {
-                    StoreMin3(
-                        from.GetRow(y - step)[x],
-                        ref min0,
-                        ref min1,
-                        ref min2);
-                }
-
-                if (y < height - step)
-                {
-                    StoreMin3(
-                        from.GetRow(y + step)[x],
-                        ref min0,
-                        ref min1,
-                        ref min2);
-                }
-
-                output[x] =
-                    (0.45f * min0) +
-                    (0.3f * min1) +
-                    (0.25f * min2);
+            for (; x < width; x++)
+            {
+                output[x] = FuzzyErosionAt(inputSamples, from.PixelsPerRow, width, height, x, y);
             }
         }
     }
 
+    /// <summary>
+    /// Inserts one sample per SIMD lane into the three retained minima, using the scalar comparison order.
+    /// </summary>
+    /// <param name="value">The samples to insert.</param>
+    /// <param name="min0">The first minimum in each lane.</param>
+    /// <param name="min1">The second minimum in each lane.</param>
+    /// <param name="min2">The third minimum in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin3(Vector<float> value, ref Vector<float> min0, ref Vector<float> min1, ref Vector<float> min2)
+    {
+        Vector<int> less2 = Vector.LessThan(value, min2);
+        Vector<int> less1 = less2 & Vector.LessThan(value, min1);
+        Vector<int> less0 = less1 & Vector.LessThan(value, min0);
+        min2 = Vector.ConditionalSelect(less2, Vector.ConditionalSelect(less1, min1, value), min2);
+        min1 = Vector.ConditionalSelect(less1, Vector.ConditionalSelect(less0, min0, value), min1);
+        min0 = Vector.ConditionalSelect(less0, value, min0);
+    }
+
+    /// <summary>
+    /// Evaluates the erosion equation at a border sample, ignoring neighbors outside the image.
+    /// </summary>
+    /// <param name="inputSamples">The complete borrowed input storage.</param>
+    /// <param name="stride">The physical row stride.</param>
+    /// <param name="width">The logical width.</param>
+    /// <param name="height">The logical height.</param>
+    /// <param name="x">The sample column.</param>
+    /// <param name="y">The sample row.</param>
+    /// <returns>The same weighted minima used by the SIMD interior.</returns>
+    private static float FuzzyErosionAt(ReadOnlySpan<float> inputSamples, int stride, int width, int height, int x, int y)
+    {
+        const int step = 3;
+        float min0 = inputSamples[(y * stride) + x];
+        float min1 = 2 * min0;
+        float min2 = min1;
+
+        if (x >= step)
+        {
+            StoreMin3(
+                inputSamples[(y * stride) + x - step],
+                ref min0,
+                ref min1,
+                ref min2);
+
+            if (y >= step)
+            {
+                StoreMin3(
+                    inputSamples[((y - step) * stride) + x - step],
+                    ref min0,
+                    ref min1,
+                    ref min2);
+            }
+
+            if (y < height - step)
+            {
+                StoreMin3(
+                    inputSamples[((y + step) * stride) + x - step],
+                    ref min0,
+                    ref min1,
+                    ref min2);
+            }
+        }
+
+        if (x < width - step)
+        {
+            StoreMin3(
+                inputSamples[(y * stride) + x + step],
+                ref min0,
+                ref min1,
+                ref min2);
+
+            if (y >= step)
+            {
+                StoreMin3(
+                    inputSamples[((y - step) * stride) + x + step],
+                    ref min0,
+                    ref min1,
+                    ref min2);
+            }
+
+            if (y < height - step)
+            {
+                StoreMin3(
+                    inputSamples[((y + step) * stride) + x + step],
+                    ref min0,
+                    ref min1,
+                    ref min2);
+            }
+        }
+
+        if (y >= step)
+        {
+            StoreMin3(
+                inputSamples[((y - step) * stride) + x],
+                ref min0,
+                ref min1,
+                ref min2);
+        }
+
+        if (y < height - step)
+        {
+            StoreMin3(
+                inputSamples[((y + step) * stride) + x],
+                ref min0,
+                ref min1,
+                ref min2);
+        }
+
+        return (0.45F * min0) + (0.3F * min1) + (0.25F * min2);
+    }
+
+    /// <summary>
+    /// Builds a perceptual mask in borrowed storage and optionally updates an existing AC accumulation plane.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="mask0">The borrowed reference masking samples.</param>
+    /// <param name="mask1">The borrowed distorted masking samples.</param>
+    /// <param name="blurTemp">The prepared transposed blur workspace.</param>
+    /// <param name="diffAc">The existing AC accumulation plane, or null when no AC correction is needed.</param>
+    /// <param name="mask">The preallocated output plane.</param>
+    /// <param name="diff0">The preallocated reference difference and erosion workspace.</param>
+    /// <param name="diff1">The preallocated distorted difference workspace.</param>
+    /// <param name="blurred0">The preallocated reference blur workspace, distinct from diff0 during erosion.</param>
+    /// <param name="blurred1">The preallocated distorted blur workspace.</param>
+    /// <returns>Whether mask construction succeeded.</returns>
     public static bool Mask(
         Configuration configuration,
-        JxlImageF mask0,
-        JxlImageF mask1,
+        JxlPlane<float> mask0,
+        JxlPlane<float> mask1,
         ButteraugliBlurTemp blurTemp,
-        JxlImageF? diffAc,
-        out JxlImageF mask)
+        JxlPlane<float>? diffAc,
+        JxlPlane<float> mask,
+        JxlPlane<float> diff0,
+        JxlPlane<float> diff1,
+        JxlPlane<float> blurred0,
+        JxlPlane<float> blurred1)
     {
-        int width = mask0.XSize;
-        int height = mask0.YSize;
-
-        mask = new(configuration, width, height);
-
         const float mul = 6.19424080439f;
         const float bias = 12.61050594197f;
-        const float radius = 2.7f;
-
-        JxlImageF diff0 = new(configuration, width, height);
-        JxlImageF diff1 = new(configuration, width, height);
-        JxlImageF blurred0 = new(configuration, width, height);
-        JxlImageF blurred1 = new(configuration, width, height);
+        int width = mask0.XSize;
+        int height = mask0.YSize;
 
         DiffPrecompute(mask0, mul, bias, diff0);
         DiffPrecompute(mask1, mul, bias, diff1);
 
-        if (!Blur(configuration, diff0, radius, blurTemp, blurred0))
+        if (!Blur(diff0, MaskingKernel, blurTemp, blurred0))
         {
             return false;
         }
 
+        // Erosion reads neighboring samples. Its source must remain separate from its output until every row is complete.
         FuzzyErosion(blurred0, diff0);
 
-        if (!Blur(configuration, diff1, radius, blurTemp, blurred1))
+        if (!Blur(diff1, MaskingKernel, blurTemp, blurred1))
         {
             return false;
         }
+
+        Span<float> maskSamples = mask.GetRow(0);
+        ReadOnlySpan<float> diff0Samples = diff0.GetRow(0);
+        ReadOnlySpan<float> blur0Samples = blurred0.GetRow(0);
+        ReadOnlySpan<float> blur1Samples = blurred1.GetRow(0);
+        Span<float> diffSamples = diffAc is not null ? diffAc.GetRow(0) : default;
 
         for (int y = 0; y < height; y++)
         {
-            Span<float> maskRow = mask.GetRow(y);
-            Span<float> diffRow = diffAc is not null ? diffAc.GetRow(y) : [];
+            Span<float> maskRow = maskSamples.Slice(y * mask.PixelsPerRow, width);
+            ReadOnlySpan<float> diff0Row = diff0Samples.Slice(y * diff0.PixelsPerRow, width);
+            diff0Row.CopyTo(maskRow);
 
-            ReadOnlySpan<float> diff0Row = diff0.GetRow(y);
-            ReadOnlySpan<float> blur0Row = blurred0.GetRow(y);
-            ReadOnlySpan<float> blur1Row = blurred1.GetRow(y);
-
-            for (int x = 0; x < width; x++)
+            if (diffAc is not null)
             {
-                maskRow[x] = diff0Row[x];
-
-                if (diffRow.Length > 0)
-                {
-                    const float maskToErrorMul = 10.0f;
-                    float diff = blur0Row[x] - blur1Row[x];
-                    diffRow[x] += maskToErrorMul * diff * diff;
-                }
+                Span<float> diffRow = diffSamples.Slice(y * diffAc.PixelsPerRow, width);
+                ReadOnlySpan<float> blur0Row = blur0Samples.Slice(y * blurred0.PixelsPerRow, width);
+                ReadOnlySpan<float> blur1Row = blur1Samples.Slice(y * blurred1.PixelsPerRow, width);
+                TensorPrimitives_.Invoke(blur0Row, blur1Row, diffRow, diffRow, default(MaskCorrectionOperator));
             }
         }
 
         return true;
     }
 
+    /// <summary>
+    /// Builds a perceptual mask from borrowed frequency bands using six preallocated scratch planes.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="pi0">The unchanged reference frequency bands.</param>
+    /// <param name="pi1">The distorted frequency bands. Their high-frequency planes remain readable during this operation.</param>
+    /// <param name="width">The comparison width.</param>
+    /// <param name="height">The comparison height.</param>
+    /// <param name="blurTemp">The prepared transposed blur workspace.</param>
+    /// <param name="mask">The preallocated result plane.</param>
+    /// <param name="diffAc">The existing AC accumulation plane, or null when only the mask is needed.</param>
+    /// <param name="mask0">The reference masking workspace.</param>
+    /// <param name="mask1">The distorted masking workspace.</param>
+    /// <param name="diff0">The reference difference and erosion workspace.</param>
+    /// <param name="diff1">The distorted difference workspace.</param>
+    /// <param name="blurred0">The reference blur workspace.</param>
+    /// <param name="blurred1">The distorted blur workspace.</param>
+    /// <returns>Whether mask construction succeeded.</returns>
+    /// <remarks>
+    /// All six scratch planes are distinct and match the comparison dimensions. After frequency comparison,
+    /// distorted middle- and low-frequency bands can provide this storage. Reference bands cannot provide scratch storage.
+    /// </remarks>
     public static bool MaskButteraugliPsychoImage(
         Configuration configuration,
         ButteraugliPsychoImage pi0,
@@ -1723,39 +1886,23 @@ internal static class Butteraugli
         int width,
         int height,
         ButteraugliBlurTemp blurTemp,
-        JxlImageF mask,
-        out JxlImageF? diffAc)
+        JxlPlane<float> mask,
+        JxlPlane<float>? diffAc,
+        JxlPlane<float> mask0,
+        JxlPlane<float> mask1,
+        JxlPlane<float> diff0,
+        JxlPlane<float> diff1,
+        JxlPlane<float> blurred0,
+        JxlPlane<float> blurred1)
     {
-        JxlImageF mask0 = new(configuration, width, height);
-        JxlImageF mask1 = new(configuration, width, height);
-
-        CombineChannelsForMasking(
-            pi0.Hf,
-            pi0.Uhf,
-            mask0);
-
-        CombineChannelsForMasking(
-            pi1.Hf,
-            pi1.Uhf,
-            mask1);
-
-        return Mask(
-            configuration,
-            mask0,
-            mask1,
-            blurTemp,
-            mask,
-            out diffAc);
+        CombineChannelsForMasking(pi0.Hf, pi0.Uhf, mask0);
+        CombineChannelsForMasking(pi1.Hf, pi1.Uhf, mask1);
+        return Mask(configuration, mask0, mask1, blurTemp, diffAc, mask, diff0, diff1, blurred0, blurred1);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float MaskY(float delta)
     {
-        const float offset = 0.829591754942f;
-        const float scaler = 0.451936922203f;
-        const float mul = 2.5485944793f;
-
-        float c = mul / ((scaler * delta) + offset);
+        float c = MaskYMultiplier / ((MaskYScaler * delta) + MaskYOffset);
         float result = GlobalScale * (1.0f + c);
 
         return result * result;
@@ -1764,11 +1911,7 @@ internal static class Butteraugli
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float MaskDcY(float delta)
     {
-        const float offset = 0.20025578522f;
-        const float scaler = 3.87449418804f;
-        const float mul = 0.505054525019f;
-
-        float c = mul / ((scaler * delta) + offset);
+        float c = MaskDcYMultiplier / ((MaskDcYScaler * delta) + MaskDcYOffset);
         float result = GlobalScale * (1.0f + c);
 
         return result * result;
@@ -1780,171 +1923,410 @@ internal static class Butteraugli
         float mask)
         => (color[0] * mask) + (color[1] * mask) + (color[2] * mask);
 
+    /// <summary>
+    /// Combines the masked low- and high-frequency channel errors into the caller's prepared difference plane.
+    /// </summary>
+    /// <param name="mask">The borrowed perceptual mask.</param>
+    /// <param name="blockDiffDc">The borrowed low-frequency channel errors.</param>
+    /// <param name="blockDiffAc">The borrowed high-frequency channel errors.</param>
+    /// <param name="xmul">The additional weight for the X channel.</param>
+    /// <param name="result">The preallocated output plane.</param>
+    /// <returns>Whether the result dimensions match the mask.</returns>
     public static bool CombineChannelsToDiffmap(
-        JxlImageF mask,
-        JxlImage3F blockDiffDc,
+        JxlPlane<float> mask,
+        JxlImage3<float> blockDiffDc,
         JxlImage3<float> blockDiffAc,
         float xmul,
-        JxlImageF result)
+        JxlPlane<float> result)
     {
         if (!JxlImageOperations.SameSize(mask, result))
         {
             return false;
         }
 
-        Span<float> diffDc = stackalloc float[3];
-        Span<float> diffAc = stackalloc float[3];
+        ReadOnlySpan<float> maskSamples = mask.GetRow(0);
+        ReadOnlySpan<float> dc0 = blockDiffDc.Plane(0).GetRow(0);
+        ReadOnlySpan<float> dc1 = blockDiffDc.Plane(1).GetRow(0);
+        ReadOnlySpan<float> dc2 = blockDiffDc.Plane(2).GetRow(0);
+        ReadOnlySpan<float> ac0 = blockDiffAc.Plane(0).GetRow(0);
+        ReadOnlySpan<float> ac1 = blockDiffAc.Plane(1).GetRow(0);
+        ReadOnlySpan<float> ac2 = blockDiffAc.Plane(2).GetRow(0);
+        Span<float> outputSamples = result.GetRow(0);
+        Vector<float> xWeight = Vector.Create(xmul);
+        Vector<float> globalScale = Vector.Create(GlobalScale);
+        int width = mask.XSize;
 
-        int xsize = mask.XSize;
-        int ysize = mask.YSize;
-
-        for (int y = 0; y < ysize; ++y)
+        for (int y = 0; y < mask.YSize; y++)
         {
-            Span<float> rowOut = result.GetRow(y);
+            ReadOnlySpan<float> maskRow = maskSamples[(y * mask.PixelsPerRow)..];
+            ReadOnlySpan<float> dcRow0 = dc0[(y * blockDiffDc.Plane(0).PixelsPerRow)..];
+            ReadOnlySpan<float> dcRow1 = dc1[(y * blockDiffDc.Plane(1).PixelsPerRow)..];
+            ReadOnlySpan<float> dcRow2 = dc2[(y * blockDiffDc.Plane(2).PixelsPerRow)..];
+            ReadOnlySpan<float> acRow0 = ac0[(y * blockDiffAc.Plane(0).PixelsPerRow)..];
+            ReadOnlySpan<float> acRow1 = ac1[(y * blockDiffAc.Plane(1).PixelsPerRow)..];
+            ReadOnlySpan<float> acRow2 = ac2[(y * blockDiffAc.Plane(2).PixelsPerRow)..];
+            Span<float> outputRow = outputSamples[(y * result.PixelsPerRow)..];
+            int x = 0;
 
-            for (int x = 0; x < xsize; ++x)
+            // Lanes hold consecutive pixels. Keep channel weighting and the left-to-right sums identical to MaskColor.
+            for (; x <= width - Vector<float>.Count; x += Vector<float>.Count)
             {
-                float val = mask.GetRow(y)[x];
+                Vector<float> value = new(maskRow[x..]);
+                Vector<float> acMask = Vector.Create(MaskYMultiplier) / ((Vector.Create(MaskYScaler) * value) + Vector.Create(MaskYOffset));
+                Vector<float> dcMask = Vector.Create(MaskDcYMultiplier) / ((Vector.Create(MaskDcYScaler) * value) + Vector.Create(MaskDcYOffset));
+                acMask = globalScale * (Vector<float>.One + acMask);
+                dcMask = globalScale * (Vector<float>.One + dcMask);
+                acMask *= acMask;
+                dcMask *= dcMask;
 
-                float maskVal = MaskY(val);
-                float dcMaskVal = MaskDcY(val);
+                Vector<float> dc = (((new Vector<float>(dcRow0[x..]) * xWeight) * dcMask) + (new Vector<float>(dcRow1[x..]) * dcMask))
+                    + (new Vector<float>(dcRow2[x..]) * dcMask);
+                Vector<float> ac = (((new Vector<float>(acRow0[x..]) * xWeight) * acMask) + (new Vector<float>(acRow1[x..]) * acMask))
+                    + (new Vector<float>(acRow2[x..]) * acMask);
+                Vector.SquareRoot(dc + ac).CopyTo(outputRow[x..]);
+            }
 
-                for (int i = 0; i < 3; ++i)
-                {
-                    diffDc[i] = blockDiffDc.PlaneRow(i, y)[x];
-                    diffAc[i] = blockDiffAc.PlaneRow(i, y)[x];
-                }
-
-                diffAc[0] *= xmul;
-                diffDc[0] *= xmul;
-
-                rowOut[x] = MathF.Sqrt(
-                    MaskColor(diffDc, dcMaskVal) +
-                    MaskColor(diffAc, maskVal));
+            for (; x < width; x++)
+            {
+                float acMask = MaskY(maskRow[x]);
+                float dcMask = MaskDcY(maskRow[x]);
+                float dc = (((dcRow0[x] * xmul) * dcMask) + (dcRow1[x] * dcMask)) + (dcRow2[x] * dcMask);
+                float ac = (((acRow0[x] * xmul) * acMask) + (acRow1[x] * acMask)) + (acRow2[x] * acMask);
+                outputRow[x] = MathF.Sqrt(dc + ac);
             }
         }
 
         return true;
     }
 
-    public static void L2Diff(
-        JxlPlane<float> i0,
-        JxlPlane<float> i1,
-        float w,
-        JxlPlane<float> diffmap)
+    /// <summary>
+    /// Adds weighted squared component differences to an existing error plane.
+    /// </summary>
+    /// <param name="i0">The borrowed reference samples.</param>
+    /// <param name="i1">The equally sized distorted samples.</param>
+    /// <param name="w">The squared-error weight. Zero leaves the output unchanged.</param>
+    /// <param name="diffmap">The preallocated accumulation plane.</param>
+    public static void L2Diff(JxlPlane<float> i0, JxlPlane<float> i1, float w, JxlPlane<float> diffmap)
     {
         if (w == 0)
         {
             return;
         }
 
+        Span<float> samples0 = i0.GetRow(0);
+        Span<float> samples1 = i1.GetRow(0);
+        Span<float> differenceSamples = diffmap.GetRow(0);
+
+        AccumulateSquaredDifferenceOperator operation = new(w);
+
         for (int y = 0; y < i0.YSize; ++y)
         {
-            ReadOnlySpan<float> row0 = i0.GetRow(y);
-            ReadOnlySpan<float> row1 = i1.GetRow(y);
-            Span<float> rowDiff = diffmap.GetRow(y);
+            ReadOnlySpan<float> row0 = samples0[(y * i0.PixelsPerRow)..];
+            ReadOnlySpan<float> row1 = samples1[(y * i1.PixelsPerRow)..];
+            Span<float> rowDiff = differenceSamples[(y * diffmap.PixelsPerRow)..];
 
-            for (int x = 0; x < i0.XSize; ++x)
-            {
-                float diff = row0[x] - row1[x];
-                rowDiff[x] += diff * diff * w;
-            }
+            TensorPrimitives_.Invoke(row0[..i0.XSize], row1[..i0.XSize], rowDiff[..i0.XSize], rowDiff[..i0.XSize], operation);
         }
     }
 
-    public static void SetL2Diff(
-        JxlPlane<float> i0,
-        JxlPlane<float> i1,
-        float w,
-        JxlPlane<float> diffmap)
+    /// <summary>
+    /// Writes weighted squared component differences into a prepared error plane.
+    /// </summary>
+    /// <param name="i0">The borrowed reference samples.</param>
+    /// <param name="i1">The equally sized distorted samples.</param>
+    /// <param name="w">The squared-error weight. Zero leaves the output unchanged.</param>
+    /// <param name="diffmap">The preallocated output plane.</param>
+    public static void SetL2Diff(JxlPlane<float> i0, JxlPlane<float> i1, float w, JxlPlane<float> diffmap)
     {
         if (w == 0)
         {
             return;
         }
 
+        Span<float> samples0 = i0.GetRow(0);
+        Span<float> samples1 = i1.GetRow(0);
+        Span<float> differenceSamples = diffmap.GetRow(0);
+
+        SetSquaredDifferenceOperator operation = new(w);
+
         for (int y = 0; y < i0.YSize; ++y)
         {
-            ReadOnlySpan<float> row0 = i0.GetRow(y);
-            ReadOnlySpan<float> row1 = i1.GetRow(y);
-            Span<float> rowDiff = diffmap.GetRow(y);
+            ReadOnlySpan<float> row0 = samples0[(y * i0.PixelsPerRow)..];
+            ReadOnlySpan<float> row1 = samples1[(y * i1.PixelsPerRow)..];
+            Span<float> rowDiff = differenceSamples[(y * diffmap.PixelsPerRow)..];
 
-            for (int x = 0; x < i0.XSize; ++x)
-            {
-                float diff = row0[x] - row1[x];
-                rowDiff[x] = diff * diff * w;
-            }
+            TensorPrimitives_.Invoke(row0[..i0.XSize], row1[..i0.XSize], rowDiff[..i0.XSize], operation);
         }
     }
 
-    public static void L2DiffAsymmetric(
-        JxlPlane<float> i0,
-        JxlPlane<float> i1,
-        float w0gt1,
-        float w0lt1,
-        JxlPlane<float> diffmap)
+    /// <summary>
+    /// Accumulates asymmetric high-frequency error with identical scalar and SIMD equations.
+    /// </summary>
+    /// <param name="i0">The borrowed reference samples.</param>
+    /// <param name="i1">The equally sized distorted samples.</param>
+    /// <param name="w0gt1">The primary symmetric error weight.</param>
+    /// <param name="w0lt1">The additional asymmetric error weight.</param>
+    /// <param name="diffmap">The preallocated accumulation plane.</param>
+    public static void L2DiffAsymmetric(JxlPlane<float> i0, JxlPlane<float> i1, float w0gt1, float w0lt1, JxlPlane<float> diffmap)
     {
         if (w0gt1 == 0 && w0lt1 == 0)
         {
             return;
         }
 
-        Vector<float> vw0gt1 = new(w0gt1 * 0.8f);
-        Vector<float> vw0lt1 = new(w0lt1 * 0.8f);
+        AsymmetricDifferenceOperator operation = new(w0gt1, w0lt1);
 
-        int lanes = Vector<float>.Count;
+        Span<float> samples0 = i0.GetRow(0);
+        Span<float> samples1 = i1.GetRow(0);
+        Span<float> differenceSamples = diffmap.GetRow(0);
 
         for (int y = 0; y < i0.YSize; ++y)
         {
-            ReadOnlySpan<float> row0 = i0.GetRow(y);
-            ReadOnlySpan<float> row1 = i1.GetRow(y);
-            Span<float> rowDiff = diffmap.GetRow(y);
+            ReadOnlySpan<float> row0 = samples0[(y * i0.PixelsPerRow)..];
+            ReadOnlySpan<float> row1 = samples1[(y * i1.PixelsPerRow)..];
+            Span<float> rowDiff = differenceSamples[(y * diffmap.PixelsPerRow)..];
 
-            for (int x = 0; x < i0.XSize; x += lanes)
-            {
-                Vector<float> val0 = new(row0[x..]);
-                Vector<float> val1 = new(row1[x..]);
+            TensorPrimitives_.Invoke(row0[..i0.XSize], row1[..i0.XSize], rowDiff[..i0.XSize], rowDiff[..i0.XSize], operation);
+        }
+    }
 
-                // Primary symmetric quadratic objective.
-                Vector<float> diff = val0 - val1;
+    /// <summary>
+    /// Accumulates a weighted squared difference without changing the subtraction or multiplication order.
+    /// </summary>
+    /// <param name="weight">The fixed squared-error weight.</param>
+    private readonly struct AccumulateSquaredDifferenceOperator(float weight) : TensorPrimitives_.ITernaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+        {
+            float difference = first - second;
+            return third + (difference * difference * weight);
+        }
 
-                Vector<float> total =
-                    (diff * diff * vw0gt1) + new Vector<float>(rowDiff[x..]);
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            Vector128<float> difference = first - second;
+            return third + (difference * difference * Vector128.Create(weight));
+        }
 
-                Vector<float> fabs0 = Vector.Abs(val0);
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            Vector256<float> difference = first - second;
+            return third + (difference * difference * Vector256.Create(weight));
+        }
 
-                Vector<float> tooSmall = fabs0 * new Vector<float>(0.4f);
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            Vector512<float> difference = first - second;
+            return third + (difference * difference * Vector512.Create(weight));
+        }
+    }
 
-                Vector<float> tooBig = fabs0;
+    /// <summary>
+    /// Sets a weighted squared difference from its two source components.
+    /// </summary>
+    /// <param name="weight">The fixed squared-error weight.</param>
+    private readonly struct SetSquaredDifferenceOperator(float weight) : TensorPrimitives_.IBinaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second)
+        {
+            float difference = first - second;
+            return difference * difference * weight;
+        }
 
-                Vector<float> ifNeg =
-                    Vector.ConditionalSelect(
-                        Vector.GreaterThan(val1, -tooSmall),
-                        val1 + tooSmall,
-                        Vector.ConditionalSelect(
-                            Vector.LessThan(val1, -tooBig),
-                            -val1 - tooBig,
-                            Vector<float>.Zero));
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second)
+        {
+            Vector128<float> difference = first - second;
+            return difference * difference * Vector128.Create(weight);
+        }
 
-                Vector<float> ifPos =
-                    Vector.ConditionalSelect(
-                        Vector.LessThan(val1, tooSmall),
-                        tooSmall - val1,
-                        Vector.ConditionalSelect(
-                            Vector.GreaterThan(val1, tooBig),
-                            val1 - tooBig,
-                            Vector<float>.Zero));
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second)
+        {
+            Vector256<float> difference = first - second;
+            return difference * difference * Vector256.Create(weight);
+        }
 
-                Vector<float> v =
-                    Vector.ConditionalSelect(
-                        Vector.LessThan(val0, Vector<float>.Zero),
-                        ifNeg,
-                        ifPos);
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second)
+        {
+            Vector512<float> difference = first - second;
+            return difference * difference * Vector512.Create(weight);
+        }
+    }
 
-                total += vw0lt1 * v * v;
+    /// <summary>
+    /// Computes the masking response from one sample without widening its arithmetic.
+    /// </summary>
+    /// <param name="multiplier">The fixed scale applied before the square root.</param>
+    /// <param name="bias">The fixed offset inside the square root.</param>
+    /// <param name="squareRootBias">The square root of bias, subtracted after the square root.</param>
+    private readonly struct MaskPrecomputeOperator(float multiplier, float bias, float squareRootBias) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+            => MathF.Sqrt((multiplier * MathF.Abs(value)) + bias) - squareRootBias;
 
-                total.CopyTo(rowDiff[x..]);
-            }
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+            => Vector128.Sqrt((Vector128.Create(multiplier) * Vector128.Abs(value)) + Vector128.Create(bias)) - Vector128.Create(squareRootBias);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+            => Vector256.Sqrt((Vector256.Create(multiplier) * Vector256.Abs(value)) + Vector256.Create(bias)) - Vector256.Create(squareRootBias);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+            => Vector512.Sqrt((Vector512.Create(multiplier) * Vector512.Abs(value)) + Vector512.Create(bias)) - Vector512.Create(squareRootBias);
+
+    }
+
+    /// <summary>
+    /// Adds the masking correction to an existing AC error sample.
+    /// </summary>
+    private readonly struct MaskCorrectionOperator : TensorPrimitives_.ITernaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+        {
+            float difference = first - second;
+            return third + (10F * difference * difference);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            Vector128<float> difference = first - second;
+            return third + (Vector128.Create(10F) * difference * difference);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            Vector256<float> difference = first - second;
+            return third + (Vector256.Create(10F) * difference * difference);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            Vector512<float> difference = first - second;
+            return third + (Vector512.Create(10F) * difference * difference);
+        }
+    }
+
+    /// <summary>
+    /// Accumulates the asymmetric high-frequency error with the same branch priorities in every SIMD lane.
+    /// </summary>
+    private readonly struct AsymmetricDifferenceOperator : TensorPrimitives_.ITernaryOperator
+    {
+        private readonly float largerWeight;
+        private readonly float smallerWeight;
+
+        /// <summary>
+        /// Prepares the native weights once before component traversal.
+        /// </summary>
+        /// <param name="largerWeight">The primary symmetric weight.</param>
+        /// <param name="smallerWeight">The asymmetric residual weight.</param>
+        public AsymmetricDifferenceOperator(float largerWeight, float smallerWeight)
+        {
+            this.largerWeight = largerWeight * 0.8F;
+            this.smallerWeight = smallerWeight * 0.8F;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+        {
+            float difference = first - second;
+            float total = (difference * difference * this.largerWeight) + third;
+            float magnitude = MathF.Abs(first);
+            float tooSmall = magnitude * 0.4F;
+            float residual = first < 0F
+                ? second > -tooSmall ? second + tooSmall : second < -magnitude ? -second - magnitude : 0F
+                : second < tooSmall ? tooSmall - second : second > magnitude ? second - magnitude : 0F;
+            return total + (this.smallerWeight * residual * residual);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            Vector128<float> difference = first - second;
+            Vector128<float> total = (difference * difference * Vector128.Create(this.largerWeight)) + third;
+            Vector128<float> magnitude = Vector128.Abs(first);
+            Vector128<float> tooSmall = magnitude * Vector128.Create(0.4F);
+            Vector128<float> negative = Vector128.ConditionalSelect(
+                Vector128.GreaterThan(second, -tooSmall),
+                second + tooSmall,
+                Vector128.ConditionalSelect(Vector128.LessThan(second, -magnitude), -second - magnitude, Vector128<float>.Zero));
+            Vector128<float> positive = Vector128.ConditionalSelect(
+                Vector128.LessThan(second, tooSmall),
+                tooSmall - second,
+                Vector128.ConditionalSelect(Vector128.GreaterThan(second, magnitude), second - magnitude, Vector128<float>.Zero));
+            Vector128<float> residual = Vector128.ConditionalSelect(Vector128.LessThan(first, Vector128<float>.Zero), negative, positive);
+            return total + (Vector128.Create(this.smallerWeight) * residual * residual);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            Vector256<float> difference = first - second;
+            Vector256<float> total = (difference * difference * Vector256.Create(this.largerWeight)) + third;
+            Vector256<float> magnitude = Vector256.Abs(first);
+            Vector256<float> tooSmall = magnitude * Vector256.Create(0.4F);
+            Vector256<float> negative = Vector256.ConditionalSelect(
+                Vector256.GreaterThan(second, -tooSmall),
+                second + tooSmall,
+                Vector256.ConditionalSelect(Vector256.LessThan(second, -magnitude), -second - magnitude, Vector256<float>.Zero));
+            Vector256<float> positive = Vector256.ConditionalSelect(
+                Vector256.LessThan(second, tooSmall),
+                tooSmall - second,
+                Vector256.ConditionalSelect(Vector256.GreaterThan(second, magnitude), second - magnitude, Vector256<float>.Zero));
+            Vector256<float> residual = Vector256.ConditionalSelect(Vector256.LessThan(first, Vector256<float>.Zero), negative, positive);
+            return total + (Vector256.Create(this.smallerWeight) * residual * residual);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            Vector512<float> difference = first - second;
+            Vector512<float> total = (difference * difference * Vector512.Create(this.largerWeight)) + third;
+            Vector512<float> magnitude = Vector512.Abs(first);
+            Vector512<float> tooSmall = magnitude * Vector512.Create(0.4F);
+            Vector512<float> negative = Vector512.ConditionalSelect(
+                Vector512.GreaterThan(second, -tooSmall),
+                second + tooSmall,
+                Vector512.ConditionalSelect(Vector512.LessThan(second, -magnitude), -second - magnitude, Vector512<float>.Zero));
+            Vector512<float> positive = Vector512.ConditionalSelect(
+                Vector512.LessThan(second, tooSmall),
+                tooSmall - second,
+                Vector512.ConditionalSelect(Vector512.GreaterThan(second, magnitude), second - magnitude, Vector512<float>.Zero));
+            Vector512<float> residual = Vector512.ConditionalSelect(Vector512.LessThan(first, Vector512<float>.Zero), negative, positive);
+            return total + (Vector512.Create(this.smallerWeight) * residual * residual);
         }
     }
 
@@ -1999,32 +2381,41 @@ internal static class Butteraugli
         return (kRetMul * log) + kRetAdd;
     }
 
+    /// <summary>
+    /// Transforms borrowed RGB samples into the perceptual XYB representation using prepared blur and output storage.
+    /// </summary>
+    /// <param name="configuration">The comparison configuration.</param>
+    /// <param name="rgb">The borrowed RGB image. It may also supply the output storage.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="blurred">The distinct preallocated three-plane blur workspace.</param>
+    /// <param name="blurTemp">The prepared transposed blur workspace.</param>
+    /// <param name="xyb">The preallocated transformed output.</param>
+    /// <returns>Whether all blur stages completed.</returns>
     public static bool OpsinDynamicsImage(
         Configuration configuration,
-        JxlImage3F rgb,
+        JxlImage3<float> rgb,
         in ButteraugliParameters parameters,
-        JxlImage3F blurred,
+        JxlImage3<float> blurred,
         ButteraugliBlurTemp blurTemp,
-        JxlImage3F xyb)
+        JxlImage3<float> xyb)
     {
         if (blurred == null)
         {
             return false;
         }
 
-        const float sigma = 1.2f;
 
-        if (!Blur(configuration, rgb.Plane(0), sigma, blurTemp, blurred.Plane(0)))
+        if (!Blur(rgb.Plane(0), OpsinDynamicsKernel, blurTemp, blurred.Plane(0)))
         {
             return false;
         }
 
-        if (!Blur(configuration, rgb.Plane(1), sigma, blurTemp, blurred.Plane(1)))
+        if (!Blur(rgb.Plane(1), OpsinDynamicsKernel, blurTemp, blurred.Plane(1)))
         {
             return false;
         }
 
-        if (!Blur(configuration, rgb.Plane(2), sigma, blurTemp, blurred.Plane(2)))
+        if (!Blur(rgb.Plane(2), OpsinDynamicsKernel, blurTemp, blurred.Plane(2)))
         {
             return false;
         }
@@ -2035,19 +2426,29 @@ internal static class Butteraugli
 
         Vector<float> minValue = new(1e-4f);
 
+        Span<float> rgbSamples0 = rgb.Plane(0).GetRow(0);
+        Span<float> rgbSamples1 = rgb.Plane(1).GetRow(0);
+        Span<float> rgbSamples2 = rgb.Plane(2).GetRow(0);
+        Span<float> blurredSamples0 = blurred.Plane(0).GetRow(0);
+        Span<float> blurredSamples1 = blurred.Plane(1).GetRow(0);
+        Span<float> blurredSamples2 = blurred.Plane(2).GetRow(0);
+        Span<float> xybSamples0 = xyb.Plane(0).GetRow(0);
+        Span<float> xybSamples1 = xyb.Plane(1).GetRow(0);
+        Span<float> xybSamples2 = xyb.Plane(2).GetRow(0);
+
         for (int y = 0; y < rgb.YSize; ++y)
         {
-            ReadOnlySpan<float> rowR = rgb.PlaneRow(0, y);
-            ReadOnlySpan<float> rowG = rgb.PlaneRow(1, y);
-            ReadOnlySpan<float> rowB = rgb.PlaneRow(2, y);
+            ReadOnlySpan<float> rowR = rgbSamples0[(y * rgb.Plane(0).PixelsPerRow)..];
+            ReadOnlySpan<float> rowG = rgbSamples1[(y * rgb.Plane(1).PixelsPerRow)..];
+            ReadOnlySpan<float> rowB = rgbSamples2[(y * rgb.Plane(2).PixelsPerRow)..];
 
-            ReadOnlySpan<float> blurredR = blurred.PlaneRow(0, y);
-            ReadOnlySpan<float> blurredG = blurred.PlaneRow(1, y);
-            ReadOnlySpan<float> blurredB = blurred.PlaneRow(2, y);
+            ReadOnlySpan<float> blurredR = blurredSamples0[(y * blurred.Plane(0).PixelsPerRow)..];
+            ReadOnlySpan<float> blurredG = blurredSamples1[(y * blurred.Plane(1).PixelsPerRow)..];
+            ReadOnlySpan<float> blurredB = blurredSamples2[(y * blurred.Plane(2).PixelsPerRow)..];
 
-            Span<float> outX = xyb.PlaneRow(0, y);
-            Span<float> outY = xyb.PlaneRow(1, y);
-            Span<float> outB = xyb.PlaneRow(2, y);
+            Span<float> outX = xybSamples0[(y * xyb.Plane(0).PixelsPerRow)..];
+            Span<float> outY = xybSamples1[(y * xyb.Plane(1).PixelsPerRow)..];
+            Span<float> outB = xybSamples2[(y * xyb.Plane(2).PixelsPerRow)..];
 
             for (int x = 0; x < rgb.XSize; x += lanes)
             {
@@ -2108,17 +2509,17 @@ internal static class Butteraugli
 
     public static bool ButteraugliDiffmapInPlace(
         Configuration configuration,
-        JxlImage3F image0,
-        JxlImage3F image1,
+        JxlImage3<float> image0,
+        JxlImage3<float> image1,
         in ButteraugliParameters parameters,
-        JxlImageF diffmap)
+        JxlPlane<float> diffmap)
     {
         int xSize = image0.XSize;
         int ySize = image0.YSize;
 
-        using ButteraugliBlurTemp blurTemp = new();
+        using ButteraugliBlurTemp blurTemp = new(configuration, xSize, ySize);
 
-        using (JxlImage3F temp = new(configuration, xSize, ySize))
+        using (JxlImage3<float> temp = new(configuration, xSize, ySize))
         {
             if (!OpsinDynamicsImage(configuration, image0, parameters, temp, blurTemp, image0))
             {
@@ -2131,12 +2532,12 @@ internal static class Butteraugli
             }
         }
 
-        using JxlPlane<float> blockDiffDc = JxlImageF.Create(configuration, xSize, ySize);
+        using JxlPlane<float> blockDiffDc = JxlPlane<float>.Create(configuration, xSize, ySize);
         blockDiffDc.Clear();
 
         // LF/DC
-        using (JxlImage3F lf0 = new(configuration, xSize, ySize))
-        using (JxlImage3F lf1 = new(configuration, xSize, ySize))
+        using (JxlImage3<float> lf0 = new(configuration, xSize, ySize))
+        using (JxlImage3<float> lf1 = new(configuration, xSize, ySize))
         {
             if (!SeparateLFAndMF(configuration, image0, lf0, image0, blurTemp))
             {
@@ -2161,20 +2562,31 @@ internal static class Butteraugli
         InlineArray2<JxlPlane<float>> hf0 = default;
         InlineArray2<JxlPlane<float>> hf1 = default;
 
-        if (!SeparateMfAndHf(configuration, image0, ref hf0, blurTemp))
+        // The inline arrays borrow these owners. Using declarations release every partially built band on early return.
+        using JxlPlane<float> hf0X = new(configuration, xSize, ySize);
+        using JxlPlane<float> hf0Y = new(configuration, xSize, ySize);
+        using JxlPlane<float> hf1X = new(configuration, xSize, ySize);
+        using JxlPlane<float> hf1Y = new(configuration, xSize, ySize);
+
+        hf0[0] = hf0X;
+        hf0[1] = hf0Y;
+        hf1[0] = hf1X;
+        hf1[1] = hf1Y;
+
+        if (!SeparateMfAndHf(configuration, image0, hf0, blurTemp))
         {
             return false;
         }
 
-        if (!SeparateMfAndHf(configuration, image1, ref hf1, blurTemp))
+        if (!SeparateMfAndHf(configuration, image1, hf1, blurTemp))
         {
             return false;
         }
 
-        using JxlImageF blockDiffAc = new(configuration, xSize, ySize);
+        using JxlPlane<float> blockDiffAc = new(configuration, xSize, ySize);
         blockDiffAc.Clear();
 
-        using (JxlImageF diffs = new(configuration, xSize, ySize))
+        using (JxlPlane<float> diffs = new(configuration, xSize, ySize))
         {
             if (!MaltaDiffMap(
                     true,
@@ -2212,12 +2624,20 @@ internal static class Butteraugli
                 blockDiffAc);
         }
 
-        // Free MF images
-        image0.Dispose();
-        image1.Dispose();
+        // The input owners remain alive. Masking reuses their middle-frequency samples after the error stages consume them.
 
         InlineArray2<JxlPlane<float>> uhf0 = default;
         InlineArray2<JxlPlane<float>> uhf1 = default;
+
+        using JxlPlane<float> uhf0X = new(configuration, xSize, ySize);
+        using JxlPlane<float> uhf0Y = new(configuration, xSize, ySize);
+        using JxlPlane<float> uhf1X = new(configuration, xSize, ySize);
+        using JxlPlane<float> uhf1Y = new(configuration, xSize, ySize);
+
+        uhf0[0] = uhf0X;
+        uhf0[1] = uhf0Y;
+        uhf1[0] = uhf1X;
+        uhf1[1] = uhf1Y;
 
         if (!SeparateHFAndUHF(configuration, hf0, uhf0, blurTemp))
         {
@@ -2231,7 +2651,7 @@ internal static class Butteraugli
 
         float hfAsymmetry = parameters.HfAsymmetry;
 
-        using (JxlImageF diffs = new(configuration, xSize, ySize))
+        using (JxlPlane<float> diffs = new(configuration, xSize, ySize))
         {
             _ = MaltaDiffMap(
                 false,
@@ -2287,9 +2707,9 @@ internal static class Butteraugli
         }
 
         // Mask
-        using JxlImageF mask = new(configuration, xSize, ySize);
-        using JxlImageF mask0 = new(configuration, xSize, ySize);
-        using JxlImageF mask1 = new(configuration, xSize, ySize);
+        using JxlPlane<float> mask = new(configuration, xSize, ySize);
+        using JxlPlane<float> mask0 = new(configuration, xSize, ySize);
+        using JxlPlane<float> mask1 = new(configuration, xSize, ySize);
 
         CombineChannelsForMasking(hf0, uhf0, mask0);
         CombineChannelsForMasking(hf1, uhf1, mask1);
@@ -2297,95 +2717,125 @@ internal static class Butteraugli
         DeallocateHFAndUHF(hf0, uhf0);
         DeallocateHFAndUHF(hf1, uhf1);
 
-        if (!Mask(configuration, mask0, mask1, blurTemp, mask, out JxlImageF newBlockDiffAc))
+        using JxlPlane<float> newBlockDiffAc = new(configuration, xSize, ySize);
+        if (!Mask(configuration, mask0, mask1, blurTemp, mask, newBlockDiffAc, image0.Plane(0), image0.Plane(1), image0.Plane(2), image1.Plane(0)))
         {
             return false;
         }
 
-        for (int y = 0; y < ySize; y++)
         {
-            ReadOnlySpan<float> dc = newBlockDiffAc.GetRow(y);
-            ReadOnlySpan<float> ac = newBlockDiffAc.GetRow(y);
-            Span<float> output = diffmap.GetRow(y);
-            ReadOnlySpan<float> maskRow = mask.GetRow(y);
+            ReadOnlySpan<float> combinedSamples = newBlockDiffAc.GetRow(0);
+            Span<float> outputSamples = diffmap.GetRow(0);
+            ReadOnlySpan<float> maskSamples = mask.GetRow(0);
 
-            for (int x = 0; x < xSize; x++)
+            for (int y = 0; y < ySize; y++)
             {
-                float m = maskRow[x];
+                ReadOnlySpan<float> dc = combinedSamples[(y * newBlockDiffAc.PixelsPerRow)..];
+                ReadOnlySpan<float> ac = dc;
+                Span<float> output = outputSamples[(y * diffmap.PixelsPerRow)..];
+                ReadOnlySpan<float> maskRow = maskSamples[(y * mask.PixelsPerRow)..];
 
-                output[x] = MathF.Sqrt((dc[x] * (float)MaskDcY(m)) + (ac[x] * (float)MaskY(m)));
+                for (int x = 0; x < xSize; x++)
+                {
+                    float m = maskRow[x];
+
+                    output[x] = MathF.Sqrt((dc[x] * (float)MaskDcY(m)) + (ac[x] * (float)MaskY(m)));
+                }
             }
-        }
 
-        return true;
+            return true;
+        }
     }
 
-    // Calculate a 2x2 subsampled image for purposes of recursive butteraugli at
-    // multiresolution.
-    public static JxlImage3F SubSample2x(Configuration configuration, JxlImage3F input)
+    /// <summary>
+    /// Allocates a half-resolution image for reference setup, averaging each available two-by-two source group.
+    /// </summary>
+    /// <param name="configuration">The allocation configuration.</param>
+    /// <param name="input">The borrowed full-resolution image.</param>
+    /// <returns>The caller-owned half-resolution image.</returns>
+    public static JxlImage3<float> SubSample2x(Configuration configuration, JxlImage3<float> input)
     {
-        int xs = (input.XSize + 1) / 2;
-        int ys = (input.YSize + 1) / 2;
-
-        JxlImage3F retval = new(configuration, xs, ys);
-
-        for (int c = 0; c < 3; ++c)
+        JxlImage3<float> output = new(configuration, (input.XSize + 1) / 2, (input.YSize + 1) / 2);
+        try
         {
-            for (int y = 0; y < ys; ++y)
-            {
-                for (int x = 0; x < xs; ++x)
-                {
-                    retval.PlaneRow(c, y)[x] = 0.0f;
-                }
-            }
+            SubSample2x(input, output);
+            return output;
         }
-
-        for (int c = 0; c < 3; ++c)
+        catch
         {
-            for (int y = 0; y < input.YSize; ++y)
-            {
-                ReadOnlySpan<float> srcRow = input.PlaneRow(c, y);
+            output.Dispose();
+            throw;
+        }
+    }
 
-                for (int x = 0; x < input.XSize; ++x)
+    /// <summary>
+    /// Writes half-resolution samples into prepared storage without allocating or changing either image's dimensions.
+    /// </summary>
+    /// <param name="input">The borrowed full-resolution image.</param>
+    /// <param name="output">The distinct preallocated image with each dimension rounded up after division by two.</param>
+    public static void SubSample2x(JxlImage3<float> input, JxlImage3<float> output)
+    {
+        for (int c = 0; c < 3; c++)
+        {
+            JxlPlane<float> inputPlane = input.Plane(c);
+            JxlPlane<float> outputPlane = output.Plane(c);
+            ReadOnlySpan<float> sourceSamples = inputPlane.GetRow(0);
+            Span<float> outputSamples = outputPlane.GetRow(0);
+
+            for (int y = 0; y < output.YSize; y++)
+            {
+                outputSamples.Slice(y * outputPlane.PixelsPerRow, output.XSize).Clear();
+            }
+
+            for (int y = 0; y < input.YSize; y++)
+            {
+                ReadOnlySpan<float> sourceRow = sourceSamples[(y * inputPlane.PixelsPerRow)..];
+                Span<float> outputRow = outputSamples[((y / 2) * outputPlane.PixelsPerRow)..];
+
+                for (int x = 0; x < input.XSize; x++)
                 {
-                    retval.PlaneRow(c, y / 2)[x / 2] += 0.25f * srcRow[x];
+                    outputRow[x / 2] += 0.25F * sourceRow[x];
                 }
             }
 
+            // A final unmatched row or column supplies two samples rather than four. Preserve the native edge normalization.
             if ((input.XSize & 1) != 0)
             {
-                for (int y = 0; y < retval.YSize; ++y)
+                for (int y = 0; y < output.YSize; y++)
                 {
-                    int lastColumn = retval.XSize - 1;
-                    retval.PlaneRow(c, y)[lastColumn] *= 2.0f;
+                    outputSamples[(y * outputPlane.PixelsPerRow) + output.XSize - 1] *= 2F;
                 }
             }
 
             if ((input.YSize & 1) != 0)
             {
-                for (int x = 0; x < retval.XSize; ++x)
-                {
-                    int lastRow = retval.YSize - 1;
-                    retval.PlaneRow(c, lastRow)[x] *= 2.0f;
-                }
+                Span<float> lastRow = outputSamples.Slice((output.YSize - 1) * outputPlane.PixelsPerRow, output.XSize);
+                TensorPrimitives.Multiply(lastRow, 2F, lastRow);
             }
         }
-
-        return retval;
     }
 
-    public static void AddSupersampled2x(JxlImageF src, float w, JxlImageF dest)
+    /// <summary>
+    /// Mixes a borrowed lower-resolution difference map into the full-resolution map using nearest-neighbor expansion.
+    /// </summary>
+    /// <param name="src">The half-resolution difference map.</param>
+    /// <param name="w">The lower-resolution contribution weight.</param>
+    /// <param name="dest">The full-resolution map, updated in place.</param>
+    public static void AddSupersampled2x(JxlPlane<float> src, float w, JxlPlane<float> dest)
     {
-        const float heuristicMixingValue = 0.3f;
+        const float heuristicMixingValue = 0.3F;
+        ReadOnlySpan<float> sourceSamples = src.GetRow(0);
+        Span<float> destinationSamples = dest.GetRow(0);
 
-        for (int y = 0; y < dest.YSize; ++y)
+        for (int y = 0; y < dest.YSize; y++)
         {
-            Span<float> destRow = dest.GetRow(y);
+            ReadOnlySpan<float> sourceRow = sourceSamples[((y / 2) * src.PixelsPerRow)..];
+            Span<float> destinationRow = destinationSamples[(y * dest.PixelsPerRow)..];
 
-            for (int x = 0; x < dest.XSize; ++x)
+            for (int x = 0; x < dest.XSize; x++)
             {
-                destRow[x] *= 1.0f - (heuristicMixingValue * w);
-                destRow[x] += w * src.GetRow(y / 2)[x / 2];
+                destinationRow[x] *= 1F - (heuristicMixingValue * w);
+                destinationRow[x] += w * sourceRow[x / 2];
             }
         }
     }
@@ -2419,18 +2869,23 @@ internal static class Butteraugli
         }
     }
 
-    public static JxlImage3F CreateHeatMapImage(Configuration configuration, JxlImageF distmap, float goodThreshold, float badThreshold)
+    public static JxlImage3<float> CreateHeatMapImage(Configuration configuration, JxlPlane<float> distmap, float goodThreshold, float badThreshold)
     {
         // Do not dispose (this is the return value; it is caller's responsibility to dispose this
         // or keep it)
-        JxlImage3F heatmap = new(configuration, distmap.XSize, distmap.YSize);
+        JxlImage3<float> heatmap = new(configuration, distmap.XSize, distmap.YSize);
+
+        ReadOnlySpan<float> differenceSamples = distmap.GetRow(0);
+        Span<float> heatmap0 = heatmap.Plane(0).GetRow(0);
+        Span<float> heatmap1 = heatmap.Plane(1).GetRow(0);
+        Span<float> heatmap2 = heatmap.Plane(2).GetRow(0);
 
         for (int y = 0; y < distmap.YSize; y++)
         {
-            Span<float> row_distmap = distmap.GetRow(y);
-            Span<float> row_h0 = heatmap.PlaneRow(0, y);
-            Span<float> row_h1 = heatmap.PlaneRow(1, y);
-            Span<float> row_h2 = heatmap.PlaneRow(2, y);
+            ReadOnlySpan<float> row_distmap = differenceSamples[(y * distmap.PixelsPerRow)..];
+            Span<float> row_h0 = heatmap0[(y * heatmap.Plane(0).PixelsPerRow)..];
+            Span<float> row_h1 = heatmap1[(y * heatmap.Plane(1).PixelsPerRow)..];
+            Span<float> row_h2 = heatmap2[(y * heatmap.Plane(2).PixelsPerRow)..];
 
             for (int x = 0; x < distmap.XSize; ++x)
             {
@@ -2494,14 +2949,30 @@ internal static class Butteraugli
         return val;
     }
 
-    public static bool ButteraugliInterfaceInPlace(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, JxlImageF diffmap, out double diffvalue)
+    /// <summary>
+    /// Computes the perceptual difference map and score, using input storage for full-size comparisons.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="rgb0">The reference pixels, which full-size comparison can modify.</param>
+    /// <param name="rgb1">The distorted pixels, which full-size comparison can modify.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The caller-owned output plane. Its identity does not change.</param>
+    /// <param name="diffvalue">The comparison score, or zero when comparison fails.</param>
+    /// <returns>Whether every comparison stage succeeded.</returns>
+    public static bool ButteraugliInterfaceInPlace(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        JxlPlane<float> diffmap,
+        out double diffvalue)
     {
         diffvalue = 0;
 
         int xsize = rgb0.XSize;
         int ysize = rgb0.YSize;
 
-        if ((xsize & ysize) == 0) // equivalent to xsize == 0 || ysize == 0, minus one branch
+        if (xsize == 0 || ysize == 0)
         {
             throw new InvalidOperationException("Zero-sized image");
         }
@@ -2515,17 +2986,29 @@ internal static class Butteraugli
 
         if (xsize < max || ysize < max)
         {
-            bool ok = ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out diffmap);
-            diffvalue = ButteraugliScoreFromDiffmap(diffmap, parameters);
-            return ok;
+            bool completed = ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out JxlPlane<float> smallDiffmap);
+
+            using (smallDiffmap)
+            {
+                if (!completed)
+                {
+                    return false;
+                }
+
+                diffvalue = ButteraugliScoreFromDiffmap(smallDiffmap, parameters);
+
+                // Transfer the completed allocation into the caller's plane. The temporary releases the caller's previous allocation.
+                diffmap.Swap(smallDiffmap);
+                return true;
+            }
         }
 
-        JxlImageF subDiffmap = new();
+        JxlPlane<float> subDiffmap = new();
 
         if (xsize >= 15 && ysize >= 15)
         {
-            using JxlImage3F rgb0Sub = SubSample2x(configuration, rgb0);
-            using JxlImage3F rgb1Sub = SubSample2x(configuration, rgb1);
+            using JxlImage3<float> rgb0Sub = SubSample2x(configuration, rgb0);
+            using JxlImage3<float> rgb1Sub = SubSample2x(configuration, rgb1);
 
             if (!ButteraugliDiffmapInPlace(configuration, rgb0Sub, rgb1Sub, parameters, diffmap))
             {
@@ -2547,20 +3030,51 @@ internal static class Butteraugli
         return true;
     }
 
-    public static bool ButteraugliInterface(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, JxlImageF diffmap, out double diffValue)
+    /// <summary>
+    /// Computes the perceptual difference map and score without changing either input image.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="rgb1">The borrowed distorted pixels of the same size.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The caller-owned plane that receives the completed map. Its identity does not change.</param>
+    /// <param name="diffValue">The comparison score, or zero when comparison fails.</param>
+    /// <returns>Whether every comparison stage succeeded.</returns>
+    public static bool ButteraugliInterface(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        JxlPlane<float> diffmap,
+        out double diffValue)
     {
         diffValue = 0;
 
-        if (!ButteraugliDiffmap(configuration, rgb0, rgb1, parameters, out diffmap))
-        {
-            return false;
-        }
+        bool completed = ButteraugliDiffmap(configuration, rgb0, rgb1, parameters, out JxlPlane<float> result);
 
-        diffValue = ButteraugliScoreFromDiffmap(diffmap, parameters);
-        return true;
+        using (result)
+        {
+            if (!completed)
+            {
+                return false;
+            }
+
+            diffValue = ButteraugliScoreFromDiffmap(result, parameters);
+
+            // Keep the caller's plane object and dispose its previous allocation after the storage exchange.
+            diffmap.Swap(result);
+            return true;
+        }
     }
 
-    public static bool ButteraugliInterface(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, float hfAsymmetry, float xmul, JxlImageF diffmap, out double diffValue)
+    public static bool ButteraugliInterface(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        float hfAsymmetry,
+        float xmul,
+        JxlPlane<float> diffmap,
+        out double diffValue)
     {
         ButteraugliParameters parameters = new()
         {
@@ -2571,14 +3085,26 @@ internal static class Butteraugli
         return ButteraugliInterface(configuration, rgb0, rgb1, parameters, diffmap, out diffValue);
     }
 
-    public static bool ButteraugliDiffmap(Configuration configuration, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, out JxlImageF diffmap)
+    /// <summary>
+    /// Allocates the perceptual difference map for two borrowed RGB images.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="rgb1">The borrowed distorted pixels of the same size.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The output owner transferred on success, or an empty plane on failure.</param>
+    /// <returns>Whether every comparison stage succeeded.</returns>
+    public static bool ButteraugliDiffmap(
+        Configuration configuration,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        out JxlPlane<float> diffmap)
     {
-        diffmap = new();
-
         int xsize = rgb0.XSize;
         int ysize = rgb0.YSize;
 
-        if ((xsize & ysize) == 0) // equivalent to xsize == 0 || ysize == 0, minus one branch
+        if (xsize == 0 || ysize == 0)
         {
             throw new InvalidOperationException("Zero-sized image");
         }
@@ -2592,18 +3118,45 @@ internal static class Butteraugli
 
         if (xsize < max || ysize < max)
         {
-            if (!ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out diffmap))
-            {
-                return false;
-            }
+            // The padded comparison already produced the result. Do not replace it with the small comparator's empty decomposition.
+            return ButteraugliDiffmapSmall(configuration, max, rgb0, rgb1, parameters, out diffmap);
         }
 
-        ButteraugliComparator butteraugli = ButteraugliComparator.Make(configuration, rgb0, parameters);
+        using ButteraugliComparator butteraugli = ButteraugliComparator.Make(configuration, rgb0, parameters);
+        diffmap = new(configuration, xsize, ysize);
+        bool completed = false;
 
-        return butteraugli.Diffmap(configuration, rgb1, diffmap);
+        try
+        {
+            completed = butteraugli.Diffmap(configuration, rgb1, diffmap);
+            return completed;
+        }
+        finally
+        {
+            if (!completed)
+            {
+                diffmap.Dispose();
+            }
+        }
     }
 
-    public static bool ButteraugliDiffmapSmall(Configuration configuration, int max, JxlImage3F rgb0, JxlImage3F rgb1, ButteraugliParameters parameters, out JxlImageF diffmap)
+    /// <summary>
+    /// Compares padded small images and transfers only the original-size region of the resulting difference map.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="max">The minimum comparison extent in each dimension.</param>
+    /// <param name="rgb0">The borrowed reference pixels.</param>
+    /// <param name="rgb1">The borrowed distorted pixels of the same size.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The original-size output owner transferred on success, or an empty plane on failure.</param>
+    /// <returns>Whether the padded comparison succeeded.</returns>
+    public static bool ButteraugliDiffmapSmall(
+        Configuration configuration,
+        int max,
+        JxlImage3<float> rgb0,
+        JxlImage3<float> rgb1,
+        ButteraugliParameters parameters,
+        out JxlPlane<float> diffmap)
     {
         int xsize = rgb0.XSize;
         int ysize = rgb0.YSize;
@@ -2613,11 +3166,16 @@ internal static class Butteraugli
         int xscaled = Math.Max(max, xsize);
         int yscaled = Math.Max(max, ysize);
 
-        using JxlImage3F scaled0 = new(configuration, xscaled, yscaled);
-        using JxlImage3F scaled1 = new(configuration, xscaled, yscaled);
+        using JxlImage3<float> scaled0 = new(configuration, xscaled, yscaled);
+        using JxlImage3<float> scaled1 = new(configuration, xscaled, yscaled);
 
         for (int i = 0; i < 3; ++i)
         {
+            ReadOnlySpan<float> source0 = rgb0.Plane(i).GetRow(0);
+            ReadOnlySpan<float> source1 = rgb1.Plane(i).GetRow(0);
+            Span<float> destination0 = scaled0.Plane(i).GetRow(0);
+            Span<float> destination1 = scaled1.Plane(i).GetRow(0);
+
             for (int y = 0; y < yscaled; y++)
             {
                 for (int x = 0; x < xscaled; x++)
@@ -2625,38 +3183,64 @@ internal static class Butteraugli
                     int x2 = Math.Min(xsize - 1, x > xborder ? x - xborder : 0);
                     int y2 = Math.Min(ysize - 1, y > yborder ? y - yborder : 0);
 
-                    scaled0.PlaneRow(i, y)[x] = rgb0.PlaneRow(i, y2)[x2];
-                    scaled1.PlaneRow(i, y)[x] = rgb1.PlaneRow(i, y2)[x2];
+                    destination0[(y * scaled0.Plane(i).PixelsPerRow) + x] = source0[(y2 * rgb0.Plane(i).PixelsPerRow) + x2];
+                    destination1[(y * scaled1.Plane(i).PixelsPerRow) + x] = source1[(y2 * rgb1.Plane(i).PixelsPerRow) + x2];
                 }
             }
         }
 
-        JxlImageF diffmapScaled = new();
-        bool ok = ButteraugliDiffmap(configuration, scaled0, scaled1, parameters, out diffmapScaled);
+        bool completed = ButteraugliDiffmap(configuration, scaled0, scaled1, parameters, out JxlPlane<float> diffmapScaled);
 
-        diffmap = new(configuration, xsize, ysize);
-
-        for (int y = 0; y < ysize; y++)
+        using (diffmapScaled)
         {
-            Span<float> diffmapRow = diffmap.GetRow(y);
-            Span<float> diffmapScaledRow = diffmapScaled.GetRow(y + yborder);
-
-            for (int x = 0; x < xsize; x++)
+            if (!completed)
             {
-                diffmapRow[x] = diffmapScaledRow[x + xborder];
+                diffmap = new();
+                return false;
+            }
+
+            diffmap = new(configuration, xsize, ysize);
+            bool copied = false;
+
+            try
+            {
+                ReadOnlySpan<float> scaledSamples = diffmapScaled.GetRow(0);
+                Span<float> outputSamples = diffmap.GetRow(0);
+
+                for (int y = 0; y < ysize; y++)
+                {
+                    scaledSamples.Slice(((y + yborder) * diffmapScaled.PixelsPerRow) + xborder, xsize)
+                        .CopyTo(outputSamples.Slice(y * diffmap.PixelsPerRow, xsize));
+                }
+
+                copied = true;
+                return true;
+            }
+            finally
+            {
+                if (!copied)
+                {
+                    diffmap.Dispose();
+                }
             }
         }
-
-        return ok;
     }
 
-    public static float ButteraugliScoreFromDiffmap(JxlImageF diffmap, ButteraugliParameters parameters)
+    /// <summary>
+    /// Returns the largest logical difference-map sample.
+    /// </summary>
+    /// <param name="diffmap">The borrowed difference map; row padding is excluded.</param>
+    /// <param name="parameters">The comparison parameters retained by the score API.</param>
+    /// <returns>The maximum difference-map sample, with a lower bound of zero.</returns>
+    public static float ButteraugliScoreFromDiffmap(JxlPlane<float> diffmap, ButteraugliParameters parameters)
     {
         float retval = 0.0f;
 
+        ReadOnlySpan<float> samples = diffmap.GetRow(0);
+
         for (int y = 0; y < diffmap.YSize; ++y)
         {
-            Span<float> row = diffmap.GetRow(y);
+            ReadOnlySpan<float> row = samples[(y * diffmap.PixelsPerRow)..];
             for (int x = 0; x < diffmap.XSize; ++x)
             {
                 retval = Math.Max(retval, row[x]);
@@ -2666,9 +3250,25 @@ internal static class Butteraugli
         return retval;
     }
 
-    public static bool MaltaDiffMap(JxlPlane<float> lum0, JxlPlane<float> lum1, float w0Gt1, float w0Lt1, float norm1, JxlPlane<float> diffs, JxlImage3<float> blockDiffAc, int c)
+    public static bool MaltaDiffMap(
+        JxlPlane<float> lum0,
+        JxlPlane<float> lum1,
+        float w0Gt1,
+        float w0Lt1,
+        float norm1,
+        JxlPlane<float> diffs,
+        JxlImage3<float> blockDiffAc,
+        int c)
         => MaltaDiffMap(isLf: false, lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc.Plane(c));
 
-    public static bool MaltaDiffMapLf(JxlPlane<float> lum0, JxlPlane<float> lum1, float w0Gt1, float w0Lt1, float norm1, JxlPlane<float> diffs, JxlImage3<float> blockDiffAc, int c)
+    public static bool MaltaDiffMapLf(
+        JxlPlane<float> lum0,
+        JxlPlane<float> lum1,
+        float w0Gt1,
+        float w0Lt1,
+        float norm1,
+        JxlPlane<float> diffs,
+        JxlImage3<float> blockDiffAc,
+        int c)
         => MaltaDiffMap(isLf: true, lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc.Plane(c));
 }

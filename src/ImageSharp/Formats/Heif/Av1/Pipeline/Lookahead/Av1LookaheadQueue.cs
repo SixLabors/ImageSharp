@@ -1,0 +1,176 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
+
+/// <summary>
+/// Holds the source frames that wait for coding, in display order, and the most recent frame that left the queue.
+/// The buffers are allocated once and reused as a ring.
+/// </summary>
+/// <typeparam name="TSample">The component sample type.</typeparam>
+internal sealed class Av1LookaheadQueue<TSample> : IDisposable
+    where TSample : unmanaged
+{
+    /// <summary>
+    /// The number of earlier frames kept for backward peeks.
+    /// </summary>
+    private const int PreviousFrameCount = 1;
+
+    private readonly Av1EncoderFrameBuffer<TSample>[] buffers;
+    private int readIndex;
+    private int writeIndex;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1LookaheadQueue{TSample}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration that supplies the memory allocator.</param>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="bitDepth">The sample precision.</param>
+    /// <param name="colorFormat">The chroma layout.</param>
+    /// <param name="chromaPositionX">The horizontal chroma sample position.</param>
+    /// <param name="chromaPositionY">The vertical chroma sample position.</param>
+    /// <param name="lumaBorder">The luma border in samples.</param>
+    /// <param name="depth">The number of frames that the queue must hold before the encode stage takes one.</param>
+    public Av1LookaheadQueue(
+        Configuration configuration,
+        int width,
+        int height,
+        int bitDepth,
+        Av1ColorFormat colorFormat,
+        int chromaPositionX,
+        int chromaPositionY,
+        int lumaBorder,
+        int depth)
+    {
+        this.PopSize = Math.Max(depth, 1);
+        int capacity = this.PopSize + PreviousFrameCount;
+        this.buffers = new Av1EncoderFrameBuffer<TSample>[capacity];
+        try
+        {
+            for (int i = 0; i < capacity; i++)
+            {
+                this.buffers[i] = new Av1EncoderFrameBuffer<TSample>(
+                    configuration,
+                    width,
+                    height,
+                    bitDepth,
+                    colorFormat,
+                    chromaPositionX,
+                    chromaPositionY,
+                    lumaBorder);
+            }
+        }
+        catch
+        {
+            this.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the number of frames that wait for coding.
+    /// </summary>
+    public int Count { get; private set; }
+
+    /// <summary>
+    /// Gets the number of frames that the queue holds when it is full.
+    /// </summary>
+    public int PopSize { get; }
+
+    /// <summary>
+    /// Gets the number of frames pushed so far.
+    /// </summary>
+    public int PushCount { get; private set; }
+
+    /// <summary>
+    /// Returns the buffer that receives the next source frame. The frame joins the queue with <see cref="EndPush"/>.
+    /// </summary>
+    /// <returns>The buffer to fill.</returns>
+    public Av1EncoderFrameBuffer<TSample> BeginPush()
+    {
+        if (this.Count + PreviousFrameCount >= this.buffers.Length)
+        {
+            throw new InvalidOperationException("The lookahead queue is full.");
+        }
+
+        return this.buffers[this.writeIndex];
+    }
+
+    /// <summary>
+    /// Adds the frame written into the buffer from <see cref="BeginPush"/>.
+    /// </summary>
+    public void EndPush()
+    {
+        this.writeIndex = this.Next(this.writeIndex);
+        this.PushCount++;
+        this.Count++;
+    }
+
+    /// <summary>
+    /// Returns a queued frame, or the frame that most recently left the queue.
+    /// </summary>
+    /// <param name="index">The position after the first queued frame, or -1 for the most recent frame that left.</param>
+    /// <returns>The frame buffer, or <see langword="null"/> when no frame is at that position.</returns>
+    public Av1EncoderFrameBuffer<TSample>? Peek(int index)
+    {
+        if (index >= 0)
+        {
+            if (index >= this.Count)
+            {
+                return null;
+            }
+
+            index += this.readIndex;
+            if (index >= this.buffers.Length)
+            {
+                index -= this.buffers.Length;
+            }
+
+            return this.buffers[index];
+        }
+
+        if (-index > PreviousFrameCount || this.PushCount - this.Count < -index)
+        {
+            return null;
+        }
+
+        index += this.readIndex;
+        if (index < 0)
+        {
+            index += this.buffers.Length;
+        }
+
+        return this.buffers[index];
+    }
+
+    /// <summary>
+    /// Removes the first queued frame. It stays available to a backward peek until the next pop.
+    /// </summary>
+    public void Pop()
+    {
+        if (this.Count == 0)
+        {
+            throw new InvalidOperationException("The lookahead queue is empty.");
+        }
+
+        this.readIndex = this.Next(this.readIndex);
+        this.Count--;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        for (int i = 0; i < this.buffers.Length; i++)
+        {
+            this.buffers[i]?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Returns the ring position after a buffer position, which wraps to zero after the last buffer.
+    /// </summary>
+    /// <param name="index">The buffer position.</param>
+    /// <returns>The next buffer position.</returns>
+    private int Next(int index) => index + 1 == this.buffers.Length ? 0 : index + 1;
+}

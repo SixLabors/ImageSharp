@@ -114,6 +114,7 @@ public class A8Tests
         Assert.Equal(Unsafe.SizeOf<A8>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(1, componentInfo.ComponentCount);

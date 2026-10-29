@@ -139,7 +139,7 @@ public partial class PngDecoderTests
     public void PngDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             TargetSize = new Size { Width = 150, Height = 150 }
         };
@@ -177,7 +177,7 @@ public partial class PngDecoderTests
             TestImageProvider<Rgba32> provider =
                 FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(arg1);
 
-            DecoderOptions options = new()
+            DecoderOptions options = new(Configuration.Default)
             {
                 TargetSize = new Size { Width = 150, Height = 150 }
             };
@@ -197,14 +197,16 @@ public partial class PngDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.AverageFilter3BytesPerPixel, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba32)]
-    public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.AverageFilter3BytesPerPixel, PixelTypes.Rgba32, 0F)]
+    [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba32, 3F * 257F)]
+    public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ImageComparer.Exact);
+
+        // The ICC fixture uses approximate curves. Limit the total RGB error to three eight-bit codes per pixel.
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0F, (int)tolerance));
     }
 
     [Theory]
@@ -216,11 +218,73 @@ public partial class PngDecoderTests
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+        using Image<TPixel> image = provider.GetImage(
+            PngDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert });
 
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
         Assert.Null(image.Metadata.IccProfile);
+
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        using Image<TPixel> preserved = provider.GetImage(PngDecoder.Instance, preserveOptions);
+
+        ImageInfo sourceInfo = Image.Identify(TestFile.Create(provider.SourceFileOrDescription).Bytes);
+        ImageInfo skippedMetadataInfo = Image.Identify(preserveOptions, TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        ImageComparer.Exact.VerifySimilarity(image, preserved);
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), skippedMetadataInfo.Metadata.IccProfile.ToByteArray());
+    }
+
+    /// <summary>
+    /// Checks whole-image ICC conversion with straight and associated floating-point destinations.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The real Adobe RGB PNG fixture.</param>
+    [Theory]
+    [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.RgbaVector | PixelTypes.RgbaVectorP)]
+    public void Decode_IccWithAlpha_UsesStraightColorChannels<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            PixelTests<TPixel>.RunIccAlphaDecode,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512v2 | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider);
+
+    /// <summary>
+    /// Compares converted pixels with an independent ICC decoder and checks profile handling.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="provider">The real Adobe RGB PNG fixture.</param>
+    /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+    private static void AssertIccAlphaDecode<TPixel>(TestImageProvider<TPixel> provider, string intrinsics)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = true };
+        using Image<TPixel> preserved = provider.GetImage(PngDecoder.Instance, preserveOptions);
+
+        DecoderOptions convertOptions = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Convert };
+        using Image<TPixel> converted = provider.GetImage(PngDecoder.Instance, convertOptions);
+
+        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
+        ImageInfo sourceInfo = Image.Identify(file.Bytes);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Equal(sourceInfo.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Null(converted.Metadata.IccProfile);
+        ImageComparer.Exact.VerifySimilarity(preserved, converted);
+
+        using MemoryStream stream = new(file.Bytes);
+        DecoderOptions referenceOptions = new(provider.Configuration);
+        using Image<TPixel> expected = MagickReferenceDecoder.Png.Decode<TPixel>(referenceOptions, stream);
+
+        // Converted pixels are sRGB; retaining the Adobe RGB profile on the dump would make its displayed colors wrong.
+        preserved.Metadata.IccProfile = null;
+        preserved.DebugSave(provider, intrinsics, extension: "png", encoder: new PngEncoder { BitDepth = PngBitDepth.Bit16 });
+
+        // This eight-bit fixture includes partial and zero alpha. The allowance covers three one-code RGB differences (771 sixteen-bit units).
+        // A zero image threshold rejects every pixel above that allowance, so opaque pixels cannot hide errors at partial alpha.
+        ImageComparer.Tolerant(0F, 3 * (ushort.MaxValue / byte.MaxValue)).VerifySimilarity(expected, preserved);
     }
 
     [Theory]
@@ -294,14 +358,17 @@ public partial class PngDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgb48)]
-    [WithFile(TestImages.Png.Rgb48BppInterlaced, PixelTypes.Rgb48)]
-    public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.Rgb48Bpp, PixelTypes.Rgb48, 0F)]
+    [WithFile(TestImages.Png.Rgb48BppInterlaced, PixelTypes.Rgb48, 0.05F)]
+    public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ImageComparer.Exact);
+
+        // The interlaced ICC comparison measured 0.0498%. At 16-bit output, intermediate quantization in the
+        // reference decoder may be visible where 8-bit rounding would hide it.
+        image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(tolerance));
     }
 
     [Theory]
@@ -316,16 +383,18 @@ public partial class PngDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.GrayAlpha1BitInterlaced, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.Gray4BitInterlaced, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.GrayA8BitInterlaced, PixelTypes.Rgba32)]
-    public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.GrayAlpha1BitInterlaced, PixelTypes.Rgba32, 0F)]
+    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, 0F)]
+    [WithFile(TestImages.Png.Gray4BitInterlaced, PixelTypes.Rgba32, 0F)]
+    [WithFile(TestImages.Png.GrayA8BitInterlaced, PixelTypes.Rgba32, 0.008F)]
+    public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ImageComparer.Exact);
+
+        // The nonzero case allows measured ICC comparison rounding against Magick.
+        image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(tolerance));
     }
 
     [Theory]
@@ -350,13 +419,15 @@ public partial class PngDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.GrayA8BitInterlaced, TestPixelTypes)]
-    public void Decoder_CanDecode_Grey8bitInterlaced_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.GrayA8BitInterlaced, TestPixelTypes, 0.008F)]
+    public void Decoder_CanDecode_Grey8bitInterlaced_WithAlpha<TPixel>(TestImageProvider<TPixel> provider, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ImageComparer.Exact);
+
+        // Allow the same measured ICC comparison rounding for each pixel type.
+        image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(tolerance));
     }
 
     [Theory]
@@ -406,7 +477,9 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }, stream);
+        ImageInfo imageInfo = Image.Identify(
+            new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData },
+            stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
@@ -430,7 +503,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
 
         using MemoryStream stream = new(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 40 }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions(Configuration.Default) { MaxFrames = 40 }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(40, imageInfo.FrameMetadataCollection.Count);
@@ -442,7 +515,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
 
         using MemoryStream stream = new(testFile.Bytes, false);
-        using Image image = Image.Load(new DecoderOptions { MaxFrames = 40 }, stream);
+        using Image image = Image.Load(new DecoderOptions(Configuration.Default) { MaxFrames = 40 }, stream);
 
         Assert.NotNull(image);
         Assert.Equal(40, image.Frames.Count);
@@ -595,7 +668,9 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
+        using Image<TPixel> image = provider.GetImage(
+            PngDecoder.Instance,
+            new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
 
         image.DebugSave(provider);
         if (compare)
@@ -883,7 +958,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData } };
+        PngDecoderOptions options = new(new DecoderOptions(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.
@@ -930,7 +1005,7 @@ public partial class PngDecoderTests
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
+        DecoderOptions options = new(Configuration.Default) { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
@@ -943,5 +1018,21 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
+    }
+
+    /// <summary>
+    /// Provides non-generic callbacks whose declaring type retains the requested pixel format for RemoteExecutor.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    private static class PixelTests<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        /// <summary>
+        /// Restores the typed provider and runs the assertions with the selected hardware features.
+        /// </summary>
+        /// <param name="providerDump">The serialized image provider.</param>
+        /// <param name="intrinsics">The hardware configuration used for output naming.</param>
+        public static void RunIccAlphaDecode(string providerDump, string intrinsics)
+            => AssertIccAlphaDecode(FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump), intrinsics);
     }
 }

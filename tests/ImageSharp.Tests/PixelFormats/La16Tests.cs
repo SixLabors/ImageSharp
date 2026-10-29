@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class La16Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData(ushort.MaxValue)]
+    [InlineData((ushort)0xA53C)]
+    public void Constructor_FromPackedValue(ushort packed)
+    {
+        La16 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     public static readonly TheoryData<byte> LuminanceData
         =
         [
@@ -253,6 +267,7 @@ public class La16Tests
             Assert.Equal(Unsafe.SizeOf<La16>() * 8, info.BitsPerPixel);
             Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
             Assert.Equal(PixelColorType.Luminance | PixelColorType.Alpha, info.ColorType);
+            Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
             PixelComponentInfo componentInfo = info.ComponentInfo.Value;
             Assert.Equal(2, componentInfo.ComponentCount);

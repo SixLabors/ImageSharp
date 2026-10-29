@@ -11,6 +11,37 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class HalfSingleTests
 {
+    /// <summary>
+    /// Verifies that packed construction preserves finite values, signed zero, infinity, and NaN bits.
+    /// </summary>
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData((ushort)0x8000)]
+    [InlineData((ushort)0x3C00)]
+    [InlineData((ushort)0x7C00)]
+    [InlineData((ushort)0x7E01)]
+    [InlineData(ushort.MaxValue)]
+    public void Constructor_FromPackedValue(ushort packed)
+    {
+        HalfSingle pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
+    /// <summary>
+    /// Verifies that an integer constant selects packed construction while a float selects numeric conversion.
+    /// </summary>
+    [Fact]
+    public void Constructors_DistinguishPackedBitsFromNumericValue()
+    {
+        // The integer argument stores bit pattern 1. The float argument stores the half-precision encoding of numeric 1.
+        HalfSingle packed = new(1);
+        HalfSingle numeric = new(1F);
+
+        Assert.Equal((ushort)0x0001, packed.PackedValue);
+        Assert.Equal((ushort)0x3C00, numeric.PackedValue);
+    }
+
     [Fact]
     public void HalfSingle_PackedValue()
     {
@@ -42,29 +73,29 @@ public class HalfSingleTests
     [Fact]
     public void HalfSingle_ToScaledVector4()
     {
-        Assert.Equal(new Vector4(0F, 0F, 0F, 1F), new HalfSingle((float)Half.MinValue).ToScaledVector4());
-        Assert.Equal(new Vector4(.5F, 0F, 0F, 1F), new HalfSingle(0F).ToScaledVector4());
-        Assert.Equal(new Vector4(1F, 0F, 0F, 1F), new HalfSingle((float)Half.MaxValue).ToScaledVector4());
+        Assert.Equal(new Vector4((float)Half.MinValue, 0F, 0F, 1F), new HalfSingle((float)Half.MinValue).ToScaledVector4());
+        Assert.Equal(new Vector4(0F, 0F, 0F, 1F), new HalfSingle(0F).ToScaledVector4());
+        Assert.Equal(new Vector4((float)Half.MaxValue, 0F, 0F, 1F), new HalfSingle((float)Half.MaxValue).ToScaledVector4());
     }
 
     [Fact]
     public void HalfSingle_FromScaledVector4()
     {
-        Assert.Equal((ushort)0xFBFF, HalfSingle.FromScaledVector4(new Vector4(0F, 0F, 0F, 1F)).PackedValue);
-        Assert.Equal((ushort)0, HalfSingle.FromScaledVector4(new Vector4(.5F, 0F, 0F, 1F)).PackedValue);
-        Assert.Equal((ushort)0x7BFF, HalfSingle.FromScaledVector4(new Vector4(1F, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0xFBFF, HalfSingle.FromScaledVector4(new Vector4((float)Half.MinValue, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0, HalfSingle.FromScaledVector4(new Vector4(0F, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0x7BFF, HalfSingle.FromScaledVector4(new Vector4((float)Half.MaxValue, 0F, 0F, 1F)).PackedValue);
     }
 
     [Fact]
-    public void HalfSingle_BulkScaledConversionsCoverFiniteRange() =>
+    public void HalfSingle_BulkScaledConversionsPreserveFiniteRange() =>
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertHalfSingleBulkScaledConversionsCoverFiniteRange,
+            AssertHalfSingleBulkScaledConversionsPreserveFiniteRange,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
-    private static void AssertHalfSingleBulkScaledConversionsCoverFiniteRange()
+    private static void AssertHalfSingleBulkScaledConversionsPreserveFiniteRange()
     {
         ushort[] packedValues = [0xFBFF, 0, 0x7BFF];
-        Vector4[] scaledValues = [new(0F, 0F, 0F, 1F), new(.5F, 0F, 0F, 1F), new(1F, 0F, 0F, 1F)];
+        Vector4[] scaledValues = [new((float)Half.MinValue, 0F, 0F, 1F), new(0F, 0F, 0F, 1F), new((float)Half.MaxValue, 0F, 0F, 1F)];
         HalfSingle[] source = new HalfSingle[17];
         Vector4[] expectedVectors = new Vector4[source.Length];
 
@@ -76,12 +107,12 @@ public class HalfSingleTests
         }
 
         Vector4[] actualVectors = new Vector4[source.Length];
-        PixelOperations<HalfSingle>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        PixelOperations<HalfSingle>.Instance.ToScaledVector4(Configuration.Default, source, actualVectors);
         Assert.Equal(expectedVectors, actualVectors);
 
         Vector4[] destructiveSource = [.. expectedVectors];
         HalfSingle[] actualPixels = new HalfSingle[source.Length];
-        PixelOperations<HalfSingle>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<HalfSingle>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.Equal(source, actualPixels);
     }
 
@@ -92,6 +123,7 @@ public class HalfSingleTests
         Assert.Equal(Unsafe.SizeOf<HalfSingle>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Red, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(1, componentInfo.ComponentCount);

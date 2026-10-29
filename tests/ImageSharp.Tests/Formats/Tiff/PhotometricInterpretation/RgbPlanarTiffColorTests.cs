@@ -2,10 +2,13 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Common;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
 
@@ -262,11 +265,76 @@ public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
                     ((Span<byte>)inputData[i]).CopyTo(buffers[i].GetSpan());
                 }
 
-                new RgbPlanarTiffColor<Rgba32>(bitsPerSample).Decode(buffers, pixels, left, top, width, height);
+                new RgbPlanarTiffColor<Rgba32>(Configuration.Default, bitsPerSample).Decode(buffers, pixels, left, top, width, height);
 
                 foreach (IMemoryOwner<byte> buffer in buffers)
                 {
                     buffer.Dispose();
                 }
             });
+
+    /// <summary>
+    /// Checks byte-plane RGB output retains fractional scaled components in RgbaVector.
+    /// </summary>
+    /// <param name="length">The row width, including scalar and vector-tail cases.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(17)]
+    [InlineData(33)]
+    [InlineData(64)]
+    [InlineData(65)]
+    public void Decode_Aligned8Bit_PreservesRgbaVectorPrecision(int length) => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertRgbaVectorPrecision,
+        length,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks every decoded RGB component against the stored byte planes.
+    /// </summary>
+    /// <param name="serialized">The serialized row width.</param>
+    private static void AssertRgbaVectorPrecision(string serialized)
+    {
+        int length = FeatureTestRunner.Deserialize<int>(serialized);
+        using IMemoryOwner<byte> red = Configuration.Default.MemoryAllocator.Allocate<byte>(length);
+        using IMemoryOwner<byte> green = Configuration.Default.MemoryAllocator.Allocate<byte>(length);
+        using IMemoryOwner<byte> blue = Configuration.Default.MemoryAllocator.Allocate<byte>(length);
+        IMemoryOwner<byte>[] planes = [red, green, blue];
+        using Image<RgbaVector> image = new(length, 1);
+        Span<byte> redSamples = red.GetSpan();
+        Span<byte> greenSamples = green.GetSpan();
+        Span<byte> blueSamples = blue.GetSpan();
+
+        // Seventeen unequal pixels shift across the decoder's 32-pixel chunks and reveal plane or lane swaps.
+        ReadOnlySpan<Rgb24> samples =
+        [
+            new(0, 255, 1), new(17, 63, 201), new(255, 0, 128), new(255, 255, 255),
+            new(3, 31, 157), new(41, 5, 233), new(91, 177, 13), new(222, 19, 109),
+            new(72, 213, 44), new(151, 62, 7), new(11, 99, 201), new(192, 8, 73),
+            new(64, 144, 224), new(29, 209, 117), new(187, 54, 96), new(237, 83, 16),
+            new(103, 147, 231)
+        ];
+
+        for (int i = 0; i < length; i++)
+        {
+            Rgb24 sample = samples[i % samples.Length];
+            redSamples[i] = sample.R;
+            greenSamples[i] = sample.G;
+            blueSamples[i] = sample.B;
+        }
+
+        new RgbPlanarTiffColor<RgbaVector>(Configuration.Default, new TiffBitsPerSample(8, 8, 8)).Decode(
+            planes,
+            image.Frames.RootFrame.PixelBuffer,
+            0,
+            0,
+            length,
+            1);
+
+        // Widths 1/17/33/64/65 cover scalar output, tails, and consecutive thirty-two-pixel decoder blocks.
+        for (int i = 0; i < length; i++)
+        {
+            Vector4 expected = new(redSamples[i] / 255F, greenSamples[i] / 255F, blueSamples[i] / 255F, 1F);
+            Assert.Equal(expected, image[i, 0].ToScaledVector4());
+        }
+    }
 }

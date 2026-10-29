@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Formats.Tiff.Readers;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Common;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
 
@@ -147,6 +148,50 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
         }
     }
 
+    /// <summary>
+    /// Checks byte inversion, row bounds, and unchanged input across SIMD widths and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void Decode8Bit_PreservesSamplesAcrossSimdAndTail() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        Run8BitRows,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks complete byte intensities and row lengths around each SIMD boundary.
+    /// </summary>
+    private static void Run8BitRows()
+    {
+        // Short rows exercise each register boundary. The longest row includes every byte value and a partial final block.
+        ReadOnlySpan<int> widths = [1, 15, 16, 17, 31, 32, 33, 63, 64, 65, 287];
+
+        foreach (int width in widths)
+        {
+            const int Height = 2;
+            byte[] input = new byte[width * Height];
+            Rgba32[][] expectedRows = [new Rgba32[width], new Rgba32[width]];
+
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    // Consecutive codes cover black, white, and all intermediate levels. Reverse the second row.
+                    byte code = (byte)(x % 256);
+                    input[(y * width) + x] = y == 0 ? code : (byte)(255 - code);
+                    byte intensity = y == 0 ? (byte)(255 - code) : code;
+                    expectedRows[y][x] = new Rgba32(intensity, intensity, intensity, 255);
+                }
+            }
+
+            byte[] unchangedInput = input.ToArray();
+            Rgba32[][] expected = Offset(expectedRows, 2, 1, width + 4, Height + 2);
+            WhiteIsZero8TiffColor<Rgba32> decoder = new(Configuration.Default);
+
+            // Sentinel pixels around the decoded region detect stores outside either row.
+            AssertDecode(expected, pixels => decoder.Decode(input, pixels, 2, 1, width, Height));
+            Assert.Equal(unchangedInput, input);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(BilevelData))]
     [MemberData(nameof(Grayscale4Data))]
@@ -155,7 +200,10 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height);
+                new TiffBitGrayscaleDecoder<Rgba32>(
+                    Configuration.Default,
+                    bitsPerSample,
+                    whiteIsZero: true).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
@@ -165,7 +213,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZero1TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 1, whiteIsZero: true).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
@@ -175,7 +223,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZero4TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                new TiffBitGrayscaleDecoder<Rgba32>(Configuration.Default, 4, whiteIsZero: true).Decode(inputData, pixels, left, top, width, height);
             });
     }
 
@@ -185,7 +233,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZero8TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
+                new WhiteIsZero8TiffColor<Rgba32>(Configuration.Default).Decode(inputData, pixels, left, top, width, height);
             });
     }
 }

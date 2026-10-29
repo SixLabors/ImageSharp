@@ -208,7 +208,7 @@ public class Vp8HistogramTests
         Vp8Histogram histogram1 = new();
         histogram1.CollectHistogram(reference, pred, 0, 1);
         Vp8Histogram histogram2 = new();
-        histogram1.Merge(histogram2);
+        histogram1.Merge(ref histogram2);
 
         // act
         int alpha = histogram2.GetAlpha();
@@ -218,8 +218,10 @@ public class Vp8HistogramTests
     }
 
     [Fact]
-    public void CollectHistogramTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.AllowAll);
+    public void CollectHistogramTest_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void CollectHistogramTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.DisableHWIntrinsic);
+    public void CollectHistogramTest_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.DisableHWIntrinsic);
 }

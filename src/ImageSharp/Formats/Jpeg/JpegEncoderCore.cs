@@ -1,12 +1,14 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -46,7 +48,21 @@ internal sealed unsafe partial class JpegEncoderCore
     public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
     /// <summary>
-    /// Encode writes the image to the jpeg baseline format with the given options.
+    /// Gets the full-resolution component layout for a container's selected JPEG sample convention.
+    /// </summary>
+    /// <remarks>
+    /// Containers select the internal ColorType directly to request TIFF CMYK instead of standalone Adobe CMYK.
+    /// Both configurations have EncodingColor set to JpegColorType.Cmyk because both encode four CMYK components.
+    /// The first YCbCr configuration uses 4:4:4 sampling, so selecting the YCbCr model here retains full resolution.
+    /// </remarks>
+    /// <param name="colorSpace">The native component model, including TIFF's non-inverted CMYK convention.</param>
+    /// <returns>The shared frame configuration for that component model.</returns>
+    public static JpegFrameConfig GetFrameConfig(JpegColorSpace colorSpace)
+        => Array.Find(FrameConfigs, config => config.ColorType == colorSpace)
+            ?? throw new ArgumentException("The JPEG component model is not supported for encoding.", nameof(colorSpace));
+
+    /// <summary>
+    /// Encodes the root frame with the configured JPEG options.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="image">The image to write from.</param>
@@ -58,9 +74,52 @@ internal sealed unsafe partial class JpegEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        if (image.Width > JpegConstants.MaxLength || image.Height > JpegConstants.MaxLength)
+        Buffer2DRegion<TPixel> pixels = image.Frames.RootFrame.PixelBuffer.GetRegion();
+        IccProfile profile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+        JpegFrameConfig frameConfig = this.GetFrameConfig(image.Metadata.GetJpegMetadata());
+
+        this.Encode(image.Configuration, pixels, frameConfig, image.Metadata, profile, false, stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Encodes a pixel region without changing its source pixels or metadata.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The selected frame configuration determines compatibility with the supplied ICC profile.
+    /// RGB requires an RGB profile. Grayscale requires a Gray profile. CMYK and YCCK require a CMYK profile.
+    /// YCbCr accepts an RGB profile before JPEG's matrix, or a YCbCr profile for the native components.
+    /// </para>
+    /// <para>
+    /// JPEG applies the conversion from sRGB to the compatible profile before it encodes the components.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="configuration">The source configuration.</param>
+    /// <param name="pixels">The source region, which remains unchanged.</param>
+    /// <param name="frameConfig">The component layout and sample convention selected by the caller.</param>
+    /// <param name="metadata">The quality and scan metadata used when encoder options are unset, and the optional metadata to write.</param>
+    /// <param name="profile">The retained frame profile, or null. Its data color space must match the selected JPEG color type.</param>
+    /// <param name="clearTransparentPixels">
+    /// Whether to set RGB to zero for fully transparent input pixels before color conversion.
+    /// JPEG discards alpha. Clearing uses reusable row storage and leaves the source pixels unchanged.
+    /// </param>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    public void Encode<TPixel>(
+        Configuration configuration,
+        Buffer2DRegion<TPixel> pixels,
+        JpegFrameConfig frameConfig,
+        ImageMetadata metadata,
+        IccProfile profile,
+        bool clearTransparentPixels,
+        Stream stream,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (pixels.Width > JpegConstants.MaxLength || pixels.Height > JpegConstants.MaxLength)
         {
-            JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
+            JpegThrowHelper.ThrowDimensionsTooLarge(pixels.Width, pixels.Height);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -68,36 +127,49 @@ internal sealed unsafe partial class JpegEncoderCore
         this.outputStream = stream;
         Span<byte> buffer = stackalloc byte[20];
 
-        ImageMetadata metadata = image.Metadata;
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
-        JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
+
+        // Match the profile to the color samples that enter ICC. YCCK uses a CMYK profile before JPEG's YCCK transform.
+        // YCbCr normally uses an RGB profile before JPEG's matrix. A native YCbCr profile instead describes Y, Cb and Cr directly.
+        PixelColorType sampleColorType = frameConfig.ColorType switch
+        {
+            JpegColorSpace.Luminance => PixelColorType.Luminance,
+            JpegColorSpace.Cmyk or JpegColorSpace.TiffCmyk => PixelColorType.CMYK,
+            JpegColorSpace.Ycck or JpegColorSpace.TiffYccK => PixelColorType.YCCK,
+            JpegColorSpace.YCbCr when profile?.Header.DataColorSpace == IccColorSpaceType.YCbCr => PixelColorType.YCbCr,
+            _ => PixelColorType.RGB
+        };
+
+        // This helper retains the supplied profile only when its Header.DataColorSpace matches sampleColorType.
+        // It also creates the sRGB-to-profile converter when needed. It never creates a replacement profile.
+        IccProfile outputIccProfile = IccProfile.GetIccProfileForEncoding(
+            profile, sampleColorType, configuration.MemoryAllocator, out ColorProfileConverter colorProfileConverter);
 
         bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
-        using JpegFrame frame = new(image, frameConfig, interleaved);
+        using JpegFrame frame = new(configuration, pixels.Size, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
         this.WriteStartOfImage(buffer);
 
-        // Write APP0 marker
-        if (frameConfig.AdobeColorTransformMarkerFlag is null)
-        {
-            this.WriteJfifApplicationHeader(metadata, buffer);
-        }
-
-        // Write APP14 marker with adobe color extension
-        else
+        // Adobe's marker identifies inverted standalone CMYK/YCCK. TIFF CMYK keeps conventional ink values and omits it.
+        if (frameConfig.AdobeColorTransformMarkerFlag is not null)
         {
             this.WriteApp14Marker(frameConfig.AdobeColorTransformMarkerFlag.Value, buffer);
         }
+        else if (frameConfig.Components.Length < 4)
+        {
+            // JFIF describes grayscale or YCbCr, so it cannot identify a four-component TIFF strip.
+            this.WriteJfifApplicationHeader(metadata, buffer);
+        }
 
         // Write Exif, XMP, ICC and IPTC profiles
-        this.WriteProfiles(metadata, buffer);
+        this.WriteProfiles(metadata, outputIccProfile, buffer);
 
         // Write comments
-        this.WriteComments(image.Configuration, jpegMetadata);
+        this.WriteComments(configuration, jpegMetadata);
 
         // Write the image dimensions.
-        this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
+        this.WriteStartOfFrame(pixels.Width, pixels.Height, frameConfig, buffer);
 
         // Write the Huffman tables.
         HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, this.encoder.RestartInterval, stream);
@@ -110,7 +182,14 @@ internal sealed unsafe partial class JpegEncoderCore
         this.WriteDri(this.encoder.RestartInterval, buffer);
 
         // Write scans with actual pixel data
-        using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
+        using SpectralConverter<TPixel> spectralConverter = new(
+            frame,
+            configuration,
+            pixels,
+            this.QuantizationTables,
+            colorProfileConverter,
+            clearTransparentPixels);
+
         this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
 
         // Write the End Of Image marker.
@@ -491,9 +570,10 @@ internal sealed unsafe partial class JpegEncoderCore
         const int maxBytes = 65533;
         const int maxData = maxBytes - iccOverheadLength;
 
-        byte[] data = iccProfile.ToByteArray();
+        // Marker segmentation only reads the encoded profile; retain its storage instead of copying the complete payload.
+        ReadOnlySpan<byte> data = iccProfile.GetData().Span;
 
-        if (data is null || data.Length == 0)
+        if (data.IsEmpty)
         {
             return;
         }
@@ -547,7 +627,7 @@ internal sealed unsafe partial class JpegEncoderCore
             buffer[10] = (byte)'E';
 
             this.outputStream.Write(buffer, 0, iccOverheadLength);
-            this.outputStream.Write(data, offset, length);
+            this.outputStream.Write(data.Slice(offset, length));
 
             current++;
             offset += length;
@@ -558,8 +638,9 @@ internal sealed unsafe partial class JpegEncoderCore
     /// Writes the metadata profiles to the image.
     /// </summary>
     /// <param name="metadata">The image metadata.</param>
+    /// <param name="iccProfile">The profile selected for the encoded component values.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private void WriteProfiles(ImageMetadata metadata, Span<byte> buffer)
+    private void WriteProfiles(ImageMetadata metadata, IccProfile iccProfile, Span<byte> buffer)
     {
         // For compatibility, place the profiles in the following order:
         // - APP1 EXIF
@@ -568,7 +649,7 @@ internal sealed unsafe partial class JpegEncoderCore
         // - APP13 IPTC
         this.WriteExifProfile(metadata.ExifProfile, buffer);
         this.WriteXmpProfile(metadata.XmpProfile, buffer);
-        this.WriteIccProfile(metadata.IccProfile, buffer);
+        this.WriteIccProfile(iccProfile, buffer);
         this.WriteIptcProfile(metadata.IptcProfile, buffer);
     }
 
@@ -859,6 +940,8 @@ internal sealed unsafe partial class JpegEncoderCore
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
         JpegColorType color = this.encoder.ColorType ?? metadata.ColorType;
+
+        // Public options select standalone conventions. CreateFrameConfigs places Adobe CMYK before TIFF CMYK, which has the same EncodingColor.
         JpegFrameConfig frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);

@@ -17,12 +17,17 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 internal static class JxlBundle
 {
     /// <summary>
+    /// Maximum extension count and nested extension-state depth. Both use one bit per entry in a UInt64.
+    /// </summary>
+    public const int MaxExtensions = 64;
+
+    /// <summary>
     /// Initializes the specified JXL fields.
     /// </summary>
     /// <param name="fields">The JXL fields.</param>
     public static void Init(IJxlFields fields)
     {
-        JxlInitVisitor initVisitor = new();
+        JxlSetDefaultVisitor initVisitor = new(false);
 
         if (!initVisitor.Visit(fields))
         {
@@ -36,7 +41,7 @@ internal static class JxlBundle
     /// <param name="fields">The JXL fields.</param>
     public static void SetDefault(IJxlFields fields)
     {
-        JxlSetDefaultVisitor visitor = new();
+        JxlSetDefaultVisitor visitor = new(true);
 
         if (!visitor.Visit(fields))
         {
@@ -80,62 +85,83 @@ internal static class JxlBundle
         return visitor.OK;
     }
 
+    /// <summary>
+    /// Measures the complete serialized length of a bundle without writing it.
+    /// </summary>
+    /// <param name="fields">The fields to measure.</param>
+    /// <param name="extensionBits">The current bundle's extension-payload length in bits.</param>
+    /// <param name="totalBits">The complete wire length, including nested bundles and extension-length fields.</param>
+    /// <returns>Whether every field can be encoded.</returns>
     public static bool CanEncode(IJxlFields fields, ref int extensionBits, ref long totalBits)
     {
         JxlCanEncodeVisitor canEncodeVisitor = new();
 
-        if (!canEncodeVisitor.Visit(fields))
-        {
-            return false;
-        }
-
-        if (!canEncodeVisitor.GetSizes(ref extensionBits, ref totalBits))
-        {
-            return false;
-        }
-
-        return true;
+        return canEncodeVisitor.Measure(fields, ref extensionBits, ref totalBits);
     }
 
     /// <summary>
-    /// Tries to read the fields from a bit-reader.
+    /// Reads fields and reports whether they are complete and valid.
     /// </summary>
     /// <param name="reader">The bit-reader.</param>
     /// <param name="fields">The fields.</param>
-    /// <returns>Status of the read operation.</returns>
+    /// <returns>Whether all fields are complete and valid.</returns>
+    /// <remarks>The operation advances the reader and updates the supplied fields. It does not restore either on failure.</remarks>
     public static bool CanRead(JxlBitReader reader, IJxlFields fields)
     {
         JxlReadVisitor visitor = new(reader);
-        _ = visitor.Visit(fields);
-        return visitor.OK;
+
+        try
+        {
+            return visitor.Visit(fields) && visitor.OK;
+        }
+        catch (EndOfStreamException)
+        {
+            return false;
+        }
     }
 
-    public static bool Write(IJxlFields fields, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput auxOutput)
+    /// <summary>
+    /// Writes one validated bundle and charges its actual bit count to the supplied encoder layer.
+    /// </summary>
+    /// <param name="fields">The fields to write.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <param name="layer">The statistics layer for these fields.</param>
+    /// <param name="auxOutput">The optional encoder statistics.</param>
+    /// <returns>Whether all fields can be encoded and were written successfully.</returns>
+    public static bool Write(IJxlFields fields, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput? auxOutput)
     {
         int extensionBits = 0;
         long totalBits = 0;
-        if (!CanEncode(fields, ref extensionBits, ref totalBits))
+        JxlCanEncodeVisitor sizeVisitor = new();
+        if (!sizeVisitor.Measure(fields, ref extensionBits, ref totalBits))
         {
             return false;
         }
 
-        return writer.WithMaxBits(totalBits, () =>
+        return writer.WithMaxBits((ulong)totalBits, layer, auxOutput, () =>
         {
-            JxlWriteVisitor visitor = new(extensionBits, writer);
+            JxlWriteVisitor visitor = new(extensionBits, writer, sizeVisitor);
 
             if (!visitor.Visit(fields))
             {
                 return false;
             }
 
-            return visitor.OK();
+            return visitor.OK;
         });
     }
 
-    public static bool WriteCodestreamHeaders(JxlCodecMetadata metadata, JxlBitWriter writer, JxlAuxiliaryOutput auxOut)
+    /// <summary>
+    /// Writes the codestream signature, image dimensions, image metadata and custom transform fields.
+    /// </summary>
+    /// <param name="metadata">The codestream metadata.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <param name="auxOut">The optional encoder statistics.</param>
+    /// <returns>Whether all header fields can be encoded and were written successfully.</returns>
+    public static bool WriteCodestreamHeaders(JxlCodecMetadata metadata, JxlBitWriter writer, JxlAuxiliaryOutput? auxOut)
     {
         // Marker/signature
-        if (!writer.WithMaxBits(16, () =>
+        if (!writer.WithMaxBits(16, JxlLayerType.Header, auxOut, () =>
         {
             writer.Write(8, 0xFF);
             writer.Write(8, JxlShared.CodestreamMarker);
@@ -145,30 +171,61 @@ internal static class JxlBundle
             return false;
         }
 
-        if (!WriteSizeHeader(metadata.Size!, writer, JxlLayerType.Header, auxOut))
+        if (!WriteSizeHeader(metadata.Size, writer, JxlLayerType.Header, auxOut))
         {
             return false;
         }
 
-        if (!WriteImageMetadata(metadata.ImageMetadata!, writer, JxlLayerType.Header, auxOut))
+        if (!WriteImageMetadata(metadata.ImageMetadata, writer, JxlLayerType.Header, auxOut))
         {
             return false;
         }
 
-        metadata.CustomTransformData!.NonserializedXybEncoded = metadata.ImageMetadata!.XybEncoded;
+        metadata.CustomTransformData.NonserializedXybEncoded = metadata.ImageMetadata.XybEncoded;
 
-        return Write(metadata.CustomTransformData!, writer, JxlLayerType.Header, auxOut);
+        return Write(metadata.CustomTransformData, writer, JxlLayerType.Header, auxOut);
     }
 
-    public static bool WriteFrameHeader(JxlFrameHeader frame, JxlBitWriter writer, JxlAuxiliaryOutput auxOut)
+    /// <summary>
+    /// Writes one frame header.
+    /// </summary>
+    /// <param name="frame">The frame fields.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <param name="auxOut">The optional encoder statistics.</param>
+    /// <returns>Whether the frame fields can be encoded and were written successfully.</returns>
+    public static bool WriteFrameHeader(JxlFrameHeader frame, JxlBitWriter writer, JxlAuxiliaryOutput? auxOut)
         => Write(frame, writer, JxlLayerType.Header, auxOut);
 
-    public static bool WriteImageMetadata(JxlImageMetadata metadata, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput auxOut)
+    /// <summary>
+    /// Writes the image metadata fields.
+    /// </summary>
+    /// <param name="metadata">The metadata fields.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <param name="layer">The encoder statistics layer.</param>
+    /// <param name="auxOut">The optional encoder statistics.</param>
+    /// <returns>Whether the metadata fields can be encoded and were written successfully.</returns>
+    public static bool WriteImageMetadata(JxlImageMetadata metadata, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput? auxOut)
         => Write(metadata, writer, layer, auxOut);
 
-    public static bool WriteQuantizerParameters(JxlQuantizerParameters metadata, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput auxOut)
+    /// <summary>
+    /// Writes the quantizer parameters.
+    /// </summary>
+    /// <param name="metadata">The quantizer fields.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <param name="layer">The encoder statistics layer.</param>
+    /// <param name="auxOut">The optional encoder statistics.</param>
+    /// <returns>Whether the quantizer fields can be encoded and were written successfully.</returns>
+    public static bool WriteQuantizerParameters(JxlQuantizerParameters metadata, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput? auxOut)
         => Write(metadata, writer, layer, auxOut);
 
-    public static bool WriteSizeHeader(JxlSizeHeader header, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput auxOut)
+    /// <summary>
+    /// Writes the image dimensions.
+    /// </summary>
+    /// <param name="header">The image dimension fields.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <param name="layer">The encoder statistics layer.</param>
+    /// <param name="auxOut">The optional encoder statistics.</param>
+    /// <returns>Whether the dimensions can be encoded and were written successfully.</returns>
+    public static bool WriteSizeHeader(JxlSizeHeader header, JxlBitWriter writer, JxlLayerType layer, JxlAuxiliaryOutput? auxOut)
         => Write(header, writer, layer, auxOut);
 }

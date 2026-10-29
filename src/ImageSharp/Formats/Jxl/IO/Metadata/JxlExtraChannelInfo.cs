@@ -6,10 +6,11 @@ using SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 
-// One field should be public because we can't change
-// an InlineArray values if it's a property
 #pragma warning disable SA1401 // Fields should be private
 
+/// <summary>
+/// Stores one extra channel's sample representation, dimensions, name and type-specific fields.
+/// </summary>
 internal sealed class JxlExtraChannelInfo : IJxlFields
 {
     private bool allDefault;
@@ -19,62 +20,90 @@ internal sealed class JxlExtraChannelInfo : IJxlFields
     private bool alphaAssociated;
     private int cfaChannel;
 
+    /// <summary>
+    /// The spot color's three RGB components followed by its solidity. These are codec values, not pixel alpha.
+    /// </summary>
     public InlineArray4<float> SpotColor;
 
+    /// <summary>
+    /// Initializes an eight-bit, full-resolution, unassociated alpha channel with no name.
+    /// </summary>
+    public JxlExtraChannelInfo() => JxlBundle.Init(this);
+
+    /// <summary>
+    /// Gets or sets whether the wire header uses its one-bit default shortcut.
+    /// </summary>
     public bool AllDefault
     {
         get => this.allDefault;
         set => this.allDefault = value;
     }
 
+    /// <summary>
+    /// Gets or sets the extra-channel type.
+    /// </summary>
     public JxlExtraChannel Type
     {
         get => this.type;
         set => this.type = value;
     }
 
-    public JxlBitDepthMetadata? BitDepth { get; set; }
+    /// <summary>
+    /// Gets or sets the sample representation owned by this channel header.
+    /// </summary>
+    public JxlBitDepthMetadata BitDepth { get; set; } = new();
 
+    /// <summary>
+    /// Gets or sets the base-two reduction in channel dimensions relative to the color image.
+    /// </summary>
     public int DimensionShift
     {
         get => this.dimensionShift;
         set => this.dimensionShift = value;
     }
 
+    /// <summary>
+    /// Gets or sets the channel name. Empty means that no name is present.
+    /// </summary>
     public string? Name
     {
         get => this.name;
         set => this.name = value;
     }
 
+    /// <summary>
+    /// Gets or sets whether color components are associated with this alpha channel.
+    /// </summary>
     public bool AlphaAssociated
     {
         get => this.alphaAssociated;
         set => this.alphaAssociated = value;
     }
 
+    /// <summary>
+    /// Gets or sets the channel index in the color-filter array.
+    /// </summary>
     public int CfaChannel
     {
         get => this.cfaChannel;
         set => this.cfaChannel = value;
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
         if (visitor.AllDefault(this, ref this.allDefault))
         {
-            // Overwrite all serialized fields, but not any nonserialized_*.
             visitor.SetDefault(this);
             return true;
         }
 
-        // General
         if (!visitor.Enum(JxlExtraChannel.Alpha, ref this.type))
         {
             return false;
         }
 
-        if (!visitor.VisitNested(this.BitDepth!))
+        if (!visitor.VisitNested(this.BitDepth))
         {
             return false;
         }
@@ -95,12 +124,12 @@ internal sealed class JxlExtraChannelInfo : IJxlFields
             return false;
         }
 
-        if (!VisitNameString(visitor, ref this.name))
+        if (!visitor.Name(ref this.name))
         {
             return false;
         }
 
-        // Conditional
+        // Only the selected channel type supplies its conditional fields. The default visitor initializes all three groups.
         if (visitor.Conditional(this.type == JxlExtraChannel.Alpha))
         {
             if (!visitor.Boolean(false, ref this.alphaAssociated))

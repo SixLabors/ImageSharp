@@ -7,6 +7,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 public readonly struct PixelDifference
 {
+    /// <summary>
+    /// Initializes a difference in integer component units.
+    /// </summary>
+    /// <param name="position">The pixel position.</param>
+    /// <param name="redDifference">The red component difference.</param>
+    /// <param name="greenDifference">The green component difference.</param>
+    /// <param name="blueDifference">The blue component difference.</param>
+    /// <param name="alphaDifference">The alpha component difference.</param>
     public PixelDifference(
         Point position,
         int redDifference,
@@ -21,6 +29,12 @@ public readonly struct PixelDifference
         this.AlphaDifference = alphaDifference;
     }
 
+    /// <summary>
+    /// Initializes a difference in unsigned sixteen-bit component units.
+    /// </summary>
+    /// <param name="position">The pixel position.</param>
+    /// <param name="expected">The expected pixel.</param>
+    /// <param name="actual">The actual pixel.</param>
     public PixelDifference(Point position, Rgba64 expected, Rgba64 actual)
         : this(
             position,
@@ -31,16 +45,49 @@ public readonly struct PixelDifference
     {
     }
 
+    /// <summary>
+    /// Initializes a floating-point difference expressed in sixteen-bit component units without quantization.
+    /// </summary>
+    /// <param name="position">The pixel position.</param>
+    /// <param name="expected">The expected components.</param>
+    /// <param name="actual">The actual components.</param>
+    public PixelDifference(Point position, RgbaVector expected, RgbaVector actual)
+    {
+        this.Position = position;
+
+        // Match the integer reports' units while preserving fractional codes and out-of-range values.
+        this.RedDifference = (actual.R - expected.R) * ushort.MaxValue;
+        this.GreenDifference = (actual.G - expected.G) * ushort.MaxValue;
+        this.BlueDifference = (actual.B - expected.B) * ushort.MaxValue;
+        this.AlphaDifference = (actual.A - expected.A) * ushort.MaxValue;
+    }
+
+    /// <summary>
+    /// Gets the pixel position.
+    /// </summary>
     public Point Position { get; }
 
-    public int RedDifference { get; }
+    /// <summary>
+    /// Gets the red difference in the component units supplied to the constructor.
+    /// </summary>
+    public float RedDifference { get; }
 
-    public int GreenDifference { get; }
+    /// <summary>
+    /// Gets the green difference in the component units supplied to the constructor.
+    /// </summary>
+    public float GreenDifference { get; }
 
-    public int BlueDifference { get; }
+    /// <summary>
+    /// Gets the blue difference in the component units supplied to the constructor.
+    /// </summary>
+    public float BlueDifference { get; }
 
-    public int AlphaDifference { get; }
+    /// <summary>
+    /// Gets the alpha difference in the component units supplied to the constructor.
+    /// </summary>
+    public float AlphaDifference { get; }
 
+    /// <inheritdoc />
     public override string ToString() =>
         $"[Δ({this.RedDifference},{this.GreenDifference},{this.BlueDifference},{this.AlphaDifference}) @ ({this.Position.X},{this.Position.Y})]";
 }

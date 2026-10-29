@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Tests.Formats;
 
-public class GeneralFormatTests
+public partial class GeneralFormatTests
 {
     /// <summary>
     /// A collection made up of one file for each image format.

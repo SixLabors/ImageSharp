@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -14,7 +16,12 @@ public class GifMetadataTests
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new()
         {
-            { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
+            {
+                TestImages.Gif.Rings,
+                (int)ImageMetadata.DefaultHorizontalResolution,
+                (int)ImageMetadata.DefaultVerticalResolution,
+                PixelResolutionUnit.PixelsPerInch
+            },
             { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
             { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
@@ -26,6 +33,47 @@ public class GifMetadataTests
             { TestImages.Gif.Receipt, 1 },
             { TestImages.Gif.Rings, 1 }
         };
+
+    /// <summary>
+    /// Identifying an ICC-bearing GIF assembles the complete profile when optional metadata is skipped or retained.
+    /// </summary>
+    /// <param name="skipMetadata">Whether optional metadata is skipped.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Identify_ExifToolIcc_AssemblesCompleteProfile(bool skipMetadata)
+    {
+        TestFile testFile = TestFile.Create(TestImages.Gif.ExifToolIcc);
+        DecoderOptions options = new(Configuration.Default) { ColorProfileHandling = ColorProfileHandling.Preserve, SkipMetadata = skipMetadata };
+
+        // ICC remains available for color handling even when optional metadata is skipped.
+        ImageInfo info = Image.Identify(options, testFile.Bytes);
+        GifMetadata metadata = info.Metadata.GetGifMetadata();
+
+        Assert.NotNull(metadata.GlobalColorTable);
+        ReadOnlySpan<Color> palette = metadata.GlobalColorTable.Value.Span;
+
+        Assert.Equal(new Size(8, 8), info.Size);
+        Assert.Single(info.FrameMetadataCollection);
+        Assert.Equal(256, palette.Length);
+        Assert.Equal(palette[0], metadata.BackgroundColor);
+
+        // The source profile spans two GIF application sub-blocks; its checksum detects truncated assembly.
+        byte[] profileHash = SHA256.HashData(info.Metadata.IccProfile.ToByteArray());
+
+        Assert.Equal("A8D0D753BD6129357CC2647435CE675E8637A679EB526FA180FBA460874CE1D3", Convert.ToHexString(profileHash));
+    }
+
+    [Fact]
+    public void FormatConnectingMetadata_PreservesBackgroundBetweenGifAndWebp()
+    {
+        WebpMetadata webp = new() { BackgroundColor = Color.CornflowerBlue };
+        GifMetadata gif = GifMetadata.FromFormatConnectingMetadata(webp.ToFormatConnectingMetadata());
+        WebpMetadata roundTrip = WebpMetadata.FromFormatConnectingMetadata(gif.ToFormatConnectingMetadata());
+
+        Assert.Equal(webp.BackgroundColor, gif.BackgroundColor);
+        Assert.Equal(webp.BackgroundColor, roundTrip.BackgroundColor);
+    }
 
     [Fact]
     public void CloneIsDeep()
@@ -66,7 +114,7 @@ public class GifMetadataTests
     [Fact]
     public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
     {
-        DecoderOptions options = new()
+        DecoderOptions options = new(Configuration.Default)
         {
             SkipMetadata = true
         };

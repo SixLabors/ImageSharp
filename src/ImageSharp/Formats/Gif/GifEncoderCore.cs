@@ -4,9 +4,12 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -84,6 +87,19 @@ internal sealed class GifEncoderCore
     {
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
+
+        // GIF has one profile for every frame and color table. Use the root frame's profile before the image-wide fallback.
+        IccProfile? sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+            sourceIccProfile, PixelColorType.Indexed, this.memoryAllocator, out ColorProfileConverter? colorProfileConverter);
+
+        // Each entry needs four vector components and three RGB scratch components. Reuse this storage for every table.
+        // The normal path needs no ICC storage. GIF tables contain at most 256 entries.
+        using IMemoryOwner<float>? paletteConversionOwner = colorProfileConverter is null
+            ? null
+            : this.memoryAllocator.Allocate<float>(QuantizerConstants.MaxColors * (4 + 3));
+
+        Memory<float> paletteConversionBuffer = paletteConversionOwner?.Memory ?? Memory<float>.Empty;
 
         GifMetadata gifMetadata = image.Metadata.CloneGifMetadata();
         this.colorTableMode ??= gifMetadata.ColorTableMode;
@@ -165,6 +181,8 @@ internal sealed class GifEncoderCore
 
             quantized = firstFrameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
             TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
+
+            // Select against the working sRGB palette. The written table retains this index after its RGB colors are transformed.
             backgroundIndex = firstFrameQuantizer.GetQuantizedColor(backgroundPixel, out _);
         }
         else
@@ -180,6 +198,9 @@ internal sealed class GifEncoderCore
                 frameMetadata.HasTransparency ? frameMetadata.TransparencyIndex : -1,
                 Color.Transparent);
         }
+
+        // Own the quantized frame through header, extension and frame writes, including failures before frame encoding begins.
+        using IndexedImageFrame<TPixel> quantizedOwner = quantized;
 
         // Write the header.
         WriteHeader(stream);
@@ -198,7 +219,13 @@ internal sealed class GifEncoderCore
 
         if (useGlobalTable)
         {
-            this.WriteColorTable(quantized, bitDepth, stream);
+            this.WriteColorTable(quantized, bitDepth, stream, colorProfileConverter, paletteConversionBuffer);
+        }
+
+        // ICC describes the written colors, so SkipMetadata must not suppress it.
+        if (outputIccProfile is not null)
+        {
+            WriteIccProfile(outputIccProfile, stream);
         }
 
         if (!this.skipMetadata)
@@ -211,15 +238,12 @@ internal sealed class GifEncoderCore
             this.WriteApplicationExtensions(stream, image.Frames.Count, this.repeatCount ?? gifMetadata.RepeatCount, xmpProfile);
         }
 
-        // If the token is cancelled during encoding of frames we must ensure the
-        // quantized frame is disposed.
+        // Finish the GIF stream after frame encoding. The outer owner disposes the palette and indices even if this write fails.
         try
         {
-            this.EncodeFirstFrame(stream, frameMetadata, quantized, cancellationToken);
+            this.EncodeFirstFrame(stream, frameMetadata, quantized, colorProfileConverter, paletteConversionBuffer, cancellationToken);
 
-            // Capture the global palette for reuse on subsequent frames and cleanup the quantized frame.
-            TPixel[] globalPalette = image.Frames.Count == 1 ? [] : quantized.Palette.ToArray();
-
+            // Subsequent frames still select indices against the working palette, which ICC output leaves unchanged.
             if (image.Frames.Count > 1)
             {
                 using PaletteQuantizer<TPixel> globalFrameQuantizer = new(this.configuration, globalQuantizer.Options, quantized.Palette.ToArray());
@@ -231,14 +255,14 @@ internal sealed class GifEncoderCore
                     backgroundColor,
                     transparencyIndex,
                     frameMetadata.DisposalMode,
+                    colorProfileConverter,
+                    paletteConversionBuffer,
                     cancellationToken);
             }
         }
         finally
         {
             stream.WriteByte(GifConstants.EndIntroducer);
-
-            quantized?.Dispose();
         }
     }
 
@@ -255,6 +279,20 @@ internal sealed class GifEncoderCore
         return metadata;
     }
 
+    /// <summary>
+    /// Encodes later frames while retaining the working palette and background for frame differencing.
+    /// </summary>
+    /// <typeparam name="TPixel">The image pixel format.</typeparam>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="image">The source animation.</param>
+    /// <param name="globalQuantizer">The quantizer used to build new local palettes.</param>
+    /// <param name="globalFrameQuantizer">The quantizer that reuses the working global palette.</param>
+    /// <param name="backgroundColor">The resolved sRGB disposal background.</param>
+    /// <param name="globalTransparencyIndex">The first frame's transparent palette index.</param>
+    /// <param name="previousDisposalMode">The first frame's disposal mode.</param>
+    /// <param name="colorProfileConverter">The converter used only when writing color tables.</param>
+    /// <param name="paletteConversionBuffer">Storage shared by all output color tables.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     private void EncodeAdditionalFrames<TPixel>(
         Stream stream,
         Image<TPixel> image,
@@ -263,6 +301,8 @@ internal sealed class GifEncoderCore
         Color backgroundColor,
         int globalTransparencyIndex,
         FrameDisposalMode previousDisposalMode,
+        ColorProfileConverter? colorProfileConverter,
+        Memory<float> paletteConversionBuffer,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -293,17 +333,31 @@ internal sealed class GifEncoderCore
                 useLocal,
                 gifMetadata,
                 backgroundColor,
-                previousDisposalMode);
+                previousDisposalMode,
+                colorProfileConverter,
+                paletteConversionBuffer);
 
             previousFrame = currentFrame;
             previousDisposalMode = gifMetadata.DisposalMode;
         }
     }
 
+    /// <summary>
+    /// Writes the first frame and converts its local table when one is required.
+    /// </summary>
+    /// <typeparam name="TPixel">The image pixel format.</typeparam>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="metadata">The first frame's GIF metadata.</param>
+    /// <param name="quantized">The working palette and frame indices.</param>
+    /// <param name="colorProfileConverter">The converter used only when writing color tables.</param>
+    /// <param name="paletteConversionBuffer">Storage shared by all output color tables.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     private void EncodeFirstFrame<TPixel>(
         Stream stream,
         GifFrameMetadata metadata,
         IndexedImageFrame<TPixel> quantized,
+        ColorProfileConverter? colorProfileConverter,
+        Memory<float> paletteConversionBuffer,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -320,12 +374,29 @@ internal sealed class GifEncoderCore
 
         if (useLocal)
         {
-            this.WriteColorTable(quantized, bitDepth, stream);
+            this.WriteColorTable(quantized, bitDepth, stream, colorProfileConverter, paletteConversionBuffer);
         }
 
         this.WriteImageData(indices, stream, quantized.Palette.Length, metadata.TransparencyIndex);
     }
 
+    /// <summary>
+    /// Finds changed pixels in sRGB, quantizes them, and writes their indices and output color table.
+    /// </summary>
+    /// <typeparam name="TPixel">The image pixel format.</typeparam>
+    /// <param name="stream">The output stream.</param>
+    /// <param name="previousFrame">The preceding source frame.</param>
+    /// <param name="currentFrame">The source frame to encode.</param>
+    /// <param name="nextFrame">The following source frame, or null for the final frame.</param>
+    /// <param name="encodingFrame">The reusable frame for changed pixels.</param>
+    /// <param name="globalQuantizer">The quantizer used to build new local palettes.</param>
+    /// <param name="globalFrameQuantizer">The quantizer that reuses the working global palette.</param>
+    /// <param name="useLocal">Whether this frame writes a local table.</param>
+    /// <param name="metadata">The frame's GIF metadata.</param>
+    /// <param name="backgroundColor">The resolved sRGB disposal background.</param>
+    /// <param name="previousDisposalMode">The preceding frame's disposal mode.</param>
+    /// <param name="colorProfileConverter">The converter used only when writing color tables.</param>
+    /// <param name="paletteConversionBuffer">Storage shared by all output color tables.</param>
     private void EncodeAdditionalFrame<TPixel>(
         Stream stream,
         ImageFrame<TPixel> previousFrame,
@@ -337,7 +408,9 @@ internal sealed class GifEncoderCore
         bool useLocal,
         GifFrameMetadata metadata,
         Color backgroundColor,
-        FrameDisposalMode previousDisposalMode)
+        FrameDisposalMode previousDisposalMode,
+        ColorProfileConverter? colorProfileConverter,
+        Memory<float> paletteConversionBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Capture any explicit transparency index from the metadata.
@@ -392,7 +465,7 @@ internal sealed class GifEncoderCore
 
         if (useLocal)
         {
-            this.WriteColorTable(quantized, bitDepth, stream);
+            this.WriteColorTable(quantized, bitDepth, stream, colorProfileConverter, paletteConversionBuffer);
         }
 
         Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;
@@ -521,7 +594,7 @@ internal sealed class GifEncoderCore
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ClampIndex(int value) => (byte)Numerics.Clamp(value, byte.MinValue, byte.MaxValue);
+    private static byte ClampIndex(int value) => (byte)Math.Clamp(value, byte.MinValue, byte.MaxValue);
 
     /// <summary>
     /// Returns the index of the transparent color in the palette.
@@ -624,6 +697,33 @@ internal sealed class GifEncoderCore
         descriptor.WriteTo(buffer);
 
         stream.Write(buffer, 0, GifLogicalScreenDescriptor.Size);
+    }
+
+    /// <summary>
+    /// Writes an ICC.1 Annex B.5 application extension before the first image descriptor.
+    /// </summary>
+    /// <param name="profile">The compatible profile selected for all output color tables.</param>
+    /// <param name="stream">The output stream.</param>
+    private static void WriteIccProfile(IccProfile profile, Stream stream)
+    {
+        ReadOnlySpan<byte> data = profile.GetData().Span;
+        stream.WriteByte(GifConstants.ExtensionIntroducer);
+        stream.WriteByte(GifConstants.ApplicationExtensionLabel);
+        stream.WriteByte(GifConstants.ApplicationBlockSize);
+        stream.Write(GifConstants.IccApplicationIdentificationBytes);
+
+        // GIF prefixes each data subblock with its byte count. Each slice borrows the profile's bytes for this synchronous write.
+        // Annex B.5 uses ordinary subblocks, with at most 255 profile bytes and no sequence-number fields.
+        for (int offset = 0; offset < data.Length;)
+        {
+            int length = Math.Min(byte.MaxValue, data.Length - offset);
+            stream.WriteByte((byte)length);
+            stream.Write(data.Slice(offset, length));
+            offset += length;
+        }
+
+        // A zero-length subblock ends the extension; the next extension or image descriptor follows it.
+        stream.WriteByte(GifConstants.Terminator);
     }
 
     /// <summary>
@@ -802,7 +902,14 @@ internal sealed class GifEncoderCore
     /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
     /// <param name="bitDepth">The bit depth of the color palette.</param>
     /// <param name="stream">The stream to write to.</param>
-    private void WriteColorTable<TPixel>(IndexedImageFrame<TPixel> image, int bitDepth, Stream stream)
+    /// <param name="colorProfileConverter">The converter from sRGB to the output profile, or null for normal RGB output.</param>
+    /// <param name="paletteConversionBuffer">Storage owned by Encode and reused for palette conversion.</param>
+    private void WriteColorTable<TPixel>(
+        IndexedImageFrame<TPixel> image,
+        int bitDepth,
+        Stream stream,
+        ColorProfileConverter? colorProfileConverter,
+        Memory<float> paletteConversionBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // The maximum number of colors for the bit depth
@@ -811,11 +918,23 @@ internal sealed class GifEncoderCore
         using IMemoryOwner<byte> colorTable = this.memoryAllocator.Allocate<byte>(colorTableLength, AllocationOptions.Clean);
         Span<byte> colorTableSpan = colorTable.GetSpan();
 
-        PixelOperations<TPixel>.Instance.ToRgb24Bytes(
-            this.configuration,
-            image.Palette.Span,
-            colorTableSpan,
-            image.Palette.Length);
+        ReadOnlySpan<TPixel> palette = image.Palette.Span;
+        if (colorProfileConverter is null)
+        {
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, palette, colorTableSpan, palette.Length);
+        }
+        else
+        {
+            Span<float> scratch = paletteConversionBuffer.Span;
+            Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(scratch[..(palette.Length * 4)]);
+            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(scratch.Slice(palette.Length * 4, palette.Length * 3));
+
+            // Quantization and frame differencing use the original sRGB palette. Transform into separate storage before final byte packing.
+            // The shared converter reads straight RGB from TPixel; GIF transparency remains an index in the graphic control extension.
+            colorProfileConverter.Convert(this.configuration, palette, vectors, rgb);
+            Span<Rgb24> output = MemoryMarshal.Cast<byte, Rgb24>(colorTableSpan)[..palette.Length];
+            PixelOperations<Rgb24>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectors, output);
+        }
 
         stream.Write(colorTableSpan);
     }

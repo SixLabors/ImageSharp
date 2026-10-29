@@ -25,37 +25,37 @@ public interface IColorProfile<TSelf> : IColorProfile, IEquatable<TSelf>
     where TSelf : IColorProfile<TSelf>
 {
     /// <summary>
-    /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
-    /// The vector components are typically expanded in least to greatest significance order.
+    /// Converts the color to its scaled <see cref="Vector4"/> representation.
+    /// The color model defines the component ranges, which can extend outside [0,1].
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public Vector4 ToScaledVector4();
 
 #pragma warning disable CA1000 // Do not declare static members on generic types
     /// <summary>
-    /// Initializes the color instance from a generic a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// Initializes a color from its scaled <see cref="Vector4"/> representation.
+    /// The color model defines the component ranges, which can extend outside [0,1].
     /// </summary>
     /// <param name="source">The vector to load the pixel from.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
     public static abstract TSelf FromScaledVector4(Vector4 source);
 
     /// <summary>
-    /// Converts the span of colors to a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// Converts colors to their scaled <see cref="Vector4"/> representation.
+    /// The color model defines the component ranges, which can extend outside [0,1].
     /// </summary>
     /// <param name="source">The color span to convert from.</param>
     /// <param name="destination">The vector span to write the results to.</param>
     public static abstract void ToScaledVector4(ReadOnlySpan<TSelf> source, Span<Vector4> destination);
 
     /// <summary>
-    /// Converts the span of colors from a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// Converts scaled <see cref="Vector4"/> values to colors.
+    /// The color model defines the component ranges, which can extend outside [0,1].
     /// </summary>
     /// <param name="source">The vector span to convert from.</param>
     /// <param name="destination">The color span to write the results to.</param>
     public static abstract void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<TSelf> destination);
+
 #pragma warning restore CA1000 // Do not declare static members on generic types
 }
 

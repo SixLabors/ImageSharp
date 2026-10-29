@@ -1,183 +1,151 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
-
 namespace SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 /// <summary>
-/// A wrapper over 3 planes of type <typeparamref name="T"/>. See
-/// also <see cref="JxlPlane{T}"/>.
+/// Owns three equally sized JPEG XL sample planes.
 /// </summary>
-/// <typeparam name="T">
-/// The kind of each item in each of the 3 planes.
-/// </typeparam>
+/// <typeparam name="T">The sample type.</typeparam>
 /// <remarks>
-/// <b>This method should not be marked as sealed.</b> Types such as
-/// <see cref="JxlImageF"/> are commonly used across the JPEG-XL implementation,
-/// which derive from this class.
+/// Each plane has one owner. Use the image-copy operations to copy samples; copying ownership is not supported.
+/// Row views borrow storage from the selected plane and must not outlive it.
 /// </remarks>
-internal class JxlImage3<T> : IDisposable
+internal sealed class JxlImage3<T> : IDisposable
     where T : unmanaged
 {
     /// <summary>
-    /// A <see cref="JxlImage3{T}"/> contains 3 planes.
+    /// The three owned planes.
     /// </summary>
-    private const int PlaneCount = 3;
+    private readonly JxlPlane<T>[] planes;
 
     /// <summary>
-    /// All 3 underlying planes are stored here.
+    /// Initializes three empty planes without allocating sample storage.
     /// </summary>
-    private JxlPlane<T>[] planes = new JxlPlane<T>[3];
+    public JxlImage3() => this.planes = [new(), new(), new()];
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlImage3{T}"/> class
-    /// with 3 planes that are empty and have a width and height of 0 pixels.
+    /// Initializes three allocated sample planes.
     /// </summary>
-    public JxlImage3()
-    {
-        // We want to initialize planes, so they're at least empty
-        // planes rather than null.
-        this.planes[0] = new();
-        this.planes[1] = new();
-        this.planes[2] = new();
-    }
-
+    /// <param name="configuration">The configuration that owns the allocator.</param>
+    /// <param name="xSize">The logical width in samples.</param>
+    /// <param name="ySize">The logical height in rows.</param>
     public JxlImage3(Configuration configuration, int xSize, int ySize)
-        => this.Allocate(configuration, xSize, ySize);
-
-    public JxlImage3(JxlImage3<T> other)
     {
-        for (int i = 0; i < PlaneCount; i++)
+        this.planes = new JxlPlane<T>[3];
+        int allocated = 0;
+
+        try
         {
-            this.planes[i] = other.planes[i];
+            for (; allocated < this.planes.Length; allocated++)
+            {
+                this.planes[allocated] = new(configuration, xSize, ySize);
+            }
+        }
+        catch
+        {
+            // Construction does not transfer ownership until all planes exist. Release earlier
+            // planes if a later allocation fails, then preserve the allocator's original exception.
+            for (int i = 0; i < allocated; i++)
+            {
+                this.planes[i].Dispose();
+            }
+
+            throw;
         }
     }
 
     /// <summary>
-    /// Gets the width of this image.
+    /// Gets the logical width in samples.
     /// </summary>
     public int XSize => this.planes[0].XSize;
 
     /// <summary>
-    /// Gets the height of this image.
+    /// Gets the logical height in rows.
     /// </summary>
     public int YSize => this.planes[0].YSize;
 
     /// <summary>
-    /// Gets the number of bytes per row in this image.
-    /// </summary>
-    public int BytesPerRow => this.planes[0].BytesPerRow;
-
-    /// <summary>
-    /// Gets the number of pixels per row in this image.
+    /// Gets the physical row stride in samples.
     /// </summary>
     public int PixelsPerRow => this.planes[0].PixelsPerRow;
 
     /// <summary>
-    /// Shorthand for <c>image3.Plane(<paramref name="plane"/>).GetRow(<paramref name="row"/>)</c>.
+    /// Borrows storage from a plane row through the end of that plane's allocation.
     /// </summary>
-    /// <param name="plane">
-    /// Index of the plane. This can be 0, 1, or 2.
-    /// </param>
-    /// <param name="row">
-    /// Index of the row within the plane whose index is specified by the
-    /// <paramref name="plane"/> parameter.
-    /// </param>
-    /// <returns>
-    /// A Span view for the row of the plane. Modifying values of this span
-    /// directly modifies the data for that row in that plane.
-    /// </returns>
-    public Span<T> PlaneRow(int plane, int row)
+    /// <param name="plane">The plane index: zero, one, or two.</param>
+    /// <param name="row">The row index.</param>
+    /// <returns>The row, its padding, and following rows.</returns>
+    public Span<T> PlaneRow(int plane, int row) => this.planes[plane].GetRow(row);
+
+    /// <summary>
+    /// Borrows memory from a plane row through the end of that plane's allocation.
+    /// </summary>
+    /// <param name="plane">The plane index: zero, one, or two.</param>
+    /// <param name="row">The row index.</param>
+    /// <returns>The row, its padding, and following rows.</returns>
+    public Memory<T> PlaneRowMemory(int plane, int row) => this.planes[plane].GetRowMemory(row);
+
+    /// <summary>
+    /// Borrows storage from a row within a rectangle.
+    /// </summary>
+    /// <param name="rectangle">The rectangle within the logical plane.</param>
+    /// <param name="c">The plane index: zero, one, or two.</param>
+    /// <param name="y">The row index relative to the rectangle.</param>
+    /// <returns>The remaining allocated samples from the requested position.</returns>
+    public Span<T> PlaneRow(Rectangle rectangle, int c, int y) => this.planes[c].GetRow(rectangle, y);
+
+    /// <summary>
+    /// Gets an owned plane without transferring its ownership.
+    /// </summary>
+    /// <param name="index">The plane index: zero, one, or two.</param>
+    /// <returns>The selected plane.</returns>
+    public JxlPlane<T> Plane(int index) => this.planes[index];
+
+    /// <summary>
+    /// Exchanges the storage and dimensions of corresponding planes.
+    /// </summary>
+    /// <param name="other">The image that receives this image's previous state.</param>
+    public void Swap(JxlImage3<T> other)
     {
-        this.PlaneRowBoundsCheck(plane, row);
-
-        int rowOffset = row * this.planes[0].BytesPerRow;
-        Span<T> rowSpan = MemoryMarshal.Cast<byte, T>(this.planes[plane].BytesSpan[rowOffset..]);
-
-        return rowSpan;
-    }
-
-    // This method performs minor allocations!
-    public Memory<T> PlaneRowMemory(int plane, int row)
-    {
-        this.PlaneRowBoundsCheck(plane, row);
-
-        int rowOffset = row * this.planes[0].BytesPerRow;
-        Memory<byte> rowMemoryBytes = this.planes[plane].Bytes[rowOffset..];
-
-        // we have to allocate a utility class so we can reinterpret
-        // a Memory<T>.
-        // Unsafe.As is truly unsafe because, f.e. what if there are
-        // 400 bytes but T is 4 bytes? the length will remain as 400.
-        TypeChangingMemoryManager<T> reinterpreter = new(rowMemoryBytes);
-        return reinterpreter.Memory;
-    }
-
-    public Span<T> PlaneRow(Rectangle rectangle, int c, int y)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(y + rectangle.Top, 0, nameof(y));
-
-        return this.PlaneRow(c, y + rectangle.Top)[rectangle.Left..];
+        for (int i = 0; i < this.planes.Length; i++)
+        {
+            this.planes[i].Swap(other.planes[i]);
+        }
     }
 
     /// <summary>
-    /// Returns a plane specified by index <paramref name="index"/>. There are
-    /// 3 planes in a <see cref="JxlImage3{T}"/> instance.
+    /// Creates three allocated sample planes.
     /// </summary>
-    /// <param name="index">
-    /// The index of the plane. This can only be 0, 1 or 2.
-    /// </param>
-    /// <returns>
-    /// A plane whose index is specified by the <paramref name="index"/> parameter.
-    /// </returns>
-    public JxlPlane<T> Plane(int index) => this.planes[index];
+    /// <param name="configuration">The configuration that owns the allocator.</param>
+    /// <param name="xSize">The logical width in samples.</param>
+    /// <param name="ySize">The logical height in rows.</param>
+    /// <returns>The image that owns the new planes.</returns>
+    public static JxlImage3<T> Create(Configuration configuration, int xSize, int ySize) => new(configuration, xSize, ySize);
 
-    public void Swap(JxlImage3<T> other)
-    {
-        for (int i = 0; i < PlaneCount; i++)
-        {
-            other.planes[i].Swap(this.planes[i]);
-        }
-    }
-
-    public static JxlImage3<T> Create(Configuration configuration, int xSize, int ySize)
-        => new(configuration, xSize, ySize);
-
-    public void Allocate(Configuration configuration, int xSize, int ySize)
-    {
-        JxlPlane<T> plane0 = JxlPlane<T>.Create(configuration, xSize, ySize);
-        JxlPlane<T> plane1 = JxlPlane<T>.Create(configuration, xSize, ySize);
-        JxlPlane<T> plane2 = JxlPlane<T>.Create(configuration, xSize, ySize);
-
-        this.planes = [plane0, plane1, plane2];
-    }
-
+    /// <summary>
+    /// Changes the logical dimensions of all three planes without changing their strides.
+    /// </summary>
+    /// <param name="x">The requested width.</param>
+    /// <param name="y">The requested height.</param>
+    /// <returns>Whether the dimensions fit within the original allocation.</returns>
     public bool ShrinkTo(int x, int y)
     {
-        for (int i = 0; i < PlaneCount; i++)
+        // The planes are allocated and exchanged as a set, so they have the same capacity.
+        if (!this.planes[0].ShrinkTo(x, y))
         {
-            if (!this.planes[i].ShrinkTo(x, y))
-            {
-                return false;
-            }
+            return false;
         }
 
+        this.planes[1].ShrinkTo(x, y);
+        this.planes[2].ShrinkTo(x, y);
         return true;
     }
 
-    private void PlaneRowBoundsCheck(int c, int y)
-    {
-        DebugGuard.MustBeLessThan(c, PlaneCount, nameof(c));
-        DebugGuard.MustBeLessThan(y, this.YSize, nameof(y));
-    }
-
     /// <summary>
-    /// Returns the rectangle for this image bounds.
+    /// Gets the logical bounds of the image.
     /// </summary>
-    /// <returns>A rectangle with x,y=0,0 width,height=XSize,YSize.</returns>
+    /// <returns>The rectangle at the origin with the logical width and height.</returns>
     public Rectangle GetRectangle() => new(0, 0, this.XSize, this.YSize);
 
     /// <inheritdoc />
@@ -186,56 +154,6 @@ internal class JxlImage3<T> : IDisposable
         foreach (JxlPlane<T> plane in this.planes)
         {
             plane.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// <para>
-    /// This is used by <see cref="PlaneRowMemory(int, int)"/>. The underlying data
-    /// of a plane is stored as <c>Memory&lt;byte&gt;</c>. Unlike a <see cref="Span{T}"/>
-    /// where <c>Span&lt;byte&gt;</c> can be directly changed to <c>Span&lt;T&gt;</c>
-    /// using <see cref="MemoryMarshal.Cast{TFrom, TTo}(Span{TFrom})"/>, changing the
-    /// type of a <see cref="Memory{T}"/> cannot be done as simply. Instead, we have
-    /// to create a new instance of a <see cref="MemoryManager{T}"/> that implements
-    /// the <see cref="GetSpan"/> method. Therefore the following code snippet can be
-    /// used with this class to reinterpret the type of a Memory.
-    /// <code>
-    /// Memory&lt;T&gt; ConvertMemory&lt;T&gt;(Memory&lt;byte&gt; src)
-    /// {
-    ///     TypeChangingMemoryManager&lt;T&gt; mm = new(src);
-    ///     return mm.Memory;
-    /// }
-    /// </code>
-    /// </para>
-    /// <para>
-    /// This is the only option so far, but it allocates on the heap.
-    /// </para>
-    /// </summary>
-    /// <typeparam name="TTarget">
-    /// The target type that a <c>Memory&lt;byte&gt;</c> will be reinterpreted into.
-    /// </typeparam>
-    /// <param name="memory">
-    /// Input <c>Memory&lt;byte&gt;</c> to reinterpret into <c>Memory&lt;T&gt;</c>.
-    /// </param>
-    private sealed class TypeChangingMemoryManager<TTarget>(Memory<byte> memory) : MemoryManager<TTarget>
-        where TTarget : unmanaged
-    {
-        /// <inheritdoc />
-        public override Span<TTarget> GetSpan() => MemoryMarshal.Cast<byte, TTarget>(memory.Span);
-
-        /// <inheritdoc />
-        // NOTE: We only need the .GetSpan() method. We do not need
-        // any of the methods below.
-        public override MemoryHandle Pin(int elementIndex = 0) => throw new NotImplementedException();
-
-        /// <inheritdoc />
-        public override void Unpin() => throw new NotImplementedException();
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
         }
     }
 }

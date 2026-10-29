@@ -44,11 +44,6 @@
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\..\shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
     <None Include="..\..\SixLabors.ImageSharp.props" Pack="true" PackagePath="build" />
-    <None Include="Formats\Jxl\Processing\JxlSimdUtils.StoreInterleaved.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>JxlSimdUtils.StoreInterleaved.tt</DependentUpon>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -57,15 +52,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Formats\Heif\Heif4CharCode.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Heif4CharCode.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Formats\Heif\Av1\Pipeline\Quantizers\Av1QuantizationMatrixLookup.Distortion.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Av1QuantizationMatrixLookup.Distortion.tt</DependentUpon>
+    </Compile>
     <Compile Update="Common\InlineArray.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>InlineArray.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Formats\Jxl\Processing\JxlSimdUtils.StoreInterleaved.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>JxlSimdUtils.StoreInterleaved.tt</DependentUpon>
     </Compile>
     <Compile Update="Formats\_Generated\ImageExtensions.Save.cs">
       <DesignTime>True</DesignTime>
@@ -147,6 +147,21 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba64.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rg32.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Rg32.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\RgbaVector.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RgbaVector.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders{TPixel}.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PixelBlenders{TPixel}.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -170,13 +185,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Formats\Heif\Heif4CharCode.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Heif4CharCode.cs</LastGenOutput>
+    </None>
+    <None Update="Formats\Heif\Av1\Pipeline\Quantizers\Av1QuantizationMatrixLookup.Distortion.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Av1QuantizationMatrixLookup.Distortion.cs</LastGenOutput>
+    </None>
     <None Update="Common\InlineArray.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>InlineArray.cs</LastGenOutput>
-    </None>
-    <None Update="Formats\Jxl\Processing\JxlSimdUtils.StoreInterleaved.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>JxlSimdUtils.StoreInterleaved.Generated.cs</LastGenOutput>
     </None>
     <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
       <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
@@ -238,8 +257,20 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Rgba64.PixelOperations.Generated.cs</LastGenOutput>
     </None>
+    <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rg32.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Rg32.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\RgbaVector.PixelOperations.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RgbaVector.PixelOperations.Generated.cs</LastGenOutput>
+    </None>
     <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
       <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders{TPixel}.Generated.tt">
+      <LastGenOutput>PixelBlenders{TPixel}.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">

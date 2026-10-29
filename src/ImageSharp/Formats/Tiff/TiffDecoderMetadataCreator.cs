@@ -68,6 +68,8 @@ internal static class TiffDecoderMetadataCreator
         TiffFrameMetadata tiffFrameMetadata = rootFrameMetadata.GetTiffMetadata();
         tiffMetadata.BitsPerPixel = tiffFrameMetadata.BitsPerPixel;
         tiffMetadata.BitsPerSample = tiffFrameMetadata.BitsPerSample;
+        tiffMetadata.SampleFormat = tiffFrameMetadata.SampleFormat;
+        tiffMetadata.ExtraSampleType = tiffFrameMetadata.ExtraSampleType;
         tiffMetadata.Compression = tiffFrameMetadata.Compression;
         tiffMetadata.PhotometricInterpretation = tiffFrameMetadata.PhotometricInterpretation;
         tiffMetadata.Predictor = tiffFrameMetadata.Predictor;

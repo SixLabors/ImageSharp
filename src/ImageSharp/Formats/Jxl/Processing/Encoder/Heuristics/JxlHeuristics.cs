@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Modular;
@@ -124,7 +123,11 @@ internal static class JxlHeuristics
         -0.00624645f, -0.02921014f, -0.04022174f, -0.03452303f, -0.01716200f,
     ];
 
-    public static void FindBestBlockEntropyModel(JxlCompressParameters cparameters, JxlImageI rqf, JxlAcStrategyImage acStrategy, JxlBlockContextMap blockCtxMap)
+    public static void FindBestBlockEntropyModel(
+        JxlCompressParameters cparameters,
+        JxlPlane<int> rqf,
+        JxlAcStrategyImage acStrategy,
+        JxlBlockContextMap blockCtxMap)
     {
         if (cparameters.DecodingSpeedTier >= 1)
         {
@@ -293,7 +296,7 @@ internal static class JxlHeuristics
         }
     }
 
-    public static void CreateMask(JxlImageF image, JxlImageF mask)
+    public static void CreateMask(JxlPlane<float> image, JxlPlane<float> mask)
     {
         for (int y = 0; y < image.YSize; y++)
         {
@@ -330,7 +333,7 @@ internal static class JxlHeuristics
         }
     }
 
-    public static void ReduceRinging(JxlImageF initial, JxlImageF mask, JxlImageF down)
+    public static void ReduceRinging(JxlPlane<float> initial, JxlPlane<float> mask, JxlPlane<float> down)
     {
         int xsize2 = down.XSize;
         int ysize2 = down.YSize;
@@ -465,7 +468,7 @@ internal static class JxlHeuristics
         }
     }
 
-    public static void AntiUpsample(JxlImageF input, JxlImageF d)
+    public static void AntiUpsample(JxlPlane<float> input, JxlPlane<float> d)
     {
         int xsize = input.XSize;
         int ysize = input.YSize;
@@ -521,7 +524,7 @@ internal static class JxlHeuristics
         }
     }
 
-    public static void UpsampleImage(JxlImageF input, JxlImageF output)
+    public static void UpsampleImage(JxlPlane<float> input, JxlPlane<float> output)
     {
         int xsize = input.XSize;
         int ysize = input.YSize;
@@ -633,7 +636,10 @@ internal static class JxlHeuristics
         }
     }
 
-    public static void FindBestDequantMatrices(JxlCompressParameters cparams, JxlModularFrameEncoder modularFrameEncoder, out JxlDequantMatrices dequantMatrices)
+    public static void FindBestDequantMatrices(
+        JxlCompressParameters cparams,
+        JxlModularFrameEncoder modularFrameEncoder,
+        out JxlDequantMatrices dequantMatrices)
     {
         dequantMatrices = new();
         if (cparams.MaxErrorMode || cparams.DisablePerceptualOptimizations)
@@ -657,7 +663,7 @@ internal static class JxlHeuristics
         }
     }
 
-    public static void DownsampleImage2Sharper(Configuration configuration, JxlImageF input, JxlImageF output)
+    public static void DownsampleImage2Sharper(Configuration configuration, JxlPlane<float> input, JxlPlane<float> output)
     {
         const int kernelX = 12;
         const int kernelY = 12;
@@ -673,13 +679,13 @@ internal static class JxlHeuristics
         int xSize = input.XSize;
         int ySize = input.YSize;
 
-        JxlImageF tempDownsample = new(configuration, xSize, ySize);
+        JxlPlane<float> tempDownsample = new(configuration, xSize, ySize);
         JxlImageOperations.ForceCopyImage(input, tempDownsample);
 
-        using JxlImageF boxDownsample = DownsampleImage(tempDownsample, 2);
+        using JxlPlane<float> boxDownsample = DownsampleImage(tempDownsample, 2);
         tempDownsample.Dispose();
 
-        using JxlImageF mask = new(configuration, boxDownsample.XSize, boxDownsample.YSize);
+        using JxlPlane<float> mask = new(configuration, boxDownsample.XSize, boxDownsample.YSize);
         CreateMask(boxDownsample, mask);
 
         for (int y = 0; y < output.YSize; y++)
@@ -810,7 +816,7 @@ internal static class JxlHeuristics
     /// <returns>
     /// The L2 distance for the images.
     /// </returns>
-    public static float ComputeBlockL2Distance(JxlImage3F a, JxlImage3F b, JxlImageF mask1x1, int by, int bx)
+    public static float ComputeBlockL2Distance(JxlImage3<float> a, JxlImage3<float> b, JxlPlane<float> mask1x1, int by, int bx)
     {
         Rectangle rect = RectangleUtils.CreateRectangle(
             bx * JxlFrameDimensions.BlockDimensions,
@@ -893,7 +899,7 @@ internal static class JxlHeuristics
         private readonly int[] dataForQfOrdCounts;
         private readonly int[] ordCounts;
 
-        public OccCounters(JxlImageI rqf, JxlAcStrategyImage acStrategy)
+        public OccCounters(JxlPlane<int> rqf, JxlAcStrategyImage acStrategy)
         {
             this.qfCounts = ArrayPool<int>.Shared.Rent(256);
             this.dataForQfOrdCounts = ArrayPool<int>.Shared.Rent(256 * JxlForwardCoefficientOrder.OrderCount);

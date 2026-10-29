@@ -5,20 +5,25 @@ using SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 
+/// <summary>
+/// Owns the reusable transposed plane used by Butteraugli's two-pass blur.
+/// </summary>
 internal sealed class ButteraugliBlurTemp : IDisposable
 {
-    public JxlPlane<float> TransposedTemp { get; set; } = new();
+    /// <summary>
+    /// Allocates transposed scratch storage for every blur in a fixed-size comparison.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns the sample allocation.</param>
+    /// <param name="width">The comparison width.</param>
+    /// <param name="height">The comparison height.</param>
+    public ButteraugliBlurTemp(Configuration configuration, int width, int height)
+        => this.TransposedTemp = new(configuration, height, width);
 
-    public JxlPlane<float> GetTransposed(Configuration configuration, JxlPlane<float> input)
-    {
-        if (this.TransposedTemp.XSize == 0)
-        {
-            // Yes, YSize and XSize are swapped
-            this.TransposedTemp = JxlPlane<float>.Create(configuration, input.YSize, input.XSize);
-        }
+    /// <summary>
+    /// Gets the owned transposed scratch plane. Callers borrow it until the next blur or disposal.
+    /// </summary>
+    public JxlPlane<float> TransposedTemp { get; }
 
-        return this.TransposedTemp;
-    }
-
+    /// <inheritdoc />
     public void Dispose() => this.TransposedTemp.Dispose();
 }

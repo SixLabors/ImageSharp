@@ -184,7 +184,7 @@ internal static class JxlRct
             return;
         }
 
-        _ = Parallel.For(0, h, configuration.GetParallelOptions(), y =>
+        for (int y = 0; y < h; y++)
         {
             // Get input channels
             Span<int> in0 = img.Channels[m].GetRow(y);
@@ -197,7 +197,7 @@ internal static class JxlRct
             Span<int> out2 = img.Channels[m + ((permutation + 2 - (permutation / 3)) % 3)].GetRow(y);
 
             InverseRctRow(custom, in0, in1, in2, out0, out1, out2);
-        });
+        }
     }
 
     /// <summary>
@@ -334,7 +334,7 @@ internal static class JxlRct
     /// Performs Forward Reversible Color Transform. (Internal method)
     /// </summary>
     /// <param name="configuration">
-    /// Configuration for parallelism.
+    /// The codec configuration.
     /// </param>
     /// <param name="input">
     /// Input channels.
@@ -356,7 +356,7 @@ internal static class JxlRct
         int width = output[0].Width;
         int height = output[0].Height;
 
-        _ = Parallel.For(0, height, configuration.GetParallelOptions(), y =>
+        for (int y = 0; y < height; y++)
         {
             // Get input channels
             Span<int> i0 = inp[0].GetRow(y);
@@ -369,14 +369,14 @@ internal static class JxlRct
             Span<int> o2 = output[2].GetRow(y);
 
             ForwardRctRow(transform, i0, i1, i2, o0, o1, o2);
-        });
+        }
     }
 
     /// <summary>
     /// Performs forward Reversible Color Transform (RCT).
     /// </summary>
     /// <param name="configuration">
-    /// Configuration for parallelism.
+    /// The codec configuration.
     /// </param>
     /// <param name="image">
     /// Image to perform Reversible Color Transform.

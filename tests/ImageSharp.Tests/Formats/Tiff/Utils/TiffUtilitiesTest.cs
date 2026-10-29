@@ -10,6 +10,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils;
 public class TiffUtilitiesTest
 {
     [Theory]
+    [InlineData(0x12, 0x34, 0x56, 0x123456, 0x563412)]
+    [InlineData(0x00, 0x80, 0xFF, 0x0080FF, 0xFF8000)]
+    public void ConvertToUInt24_ReadsExactlyThreeBytesInEitherOrder(byte first, byte second, byte third, int expectedBigEndian, int expectedLittleEndian)
+    {
+        // The final sample in a strip may have no padding byte after its third component byte.
+        byte[] sample = [first, second, third];
+
+        Assert.Equal((uint)expectedBigEndian, TiffUtilities.ConvertToUInt24BigEndian(sample));
+        Assert.Equal((uint)expectedLittleEndian, TiffUtilities.ConvertToUInt24LittleEndian(sample));
+    }
+
+    [Theory]
     [InlineData(0, 0, 0, 0)]
     [InlineData(42, 84, 128, 0)]
     [InlineData(65535, 65535, 65535, 0)]
@@ -45,7 +57,15 @@ public class TiffUtilitiesTest
     [InlineData(32767, 0, 0, 65535, 32767, 0, 0, 65535)]
     [InlineData(0, 32767, 0, 65535, 0, 32767, 0, 65535)]
     [InlineData(0, 0, 32767, 65535, 0, 0, 32767, 65535)]
-    public void ColorFromRgba64Premultiplied_WithNoAlpha_ReturnExpectedValues(ushort r, ushort g, ushort b, ushort a, ushort expectedR, ushort expectedG, ushort expectedB, ushort expectedA)
+    public void ColorFromRgba64Premultiplied_WithNoAlpha_ReturnExpectedValues(
+        ushort r,
+        ushort g,
+        ushort b,
+        ushort a,
+        ushort expectedR,
+        ushort expectedG,
+        ushort expectedB,
+        ushort expectedA)
     {
         Rgba64 actual = TiffUtilities.ColorFromRgba64Premultiplied<Rgba64>(r, g, b, a);
 
@@ -64,7 +84,15 @@ public class TiffUtilitiesTest
     [InlineData(8191, 0, 0, 0, 0, 0, 0, 0)] // Red, 0% Alpha
     [InlineData(0, 8191, 0, 0, 0, 0, 0, 0)] // Green, 0% Alpha
     [InlineData(0, 0, 8191, 0, 0, 0, 0, 0)] // Blue, 0% Alpha
-    public void ColorFromRgba64Premultiplied_WithAlpha_ReturnExpectedValues(ushort r, ushort g, ushort b, ushort a, ushort expectedR, ushort expectedG, ushort expectedB, ushort expectedA)
+    public void ColorFromRgba64Premultiplied_WithAlpha_ReturnExpectedValues(
+        ushort r,
+        ushort g,
+        ushort b,
+        ushort a,
+        ushort expectedR,
+        ushort expectedG,
+        ushort expectedB,
+        ushort expectedA)
     {
         Rgba64 actual = TiffUtilities.ColorFromRgba64Premultiplied<Rgba64>(r, g, b, a);
 

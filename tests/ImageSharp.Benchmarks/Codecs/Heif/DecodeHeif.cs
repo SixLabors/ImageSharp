@@ -1,0 +1,102 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Diagnostics;
+using BenchmarkDotNet.Attributes;
+using ImageMagick;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests;
+
+namespace SixLabors.ImageSharp.Benchmarks.Codecs;
+
+/// <summary>
+/// Compares AVIF decoding in ImageSharp and Magick.NET.
+/// </summary>
+[MarkdownExporter]
+[HtmlExporter]
+[Config(typeof(Config.Short))]
+public class DecodeHeif
+{
+    private byte[] avifBytes;
+
+    /// <summary>
+    /// Gets or sets the AVIF test image.
+    /// </summary>
+    [Params(TestImages.Heif.IrvineAvif, TestImages.Heif.Av1Deblocking8BitAvif)]
+    public string TestImage { get; set; }
+
+    private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+
+    /// <summary>
+    /// Reads the encoded test image.
+    /// </summary>
+    [GlobalSetup]
+    public void ReadImages() => this.avifBytes ??= File.ReadAllBytes(this.TestImageFullPath);
+
+    /// <summary>
+    /// Pins the benchmark process to the first core and reads the encoded test image.
+    /// </summary>
+    [GlobalSetup(Target = nameof(AvifMagickSingleCore))]
+    public void ReadImagesOnSingleCore()
+    {
+        // Each benchmark runs in its own process, so the pin confines every libheif thread of this case only.
+        Process.GetCurrentProcess().ProcessorAffinity = 1;
+        this.ReadImages();
+    }
+
+    /// <summary>
+    /// Decodes the image with Magick.NET.
+    /// </summary>
+    /// <returns>The image width.</returns>
+    [Benchmark(Baseline = true, Description = "Magick Avif")]
+    public uint AvifMagick()
+    {
+        MagickReadSettings settings = new() { Format = MagickFormat.Avif };
+        using MemoryStream memoryStream = new(this.avifBytes);
+        using MagickImage image = new(memoryStream, settings);
+        return image.Width;
+    }
+
+    /// <summary>
+    /// Decodes the image with Magick.NET on a single core.
+    /// </summary>
+    /// <returns>The image width.</returns>
+    [Benchmark(Description = "Magick Avif SingleCore")]
+    public uint AvifMagickSingleCore() => this.AvifMagick();
+
+    /// <summary>
+    /// Decodes the image with ImageSharp.
+    /// </summary>
+    /// <returns>The image height.</returns>
+    [Benchmark(Description = "ImageSharp Avif")]
+    public int Avif()
+    {
+        using MemoryStream memoryStream = new(this.avifBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+        return image.Height;
+    }
+
+    /* Results 28.10.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
+
+    | Method                    | TestImage                     |       Mean |       Error |     StdDev |   Ratio |   RatioSD |      Gen0 |      Gen1 |      Gen2 |   Allocated |   Alloc Ratio |
+    | ------------------------- | ----------------------------- | ---------: | ----------: | ---------: | ------: | --------: | --------: | --------: | --------: | ----------: | ------------: |
+    | 'Magick Avif'             | Heif/Irvine_CA.avif           |   20.11 ms |    6.352 ms |   0.348 ms |    1.00 |      0.02 |         - |         - |         - |     5.07 KB |          1.00 |
+    | 'Magick Avif SingleCore'  | Heif/Irvine_CA.avif           |   19.34 ms |    4.067 ms |   0.223 ms |    0.96 |      0.02 |         - |         - |         - |     5.08 KB |          1.00 |
+    | 'ImageSharp Avif'         | Heif/Irvine_CA.avif           |   11.63 ms |    0.404 ms |   0.022 ms |    0.58 |      0.01 |   78.1250 |   62.5000 |   46.8750 |   560.91 KB |        110.54 |
+    |                           |                               |            |             |            |         |           |           |           |           |             |               |
+    | 'Magick Avif'             | Heif/libavif-kodim23-8b.avif  |   21.41 ms |    3.719 ms |   0.204 ms |    1.00 |      0.01 |         - |         - |         - |     5.07 KB |          1.00 |
+    | 'Magick Avif SingleCore'  | Heif/libavif-kodim23-8b.avif  |   21.76 ms |   11.596 ms |   0.636 ms |    1.02 |      0.03 |         - |         - |         - |     5.08 KB |          1.00 |
+    | 'ImageSharp Avif'         | Heif/libavif-kodim23-8b.avif  |   10.53 ms |    0.505 ms |   0.028 ms |    0.49 |      0.00 |   78.1250 |   62.5000 |   46.8750 |   541.21 KB |        106.66 |
+
+    Allocated reports managed memory only.
+    The existing SingleCore method pins only its own Magick process. Other methods retain their existing threading behavior.
+    */
+}

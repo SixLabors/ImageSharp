@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -22,16 +21,31 @@ public partial struct NormalizedByte2
         // Alpha is implicitly one, so both outward representations already contain associated color components.
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<NormalizedByte2> source, Span<Vector4> destination) => this.ToUnassociatedVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<NormalizedByte2> source, Span<Vector4> destination) => this.ToUnassociatedScaledVector4(configuration, source, destination);
-
-        /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<NormalizedByte2> destination)
+        public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<NormalizedByte2> source, Span<Vector4> destination)
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToUnassociatedVector4(configuration, source, destination);
+        }
+
+        /// <inheritdoc />
+        public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<NormalizedByte2> source, Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            this.ToUnassociatedScaledVector4(configuration, source, destination);
+        }
+
+        /// <inheritdoc />
+        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<NormalizedByte2> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
             // Only X and Y use affine native coordinates. Preserve W as normalized alpha for the scaled unassociation step.
-            Vector4Converters.AddThenDivide(source, NativeOffset, NativeDivisor);
+            PixelFormats.PixelOperations.AddThenDivide(source, NativeOffset, NativeDivisor);
             this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
         }
     }

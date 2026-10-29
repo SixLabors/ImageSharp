@@ -238,7 +238,10 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         if (curves != null)
         {
             bool isNotCurve = curves.Any(t => t is not IccParametricCurveTagDataEntry and not IccCurveTagDataEntry);
-            Guard.IsFalse(isNotCurve, nameof(name), $"{nameof(name)} must be of type {nameof(IccParametricCurveTagDataEntry)} or {nameof(IccCurveTagDataEntry)}");
+            Guard.IsFalse(
+                isNotCurve,
+                nameof(name),
+                $"{nameof(name)} must be of type {nameof(IccParametricCurveTagDataEntry)} or {nameof(IccCurveTagDataEntry)}");
         }
     }
 

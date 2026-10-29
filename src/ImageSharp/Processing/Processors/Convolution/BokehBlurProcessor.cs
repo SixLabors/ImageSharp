@@ -50,7 +50,7 @@ public sealed class BokehBlurProcessor : IImageProcessor
     /// The number of components to use to approximate the original 2D bokeh blur convolution kernel.
     /// </param>
     /// <param name="gamma">
-    /// The gamma highlight factor to use to further process the image.
+    /// The gamma highlight factor. Must be at least 1.
     /// </param>
     public BokehBlurProcessor(int radius, int components, float gamma)
     {
@@ -60,6 +60,7 @@ public sealed class BokehBlurProcessor : IImageProcessor
 
         this.Radius = radius;
         this.Components = components;
+
         this.Gamma = gamma;
     }
 
@@ -74,7 +75,7 @@ public sealed class BokehBlurProcessor : IImageProcessor
     public int Components { get; }
 
     /// <summary>
-    /// Gets the gamma highlight factor to use when applying the effect.
+    /// Gets the gamma highlight factor.
     /// </summary>
     public float Gamma { get; }
 
@@ -84,40 +85,45 @@ public sealed class BokehBlurProcessor : IImageProcessor
         => new BokehBlurProcessor<TPixel>(configuration, this, source, sourceRectangle);
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
+    /// Applies one real horizontal convolution to the associated, gamma-expanded float colors.
     /// </summary>
     /// <remarks>
-    /// This type is located in the non-generic <see cref="BokehBlurProcessor"/> class and not in <see cref="BokehBlurProcessor{TPixel}"/>, where
-    /// it is actually used, because it does not use any generic parameters internally. Defining in a non-generic class means that there will only
-    /// ever be a single instantiation of this type for the JIT/AOT compilers to process, instead of having duplicate versions for each pixel type.
+    /// Both convolution operations use float storage and do not depend on TPixel.
+    /// Keep them in this non-generic type so JIT and AOT compilation can share them across pixel formats.
     /// </remarks>
-    internal readonly struct SecondPassConvolutionRowOperation : IRowOperation
+    internal readonly struct FirstPassConvolutionRowOperation : IRowOperation
     {
         private readonly Rectangle bounds;
         private readonly Buffer2D<Vector4> targetValues;
-        private readonly Buffer2D<ComplexVector4> sourceValues;
+        private readonly Buffer2DRegion<Vector4> sourceValues;
         private readonly KernelSamplingMap map;
         private readonly Complex64[] kernel;
-        private readonly float z;
-        private readonly float w;
+        private readonly int kernelOffset;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FirstPassConvolutionRowOperation"/> struct.
+        /// </summary>
+        /// <param name="bounds">The processing rectangle.</param>
+        /// <param name="targetValues">The float buffer overwritten by each horizontal pass.</param>
+        /// <param name="sourceValues">The associated, gamma-expanded input plane shared by all kernel components.</param>
+        /// <param name="map">The clamped sampling offsets for the processing rectangle.</param>
+        /// <param name="kernel">The current component's complex weights.</param>
+        /// <param name="kernelOffset">Zero selects real coefficients; one selects imaginary coefficients.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public SecondPassConvolutionRowOperation(
+        public FirstPassConvolutionRowOperation(
             Rectangle bounds,
             Buffer2D<Vector4> targetValues,
-            Buffer2D<ComplexVector4> sourceValues,
+            Buffer2DRegion<Vector4> sourceValues,
             KernelSamplingMap map,
             Complex64[] kernel,
-            float z,
-            float w)
+            int kernelOffset)
         {
             this.bounds = bounds;
             this.targetValues = targetValues;
             this.sourceValues = sourceValues;
             this.map = map;
             this.kernel = kernel;
-            this.z = z;
-            this.w = w;
+            this.kernelOffset = kernelOffset;
         }
 
         /// <inheritdoc/>
@@ -128,34 +134,117 @@ public sealed class BokehBlurProcessor : IImageProcessor
             int boundsWidth = this.bounds.Width;
             int kernelSize = this.kernel.Length;
 
-            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (uint)((y - this.bounds.Y) * kernelSize));
+            // Store horizontal results from column zero. The vertical pass uses this compact row layout
+            // even when the processing rectangle starts at a nonzero image X coordinate.
+            Span<Vector4> targetRow = this.targetValues.DangerousGetRowSpan(y)[..boundsWidth];
+            ReadOnlySpan<Vector4> sourceRow = this.sourceValues.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
 
-            // The target buffer is zeroed initially and then it accumulates the results
-            // of each partial convolution, so we don't have to clear it here as well
-            ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(boundsX, y);
-            ref Complex64 kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
-            ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
+            // Complex64 stores consecutive real and imaginary floats: [a0,b0,a1,b1,...].
+            // Select the first coefficient once, then advance by two floats per tap. No kernel copy or per-pixel branch is needed.
+            ReadOnlySpan<float> coefficients = MemoryMarshal.Cast<Complex64, float>(this.kernel.AsSpan());
+            ref float coefficientBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(coefficients), (uint)this.kernelOffset);
+            ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+            ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetRow);
+            ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)boundsWidth);
+            ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
-            while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+            while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
             {
-                // Get the precalculated source sample row for this kernel row and copy to our buffer
-                ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(0, sampleRowBase);
-                ref ComplexVector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)boundsWidth);
-                ref Vector4 targetStart = ref targetBase;
-                Complex64 factor = kernelStart;
+                Vector4 sum = Vector4.Zero;
+                ref int sampleColumnStart = ref sampleColumnBase;
 
+                for (int tap = 0; tap < kernelSize; tap++)
+                {
+                    // The clamped map stores image coordinates. Subtract boundsX to address the sliced source row.
+                    // Vector4 multiplies the same real coefficient into all four color and alpha lanes.
+                    Vector4 sample = Unsafe.Add(ref sourceBase, (uint)(sampleColumnStart - boundsX));
+                    float coefficient = Unsafe.Add(ref coefficientBase, (uint)(tap * 2));
+                    sum += sample * coefficient;
+
+                    sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                }
+
+                // Overwrite every processed pixel, so the scratch buffer needs no separate clearing pass.
+                targetStart = sum;
+                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, (uint)kernelSize);
+                targetStart = ref Unsafe.Add(ref targetStart, 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies real vertical convolution and adds its contribution to the float output plane.
+    /// </summary>
+    internal readonly struct SecondPassConvolutionRowOperation : IRowOperation
+    {
+        private readonly Rectangle bounds;
+        private readonly Buffer2DRegion<Vector4> targetValues;
+        private readonly Buffer2D<Vector4> sourceValues;
+        private readonly KernelSamplingMap map;
+        private readonly Complex64[] kernel;
+        private readonly float realWeight;
+        private readonly float imaginaryWeight;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SecondPassConvolutionRowOperation"/> struct.
+        /// </summary>
+        /// <param name="bounds">The processing rectangle.</param>
+        /// <param name="targetValues">The output plane shared by all kernel contributions.</param>
+        /// <param name="sourceValues">The current real horizontal convolution results.</param>
+        /// <param name="map">The clamped sampling offsets for the processing rectangle.</param>
+        /// <param name="kernel">The current component's complex weights.</param>
+        /// <param name="realWeight">The multiplier of each real kernel coefficient: z for Ha, or w for Hb.</param>
+        /// <param name="imaginaryWeight">The multiplier of each imaginary kernel coefficient: w for Ha, or -z for Hb.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public SecondPassConvolutionRowOperation(
+            Rectangle bounds,
+            Buffer2DRegion<Vector4> targetValues,
+            Buffer2D<Vector4> sourceValues,
+            KernelSamplingMap map,
+            Complex64[] kernel,
+            float realWeight,
+            float imaginaryWeight)
+        {
+            this.bounds = bounds;
+            this.targetValues = targetValues;
+            this.sourceValues = sourceValues;
+            this.map = map;
+            this.kernel = kernel;
+            this.realWeight = realWeight;
+            this.imaginaryWeight = imaginaryWeight;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(int y)
+        {
+            int boundsWidth = this.bounds.Width;
+            int kernelSize = this.kernel.Length;
+
+            ReadOnlySpan<int> sampleRows = this.map.GetRowOffsetSpan().Slice((y - this.bounds.Y) * kernelSize, kernelSize);
+            Span<Vector4> targetRow = this.targetValues.DangerousGetRowSpan(y).Slice(this.bounds.X, boundsWidth);
+            ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetRow);
+
+            for (int tap = 0; tap < kernelSize; tap++)
+            {
+                // Ha uses z*a + w*b; Hb uses w*a - z*b. Combine the scalar coefficients once per sampled row,
+                // outside the pixel loop. The exposure pass cleared the output plane before any contribution was added.
+                Complex64 coefficient = this.kernel[tap];
+                float factor = (this.realWeight * coefficient.Real) + (this.imaginaryWeight * coefficient.Imaginary);
+
+                ReadOnlySpan<Vector4> sourceRow = this.sourceValues.DangerousGetRowSpan(sampleRows[tap])[..boundsWidth];
+                ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)boundsWidth);
+                ref Vector4 targetStart = ref targetBase;
+
+                // All four lanes retain float precision. Packing and alpha unassociation happen only after all components finish.
                 while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                 {
-                    ComplexVector4 partial = factor * sourceBase;
-
-                    targetStart += partial.WeightedSum(this.z, this.w);
+                    targetStart += sourceBase * factor;
 
                     sourceBase = ref Unsafe.Add(ref sourceBase, 1);
                     targetStart = ref Unsafe.Add(ref targetStart, 1);
                 }
-
-                kernelStart = ref Unsafe.Add(ref kernelStart, 1);
-                sampleRowBase = ref Unsafe.Add(ref sampleRowBase, 1);
             }
         }
     }

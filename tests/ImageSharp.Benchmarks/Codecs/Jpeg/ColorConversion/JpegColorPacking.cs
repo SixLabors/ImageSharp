@@ -5,7 +5,6 @@ using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
-using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 
@@ -75,7 +74,7 @@ public class JpegColorPacking
     [BenchmarkCategory("Pack3")]
     public float PackedNormalizeInterleave3Simd()
     {
-        JpegColorConverterBase.PackedNormalizeInterleave3(this.x, this.y, this.z, this.destination3, Scale);
+        SimdUtils.PackedNormalizeInterleave3(this.x, this.y, this.z, this.destination3, Scale);
 
         return this.destination3[^1];
     }
@@ -101,7 +100,7 @@ public class JpegColorPacking
     [BenchmarkCategory("Unpack3")]
     public float UnpackDeinterleave3Simd()
     {
-        JpegColorConverterBase.UnpackDeinterleave3(this.packed3, this.x, this.y, this.z);
+        SimdUtils.UnpackDeinterleave3(this.packed3, this.x, this.y, this.z);
 
         return this.x[^1] + this.y[^1] + this.z[^1];
     }
@@ -127,7 +126,7 @@ public class JpegColorPacking
     [BenchmarkCategory("Pack4")]
     public float PackedNormalizeInterleave4Simd()
     {
-        JpegColorConverterBase.PackedNormalizeInterleave4(this.x, this.y, this.z, this.w, this.destination4, MaximumValue);
+        SimdUtils.PackedNormalizeInterleave4(this.x, this.y, this.z, this.w, this.destination4, MaximumValue);
 
         return this.destination4[^1];
     }
@@ -153,7 +152,7 @@ public class JpegColorPacking
     [BenchmarkCategory("InvertPack4")]
     public float PackedInvertNormalizeInterleave4Simd()
     {
-        JpegColorConverterBase.PackedInvertNormalizeInterleave4(this.x, this.y, this.z, this.w, this.destination4, MaximumValue);
+        SimdUtils.PackedInvertNormalizeInterleave4(this.x, this.y, this.z, this.w, this.destination4, MaximumValue);
 
         return this.destination4[^1];
     }

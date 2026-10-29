@@ -8,13 +8,13 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing four associated 16-bit floating-point values typically ranging from 0 to 1.
+/// Packed pixel type containing four associated 16-bit floating-point values.
 /// The color components are stored in red, green, blue, and alpha order.
 /// </summary>
 /// <remarks>
-/// <see cref="ToVector4"/> and scaled vector conversions return the same associated component values in the nominal
-/// color range <c>[0, 1]</c>. The packed representation is binary-compatible with
-/// <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
+/// Native vector conversions preserve the stored IEEE floating-point values.
+/// Color-vector conversions bound color components to [-65504,65504] and alpha to [0,1].
+/// The packed representation is binary-compatible with <c>DXGI_FORMAT_R16G16B16A16_FLOAT</c>.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
@@ -70,7 +70,20 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     /// </summary>
     /// <param name="vector">The associated vector.</param>
     public RgbaHalfP(Vector4 vector)
-        : this() => this = FromAssociatedScaledVector4(vector);
+        : this() => this = FromAssociatedVector4(vector);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbaHalfP"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The half-precision words use R, G, B, A memory order. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// RGB codes are already associated with alpha. This constructor applies no alpha conversion.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public RgbaHalfP(ulong packed)
+        : this() => this.PackedValue = packed;
 
     /// <inheritdoc />
     public ulong PackedValue
@@ -99,12 +112,27 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public static bool operator !=(RgbaHalfP left, RgbaHalfP right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static RgbaHalfP FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaHalfP FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaHalfP FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static RgbaHalfP FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4() => this.ToAssociatedScaledVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,18 +142,28 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
     {
-        Vector4 vector = this.ToScaledVector4();
-        Numerics.UnPremultiply(ref vector);
-        return vector;
+        Vector4 source = this.ToVector4();
+        PixelOperations.UnPremultiply(ref source);
+
+        return source;
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        // Storage already contains associated RGB. Color output only applies normalized component bounds.
+        return PixelOperations.ClampToPixelRange(this.ToVector4());
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedVector4() => this.ToUnassociatedScaledVector4();
+    public readonly Vector4 ToUnassociatedVector4()
+    {
+        Vector4 vector = this.ToVector4();
+        Numerics.UnPremultiply(ref vector);
+        return vector;
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -136,6 +174,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
         => PixelTypeInfo.Create<RgbaHalfP>(
             PixelComponentInfo.Create<RgbaHalfP>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Extended,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />
@@ -153,41 +192,40 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaHalfP FromUnassociatedScaledVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
+        source = PixelOperations.ClampToPixelRange(source);
 
-        // RGB must be associated with the alpha value that binary16 storage can reproduce, not the higher-precision input alpha.
-        source.W = HalfTypeHelper.Unpack(HalfTypeHelper.Pack(source.W));
+        // Half storage rounds opacity before RGB multiplication. Keep this precision rule in the pixel packer.
+        source.W = (float)(Half)source.W;
         Numerics.Premultiply(ref source);
-        return new RgbaHalfP(source.X, source.Y, source.Z, source.W);
+
+        return FromAssociatedVector4(source);
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaHalfP FromAssociatedScaledVector4(Vector4 source)
     {
-        float alpha = source.W;
+        // RGB is already associated. Bound the supplied components; native packing rounds them independently.
+        source = PixelOperations.ClampToPixelRange(source);
 
-        if (alpha <= 0F)
-        {
-            return default;
-        }
+        return FromAssociatedVector4(source);
+    }
 
-        float storedAlpha = HalfTypeHelper.Unpack(HalfTypeHelper.Pack(Numerics.Clamp(alpha, 0F, 1F)));
-
-        // Preserve the represented straight color when binary16 rounds alpha, then restore the associated RGB <= alpha invariant.
-        source *= storedAlpha / alpha;
-        source.W = storedAlpha;
-        Numerics.ClampRgbToAlpha(ref source);
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaHalfP FromUnassociatedVector4(Vector4 source)
+    {
+        // Associate with the alpha actually stored as half-precision so a later native unassociation
+        // observes the same straight color when alpha rounds during packing.
+        source.W = (float)(Half)source.W;
+        Numerics.Premultiply(ref source);
         return new RgbaHalfP(source.X, source.Y, source.Z, source.W);
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalfP FromUnassociatedVector4(Vector4 source) => FromUnassociatedScaledVector4(source);
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaHalfP FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
+    public static RgbaHalfP FromAssociatedVector4(Vector4 source) => new(source.X, source.Y, source.Z, source.W);
 
     /// <inheritdoc />
     public static RgbaHalfP FromAbgr32(Abgr32 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());
@@ -238,5 +276,6 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
-    public override readonly string ToString() => FormattableString.Invariant($"RgbaHalfP({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
+    public override readonly string ToString()
+        => FormattableString.Invariant($"RgbaHalfP({(float)this.R:#0.##}, {(float)this.G:#0.##}, {(float)this.B:#0.##}, {(float)this.A:#0.##})");
 }

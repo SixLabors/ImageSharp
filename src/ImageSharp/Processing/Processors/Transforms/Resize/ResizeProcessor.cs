@@ -48,6 +48,9 @@ public class ResizeProcessor : CloningImageProcessor
     public ResizeOptions Options { get; }
 
     /// <inheritdoc />
-    public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+    public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(
+        Configuration configuration,
+        Image<TPixel> source,
+        Rectangle sourceRectangle)
         => new ResizeProcessor<TPixel>(configuration, this, source, sourceRectangle);
 }

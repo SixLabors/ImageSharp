@@ -40,11 +40,17 @@ public class ExrMetadataTests
         Assert.Equal(expectedHeight, imageInfo.Height);
     }
 
+    /// <summary>
+    /// Checks the stored EXR component type and its supported color range through identification.
+    /// </summary>
+    /// <param name="imagePath">The existing EXR fixture.</param>
+    /// <param name="expectedPixelType">The stored component type.</param>
+    /// <param name="expectedColorRange">The color range supported by that component type.</param>
     [Theory]
-    [InlineData(TestImages.Exr.Uncompressed, ExrPixelType.Half)]
-    [InlineData(TestImages.Exr.UncompressedFloatRgb, ExrPixelType.Float)]
-    [InlineData(TestImages.Exr.UncompressedUintRgb, ExrPixelType.UnsignedInt)]
-    public void Identify_DetectsCorrectPixelType(string imagePath, ExrPixelType expectedPixelType)
+    [InlineData(TestImages.Exr.Uncompressed, ExrPixelType.Half, PixelColorRange.Extended)]
+    [InlineData(TestImages.Exr.UncompressedFloatRgb, ExrPixelType.Float, PixelColorRange.Extended)]
+    [InlineData(TestImages.Exr.UncompressedUintRgb, ExrPixelType.UnsignedInt, PixelColorRange.Sdr)]
+    public void Identify_DetectsCorrectPixelType(string imagePath, ExrPixelType expectedPixelType, PixelColorRange expectedColorRange)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -54,6 +60,7 @@ public class ExrMetadataTests
         ExrMetadata metadata = imageInfo.Metadata.GetExrMetadata();
         Assert.NotNull(metadata);
         Assert.Equal(expectedPixelType, metadata.PixelType);
+        Assert.Equal(expectedColorRange, imageInfo.PixelType.ColorRange);
     }
 
     [Theory]
@@ -111,7 +118,11 @@ public class ExrMetadataTests
     [InlineData(PixelColorType.YCbCr, 48, ExrImageDataType.Unknown, ExrPixelType.Float)]
     [InlineData(PixelColorType.CMYK, 64, ExrImageDataType.Unknown, ExrPixelType.Float)]
     [InlineData(PixelColorType.YCCK, 64, ExrImageDataType.Unknown, ExrPixelType.Float)]
-    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(PixelColorType pixelColorType, int bitsPerPixel, ExrImageDataType expectedImageDataType, ExrPixelType expectedPixelType)
+    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(
+        PixelColorType pixelColorType,
+        int bitsPerPixel,
+        ExrImageDataType expectedImageDataType,
+        ExrPixelType expectedPixelType)
     {
         FormatConnectingMetadata formatConnectingMetadata = new()
         {

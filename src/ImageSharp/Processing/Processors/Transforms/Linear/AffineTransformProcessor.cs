@@ -47,6 +47,9 @@ public class AffineTransformProcessor : CloningImageProcessor
     public Size DestinationSize { get; }
 
     /// <inheritdoc/>
-    public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+    public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(
+        Configuration configuration,
+        Image<TPixel> source,
+        Rectangle sourceRectangle)
         => new AffineTransformProcessor<TPixel>(configuration, this, source, sourceRectangle);
 }

@@ -10,13 +10,38 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
 /// <summary>
-/// Tests the unit-range binary16 RGBA pixel formats.
+/// Tests the half-precision RGBA pixel formats.
 /// </summary>
 [Trait("Category", "PixelFormats")]
 public class RgbaHalfTests
 {
     /// <summary>
-    /// Verifies that the unassociated format has the native layout required by RGBA binary16 surfaces.
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        RgbaHalf pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
+    // Run the three alpha contracts at both vector ranges, including native-pair methods for each pixel format.
+    private static readonly (bool Scaled, BulkAlphaMode AlphaMode)[] BulkConversionCases =
+    [
+        (false, BulkAlphaMode.Native),
+        (false, BulkAlphaMode.Unassociated),
+        (false, BulkAlphaMode.Associated),
+        (true, BulkAlphaMode.Native),
+        (true, BulkAlphaMode.Unassociated),
+        (true, BulkAlphaMode.Associated)
+    ];
+
+    /// <summary>
+    /// Verifies that the unassociated format has the native layout required by RGBA half-precision surfaces.
     /// </summary>
     [Fact]
     public void RgbaHalfHasRgbaBinary16Layout()
@@ -34,7 +59,7 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that zero-filled binary16 storage represents transparent black without affine remapping.
+    /// Verifies that zero-filled half-precision storage represents transparent black without affine remapping.
     /// </summary>
     [Fact]
     public void RgbaHalfDefaultIsTransparentBlack()
@@ -46,18 +71,18 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that scaled input is clamped to the pixel format's unit color range.
+    /// Verifies that scaled input retains finite values outside the unit interval.
     /// </summary>
     [Fact]
-    public void RgbaHalfFromScaledVector4ClampsToUnitRange()
+    public void RgbaHalfFromScaledVector4PreservesHdrValues()
     {
         RgbaHalf pixel = RgbaHalf.FromScaledVector4(new Vector4(-1F, .5F, 2F, 1F));
 
-        Assert.Equal(new Vector4(0F, .5F, 1F, 1F), pixel.ToScaledVector4());
+        Assert.Equal(new Vector4(-1F, .5F, 2F, 1F), pixel.ToScaledVector4());
     }
 
     /// <summary>
-    /// Verifies that the associated format stores associated binary16 components in the same RGBA order.
+    /// Verifies that the associated format stores associated half-precision components in the same RGBA order.
     /// </summary>
     [Fact]
     public void RgbaHalfPHasAssociatedRgbaBinary16Layout()
@@ -74,7 +99,7 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that zero-filled associated binary16 storage represents transparent black.
+    /// Verifies that zero-filled associated half-precision storage represents transparent black.
     /// </summary>
     [Fact]
     public void RgbaHalfPDefaultIsTransparentBlack()
@@ -87,7 +112,7 @@ public class RgbaHalfTests
     }
 
     /// <summary>
-    /// Verifies that association uses the alpha value that survives binary16 quantization.
+    /// Verifies that association uses the alpha value that survives half-precision quantization.
     /// </summary>
     [Fact]
     public void RgbaHalfPQuantizesAlphaBeforeAssociation()
@@ -135,20 +160,12 @@ public class RgbaHalfTests
     /// <summary>
     /// Compares bulk conversions with the corresponding scalar pixel operations for representative vector widths and remainders.
     /// </summary>
-    /// <typeparam name="TPixel">The binary16 pixel format to test.</typeparam>
+    /// <typeparam name="TPixel">The half-precision pixel format to test.</typeparam>
     private static void AssertBulkConversionsMatchScalar<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int[] lengths = [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 259];
-        PixelConversionModifiers[] modifiers =
-        [
-            PixelConversionModifiers.None,
-            PixelConversionModifiers.Scale,
-            PixelConversionModifiers.Premultiply,
-            PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply,
-            PixelConversionModifiers.UnPremultiply,
-            PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply
-        ];
+        bool nativeAssociated = TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
 
         foreach (int length in lengths)
         {
@@ -159,15 +176,20 @@ public class RgbaHalfTests
                 pixels[i] = TPixel.FromUnassociatedScaledVector4(CreateUnassociatedVector(i));
             }
 
-            foreach (PixelConversionModifiers modifier in modifiers)
+            foreach ((bool scaled, BulkAlphaMode alphaMode) in BulkConversionCases)
             {
+                bool associated = alphaMode switch
+                {
+                    BulkAlphaMode.Native => nativeAssociated,
+                    BulkAlphaMode.Associated => true,
+                    _ => false
+                };
+
                 Vector4[] expectedVectors = new Vector4[length];
                 Vector4[] actualVectors = new Vector4[length];
                 Vector4[] sourceVectors = new Vector4[length];
                 TPixel[] expectedPixels = new TPixel[length];
                 TPixel[] actualPixels = new TPixel[length];
-                bool associated = RequestsAssociated<TPixel>(modifier);
-                bool scaled = modifier.IsDefined(PixelConversionModifiers.Scale);
 
                 for (int i = 0; i < length; i++)
                 {
@@ -182,13 +204,64 @@ public class RgbaHalfTests
                     expectedPixels[i] = FromScalarVector<TPixel>(sourceVectors[i], associated, scaled);
                 }
 
-                PixelOperations<TPixel>.Instance.ToVector4(Configuration.Default, pixels, actualVectors, modifier);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration.Default, sourceVectors.AsSpan(), actualPixels, modifier);
+                PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+
+                if (scaled)
+                {
+                    switch (alphaMode)
+                    {
+                        case BulkAlphaMode.Native:
+                            operations.ToScaledVector4(Configuration.Default, pixels, actualVectors);
+                            operations.FromScaledVector4Destructive(Configuration.Default, sourceVectors, actualPixels);
+                            break;
+                        case BulkAlphaMode.Associated:
+                            operations.ToAssociatedScaledVector4(Configuration.Default, pixels, actualVectors);
+                            operations.FromAssociatedScaledVector4Destructive(Configuration.Default, sourceVectors, actualPixels);
+                            break;
+                        default:
+                            operations.ToUnassociatedScaledVector4(Configuration.Default, pixels, actualVectors);
+                            operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, sourceVectors, actualPixels);
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (alphaMode)
+                    {
+                        case BulkAlphaMode.Native:
+                            operations.ToVector4(Configuration.Default, pixels, actualVectors);
+                            operations.FromVector4Destructive(Configuration.Default, sourceVectors, actualPixels);
+                            break;
+                        case BulkAlphaMode.Associated:
+                            operations.ToAssociatedVector4(Configuration.Default, pixels, actualVectors);
+                            operations.FromAssociatedVector4Destructive(Configuration.Default, sourceVectors, actualPixels);
+                            break;
+                        default:
+                            operations.ToUnassociatedVector4(Configuration.Default, pixels, actualVectors);
+                            operations.FromUnassociatedVector4Destructive(Configuration.Default, sourceVectors, actualPixels);
+                            break;
+                    }
+                }
 
                 Assert.Equal(expectedVectors, actualVectors);
                 Assert.Equal(expectedPixels, actualPixels);
             }
         }
+    }
+
+    /// <summary>
+    /// Names the alpha representation requested by a bulk conversion test case.
+    /// </summary>
+    private enum BulkAlphaMode
+    {
+        /// <summary>The alpha representation declared by the pixel format.</summary>
+        Native,
+
+        /// <summary>Straight RGB components.</summary>
+        Unassociated,
+
+        /// <summary>Premultiplied RGB components.</summary>
+        Associated
     }
 
     /// <summary>
@@ -202,18 +275,6 @@ public class RgbaHalfTests
             ((index * 53) % 101) / 100F,
             ((index * 71) % 101) / 100F,
             ((index * 89) % 101) / 100F);
-
-    /// <summary>
-    /// Resolves whether a modifier combination requests associated output under the pixel format's native representation.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format whose native representation participates in modifier resolution.</typeparam>
-    /// <param name="modifiers">The conversion modifiers.</param>
-    /// <returns><see langword="true"/> when the resulting vector representation is associated.</returns>
-    private static bool RequestsAssociated<TPixel>(PixelConversionModifiers modifiers)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => modifiers.IsDefined(PixelConversionModifiers.Premultiply)
-            || (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated
-                && !modifiers.IsDefined(PixelConversionModifiers.UnPremultiply));
 
     /// <summary>
     /// Converts one pixel through the scalar API selected by the requested representation and range.
@@ -252,7 +313,7 @@ public class RgbaHalfTests
         };
 
     /// <summary>
-    /// Verifies the component layout and alpha metadata exposed by a binary16 pixel format.
+    /// Verifies the component layout and alpha metadata exposed by a half-precision pixel format.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format to inspect.</typeparam>
     /// <param name="alphaRepresentation">The expected alpha representation.</param>
@@ -265,6 +326,7 @@ public class RgbaHalfTests
         Assert.Equal(64, info.BitsPerPixel);
         Assert.Equal(alphaRepresentation, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+        Assert.Equal(PixelColorRange.Extended, info.ColorRange);
         Assert.Equal(4, componentInfo.ComponentCount);
         Assert.Equal(0, componentInfo.Padding);
 
@@ -280,4 +342,20 @@ public class RgbaHalfTests
 /// </summary>
 public class RgbaHalfPAssociatedAlphaTests : AssociatedAlphaPixelTests<RgbaHalfP>
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0UL)]
+    [InlineData(ulong.MaxValue)]
+    [InlineData(0x7E01_8000_A53C_1234UL)]
+    public void Constructor_FromPackedValue(ulong packed)
+    {
+        RgbaHalfP pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
+    /// <inheritdoc />
+    protected override PixelColorRange ExpectedColorRange => PixelColorRange.Extended;
 }

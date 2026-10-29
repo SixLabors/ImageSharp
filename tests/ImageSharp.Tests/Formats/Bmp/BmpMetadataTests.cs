@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
@@ -49,50 +49,95 @@ public class BmpMetadataTests
     }
 
     [Theory]
-    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
-    public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32, false)]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32, true)]
+    public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider, bool skipMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+        DecoderOptions options = new(Configuration.Default) { SkipMetadata = skipMetadata };
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
+
         Assert.NotNull(metaData);
         Assert.NotNull(metaData.IccProfile);
         Assert.Equal(16, metaData.IccProfile.Entries.Length);
+
+        ImageInfo info = Image.Identify(options, TestFile.Create(provider.SourceFileOrDescription).Bytes);
+
+        Assert.Equal(metaData.IccProfile.ToByteArray(), info.Metadata.IccProfile.ToByteArray());
     }
 
-    [Fact]
-    public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    /// <summary>
+    /// Checks that Identify discards an invalid profile and retains the image dimensions by default.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    [Theory]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
+    public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault(TestImageProvider<Rgba32> provider)
     {
-        ImageInfo info = Image.Identify(CreateBmpWithMalformedIccProfile());
-        Assert.Equal(1, info.Width);
-        Assert.Equal(1, info.Height);
+        using Image<Rgba32> expected = provider.GetImage();
+        ImageInfo info = Image.Identify(CreateBmpWithMalformedIccProfile(provider));
+
+        Assert.Equal(expected.Size, info.Size);
+        Assert.Null(info.Metadata.IccProfile);
     }
 
-    [Fact]
-    public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    /// <summary>
+    /// Checks that Decode discards an invalid profile and decodes the image by default.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    [Theory]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
+    public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault(TestImageProvider<Rgba32> provider)
     {
-        using Image<Rgba32> image = Image.Load<Rgba32>(CreateBmpWithMalformedIccProfile());
-        Assert.Equal(1, image.Width);
-        Assert.Equal(1, image.Height);
+        using Image<Rgba32> expected = provider.GetImage();
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateBmpWithMalformedIccProfile(provider));
+
+        Assert.Equal(expected.Size, image.Size);
+        Assert.Null(image.Metadata.IccProfile);
     }
 
-    [Fact]
-    public void Identify_MalformedIccProfile_ThrowsWithStrict()
+    /// <summary>
+    /// Checks that strict Identify rejects an invalid ICC profile.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    [Theory]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
+    public void Identify_MalformedIccProfile_ThrowsWithStrict(TestImageProvider<Rgba32> provider)
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
-        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, CreateBmpWithMalformedIccProfile()));
+        byte[] encoded = CreateBmpWithMalformedIccProfile(provider);
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, encoded));
     }
 
-    [Fact]
-    public void Decode_MalformedIccProfile_ThrowsWithStrict()
+    /// <summary>
+    /// Checks that strict Decode rejects an invalid ICC profile.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    [Theory]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
+    public void Decode_MalformedIccProfile_ThrowsWithStrict(TestImageProvider<Rgba32> provider)
     {
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        byte[] encoded = CreateBmpWithMalformedIccProfile(provider);
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidIccProfileException>(() =>
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateBmpWithMalformedIccProfile());
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);
         });
     }
 
-    private static byte[] CreateBmpWithMalformedIccProfile()
-        => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new BmpEncoder());
+    /// <summary>
+    /// Invalidates the ICC size in a copy of an existing BMP without changing its container or pixel data.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    /// <returns>The BMP bytes with an invalid ICC size.</returns>
+    private static byte[] CreateBmpWithMalformedIccProfile(TestImageProvider<Rgba32> provider)
+    {
+        byte[] encoded = TestFile.Create(provider.SourceFileOrDescription).Bytes.ToArray();
+        BmpInfoHeader header = BmpInfoHeader.ParseV5(encoded.AsSpan(BmpFileHeader.Size));
+
+        // ICC starts with its big-endian declared size. A size of 127 cannot contain the required 128-byte header.
+        BinaryPrimitives.WriteUInt32BigEndian(encoded.AsSpan(BmpFileHeader.Size + header.ProfileData), 127);
+        return encoded;
+    }
 }

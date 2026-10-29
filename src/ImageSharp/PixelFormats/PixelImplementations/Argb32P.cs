@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -141,8 +140,23 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
     public static bool operator !=(Argb32P left, Argb32P right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static Argb32P FromAbgr32P(Abgr32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Argb32P FromArgb32P(Argb32P source) => source;
+
+    /// <inheritdoc />
+    public static Argb32P FromBgra32P(Bgra32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public static Argb32P FromRgba32P(Rgba32P source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => new(this.R, this.G, this.B, this.A);
+
+    /// <inheritdoc />
     public readonly Rgba32 ToRgba32()
-        => Rgba32.FromScaledVector4(Vector4Converters.AssociatedRgbaCompatible.ToUnassociatedVector4(this.R, this.G, this.B, this.A));
+        => Rgba32.FromScaledVector4(PixelOperations.UnassociateBytes(this.R, this.G, this.B, this.A));
 
     /// <inheritdoc />
     public readonly Vector4 ToScaledVector4() => new Vector4(this.R, this.G, this.B, this.A) / byte.MaxValue;
@@ -152,7 +166,7 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
     public readonly Vector4 ToUnassociatedScaledVector4()
     {
         // Divide the stored byte magnitudes before normalization so unassociation cannot move an exact byte conversion across its rounding midpoint.
-        return Vector4Converters.AssociatedRgbaCompatible.ToUnassociatedVector4(this.R, this.G, this.B, this.A);
+        return PixelOperations.UnassociateBytes(this.R, this.G, this.B, this.A);
     }
 
     /// <inheritdoc />
@@ -175,6 +189,7 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
         => PixelTypeInfo.Create<Argb32P>(
             PixelComponentInfo.Create<Argb32P>(4, 8, 8, 8, 8),
             PixelColorType.Alpha | PixelColorType.RGB,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Associated);
 
     /// <inheritdoc />
@@ -198,14 +213,28 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Argb32P FromUnassociatedScaledVector4(Vector4 source)
-        => Vector4Converters.AssociatedRgbaCompatible.FromUnassociatedVector4ToArgb32P(source);
+    {
+        source = PixelOperations.AssociateToByte(source);
+
+        return new Argb32P(
+            PixelOperations.ConvertToByte(source.X),
+            PixelOperations.ConvertToByte(source.Y),
+            PixelOperations.ConvertToByte(source.Z),
+            PixelOperations.ConvertToByte(source.W));
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Argb32P FromAssociatedScaledVector4(Vector4 source)
     {
         // Rescale associated RGB when alpha rounds to a different byte so the stored channels remain associated with the alpha actually written.
-        return Vector4Converters.AssociatedRgbaCompatible.FromAssociatedVector4ToArgb32P(source);
+        source = PixelOperations.ReassociateToByte(source);
+
+        return new Argb32P(
+            PixelOperations.ConvertToByte(source.X),
+            PixelOperations.ConvertToByte(source.Y),
+            PixelOperations.ConvertToByte(source.Z),
+            PixelOperations.ConvertToByte(source.W));
     }
 
     /// <inheritdoc />
@@ -264,7 +293,7 @@ public partial struct Argb32P : IPixel<Argb32P>, IPackedVector<uint>
     {
         vector *= MaxBytes;
         vector += Half;
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, MaxBytes);
 
         // Each converted component occupies one 32-bit lane. Reinterpreting those lanes as bytes exposes their low bytes at offsets 0, 4, 8, and 12.
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();

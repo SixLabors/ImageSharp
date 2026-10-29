@@ -72,7 +72,11 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
             // interim clone if the first processor in the pipeline is a cloning processor.
             if (processor is ICloningImageProcessor cloningImageProcessor)
             {
-                using ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.Configuration, this.source, rectangle);
+                using ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(
+                    this.Configuration,
+                    this.source,
+                    rectangle);
+
                 this.destination = pixelProcessor.CloneAndExecute();
                 return this;
             }

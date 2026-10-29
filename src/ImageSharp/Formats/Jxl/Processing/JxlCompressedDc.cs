@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -57,7 +57,15 @@ internal static class JxlCompressedDc
         }
     }
 
-    private static void ComputePixelChannel(float dcFactor, ReadOnlySpan<float> rowTop, ReadOnlySpan<float> row, ReadOnlySpan<float> rowBottom, out float mc, out float sm, ref float gap, int x)
+    private static void ComputePixelChannel(
+        float dcFactor,
+        ReadOnlySpan<float> rowTop,
+        ReadOnlySpan<float> row,
+        ReadOnlySpan<float> rowBottom,
+        out float mc,
+        out float sm,
+        ref float gap,
+        int x)
     {
         float tl = rowTop[x - 1];
         float tc = rowTop[x];
@@ -143,7 +151,7 @@ internal static class JxlCompressedDc
         outRows2[x] = ((smB - mcB) * factor) + mcB;
     }
 
-    public static bool AdaptiveDCSmoothing(Configuration configuration, InlineArray3<float> dcFactors, JxlImage3F dc)
+    public static bool AdaptiveDCSmoothing(Configuration configuration, InlineArray3<float> dcFactors, JxlImage3<float> dc)
     {
         int xSize = dc.XSize;
         int ySize = dc.YSize;
@@ -154,7 +162,7 @@ internal static class JxlCompressedDc
         }
 
         // Don't dispose.
-        JxlImage3F smoothed = new(configuration, xSize, ySize);
+        JxlImage3<float> smoothed = new(configuration, xSize, ySize);
 
         // Fill borders that the loop below will not.
         // First and last rows are unused by the processing loop.
@@ -164,7 +172,7 @@ internal static class JxlCompressedDc
             dc.PlaneRow(c, ySize - 1).CopyTo(smoothed.PlaneRow(c, ySize - 1));
         }
 
-        _ = Parallel.For(1, ySize, configuration.GetParallelOptions(), y =>
+        for (int y = 1; y < ySize - 1; y++)
         {
             ReadOnlySpan<float> rowTopX = dc.PlaneRow(0, y - 1);
             ReadOnlySpan<float> rowTopY = dc.PlaneRow(1, y - 1);
@@ -211,13 +219,22 @@ internal static class JxlCompressedDc
             {
                 ComputePixelScalar(dcFactors, rowTopX, rowTopY, rowTopB, rowX, rowY, rowB, rowBottomX, rowBottomY, rowBottomB, rowOutX, rowOutY, rowOutB, x);
             }
-        });
+        }
 
         dc.Swap(smoothed);
         return true;
     }
 
-    public static void DequantDC(Rectangle r, JxlImage3F dc, JxlImageB quantDc, JxlModularImage input, InlineArray3<float> dcFactors, float mul, InlineArray3<float> cflFactors, JxlYCbCrChromaSubsampling chromaSubsampling, JxlBlockContextMap bctx)
+    public static void DequantDC(
+        Rectangle r,
+        JxlImage3<float> dc,
+        JxlPlane<byte> quantDc,
+        JxlModularImage input,
+        InlineArray3<float> dcFactors,
+        float mul,
+        InlineArray3<float> cflFactors,
+        JxlYCbCrChromaSubsampling chromaSubsampling,
+        JxlBlockContextMap bctx)
     {
         if (chromaSubsampling.Is444)
         {

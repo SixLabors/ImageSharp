@@ -17,7 +17,6 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -301,18 +300,18 @@ public class JxlDecoderCoreTests
                 }
             }
 
-            JxlImage3F preview = new(configuration, ib.XSize * 7, ib.YSize * 7);
+            using JxlImage3<float> preview = new(configuration, ib.XSize * 7, ib.YSize * 7);
 
             for (int c = 0; c < 3; c++)
             {
-                Upsample7(ib.Color!.Plane(c), preview.Plane(c));
+                Upsample7(ib.Color.Plane(c), preview.Plane(c));
             }
 
-            List<JxlImageF> extraChannels = [];
+            List<JxlPlane<float>> extraChannels = [];
 
-            foreach (JxlImageF extraChannel in ib.EnumerateExtraChannels())
+            foreach (JxlPlane<float> extraChannel in ib.EnumerateExtraChannels())
             {
-                JxlImageF ec = new(configuration, ib.XSize * 7, ib.YSize * 7);
+                JxlPlane<float> ec = new(configuration, ib.XSize * 7, ib.YSize * 7);
 
                 Upsample7(extraChannel, ec);
                 extraChannels.Add(ec);
@@ -341,7 +340,13 @@ public class JxlDecoderCoreTests
     // the return value _if_ add_container indicates a box format.
     //
     // (comment from libjxl source)
-    private static List<byte> CreateTestJpegXLCodeStream(Configuration configuration, Span<byte> pixels, int width, int height, int numChannels, TestCodestreamParameters parameters)
+    private static List<byte> CreateTestJpegXLCodeStream(
+        Configuration configuration,
+        Span<byte> pixels,
+        int width,
+        int height,
+        int numChannels,
+        TestCodestreamParameters parameters)
     {
         bool grayscale = numChannels <= 2;
         bool haveAlpha = (numChannels & 1) == 0;
@@ -740,8 +745,8 @@ public class JxlDecoderCoreTests
 
         io.CodecMetadata.ImageMetadata!.ColorEncoding = JxlColorEncoding.LinearSRgb();
 
-        using JxlImage3F main = new(TestEnvironment.Configuration, width, height);
-        using JxlImageF spot = new(TestEnvironment.Configuration, width, height);
+        using JxlImage3<float> main = new(TestEnvironment.Configuration, width, height);
+        using JxlPlane<float> spot = new(TestEnvironment.Configuration, width, height);
         JxlImageOperations.ZeroFillImage(main);
         JxlImageOperations.ZeroFillImage(spot);
 
@@ -776,7 +781,7 @@ public class JxlDecoderCoreTests
 
         io.CodecMetadata.ImageMetadata!.ExtraChannels.Add(info);
 
-        List<JxlImageF> ec = [spot];
+        List<JxlPlane<float>> ec = [spot];
         Assert.True(io.Frames[0].TrySetExtraChannels(ec));
 
         JxlCompressParameters compressParameters = new()

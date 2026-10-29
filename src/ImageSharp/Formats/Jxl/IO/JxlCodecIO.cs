@@ -42,11 +42,11 @@ internal sealed class JxlCodecIO
 
     public JxlImageBundle Main => this.Frames[this.LastStillFrame];
 
-    public int Width => this.CodecMetadata.Size!.XSize;
+    public int Width => this.CodecMetadata.Size.XSize;
 
-    public int Height => this.CodecMetadata.Size!.YSize;
+    public int Height => this.CodecMetadata.Size.YSize;
 
-    public void SetSize(int width, int height) => this.CodecMetadata.Size!.Set(width, height);
+    public void SetSize(int width, int height) => this.CodecMetadata.Size.Set(width, height);
 
     public void ShrinkTo(int width, int height)
     {

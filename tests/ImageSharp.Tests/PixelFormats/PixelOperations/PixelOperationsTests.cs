@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Common;
@@ -16,10 +15,239 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 [Trait("Category", "PixelFormats")]
 public partial class PixelOperationsTests
 {
+    /// <summary>
+    /// Checks unsigned sixteen-bit extraction and floating-pixel conversion across SIMD widths and scalar tails.
+    /// </summary>
+    [Fact]
+    public void Unsigned16VectorConversionsMatchSinglePixels() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertUnsigned16VectorConversions,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks every unsigned sixteen-bit layout against its single-pixel conversion.
+    /// </summary>
+    private static void AssertUnsigned16VectorConversions()
+    {
+        AssertUnsigned16PixelConversions<Rgba64>();
+        AssertUnsigned16PixelConversions<Rgb48>();
+        AssertUnsigned16PixelConversions<L16>();
+        AssertUnsigned16PixelConversions<La32>();
+        AssertUnsigned16PixelConversions<Rg32>();
+    }
+
+    /// <summary>
+    /// Checks all word values, alpha representations, incomplete vector groups and destination bounds.
+    /// </summary>
+    /// <typeparam name="TPixel">The unsigned sixteen-bit pixel format.</typeparam>
+    private static void AssertUnsigned16PixelConversions<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Small counts exercise empty input and tails after the 4-, 8- and 16-pixel SIMD groups.
+        // The final count includes every possible ushort value, so normalization is checked over its complete input range.
+        foreach (int count in new[] { 0, 1, 4, 8, 16, 17, 33, 65, ushort.MaxValue + 1 })
+        {
+            TPixel[] source = new TPixel[count];
+            Span<ushort> words = MemoryMarshal.Cast<TPixel, ushort>(source.AsSpan());
+            int components = Unsafe.SizeOf<TPixel>() / sizeof(ushort);
+
+            for (int i = 0; i < count; i++)
+            {
+                // Visit every stored code in each component. The offset gives the channels different values while
+                // preserving full-range coverage, including hidden color at zero alpha and nonzero associated output.
+                for (int component = 0; component < components; component++)
+                {
+                    words[(i * components) + component] = unchecked((ushort)(i + component));
+                }
+            }
+
+            Vector4 sentinel = new(2F, 3F, 4F, 5F);
+            Vector4[] straight = Enumerable.Repeat(sentinel, count + 1).ToArray();
+            Vector4[] associated = straight.ToArray();
+            RgbaVector[] floating = new RgbaVector[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                straight[i] = source[i].ToUnassociatedVector4();
+                associated[i] = source[i].ToAssociatedVector4();
+                floating[i] = RgbaVector.FromUnassociatedScaledVector4(straight[i]);
+            }
+
+            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+
+            // TestOperation uses a tolerance for Vector4. These conversions must match the single-pixel arithmetic exactly.
+            // Check the source and final destination element too, since neither may change.
+            AssertUnsigned16Extraction(source, straight, (s, d) => operations.ToVector4(Configuration.Default, s, d));
+            AssertUnsigned16Extraction(source, straight, (s, d) => operations.ToScaledVector4(Configuration.Default, s, d));
+            AssertUnsigned16Extraction(source, straight, (s, d) => operations.ToUnassociatedVector4(Configuration.Default, s, d));
+            AssertUnsigned16Extraction(source, straight, (s, d) => operations.ToUnassociatedScaledVector4(Configuration.Default, s, d));
+
+            AssertUnsigned16Extraction(source, associated, (s, d) => operations.ToAssociatedVector4(Configuration.Default, s, d));
+            AssertUnsigned16Extraction(source, associated, (s, d) => operations.ToAssociatedScaledVector4(Configuration.Default, s, d));
+
+            // The generic floating-pixel path must use the same extraction without quantizing through an eight-bit pixel.
+            PixelOperationsTests<RgbaVector>.TestOperation(
+                source,
+                floating,
+                (s, d) => PixelOperations<RgbaVector>.Instance.From(Configuration.Default, s, d.GetSpan()));
+        }
+    }
+
+    /// <summary>
+    /// Checks exact vector output, destination bounds and source immutability for one bulk entry point.
+    /// </summary>
+    /// <typeparam name="TPixel">The unsigned sixteen-bit pixel format.</typeparam>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="expected">The expected vectors, including the untouched final element.</param>
+    /// <param name="convert">The bulk entry point.</param>
+    private static void AssertUnsigned16Extraction<TPixel>(TPixel[] source, Vector4[] expected, Action<TPixel[], Vector4[]> convert)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        TPixel[] original = source.ToArray();
+        Vector4[] actual = Enumerable.Repeat(expected[^1], expected.Length).ToArray();
+
+        convert(source, actual);
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(original, source);
+    }
+
+    /// <summary>
+    /// Checks RGB48 and RGBA64 packing, rounding, and destination bounds with every SIMD width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void Unsigned16VectorPackingMatchesSinglePixels() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        AssertUnsigned16VectorPacking,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks both layouts that share unsigned 16-bit RGB packing.
+    /// </summary>
+    private static void AssertUnsigned16VectorPacking()
+    {
+        AssertUnsigned16PixelPacking<Rgb48>();
+        AssertUnsigned16PixelPacking<Rgba64>();
+    }
+
+    /// <summary>
+    /// Checks every quantization midpoint and the inputs that require finite bounds or alpha conversion.
+    /// </summary>
+    /// <typeparam name="TPixel">The unsigned 16-bit RGB or RGBA format.</typeparam>
+    private static void AssertUnsigned16PixelPacking<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Vector4[] boundaries =
+        [
+            new(float.NaN, float.NegativeInfinity, float.PositiveInfinity, float.NaN),
+            new(-1F, 2F, -0F, float.PositiveInfinity),
+            new(0.25F, 0.5F, 0.75F, 0F),
+            new(0.25F, 0.5F, 0.75F, float.Epsilon),
+            new(0.25F, 0.5F, 0.75F, -1F),
+            new(0.25F, 0.5F, 0.75F, 2F),
+            Vector4.Zero,
+            Vector4.One
+        ];
+
+        // Counts surround the two-, four-, and eight-pixel packing groups. The largest count also has a scalar remainder.
+        int fullRangeCount = ushort.MaxValue + 1 + (2 * boundaries.Length) + 1;
+
+        foreach (int count in new[] { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 33, 257, fullRangeCount })
+        {
+            Vector4[] source = new Vector4[count];
+            TPixel sentinel = TPixel.FromRgba32(new Rgba32(13, 27, 39, 51));
+            TPixel[] straight = Enumerable.Repeat(sentinel, count + 1).ToArray();
+            TPixel[] associated = straight.ToArray();
+
+            for (int i = 0; i < count; i++)
+            {
+                // Adjacent float values straddle each ushort rounding midpoint. Distinct channels also expose layout mistakes.
+                float midpoint = (i - boundaries.Length + 0.5F) / ushort.MaxValue;
+                source[i] = new Vector4(MathF.BitDecrement(midpoint), midpoint, MathF.BitIncrement(midpoint), (i % 17) / 16F);
+
+                // Repeat special values at the end too, so long inputs test them after full vector groups.
+                if (i < boundaries.Length || i >= count - boundaries.Length)
+                {
+                    source[i] = boundaries[i % boundaries.Length];
+                }
+
+                straight[i] = TPixel.FromUnassociatedScaledVector4(source[i]);
+                associated[i] = TPixel.FromAssociatedScaledVector4(source[i]);
+            }
+
+            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+            AssertUnsigned16Packing(source, straight, (s, d) => operations.FromUnassociatedVector4Destructive(Configuration.Default, s, d));
+            AssertUnsigned16Packing(source, straight, (s, d) => operations.FromUnassociatedScaledVector4Destructive(Configuration.Default, s, d));
+            AssertUnsigned16Packing(source, associated, (s, d) => operations.FromAssociatedVector4Destructive(Configuration.Default, s, d));
+            AssertUnsigned16Packing(source, associated, (s, d) => operations.FromAssociatedScaledVector4Destructive(Configuration.Default, s, d));
+        }
+    }
+
+    /// <summary>
+    /// Checks one destructive entry point with its own input copy and an untouched destination sentinel.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed pixel format.</typeparam>
+    /// <param name="source">The input vectors.</param>
+    /// <param name="expected">The expected pixels and the final sentinel.</param>
+    /// <param name="convert">The bulk entry point.</param>
+    private static void AssertUnsigned16Packing<TPixel>(Vector4[] source, TPixel[] expected, Action<Vector4[], TPixel[]> convert)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        TPixel[] actual = Enumerable.Repeat(expected[^1], expected.Length).ToArray();
+
+        // The API permits input mutation. A separate copy prevents one entry point from changing the next one's inputs.
+        convert(source.ToArray(), actual);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Theory]
     [WithBlankImages(1, 1, PixelTypes.All)]
     public void GetGlobalInstance<T>(TestImageProvider<T> _)
         where T : unmanaged, IPixel<T> => Assert.NotNull(PixelOperations<T>.Instance);
+
+    /// <summary>
+    /// Exercises the shared pixel operations for 32-bit unsigned three-component storage.
+    /// </summary>
+    public sealed class Rgb96_OperationsTests : PixelOperationsTests<Rgb96>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgb96_OperationsTests"/> class.
+        /// </summary>
+        /// <param name="output">The test output.</param>
+        public Rgb96_OperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Exercises the shared pixel operations for 32-bit unsigned four-component storage.
+    /// </summary>
+    public sealed class Rgba128_OperationsTests : PixelOperationsTests<Rgba128>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba128_OperationsTests"/> class.
+        /// </summary>
+        /// <param name="output">The test output.</param>
+        public Rgba128_OperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Exercises the shared pixel operations for associated floating-point storage.
+    /// </summary>
+    public sealed class RgbaVectorP_OperationsTests : PixelOperationsTests<RgbaVectorP>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RgbaVectorP_OperationsTests"/> class.
+        /// </summary>
+        /// <param name="output">The test output.</param>
+        public RgbaVectorP_OperationsTests(ITestOutputHelper output)
+            : base(output)
+        {
+        }
+    }
 }
 
 public abstract class PixelOperationsTests<TPixel> : MeasureFixture
@@ -65,6 +293,212 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             1111
         };
 
+    /// <summary>
+    /// Checks that the associated packed conversions follow the existing associated-vector contract.
+    /// </summary>
+    [Fact]
+    public void AssociatedPackedSingleConversionsMatchVectorContract()
+    {
+        // Include zero, partial and opaque alpha. Distinct RGB values expose an incorrect channel order.
+        ReadOnlySpan<Rgba32P> samples = [new(0, 0, 0, 0), new(1, 2, 3, 4), new(37, 73, 109, 151), new(211, 89, 173, 255)];
+
+        foreach (Rgba32P sample in samples)
+        {
+            TPixel expected = TPixel.FromAssociatedScaledVector4(sample.ToAssociatedScaledVector4());
+            Assert.Equal(expected, TPixel.FromAbgr32P(new Abgr32P(sample.R, sample.G, sample.B, sample.A)));
+            Assert.Equal(expected, TPixel.FromArgb32P(new Argb32P(sample.R, sample.G, sample.B, sample.A)));
+            Assert.Equal(expected, TPixel.FromBgra32P(new Bgra32P(sample.R, sample.G, sample.B, sample.A)));
+            Assert.Equal(expected, TPixel.FromRgba32P(sample));
+
+            Rgba32P expectedPacked = Rgba32P.FromAssociatedScaledVector4(expected.ToAssociatedScaledVector4());
+            Assert.Equal(expectedPacked, expected.ToRgba32P());
+        }
+    }
+
+    /// <summary>
+    /// Checks packed Abgr32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromAbgr32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow ABGR storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromAbgr32P(new Abgr32P(source[offset + 3], source[offset + 2], source[offset + 1], source[offset]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromAbgr32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Abgr32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToAbgr32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.A;
+            expected[offset + 1] = pixel.B;
+            expected[offset + 2] = pixel.G;
+            expected[offset + 3] = pixel.R;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToAbgr32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Argb32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromArgb32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow ARGB storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromArgb32P(new Argb32P(source[offset + 1], source[offset + 2], source[offset + 3], source[offset]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromArgb32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Argb32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToArgb32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.A;
+            expected[offset + 1] = pixel.R;
+            expected[offset + 2] = pixel.G;
+            expected[offset + 3] = pixel.B;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToArgb32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Bgra32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromBgra32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow BGRA storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromBgra32P(new Bgra32P(source[offset + 2], source[offset + 1], source[offset], source[offset + 3]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromBgra32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Bgra32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToBgra32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.B;
+            expected[offset + 1] = pixel.G;
+            expected[offset + 2] = pixel.R;
+            expected[offset + 3] = pixel.A;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToBgra32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Rgba32P input against the single-pixel conversion for this destination format.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void FromRgba32PBytes(int count)
+    {
+        byte[] source = CreateByteTestData(count * 4);
+        TPixel[] expected = new TPixel[count];
+
+        // The byte indices follow RGBA storage order; constructor arguments remain R, G, B and alpha.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            expected[i] = TPixel.FromRgba32P(new Rgba32P(source[offset], source[offset + 1], source[offset + 2], source[offset + 3]));
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.FromRgba32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
+    /// <summary>
+    /// Checks packed Rgba32P output against the single-pixel associated RGBA representation.
+    /// </summary>
+    /// <param name="count">The number of pixels.</param>
+    [Theory]
+    [MemberData(nameof(ArraySizesData))]
+    public void ToRgba32PBytes(int count)
+    {
+        TPixel[] source = CreatePixelTestData(count);
+        byte[] expected = new byte[count * 4];
+
+        // ToRgba32P applies the source format's alpha rules. Only channel order changes for the packed destination.
+        for (int i = 0; i < count; i++)
+        {
+            int offset = i * 4;
+            Rgba32P pixel = source[i].ToRgba32P();
+            expected[offset] = pixel.R;
+            expected[offset + 1] = pixel.G;
+            expected[offset + 2] = pixel.B;
+            expected[offset + 3] = pixel.A;
+        }
+
+        TestOperation(source, expected, (s, d) => this.Operations.ToRgba32PBytes(this.Configuration, s, d.GetSpan(), count));
+    }
+
     protected Configuration Configuration => Configuration.Default;
 
     protected virtual PixelOperations<TPixel> Operations { get; } = PixelOperations<TPixel>.Instance;
@@ -96,35 +530,6 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             vectorModifier?.Invoke(ref v);
 
             expected[i] = TPixel.FromScaledVector4(v);
-        }
-
-        return expected;
-    }
-
-    /// <summary>
-    /// Creates the scalar oracle for companded scaled input.
-    /// </summary>
-    /// <param name="source">The source vectors.</param>
-    /// <param name="associated">Whether the source vectors use associated alpha.</param>
-    /// <returns>The converted pixels.</returns>
-    internal static TPixel[] CreateCompandedExpectedPixelData(Vector4[] source, bool associated)
-    {
-        TPixel[] expected = new TPixel[source.Length];
-
-        for (int i = 0; i < source.Length; i++)
-        {
-            Vector4 vector = source[i];
-
-            if (associated)
-            {
-                Numerics.UnPremultiply(ref vector);
-            }
-
-            vector = SRgbCompanding.Compress(vector);
-
-            // Transfer functions operate on straight RGB. Let the destination pixel perform any required association so its stored
-            // alpha quantization participates exactly once, matching the public bulk conversion contract.
-            expected[i] = TPixel.FromUnassociatedScaledVector4(vector);
         }
 
         return expected;
@@ -178,39 +583,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) =>
-                {
-                    Span<TPixel> destPixels = d.GetSpan();
-                    this.Operations.FromVector4Destructive(this.Configuration, s, destPixels, PixelConversionModifiers.Scale);
-                });
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void FromCompandedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            v = SRgbCompanding.Expand(v);
-
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        Vector4[] source = CreateVector4TestData(count, SourceAction);
-        TPixel[] expected = CreateCompandedExpectedPixelData(source, this.HasAssociatedAlpha);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) => this.Operations.FromVector4Destructive(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale),
-            false);
+            (s, d) => this.Operations.FromScaledVector4Destructive(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -231,27 +604,15 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) =>
-            {
-                this.Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply);
-            });
+            (s, d) => this.Operations.FromAssociatedVector4Destructive(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
     [MemberData(nameof(ArraySizesData))]
     public void FromPremultipliedScaledVector4(int count)
     {
-        void SourceAction(ref Vector4 v)
-        {
-            if (!this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
+        // The named API always receives associated vectors; straight destination formats unassociate them while packing.
+        void SourceAction(ref Vector4 v) => Numerics.Premultiply(ref v);
 
         void ExpectedAction(ref Vector4 v)
         {
@@ -267,41 +628,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) =>
-            {
-                this.Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale);
-            });
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void FromCompandedPremultipliedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            v = SRgbCompanding.Expand(v);
-            Numerics.Premultiply(ref v);
-        }
-
-        Vector4[] source = CreateVector4TestData(count, SourceAction);
-        TPixel[] expected = CreateCompandedExpectedPixelData(source, true);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) =>
-            {
-                this.Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale);
-            },
-            false);
+            (s, d) => this.Operations.FromAssociatedScaledVector4Destructive(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -348,13 +675,16 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             new TestPixel<Rg32>(),
             new TestPixel<Rgb24>(),
             new TestPixel<Rgb48>(),
+            new TestPixel<Rgb96>(),
             new TestPixel<Rgba1010102>(),
+            new TestPixel<Rgba128>(),
             new TestPixel<Rgba32>(),
             new TestPixel<Rgba32P>(),
             new TestPixel<Rgba64>(),
             new TestPixel<RgbaHalf>(),
             new TestPixel<RgbaHalfP>(),
             new TestPixel<RgbaVector>(),
+            new TestPixel<RgbaVectorP>(),
             new TestPixel<Short2>(),
             new TestPixel<Short4>(),
         });
@@ -367,6 +697,28 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         const int count = 2134;
         TPixel[] source = CreatePixelTestData(count);
         TDestPixel[] expected = new TDestPixel[count];
+
+        // These samples retain HDR and IEEE values in floating-point sources while bounded sources saturate at construction.
+        Vector4[] boundaryValues =
+        [
+            new(0F, .4F, 1F, 1F),
+            new(2.5F, -1F, .5F, 1F),
+            new(float.NaN, float.NegativeInfinity, float.PositiveInfinity, 1F),
+            new(-0F, 0F, 1F, 0F),
+            new(1F, 1F, 1F, float.PositiveInfinity),
+            new(0F, 0F, 0F, float.NaN)
+        ];
+
+        for (int i = 0; i < boundaryValues.Length; i++)
+        {
+            source[i] = TPixel.FromUnassociatedScaledVector4(boundaryValues[i]);
+        }
+
+        if (this.HasAssociatedAlpha)
+        {
+            // Associated floating-point formats can store color with zero alpha; matching destinations must retain it.
+            source[boundaryValues.Length] = TPixel.FromAssociatedScaledVector4(new Vector4(2F, -1F, .5F, 0F));
+        }
 
         PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(source, expected);
 
@@ -383,51 +735,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.Scale));
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void ToCompandedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        void ExpectedAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.UnPremultiply(ref v);
-            }
-
-            v = SRgbCompanding.Expand(v);
-
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
-        Vector4[] expected = CreateExpectedScaledVector4Data(source, ExpectedAction);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale));
+            (s, d) => this.Operations.ToScaledVector4(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -446,7 +754,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) => this.Operations.ToVector4(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply));
+            (s, d) => this.Operations.ToAssociatedVector4(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]
@@ -471,47 +779,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         TestOperation(
             source,
             expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesData))]
-    public void ToCompandedPremultipliedScaledVector4(int count)
-    {
-        void SourceAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.Premultiply(ref v);
-            }
-        }
-
-        void ExpectedAction(ref Vector4 v)
-        {
-            if (this.HasAssociatedAlpha)
-            {
-                Numerics.UnPremultiply(ref v);
-            }
-
-            v = SRgbCompanding.Expand(v);
-            Numerics.Premultiply(ref v);
-        }
-
-        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
-        Vector4[] expected = CreateExpectedScaledVector4Data(source, ExpectedAction);
-
-        TestOperation(
-            source,
-            expected,
-            (s, d) => this.Operations.ToVector4(
-                this.Configuration,
-                s,
-                d.GetSpan(),
-                PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
+            (s, d) => this.Operations.ToAssociatedScaledVector4(this.Configuration, s, d.GetSpan()));
     }
 
     [Theory]

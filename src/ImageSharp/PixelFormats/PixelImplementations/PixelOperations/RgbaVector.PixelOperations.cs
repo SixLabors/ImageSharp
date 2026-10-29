@@ -3,67 +3,37 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
-/// Provides optimized overrides for bulk operations.
+/// Selects the shared storage-family implementation.
 /// </content>
 public partial struct RgbaVector
 {
     /// <summary>
-    /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
+    /// Inherits the shared bulk conversions for this pixel's storage.
     /// </summary>
-    internal class PixelOperations : PixelOperations<RgbaVector>
+    internal partial class PixelOperations : RgbaVectorPixelOperations<RgbaVector>
     {
         /// <inheritdoc />
-        public override void From<TSourcePixel>(
-            Configuration configuration,
-            ReadOnlySpan<TSourcePixel> sourcePixels,
-            Span<RgbaVector> destinationPixels)
+        public override void From<TPixelFrom>(Configuration configuration, ReadOnlySpan<TPixelFrom> source, Span<RgbaVector> destination)
         {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+            // RgbaVector stores straight RGBA floats in Vector4 order. Write into that final storage without a temporary row or copy.
+            Span<Vector4> vectors = MemoryMarshal.Cast<RgbaVector, Vector4>(destination);
+            PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
 
-            destinationPixels = destinationPixels[..sourcePixels.Length];
-            Span<Vector4> destinationVectors = MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels);
-
-            // Cross-format conversion uses public dispatch so associated source pixels are unassociated before entering RgbaVector storage.
-            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, sourcePixels, destinationVectors, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
-
-            // RgbaVector.FromScaledVector4 clamps scaled input, so the optimized bulk path must preserve that behavior after unassociating.
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(destinationVectors), 0F, 1F);
-        }
-
-        /// <inheritdoc />
-        public override void FromVector4Destructive(
-            Configuration configuration,
-            Span<Vector4> sourceVectors,
-            Span<RgbaVector> destinationPixels,
-            PixelConversionModifiers modifiers)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
-
-            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
-
-            // RgbaVector.FromVector4 and FromScaledVector4 both clamp to the representable [0, 1] range. Preserve that scalar
-            // contract before the zero-copy representation cast so bulk processor output cannot retain HDR or negative values.
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceVectors), 0F, 1F);
-            MemoryMarshal.Cast<Vector4, RgbaVector>(sourceVectors).CopyTo(destinationPixels[..sourceVectors.Length]);
-        }
-
-        /// <inheritdoc />
-        public override void ToVector4(
-            Configuration configuration,
-            ReadOnlySpan<RgbaVector> sourcePixels,
-            Span<Vector4> destinationVectors,
-            PixelConversionModifiers modifiers)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
-
-            destinationVectors = destinationVectors[..sourcePixels.Length];
-            MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destinationVectors);
-            Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
+            if (TPixelFrom.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+            {
+                // The single-pixel associated conversions normalize stored channels before unassociation.
+                // Use the same order to preserve their rounding, with both bulk operations writing only destination storage.
+                sourceOperations.ToAssociatedScaledVector4(configuration, source, vectors);
+                PixelFormats.PixelOperations.UnPremultiply(vectors[..source.Length], vectors[..source.Length]);
+            }
+            else
+            {
+                sourceOperations.ToUnassociatedScaledVector4(configuration, source, vectors);
+            }
         }
     }
 }

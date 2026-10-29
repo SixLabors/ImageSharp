@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats;
 [Trait("Category", "PixelFormats")]
 public class NormalizedShort2Tests
 {
+    /// <summary>
+    /// Verifies that packed construction retains every stored bit without numeric conversion.
+    /// </summary>
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(uint.MaxValue)]
+    [InlineData(0xA17E_80FDU)]
+    public void Constructor_FromPackedValue(uint packed)
+    {
+        NormalizedShort2 pixel = new(packed);
+
+        Assert.Equal(packed, pixel.PackedValue);
+    }
+
     [Fact]
     public void NormalizedShort2_PackedValue()
     {
@@ -55,7 +69,7 @@ public class NormalizedShort2Tests
         Array.Fill(source, pixel);
 
         PixelOperations<NormalizedShort2>.Instance.ToVector4(Configuration.Default, source, native);
-        PixelOperations<NormalizedShort2>.Instance.ToVector4(Configuration.Default, source, scaled, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort2>.Instance.ToScaledVector4(Configuration.Default, source, scaled);
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -66,7 +80,7 @@ public class NormalizedShort2Tests
         Vector4[] destructiveSource = new Vector4[source.Length];
         Array.Fill(destructiveSource, expectedScaled);
         NormalizedShort2[] actualPixels = new NormalizedShort2[source.Length];
-        PixelOperations<NormalizedShort2>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        PixelOperations<NormalizedShort2>.Instance.FromScaledVector4Destructive(Configuration.Default, destructiveSource, actualPixels);
         Assert.All(actualPixels, actual => Assert.Equal(0x80018001U, actual.PackedValue));
     }
 
@@ -106,6 +120,7 @@ public class NormalizedShort2Tests
 
         // assert
         Assert.Equal(expected, actual);
+        Assert.Equal(0x7FFF8001U, NormalizedShort2.FromScaledVector4(new Vector4(float.NaN, float.PositiveInfinity, 0F, 1F)).PackedValue);
     }
 
     [Fact]
@@ -128,6 +143,7 @@ public class NormalizedShort2Tests
         Assert.Equal(Unsafe.SizeOf<NormalizedShort2>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
+        Assert.Equal(PixelColorRange.Sdr, info.ColorRange);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(2, componentInfo.ComponentCount);

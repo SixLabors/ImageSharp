@@ -24,7 +24,7 @@ public static class BokehBlurExtensions
     /// <param name="source">The current image processing context.</param>
     /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
     /// <param name="components">The 'components' value representing the number of kernels to use to approximate the bokeh effect.</param>
-    /// <param name="gamma">The gamma highlight factor to use to emphasize bright spots in the source image</param>
+    /// <param name="gamma">The gamma highlight factor. Must be at least 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BokehBlur(this IImageProcessingContext source, int radius, int components, float gamma)
         => source.ApplyProcessor(new BokehBlurProcessor(radius, components, gamma));
@@ -49,7 +49,7 @@ public static class BokehBlurExtensions
     /// </param>
     /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
     /// <param name="components">The 'components' value representing the number of kernels to use to approximate the bokeh effect.</param>
-    /// <param name="gamma">The gamma highlight factor to use to emphasize bright spots in the source image</param>
+    /// <param name="gamma">The gamma highlight factor. Must be at least 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BokehBlur(this IImageProcessingContext source, Rectangle rectangle, int radius, int components, float gamma)
         => source.ApplyProcessor(new BokehBlurProcessor(radius, components, gamma), rectangle);

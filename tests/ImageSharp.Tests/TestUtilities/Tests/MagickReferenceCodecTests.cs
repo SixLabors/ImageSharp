@@ -47,7 +47,7 @@ public class MagickReferenceCodecTests
 
         if (TestEnvironment.IsWindows)
         {
-            Assert.True(report.IsEmpty);
+            Assert.True(report.IsEmpty, report.ToString());
         }
     }
 
@@ -77,7 +77,7 @@ public class MagickReferenceCodecTests
 
         if (TestEnvironment.IsWindows)
         {
-            Assert.True(report.IsEmpty);
+            Assert.True(report.IsEmpty, report.ToString());
         }
     }
 }

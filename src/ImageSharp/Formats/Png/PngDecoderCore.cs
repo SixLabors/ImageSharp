@@ -10,6 +10,8 @@ using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -195,11 +197,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
-                            if (!Equals(this.header, default(PngHeader)))
-                            {
-                                PngThrowHelper.ThrowInvalidHeader();
-                            }
-
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.AnimationControl:
@@ -221,6 +218,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameData:
                         {
+                            ValidateFrameDataChunk(chunk);
+
                             if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
@@ -263,10 +262,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
+                                // PLTE and tRNS precede IDAT. Validate the required indexed palette before
+                                // allocating pixel storage, outside recovery from compressed-data errors.
+                                this.AssignColorPalette<TPixel>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
                                 this.InitializeImage(metadata, currentFrameControl.Value, out image);
-
-                                // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
                             this.ReadScanlines(
@@ -316,7 +315,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                            this.ExecuteAncillarySegmentAction(() => this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan()));
                             break;
                         case PngChunkType.End:
                             goto EOF;
@@ -337,7 +336,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowNoData();
             }
 
-            _ = this.TryConvertIccProfile(image);
+            if (this.pngColorType != PngColorType.Palette)
+            {
+                _ = TryConvertIccProfile(image);
+            }
+
             return image;
         }
         catch
@@ -418,6 +421,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.FrameData:
+                            ValidateFrameDataChunk(chunk);
+
                             if (frameCount > this.maxFrames)
                             {
                                 // Must skip the chunk data even when we've hit maxFrames, because TryReadChunk
@@ -459,7 +464,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
                                 // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
+                                // Identify has no destination pixel format; RgbaVector preserves converted colors as unassociated floating-point values.
+                                this.AssignColorPalette<RgbaVector>(this.palette, this.paletteAlpha, pngMetadata, metadata.IccProfile);
                             }
 
                             this.SkipChunkDataAndCrc(chunk);
@@ -520,6 +526,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                             }
 
+                            break;
+                        case PngChunkType.EmbeddedColorProfile:
+                            this.ExecuteAncillarySegmentAction(() => this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan()));
                             break;
                         case PngChunkType.End:
                             goto EOF;
@@ -656,7 +665,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         frameMetadata.FromChunk(in frameControl);
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
-        this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
+        this.bytesPerScanline = CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
         this.bytesPerSample = 1;
         if (this.header.BitDepth >= 8)
         {
@@ -741,21 +750,29 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// Calculates the scanline length.
     /// </summary>
     /// <param name="width">The width of the row.</param>
+    /// <param name="bitDepth">The number of bits per sample.</param>
+    /// <param name="bytesPerPixel">The number of bytes per pixel.</param>
     /// <returns>
     /// The <see cref="int"/> representing the length.
     /// </returns>
-    private int CalculateScanlineLength(int width)
+    internal static int CalculateScanlineLength(int width, int bitDepth, int bytesPerPixel)
     {
-        int mod = this.header.BitDepth == 16 ? 16 : 8;
-        int scanlineLength = width * this.header.BitDepth * this.bytesPerPixel;
+        int mod = bitDepth == 16 ? 16 : 8;
+        long scanlineLength = (long)width * bitDepth * bytesPerPixel;
 
-        int amount = scanlineLength % mod;
+        long amount = scanlineLength % mod;
         if (amount != 0)
         {
             scanlineLength += mod - amount;
         }
 
-        return scanlineLength / mod;
+        scanlineLength /= mod;
+        if (scanlineLength >= int.MaxValue)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("PNG scanline length exceeds the supported maximum.");
+        }
+
+        return (int)scanlineLength;
     }
 
     /// <summary>
@@ -875,13 +892,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            int bytesPerFrameScanline = this.CalculateScanlineLength((int)frameControl.Width) + 1;
+            int bytesPerFrameScanline = CalculateScanlineLength((int)frameControl.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
             Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
             Span<byte> prevSpan = this.previousScanline.GetSpan()[..bytesPerFrameScanline];
 
             while (currentRowBytesRead < bytesPerFrameScanline)
             {
-                int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
+                int bytesRead = compressedStream.Read(scanSpan.Slice(currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead));
                 if (bytesRead <= 0)
                 {
                     goto EXIT;
@@ -1006,14 +1023,14 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
+            int bytesPerInterlaceScanline = CalculateScanlineLength(numColumns, this.header.BitDepth, this.bytesPerPixel) + 1;
 
             while (currentRow < endRow)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 while (currentRowBytesRead < bytesPerInterlaceScanline)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.GetSpan().Slice(currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead));
                     if (bytesRead <= 0)
                     {
                         goto EXIT;
@@ -1194,8 +1211,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (blend)
             {
-                PixelBlender<TPixel> blender =
-                    PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+                PixelBlender<TPixel> blender = PixelBlenders<TPixel>.NormalSrcOver;
+
                 blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
@@ -1316,8 +1333,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (blend)
             {
-                PixelBlender<TPixel> blender =
-                    PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+                PixelBlender<TPixel> blender = PixelBlenders<TPixel>.NormalSrcOver;
+
                 blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
@@ -1328,21 +1345,30 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Decodes and assigns the color palette to the metadata
+    /// Assigns the palette to metadata and rejects indexed images without a complete palette entry.
     /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format for converted palette entries.</typeparam>
     /// <param name="palette">The palette buffer.</param>
     /// <param name="alpha">The alpha palette buffer.</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private static void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
+    /// <param name="profile">The embedded ICC profile.</param>
+    private void AssignColorPalette<TPixel>(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata, IccProfile? profile)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (palette.Length == 0)
+        // Indexed samples require at least one complete RGB entry. Reject a missing table before scanline
+        // recovery can suppress the error in IgnoreImageData mode. Other color types have an optional palette.
+        if (palette.Length < Unsafe.SizeOf<Rgb24>())
         {
+            if (this.pngColorType is PngColorType.Palette)
+            {
+                PngThrowHelper.ThrowMissingPalette();
+            }
+
             return;
         }
 
         Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
-        Color.FromPixel(rgbTable, colorTable);
 
         // The tRNS chunk must not contain more alpha values than there are palette entries.
         if (alpha.Length > colorTable.Length)
@@ -1350,15 +1376,29 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             alpha = alpha.Slice(0, colorTable.Length);
         }
 
-        if (alpha.Length > 0)
+        Color.FromPixel(rgbTable, colorTable);
+
+        // The alpha chunk may contain as many transparency entries as there are palette entries
+        // (more than that would not make any sense) or as few as one.
+        for (int i = 0; i < alpha.Length; i++)
         {
-            // The alpha chunk may contain as many transparency entries as there are palette entries
-            // (more than that would not make any sense) or as few as one.
-            for (int i = 0; i < alpha.Length; i++)
+            ref Color color = ref colorTable[i];
+            color = color.WithAlpha(alpha[i] / 255F);
+        }
+
+        if (this.pngColorType == PngColorType.Palette && IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
+        {
+            ColorConversionOptions options = new()
             {
-                ref Color color = ref colorTable[i];
-                color = color.WithAlpha(alpha[i] / 255F);
-            }
+                SourceIccProfile = sourceProfile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+                MemoryAllocator = this.memoryAllocator
+            };
+
+            ColorProfileConverter converter = new(options);
+
+            // tRNS alpha is present before the destination pixel format packs the converted RGB.
+            converter.Convert<TPixel>(colorTable);
         }
 
         pngMetadata.ColorTable = colorTable;
@@ -1377,9 +1417,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 if (this.header.BitDepth == 16)
                 {
-                    ushort rc = BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2]);
-                    ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
-                    ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
+                    // tRNS samples are stored big-endian like all other PNG multi-byte values,
+                    // matching the byte order used for the 16-bit samples in the image data.
+                    ushort rc = BinaryPrimitives.ReadUInt16BigEndian(alpha[..2]);
+                    ushort gc = BinaryPrimitives.ReadUInt16BigEndian(alpha.Slice(2, 2));
+                    ushort bc = BinaryPrimitives.ReadUInt16BigEndian(alpha.Slice(4, 2));
 
                     pngMetadata.TransparentColor = Color.FromPixel(new Rgb48(rc, gc, bc));
                     return;
@@ -1397,7 +1439,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 if (this.header.BitDepth == 16)
                 {
-                    pngMetadata.TransparentColor = Color.FromPixel(new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2])));
+                    pngMetadata.TransparentColor = Color.FromPixel(new L16(BinaryPrimitives.ReadUInt16BigEndian(alpha[..2])));
                 }
                 else
                 {
@@ -1439,6 +1481,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
     private void ReadHeaderChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
     {
+        if (!Equals(this.header, default(PngHeader)))
+        {
+            PngThrowHelper.ThrowInvalidHeader();
+        }
+
         this.header = PngHeader.Parse(data);
 
         this.header.Validate();
@@ -1923,12 +1970,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="metadata">The metadata.</param>
     /// <param name="data">The bytes containing the profile.</param>
-    private void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+    private unsafe void ReadColorProfileChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
     {
         int zeroIndex = data.IndexOf((byte)0);
         if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
         {
             return;
+        }
+
+        if (zeroIndex + 1 >= data.Length)
+        {
+            throw new InvalidImageContentException("Not enough data to read PNG ICC compression method.");
         }
 
         byte compressionMethod = data[zeroIndex + 1];
@@ -1946,9 +1998,35 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] iccpProfileBytes))
+        fixed (byte* compressedDataBase = compressedData)
         {
-            metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            using UnmanagedMemoryStream memoryStreamInput = new(compressedDataBase, compressedData.Length);
+            using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
+            using ZlibInflateReader inflateStream = new(bufferedStream);
+
+            if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
+            {
+                throw new InvalidImageContentException("Invalid compressed PNG ICC profile.");
+            }
+
+            try
+            {
+                IccReader reader = new(this.maxUncompressedLength);
+                int profileLength = Math.Min(this.maxUncompressedLength, IccProfile.MaxProfileSize - 1);
+                int bytesRead = reader.Read(inflateStream.CompressedStream, profileLength);
+
+                // Probe once only at the limit to distinguish exact output from excess decompressed data.
+                if (bytesRead == profileLength && inflateStream.CompressedStream.ReadByte() != -1)
+                {
+                    throw new InvalidIccProfileException("Invalid PNG ICC profile.");
+                }
+
+                metadata.IccProfile = reader.ToProfile();
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new InvalidImageContentException("Invalid compressed PNG ICC profile.", ex);
+            }
         }
     }
 
@@ -1964,7 +2042,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         fixed (byte* compressedDataBase = compressedData)
         {
             using IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
-            using MemoryStream memoryStreamOutput = new(compressedData.Length);
+            using ChunkedMemoryStream memoryStreamOutput = new(this.memoryAllocator);
             using UnmanagedMemoryStream memoryStreamInput = new(compressedDataBase, compressedData.Length);
             using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
             using ZlibInflateReader inflateStream = new(bufferedStream);
@@ -1976,21 +2054,36 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 return false;
             }
 
-            int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
-            while (bytesRead != 0)
+            try
             {
-                if (memoryStreamOutput.Length > maxLength)
+                int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
+                while (bytesRead != 0)
                 {
-                    uncompressedBytesArray = [];
-                    return false;
+                    if (memoryStreamOutput.Length + bytesRead > maxLength)
+                    {
+                        uncompressedBytesArray = [];
+                        return false;
+                    }
+
+                    memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
+                    bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
                 }
 
-                memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
-                bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                uncompressedBytesArray = memoryStreamOutput.ToArray();
+                return true;
             }
+            catch (InvalidDataException ex)
+            {
+                // ICC and text chunks are already bounded in memory, so rejecting their compressed contents
+                // does not lose the next chunk boundary. Apply the ancillary policy without keeping partial output.
+                if (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.Strict)
+                {
+                    throw new InvalidImageContentException("Invalid compressed PNG metadata.", ex);
+                }
 
-            uncompressedBytesArray = memoryStreamOutput.ToArray();
-            return true;
+                uncompressedBytesArray = [];
+                return false;
+            }
         }
     }
 
@@ -2160,24 +2253,32 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Span<byte> buffer = stackalloc byte[20];
 
-        int length = this.currentStream.Read(buffer, 0, 4);
-        if (length == 0)
+        // The compressed stream is the concatenation of the payloads of all consecutive data chunks, and the
+        // specification permits zero-length data chunks. A return value of 0 tells the inflater that the
+        // compressed stream has ended, so empty chunks are skipped rather than reported.
+        while (true)
         {
-            return 0;
-        }
-
-        if (this.TryReadChunk(buffer, out PngChunk chunk))
-        {
-            if (chunk.Type is PngChunkType.Data or PngChunkType.FrameData)
+            // Skip the CRC of the previous chunk.
+            int length = this.currentStream.Read(buffer, 0, 4);
+            if (length == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
             {
-                chunk.Data?.Dispose();
-                return chunk.Length;
+                return 0;
             }
 
-            this.nextChunk = chunk;
-        }
+            if (chunk.Type is not PngChunkType.Data)
+            {
+                // Only IDAT payloads belong to this stream. Frame data must return to the outer loop
+                // for its own framing checks, outside recovery from compressed-data errors.
+                this.nextChunk = chunk;
+                return 0;
+            }
 
-        return 0;
+            chunk.Data?.Dispose();
+            if (chunk.Length > 0)
+            {
+                return chunk.Length;
+            }
+        }
     }
 
     /// <summary>
@@ -2193,26 +2294,34 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Span<byte> buffer = stackalloc byte[20];
 
-        int length = this.currentStream.Read(buffer, 0, 4);
-        if (length == 0)
+        // As with data chunks, frame data chunks with no payload after the sequence number are valid and are
+        // skipped, so that a return value of 0 only ever means that the frame's compressed stream has ended.
+        while (true)
         {
-            return 0;
-        }
-
-        if (this.TryReadChunk(buffer, out PngChunk chunk))
-        {
-            if (chunk.Type is PngChunkType.FrameData)
+            // Skip the CRC of the previous chunk.
+            int length = this.currentStream.Read(buffer, 0, 4);
+            if (length == 0 || !this.TryReadChunk(buffer, out PngChunk chunk))
             {
-                chunk.Data?.Dispose();
-
-                this.currentStream.Position += 4; // Skip sequence number
-                return chunk.Length - 4;
+                return 0;
             }
 
-            this.nextChunk = chunk;
-        }
+            if (chunk.Type is not PngChunkType.FrameData || chunk.Length < sizeof(uint))
+            {
+                // A short fdAT cannot supply compressed data. Let the outer chunk loop validate it outside
+                // image-data recovery, just as that loop handles the next frame control or end chunk.
+                this.nextChunk = chunk;
+                return 0;
+            }
 
-        return 0;
+            chunk.Data?.Dispose();
+
+            this.currentStream.Position += 4; // Skip sequence number
+            int dataLength = chunk.Length - 4;
+            if (dataLength > 0)
+            {
+                return dataLength;
+            }
+        }
     }
 
     /// <summary>
@@ -2226,17 +2335,31 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     {
         while (this.TryReadChunk(buffer, out PngChunk chunk))
         {
-            if (chunk.Type is PngChunkType.FrameData)
+            if (chunk.Type is PngChunkType.FrameData && chunk.Length >= sizeof(uint))
             {
                 chunk.Data?.Dispose();
                 this.SkipChunkDataAndCrc(chunk);
             }
             else
             {
-                // Not a FrameData chunk; store it so the next TryReadChunk call returns it.
+                // Preserve other chunks, including malformed fdAT, for validation by the outer chunk loop.
                 this.nextChunk = chunk;
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks the required sequence number before consuming a frame data chunk.
+    /// </summary>
+    /// <param name="chunk">The frame data chunk.</param>
+    private static void ValidateFrameDataChunk(in PngChunk chunk)
+    {
+        // A missing sequence number is a structural error in every integrity mode. Call this from the outer
+        // chunk loop, outside the scope that permits recovery from compressed image-data errors.
+        if (chunk.Length < sizeof(uint))
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("The frame data chunk does not contain a sequence number.");
         }
     }
 
@@ -2462,7 +2585,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         length = (int)Math.Min(length, this.currentStream.Length - this.currentStream.Position);
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
-        this.currentStream.Read(buffer.GetSpan(), 0, length);
+        try
+        {
+            this.currentStream.Read(buffer.GetSpan(), 0, length);
+        }
+        catch
+        {
+            // The read can throw before the caller takes ownership of the buffer (e.g. the stream
+            // observes a cancellation request), so dispose it here to avoid leaking the rented memory.
+            buffer.Dispose();
+            throw;
+        }
 
         return buffer;
     }

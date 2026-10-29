@@ -2,9 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -18,10 +18,14 @@ internal static class JxlImageOperations
     /// <summary>
     /// Returns true if first image has same width and height as the second image.
     /// </summary>
+    /// <typeparam name="TFrom">The sample type of the first plane.</typeparam>
+    /// <typeparam name="TTo">The sample type of the second plane.</typeparam>
     /// <param name="a">First image</param>
     /// <param name="b">Second image</param>
     /// <returns>True if width and height is equal.</returns>
-    public static bool SameSize(JxlPlaneBase a, JxlPlaneBase b) => a.XSize == b.XSize && a.YSize == b.YSize;
+    public static bool SameSize<TFrom, TTo>(JxlPlane<TFrom> a, JxlPlane<TTo> b)
+        where TFrom : unmanaged
+        where TTo : unmanaged => a.XSize == b.XSize && a.YSize == b.YSize;
 
     /// <summary>
     /// Returns true if first image has same width and height as the second image.
@@ -33,7 +37,7 @@ internal static class JxlImageOperations
         where T : unmanaged => a.XSize == b.XSize && a.YSize == b.YSize;
 
     /// <summary>
-    /// Copies everything from one plane to another.
+    /// Copies logical samples between equally sized planes without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of planes to copy.</typeparam>
     /// <param name="from">Source plane (read-only)</param>
@@ -54,11 +58,13 @@ internal static class JxlImageOperations
             return true;
         }
 
+        // Borrow each allocation once at its logical origin. Source and destination can retain different physical row strides.
+        ReadOnlySpan<T> source = from.GetRow(0);
+        Span<T> destination = to.GetRow(0);
+
         for (int y = 0; y < from.YSize; y++)
         {
-            Span<T> rowFrom = from.GetRow(y);
-            Span<T> rowTo = to.GetRow(y);
-            rowFrom.CopyTo(rowTo);
+            source.Slice(y * from.PixelsPerRow, from.XSize).CopyTo(destination.Slice(y * to.PixelsPerRow, to.XSize));
         }
 
         return true;
@@ -81,7 +87,7 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Copies everything from one image to another.
+    /// Copies logical samples in all three planes without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of image to copy.</typeparam>
     /// <param name="from">Source image (read-only)</param>
@@ -102,17 +108,9 @@ internal static class JxlImageOperations
             return true;
         }
 
-        for (int c = 0; c < 3; c++)
-        {
-            for (int y = 0; y < from.YSize; y++)
-            {
-                Span<T> rowFrom = from.PlaneRow(c, y);
-                Span<T> rowTo = to.PlaneRow(c, y);
-                rowFrom.CopyTo(rowTo);
-            }
-        }
-
-        return true;
+        return CopyImage(from.Plane(0), to.Plane(0))
+            && CopyImage(from.Plane(1), to.Plane(1))
+            && CopyImage(from.Plane(2), to.Plane(2));
     }
 
     /// <summary>
@@ -148,7 +146,7 @@ internal static class JxlImageOperations
     public static bool CopyImageTo<T>(Rectangle rectFrom, JxlPlane<T> from, Rectangle rectTo, JxlPlane<T> to)
         where T : unmanaged
     {
-        if (rectFrom != rectTo)
+        if (rectFrom.Size != rectTo.Size)
         {
             return false;
         }
@@ -172,7 +170,7 @@ internal static class JxlImageOperations
         {
             Span<T> rowFrom = from.GetRow(rectFrom, y);
             Span<T> rowTo = to.GetRow(rectTo, y);
-            rowFrom.CopyTo(rowTo);
+            rowFrom[..rectFrom.Width].CopyTo(rowTo);
         }
 
         return true;
@@ -196,7 +194,7 @@ internal static class JxlImageOperations
     public static bool CopyImageTo<T>(Rectangle rectFrom, JxlImage3<T> from, Rectangle rectTo, JxlImage3<T> to)
         where T : unmanaged
     {
-        if (rectFrom != rectTo)
+        if (rectFrom.Size != rectTo.Size)
         {
             return false;
         }
@@ -230,7 +228,7 @@ internal static class JxlImageOperations
         where TFrom : unmanaged, INumber<TFrom>
         where TTo : unmanaged, INumber<TTo>
     {
-        if (rectFrom != rectTo)
+        if (rectFrom.Size != rectTo.Size)
         {
             return false;
         }
@@ -381,7 +379,7 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Fills every value in the plane with <paramref name="value"/>.
+    /// Fills logical samples with <paramref name="value"/> without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>
     /// <param name="value">The value to fill everything with.</param>
@@ -389,15 +387,17 @@ internal static class JxlImageOperations
     public static void FillImage<T>(T value, JxlPlane<T> image)
         where T : unmanaged
     {
+        // GetRow(0) excludes any prefix. Slice the retained stride so padding remains unchanged after a logical shrink.
+        Span<T> storage = image.GetRow(0);
+
         for (int y = 0; y < image.YSize; y++)
         {
-            Span<T> row = image.GetRow(y);
-            row.Fill(value);
+            storage.Slice(y * image.PixelsPerRow, image.XSize).Fill(value);
         }
     }
 
     /// <summary>
-    /// Fills every value in every plane of the image with <paramref name="value"/>.
+    /// Fills logical samples in all three planes with <paramref name="value"/>, leaving padding unchanged.
     /// </summary>
     /// <typeparam name="T">The type of the image.</typeparam>
     /// <param name="value">The value to fill every plane with.</param>
@@ -411,7 +411,7 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Sets every value in the plane to 0. See also <seealso cref="JxlPlane{T}.Clear()"/> .
+    /// Clears logical samples without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>
     /// <param name="image">The image to clear.</param>
@@ -423,9 +423,12 @@ internal static class JxlImageOperations
             return;
         }
 
+        Span<T> storage = image.GetRow(0);
+
+        // Only the logical width belongs to this clear. Retained capacity can include padding and unused rows.
         for (int y = 0; y < image.YSize; y++)
         {
-            image.GetRow(y).Clear();
+            storage.Slice(y * image.PixelsPerRow, image.XSize).Clear();
         }
     }
 
@@ -457,27 +460,33 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Searches the entire plane to find the smallest and largest value.
+    /// Finds the smallest and largest logical samples without reading a storage prefix, row padding or unused rows.
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>
     /// <param name="image">The plane where to search for the minimum &amp; maximum values.</param>
     /// <param name="min">Lowest value found in the plane.</param>
     /// <param name="max">Largest value found in the plane.</param>
+    /// <remarks>An empty plane returns the sample type's maximum value as min and minimum value as max.</remarks>
     public static void ImageMinMax<T>(JxlPlane<T> image, out T min, out T max)
         where T : unmanaged, INumber<T>, IMinMaxValue<T>
     {
-        min = T.MaxValue;   // Start with opposite
-        max = T.MinValue;   // Start with opposite
+        min = T.MaxValue;
+        max = T.MinValue;
+
+        // Empty planes are valid owners. Retain the existing empty result without passing an empty row to tensor reductions.
+        if (image.XSize == 0)
+        {
+            return;
+        }
+
+        ReadOnlySpan<T> samples = image.GetRow(0);
 
         for (int y = 0; y < image.YSize; y++)
         {
-            Span<T> row = image.GetRow(y);
-
-            for (int x = 0; x < image.XSize; x++)
-            {
-                min = T.Min(min, row[x]);
-                max = T.Max(max, row[x]);
-            }
+            // Reduce only this logical row. Shared tensor operations supply all supported SIMD widths and scalar remainders.
+            ReadOnlySpan<T> row = samples.Slice(y * image.PixelsPerRow, image.XSize);
+            min = T.Min(min, TensorPrimitives.Min(row));
+            max = T.Max(max, TensorPrimitives.Max(row));
         }
     }
 
@@ -495,22 +504,21 @@ internal static class JxlImageOperations
         for (int y = 0; y < rect.Height; y++)
         {
             Span<T> row = image.GetRow(rect, y);
-            row.Fill(value);
+            row[..rect.Width].Fill(value);
         }
     }
 
     /// <summary>
-    /// Clears every plane within the image.
+    /// Clears logical samples in all three planes, leaving padding unchanged.
     /// </summary>
     /// <typeparam name="T">The type of the image</typeparam>
     /// <param name="image">The image whose all planes will be cleared.</param>
     public static void ZeroFillImage<T>(JxlImage3<T> image)
         where T : unmanaged
     {
-        for (int plane = 0; plane < 3; plane++)
-        {
-            ZeroFillImage(image.Plane(plane));
-        }
+        ZeroFillImage(image.Plane(0));
+        ZeroFillImage(image.Plane(1));
+        ZeroFillImage(image.Plane(2));
     }
 
     private static bool DownsampleImageCore(JxlPlane<float> input, int factor, JxlPlane<float> output)
@@ -557,9 +565,9 @@ internal static class JxlImageOperations
     /// <param name="image">The image to downsample.</param>
     /// <param name="factor">Downsampling factor.</param>
     /// <returns>A new downsampled image. It can later be disposed.</returns>
-    public static JxlImageF? DownsampleImage(Configuration configuration, JxlImageF image, int factor)
+    public static JxlPlane<float>? DownsampleImage(Configuration configuration, JxlPlane<float> image, int factor)
     {
-        JxlImageF downsampled = new(
+        JxlPlane<float> downsampled = new(
             configuration,
             JxlMath.DivCeil(image.XSize, factor) + JxlFrameDimensions.BlockDimensions,
             JxlMath.DivCeil(image.YSize, factor) + JxlFrameDimensions.BlockDimensions);
@@ -580,14 +588,14 @@ internal static class JxlImageOperations
     /// <param name="opsin">The image to downsample.</param>
     /// <param name="factor">Downsampling factor.</param>
     /// <returns>A new downsampled image. It can later be disposed.</returns>
-    public static JxlImage3F? DownsampleImage(Configuration configuration, JxlImage3F opsin, int factor)
+    public static JxlImage3<float>? DownsampleImage(Configuration configuration, JxlImage3<float> opsin, int factor)
     {
         if (factor == 1)
         {
             return null;
         }
 
-        JxlImage3F downsampled = new(
+        JxlImage3<float> downsampled = new(
             configuration,
             JxlMath.DivCeil(opsin.XSize, factor) + JxlFrameDimensions.BlockDimensions,
             JxlMath.DivCeil(opsin.YSize, factor) + JxlFrameDimensions.BlockDimensions);
@@ -629,10 +637,10 @@ internal static class JxlImageOperations
             for (int y = 0; y < ySizeOriginal; y++)
             {
                 Span<float> row = input.PlaneRow(plane, y);
-                row[xSizeOriginal..].Fill(row[xSizeOriginal - 1]);
+                row.Slice(xSizeOriginal, xSize - xSizeOriginal).Fill(row[xSizeOriginal - 1]);
             }
 
-            Span<float> sourceRow = input.PlaneRow(plane, ySizeOriginal - 1);
+            Span<float> sourceRow = input.PlaneRow(plane, ySizeOriginal - 1)[..xSize];
             for (int y = ySizeOriginal; y < ySize; y++)
             {
                 sourceRow.CopyTo(input.PlaneRow(plane, y));

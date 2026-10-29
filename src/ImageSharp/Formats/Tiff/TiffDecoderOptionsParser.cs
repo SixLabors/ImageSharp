@@ -2,9 +2,9 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using SixLabors.ImageSharp.Formats.Tiff.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
@@ -25,6 +25,15 @@ internal static class TiffDecoderOptionsParser
     /// <returns>True, if the image uses tiles. Otherwise the images has strip's.</returns>
     public static bool VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
     {
+        // DecodeFrame reuses this core across IFDs. Reset optional coding tags before reading the next frame,
+        // so absent tables, YCbCr settings or alpha cannot inherit the preceding frame's interpretation.
+        options.JpegTables = null;
+        options.ReferenceBlackAndWhite = null;
+        options.YcbcrCoefficients = null;
+        options.YcbcrSubSampling = null;
+        options.OldJpegCompressionStartOfImageMarker = null;
+        options.ExtraSamplesType = null;
+
         if (exifProfile.TryGetValue(ExifTag.ExtraSamples, out IExifValue<ushort[]> samples))
         {
             // We only support a single sample pertaining to alpha data.
@@ -56,7 +65,8 @@ internal static class TiffDecoderOptionsParser
 
         if (fillOrder == TiffFillOrder.LeastSignificantBitFirst && frameMetadata.BitsPerPixel != TiffBitsPerPixel.Bit1)
         {
-            TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
+            TiffThrowHelper.ThrowNotSupported(
+                "The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
         }
 
         if (frameMetadata.Predictor == TiffPredictor.FloatingPoint)
@@ -111,6 +121,11 @@ internal static class TiffDecoderOptionsParser
         options.Predictor = frameMetadata.Predictor;
         options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation;
         options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
+        frameMetadata.SampleFormat = options.SampleFormat;
+
+        // The typed frame metadata now owns this value. Remove the raw IFD tag so
+        // re-encoding cannot retain a stale SampleFormat when encoder options change it.
+        exifProfile.RemoveValue(ExifTag.SampleFormat);
         options.BitsPerPixel = (int)frameMetadata.BitsPerPixel;
         options.BitsPerSample = frameMetadata.BitsPerSample;
 
@@ -144,6 +159,16 @@ internal static class TiffDecoderOptionsParser
         options.ParseCompression(frameMetadata.Compression, exifProfile);
         options.ParseColorType(exifProfile);
 
+        if (options.CompressionType is TiffDecoderCompressionType.Jpeg or TiffDecoderCompressionType.OldJpeg)
+        {
+            // Nested JPEG decoding writes TPixel directly and bypasses the raw TIFF sample readers.
+            // Keep these byte-layout fields for the TIFF strip setup. PhotometricInterpretation retains the encoded color model;
+            // the JPEG decoder handles its subsampling and final pixel conversion.
+            options.ColorType = TiffColorType.Rgb888;
+            options.BitsPerSample = new TiffBitsPerSample(8, 8, 8);
+            options.BitsPerPixel = 24;
+        }
+
         return VerifyRequiredFieldsArePresent(exifProfile, frameMetadata, options.PlanarConfiguration);
     }
 
@@ -164,7 +189,8 @@ internal static class TiffDecoderOptionsParser
                 TiffThrowHelper.ThrowImageFormatException("TileOffsets are missing and are required for decoding the TIFF image!");
             }
 
-            if (planarConfiguration == TiffPlanarConfiguration.Chunky && exifProfile.GetValueInternal(ExifTag.TileOffsets) is null && exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
+            if (planarConfiguration == TiffPlanarConfiguration.Chunky && exifProfile.GetValueInternal(ExifTag.TileOffsets) is null
+                && exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
             {
                 TiffThrowHelper.ThrowImageFormatException("TileOffsets are missing and are required for decoding the TIFF image!");
             }
@@ -316,7 +342,8 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 if ((bitsPerSample.Channels == 3 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2)) ||
-                    (bitsPerSample.Channels == 4 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2 && bitsPerSample.Channel2 == bitsPerSample.Channel3)))
+                    (bitsPerSample.Channels == 4 && !(bitsPerSample.Channel0 == bitsPerSample.Channel1 && bitsPerSample.Channel1 == bitsPerSample.Channel2
+                        && bitsPerSample.Channel2 == bitsPerSample.Channel3)))
                 {
                     TiffThrowHelper.ThrowNotSupported("Only BitsPerSample with equal bits per channel are supported.");
                 }
@@ -452,9 +479,16 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
                 }
 
+                ushort bits = options.BitsPerSample.Channel0;
+                if (bits is not (8 or 16) || options.BitsPerSample.Channel1 != bits || options.BitsPerSample.Channel2 != bits)
+                {
+                    TiffThrowHelper.ThrowNotSupported("CIE Lab requires three equally sized eight-bit or sixteen-bit samples.");
+                }
+
+                // Prediction operates on stored words, including signed chroma bits. Retain the depth for decompression.
                 options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky
-                    ? TiffColorType.CieLab
-                    : TiffColorType.CieLabPlanar;
+                    ? bits == 8 ? TiffColorType.CieLab : TiffColorType.CieLab161616
+                    : bits == 8 ? TiffColorType.CieLabPlanar : TiffColorType.CieLab161616Planar;
 
                 break;
             }
@@ -467,9 +501,12 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                if (bitsPerChannel != 8)
+                if (bitsPerChannel is not (8 or 16)
+                    || options.BitsPerSample.Channel1 != bitsPerChannel
+                    || options.BitsPerSample.Channel2 != bitsPerChannel
+                    || options.BitsPerSample.Channel3 != bitsPerChannel)
                 {
-                    TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CMYK images.");
+                    TiffThrowHelper.ThrowNotSupported("CMYK requires four equally sized 8-bit or 16-bit samples.");
                 }
 
                 if (exifProfile.GetValueInternal(ExifTag.InkNames) is not null)
@@ -477,7 +514,8 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("The custom ink name strings are not supported for CMYK images.");
                 }
 
-                options.ColorType = TiffColorType.Cmyk;
+                // Horizontal prediction restores each sample at its stored width. CMYK16 must not use byte-wise addition.
+                options.ColorType = bitsPerChannel == 16 ? TiffColorType.Cmyk16161616 : TiffColorType.Cmyk;
                 break;
             }
 
@@ -566,40 +604,31 @@ internal static class TiffDecoderOptionsParser
 
                 if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
                 {
+                    // The nested decoder writes complete pixels; the planar path requires separate raw channel samples.
                     TiffThrowHelper.ThrowNotSupported("Old Jpeg compression is not supported with planar configuration");
                 }
 
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
-
                 break;
 
             case TiffCompression.Jpeg:
+                if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
+                {
+                    // The nested decoder writes complete pixels; the planar path requires separate raw channel samples.
+                    TiffThrowHelper.ThrowNotSupported("Jpeg compression is not supported with planar configuration");
+                }
+
                 options.CompressionType = TiffDecoderCompressionType.Jpeg;
-
-                // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
-                // so we set this always to [1, 1], see: https://github.com/SixLabors/ImageSharp/issues/2679
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.YcbcrSubSampling != null)
-                {
-                    options.YcbcrSubSampling[0] = 1;
-                    options.YcbcrSubSampling[1] = 1;
-                }
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
 
                 break;
 
             case TiffCompression.Webp:
+                if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
+                {
+                    // Reject planar layout here, matching libtiff's WebP codec requirement in TWebPFixupTags for contiguous RGB/RGBA.
+                    TiffThrowHelper.ThrowNotSupported("WebP compression is not supported with planar configuration");
+                }
+
                 options.CompressionType = TiffDecoderCompressionType.Webp;
                 break;
 

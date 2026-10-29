@@ -48,6 +48,21 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     public static bool operator !=(L16 left, L16 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static L16 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static L16 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static L16 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static L16 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32()
     {
@@ -72,6 +87,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
         => PixelTypeInfo.Create<L16>(
             PixelComponentInfo.Create<L16>(1, 16),
             PixelColorType.Luminance,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
@@ -100,11 +116,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L16 FromAssociatedScaledVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -112,12 +124,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static L16 FromAssociatedVector4(Vector4 source)
-    {
-        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static L16 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -194,7 +201,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One) * Max;
         return ColorNumerics.Get16BitBT709Luminance(vector.X, vector.Y, vector.Z);
     }
 }

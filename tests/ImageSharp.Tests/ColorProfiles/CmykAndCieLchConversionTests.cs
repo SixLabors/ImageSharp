@@ -12,6 +12,9 @@ public class CmykAndCieLchConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002f);
 
+    // These conversions evaluate approximate powers. Scaled components give the error bound the same units across color models.
+    private static readonly ApproximateColorProfileComparer CompandingComparer = new(5E-4F, scaled: true);
+
     [Theory]
     [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 62.85025, 64.77041, 118.2425)]
     public void Convert_Cmyk_To_CieLch(float c, float m, float y, float k, float l, float c2, float h)
@@ -31,11 +34,11 @@ public class CmykAndCieLchConversionTests
         converter.Convert<Cmyk, CieLch>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, CompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], CompandingComparer);
         }
     }
 

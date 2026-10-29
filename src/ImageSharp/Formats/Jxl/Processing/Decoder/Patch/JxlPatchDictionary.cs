@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Blending;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
@@ -16,7 +17,10 @@ internal sealed class JxlPatchDictionary
 {
     private const byte NumPatchBlendModes = (byte)JxlPatchBlendMode.AlphaWeightedAddBelow + 1;
 
-    private JxlReferenceFrame[] referenceFrames = new JxlReferenceFrame[4];
+    /// <summary>
+    /// Borrows the codestream owner's reference slots. The owner binds them before decoding patches and retains their sample planes.
+    /// </summary>
+    private (JxlImageBundle Frame, bool ImageBundleIsInXyb)[] referenceFrames = [];
     private readonly List<JxlPatchPosition> positions = [];
     private readonly List<JxlPatchReferencePosition> referencePositions = [];
     private readonly List<JxlPatchBlending> blendings = [];
@@ -26,14 +30,34 @@ internal sealed class JxlPatchDictionary
     private readonly List<SortedPatch> sortedPatchesY0 = [];
     private readonly List<SortedPatch> sortedPatchesY1 = [];
 
+    /// <summary>
+    /// Gets the maximum number of patch indices needed for any row.
+    /// </summary>
+    public int MaximumPatchesPerRow { get; private set; }
+
     public bool HasAny => this.positions.Count > 0;
 
-    public void SetShared(JxlReferenceFrame[] referenceFrames) => this.referenceFrames = referenceFrames;
+    /// <summary>
+    /// Borrows the codestream's reference slots without copying slots or taking ownership of their sample planes.
+    /// </summary>
+    /// <param name="referenceFrames">The slots retained by the shared state for this codestream.</param>
+    public void SetShared((JxlImageBundle Frame, bool ImageBundleIsInXyb)[] referenceFrames) => this.referenceFrames = referenceFrames;
 
+    /// <summary>
+    /// Clears the decoded dictionary and its row index before it is reused for another frame.
+    /// </summary>
     public void Clear()
     {
+        // Remove frame-specific entries while retaining list capacity for the next frame.
         this.positions.Clear();
-        this.ComputePatchTree();
+        this.referencePositions.Clear();
+        this.blendings.Clear();
+        this.blendingsStride = 0;
+        this.patchTree.Clear();
+        this.numPatches.Clear();
+        this.sortedPatchesY0.Clear();
+        this.sortedPatchesY1.Clear();
+        this.MaximumPatchesPerRow = 0;
     }
 
     public int GetReferences()
@@ -48,6 +72,15 @@ internal sealed class JxlPatchDictionary
         return result;
     }
 
+    /// <summary>
+    /// Reads patch references, positions, and blending settings from their entropy stream.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns entropy and patch-tree storage.</param>
+    /// <param name="br">The encoded patch fields.</param>
+    /// <param name="xsize">The destination width.</param>
+    /// <param name="ysize">The destination height.</param>
+    /// <param name="numExtraChannels">The available extra-channel count.</param>
+    /// <param name="usesExtraChannels">Whether decoded blending settings use extra channels.</param>
     public void Decode(
         Configuration configuration,
         JxlBitReader br,
@@ -56,30 +89,39 @@ internal sealed class JxlPatchDictionary
         ulong numExtraChannels,
         ref bool usesExtraChannels)
     {
-        this.positions.Clear();
-        this.blendingsStride = (int)(numExtraChannels + 1);
+        this.Clear();
+
+        // The image metadata header bounds extra channels to 4096. Each patch adds one color blending entry.
+        this.blendingsStride = (int)numExtraChannels + 1;
 
         List<byte> contextMap = [];
         JxlAnsCode code = new();
 
-        var status = DecodeHistograms(
-            configuration,
-            br,
-            PatchDictionaryContexts,
-            code,
-            contextMap);
+        JxlAnsReader.DecodeHistograms(configuration, br, (int)JxlPatchContext.NumPatchDictionaryContexts, code, ref contextMap, false);
 
-        JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(code, br);
+        // Patch fields use direct LZ77 distances; multiplier zero selects that native stream rule.
+        using JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(configuration, code, br, 0);
 
-        ulong ReadNum(JxlPatchContext context)
-            => decoder.ReadHybridUnsignedInteger(context, br, contextMap);
+        // References and positions share one entropy stream. Borrow its map and LZ77 window before either loop.
+        ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
+        Span<int> window = decoder.Lz77Window;
 
-        ulong numRefPatch = ReadNum(JxlPatchContext.NumRefPatch);
+        uint numRefPatch = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.NumRefPatch, br, contexts, window);
 
         ulong numPixels = xsize * ysize;
         ulong maxRefPatches = 1024 + (numPixels / 4);
         ulong maxPatches = maxRefPatches * 4;
         ulong maxBlendingInfos = maxPatches * 4;
+
+        // Retain the format's pixel-based quotas, but reject counts that cannot fit the managed lists.
+        // Bounding patch count by the blending stride also keeps every capacity multiplication within that limit.
+        maxRefPatches = Math.Min(maxRefPatches, (ulong)Array.MaxLength);
+        maxBlendingInfos = Math.Min(maxBlendingInfos, (ulong)Array.MaxLength);
+        maxPatches = Math.Min(maxPatches, maxBlendingInfos / (uint)this.blendingsStride);
+
+        // The patch tree stores rectangle ends as Int32 values. Both the frame and that storage must contain each complete patch.
+        ulong destinationWidth = Math.Min(xsize, (ulong)int.MaxValue);
+        ulong destinationHeight = Math.Min(ysize, (ulong)int.MaxValue);
 
         if (numRefPatch > maxRefPatches)
         {
@@ -89,120 +131,102 @@ internal sealed class JxlPatchDictionary
         ulong totalPatches = 0;
         ulong nextSize = 1;
 
-        for (ulong id = 0; id < numRefPatch; id++)
+        for (uint id = 0; id < numRefPatch; id++)
         {
-            JxlPatchReferencePosition refPos = new()
-            {
-                Ref = (int)ReadNum(JxlPatchContext.ReferenceFrame)
-            };
-
-            if (refPos.Ref >= kMaxNumReferenceFrames || this.referenceFrames[(int)refPos.Ref].Frame.XSize == 0)
+            uint reference = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.ReferenceFrame, br, contexts, window);
+            if (reference >= JxlShared.MaximumNumberOfReferenceFrames || this.referenceFrames[(int)reference].Frame.XSize == 0)
             {
                 throw new InvalidOperationException("Invalid reference frame ID");
             }
 
-            if (!this.referenceFrames[refPos.Ref].ImageBundleIsInXyb)
+            if (!this.referenceFrames[(int)reference].ImageBundleIsInXyb)
             {
                 throw new InvalidOperationException("Patches cannot use frames saved post color transforms");
             }
 
-            JxlImageBundle ib = this.referenceFrames[refPos.Ref].Frame;
+            JxlImageBundle ib = this.referenceFrames[(int)reference].Frame;
+            ulong referenceX = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
+            ulong referenceY = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
 
-            refPos.X0 = (int)ReadNum(JxlPatchContext.PatchReferencePosition);
-            refPos.Y0 = (int)ReadNum(JxlPatchContext.PatchReferencePosition);
-            refPos.XSize = (int)ReadNum(JxlPatchContext.PatchSize) + 1;
-            refPos.YSize = (int)ReadNum(JxlPatchContext.PatchSize) + 1;
+            // A size field stores size minus one. Widen before adding one, then validate the complete reference rectangle.
+            ulong width = (ulong)(uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
+            ulong height = (ulong)(uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
 
-            if (refPos.X0 + refPos.XSize > ib.XSize)
+            if (referenceX + width > (ulong)ib.XSize || referenceY + height > (ulong)ib.YSize)
             {
                 throw new InvalidOperationException("Invalid position specified in reference frame");
             }
 
-            if (refPos.Y0 + refPos.YSize > ib.YSize)
+            JxlPatchReferencePosition refPos = new()
             {
-                throw new InvalidOperationException("Invalid position specified in reference frame");
-            }
+                Ref = (int)reference,
+                X0 = (int)referenceX,
+                Y0 = (int)referenceY,
+                XSize = (int)width,
+                YSize = (int)height
+            };
 
-            ulong idCount = ReadNum(JxlPatchContext.PatchCount);
+            ulong idCount = (ulong)(uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchCount, br, contexts, window) + 1;
 
-            if (idCount > maxPatches)
+            // Check against the remaining quota before accumulating. The wire's UInt32 maximum plus one must not wrap.
+            if (idCount > maxPatches - totalPatches)
             {
                 throw new InvalidOperationException("Too many patches in dictionary");
             }
-
-            idCount++;
 
             totalPatches += idCount;
 
-            if (totalPatches > maxPatches)
-            {
-                throw new InvalidOperationException("Too many patches in dictionary");
-            }
-
             if (nextSize < totalPatches)
             {
-                nextSize *= 2;
-                nextSize = Math.Min(nextSize, maxPatches);
+                nextSize = Math.Min(Math.Max(totalPatches, nextSize * 2), maxPatches);
             }
 
-            if (nextSize * (ulong)this.blendingsStride > maxBlendingInfos)
-            {
-                throw new InvalidOperationException("Too many patches in dictionary");
-            }
-
-            _ = this.blendings.EnsureCapacity((int)nextSize);
-            _ = this.blendings.EnsureCapacity((int)(nextSize * (ulong)this.blendingsStride));
+            _ = this.positions.EnsureCapacity((int)nextSize);
+            _ = this.blendings.EnsureCapacity((int)(nextSize * (uint)this.blendingsStride));
 
             bool chooseAlpha = numExtraChannels > 1;
 
             for (ulong i = 0; i < idCount; i++)
             {
-                JxlPatchPosition pos = new()
-                {
-                    ReferencePositionIndex = this.referencePositions.Count
-                };
+                long x;
+                long y;
 
                 if (i == 0)
                 {
-                    pos.X = (int)ReadNum(JxlPatchContext.PatchPosition);
-                    pos.Y = (int)ReadNum(JxlPatchContext.PatchPosition);
+                    x = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
+                    y = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
                 }
                 else
                 {
-                    long deltaX = JxlPackSigned.UnpackSigned((uint)ReadNum(JxlPatchContext.PatchOffset));
-
-                    if (deltaX < 0 && (int)(-deltaX) > this.positions[^1].X)
-                    {
-                        throw new InvalidOperationException($"Invalid patch: negative x coordinate ({this.positions[^1].X}, delta {deltaX})");
-                    }
-
-                    pos.X = (int)(this.positions[^1].X + deltaX);
-
-                    long deltaY = JxlPackSigned.UnpackSigned((uint)ReadNum(JxlPatchContext.PatchOffset));
-
-                    if (deltaY < 0 && (int)(-deltaY) > this.positions[^1].Y)
-                    {
-                        throw new InvalidOperationException($"Invalid patch: negative y coordinate ({this.positions[^1].Y}, delta {deltaY})");
-                    }
-
-                    pos.Y = (int)(this.positions[^1].Y + deltaY);
+                    // Delta codes cover the complete signed Int32 range. Add in Int64 so neither direction wraps before validation.
+                    long deltaX = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchOffset, br, contexts, window));
+                    x = this.positions[^1].X + deltaX;
+                    long deltaY = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchOffset, br, contexts, window));
+                    y = this.positions[^1].Y + deltaY;
                 }
 
-                if (pos.X + refPos.XSize > (int)xsize)
+                if (x < 0 || (ulong)x + width > destinationWidth)
                 {
-                    throw new InvalidOperationException($"Invalid patch x: {pos.X} + {refPos.XSize} > {xsize}");
+                    throw new InvalidOperationException($"Invalid patch x: {x} + {width} > {xsize}");
                 }
 
-                if (pos.Y + refPos.YSize > (int)ysize)
+                if (y < 0 || (ulong)y + height > destinationHeight)
                 {
-                    throw new InvalidOperationException($"Invalid patch y: {pos.Y} + {refPos.YSize} > {ysize}");
+                    throw new InvalidOperationException($"Invalid patch y: {y} + {height} > {ysize}");
                 }
+
+                JxlPatchPosition pos = new()
+                {
+                    X = (int)x,
+                    Y = (int)y,
+                    ReferencePositionIndex = this.referencePositions.Count
+                };
 
                 for (int j = 0; j < this.blendingsStride; j++)
                 {
-                    uint blendMode = (uint)ReadNum(JxlPatchContext.PatchBlendMode);
+                    uint blendMode = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchBlendMode, br, contexts, window);
 
-                    if ((int)blendMode >= (int)JxlPatchContext.PatchBlendMode)
+                    if (blendMode >= NumPatchBlendModes)
                     {
                         throw new InvalidOperationException($"Invalid patch blend mode: {blendMode}");
                     }
@@ -224,12 +248,14 @@ internal sealed class JxlPatchDictionary
 
                     if (UsesAlpha(info.Mode) && chooseAlpha)
                     {
-                        info.AlphaChannel = (int)ReadNum(JxlPatchContext.PatchAlphaChannel);
+                        uint alphaChannel = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchAlphaChannel, br, contexts, window);
 
-                        if (info.AlphaChannel >= (int)numExtraChannels)
+                        if (alphaChannel >= numExtraChannels)
                         {
-                            throw new InvalidOperationException($"Invalid alpha channel for blending: {info.AlphaChannel} out of {numExtraChannels}");
+                            throw new InvalidOperationException($"Invalid alpha channel for blending: {alphaChannel} out of {numExtraChannels}");
                         }
+
+                        info.AlphaChannel = (int)alphaChannel;
                     }
                     else
                     {
@@ -238,7 +264,7 @@ internal sealed class JxlPatchDictionary
 
                     if (UsesClamp(info.Mode))
                     {
-                        info.Clamp = ReadNum(JxlPatchContext.PatchClamp) != 0;
+                        info.Clamp = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchClamp, br, contexts, window) != 0;
                     }
                     else
                     {
@@ -254,14 +280,12 @@ internal sealed class JxlPatchDictionary
             this.referencePositions.Add(refPos);
         }
 
-        this.positions.TrimExcess();
-
         if (!decoder.CheckAnsFinalState())
         {
             throw new InvalidOperationException("ANS checksum failure.");
         }
 
-        this.ComputePatchTree();
+        this.ComputePatchTree(configuration);
     }
 
     private static bool UsesAlpha(JxlPatchBlendMode mode) =>
@@ -273,19 +297,26 @@ internal sealed class JxlPatchDictionary
     private static bool UsesClamp(JxlPatchBlendMode mode) =>
         UsesAlpha(mode) || mode == JxlPatchBlendMode.Multiply;
 
-    public void ComputePatchTree()
+    /// <summary>
+    /// Builds the row-interval index for the decoded patches.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns temporary interval storage.</param>
+    public void ComputePatchTree(Configuration configuration)
     {
         this.patchTree.Clear();
         this.numPatches.Clear();
         this.sortedPatchesY0.Clear();
         this.sortedPatchesY1.Clear();
+        this.MaximumPatchesPerRow = 0;
 
         if (this.positions.Count == 0)
         {
             return;
         }
 
-        PatchInterval[] intervals = ArrayPool<PatchInterval>.Shared.Rent(this.positions.Count);
+        // Only decoded intervals participate in sorting. Allocator padding must never become a patch.
+        using IMemoryOwner<PatchInterval> intervalStorage = configuration.MemoryAllocator.Allocate<PatchInterval>(this.positions.Count);
+        Span<PatchInterval> intervals = intervalStorage.GetSpan()[..this.positions.Count];
 
         for (int i = 0; i < this.positions.Count; i++)
         {
@@ -295,23 +326,18 @@ internal sealed class JxlPatchDictionary
             intervals[i].Y1 = pos.Y + this.referencePositions[pos.ReferencePositionIndex].YSize;
         }
 
-        void SortByY0(int start, int end) => intervals.AsSpan()[start..end].Sort(static (i0, i1) => i0.Y0.CompareTo(i1.Y0));
+        intervals.Sort(static (left, right) => left.Y1.CompareTo(right.Y1));
 
-        void SortByY1(int start, int end) => intervals.AsSpan()[start..end].Sort(static (i0, i1) => i0.Y1.CompareTo(i1.Y1));
+        // List capacity does not create count entries. Materialize and clear the row counters before incrementing them.
+        CollectionsMarshal.SetCount(this.numPatches, intervals[^1].Y1);
+        Span<int> rowPatchCounts = CollectionsMarshal.AsSpan(this.numPatches);
+        rowPatchCounts.Clear();
 
-        SortByY1(0, intervals.Length);
-
-        // We have cleared the numPatches list at the start of this
-        // method. We have to assign a new one.
-        this.numPatches = new List<int>(intervals[^1].Y1);
-
-        // Finding frequency of each patch within any
-        // interval
         foreach (PatchInterval interval in intervals)
         {
             for (int y = interval.Y0; y < interval.Y1; y++)
             {
-                this.numPatches[y]++;
+                this.MaximumPatchesPerRow = Math.Max(this.MaximumPatchesPerRow, ++rowPatchCounts[y]);
             }
         }
 
@@ -327,7 +353,7 @@ internal sealed class JxlPatchDictionary
             int start = node.Start;
             int end = node.Start + node.Count;
 
-            SortByY0(start, end);
+            intervals[start..end].Sort(static (left, right) => left.Y0.CompareTo(right.Y0));
             int middleIndex = start + (node.Count / 2);
             node.YCenter = intervals[middleIndex].Y0;
 
@@ -341,7 +367,7 @@ internal sealed class JxlPatchDictionary
                 rightStart++;
             }
 
-            SortByY1(start, rightStart);
+            intervals[start..rightStart].Sort(static (left, right) => left.Y1.CompareTo(right.Y1));
             int leftEnd = rightStart;
 
             while (leftEnd > start && intervals[leftEnd - 1].Y1 > node.YCenter)
@@ -357,7 +383,7 @@ internal sealed class JxlPatchDictionary
                 this.sortedPatchesY1.Add(new SortedPatch(intervals[i].Y1, intervals[i].Index));
             }
 
-            SortByY0(leftEnd, rightStart);
+            intervals[leftEnd..rightStart].Sort(static (left, right) => left.Y0.CompareTo(right.Y0));
 
             for (int i = leftEnd; i < rightStart; i++)
             {
@@ -372,8 +398,7 @@ internal sealed class JxlPatchDictionary
                 left.Start = start;
                 left.Count = leftEnd - left.Start;
 
-                ref PatchTreeNode nextNode = ref CollectionsMarshal.AsSpan(this.patchTree)[next];
-                nextNode.LeftChild = this.patchTree.Count;
+                node.LeftChild = this.patchTree.Count;
 
                 this.patchTree.Add(left);
             }
@@ -384,124 +409,119 @@ internal sealed class JxlPatchDictionary
                 right.Start = rightStart;
                 right.Count = end - right.Start;
 
-                ref PatchTreeNode nextNode = ref CollectionsMarshal.AsSpan(this.patchTree)[next];
-                nextNode.RightChild = this.patchTree.Count;
+                node.RightChild = this.patchTree.Count;
 
                 this.patchTree.Add(right);
             }
 
+            // node is a value copy. Store its center, ranges, and child links after list growth has finished.
+            this.patchTree[next] = node;
             next++;
         }
-
-        ArrayPool<PatchInterval>.Shared.Return(intervals);
     }
 
-    public IMemoryOwner<int> GetPatchesForRow(Configuration configuration, int y)
+    /// <summary>
+    /// Collects intersecting patch indices in their encoded application order.
+    /// </summary>
+    /// <param name="y">The frame row.</param>
+    /// <param name="destination">Caller-owned storage with at least MaximumPatchesPerRow entries.</param>
+    /// <returns>The written indices, or an empty span for a row without patches.</returns>
+    public Span<int> GetPatchesForRow(int y, Span<int> destination)
     {
-        IMemoryOwner<int>? result = null;
-
-        Span<SortedPatch> sortedPatchesY0 = CollectionsMarshal.AsSpan(this.sortedPatchesY0);
-        Span<SortedPatch> sortedPatchesY1 = CollectionsMarshal.AsSpan(this.sortedPatchesY1);
-
-        if (y < this.numPatches.Count && this.numPatches[y] > 0)
+        if (y >= this.numPatches.Count || this.numPatches[y] == 0)
         {
-            result = configuration.MemoryAllocator.Allocate<int>(this.numPatches[y]);
-            Span<int> spanResult = result.GetSpan();
-
-            // Instead of making result a List, we simply allocate
-            // a fixed-length memory, get a Span to it, and track the
-            // length separately.
-            int resultPointer = 0;
-
-            for (int treeIdx = 0; treeIdx != -1;)
-            {
-                // Index of the tree must be within the bounds of the patch tree
-                if (treeIdx >= this.patchTree.Count)
-                {
-                    throw new InvalidOperationException("Tree index out of bounds");
-                }
-
-                // Recomputing CollectionsMarshal.AsSpan is important as we'll
-                // be adding items to the backing list. Items should not be
-                // added or removed to the original list while the Span<T>
-                // returned by CollectionsMarshal.AsSpan is in use.
-                Span<PatchTreeNode> patchTreeSpan = CollectionsMarshal.AsSpan(this.patchTree);
-
-                ref PatchTreeNode node = ref patchTreeSpan[treeIdx];
-
-                if (y <= node.YCenter)
-                {
-                    for (int i = 0; i < node.Count; ++i)
-                    {
-                        ref SortedPatch p = ref sortedPatchesY0[node.Start + i];
-
-                        if (y < p.First)
-                        {
-                            break;
-                        }
-
-                        spanResult[resultPointer++] = p.Second;
-                    }
-
-                    treeIdx = y < node.YCenter ? (int)node.LeftChild : -1;
-                }
-                else
-                {
-                    for (int i = 0; i < node.Count; ++i)
-                    {
-                        ref SortedPatch p = ref sortedPatchesY1[node.Start + i];
-
-                        if (y >= p.First)
-                        {
-                            break;
-                        }
-
-                        spanResult[resultPointer++] = p.Second;
-                    }
-
-                    treeIdx = (int)node.RightChild;
-                }
-            }
-
-            // Once we collect patches, we must make sure
-            // that the resulting patches are sorted.
-            //
-            // Span<T>.Sort() in theory should be faster
-            // and more lightweight than an array's sort.
-            spanResult.Sort();
+            return destination[..0];
         }
 
-        return result
-            ?? throw new InvalidOperationException("Y offset out of bounds");
+        ReadOnlySpan<SortedPatch> starts = CollectionsMarshal.AsSpan(this.sortedPatchesY0);
+        ReadOnlySpan<SortedPatch> ends = CollectionsMarshal.AsSpan(this.sortedPatchesY1);
+        ReadOnlySpan<PatchTreeNode> tree = CollectionsMarshal.AsSpan(this.patchTree);
+        int count = 0;
+
+        for (int nodeIndex = 0; nodeIndex != -1;)
+        {
+            PatchTreeNode node = tree[nodeIndex];
+
+            if (y <= node.YCenter)
+            {
+                // Starts are ascending. Every remaining interval starts after this row and cannot intersect it.
+                for (int i = 0; i < node.Count; i++)
+                {
+                    SortedPatch patch = starts[node.Start + i];
+
+                    if (y < patch.First)
+                    {
+                        break;
+                    }
+
+                    destination[count++] = patch.Second;
+                }
+
+                nodeIndex = y < node.YCenter ? (int)node.LeftChild : -1;
+            }
+            else
+            {
+                // Ends are descending and exclusive. At the first expired interval, all remaining intervals have expired too.
+                for (int i = 0; i < node.Count; i++)
+                {
+                    SortedPatch patch = ends[node.Start + i];
+
+                    if (y >= patch.First)
+                    {
+                        break;
+                    }
+
+                    destination[count++] = patch.Second;
+                }
+
+                nodeIndex = (int)node.RightChild;
+            }
+        }
+
+        // Overlapping patches must compose in encoded order. Tree traversal order is not application order.
+        Span<int> result = destination[..count];
+        result.Sort();
+        return result;
     }
 
+    /// <summary>
+    /// Applies the ordered patches that intersect one row segment using caller-owned row storage.
+    /// </summary>
+    /// <param name="inOut">The row segment, indexed by color and extra channel.</param>
+    /// <param name="foreground">The reusable table that receives borrowed reference rows.</param>
+    /// <param name="scratch">The reusable blend results, with one row per channel.</param>
+    /// <param name="patchIndices">Reusable storage for at least MaximumPatchesPerRow patch indices.</param>
+    /// <param name="y">The frame row.</param>
+    /// <param name="startX">The frame column of the first sample in inOut.</param>
+    /// <param name="width">The number of samples in the row segment.</param>
+    /// <param name="extraChannelInfos">The extra-channel types and alpha representations.</param>
+    /// <returns>Whether each patch can be applied to the row segment.</returns>
     public bool AddOneRow(
-        Configuration configuration,
         Span<Memory<float>> inOut,
+        Span<Memory<float>> foreground,
+        JxlPlane<float> scratch,
+        Span<int> patchIndices,
         int y,
-        int x0,
+        int startX,
         int width,
         List<JxlExtraChannelInfo> extraChannelInfos)
     {
-        int numEc = extraChannelInfos.Count; // number of Extra Channels (ECs)
+        int extraChannelCount = extraChannelInfos.Count;
 
-        if (numEc + 1 > this.blendingsStride)
+        if (extraChannelCount + 1 > this.blendingsStride)
         {
             // out of bounds extra channel
             return false;
         }
 
-        using IMemoryOwner<int> patches = this.GetPatchesForRow(configuration, y);
-        Span<int> patchesSpan = patches.GetSpan();
-
-        Span<Memory<float>> foreground = new Memory<float>[3 + numEc];
+        Span<int> patches = this.GetPatchesForRow(y, patchIndices);
 
         Span<JxlPatchPosition> patchPositions = CollectionsMarshal.AsSpan(this.positions);
         Span<JxlPatchReferencePosition> patchRefPositions = CollectionsMarshal.AsSpan(this.referencePositions);
 
-        for (int i = 0; i < patchesSpan.Length; i++)
+        for (int i = 0; i < patches.Length; i++)
         {
-            int posIdx = patchesSpan[i];
+            int posIdx = patches[i];
             int blendingIdx = posIdx * this.blendingsStride;
 
             ref JxlPatchPosition pos = ref patchPositions[posIdx];
@@ -519,34 +539,38 @@ internal sealed class JxlPatchDictionary
             int iy = y - by;
             int @ref = refPos.Ref;
 
-            if (bx >= x0 + width || bx + patchWidth < x0)
+            if (bx >= startX + width || bx + patchWidth < startX)
             {
                 continue;
             }
 
-            int patchX0 = Math.Max(bx, x0);
-            int patchX1 = Math.Min(bx + patchWidth, x0 + width);
+            int patchX0 = Math.Max(bx, startX);
+            int patchX1 = Math.Min(bx + patchWidth, startX + width);
+
+            // Slice at the actual overlap. The reference patch can start to the right of this row segment;
+            // computing a row origin before the reference allocation would be invalid even if a later offset cancels it.
+            int referenceStartX = refPos.X0 + patchX0 - bx;
 
             for (int c = 0; c < 3; c++)
             {
-                foreground[c] = this.referenceFrames[@ref].Frame.Color!.PlaneRowMemory(c, refPos.Y0 + iy)[(refPos.X0 + x0 - bx)..];
+                foreground[c] = this.referenceFrames[@ref].Frame.Color.PlaneRowMemory(c, refPos.Y0 + iy)[referenceStartX..];
             }
 
-            for (int j = 0; j < 3; j++)
+            for (int j = 0; j < extraChannelCount; j++)
             {
-                foreground[3 + j] = this.referenceFrames[@ref].Frame.GetExtraChannel(j).GetRowMemory(refPos.Y0 + iy)[(refPos.X0 + x0 - bx)..];
+                foreground[3 + j] = this.referenceFrames[@ref].Frame.GetExtraChannel(j).GetRowMemory(refPos.Y0 + iy)[referenceStartX..];
             }
 
             JxlBlending.PerformBlending(
-                configuration,
                 inOut,
                 foreground,
                 inOut,
-                patchX0 - x0,
+                patchX0 - startX,
                 patchX1 - patchX0,
                 this.blendings[blendingIdx],
                 CollectionsMarshal.AsSpan(this.blendings)[(blendingIdx + 1)..],
-                extraChannelInfos);
+                extraChannelInfos,
+                scratch);
         }
 
         return true;

@@ -68,9 +68,14 @@ internal static partial class SimdUtils
                 // Four independent vectors amortize loop control and expose enough work for the CPU
                 // to overlap loads, byte shuffles, and stores without changing pixel ordering.
                 TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<byte>.Count))).StoreUnsafe(ref destinationBase, (nuint)(i + Vector512<byte>.Count));
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 2)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 2)));
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 3)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 3)));
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<byte>.Count)))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + Vector512<byte>.Count));
+
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 2))))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 2)));
+
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 3))))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 3)));
             }
 
             int oneVectorFromEnd = length - Vector512<byte>.Count;
@@ -88,9 +93,14 @@ internal static partial class SimdUtils
             for (; i <= fourVectorsFromEnd; i += Vector256<byte>.Count * 4)
             {
                 TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<byte>.Count))).StoreUnsafe(ref destinationBase, (nuint)(i + Vector256<byte>.Count));
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 2)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 2)));
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 3)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 3)));
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<byte>.Count)))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + Vector256<byte>.Count));
+
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 2))))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 2)));
+
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 3))))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 3)));
             }
 
             int oneVectorFromEnd = length - Vector256<byte>.Count;
@@ -108,9 +118,14 @@ internal static partial class SimdUtils
             for (; i <= fourVectorsFromEnd; i += Vector128<byte>.Count * 4)
             {
                 TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<byte>.Count))).StoreUnsafe(ref destinationBase, (nuint)(i + Vector128<byte>.Count));
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 2)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 2)));
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 3)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 3)));
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<byte>.Count)))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + Vector128<byte>.Count));
+
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 2))))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 2)));
+
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 3))))
+                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 3)));
             }
 
             int oneVectorFromEnd = length - Vector128<byte>.Count;

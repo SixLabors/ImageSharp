@@ -71,8 +71,28 @@ internal sealed class JxlBitWriter(Stream stream)
         this.Write((int)remainderBits, 0);
     }
 
-    public bool WithMaxBits(ulong maxBits, JxlLayerType layer, JxlAuxiliaryOutput, Func<bool> func)
-        => this.WithMaxBits(maxBits, func);
+    /// <summary>
+    /// Runs an operation with a maximum number of output bits.
+    /// </summary>
+    /// <param name="maxBits">The output bit budget for the operation.</param>
+    /// <param name="layer">The encoder layer associated with the operation.</param>
+    /// <param name="auxOut">The optional encoder statistics supplied by the caller.</param>
+    /// <param name="func">The operation to run.</param>
+    /// <returns>The result of the operation.</returns>
+    public bool WithMaxBits(ulong maxBits, JxlLayerType layer, JxlAuxiliaryOutput? auxOut, Func<bool> func)
+    {
+        long initialBits = this.BitsWritten;
+        bool result = this.WithMaxBits(maxBits, func);
+
+        // Record the bits actually written, rather than the maximum reservation.
+        // Padding written by this operation is included; later writes belong to their own operation.
+        if (auxOut is not null)
+        {
+            auxOut.Layers[(int)layer].TotalBits += (int)(this.BitsWritten - initialBits);
+        }
+
+        return result;
+    }
 
     public bool WithMaxBits(ulong maxBits, Func<bool> func)
     {

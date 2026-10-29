@@ -143,19 +143,19 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <summary>
     /// Returns a copy of the image in the given pixel format.
     /// </summary>
-    /// <typeparam name="TPixel2">The pixel format.</typeparam>
-    /// <returns>The <see cref="Image{TPixel2}"/></returns>
-    public Image<TPixel2> CloneAs<TPixel2>()
-        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
+    /// <typeparam name="TPixelTo">The pixel format.</typeparam>
+    /// <returns>The <see cref="Image{TPixelTo}"/></returns>
+    public Image<TPixelTo> CloneAs<TPixelTo>()
+        where TPixelTo : unmanaged, IPixel<TPixelTo> => this.CloneAs<TPixelTo>(this.Configuration);
 
     /// <summary>
     /// Returns a copy of the image in the given pixel format.
     /// </summary>
-    /// <typeparam name="TPixel2">The pixel format.</typeparam>
+    /// <typeparam name="TPixelTo">The pixel format.</typeparam>
     /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
-    /// <returns>The <see cref="Image{TPixel2}"/>.</returns>
-    public abstract Image<TPixel2> CloneAs<TPixel2>(Configuration configuration)
-        where TPixel2 : unmanaged, IPixel<TPixel2>;
+    /// <returns>The <see cref="Image{TPixelTo}"/>.</returns>
+    public abstract Image<TPixelTo> CloneAs<TPixelTo>(Configuration configuration)
+        where TPixelTo : unmanaged, IPixel<TPixelTo>;
 
     /// <summary>
     /// Synchronizes any embedded metadata profiles with the current image properties.

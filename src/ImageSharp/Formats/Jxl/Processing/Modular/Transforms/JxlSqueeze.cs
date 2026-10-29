@@ -186,6 +186,13 @@ internal static class JxlSqueeze
         (output - diff).StoreUnsafe(ref pNOutRef);
     }
 
+    /// <summary>
+    /// Restores a horizontal channel from its average and residual planes, then releases the displaced average storage.
+    /// </summary>
+    /// <param name="configuration">The configuration used for the restored samples.</param>
+    /// <param name="input">The owner of the average and residual channels.</param>
+    /// <param name="c">The average channel index, which receives the restored samples.</param>
+    /// <param name="rc">The borrowed residual channel index. InverseSqueeze removes it after reconstruction.</param>
     public static void InverseHorizontalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
         // Channel offsets should not overflow.
@@ -211,8 +218,8 @@ internal static class JxlSqueeze
             return;
         }
 
-        // Do not dispose.
-        JxlModularChannel outputChannel = new(
+        // Keep the image's channel wrapper stable. Swapping at completion transfers the result and releases the old average allocation.
+        using JxlModularChannel outputChannel = new(
             configuration,
             inputChannel.Width + inputResidualChannel.Width,
             inputChannel.Height,
@@ -221,54 +228,55 @@ internal static class JxlSqueeze
 
         if (inputResidualChannel.Height == 0)
         {
-            input.Channels[c] = outputChannel;
+            inputChannel.Swap(outputChannel);
             return;
         }
 
-        // The number of rows a single parallel iteration computes
-        // is stored here.
-        const int rowsPerThread = 8;
+        // Transposition works on eight rows at a time. Reuse its stack storage for all blocks.
+        const int rowsPerBlock = 8;
 
-        // rowsPerThread * 9, aligned to the power of 2.
-        const int rowsPerThreadMul9Alignment = 128;
+        // The average block has one extra column for the next-sample predictor. Each of the
+        // other planes contains an eight-by-eight block. Allocate them once, outside traversal.
+        Span<int> bpAvg = stackalloc int[rowsPerBlock * 9];
+        Span<int> bpResidual = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutEven = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutOdd = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutEvenT = stackalloc int[rowsPerBlock * 8];
+        Span<int> bpOutOddT = stackalloc int[rowsPerBlock * 8];
+        int rowBlockCount = JxlMath.DivCeil(inputChannel.Height, rowsPerBlock);
 
-        // rowsPerThread * 8, aligned to the power of 2.
-        const int rowsPerThreadMul8Alignment = 64;
+        // Borrow all three allocations before traversal. Their strides remain fixed until the completed output is swapped into the channel.
+        Span<int> residualSamples = inputResidualChannel.GetRow(0);
+        Span<int> averageSamples = inputChannel.GetRow(0);
+        Span<int> outputSamples = outputChannel.GetRow(0);
+        int onerow_in = inputChannel.Plane.PixelsPerRow;
+        int onerow_inr = inputResidualChannel.Plane.PixelsPerRow;
+        int onerow_out = outputChannel.Plane.PixelsPerRow;
 
-        _ = Parallel.For(0, JxlMath.DivCeil(inputChannel.Height, rowsPerThread), configuration.GetParallelOptions(), idx =>
+        for (int idx = 0; idx < rowBlockCount; idx++)
         {
-            int y0 = idx * rowsPerThread;
-            int rows = Math.Min(rowsPerThread, inputChannel.Height - y0);
+            int y0 = idx * rowsPerBlock;
+            int rows = Math.Min(rowsPerBlock, inputChannel.Height - y0);
             int x = 0;
 
-            int onerow_in = inputChannel.Plane.PixelsPerRow;
-            int onerow_inr = inputResidualChannel.Plane.PixelsPerRow;
-            int onerow_out = outputChannel.Plane.PixelsPerRow;
-            Span<int> pResidual = inputResidualChannel.GetRow(y0);
-            Span<int> pAverage = inputChannel.GetRow(y0);
-            Span<int> pOut = outputChannel.GetRow(y0);
+            Span<int> pResidual = residualSamples[(y0 * onerow_inr)..];
+            Span<int> pAverage = averageSamples[(y0 * onerow_in)..];
+            Span<int> pOut = outputSamples[(y0 * onerow_out)..];
             ref int pOutRef = ref MemoryMarshal.GetReference(pOut);
-
-            Span<int> bpAvg = stackalloc int[rowsPerThreadMul9Alignment].Slice(0, rowsPerThread * 9);
-            Span<int> bpResidual = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutEven = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutOdd = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutEvenT = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
-            Span<int> bpOutOddT = stackalloc int[rowsPerThreadMul8Alignment].Slice(0, rowsPerThread * 8);
 
             ref int bpOutEvenTRef = ref MemoryMarshal.GetReference(bpOutEvenT);
             ref int bpOutOddTRef = ref MemoryMarshal.GetReference(bpOutOddT);
 
             int n = Vector256<int>.Count;
 
-            if (inputResidualChannel.Width > 16 && rows == rowsPerThread)
+            if (inputResidualChannel.Width > 16 && rows == rowsPerBlock)
             {
                 for (; x < inputResidualChannel.Width - 9; x += 8)
                 {
                     JxlSimdUtils.Transpose8x8Block(pResidual[x..], bpResidual, onerow_inr);
                     JxlSimdUtils.Transpose8x8Block(pAverage[x..], bpAvg, onerow_in);
 
-                    for (int y = 0; y < rowsPerThread; y++)
+                    for (int y = 0; y < rowsPerBlock; y++)
                     {
                         bpAvg[64 + y] = pAverage[x + 8 + (onerow_in * y)];
                     }
@@ -290,22 +298,19 @@ internal static class JxlSqueeze
                     JxlSimdUtils.Transpose8x8Block(bpOutEven, bpOutEvenT, 8);
                     JxlSimdUtils.Transpose8x8Block(bpOutOdd, bpOutOddT, 8);
 
-                    for (int y = 0; y < rowsPerThread; y++)
+                    for (int y = 0; y < rowsPerBlock; y++)
                     {
                         // y * 8
                         int y8 = y << 3;
 
-                        for (int i = 0; i < rowsPerThread; i += n)
+                        for (int i = 0; i < rowsPerBlock; i += n)
                         {
                             int offset = y8 + i;
 
                             Vector256<int> even = Vector256.LoadUnsafe(ref Unsafe.Add(ref bpOutEvenTRef, offset));
                             Vector256<int> odd = Vector256.LoadUnsafe(ref Unsafe.Add(ref bpOutOddTRef, offset));
 
-                            JxlSimdUtils.StoreInterleaved(
-                                even,
-                                odd,
-                                ref Unsafe.Add(ref pOutRef, ((x + i) << 1) + (onerow_out * y)));
+                            SimdUtils.Interleave2(even, odd, ref Unsafe.Add(ref pOutRef, ((x + i) << 1) + (onerow_out * y)));
                         }
                     }
                 }
@@ -313,17 +318,19 @@ internal static class JxlSqueeze
 
             for (int y = 0; y < rows; y++)
             {
-                UnsqueezeRow(y0 + y, x);
+                UnsqueezeRow(y0 + y, x, residualSamples, averageSamples, outputSamples);
             }
-        });
+        }
 
-        input.Channels[c] = outputChannel;
+        inputChannel.Swap(outputChannel);
 
-        void UnsqueezeRow(int y, int x0)
+        // Restore the scalar remainder of row y, starting at residual x0. The three spans borrow complete allocations
+        // at their logical origins. Pass them explicitly because a local function cannot capture spans from its caller.
+        void UnsqueezeRow(int y, int x0, Span<int> residualStorage, Span<int> averageStorage, Span<int> outputStorage)
         {
-            Span<int> residual = inputResidualChannel.GetRow(y);
-            Span<int> average = inputChannel.GetRow(y);
-            Span<int> output = outputChannel.GetRow(y);
+            Span<int> residual = residualStorage[(y * onerow_inr)..];
+            Span<int> average = averageStorage[(y * onerow_in)..];
+            Span<int> output = outputStorage[(y * onerow_out)..];
             int inputChannelWidth = inputChannel.Width;
             int outputChannelWidth = outputChannel.Width;
 
@@ -353,6 +360,13 @@ internal static class JxlSqueeze
         }
     }
 
+    /// <summary>
+    /// Restores a vertical channel from its average and residual planes, then releases the displaced average storage.
+    /// </summary>
+    /// <param name="configuration">The configuration used for the restored samples.</param>
+    /// <param name="input">The owner of the average and residual channels.</param>
+    /// <param name="c">The average channel index, which receives the restored samples.</param>
+    /// <param name="rc">The borrowed residual channel index. InverseSqueeze removes it after reconstruction.</param>
     public static void InverseVerticalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
         // Channel offsets should not overflow.
@@ -378,8 +392,7 @@ internal static class JxlSqueeze
             return;
         }
 
-        // Do not dispose.
-        JxlModularChannel outputChannel = new(
+        using JxlModularChannel outputChannel = new(
             configuration,
             inputChannel.Width,
             inputChannel.Height + inputResidualChannel.Height,
@@ -388,30 +401,39 @@ internal static class JxlSqueeze
 
         if (inputResidualChannel.Width == 0)
         {
-            input.Channels[c] = outputChannel;
+            inputChannel.Swap(outputChannel);
             return;
         }
 
-        // The number of columns a single parallel iteration computes
-        // is stored here.
-        const int colsPerThread = 8;
+        // Process one vector-width column block at a time. The previous output row
+        // remains available for prediction while traversal stays on the calling thread.
+        const int columnsPerBlock = 8;
+        int columnBlockCount = JxlMath.DivCeil(inputChannel.Width, columnsPerBlock);
 
-        _ = Parallel.For(0, JxlMath.DivCeil(inputChannel.Width, colsPerThread), configuration.GetParallelOptions(), idx =>
+        Span<int> residualSamples = inputResidualChannel.GetRow(0);
+        Span<int> averageSamples = inputChannel.GetRow(0);
+        Span<int> outputSamples = outputChannel.GetRow(0);
+        int residualStride = inputResidualChannel.Plane.PixelsPerRow;
+        int averageStride = inputChannel.Plane.PixelsPerRow;
+        int outputStride = outputChannel.Plane.PixelsPerRow;
+
+        for (int idx = 0; idx < columnBlockCount; idx++)
         {
-            int x0 = idx * colsPerThread;
-            int x1 = Math.Min((idx + 1) * colsPerThread, inputChannel.Width);
+            int x0 = idx * columnsPerBlock;
+            int x1 = Math.Min((idx + 1) * columnsPerBlock, inputChannel.Width);
             int w = x1 - x0;
 
             for (int y = 0; y < inputResidualChannel.Height; y++)
             {
                 int yLsh1 = y << 1;
 
-                Span<int> pResidual = inputResidualChannel.GetRow(y)[x0..];
-                Span<int> pAverage = inputChannel.GetRow(y)[x0..];
-                Span<int> pNAvg = inputChannel.GetRow(y + 1 < inputChannel.Height ? y + 1 : y)[x0..];
-                Span<int> pOut = outputChannel.GetRow(yLsh1)[x0..];
-                Span<int> pNOut = outputChannel.GetRow(yLsh1 + 1)[x0..];
-                Span<int> pPOut = y > 0 ? outputChannel.GetRow(yLsh1 - 1)[x0..] : pNAvg;
+                Span<int> pResidual = residualSamples[((y * residualStride) + x0)..];
+                Span<int> pAverage = averageSamples[((y * averageStride) + x0)..];
+                int nextAverageRow = y + 1 < inputChannel.Height ? y + 1 : y;
+                Span<int> pNAvg = averageSamples[((nextAverageRow * averageStride) + x0)..];
+                Span<int> pOut = outputSamples[((yLsh1 * outputStride) + x0)..];
+                Span<int> pNOut = outputSamples[(((yLsh1 + 1) * outputStride) + x0)..];
+                Span<int> pPOut = y > 0 ? outputSamples[(((yLsh1 - 1) * outputStride) + x0)..] : pNAvg;
                 int x = 0;
 
                 for (; x + 7 < w; x += 8)
@@ -439,14 +461,14 @@ internal static class JxlSqueeze
                     pNOut[x] = output - diff;
                 }
             }
-        });
+        }
 
         if ((outputChannel.Height & 1) > 0)
         {
             int y = inputChannel.Height - 1;
 
-            Span<int> pAverage = inputChannel.GetRow(y);
-            Span<int> pOutput = outputChannel.GetRow(y << 1);
+            Span<int> pAverage = averageSamples[(y * averageStride)..];
+            Span<int> pOutput = outputSamples[((y << 1) * outputStride)..];
 
             for (int x = 0; x < inputChannel.Width; x++)
             {
@@ -454,15 +476,20 @@ internal static class JxlSqueeze
             }
         }
 
-        input.Channels[c] = outputChannel;
+        inputChannel.Swap(outputChannel);
     }
 
+    /// <summary>
+    /// Reconstructs squeezed channels in reverse transform order and releases each consumed residual channel.
+    /// </summary>
+    /// <param name="configuration">The configuration used for restored samples.</param>
+    /// <param name="input">The owner of the transformed channels.</param>
+    /// <param name="parameters">The squeeze steps in forward order.</param>
     public static void InverseSqueeze(Configuration configuration, JxlModularImage input, Span<JxlSqueezeParameters> parameters)
     {
-        int totalNumberOfChannels = input.Channels.Count;
-
         for (int i = parameters.Length - 1; i >= 0; i--)
         {
+            int totalNumberOfChannels = input.Channels.Count;
             ref JxlSqueezeParameters parameter = ref parameters[i];
 
             CheckMetaSqueezeParameters(parameter, totalNumberOfChannels);
@@ -474,7 +501,7 @@ internal static class JxlSqueeze
 
             int offset = inPlace
                 ? endC + 1
-                : totalNumberOfChannels + beginC + endC - 1;
+                : totalNumberOfChannels + beginC - endC - 1;
 
             if (beginC < input.MetaChannels)
             {
@@ -512,9 +539,23 @@ internal static class JxlSqueeze
                     InverseVerticalSqueeze(configuration, input, c, rc);
                 }
             }
+
+            // Every step appends one residual per selected channel, either after that range or at the image's end.
+            // Remove only this step's residuals; the next reverse step must see the reduced channel count.
+            for (int c = offset; c < offset + parameter.NumC; c++)
+            {
+                input.Channels[c].Dispose();
+            }
+
+            input.Channels.RemoveRange(offset, parameter.NumC);
         }
     }
 
+    /// <summary>
+    /// Selects squeeze steps that reduce the image to its first preview dimensions.
+    /// </summary>
+    /// <param name="squeezeParameters">The list replaced with the selected steps.</param>
+    /// <param name="image">The borrowed channel shapes used to select the steps.</param>
     public static void DefaultSqueezeParameters(List<JxlSqueezeParameters> squeezeParameters, JxlModularImage image)
     {
         int numberOfChannels = image.Channels.Count - image.MetaChannels;
@@ -525,9 +566,7 @@ internal static class JxlSqueeze
         int h = numMetaChannelsChannel.Height;
         bool wide = w > h;
 
-        JxlModularChannel nextNumMetaChannelsChannel = image.Channels[image.MetaChannels + 1];
-
-        if (numberOfChannels > 2 && nextNumMetaChannelsChannel.Width == w && nextNumMetaChannelsChannel.Height == h)
+        if (numberOfChannels > 2 && image.Channels[image.MetaChannels + 1].Width == w && image.Channels[image.MetaChannels + 1].Height == h)
         {
             JxlSqueezeParameters parameters = new()
             {
@@ -568,7 +607,7 @@ internal static class JxlSqueeze
                 w = (w + 1) >> 1;
             }
 
-            if (w > MaxFirstPreviewSize)
+            if (h > MaxFirstPreviewSize)
             {
                 newParameters.Horizontal = false;
                 squeezeParameters.Add(newParameters);
@@ -577,6 +616,11 @@ internal static class JxlSqueeze
         }
     }
 
+    /// <summary>
+    /// Validates an encoded squeeze channel range against the current channel count.
+    /// </summary>
+    /// <param name="parameter">The encoded step.</param>
+    /// <param name="numChannels">The channel count before applying that step.</param>
     private static void CheckMetaSqueezeParameters(in JxlSqueezeParameters parameter, int numChannels)
     {
         int c1 = parameter.BeginC;
@@ -590,6 +634,12 @@ internal static class JxlSqueeze
         }
     }
 
+    /// <summary>
+    /// Reduces channel shapes before decoding and attaches the corresponding owned residual planes.
+    /// </summary>
+    /// <param name="configuration">The configuration used for residual samples.</param>
+    /// <param name="image">The image that owns the reduced and residual channels.</param>
+    /// <param name="parameters">The encoded steps, or an empty list to receive the default steps.</param>
     public static void MetaSqueeze(Configuration configuration, JxlModularImage image, List<JxlSqueezeParameters> parameters)
     {
         if (parameters.Count == 0)
@@ -625,11 +675,14 @@ internal static class JxlSqueeze
                 ? endC + 1
                 : image.Channels.Count;
 
+            // Reserve references before allocating residual samples. Each completed plane can then attach without list growth.
+            image.Channels.EnsureCapacity(image.Channels.Count + parameter.NumC);
+
             for (int c = beginC; c <= endC; c++)
             {
                 JxlModularChannel channel = image.Channels[c];
 
-                if (channel.Height > 30 || channel.VerticalShift > 30)
+                if (channel.HorizontalShift > 30 || channel.VerticalShift > 30)
                 {
                     throw new InvalidOperationException("Too many squeezes: shift > 30");
                 }
@@ -637,7 +690,7 @@ internal static class JxlSqueeze
                 int w = channel.Width;
                 int h = channel.Height;
 
-                if ((w & h) == 0) // either w, or h, is 0
+                if (w == 0 || h == 0)
                 {
                     throw new InvalidOperationException("Squeezing empty channel");
                 }
@@ -655,7 +708,7 @@ internal static class JxlSqueeze
                 }
                 else
                 {
-                    channel.HorizontalShift = (h + 1) >> 1;
+                    channel.Height = (h + 1) >> 1;
 
                     if (channel.VerticalShift >= 0)
                     {
@@ -665,7 +718,7 @@ internal static class JxlSqueeze
                     h -= (h + 1) >> 1;
                 }
 
-                channel.Shrink(configuration);
+                channel.Shrink();
 
                 JxlModularChannel placeholder = new(configuration, w, h, channel.HorizontalShift, channel.VerticalShift)
                 {
@@ -677,22 +730,42 @@ internal static class JxlSqueeze
         }
     }
 
+    /// <summary>
+    /// Splits a horizontal channel into owned average and residual planes and releases its original samples.
+    /// </summary>
+    /// <param name="configuration">The configuration used for the output samples.</param>
+    /// <param name="input">The owner of all input and output channels.</param>
+    /// <param name="c">The channel to split.</param>
+    /// <param name="rc">The insertion index for the residual channel.</param>
     public static void ForwardHorizontalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
         JxlModularChannel inputChannel = input.Channels[c];
 
-        // Do not dispose these.
-        JxlModularChannel outputChannel = new(configuration, (inputChannel.Width + 1) >> 1, inputChannel.Height, inputChannel.HorizontalShift + 1, inputChannel.VerticalShift);
-        JxlModularChannel outputChannelResidual = new(configuration, inputChannel.Width - outputChannel.Width, outputChannel.Height, inputChannel.HorizontalShift + 1, inputChannel.VerticalShift);
+        // Attach the residual before processing. The image then owns it even if reconstruction of another output fails.
+        input.Channels.EnsureCapacity(input.Channels.Count + 1);
+        using JxlModularChannel outputChannel = new(
+            configuration, (inputChannel.Width + 1) >> 1, inputChannel.Height, inputChannel.HorizontalShift + 1, inputChannel.VerticalShift);
+
+        JxlModularChannel outputChannelResidual = new(
+            configuration, inputChannel.Width - outputChannel.Width, outputChannel.Height, inputChannel.HorizontalShift + 1, inputChannel.VerticalShift);
+
+        input.Channels.Insert(rc, outputChannelResidual);
 
         outputChannel.Component = inputChannel.Component;
         outputChannelResidual.Component = inputChannel.Component;
 
+        Span<int> inputSamples = inputChannel.GetRow(0);
+        Span<int> outputSamples = outputChannel.GetRow(0);
+        Span<int> residualSamples = outputChannelResidual.GetRow(0);
+        int inputStride = inputChannel.Plane.PixelsPerRow;
+        int outputStride = outputChannel.Plane.PixelsPerRow;
+        int residualStride = outputChannelResidual.Plane.PixelsPerRow;
+
         for (int y = 0; y < outputChannel.Height; y++)
         {
-            Span<int> pIn = inputChannel.GetRow(y);
-            Span<int> pOut = outputChannel.GetRow(y);
-            Span<int> pRes = outputChannelResidual.GetRow(y);
+            Span<int> pIn = inputSamples[(y * inputStride)..];
+            Span<int> pOut = outputSamples[(y * outputStride)..];
+            Span<int> pRes = residualSamples[(y * residualStride)..];
 
             for (int x = 0; x < outputChannelResidual.Width; x++)
             {
@@ -730,28 +803,45 @@ internal static class JxlSqueeze
             }
         }
 
-        input.Channels[c] = outputChannel;
-        input.Channels.Insert(rc, outputChannelResidual);
+        inputChannel.Swap(outputChannel);
     }
 
+    /// <summary>
+    /// Splits a vertical channel into owned average and residual planes and releases its original samples.
+    /// </summary>
+    /// <param name="configuration">The configuration used for the output samples.</param>
+    /// <param name="input">The owner of all input and output channels.</param>
+    /// <param name="c">The channel to split.</param>
+    /// <param name="rc">The insertion index for the residual channel.</param>
     public static void ForwardVerticalSqueeze(Configuration configuration, JxlModularImage input, int c, int rc)
     {
         JxlModularChannel inputChannel = input.Channels[c];
 
-        // Do not dispose these.
-        JxlModularChannel outputChannel = new(configuration, inputChannel.Width, (inputChannel.Height + 1) >> 1, inputChannel.HorizontalShift, inputChannel.VerticalShift + 1);
-        JxlModularChannel outputResidualChannel = new(configuration, inputChannel.Width, inputChannel.Height - outputChannel.Height, inputChannel.HorizontalShift, inputChannel.VerticalShift + 1);
+        input.Channels.EnsureCapacity(input.Channels.Count + 1);
+        using JxlModularChannel outputChannel = new(
+            configuration, inputChannel.Width, (inputChannel.Height + 1) >> 1, inputChannel.HorizontalShift, inputChannel.VerticalShift + 1);
+
+        JxlModularChannel outputResidualChannel = new(
+            configuration, inputChannel.Width, inputChannel.Height - outputChannel.Height, inputChannel.HorizontalShift, inputChannel.VerticalShift + 1);
+
+        input.Channels.Insert(rc, outputResidualChannel);
 
         outputChannel.Component = inputChannel.Component;
         outputResidualChannel.Component = inputChannel.Component;
 
         int oneRowInput = inputChannel.Plane.PixelsPerRow;
 
+        Span<int> inputSamples = inputChannel.GetRow(0);
+        Span<int> outputSamples = outputChannel.GetRow(0);
+        Span<int> residualSamples = outputResidualChannel.GetRow(0);
+        int outputStride = outputChannel.Plane.PixelsPerRow;
+        int residualStride = outputResidualChannel.Plane.PixelsPerRow;
+
         for (int y = 0; y < outputChannel.Height; y++)
         {
-            Span<int> pIn = inputChannel.GetRow(y * 2);
-            Span<int> pOut = outputChannel.GetRow(y);
-            Span<int> pResidual = outputResidualChannel.GetRow(y);
+            Span<int> pIn = inputSamples[(y * 2 * oneRowInput)..];
+            Span<int> pOut = outputSamples[(y * outputStride)..];
+            Span<int> pResidual = residualSamples[(y * residualStride)..];
 
             for (int x = 0; x < outputChannel.Width; x++)
             {
@@ -784,8 +874,8 @@ internal static class JxlSqueeze
         {
             int y = outputChannel.Height - 1;
 
-            Span<int> pIn = inputChannel.GetRow(y * 2);
-            Span<int> pOut = outputChannel.GetRow(y);
+            Span<int> pIn = inputSamples[(y * 2 * oneRowInput)..];
+            Span<int> pOut = outputSamples[(y * outputStride)..];
 
             for (int x = 0; x < outputChannel.Width; x++)
             {
@@ -793,8 +883,7 @@ internal static class JxlSqueeze
             }
         }
 
-        input.Channels[c] = outputChannel;
-        input.Channels.Insert(rc, outputResidualChannel);
+        inputChannel.Swap(outputChannel);
     }
 
     public static void ForwardSqueeze(Configuration configuration, JxlModularImage input, List<JxlSqueezeParameters> parameters)

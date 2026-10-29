@@ -4,28 +4,35 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 
+/// <summary>
+/// Stores the original image description and color encoding shared by the codestream's frames.
+/// </summary>
 internal sealed class JxlImageMetadata : IJxlFields
 {
     private bool allDefault;
-    private JxlBitDepthMetadata? bitDepth;
+    private JxlBitDepthMetadata bitDepth = new();
     private bool modular16BitBufferSufficient;
     private bool xybEncoded;
-    private JxlColorEncoding? colorEncoding;
+    private JxlColorEncoding colorEncoding = new();
     private int orientation = 1;
     private bool havePreview;
     private bool haveAnimation;
     private bool haveIntrinsicSize;
     private JxlSizeHeader intrinsicSize = new();
-    private JxlToneMapping? toneMapping;
+    private JxlToneMapping toneMapping = new();
     private int extraChannelCount;
     private List<JxlExtraChannelInfo> extraChannels = [];
     private JxlPreviewHeader previewSize = new();
     private JxlAnimationHeader animation = new();
     private long extensions;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlImageMetadata"/> class with the codestream's default fields.
+    /// </summary>
     public JxlImageMetadata() => JxlBundle.Init(this);
 
     public bool AllDefault
@@ -34,7 +41,10 @@ internal sealed class JxlImageMetadata : IJxlFields
         set => this.allDefault = value;
     }
 
-    public JxlBitDepthMetadata? BitDepth
+    /// <summary>
+    /// Gets or sets the original sample representation.
+    /// </summary>
+    public JxlBitDepthMetadata BitDepth
     {
         get => this.bitDepth;
         set => this.bitDepth = value;
@@ -52,7 +62,11 @@ internal sealed class JxlImageMetadata : IJxlFields
         set => this.xybEncoded = value;
     }
 
-    public JxlColorEncoding? ColorEncoding
+    /// <summary>
+    /// Gets or sets the original color encoding and its optional decoded ICC profile.
+    /// </summary>
+    /// <remarks>Converting frame samples changes the bundle's current encoding, not this original encoding.</remarks>
+    public JxlColorEncoding ColorEncoding
     {
         get => this.colorEncoding;
         set => this.colorEncoding = value;
@@ -88,7 +102,10 @@ internal sealed class JxlImageMetadata : IJxlFields
         set => this.intrinsicSize = value;
     }
 
-    public JxlToneMapping? ToneMapping
+    /// <summary>
+    /// Gets or sets the intensity and tone-mapping fields.
+    /// </summary>
+    public JxlToneMapping ToneMapping
     {
         get => this.toneMapping;
         set => this.toneMapping = value;
@@ -126,27 +143,13 @@ internal sealed class JxlImageMetadata : IJxlFields
 
     public bool NonserializedOnlyParseBasicInfos { get; set; }
 
+    /// <summary>
+    /// Gets or sets the intensity target in nits.
+    /// </summary>
     public float IntensityTarget
     {
-        get
-        {
-            float intensityTarget = this.ToneMapping?.IntensityTarget ?? 0f;
-
-            if (intensityTarget == 0f)
-            {
-                throw new InvalidOperationException("Intensity target should be present");
-            }
-
-            return intensityTarget;
-        }
-
-        set
-        {
-            if (this.ToneMapping != null)
-            {
-                this.ToneMapping.IntensityTarget = value;
-            }
-        }
+        get => this.ToneMapping.IntensityTarget;
+        set => this.ToneMapping.IntensityTarget = value;
     }
 
     public int AlphaBits
@@ -175,60 +178,61 @@ internal sealed class JxlImageMetadata : IJxlFields
 
     public JxlExifOrientation GetExifOrientation() => (JxlExifOrientation)this.Orientation;
 
+    /// <summary>
+    /// Specifies half-precision floating-point input samples.
+    /// </summary>
     public void SetFloat16Samples()
     {
-        if (this.BitDepth != null)
-        {
-            this.BitDepth.BitsPerSample = 16;
-            this.BitDepth.ExponentBitsPerSample = 5;
-            this.BitDepth.FloatingPointSample = true;
-        }
+        this.BitDepth.BitsPerSample = 16;
+        this.BitDepth.ExponentBitsPerSample = 5;
+        this.BitDepth.FloatingPointSample = true;
 
         this.Modular16BitBufferSufficient = false;
     }
 
+    /// <summary>
+    /// Specifies single-precision floating-point input samples.
+    /// </summary>
     public void SetFloat32Samples()
     {
-        if (this.BitDepth != null)
-        {
-            this.BitDepth.BitsPerSample = 32;
-            this.BitDepth.ExponentBitsPerSample = 8;
-            this.BitDepth.FloatingPointSample = true;
-        }
+        this.BitDepth.BitsPerSample = 32;
+        this.BitDepth.ExponentBitsPerSample = 8;
+        this.BitDepth.FloatingPointSample = true;
 
         this.Modular16BitBufferSufficient = false;
     }
 
+    /// <summary>
+    /// Specifies unsigned integer input samples at the supplied precision.
+    /// </summary>
+    /// <param name="bits">The number of bits per input sample.</param>
     public void SetUIntSamples(int bits)
     {
-        if (this.BitDepth != null)
-        {
-            this.BitDepth.BitsPerSample = (uint)bits;
-            this.BitDepth.ExponentBitsPerSample = 0;
-            this.BitDepth.FloatingPointSample = false;
-        }
+        this.BitDepth.BitsPerSample = (uint)bits;
+        this.BitDepth.ExponentBitsPerSample = 0;
+        this.BitDepth.FloatingPointSample = false;
 
         this.Modular16BitBufferSufficient = bits <= 12;
     }
 
+    /// <summary>
+    /// Sets the nominal peak intensity for PQ, HLG, or the default transfer function.
+    /// </summary>
     public void SetIntensityTarget()
     {
-        JxlCustomTransferFunction? tf = this.ColorEncoding?.TransferFunction;
+        JxlCustomTransferFunction tf = this.ColorEncoding.TransferFunction;
 
-        if (tf is not null)
+        if (tf.IsPq)
         {
-            if (tf.Value.IsPq)
-            {
-                this.SetIntensityTarget(10000);
-            }
-            else if (tf.Value.IsHlg)
-            {
-                this.SetIntensityTarget(1000);
-            }
-            else
-            {
-                this.SetIntensityTarget(DefaultIntensityTarget);
-            }
+            this.IntensityTarget = 10000;
+        }
+        else if (tf.IsHlg)
+        {
+            this.IntensityTarget = 1000;
+        }
+        else
+        {
+            this.IntensityTarget = JxlMath.DefaultIntensityTarget;
         }
     }
 
@@ -244,7 +248,7 @@ internal sealed class JxlImageMetadata : IJxlFields
         // Bundle.AllDefault does not allow usage when reading because it may abort
         // when a codestream has invalid values. When reading, extraFields is
         // overwritten below, so AllDefault is not needed.
-        bool toneMappingDefault = !visitor.IsReading && JxlBundle.AllDefault(this.toneMapping!);
+        bool toneMappingDefault = !visitor.IsReading && JxlBundle.AllDefault(this.toneMapping);
 
         bool extraFields = this.orientation != 1 ||
                            this.havePreview ||
@@ -316,7 +320,7 @@ internal sealed class JxlImageMetadata : IJxlFields
             this.haveAnimation = false;
         }
 
-        if (!visitor.VisitNested(this.bitDepth!))
+        if (!visitor.VisitNested(this.bitDepth))
         {
             return false;
         }
@@ -366,14 +370,14 @@ internal sealed class JxlImageMetadata : IJxlFields
             return false;
         }
 
-        if (!visitor.VisitNested(this.colorEncoding!))
+        if (!visitor.VisitNested(this.colorEncoding))
         {
             return false;
         }
 
         if (visitor.Conditional(extraFields))
         {
-            if (!visitor.VisitNested(this.toneMapping!))
+            if (!visitor.VisitNested(this.toneMapping))
             {
                 return false;
             }

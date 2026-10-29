@@ -105,6 +105,19 @@ public class DitherTests
         provider.RunValidatingProcessorTest(x => x.Dither(DefaultErrorDiffuser), comparer: comparer);
     }
 
+    [Fact]
+    public void DiffusionFilter_PreservesFloatingResidualBeyondOne()
+    {
+        using Image<RgbaVector> image = new(4, 4, new RgbaVector(.5F, 0F, 0F));
+        RgbaVector source = new(4F, 0F, 0F);
+        image[1, 1] = source;
+
+        ErrorDither.FloydSteinberg.Dither(image.Frames.RootFrame, image.Bounds, source, new RgbaVector(0F, 0F, 0F), 1, 1, 1F);
+
+        // The right neighbor receives 7/16 of the error: 0.5 + (4 * 7/16) = 2.25.
+        Assert.Equal(2.25F, image[2, 1].R);
+    }
+
     [Theory]
     [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
     public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(

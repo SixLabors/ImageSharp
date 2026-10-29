@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -141,11 +142,67 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Matrix4x4 matrix = options.TransposedYCbCrTransform.Forward;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Rgb, Vector3>(source);
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<Rgb, float>(source);
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
         {
-            Rgb rgb = source[i];
-            destination[i] = FromProfileConnectingSpace(options, in rgb);
+            Vector512<float> offsetY = Vector512.Create(offset.X);
+            Vector512<float> offsetCb = Vector512.Create(offset.Y);
+            Vector512<float> offsetCr = Vector512.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector512Count<float>() / 3;
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
+            {
+                // Load all RGB channels before writing so source and destination can share their packed storage.
+                // Each register holds one channel from 16 consecutive colors. Add chroma offsets after the matrix.
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                SimdUtils.Transform3(in matrix, r, g, b, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr);
+                SimdUtils.Interleave3(y + offsetY, cb + offsetCb, cr + offsetCr, ref Unsafe.As<YCbCr, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> offsetY = Vector256.Create(offset.X);
+            Vector256<float> offsetCb = Vector256.Create(offset.Y);
+            Vector256<float> offsetCr = Vector256.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector256Count<float>() / 3;
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
+            {
+                // Load all RGB channels before writing so source and destination can share their packed storage.
+                // Each register holds one channel from 8 consecutive colors. Add chroma offsets after the matrix.
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                SimdUtils.Transform3(in matrix, r, g, b, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr);
+                SimdUtils.Interleave3(y + offsetY, cb + offsetCb, cr + offsetCr, ref Unsafe.As<YCbCr, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> offsetY = Vector128.Create(offset.X);
+            Vector128<float> offsetCb = Vector128.Create(offset.Y);
+            Vector128<float> offsetCr = Vector128.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector128Count<float>() / 3;
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
+            {
+                // Load all RGB channels before writing so source and destination can share their packed storage.
+                // Each register holds one channel from 4 consecutive colors. Add chroma offsets after the matrix.
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+                SimdUtils.Transform3(in matrix, r, g, b, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr);
+                SimdUtils.Interleave3(y + offsetY, cb + offsetCb, cr + offsetCr, ref Unsafe.As<YCbCr, float>(ref destination[i]));
+            }
+        }
+
+        // At most three colors remain. The scalar path applies the same matrix and offsets.
+        for (; i < source.Length; i++)
+        {
+            destination[i] = FromProfileConnectingSpace(options, in source[i]);
         }
     }
 
@@ -164,8 +221,87 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Matrix4x4 matrix = options.TransposedYCbCrTransform.Inverse;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<YCbCr, Vector3>(source);
+        ReadOnlySpan<float> components = MemoryMarshal.Cast<YCbCr, float>(source);
+        int i = 0;
+
+        // Subtract the configured Y, Cb, and Cr offsets before applying the RGB matrix.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> offsetY = Vector512.Create(offset.X);
+            Vector512<float> offsetCb = Vector512.Create(offset.Y);
+            Vector512<float> offsetCr = Vector512.Create(offset.Z);
+            nuint vectorCount = components.Vector512Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector512<float>.Count)
+            {
+                // Load all three channels for sixteen pixels before writing RGB.
+                // This order also permits the source and destination to use the same storage.
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector512<float> r,
+                    out Vector512<float> g,
+                    out Vector512<float> b);
+
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> offsetY = Vector256.Create(offset.X);
+            Vector256<float> offsetCb = Vector256.Create(offset.Y);
+            Vector256<float> offsetCr = Vector256.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector256Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector256<float>.Count)
+            {
+                // Process each remaining eight-pixel group with the same offsets and RGB matrix.
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector256<float> r,
+                    out Vector256<float> g,
+                    out Vector256<float> b);
+
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> offsetY = Vector128.Create(offset.X);
+            Vector128<float> offsetCb = Vector128.Create(offset.Y);
+            Vector128<float> offsetCr = Vector128.Create(offset.Z);
+            nuint vectorCount = components[(i * 3)..].Vector128Count<float>() / 3;
+
+            for (nuint vectorIndex = 0; vectorIndex < vectorCount; vectorIndex++, i += Vector128<float>.Count)
+            {
+                // Process four-pixel groups here; the scalar tail uses the same transform below.
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector128<float> r,
+                    out Vector128<float> g,
+                    out Vector128<float> b);
+
+                SimdUtils.Interleave3(r, g, b, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        for (; i < source.Length; i++)
         {
             destination[i] = source[i].ToProfileConnectingSpace(options);
         }

@@ -140,12 +140,24 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba64(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+        vector = ColorNumerics.ClampToFinite(vector, Vector4.Zero, Vector4.One) * Max;
         this.R = (ushort)MathF.Round(vector.X);
         this.G = (ushort)MathF.Round(vector.Y);
         this.B = (ushort)MathF.Round(vector.Z);
         this.A = (ushort)MathF.Round(vector.W);
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgba64"/> struct from its packed representation.
+    /// </summary>
+    /// <remarks>
+    /// The 16-bit words use R, G, B, A memory order. Integer interpretation follows the platform byte order.
+    /// This constructor copies the stored bits without numeric conversion, rounding, or clamping.
+    /// </remarks>
+    /// <param name="packed">The packed component bits.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgba64(ulong packed)
+        : this() => this.PackedValue = packed;
 
     /// <summary>
     /// Gets or sets the RGB components of this struct as <see cref="Rgb48"/>.
@@ -192,6 +204,21 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
     /// <inheritdoc />
+    public static Rgba64 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgba64 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgba64 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public static Rgba64 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+
+    /// <inheritdoc />
+    public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
+
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromRgba64(this);
 
@@ -208,6 +235,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
         => PixelTypeInfo.Create<Rgba64>(
             PixelComponentInfo.Create<Rgba64>(4, 16, 16, 16, 16),
             PixelColorType.RGB | PixelColorType.Alpha,
+            PixelColorRange.Sdr,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
@@ -241,10 +269,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba64 FromAssociatedScaledVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromScaledVector4(source);
-    }
+        => PixelOperations.FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

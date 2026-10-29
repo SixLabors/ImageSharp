@@ -23,4 +23,14 @@ internal static class JxlOpsinConstants
     public const float OpsinAbsorbanceBias2 = OpsinAbsorbanceBias0;
 
     public static ReadOnlySpan<float> OpsinAbsorbanceBias => [OpsinAbsorbanceBias0, OpsinAbsorbanceBias1, OpsinAbsorbanceBias2];
+
+    /// <summary>
+    /// Gets the frozen default inverse opsin matrix in row-major order, as defined by the JPEG XL bitstream.
+    /// </summary>
+    public static ReadOnlySpan<float> DefaultInverseOpsinAbsorbanceMatrix =>
+    [
+        11.031566901960783f, -9.866943921568629f, -0.16462299647058826f,
+        -3.254147380392157f, 4.418770392156863f, -0.16462299647058826f,
+        -3.6588512862745097f, 2.7129230470588235f, 1.9459282392156863f
+    ];
 }

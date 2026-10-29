@@ -3,21 +3,45 @@
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 
+/// <summary>
+/// Owns the headers shared by all frames in one codestream.
+/// </summary>
 internal sealed class JxlCodecMetadata
 {
-    public JxlImageMetadata? ImageMetadata { get; set; }
+    /// <summary>
+    /// Gets the image metadata shared by the codestream's frames.
+    /// </summary>
+    /// <remarks>The parser updates this instance. Frame bundles retain the same metadata throughout decoding.</remarks>
+    public JxlImageMetadata ImageMetadata { get; } = new();
 
-    public JxlSizeHeader? Size { get; set; }
+    /// <summary>
+    /// Gets the size header that the parser fills before decoding frames.
+    /// </summary>
+    public JxlSizeHeader Size { get; } = new();
 
-    public JxlCustomTransformData? CustomTransformData { get; set; }
+    /// <summary>
+    /// Gets the transform data that the parser fills before decoding frames.
+    /// </summary>
+    public JxlCustomTransformData CustomTransformData { get; } = new();
 
-    public int XSize => this.Size?.XSize ?? 0;
+    /// <summary>
+    /// Gets the encoded image width in pixels.
+    /// </summary>
+    public int XSize => this.Size.XSize;
 
-    public int YSize => this.Size?.YSize ?? 0;
+    /// <summary>
+    /// Gets the encoded image height in pixels.
+    /// </summary>
+    public int YSize => this.Size.YSize;
 
+    /// <summary>
+    /// Gets the preview width after applying the requested orientation policy.
+    /// </summary>
+    /// <param name="keepOrientation">Whether to retain the encoded orientation instead of rotating the samples.</param>
+    /// <returns>The preview width in pixels.</returns>
     public int GetOrientedPreviewXSize(bool keepOrientation)
     {
-        if (this.ImageMetadata!.Orientation > 4 && !keepOrientation)
+        if (this.ImageMetadata.Orientation > 4 && !keepOrientation)
         {
             return this.ImageMetadata.PreviewSize.YSize;
         }
@@ -25,9 +49,14 @@ internal sealed class JxlCodecMetadata
         return this.ImageMetadata.PreviewSize.XSize;
     }
 
+    /// <summary>
+    /// Gets the preview height after applying the requested orientation policy.
+    /// </summary>
+    /// <param name="keepOrientation">Whether to retain the encoded orientation instead of rotating the samples.</param>
+    /// <returns>The preview height in pixels.</returns>
     public int GetOrientedPreviewYSize(bool keepOrientation)
     {
-        if (this.ImageMetadata!.Orientation > 4 && !keepOrientation)
+        if (this.ImageMetadata.Orientation > 4 && !keepOrientation)
         {
             return this.ImageMetadata.PreviewSize.XSize;
         }
@@ -35,9 +64,14 @@ internal sealed class JxlCodecMetadata
         return this.ImageMetadata.PreviewSize.YSize;
     }
 
+    /// <summary>
+    /// Gets the image width after applying the requested orientation policy.
+    /// </summary>
+    /// <param name="keepOrientation">Whether to retain the encoded orientation instead of rotating the samples.</param>
+    /// <returns>The image width in pixels.</returns>
     public int GetOrientedXSize(bool keepOrientation)
     {
-        if (this.ImageMetadata!.Orientation > 4 && !keepOrientation)
+        if (this.ImageMetadata.Orientation > 4 && !keepOrientation)
         {
             return this.YSize;
         }
@@ -45,9 +79,14 @@ internal sealed class JxlCodecMetadata
         return this.XSize;
     }
 
+    /// <summary>
+    /// Gets the image height after applying the requested orientation policy.
+    /// </summary>
+    /// <param name="keepOrientation">Whether to retain the encoded orientation instead of rotating the samples.</param>
+    /// <returns>The image height in pixels.</returns>
     public int GetOrientedYSize(bool keepOrientation)
     {
-        if (this.ImageMetadata!.Orientation > 4 && !keepOrientation)
+        if (this.ImageMetadata.Orientation > 4 && !keepOrientation)
         {
             return this.XSize;
         }

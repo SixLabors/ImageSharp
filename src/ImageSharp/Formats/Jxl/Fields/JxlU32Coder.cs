@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
@@ -72,16 +71,16 @@ internal static class JxlU32Coder
     /// <summary>
     /// Tries to find the best one of the four selectors based on the value.
     /// </summary>
+    /// <param name="enc">The four wire alternatives.</param>
+    /// <param name="value">The unsigned value to encode.</param>
+    /// <param name="selector">The selected alternative.</param>
+    /// <param name="totalBits">The selected field length, including the two selector bits.</param>
+    /// <returns>Whether at least one alternative can represent the value.</returns>
     public static bool ChooseSelector(in JxlU32Enc enc, uint value, ref uint selector, ref int totalBits)
     {
-        uint bitsRequired = 32 - JxlMath.Num0BitsAboveMS1Bit(value);
-
-        if (bitsRequired > 32)
-        {
-            return false;
-        }
-
         selector = 0;
+
+        // Alternatives use at most 32 payload bits plus two selector bits. The larger sentinel cannot be a valid selected length.
         totalBits = 64;
 
         for (int s = 0; s < 4; s++)
@@ -103,7 +102,9 @@ internal static class JxlU32Coder
             uint extraBits = dist.ExtraBits;
             uint offset = dist.Offset;
 
-            if (value < offset || value >= offset + (1u << (int)extraBits))
+            // Check the payload distance after the offset, without wrapping either the endpoint or a 32-bit shift.
+            // Full-width alternatives can represent every UInt32 at or above their offset.
+            if (value < offset || (ulong)(value - offset) >= (1UL << (int)extraBits))
             {
                 continue;
             }
@@ -115,14 +116,16 @@ internal static class JxlU32Coder
             }
         }
 
-        if (totalBits == 64)
-        {
-            throw new InvalidOperationException("No matching selector");
-        }
-
-        return true;
+        return totalBits != 64;
     }
 
+    /// <summary>
+    /// Writes the shortest matching alternative and its offset-adjusted payload.
+    /// </summary>
+    /// <param name="enc">The four wire alternatives.</param>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="writer">The output bit writer.</param>
+    /// <returns>Whether an alternative can represent the value. An invalid value writes no bits.</returns>
     public static bool Write(in JxlU32Enc enc, uint value, JxlBitWriter writer)
     {
         uint selector = 0;
@@ -141,12 +144,8 @@ internal static class JxlU32Coder
         {
             uint offset = d.Offset;
 
-            if (value < offset)
-            {
-                return false;
-            }
-
-            writer.WriteBits(totalBits - 2, value - offset);
+            // ChooseSelector already checked this subtraction and selected the exact payload width.
+            writer.Write(totalBits - 2, value - offset);
         }
 
         return true;

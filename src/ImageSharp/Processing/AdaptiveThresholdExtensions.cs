@@ -68,6 +68,11 @@ public static class AdaptiveThresholdExtensions
     /// <param name="thresholdLimit">Threshold limit (0.0-1.0) to consider for binarization.</param>
     /// <param name="rectangle">Rectangle region to apply the processor on.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, Color upper, Color lower, float thresholdLimit, Rectangle rectangle)
+    public static IImageProcessingContext AdaptiveThreshold(
+        this IImageProcessingContext source,
+        Color upper,
+        Color lower,
+        float thresholdLimit,
+        Rectangle rectangle)
         => source.ApplyProcessor(new AdaptiveThresholdProcessor(upper, lower, thresholdLimit), rectangle);
 }

@@ -382,7 +382,16 @@ public static class DrawImageExtensions
         int foregroundRepeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, foregroundRepeatCount);
+
+        return DrawImage(
+            source,
+            foreground,
+            backgroundLocation,
+            foregroundRectangle,
+            options.ColorBlendingMode,
+            options.AlphaCompositionMode,
+            opacity,
+            foregroundRepeatCount);
     }
 
     /// <summary>
@@ -465,7 +474,15 @@ public static class DrawImageExtensions
         PixelColorBlendingMode colorBlending,
         float opacity,
         int foregroundRepeatCount)
-        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity, foregroundRepeatCount);
+        => DrawImage(
+            source,
+            foreground,
+            backgroundLocation,
+            foregroundRectangle,
+            colorBlending,
+            source.GetGraphicsOptions().AlphaCompositionMode,
+            opacity,
+            foregroundRepeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -500,7 +517,14 @@ public static class DrawImageExtensions
         Point backgroundLocation,
         GraphicsOptions options,
         int foregroundRepeatCount)
-        => DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage, foregroundRepeatCount);
+        => DrawImage(
+            source,
+            foreground,
+            backgroundLocation,
+            options.ColorBlendingMode,
+            options.AlphaCompositionMode,
+            options.BlendPercentage,
+            foregroundRepeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -539,7 +563,15 @@ public static class DrawImageExtensions
         Rectangle foregroundRectangle,
         GraphicsOptions options,
         int foregroundRepeatCount)
-        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage, foregroundRepeatCount);
+        => DrawImage(
+            source,
+            foreground,
+            backgroundLocation,
+            foregroundRectangle,
+            options.ColorBlendingMode,
+            options.AlphaCompositionMode,
+            options.BlendPercentage,
+            foregroundRepeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -582,7 +614,8 @@ public static class DrawImageExtensions
         PixelAlphaCompositionMode alphaComposition,
         float opacity,
         int foregroundRepeatCount)
-        => source.ApplyProcessor(new DrawImageProcessor(foreground, backgroundLocation, foreground.Bounds, colorBlending, alphaComposition, opacity, foregroundRepeatCount));
+        => source.ApplyProcessor(
+            new DrawImageProcessor(foreground, backgroundLocation, foreground.Bounds, colorBlending, alphaComposition, opacity, foregroundRepeatCount));
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.

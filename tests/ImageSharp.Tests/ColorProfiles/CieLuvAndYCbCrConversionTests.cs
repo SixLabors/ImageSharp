@@ -12,6 +12,9 @@ public class CieLuvAndYCbCrConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
 
+    // CIE Luv has no scaled-vector implementation. Its lightness and chromatic components use the 100-unit lightness scale.
+    private static readonly ApproximateColorProfileComparer LuvCompandingComparer = new(100F * 5E-4F);
+
     [Theory]
     [InlineData(100, 0, 0, 1, .5F, .5F)]
     [InlineData(0, 0, 0, 0, .5F, .5F)]
@@ -64,11 +67,11 @@ public class CieLuvAndYCbCrConversionTests
         converter.Convert<YCbCr, CieLuv>(inputSpan, actualSpan);
 
         // Assert
-        Assert.Equal(expected, actual, Comparer);
+        Assert.Equal(expected, actual, LuvCompandingComparer);
 
         for (int i = 0; i < actualSpan.Length; i++)
         {
-            Assert.Equal(expected, actualSpan[i], Comparer);
+            Assert.Equal(expected, actualSpan[i], LuvCompandingComparer);
         }
     }
 }

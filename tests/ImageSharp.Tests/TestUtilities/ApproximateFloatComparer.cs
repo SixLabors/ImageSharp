@@ -29,6 +29,12 @@ internal readonly struct ApproximateFloatComparer :
     /// <inheritdoc/>
     public bool Equals(float x, float y)
     {
+        // Equal infinities and matching NaNs have no finite difference to compare with epsilon.
+        if (x == y || (float.IsNaN(x) && float.IsNaN(y)))
+        {
+            return true;
+        }
+
         float d = x - y;
 
         return d >= -this.epsilon && d <= this.epsilon;

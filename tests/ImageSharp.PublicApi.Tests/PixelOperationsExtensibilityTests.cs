@@ -25,10 +25,10 @@ public class PixelOperationsExtensibilityTests
     }
 
     /// <summary>
-    /// Verifies that an external <see cref="AssociatedAlphaPixelOperations{TPixel}"/> subclass can override and invoke every representation-aware hook.
+    /// Verifies that an external <see cref="PixelOperations{TPixel}"/> subclass can override and invoke every representation-aware hook.
     /// </summary>
     [Fact]
-    public void AssociatedAlphaPixelOperationsExposesAllRepresentationHooksToExternalSubclasses()
+    public void AssociatedPixelOperationsExposesAllRepresentationHooksToExternalSubclasses()
     {
         ExternalRgba32PPixelOperations operations = new();
 
@@ -86,34 +86,66 @@ public class PixelOperationsExtensibilityTests
         }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToUnassociatedVector4;
+        public override void ToUnassociatedVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToUnassociatedVector4;
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToAssociatedVector4;
+        public override void ToAssociatedVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToAssociatedVector4;
 
         /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToUnassociatedScaledVector4;
+        public override void ToUnassociatedScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToUnassociatedScaledVector4;
 
         /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToAssociatedScaledVector4;
+        public override void ToAssociatedScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToAssociatedScaledVector4;
 
         /// <inheritdoc />
-        protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32> destination) => this.InvokedHooks |= RepresentationHooks.FromUnassociatedVector4Destructive;
+        public override void FromUnassociatedVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromUnassociatedVector4Destructive;
 
         /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32> destination) => this.InvokedHooks |= RepresentationHooks.FromAssociatedVector4Destructive;
+        public override void FromAssociatedVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromAssociatedVector4Destructive;
 
         /// <inheritdoc />
-        protected override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32> destination) => this.InvokedHooks |= RepresentationHooks.FromUnassociatedScaledVector4Destructive;
+        public override void FromUnassociatedScaledVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromUnassociatedScaledVector4Destructive;
 
         /// <inheritdoc />
-        protected override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32> destination) => this.InvokedHooks |= RepresentationHooks.FromAssociatedScaledVector4Destructive;
+        public override void FromAssociatedScaledVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromAssociatedScaledVector4Destructive;
     }
 
     /// <summary>
-    /// Exercises the representation-aware hooks inherited through <see cref="AssociatedAlphaPixelOperations{TPixel}"/>.
+    /// Exercises the representation-aware hooks inherited through <see cref="PixelOperations{TPixel}"/>.
     /// </summary>
-    private sealed class ExternalRgba32PPixelOperations : AssociatedAlphaPixelOperations<Rgba32P>
+    private sealed class ExternalRgba32PPixelOperations : PixelOperations<Rgba32P>
     {
         /// <summary>
         /// Gets the hooks invoked through this external subclass.
@@ -137,27 +169,59 @@ public class PixelOperationsExtensibilityTests
         }
 
         /// <inheritdoc />
-        protected override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToUnassociatedVector4;
+        public override void ToUnassociatedVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32P> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToUnassociatedVector4;
 
         /// <inheritdoc />
-        protected override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToAssociatedVector4;
+        public override void ToAssociatedVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32P> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToAssociatedVector4;
 
         /// <inheritdoc />
-        protected override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToUnassociatedScaledVector4;
+        public override void ToUnassociatedScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32P> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToUnassociatedScaledVector4;
 
         /// <inheritdoc />
-        protected override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination) => this.InvokedHooks |= RepresentationHooks.ToAssociatedScaledVector4;
+        public override void ToAssociatedScaledVector4(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32P> source,
+            Span<Vector4> destination)
+            => this.InvokedHooks |= RepresentationHooks.ToAssociatedScaledVector4;
 
         /// <inheritdoc />
-        protected override void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32P> destination) => this.InvokedHooks |= RepresentationHooks.FromUnassociatedVector4Destructive;
+        public override void FromUnassociatedVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32P> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromUnassociatedVector4Destructive;
 
         /// <inheritdoc />
-        protected override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32P> destination) => this.InvokedHooks |= RepresentationHooks.FromAssociatedVector4Destructive;
+        public override void FromAssociatedVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32P> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromAssociatedVector4Destructive;
 
         /// <inheritdoc />
-        protected override void FromUnassociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32P> destination) => this.InvokedHooks |= RepresentationHooks.FromUnassociatedScaledVector4Destructive;
+        public override void FromUnassociatedScaledVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32P> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromUnassociatedScaledVector4Destructive;
 
         /// <inheritdoc />
-        protected override void FromAssociatedScaledVector4Destructive(Configuration configuration, Span<Vector4> source, Span<Rgba32P> destination) => this.InvokedHooks |= RepresentationHooks.FromAssociatedScaledVector4Destructive;
+        public override void FromAssociatedScaledVector4Destructive(
+            Configuration configuration,
+            Span<Vector4> source,
+            Span<Rgba32P> destination)
+            => this.InvokedHooks |= RepresentationHooks.FromAssociatedScaledVector4Destructive;
     }
 }

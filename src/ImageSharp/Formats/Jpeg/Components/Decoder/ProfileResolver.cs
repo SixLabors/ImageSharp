@@ -39,7 +39,8 @@ internal static class ProfileResolver
     /// </summary>
     public static ReadOnlySpan<byte> AdobePhotoshopApp13Marker =>
     [
-        (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.', (byte)'0', (byte)'\0'
+        (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.', (byte)'0',
+        (byte)'\0'
     ];
 
     /// <summary>

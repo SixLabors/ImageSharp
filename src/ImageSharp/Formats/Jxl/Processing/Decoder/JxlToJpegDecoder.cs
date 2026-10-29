@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
@@ -68,11 +69,30 @@ internal class JxlToJpegDecoder
         }
     }
 
+    /// <summary>
+    /// Attaches JPEG reconstruction data and restores ICC markers from the original image metadata.
+    /// </summary>
+    /// <param name="bundle">The frame bundle that shares the original codestream metadata.</param>
+    /// <exception cref="InvalidImageContentException">ICC markers require a profile that the codestream does not supply.</exception>
     public void SetImageBundleJpegData(JxlImageBundle bundle)
     {
-        if (this.IsOutputSet && this.jpegData is not null)
+        if (this.IsOutputSet)
         {
-            JpegData.SetJpegDataFromIcc(bundle.Metadata!.ColorEncoding!.Icc, this.jpegData);
+            // A converted frame can have a different current encoding. JPEG reconstruction uses the original
+            // metadata profile. GetData borrows the retained bytes when the profile was created from decoded bytes.
+            IccProfile? profile = bundle.Metadata.ColorEncoding.IccProfile;
+
+            if (profile is not null)
+            {
+                JpegData.SetJpegDataFromIcc(profile.GetData().Span, this.jpegData);
+            }
+            else if (this.jpegData.AppMarkerTypes.Contains(JpegAppMarkerType.Icc))
+            {
+                // The reconstruction box and codestream must agree. An absent profile is valid only when
+                // no ICC marker needs its payload. Do not replace a missing payload with an empty byte sequence.
+                throw new InvalidImageContentException("JPEG reconstruction requires an ICC profile that the codestream does not supply.");
+            }
+
             bundle.JpegData = this.jpegData;
         }
     }

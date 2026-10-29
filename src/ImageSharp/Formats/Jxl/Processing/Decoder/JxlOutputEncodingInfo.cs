@@ -48,13 +48,15 @@ internal sealed class JxlOutputEncodingInfo
 
     public void SetFromMetadata(JxlCodecMetadata metadata)
     {
-        JxlImageMetadata imageMetadata = metadata.ImageMetadata ?? throw new InvalidOperationException("Missing image metadata");
+        JxlImageMetadata imageMetadata = metadata.ImageMetadata;
 
         this.OriginalColorEncoding = imageMetadata.ColorEncoding;
         this.OriginalIntensityTarget = imageMetadata.IntensityTarget;
         this.DesiredIntensityTarget = this.OriginalIntensityTarget;
 
-        JxlOpsinInverseMatrix inverseMatrix = metadata.CustomTransformData?.OpsinInverseMatrix ?? throw new InvalidOperationException("Missing Opsin inverse matrix or transform data");
+        JxlOpsinInverseMatrix inverseMatrix = metadata.CustomTransformData.OpsinInverseMatrix
+            ?? throw new InvalidOperationException("Missing opsin inverse matrix");
+
         this.OriginalInverseMatrix = inverseMatrix.InverseMatrix;
         this.DefaultTransform = inverseMatrix.AllDefault;
         this.XybEncoded = imageMetadata.XybEncoded;
@@ -71,7 +73,7 @@ internal sealed class JxlOutputEncodingInfo
 
         inverseMatrix.QuantBiases.AsSpan().CopyTo(parameters.QuantBiases);
 
-        bool origOK = JxlXybDecoder.CanOutputToColorEncoding(this.OriginalColorEncoding ?? throw new InvalidCastException("Missing color encoding"));
+        bool origOK = JxlXybDecoder.CanOutputToColorEncoding(imageMetadata.ColorEncoding);
         bool origGrey = this.OriginalColorEncoding.IsGray;
 
         return this.SetColorEncoding(!this.XybEncoded || origOK ? this.OriginalColorEncoding : JxlColorEncoding.LinearSrgb(origGrey));

@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -224,6 +225,13 @@ internal abstract class BaseExifReader
         this.Seek(offset);
         ulong count = this.ReadUInt64();
 
+        // Each entry occupies 20 bytes and the directory ends with an 8-byte next-IFD offset.
+        long remainingDirectoryBytes = this.data.Length - this.data.Position;
+        if (remainingDirectoryBytes < 8 || count > (ulong)((remainingDirectoryBytes - 8) / 20))
+        {
+            throw new InvalidImageContentException("The BigTIFF directory entry count exceeds the available data.");
+        }
+
         Span<byte> offsetBuffer = stackalloc byte[8];
         for (ulong i = 0; i < count; i++)
         {
@@ -231,7 +239,10 @@ internal abstract class BaseExifReader
         }
     }
 
-    protected void ReadBigValue(IList<IExifValue> values, (ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag, Span<byte> buffer)
+    protected void ReadBigValue(
+        IList<IExifValue> values,
+        (ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif) tag,
+        Span<byte> buffer)
     {
         this.Seek(tag.Offset);
         if (this.TryReadSpan(buffer))
@@ -415,13 +426,20 @@ internal abstract class BaseExifReader
             return;
         }
 
-        uint size = numberOfComponents * ExifDataTypes.GetSize(dataType);
+        // Widen before multiplying so a large classic TIFF count cannot wrap into an inline value.
+        ulong size = (ulong)numberOfComponents * ExifDataTypes.GetSize(dataType);
+        if (size > int.MaxValue || (tag == ExifTagValue.IccProfile && size >= IccProfile.MaxProfileSize))
+        {
+            this.AddInvalidTag(new UnkownExifTag(tag));
+            return;
+        }
+
         if (size > 4)
         {
             uint newOffset = this.ConvertToUInt32(offsetBuffer);
 
-            // Ensure that the new index does not overrun the data.
-            if (newOffset > int.MaxValue || (newOffset + size) > this.data.Length)
+            // Check the offset first so the remaining-length subtraction cannot underflow.
+            if (newOffset > int.MaxValue || newOffset > this.data.Length || size > (ulong)(this.data.Length - newOffset))
             {
                 this.AddInvalidTag(new UnkownExifTag(tag));
                 return;
@@ -475,11 +493,27 @@ internal abstract class BaseExifReader
             return;
         }
 
-        ulong size = numberOfComponents * ExifDataTypes.GetSize(dataType);
+        // Division bounds BigTIFF's 64-bit count before multiplication and allocation.
+        uint componentSize = ExifDataTypes.GetSize(dataType);
+        if (numberOfComponents > (ulong)int.MaxValue / componentSize)
+        {
+            this.AddInvalidTag(new UnkownExifTag(tag));
+            return;
+        }
+
+        ulong size = numberOfComponents * componentSize;
+        if (tag == ExifTagValue.IccProfile && size >= IccProfile.MaxProfileSize)
+        {
+            this.AddInvalidTag(new UnkownExifTag(tag));
+            return;
+        }
+
         if (size > 8)
         {
             ulong newOffset = this.ConvertToUInt64(offsetBuffer);
-            if (newOffset > ulong.MaxValue || newOffset > ((ulong)this.data.Length - size))
+
+            // The offset check keeps the remaining-length subtraction in range.
+            if (newOffset > (ulong)this.data.Length || size > (ulong)this.data.Length - newOffset)
             {
                 this.AddInvalidTag(new UnkownExifTag(tag));
                 return;

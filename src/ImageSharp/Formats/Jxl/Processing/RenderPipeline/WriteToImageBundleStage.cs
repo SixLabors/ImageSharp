@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Memory;
 
@@ -29,31 +29,31 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
             }
         }
 
-        JxlImage3F tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
+        using JxlImage3<float> tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
+
+        // The bundle releases its previous channels. New planes transfer to it as each setter succeeds.
+        bundle.ClearExtraChannels();
 
         if (!bundle.SetFromImage(tmp, colorEncoding))
         {
             throw new InvalidOperationException("Could not set the image of an image bundle");
         }
 
-        foreach (JxlImageF ec in bundle.EnumerateExtraChannels())
-        {
-            // We don't want a memory leak here, as we're
-            // removing old extra channels and inserting
-            // new ones
-            ec.Dispose();
-        }
-
-        bundle.ClearExtraChannels();
-
         for (int c = 3; c < inputSizes.Length; c++)
         {
-            JxlImageF ch = new(this.GetConfiguration(), inputSizes[c].Width, inputSizes[c].Height);
+            JxlPlane<float> ch = new(this.GetConfiguration(), inputSizes[c].Width, inputSizes[c].Height);
             bundle.AddExtraChannel(ch);
         }
     }
 
-    public override void ProcessRow(Buffer2D<Memory<float>> inputRows, Buffer2D<Memory<float>> outputRows, int xExtraLeft, int xExtraRight, int width, int xPos, int yPos)
+    public override void ProcessRow(
+        Buffer2D<Memory<float>> inputRows,
+        Buffer2D<Memory<float>> outputRows,
+        int xExtraLeft,
+        int xExtraRight,
+        int width,
+        int xPos,
+        int yPos)
     {
         if (xExtraLeft != 0 || xExtraRight != 0)
         {
@@ -63,11 +63,11 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
         for (int c = 0; c < 3; c++)
         {
             this.GetInputRow(inputRows, c, 0)[..width]
-                .CopyTo(bundle.Color!.PlaneRow(c, yPos)[xPos..]);
+                .CopyTo(bundle.Color.PlaneRow(c, yPos)[xPos..]);
         }
 
         int ecIndex = 0;
-        foreach (JxlImageF ec in bundle.EnumerateExtraChannels())
+        foreach (JxlPlane<float> ec in bundle.EnumerateExtraChannels())
         {
             if (ec.XSize < xPos + width)
             {

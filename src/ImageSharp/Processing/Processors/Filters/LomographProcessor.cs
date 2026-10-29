@@ -24,6 +24,7 @@ public sealed class LomographProcessor : FilterProcessor
     public GraphicsOptions GraphicsOptions { get; }
 
     /// <inheritdoc />
-    public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
+    public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+        =>
         new LomographProcessor<TPixel>(configuration, this, source, sourceRectangle);
 }

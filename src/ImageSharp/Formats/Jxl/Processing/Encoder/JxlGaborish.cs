@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
@@ -17,7 +17,7 @@ internal static class JxlGaborish
         -0.09495815671340026f, -0.041031725066768575f, 0.013710004822696948f,
         0.006510206083837737f, -0.0014789063378272242f];
 
-    public static void InverseGaborish(Configuration configuration, JxlImage3F inOut, Rectangle rect, InlineArray3<float> mul)
+    public static void InverseGaborish(Configuration configuration, JxlImage3<float> inOut, Rectangle rect, InlineArray3<float> mul)
     {
         InlineArray3<JxlWeightsSymmetric5> weights = default;
 
@@ -40,7 +40,7 @@ internal static class JxlGaborish
             };
         }
 
-        using JxlImageF temp = new(configuration, inOut.Plane(2).XSize, inOut.Plane(2).YSize);
+        using JxlPlane<float> temp = new(configuration, inOut.Plane(2).XSize, inOut.Plane(2).YSize);
 
         JxlImageOperations.ForceCopyImage(inOut.Plane(2), temp);
 

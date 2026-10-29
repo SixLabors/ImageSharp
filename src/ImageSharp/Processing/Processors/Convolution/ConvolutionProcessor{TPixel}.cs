@@ -173,7 +173,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
                     int offsetY = Unsafe.Add(ref sampleRowBase, kY);
                     sourceRow = this.sourcePixels.DangerousGetRowSpan(offsetY).Slice(boundsX, boundsWidth);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                    PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, sourceBuffer);
 
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
@@ -193,7 +193,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
                 // Now we need to copy the original alpha values from the source row.
                 sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, sourceBuffer);
 
                 for (nuint x = 0; x < (uint)sourceRow.Length; x++)
                 {
@@ -201,7 +201,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), x).W;
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
             }
             else
             {
@@ -216,7 +216,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
                     int offsetY = Unsafe.Add(ref sampleRowBase, kY);
                     Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(offsetY).Slice(boundsX, boundsWidth);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                    PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, sourceBuffer);
 
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
@@ -234,7 +234,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     }
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
             }
         }
     }

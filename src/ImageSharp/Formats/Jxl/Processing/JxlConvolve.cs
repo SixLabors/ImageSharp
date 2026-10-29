@@ -6,7 +6,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
@@ -17,10 +18,51 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 internal static class JxlConvolve
 {
     /// <summary>
+    /// Applies a symmetric separable five-by-five kernel in one traversal without intermediate sample allocations.
+    /// </summary>
+    /// <param name="input">The borrowed source plane.</param>
+    /// <param name="rectangle">The source rectangle. Its horizontal edges define the reflected row bounds.</param>
+    /// <param name="weights">The symmetric horizontal and vertical weights in four-value groups.</param>
+    /// <param name="output">The distinct output plane, with logical dimensions equal to the source rectangle.</param>
+    /// <returns>Whether the output dimensions match the source rectangle.</returns>
+    /// <remarks>Vertical neighbors reflect at the full input image edges. The caller supplies a rectangle inside the input plane.</remarks>
+    public static bool Separable5(JxlPlane<float> input, in Rectangle rectangle, in JxlWeightsSeparable5 weights, JxlPlane<float> output)
+    {
+        if (rectangle.Width != output.XSize || rectangle.Height != output.YSize)
+        {
+            return false;
+        }
+
+        // Borrow once at each logical origin. Storage prefixes and different physical row strides remain outside the operation.
+        ReadOnlySpan<float> source = input.GetRow(0);
+        Span<float> destination = output.GetRow(0);
+        int inputStride = input.PixelsPerRow;
+        int outputStride = output.PixelsPerRow;
+
+        for (int y = 0; y < rectangle.Height; y++)
+        {
+            int sourceY = rectangle.Y + y;
+
+            // Reflect at image edges. Mirror also handles repeated reflections for images only one to four rows high.
+            ReadOnlySpan<float> top2 = source.Slice((JxlImageOperations.Mirror(sourceY - 2, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> top1 = source.Slice((JxlImageOperations.Mirror(sourceY - 1, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> middle = source.Slice((sourceY * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> bottom1 = source.Slice((JxlImageOperations.Mirror(sourceY + 1L, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> bottom2 = source.Slice((JxlImageOperations.Mirror(sourceY + 2L, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            Span<float> rowOutput = destination.Slice(y * outputStride, rectangle.Width);
+
+            // Horizontal results stay in registers. Combine the five rows directly into the output without a row cache or another image pass.
+            JxlConvolveSeparable5.ConvolveRow(top2, top1, middle, bottom1, bottom2, weights, rowOutput);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Weighted sum of 1x5 pixels around ix, iy with [wx2, wx1, wx0, wx1, wx2].
     /// </summary>
     public static float WeightedSumBorder(
-        JxlImageF input,
+        JxlPlane<float> input,
         Func<long, long, int> wrapY,
         long ix,
         long iy,
@@ -46,7 +88,7 @@ internal static class JxlConvolve
     }
 
     public static Vector<float> WeightedSum(
-        JxlImageF input,
+        JxlPlane<float> input,
         Func<long, long, int> wrapY,
         int ix,
         long iy,
@@ -71,7 +113,7 @@ internal static class JxlConvolve
         return sum2 + (sum1 + sum0);
     }
 
-    public static float Symmetric5Border(JxlImageF input, Func<long, long, int> wrapY, long ix, long iy, ref JxlWeightsSymmetric5 weights)
+    public static float Symmetric5Border(JxlPlane<float> input, Func<long, long, int> wrapY, long ix, long iy, ref JxlWeightsSymmetric5 weights)
     {
         float w0 = weights.GetCVector()[0];
         float w1 = weights.GetRVector()[0];
@@ -95,7 +137,7 @@ internal static class JxlConvolve
     }
 
     public static void Symmetric5Interior(
-        JxlImageF image,
+        JxlPlane<float> image,
         int ix,
         Func<long, long, int> wrapY,
         int rix,
@@ -123,7 +165,7 @@ internal static class JxlConvolve
     }
 
     public static void Symmetric5Row(
-        JxlImageF image,
+        JxlPlane<float> image,
         Func<long, long, int> wrapY,
         in Rectangle rect,
         long iy,
@@ -187,7 +229,7 @@ internal static class JxlConvolve
     }
 
     public static float SlowSymmetric3Pixel(
-        JxlImageF image,
+        JxlPlane<float> image,
         int x,
         int y,
         int width,
@@ -220,7 +262,7 @@ internal static class JxlConvolve
     }
 
     public static void SlowSymmetric3Row(
-        JxlImageF image,
+        JxlPlane<float> image,
         int y,
         int width,
         int height,
@@ -303,7 +345,7 @@ internal static class JxlConvolve
     }
 
     public static float SlowSeparablePixel(
-        JxlImageF image,
+        JxlPlane<float> image,
         Rectangle rect,
         int x,
         int y,
@@ -334,10 +376,10 @@ internal static class JxlConvolve
     }
 
     public static void SlowSeparable(
-        JxlImageF input,
+        JxlPlane<float> input,
         Rectangle inputRect,
         JxlWeightsSeparable5 weights,
-        JxlImageF output,
+        JxlPlane<float> output,
         Rectangle outputRect,
         int radius)
     {
@@ -363,10 +405,10 @@ internal static class JxlConvolve
     }
 
     public static void SlowSeparable5(
-        JxlImageF input,
+        JxlPlane<float> input,
         Rectangle inputRect,
         JxlWeightsSeparable5 weights,
-        JxlImageF output,
+        JxlPlane<float> output,
         Rectangle outputRect)
         => SlowSeparable(input, inputRect, weights, output, outputRect, 2);
 

@@ -1,101 +1,97 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group.BlockLoader;
 
 /// <summary>
-/// Loads coefficient blocks from the JPEG XL bitstream.
+/// Decodes coefficient blocks and owns the entropy readers for one group.
 /// </summary>
-internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
+internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock, IDisposable
 {
     private readonly JxlGroupDecoderCache groupDecCache;
     private readonly JxlBlockContextMap blockCtxMap;
-    private readonly JxlImageI rawQuantField;
-    private readonly JxlImageB quantDc;
+    private readonly JxlPlane<int> rawQuantField;
+    private readonly JxlPlane<byte> quantDc;
     private readonly JxlAnsSymbolReader[] decoders;
     private readonly JxlBitReader[] readers;
-
-    private IMemoryOwner<uint>? shiftForPass;
-    private byte[]? coeffOrders;
-    private List<byte>[]? contextMaps;
-
-    private int coeffOrderSize;
-    private int numPasses;
-    private int[] ctxOffset;
-    private int nzerosStride;
-
+    private readonly List<JxlAnsCode> codes;
+    private readonly List<int> coeffOrders;
+    private readonly List<List<byte>> contextMaps;
+    private readonly uint[] shiftForPass;
+    private readonly int coeffOrderSize;
+    private readonly int firstPass;
+    private readonly int[] ctxOffset;
+    private readonly int nzerosStride;
+    private readonly Rectangle rect;
     private InlineArray3<int> hshift;
     private InlineArray3<int> vshift;
-
-    private int currentBy;
     private Memory<int> qfRow;
     private Memory<byte> quantDcRow;
+    private int initializedDecoders;
 
-    private Rectangle rect;
-
-    // 11 because JxlShared.MaximumNumberOfPasses = 11
-    private InlineArray3<InlineArray11<Memory<int>>> rowNZeroes;
-    private InlineArray3<InlineArray11<Memory<int>>> rowNZeroesTop;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlBitStreamBlockLoader"/> class.
+    /// </summary>
+    /// <param name="frameHeader">The parsed frame settings and pass shifts.</param>
+    /// <param name="decoderState">The owner of coefficient orders, quantization planes, and entropy tables.</param>
+    /// <param name="groupDecCache">The owner of the group's coefficient workspace.</param>
+    /// <param name="readers">The borrowed bit reader for each requested pass.</param>
+    /// <param name="firstPass">The first requested frame pass.</param>
+    /// <param name="numPasses">The number of requested passes.</param>
+    /// <param name="rect">The group's rectangle in the frame's block grid.</param>
     public JxlBitStreamBlockLoader(
+        JxlFrameHeader frameHeader,
+        JxlPassesDecoderState decoderState,
         JxlGroupDecoderCache groupDecCache,
-        JxlBlockContextMap blockCtxMap,
-        JxlImageI rawQuantField,
-        JxlImageB quantDc,
-        JxlAnsSymbolReader[] decoders,
-        JxlBitReader[] readers)
+        JxlBitReader[] readers,
+        int firstPass,
+        int numPasses,
+        Rectangle rect)
     {
         this.groupDecCache = groupDecCache;
-        this.blockCtxMap = blockCtxMap;
-        this.rawQuantField = rawQuantField;
-        this.quantDc = quantDc;
-        this.decoders = decoders;
+        this.blockCtxMap = decoderState.Shared.BlockContextMap;
+        this.rawQuantField = decoderState.Shared.RawQuantField;
+        this.quantDc = decoderState.Shared.QuantDc;
+        this.codes = decoderState.Code;
+        this.coeffOrders = decoderState.Shared.CoeffOrders;
+        this.contextMaps = decoderState.ContextMap;
+        this.shiftForPass = frameHeader.Passes.Shift;
+        this.coeffOrderSize = decoderState.Shared.CoeffOrderSize;
+        this.firstPass = firstPass;
+        this.rect = rect;
         this.readers = readers;
-        this.shiftForPass = null;
-        this.coeffOrders = null;
-        this.coeffOrderSize = 0;
-        this.numPasses = 0;
-        this.ctxOffset = [];
-        this.nzerosStride = 0;
-        this.hshift = default;
-        this.vshift = default;
-        this.currentBy = 0;
-        this.qfRow = Memory<int>.Empty;
-        this.quantDcRow = Memory<byte>.Empty;
+        this.decoders = new JxlAnsSymbolReader[numPasses];
+        this.ctxOffset = new int[numPasses];
+        this.nzerosStride = groupDecCache.NumberOfNonZeroes[0].Plane(0).PixelsPerRow;
+
+        // Frame tables and planes outlive this group. Borrow them instead of copying the coefficient orders
+        // or allocating pass-shift storage. Only the entropy readers and their optional histories belong here.
+        JxlYCbCrChromaSubsampling subsampling = frameHeader.ChromaSubsampling!;
+        for (int c = 0; c < 3; c++)
+        {
+            this.hshift[c] = subsampling.HShift(c);
+            this.vshift[c] = subsampling.VShift(c);
+        }
     }
 
-    public JxlAnsSymbolReader[] Decoders => this.decoders;
+    /// <summary>
+    /// Gets the entropy readers after successful initialization.
+    /// </summary>
+    public ReadOnlySpan<JxlAnsSymbolReader> Decoders => this.decoders;
 
     /// <inheritdoc/>
     public void StartRow(int by)
     {
-        this.currentBy = by;
-        this.qfRow = this.rawQuantField.GetRowMemory(by);
-
-        for (int c = 0; c < 3; c++)
-        {
-            int sby = by >> this.vshift[c];
-            this.quantDcRow = this.quantDc.GetRowMemory(this.rect.Y0() + by)[this.rect.X0()..];
-
-            for (int i = 0; i < this.numPasses; i++)
-            {
-                this.rowNZeroes[i][c] = this.groupDecCache.NumberOfNonZeroes[i].PlaneRowMemory(c, sby);
-                this.rowNZeroesTop[i][c] =
-                    sby == 0
-                        ? default
-                        : this.groupDecCache.NumberOfNonZeroes[i].PlaneRowMemory(c, sby - 1);
-            }
-        }
+        // Quantization planes use frame coordinates; coefficient positions inside the group remain local.
+        this.qfRow = this.rawQuantField.GetRowMemory(this.rect.Y + by)[this.rect.X..];
+        this.quantDcRow = this.quantDc.GetRowMemory(this.rect.Y + by)[this.rect.X..];
     }
 
     /// <inheritdoc/>
@@ -110,7 +106,14 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
         JxlDctAcPointer block2,
         JxlDctAcType acType)
     {
-        for (int c = 0; c < 3; c++)
+        // Quantization rows and frame coefficient orders stay fixed while this block's passes are decoded.
+        ReadOnlySpan<byte> quantDcRow = this.quantDcRow.Span;
+        ReadOnlySpan<int> qfRow = this.qfRow.Span;
+        ReadOnlySpan<int> orders = CollectionsMarshal.AsSpan(this.coeffOrders);
+
+        // Y is channel 1. Its nonzero counts must be decoded before X and B, as in the native block traversal.
+        ReadOnlySpan<int> channelOrder = [1, 0, 2];
+        foreach (int c in channelOrder)
         {
             int sbx = bx >> this.hshift[c];
             int sby = by >> this.vshift[c];
@@ -120,13 +123,11 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
                 continue;
             }
 
-            for (int pass = 0; pass < this.numPasses; pass++)
+            for (int pass = 0; pass < this.decoders.Length; pass++)
             {
+                int framePass = this.firstPass + pass;
                 Span<int> rowNzeros = this.groupDecCache.NumberOfNonZeroes[pass].PlaneRow(c, sby);
-                ReadOnlySpan<int> rowNzerosTop = sby == 0
-                    ? default
-                    : this.groupDecCache.NumberOfNonZeroes[pass].PlaneRow(c, sby - 1);
-
+                ReadOnlySpan<int> rowNzerosTop = sby == 0 ? default : this.groupDecCache.NumberOfNonZeroes[pass].PlaneRow(c, sby - 1);
                 JxlDctAcPointer block = c switch
                 {
                     0 => block0,
@@ -146,15 +147,15 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
                     sbx,
                     bx,
                     acs,
-                    this.coeffOrders!.AsSpan()[(pass * this.coeffOrderSize)..],
+                    orders[(framePass * this.coeffOrderSize)..],
                     this.readers[pass],
                     this.decoders[pass],
-                    CollectionsMarshal.AsSpan(this.contextMaps![pass]),
-                    this.quantDcRow,
-                    this.qfRow,
+                    CollectionsMarshal.AsSpan(this.contextMaps[framePass]),
+                    quantDcRow,
+                    qfRow,
                     this.blockCtxMap,
                     block,
-                    (int)this.shiftForPass!.Memory.Span[pass]))
+                    (int)this.shiftForPass[framePass]))
                 {
                     return false;
                 }
@@ -164,69 +165,44 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
         return true;
     }
 
-    public bool Init(
-        JxlFrameHeader frameHeader,
-        JxlBitReader[] readers,
-        int numPasses,
-        int groupIndex,
-        int histogramSelectorBits,
-        Rectangle rect,
-        JxlPassesDecoderContext decState,
-        int firstPass)
+    /// <summary>
+    /// Reads each pass's histogram selector and creates its allocator-owned entropy history.
+    /// </summary>
+    /// <param name="configuration">The configuration whose allocator owns the histories.</param>
+    /// <param name="histogramSelectorBits">The bit count used to select a histogram set.</param>
+    /// <param name="numHistograms">The number of histogram sets declared by the frame.</param>
+    /// <returns>Whether every encoded histogram selector is valid.</returns>
+    public bool Init(Configuration configuration, int histogramSelectorBits, int numHistograms)
     {
-        for (int i = 0; i < 3; i++)
+        for (int pass = 0; pass < this.decoders.Length; pass++)
         {
-            this.hshift[i] = frameHeader.ChromaSubsampling!.HShift(i);
-            this.vshift[i] = frameHeader.ChromaSubsampling.VShift(i);
-        }
-
-        this.coeffOrderSize = decState.Shared.CoeffOrderSize;
-        this.coeffOrders = decState.Shared.CoeffOrders.ToArray()[(firstPass * this.coeffOrderSize)..];
-
-        this.contextMaps = new List<byte>[numPasses];
-        for (int i = 0; i < numPasses; i++)
-        {
-            this.contextMaps[i] = decState.ContextMap[firstPass + i];
-        }
-
-        this.numPasses = numPasses;
-        this.shiftForPass = decState.Shared.FrameHeader.Passes.Shift[firstPass..];
-        this.nzerosStride = this.groupDecCache!.NumberOfNonZeroes[0].PixelsPerRow;
-
-        this.ctxOffset = new int[numPasses];
-
-        for (int pass = 0; pass < numPasses; pass++)
-        {
-            int currentHistogram = 0;
-
-            if (histogramSelectorBits != 0)
-            {
-                currentHistogram = (int)readers[pass].ReadBits32((uint)histogramSelectorBits);
-            }
-
-            if (currentHistogram >= decState.Shared.NumHistograms)
+            int histogram = histogramSelectorBits == 0 ? 0 : (int)this.readers[pass].ReadBits32((uint)histogramSelectorBits);
+            if (histogram >= numHistograms)
             {
                 return false;
             }
 
-            this.ctxOffset[pass] = currentHistogram * this.blockCtxMap.AcContextCount;
+            this.ctxOffset[pass] = histogram * this.blockCtxMap.AcContextCount;
 
-            this.decoders[pass] =
-                JxlAnsSymbolReader.Create(
-                    decState.Code[pass + firstPass],
-                    readers[pass]);
+            // VarDCT uses direct distances, not the modular image-row distance codebook.
+            // Count each completed reader so disposal also releases histories after a later pass fails.
+            this.decoders[pass] = JxlAnsSymbolReader.Create(configuration, this.codes[this.firstPass + pass], this.readers[pass], 0);
+            this.initializedDecoders++;
         }
-
-        for (int i = 1; i < numPasses; i++)
-        {
-            if (this.nzerosStride != this.groupDecCache.NumberOfNonZeroes[i].PixelsPerRow)
-            {
-                return false;
-            }
-        }
-
-        this.rect = rect;
 
         return true;
+    }
+
+    /// <summary>
+    /// Releases the initialized entropy histories. Borrowed frame tables, planes, and bit readers remain owned by their callers.
+    /// </summary>
+    public void Dispose()
+    {
+        for (int pass = 0; pass < this.initializedDecoders; pass++)
+        {
+            this.decoders[pass].Dispose();
+        }
+
+        this.initializedDecoders = 0;
     }
 }

@@ -1,133 +1,256 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 /// <summary>
-/// A generic version of a 2D single-plane JPEG XL image.
+/// Owns a contiguous JPEG XL sample plane with padded rows.
 /// </summary>
-/// <typeparam name="T">The type of each pixel.</typeparam>
-internal class JxlPlane<T> : JxlPlaneBase
+/// <typeparam name="T">The sample type.</typeparam>
+/// <remarks>
+/// Logical dimensions exclude padding. Changing them does not change the physical stride.
+/// Borrowed row views must not outlive the plane.
+/// </remarks>
+internal sealed class JxlPlane<T> : IDisposable
     where T : unmanaged
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlPlane{T}"/> class.
+    /// The allocator-owned storage, including prefix and row padding.
+    /// </summary>
+    private IMemoryOwner<T>? owner;
+
+    /// <summary>
+    /// The borrowed view used by row access. An empty plane has no allocation.
+    /// </summary>
+    private Memory<T> memory;
+
+    /// <summary>
+    /// The number of samples before the first row.
+    /// </summary>
+    private int origin;
+
+    /// <summary>
+    /// The original allocation width.
+    /// </summary>
+    private int allocatedWidth;
+
+    /// <summary>
+    /// The original allocation height.
+    /// </summary>
+    private int allocatedHeight;
+
+    /// <summary>
+    /// Initializes an empty plane without allocating sample storage.
     /// </summary>
     public JxlPlane()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlPlane{T}"/> class with the specified width and height.
+    /// Initializes an allocated sample plane.
     /// </summary>
-    /// <param name="width">Plane width.</param>
-    /// <param name="height">Plane height</param>
-    public unsafe JxlPlane(int width, int height)
-        : base(width, height, sizeof(T))
+    /// <param name="configuration">The configuration that owns the allocator.</param>
+    /// <param name="width">The logical width in samples.</param>
+    /// <param name="height">The logical height in rows.</param>
+    public JxlPlane(Configuration configuration, int width, int height)
+        : this(configuration, width, height, 0)
     {
     }
 
     /// <summary>
-    /// Gets the number of pixels per row.
+    /// Initializes an allocated sample plane with a prefix before its first row.
     /// </summary>
-    public unsafe int PixelsPerRow => this.BytesPerRow / sizeof(T);
-
-    /// <summary>
-    /// Allocates a new plane.
-    /// </summary>
-    /// <param name="configuration">The configuration which contains a memory allocator.</param>
-    /// <param name="xSize">Plane width</param>
-    /// <param name="ySize">Plane height</param>
-    /// <param name="prePadding">Padding</param>
-    /// <returns>A new allocated plane</returns>
-    /// <exception cref="InvalidOperationException">Thrown when allocation fails.</exception>
-    public static JxlPlane<T> Create(Configuration configuration, int xSize, int ySize, int prePadding = 0)
+    /// <param name="configuration">The configuration that owns the allocator.</param>
+    /// <param name="width">The logical width in samples.</param>
+    /// <param name="height">The logical height in rows.</param>
+    /// <param name="prePadding">The prefix length in samples.</param>
+    public JxlPlane(Configuration configuration, int width, int height, int prePadding)
     {
-        JxlPlane<T> plane = new(xSize, ySize);
+        Guard.MustBeGreaterThanOrEqualTo(width, 0, nameof(width));
+        Guard.MustBeGreaterThanOrEqualTo(height, 0, nameof(height));
+        Guard.MustBeGreaterThanOrEqualTo(prePadding, 0, nameof(prePadding));
 
-        bool allocated = plane.Allocate(configuration, prePadding);
-
-        if (!allocated)
+        this.XSize = this.allocatedWidth = width;
+        this.YSize = this.allocatedHeight = height;
+        if (width == 0 || height == 0)
         {
-            throw new InvalidOperationException("Failed to allocate a JPEG XL plane");
+            return;
         }
 
-        return plane;
+        this.origin = prePadding;
+
+        // Round the physical width up to a complete vector. A final vector can include padding,
+        // but cannot read past the allocation. This does not promise an aligned base address.
+        int samplesPerVector = Vector512<byte>.Count / Unsafe.SizeOf<T>();
+        this.PixelsPerRow = checked((int)((((long)width + samplesPerVector - 1) / samplesPerVector) * samplesPerVector));
+        int length = checked((this.PixelsPerRow * height) + prePadding);
+
+        // Existing predictors and transforms address neighboring rows by stride. They require
+        // contiguous storage. Typed memory avoids a casting memory-manager allocation per row.
+        this.owner = configuration.MemoryAllocator.Allocate<T>(length);
+        this.memory = this.owner.Memory;
+
+        // Only padding is initialized here. Callers must write the logical samples before use.
+        // Zero padding keeps unused vector lanes finite without clearing the entire image.
+        Span<T> storage = this.memory.Span;
+        storage[..prePadding].Clear();
+
+        for (int y = 0; y < height; y++)
+        {
+            storage.Slice(prePadding + (y * this.PixelsPerRow) + width, this.PixelsPerRow - width).Clear();
+        }
     }
 
     /// <summary>
-    /// Returns a span for the specified row.
+    /// Gets the logical width in samples.
     /// </summary>
-    /// <param name="y">The row index.</param>
-    /// <returns>A span which covers memory for the specified row.</returns>
-    public Span<T> GetRow(int y) => this.GetRowBase<T>(y);
+    public int XSize { get; private set; }
 
     /// <summary>
-    /// Returns a span for the specified row, but backwards by specified number of elements.
+    /// Gets the logical height in rows.
     /// </summary>
-    /// <param name="y">The row index.</param>
-    /// <param name="minus">Once the offset of the row was derived, this is how much to subtract the offset.</param>
-    /// <returns>A span which covers memory for the specified row.</returns>
-    public Span<T> GetRowMinus(int y, int minus) => this.GetRowMinusBase<T>(y, minus);
+    public int YSize { get; private set; }
 
     /// <summary>
-    /// Returns a span for the specified row, but with offset by specified number of elements.
+    /// Gets the physical row stride in samples, including padding.
     /// </summary>
-    /// <param name="y">The row index.</param>
-    /// <param name="plus">Once the offset of the row was derived, this is the additional offset.</param>
-    /// <returns>A span which covers memory for the specified row.</returns>
-    public Span<T> GetRowPlus(int y, int plus) => this.GetRowMinusBase<T>(y, plus);
+    public int PixelsPerRow { get; private set; }
 
     /// <summary>
-    /// Returns a memory for the specified row.
+    /// Creates an allocated plane.
     /// </summary>
-    /// <param name="y">The row index.</param>
-    /// <returns>A memory which covers data for the specified row.</returns>
-    public Memory<T> GetRowMemory(int y) => this.GetRowMemoryBase<T>(y);
+    /// <param name="configuration">The configuration that owns the allocator.</param>
+    /// <param name="xSize">The logical width in samples.</param>
+    /// <param name="ySize">The logical height in rows.</param>
+    /// <param name="prePadding">The prefix length in samples.</param>
+    /// <returns>The plane that owns the new storage.</returns>
+    public static JxlPlane<T> Create(Configuration configuration, int xSize, int ySize, int prePadding = 0)
+        => new(configuration, xSize, ySize, prePadding);
 
     /// <summary>
-    /// Returns a span for the specified row within the specified rectangle bounds.
+    /// Borrows storage from a row's start through the end of the allocation.
     /// </summary>
-    /// <param name="rectangle">The bounds.</param>
     /// <param name="y">The row index.</param>
-    /// <returns>A span which covers memory for the specified row with the rectangle offsets.</returns>
-    public Span<T> GetRow(Rectangle rectangle, int y)
+    /// <returns>The row, its padding, and following rows.</returns>
+    /// <remarks>
+    /// Stride-based kernels access following rows. Copies and fills must select their logical width explicitly.
+    /// </remarks>
+    public Span<T> GetRow(int y) => this.memory.Span[(this.origin + (y * this.PixelsPerRow))..];
+
+    /// <summary>
+    /// Borrows storage starting before a row.
+    /// </summary>
+    /// <param name="y">The row index.</param>
+    /// <param name="minus">The offset to subtract, in samples.</param>
+    /// <returns>The remaining allocated samples from the requested position.</returns>
+    public Span<T> GetRowMinus(int y, int minus) => this.memory.Span[(this.origin + (y * this.PixelsPerRow) - minus)..];
+
+    /// <summary>
+    /// Borrows storage starting at a signed offset from a row.
+    /// </summary>
+    /// <param name="y">The row index.</param>
+    /// <param name="plus">The offset to add, in samples.</param>
+    /// <returns>The remaining allocated samples from the requested position.</returns>
+    public Span<T> GetRowPlus(int y, int plus) => this.memory.Span[(this.origin + (y * this.PixelsPerRow) + plus)..];
+
+    /// <summary>
+    /// Borrows memory from a row's start through the end of the allocation.
+    /// </summary>
+    /// <param name="y">The row index.</param>
+    /// <returns>The row, its padding, and following rows.</returns>
+    public Memory<T> GetRowMemory(int y) => this.memory[(this.origin + (y * this.PixelsPerRow))..];
+
+    /// <summary>
+    /// Borrows storage from the start of a row within a rectangle.
+    /// </summary>
+    /// <param name="rectangle">The rectangle within the logical plane.</param>
+    /// <param name="y">The row index relative to the rectangle.</param>
+    /// <returns>The remaining allocated samples from the requested position.</returns>
+    public Span<T> GetRow(Rectangle rectangle, int y) => this.GetRow(y + rectangle.Top)[rectangle.Left..];
+
+    /// <summary>
+    /// Borrows memory from the start of a row within a rectangle.
+    /// </summary>
+    /// <param name="rectangle">The rectangle within the logical plane.</param>
+    /// <param name="y">The row index relative to the rectangle.</param>
+    /// <returns>The remaining allocated samples from the requested position.</returns>
+    public Memory<T> GetRowMemory(Rectangle rectangle, int y) => this.GetRowMemory(y + rectangle.Top)[rectangle.Left..];
+
+    /// <summary>
+    /// Changes logical dimensions without reallocating or changing the stride.
+    /// </summary>
+    /// <param name="x">The requested width.</param>
+    /// <param name="y">The requested height.</param>
+    /// <returns>Whether both dimensions fit within the original allocation.</returns>
+    /// <remarks>
+    /// A previously reduced plane can grow back within its original dimensions.
+    /// </remarks>
+    public bool ShrinkTo(int x, int y)
     {
-        DebugGuard.MustBeGreaterThanOrEqualTo(y + rectangle.Top, 0, nameof(y));
+        if ((uint)x > (uint)this.allocatedWidth || (uint)y > (uint)this.allocatedHeight)
+        {
+            return false;
+        }
 
-        return this.GetRow(y + rectangle.Top)[rectangle.Left..];
+        this.XSize = x;
+        this.YSize = y;
+        return true;
     }
 
     /// <summary>
-    /// Returns a span for the specified row within the specified rectangle bounds.
+    /// Checks whether a rectangle fits within the logical plane.
     /// </summary>
-    /// <param name="rectangle">The bounds.</param>
-    /// <param name="y">The row index.</param>
-    /// <returns>A span which covers memory for the specified row with the rectangle offsets.</returns>
-    public Memory<T> GetRowMemory(Rectangle rectangle, int y)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(y + rectangle.Top, 0, nameof(y));
-
-        return this.GetRowMemory(y + rectangle.Top)[rectangle.Left..];
-    }
+    /// <param name="rectangle">The rectangle to check.</param>
+    /// <returns>Whether the plane contains the rectangle.</returns>
+    public bool IsRectangleInside(Rectangle rectangle) => this.GetRectangle().Contains(rectangle);
 
     /// <summary>
-    /// Checks if the specified rectangle is within the bounds image.
+    /// Gets the logical bounds of the plane.
     /// </summary>
-    /// <param name="rectangle">The input rectangle.</param>
-    /// <returns>Boolean indicating whether the rectangle is inside.</returns>
-    public bool IsRectangleInside(Rectangle rectangle) => rectangle.Contains(this.GetRectangle());
-
-    /// <summary>
-    /// Returns the rectangle for this image bounds.
-    /// </summary>
-    /// <returns>A rectangle with x,y=0,0 width,height=XSize,YSize.</returns>
+    /// <returns>The rectangle at the origin with the logical width and height.</returns>
     public Rectangle GetRectangle() => new(0, 0, this.XSize, this.YSize);
 
     /// <summary>
-    /// Fills everything in this image with 0.
+    /// Clears the logical samples.
     /// </summary>
     public void Clear() => JxlImageOperations.ZeroFillImage(this);
+
+    /// <summary>
+    /// Exchanges storage ownership, logical dimensions, and allocation layout.
+    /// </summary>
+    /// <param name="other">The plane that receives this plane's previous state.</param>
+    public void Swap(JxlPlane<T> other)
+    {
+        (this.owner, other.owner) = (other.owner, this.owner);
+        (this.memory, other.memory) = (other.memory, this.memory);
+        (this.origin, other.origin) = (other.origin, this.origin);
+        (this.allocatedWidth, other.allocatedWidth) = (other.allocatedWidth, this.allocatedWidth);
+        (this.allocatedHeight, other.allocatedHeight) = (other.allocatedHeight, this.allocatedHeight);
+        (this.XSize, other.XSize) = (other.XSize, this.XSize);
+        (this.YSize, other.YSize) = (other.YSize, this.YSize);
+        (this.PixelsPerRow, other.PixelsPerRow) = (other.PixelsPerRow, this.PixelsPerRow);
+    }
+
+    /// <summary>
+    /// Releases the allocation and resets the plane to an empty state.
+    /// </summary>
+    public void Dispose()
+    {
+        this.owner?.Dispose();
+        this.owner = null;
+        this.memory = default;
+
+        // Capacity belongs to the allocation. A released plane cannot satisfy a later ShrinkTo request for sample storage.
+        this.origin = 0;
+        this.allocatedWidth = 0;
+        this.allocatedHeight = 0;
+        this.XSize = 0;
+        this.YSize = 0;
+        this.PixelsPerRow = 0;
+    }
 }

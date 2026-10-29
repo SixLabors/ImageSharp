@@ -18,9 +18,9 @@ public class YcbCrToRgb
         int ccb = cb - 128;
         int ccr = cr - 128;
 
-        byte r = (byte)Numerics.Clamp(y + (1.402F * ccr), 0, 255);
-        byte g = (byte)Numerics.Clamp(y - (0.34414F * ccb) - (0.71414F * ccr), 0, 255);
-        byte b = (byte)Numerics.Clamp(y + (1.772F * ccb), 0, 255);
+        byte r = (byte)ColorNumerics.ClampToFinite(y + (1.402F * ccr), 0, 255);
+        byte g = (byte)ColorNumerics.ClampToFinite(y - (0.34414F * ccb) - (0.71414F * ccr), 0, 255);
+        byte b = (byte)ColorNumerics.ClampToFinite(y + (1.772F * ccb), 0, 255);
 
         return new Vector3(r, g, b);
     }
@@ -41,9 +41,9 @@ public class YcbCrToRgb
         int g1 = 731 * ccr; // (0.71414F  * 1024) + .5F
         int b0 = 1815 * ccb; // (1.772F * 1024) + .5F
 
-        byte r = (byte)Numerics.Clamp(y + (r0 >> 10), 0, 255);
-        byte g = (byte)Numerics.Clamp(y - (g0 >> 10) - (g1 >> 10), 0, 255);
-        byte b = (byte)Numerics.Clamp(y + (b0 >> 10), 0, 255);
+        byte r = (byte)Math.Clamp(y + (r0 >> 10), 0, 255);
+        byte g = (byte)Math.Clamp(y - (g0 >> 10) - (g1 >> 10), 0, 255);
+        byte b = (byte)Math.Clamp(y + (b0 >> 10), 0, 255);
 
         return new Vector3(r, g, b);
     }

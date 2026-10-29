@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Compression;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Lz77;
 
@@ -32,7 +33,7 @@ internal sealed class JxlLz77HashMap
 
         if (distanceMultiplier != 0)
         {
-            this.numSpecialDistances = JxlAnsReader.NumSpecialDistances;
+            this.numSpecialDistances = Lz77DistanceCodes.Count;
             this.specialDistTable = new List<sbyte>((distanceMultiplier * 8) + 8);
 
             for (int i = 0; i < (distanceMultiplier * 8) + 8; i++)
@@ -40,9 +41,9 @@ internal sealed class JxlLz77HashMap
                 this.specialDistTable.Add(-1);
             }
 
-            for (int i = 0; i < JxlAnsReader.NumSpecialDistances; i++)
+            for (int i = 0; i < Lz77DistanceCodes.Count; i++)
             {
-                this.specialDistTable[JxlAnsReader.SpecialDistance(i, distanceMultiplier)] = (sbyte)i;
+                this.specialDistTable[Lz77DistanceCodes.GetDistance(i, distanceMultiplier)] = (sbyte)i;
             }
         }
     }
@@ -105,6 +106,12 @@ internal sealed class JxlLz77HashMap
         bucket.Index = (bucket.Index + 1) % this.bucketSize;
     }
 
+    /// <summary>
+    /// Counts matching values from an earlier candidate to the end of the current sequence.
+    /// </summary>
+    /// <param name="a">The earlier candidate position.</param>
+    /// <param name="b">The current position, strictly after a.</param>
+    /// <returns>The number of equal leading values.</returns>
     private int MatchLength(int a, int b)
     {
         if (a >= b)
@@ -112,14 +119,10 @@ internal sealed class JxlLz77HashMap
             throw new InvalidOperationException("a must be less than b");
         }
 
-        int len = 0;
+        ReadOnlySpan<uint> values = CollectionsMarshal.AsSpan(this.data);
 
-        while (b + len < this.data.Count && this.data[a + len] == this.data[b + len])
-        {
-            len++;
-        }
-
-        return len;
+        // The later position bounds the match. Since a is earlier, both views cover that same number of values.
+        return MemoryExtensions.CommonPrefixLength<uint>(values.Slice(a, values.Length - b), values[b..]);
     }
 
     private struct HashBucket

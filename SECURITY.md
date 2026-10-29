@@ -2,16 +2,23 @@
 
 ## Supported Versions
 
-Six Labors provides security fixes only for the latest major version of each library.
+Six Labors provides security updates for the latest major version of each library.
 
-Older major versions are end-of-life and do not receive security fixes.
+Each major version remains eligible for security updates for 12 months after the first stable release of the next major version of that library.
+After this period, that major version is end-of-life and does not receive security updates.
 
-Users must upgrade to the latest major version to receive security fixes.
+Users must install the latest available patch or minor release within a supported major version to receive security fixes.
+Older releases within that major version are not maintained separately.
 
-| Version              | Supported |
-| -------------------- | --------- |
-| Latest major version | Yes       |
-| Older major versions | No        |
+| Version | Supported |
+| ------- | --------- |
+| Latest major version | Yes |
+| Superseded major version within 12 months of the next major's first stable release | Yes |
+| Superseded major version after that 12-month period | No |
+
+Security updates may require a license key under the existing license terms. This does not change the license terms.
+
+This policy covers security fixes only. It does not include feature backports or extend support for underlying .NET versions.
 
 Security fixes, if any, are provided at Six Labors' discretion.
 

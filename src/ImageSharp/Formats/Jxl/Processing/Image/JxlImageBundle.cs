@@ -5,33 +5,35 @@ using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
 /// <summary>
-/// An image bundle.
+/// Stores frame sample planes, the original image metadata, and the current sample encoding.
 /// </summary>
-internal sealed class JxlImageBundle
+/// <remarks>
+/// The bundle retains one color-image wrapper and owns its sample allocations and assigned extra-channel planes.
+/// Metadata and row views are borrowed. Replacing samples invalidates earlier row views.
+/// SetFromImage moves allocations from a caller-owned image into the retained wrapper. The caller keeps an empty source wrapper.
+/// </remarks>
+internal sealed class JxlImageBundle : IDisposable
 {
     /// <summary>
     /// Image data for additional channels.
     /// </summary>
-    private List<JxlImageF> extraChannels = [];
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JxlImageBundle"/> class.
-    /// </summary>
-    public JxlImageBundle()
-    {
-    }
+    private List<JxlPlane<float>> extraChannels = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlImageBundle"/> class with the specified image metadata.
     /// </summary>
-    /// <param name="metadata">Initial image metadata.</param>
-    public JxlImageBundle(JxlImageMetadata? metadata) => this.Metadata = metadata;
+    /// <param name="metadata">The original metadata shared by frames from this codestream.</param>
+    public JxlImageBundle(JxlImageMetadata metadata)
+    {
+        this.Metadata = metadata;
+        this.CurrentColorEncoding = metadata.ColorEncoding;
+    }
 
     /// <summary>
     /// Gets a value indicating whether <see cref="XSize"/> or <see cref="YSize"/>
@@ -103,52 +105,58 @@ internal sealed class JxlImageBundle
     /// <summary>
     /// Gets a value indicating whether the black extra channel is present.
     /// </summary>
-    public bool ContainsBlack => this.Metadata?.FindExtraChannel(JxlExtraChannel.Black) is not null;
+    public bool ContainsBlack => this.Metadata.FindExtraChannel(JxlExtraChannel.Black) is not null;
 
     /// <summary>
     /// Gets a value indicating whether the alpha extra channel is present.
     /// </summary>
-    public bool ContainsAlpha => this.Metadata?.FindExtraChannel(JxlExtraChannel.Alpha) is not null;
+    public bool ContainsAlpha => this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha) is not null;
 
     /// <summary>
     /// Gets a value indicating whether the alpha channel is premultiplied.
     /// </summary>
-    public bool IsAlphaPremultiplied => this.Metadata?.FindExtraChannel(JxlExtraChannel.Alpha)?.AlphaAssociated == true;
+    public bool IsAlphaPremultiplied => this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha)?.AlphaAssociated == true;
 
     /// <summary>
     /// Gets a value indicating whether the color encoding specifies Gray.
     /// </summary>
-    public bool IsGray => this.CurrentColorEncoding?.IsGray == true;
+    public bool IsGray => this.CurrentColorEncoding.IsGray;
 
     /// <summary>
     /// Gets a value indicating whether the color encoding specifies sRGB.
     /// </summary>
-    public bool IsSrgb => this.CurrentColorEncoding?.IsSrgb == true;
+    public bool IsSrgb => this.CurrentColorEncoding.IsSrgb;
 
     /// <summary>
     /// Gets a value indicating whether the color encoding specifies linear sRGB.
     /// </summary>
-    public bool IsLinearSrgb => this.CurrentColorEncoding?.IsLinearSrgb == true;
+    public bool IsLinearSrgb => this.CurrentColorEncoding.IsLinearSrgb;
 
     /// <summary>
-    /// Gets the current color encoding for this image.
+    /// Gets the encoding of the current sample planes.
     /// </summary>
-    public JxlColorEncoding? CurrentColorEncoding { get; private set; }
+    /// <remarks>Changing this encoding does not replace the original encoding or ICC profile in <see cref="Metadata"/>.</remarks>
+    public JxlColorEncoding CurrentColorEncoding { get; private set; }
 
     /// <summary>
-    /// Gets the image metadata for this image bundle.
+    /// Gets the original image metadata shared with the codestream.
     /// </summary>
-    public JxlImageMetadata? Metadata { get; }
+    public JxlImageMetadata Metadata { get; }
 
     /// <summary>
-    /// Gets the color data.
+    /// Gets the retained color-image owner. Its planes are empty until color samples are assigned.
     /// </summary>
-    public JxlImage3F? Color { get; private set; }
+    public JxlImage3<float> Color { get; } = new();
+
+    /// <summary>
+    /// Gets the number of owned extra-channel planes.
+    /// </summary>
+    public int ExtraChannelCount => this.extraChannels.Count;
 
     /// <summary>
     /// Gets a value indicating whether the color data is present and usable.
     /// </summary>
-    public bool HasColor => this.Color?.XSize != 0;
+    public bool HasColor => this.Color.XSize != 0;
 
     /// <summary>
     /// Gets the width.
@@ -162,12 +170,12 @@ internal sealed class JxlImageBundle
                 return this.JpegData!.Width;
             }
 
-            if (this.Color?.XSize != 0)
+            if (this.HasColor)
             {
-                return this.Color!.XSize;
+                return this.Color.XSize;
             }
 
-            return this.extraChannels?.Count > 0 ? 0 : this.extraChannels![0].XSize;
+            return this.extraChannels.Count == 0 ? 0 : this.extraChannels[0].XSize;
         }
     }
 
@@ -183,63 +191,66 @@ internal sealed class JxlImageBundle
                 return this.JpegData!.Height;
             }
 
-            if (this.Color?.YSize != 0)
+            if (this.HasColor)
             {
-                return this.Color!.YSize;
+                return this.Color.YSize;
             }
 
-            return this.extraChannels?.Count > 0 ? 0 : this.extraChannels![0].YSize;
+            return this.extraChannels.Count == 0 ? 0 : this.extraChannels[0].YSize;
         }
     }
 
     /// <summary>
     /// Gets the black extra channel.
     /// </summary>
-    public JxlImageF? Black
+    public JxlPlane<float>? Black
     {
         get
         {
-            if (!this.ContainsBlack || this.Metadata is null)
+            JxlExtraChannelInfo? channel = this.Metadata.FindExtraChannel(JxlExtraChannel.Black);
+
+            if (channel is null)
             {
                 return null;
             }
 
-            int ec = this.Metadata!.FindExtraChannel(JxlExtraChannel.Black) - this.Metadata.ExtraChannelInfo.Data;
-            return this.extraChannels[ec];
+            // Extra-channel metadata and planes use the same order in the codestream.
+            return this.extraChannels[this.Metadata.ExtraChannels.IndexOf(channel)];
         }
     }
 
     /// <summary>
     /// Gets the alpha extra channel.
     /// </summary>
-    public JxlImageF? Alpha
+    public JxlPlane<float>? Alpha
     {
         get
         {
-            if (!this.ContainsAlpha || this.Metadata is null)
+            JxlExtraChannelInfo? channel = this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha);
+
+            if (channel is null)
             {
                 return null;
             }
 
-            int ec = this.Metadata!.FindExtraChannel(JxlExtraChannel.Alpha) - this.Metadata.ExtraChannelInfo.Data;
-            return this.extraChannels[ec];
+            return this.extraChannels[this.Metadata.ExtraChannels.IndexOf(channel)];
         }
     }
 
     /// <summary>
     /// Gets the oriented X size.
     /// </summary>
-    public int OrientedXSize => this.Metadata?.Orientation > 4 ? this.YSize : this.XSize;
+    public int OrientedXSize => this.Metadata.Orientation > 4 ? this.YSize : this.XSize;
 
     /// <summary>
     /// Gets the oriented Y size.
     /// </summary>
-    public int OrientedYSize => this.Metadata?.Orientation > 4 ? this.XSize : this.YSize;
+    public int OrientedYSize => this.Metadata.Orientation > 4 ? this.XSize : this.YSize;
 
     /// <summary>
     /// Gets the real bit depth.
     /// </summary>
-    public uint RealBitDepth => this.Metadata!.BitDepth!.BitsPerSample;
+    public uint RealBitDepth => this.Metadata.BitDepth.BitsPerSample;
 
     /// <summary>
     /// Returns false if the width or height is 0 and any extra channel
@@ -261,7 +272,7 @@ internal sealed class JxlImageBundle
                 return false;
             }
 
-            foreach (JxlImageF ec in this.extraChannels)
+            foreach (JxlPlane<float> ec in this.extraChannels)
             {
                 if (ec.XSize != xs || ec.YSize != ys)
                 {
@@ -280,31 +291,22 @@ internal sealed class JxlImageBundle
     public void OverrideProfile(JxlColorEncoding encoding) => this.CurrentColorEncoding = encoding;
 
     /// <summary>
-    /// If the color data is present, assigns it to <paramref name="color"/> and returns true,
-    /// otherwise returns false and assigns null.
+    /// Releases the color sample allocations and resets the retained image to its empty state.
     /// </summary>
-    /// <param name="color">Output color data.</param>
-    /// <returns>True if color isn't null.</returns>
-    public bool TryGetColor(out JxlImage3F? color)
+    public void RemoveColor() => this.Color.Dispose();
+
+    /// <summary>
+    /// Releases and removes every owned extra-channel plane.
+    /// </summary>
+    public void ClearExtraChannels()
     {
-        color = null;
-        if (this.Color is not null)
+        foreach (JxlPlane<float> plane in this.extraChannels)
         {
-            color = this.Color;
+            plane.Dispose();
         }
 
-        return color is not null;
+        this.extraChannels.Clear();
     }
-
-    /// <summary>
-    /// Removes the color data, replacing it with a new Image3F with 0 as width and height.
-    /// </summary>
-    public void RemoveColor() => this.Color = new JxlImage3F();
-
-    /// <summary>
-    /// Removes all extra channels, if any.
-    /// </summary>
-    public void ClearExtraChannels() => this.extraChannels.Clear();
 
     /// <summary>
     /// Returns true if there is at least 1 extra channel.
@@ -313,56 +315,69 @@ internal sealed class JxlImageBundle
     public bool ContainsExtraChannels() => this.extraChannels.Count > 0;
 
     /// <summary>
-    /// Returns an enumerable for extra channels.
+    /// Borrows the owned extra-channel planes in metadata order.
     /// </summary>
-    /// <returns>Extra channels enumerable.</returns>
-    public IEnumerable<JxlImageF> EnumerateExtraChannels() => this.extraChannels;
+    /// <returns>The borrowed planes. The caller must not dispose them.</returns>
+    public IEnumerable<JxlPlane<float>> EnumerateExtraChannels() => this.extraChannels;
 
     /// <summary>
-    /// Adds a specified extra channel.
+    /// Takes ownership of an extra-channel plane and appends it in metadata order.
     /// </summary>
-    /// <param name="channel">The extra channel to be added to the image bundle.</param>
-    public void AddExtraChannel(JxlImageF channel) => this.extraChannels.Add(channel);
-
-    public JxlImageF GetExtraChannel(int i) => this.extraChannels[i];
-
-    /// <summary>
-    /// Sets the extra channels.
-    /// </summary>
-    /// <param name="extraChannels">The extra channels.</param>
-    /// <returns>
-    /// True if each plane had width and height greater than 0 and sizes are correct
-    /// after changing the extra channels; false otherwise.
-    /// </returns>
-    public bool TrySetExtraChannels(List<JxlImageF> extraChannels)
+    /// <param name="channel">The caller-owned plane, which the caller must not dispose after this call.</param>
+    public void AddExtraChannel(JxlPlane<float> channel)
     {
-        foreach (JxlImageF plane in extraChannels)
+        try
         {
-            if (plane.XSize == 0 || plane.YSize == 0)
+            this.extraChannels.Add(channel);
+        }
+        catch
+        {
+            // This unconditional transfer also covers list-allocation failure. The caller no longer owns this plane after handing it over.
+            channel.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Borrows one owned extra-channel plane.
+    /// </summary>
+    /// <param name="i">The metadata-ordered channel index.</param>
+    /// <returns>The borrowed plane.</returns>
+    public JxlPlane<float> GetExtraChannel(int i) => this.extraChannels[i];
+
+    /// <summary>
+    /// Replaces the extra channels and takes ownership when their dimensions are valid.
+    /// </summary>
+    /// <param name="extraChannels">The caller-owned planes in metadata order. On success, the caller must not modify the list or dispose its planes.</param>
+    /// <returns>Whether ownership transferred. On failure, this bundle and the supplied planes remain unchanged.</returns>
+    public bool TrySetExtraChannels(List<JxlPlane<float>> extraChannels)
+    {
+        int width = this.HasColor || this.IsJpeg ? this.XSize : extraChannels.Count == 0 ? 0 : extraChannels[0].XSize;
+        int height = this.HasColor || this.IsJpeg ? this.YSize : extraChannels.Count == 0 ? 0 : extraChannels[0].YSize;
+
+        foreach (JxlPlane<float> plane in extraChannels)
+        {
+            if (plane.XSize == 0 || plane.YSize == 0 || plane.XSize != width || plane.YSize != height)
             {
                 return false;
             }
         }
 
+        // Validate before releasing the previous channels. Ownership transfers only after every supplied plane has passed.
+        this.ClearExtraChannels();
         this.extraChannels = extraChannels;
-
-        return this.VerifySizes();
+        return true;
     }
 
     /// <summary>
     /// Attempts to set the alpha channel.
     /// </summary>
-    /// <param name="alpha">The alpha channel to set.</param>
-    /// <returns>True if it was set successfully; false otherwise.</returns>
+    /// <param name="alpha">The caller-owned alpha plane.</param>
+    /// <returns>Whether ownership transferred. On success, the caller must not dispose the plane.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the corresponding extra channel has incorrect info.</exception>
-    public bool TrySetAlpha(JxlImageF alpha)
+    public bool TrySetAlpha(JxlPlane<float> alpha)
     {
-        if (this.Metadata is null)
-        {
-            return false;
-        }
-
-        JxlExtraChannelInfo? eci = this.Metadata!.FindExtraChannel(JxlExtraChannel.Alpha);
+        JxlExtraChannelInfo? eci = this.Metadata.FindExtraChannel(JxlExtraChannel.Alpha);
 
         if (eci is null)
         {
@@ -374,45 +389,56 @@ internal sealed class JxlImageBundle
             return false;
         }
 
-        int eciIndex = this.Metadata.ExtraChannelInfo.Data;
+        if ((this.HasColor || this.ContainsExtraChannels() || this.IsJpeg) && (alpha.XSize != this.XSize || alpha.YSize != this.YSize))
+        {
+            return false;
+        }
+
+        int eciIndex = this.Metadata.ExtraChannels.IndexOf(eci);
 
         if (eciIndex != this.extraChannels.Count)
         {
-            throw new InvalidOperationException("The SetAlpha parameter is incorrect");
+            throw new InvalidOperationException("Alpha must be appended in the metadata's extra-channel order.");
         }
 
         this.extraChannels.Add(alpha);
 
-        return this.VerifySizes();
+        return true;
     }
 
     /// <summary>
     /// Ensures that the metadata of this image is valid.
     /// </summary>
     /// <returns>True if metadata is correct. False if it isn't.</returns>
-    /// <exception cref="InvalidOperationException">Rare.</exception>
+    /// <exception cref="InvalidOperationException">The alpha plane has zero width.</exception>
     public bool VerifyMetadata()
     {
-        if (this.CurrentColorEncoding?.Icc?.IsEmpty == true)
+        // Named color fields can define a conversion without an ICC profile. ICC-only encodings cannot.
+        if (!this.CurrentColorEncoding.HaveFields && this.CurrentColorEncoding.IccProfile is null)
         {
             return false;
         }
 
-        if (this.Metadata?.ColorEncoding?.IsGray != this.IsGray)
+        if (this.CurrentColorEncoding.IccProfile is not null && this.CurrentColorEncoding.IccProfile.GetData().IsEmpty)
         {
             return false;
         }
 
-        if (this.Metadata?.HasAlpha == true)
+        if (this.Metadata.ColorEncoding.IsGray != this.IsGray)
         {
-            JxlImageF? img = this.Alpha;
+            return false;
+        }
+
+        if (this.Metadata.HasAlpha)
+        {
+            JxlPlane<float>? img = this.Alpha;
             if (img?.XSize == 0)
             {
                 throw new InvalidOperationException("Alpha should not have width equal to 0");
             }
         }
 
-        int alphaBits = this.Metadata?.AlphaBits ?? 0;
+        int alphaBits = this.Metadata.AlphaBits;
 
         if (alphaBits > 32)
         {
@@ -423,27 +449,38 @@ internal sealed class JxlImageBundle
     }
 
     /// <summary>
-    /// Updates the bundle from the sepcified image.
+    /// Replaces the color sample allocations when the supplied encoding and dimensions are valid.
     /// </summary>
-    /// <param name="color">Color data.</param>
+    /// <param name="color">The caller-owned image. Success moves its sample allocations into this bundle and leaves this source wrapper empty.</param>
     /// <param name="current">Current color encoding.</param>
-    /// <returns>True if setting the image succeeded; otherwise false.</returns>
-    public bool SetFromImage(JxlImage3F color, JxlColorEncoding current)
+    /// <returns>Whether ownership transferred. On failure, this bundle and the supplied image remain unchanged.</returns>
+    public bool SetFromImage(JxlImage3<float> color, JxlColorEncoding current)
     {
         if (color.XSize == 0 || color.YSize == 0)
         {
             return false;
         }
 
-        if (this.Metadata?.ColorEncoding?.IsGray == this.IsGray)
+        // All frame encodings must keep the original gray/RGB channel model.
+        if (this.Metadata.ColorEncoding.IsGray != current.IsGray)
         {
             return false;
         }
 
-        this.Color = color;
+        foreach (JxlPlane<float> plane in this.extraChannels)
+        {
+            if (plane.XSize != color.XSize || plane.YSize != color.YSize)
+            {
+                return false;
+            }
+        }
+
+        // The wrapper belongs to this bundle for its whole lifetime. Only the allocations move; callers can dispose their emptied source wrapper.
+        this.RemoveColor();
+        this.Color.Swap(color);
         this.CurrentColorEncoding = current;
 
-        return this.VerifySizes();
+        return true;
     }
 
     /// <summary>
@@ -463,13 +500,13 @@ internal sealed class JxlImageBundle
     {
         if (this.HasColor)
         {
-            if (this.Color?.ShrinkTo(width, height) != true)
+            if (!this.Color.ShrinkTo(width, height))
             {
                 return false;
             }
         }
 
-        foreach (JxlImageF extraChannel in this.extraChannels)
+        foreach (JxlPlane<float> extraChannel in this.extraChannels)
         {
             if (!extraChannel.ShrinkTo(width, height))
             {
@@ -495,29 +532,39 @@ internal sealed class JxlImageBundle
     public JxlImageBundle Copy(Configuration configuration)
     {
         JxlImageBundle copy = new(this.Metadata);
-
-        if (this.Color is not null)
+        try
         {
-            copy.Color = new JxlImage3F(configuration, this.Color.XSize, this.Color.YSize);
-        }
+            // Reserve list slots before allocating planes, so adding an owned plane cannot fail while growing the list.
+            copy.extraChannels.EnsureCapacity(this.extraChannels.Count);
 
-        copy.CurrentColorEncoding = this.CurrentColorEncoding;
-        copy.JpegData = this.JpegData;
-        copy.ColorTransform = this.ColorTransform;
-        copy.ChromaSubsampling = this.ChromaSubsampling;
-
-        foreach (JxlImageF plane in this.extraChannels)
-        {
-            JxlImageF ec = new(configuration, plane.XSize, plane.YSize);
-            if (!JxlImageOperations.CopyImage(plane, ec))
+            if (this.HasColor)
             {
-                throw new InvalidOperationException("Cannot copy extra channel");
+                using JxlImage3<float> color = new(configuration, this.Color.XSize, this.Color.YSize);
+                JxlImageOperations.ForceCopyImage(this.Color, color);
+                copy.Color.Swap(color);
             }
 
-            copy.extraChannels.Add(ec);
-        }
+            // Metadata and JPEG coefficient data remain shared managed objects. Only the sample planes transfer or copy ownership.
+            copy.CurrentColorEncoding = this.CurrentColorEncoding;
+            copy.JpegData = this.JpegData;
+            copy.ColorTransform = this.ColorTransform;
+            copy.ChromaSubsampling = this.ChromaSubsampling;
 
-        return copy;
+            foreach (JxlPlane<float> plane in this.extraChannels)
+            {
+                JxlPlane<float> ec = new(configuration, plane.XSize, plane.YSize);
+                copy.extraChannels.Add(ec);
+                JxlImageOperations.ForceCopyImage(plane, ec);
+            }
+
+            return copy;
+        }
+        catch
+        {
+            // The partial copy already owns every assigned plane. Disposing it leaves all source planes untouched.
+            copy.Dispose();
+            throw;
+        }
     }
 
     public bool CopyTo(
@@ -525,10 +572,10 @@ internal sealed class JxlImageBundle
         Rectangle rectangle,
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms,
-        JxlImage3F output)
+        JxlImage3<float> output)
         => JxlImageBundleEncoder.CopyToT(
             configuration,
-            this.Metadata!,
+            this.Metadata,
             this,
             rectangle,
             desiredEncoding,
@@ -540,12 +587,21 @@ internal sealed class JxlImageBundle
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms)
     {
-        if (!this.CopyTo(configuration, this.Color!.GetRectangle(), desiredEncoding, cms, this.Color!))
+        if (!this.CopyTo(configuration, this.Color.GetRectangle(), desiredEncoding, cms, this.Color))
         {
             return false;
         }
 
         this.CurrentColorEncoding = desiredEncoding;
         return true;
+    }
+
+    /// <summary>
+    /// Releases owned sample planes without disposing shared metadata or borrowed row views.
+    /// </summary>
+    public void Dispose()
+    {
+        this.RemoveColor();
+        this.ClearExtraChannels();
     }
 }

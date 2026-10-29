@@ -200,6 +200,11 @@ jobs:
         env:
           SIXLABORS_TESTING: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+          # Capture child-process crashes before VSTest can record a stack trace. Mini dumps omit the managed heap.
+          DOTNET_DbgEnableMiniDump: '1'
+          DOTNET_DbgMiniDumpType: '1'
+          DOTNET_DbgMiniDumpName: ${{ runner.temp }}/imagesharp-%e-%p.dmp
+          DOTNET_EnableCrashReport: '1'
 
       - name: DotNet Test Preview
         if: ${{ matrix.options.sdk-preview == true }}
@@ -208,13 +213,25 @@ jobs:
         env:
           SIXLABORS_TESTING_PREVIEW: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+          # Capture child-process crashes before VSTest can record a stack trace. Mini dumps omit the managed heap.
+          DOTNET_DbgEnableMiniDump: '1'
+          DOTNET_DbgMiniDumpType: '1'
+          DOTNET_DbgMiniDumpName: ${{ runner.temp }}/imagesharp-%e-%p.dmp
+          DOTNET_EnableCrashReport: '1'
 
       - name: Export Failed Output
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
-          path: tests/Images/ActualOutput/
+          name: actual_output_${{ runner.os }}_${{ runner.arch }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+          # ActualOutput holds the images that the tests write and the test runner log from ci-test.ps1.
+          # TestResults is the default results folder of dotnet test. When the test process crashes, --blame
+          # writes a sequence file there that lists the tests that ran before the crash.
+          # Runtime dumps and crash reports record the failing native and managed frames of child processes.
+          path: |
+            tests/Images/ActualOutput/
+            tests/ImageSharp.Tests/TestResults/
+            ${{ runner.temp }}/imagesharp-*
 
   Publish:
     needs: [Build]

@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression;
 
@@ -18,8 +19,10 @@ public class NoneTiffCompressionTests
         using BufferedReadStream stream = new(Configuration.Default, memoryStream);
         byte[] buffer = new byte[expectedResult.Length];
 
-        using NoneTiffCompression decompressor = new(default, default, default);
-        decompressor.Decompress(stream, 0, byteCount, 1, buffer, default);
+        using NoneTiffCompression decompressor = new(default, default, default, default);
+
+        // These codecs return raw TIFF samples; no final pixel region is needed.
+        decompressor.Decompress<Rgba32>(stream, 0, byteCount, 1, buffer, default, default);
 
         Assert.Equal(expectedResult, buffer);
     }

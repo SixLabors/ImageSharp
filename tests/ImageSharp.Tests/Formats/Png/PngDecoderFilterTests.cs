@@ -150,7 +150,8 @@ public class PngDecoderFilterTests
     public void AverageFilter_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void AverageFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.DisableHWIntrinsic);
+    public void AverageFilter_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void UpFilter_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpFilterTest, HwIntrinsics.AllowAll);
@@ -174,5 +175,6 @@ public class PngDecoderFilterTests
     public void PaethFilter_WithoutSsse3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void PaethFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableHWIntrinsic);
+    public void PaethFilter_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableHWIntrinsic);
 }

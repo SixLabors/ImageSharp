@@ -144,7 +144,7 @@ internal class JxlImageBundleEncoder
             configuration,
             imageBundle.CurrentColorEncoding,
             metadata.IntensityTarget,
-            imageBundle.Color!,
+            imageBundle.Color,
             imageBundle.Black!,
             rectangle,
             desiredEncoding,
@@ -175,12 +175,12 @@ internal class JxlImageBundleEncoder
             return true;
         }
 
-        JxlImage3<float>? color = new(configuration, input.Color!.XSize, input.Color.YSize);
+        using JxlImage3<float> color = new(configuration, input.Color.XSize, input.Color.YSize);
         List<JxlPlane<float>>? extraChannels = null;
 
         try
         {
-            JxlImageOperations.ForceCopyImage(input.Color!, color);
+            JxlImageOperations.ForceCopyImage(input.Color, color);
 
             // The destination owns its previous planes. Clear its old channels before replacing a differently sized frame.
             // The input remains borrowed throughout this operation, including when the output selects it without conversion.
@@ -190,8 +190,6 @@ internal class JxlImageBundleEncoder
                 return false;
             }
 
-            // SetFromImage took ownership. Do not dispose its image through the local cleanup path.
-            color = null;
             if (input.ContainsExtraChannels())
             {
                 // Reserve every list slot before allocating its plane. Ownership cannot be stranded by a later list-growth failure.
@@ -221,7 +219,6 @@ internal class JxlImageBundleEncoder
         }
         finally
         {
-            color?.Dispose();
             if (extraChannels is not null)
             {
                 foreach (JxlPlane<float> copy in extraChannels)

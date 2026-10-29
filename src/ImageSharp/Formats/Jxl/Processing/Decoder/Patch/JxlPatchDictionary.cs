@@ -553,7 +553,7 @@ internal sealed class JxlPatchDictionary
 
             for (int c = 0; c < 3; c++)
             {
-                foreground[c] = this.referenceFrames[@ref].Frame.Color!.PlaneRowMemory(c, refPos.Y0 + iy)[referenceStartX..];
+                foreground[c] = this.referenceFrames[@ref].Frame.Color.PlaneRowMemory(c, refPos.Y0 + iy)[referenceStartX..];
             }
 
             for (int j = 0; j < extraChannelCount; j++)

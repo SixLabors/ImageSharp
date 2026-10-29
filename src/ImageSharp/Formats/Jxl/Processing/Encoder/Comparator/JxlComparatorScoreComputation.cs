@@ -75,7 +75,7 @@ internal static class JxlComparatorScoreComputation
 
         for (int c = 0; c < 3; c++)
         {
-            AlphaBlend(image.Color!, c, backgroundLinear, image.Alpha!, image.Color!);
+            AlphaBlend(image.Color, c, backgroundLinear, image.Alpha!, image.Color);
         }
     }
 

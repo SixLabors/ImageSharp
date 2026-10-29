@@ -14,8 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 /// Stores frame sample planes, the original image metadata, and the current sample encoding.
 /// </summary>
 /// <remarks>
-/// The bundle owns assigned color and extra-channel planes. Metadata and row views are borrowed.
-/// Successful setters transfer plane ownership; failed setters leave ownership with the caller.
+/// The bundle retains one color-image wrapper and owns its sample allocations and assigned extra-channel planes.
+/// Metadata and row views are borrowed. Replacing samples invalidates earlier row views.
+/// SetFromImage moves allocations from a caller-owned image into the retained wrapper. The caller keeps an empty source wrapper.
 /// </remarks>
 internal sealed class JxlImageBundle : IDisposable
 {
@@ -137,9 +138,9 @@ internal sealed class JxlImageBundle : IDisposable
     public JxlImageMetadata Metadata { get; }
 
     /// <summary>
-    /// Gets the color data.
+    /// Gets the retained color-image owner. Its planes are empty until color samples are assigned.
     /// </summary>
-    public JxlImage3<float>? Color { get; private set; }
+    public JxlImage3<float> Color { get; } = new();
 
     /// <summary>
     /// Gets the number of owned extra-channel planes.
@@ -149,7 +150,7 @@ internal sealed class JxlImageBundle : IDisposable
     /// <summary>
     /// Gets a value indicating whether the color data is present and usable.
     /// </summary>
-    public bool HasColor => this.Color is not null && this.Color.XSize != 0;
+    public bool HasColor => this.Color.XSize != 0;
 
     /// <summary>
     /// Gets the width.
@@ -165,7 +166,7 @@ internal sealed class JxlImageBundle : IDisposable
 
             if (this.HasColor)
             {
-                return this.Color!.XSize;
+                return this.Color.XSize;
             }
 
             return this.extraChannels.Count == 0 ? 0 : this.extraChannels[0].XSize;
@@ -186,7 +187,7 @@ internal sealed class JxlImageBundle : IDisposable
 
             if (this.HasColor)
             {
-                return this.Color!.YSize;
+                return this.Color.YSize;
             }
 
             return this.extraChannels.Count == 0 ? 0 : this.extraChannels[0].YSize;
@@ -284,29 +285,9 @@ internal sealed class JxlImageBundle : IDisposable
     public void OverrideProfile(JxlColorEncoding encoding) => this.CurrentColorEncoding = encoding;
 
     /// <summary>
-    /// Borrows the color image without transferring its ownership.
+    /// Releases the color sample allocations and resets the retained image to its empty state.
     /// </summary>
-    /// <param name="color">The borrowed color image, or null when none is present.</param>
-    /// <returns>Whether the bundle contains a color image.</returns>
-    public bool TryGetColor(out JxlImage3<float>? color)
-    {
-        color = null;
-        if (this.Color is not null)
-        {
-            color = this.Color;
-        }
-
-        return color is not null;
-    }
-
-    /// <summary>
-    /// Releases the owned color planes and removes the color image.
-    /// </summary>
-    public void RemoveColor()
-    {
-        this.Color?.Dispose();
-        this.Color = null;
-    }
+    public void RemoveColor() => this.Color.Dispose();
 
     /// <summary>
     /// Releases and removes every owned extra-channel plane.
@@ -462,9 +443,9 @@ internal sealed class JxlImageBundle : IDisposable
     }
 
     /// <summary>
-    /// Replaces the color image and takes ownership when its encoding and dimensions are valid.
+    /// Replaces the color sample allocations when the supplied encoding and dimensions are valid.
     /// </summary>
-    /// <param name="color">The caller-owned color image. On success, the caller must not dispose it or assign it to another bundle.</param>
+    /// <param name="color">The caller-owned image. Success moves its sample allocations into this bundle and leaves this source wrapper empty.</param>
     /// <param name="current">Current color encoding.</param>
     /// <returns>Whether ownership transferred. On failure, this bundle and the supplied image remain unchanged.</returns>
     public bool SetFromImage(JxlImage3<float> color, JxlColorEncoding current)
@@ -488,9 +469,9 @@ internal sealed class JxlImageBundle : IDisposable
             }
         }
 
-        // Every production caller supplies newly owned storage. Existing row views remain borrows and cannot become a second image owner.
+        // The wrapper belongs to this bundle for its whole lifetime. Only the allocations move; callers can dispose their emptied source wrapper.
         this.RemoveColor();
-        this.Color = color;
+        this.Color.Swap(color);
         this.CurrentColorEncoding = current;
 
         return true;
@@ -513,7 +494,7 @@ internal sealed class JxlImageBundle : IDisposable
     {
         if (this.HasColor)
         {
-            if (this.Color?.ShrinkTo(width, height) != true)
+            if (!this.Color.ShrinkTo(width, height))
             {
                 return false;
             }
@@ -549,10 +530,12 @@ internal sealed class JxlImageBundle : IDisposable
         {
             // Reserve list slots before allocating planes, so adding an owned plane cannot fail while growing the list.
             copy.extraChannels.EnsureCapacity(this.extraChannels.Count);
-            if (this.Color is not null)
+
+            if (this.HasColor)
             {
-                copy.Color = new JxlImage3<float>(configuration, this.Color.XSize, this.Color.YSize);
-                JxlImageOperations.ForceCopyImage(this.Color, copy.Color);
+                using JxlImage3<float> color = new(configuration, this.Color.XSize, this.Color.YSize);
+                JxlImageOperations.ForceCopyImage(this.Color, color);
+                copy.Color.Swap(color);
             }
 
             // Metadata and JPEG coefficient data remain shared managed objects. Only the sample planes transfer or copy ownership.
@@ -598,7 +581,7 @@ internal sealed class JxlImageBundle : IDisposable
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms)
     {
-        if (!this.CopyTo(configuration, this.Color!.GetRectangle(), desiredEncoding, cms, this.Color!))
+        if (!this.CopyTo(configuration, this.Color.GetRectangle(), desiredEncoding, cms, this.Color))
         {
             return false;
         }

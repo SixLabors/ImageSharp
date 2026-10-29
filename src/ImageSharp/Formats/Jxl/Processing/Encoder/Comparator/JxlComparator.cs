@@ -64,7 +64,7 @@ internal sealed class JxlComparator(ButteraugliParameters parameters, JxlCmsInte
             ? new(configuration, this.width, this.height)
             : null;
 
-        JxlImage3<float> scaledActualLinearSRgb = scaledStorage ?? actualLinearSRgb.Color!;
+        JxlImage3<float> scaledActualLinearSRgb = scaledStorage ?? actualLinearSRgb.Color;
 
         if (scaleIntensity)
         {
@@ -72,7 +72,7 @@ internal sealed class JxlComparator(ButteraugliParameters parameters, JxlCmsInte
             float scale = actual.Metadata.IntensityTarget / this.intensityTarget;
             for (int c = 0; c < 3; ++c)
             {
-                JxlPlane<float> source = actualLinearSRgb.Color!.Plane(c);
+                JxlPlane<float> source = actualLinearSRgb.Color.Plane(c);
                 JxlPlane<float> destination = scaledActualLinearSRgb.Plane(c);
                 ReadOnlySpan<float> sourceSamples = source.GetRow(0);
                 Span<float> destinationSamples = destination.GetRow(0);
@@ -112,7 +112,7 @@ internal sealed class JxlComparator(ButteraugliParameters parameters, JxlCmsInte
         }
 
         // Build the replacement before releasing the previous reference. A failed conversion or allocation leaves it usable.
-        ButteraugliComparator replacement = ButteraugliComparator.Make(configuration, refLinearSRgb.Color!, parameters);
+        ButteraugliComparator replacement = ButteraugliComparator.Make(configuration, refLinearSRgb.Color, parameters);
         this.comparator?.Dispose();
         this.comparator = replacement;
 

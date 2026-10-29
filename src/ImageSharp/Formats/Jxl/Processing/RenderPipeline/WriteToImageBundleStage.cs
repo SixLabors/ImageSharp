@@ -29,14 +29,13 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
             }
         }
 
-        JxlImage3<float> tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
+        using JxlImage3<float> tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
 
         // The bundle releases its previous channels. New planes transfer to it as each setter succeeds.
         bundle.ClearExtraChannels();
 
         if (!bundle.SetFromImage(tmp, colorEncoding))
         {
-            tmp.Dispose();
             throw new InvalidOperationException("Could not set the image of an image bundle");
         }
 
@@ -64,7 +63,7 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
         for (int c = 0; c < 3; c++)
         {
             this.GetInputRow(inputRows, c, 0)[..width]
-                .CopyTo(bundle.Color!.PlaneRow(c, yPos)[xPos..]);
+                .CopyTo(bundle.Color.PlaneRow(c, yPos)[xPos..]);
         }
 
         int ecIndex = 0;

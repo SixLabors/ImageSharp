@@ -300,11 +300,11 @@ public class JxlDecoderCoreTests
                 }
             }
 
-            JxlImage3<float> preview = new(configuration, ib.XSize * 7, ib.YSize * 7);
+            using JxlImage3<float> preview = new(configuration, ib.XSize * 7, ib.YSize * 7);
 
             for (int c = 0; c < 3; c++)
             {
-                Upsample7(ib.Color!.Plane(c), preview.Plane(c));
+                Upsample7(ib.Color.Plane(c), preview.Plane(c));
             }
 
             List<JxlPlane<float>> extraChannels = [];

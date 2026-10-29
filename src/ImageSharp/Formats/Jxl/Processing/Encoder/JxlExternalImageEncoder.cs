@@ -169,7 +169,7 @@ internal class JxlExternalImageEncoder
             throw new InvalidOperationException($"Expected {colorChannels} color channels, received only {format.Channels} channels.");
         }
 
-        JxlImage3<float> color = new(configuration, xSize, ySize);
+        using JxlImage3<float> color = new(configuration, xSize, ySize);
 
         for (int c = 0; c < colorChannels; c++)
         {
@@ -190,25 +190,35 @@ internal class JxlExternalImageEncoder
             throw new InvalidOperationException("Could not set image bundle");
         }
 
+        // The bundle now owns the copied samples; the local image wrapper is empty. The supplied byte memory remains borrowed.
         if (setAlpha)
         {
-            JxlPlane<float> alpha = new(configuration, xSize, ySize);
+            JxlPlane<float>? alpha = new(configuration, xSize, ySize);
 
-            if (hasAlpha)
+            try
             {
-                if (!ConvertFromExternal(configuration, bytes, xSize, ySize, bitsPerSample, format, format.Channels - 1, alpha))
+                if (hasAlpha)
                 {
-                    return false;
+                    if (!ConvertFromExternal(configuration, bytes, xSize, ySize, bitsPerSample, format, format.Channels - 1, alpha))
+                    {
+                        return false;
+                    }
                 }
-            }
-            else
-            {
-                JxlImageOperations.FillImage(1.0F, alpha);
-            }
+                else
+                {
+                    JxlImageOperations.FillImage(1.0F, alpha);
+                }
 
-            if (!imageBundle.TrySetAlpha(alpha))
+                if (!imageBundle.TrySetAlpha(alpha))
+                {
+                    throw new InvalidOperationException("Failed to set alpha channel");
+                }
+
+                alpha = null;
+            }
+            finally
             {
-                throw new InvalidOperationException("Failed to set alpha channel");
+                alpha?.Dispose();
             }
         }
 

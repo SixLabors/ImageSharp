@@ -762,10 +762,10 @@ internal static class JxlAdaptiveQuantization
 
         try
         {
-            JxlImage3<float> tmp = new(configuration, opsin.XSize, opsin.YSize);
+            using JxlImage3<float> tmp = new(configuration, opsin.XSize, opsin.YSize);
+
             if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
             {
-                tmp.Dispose();
                 throw new InvalidOperationException("Could not set image bundle");
             }
 
@@ -1185,7 +1185,7 @@ internal static class JxlAdaptiveQuantization
             }
 
             using JxlImageBundle decoded = RoundtripImage(configuration, frameHeader, opsin, encState, cms);
-            JxlImage3<float> reconstructed = decoded.Color!;
+            JxlImage3<float> reconstructed = decoded.Color;
             ReadOnlySpan<float> decoded0 = reconstructed.Plane(0).GetRow(0);
             ReadOnlySpan<float> decoded1 = reconstructed.Plane(1).GetRow(0);
             ReadOnlySpan<float> decoded2 = reconstructed.Plane(2).GetRow(0);

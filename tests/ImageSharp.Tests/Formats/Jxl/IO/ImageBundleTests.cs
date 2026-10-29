@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 
@@ -19,6 +20,72 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 
 public class ImageBundleTests
 {
+    /// <summary>
+    /// Checks that color transfers and removal retain the bundle's wrapper while moving or releasing sample allocations.
+    /// </summary>
+    [Fact]
+    public void ColorTransfer_KeepsWrapperAcrossReplacementAndRemoval()
+    {
+        using JxlImageBundle bundle = new(new JxlImageMetadata());
+        JxlImage3<float> retained = bundle.Color;
+        JxlColorEncoding encoding = new();
+        using JxlImage3<float> first = new(TestEnvironment.Configuration, 1, 1);
+        JxlImageOperations.FillImage(7F, first);
+
+        Assert.True(bundle.SetFromImage(first, encoding));
+        Assert.Same(retained, bundle.Color);
+        Assert.Equal(0, first.XSize);
+        Assert.Equal(7F, bundle.Color.PlaneRow(0, 0)[0]);
+
+        // The input wrappers stay caller-owned. Replacing the bundle moves the next allocation into the same retained wrapper.
+        using JxlImage3<float> replacement = new(TestEnvironment.Configuration, 2, 1);
+        JxlImageOperations.FillImage(5F, replacement);
+        Assert.True(bundle.SetFromImage(replacement, encoding));
+        Assert.Same(retained, bundle.Color);
+        Assert.Equal(0, replacement.XSize);
+        Assert.Equal(2, bundle.Color.XSize);
+        Assert.Equal(5F, bundle.Color.PlaneRow(0, 0)[0]);
+
+        bundle.RemoveColor();
+
+        Assert.Same(retained, bundle.Color);
+        Assert.False(bundle.HasColor);
+        Assert.Same(encoding, bundle.CurrentColorEncoding);
+
+        for (int c = 0; c < 3; c++)
+        {
+            Assert.True(bundle.Color.PlaneRowMemory(c, 0).IsEmpty);
+        }
+    }
+
+    /// <summary>
+    /// Checks that rejecting a gray/RGB model change leaves both the bundle and caller-owned samples intact.
+    /// </summary>
+    [Fact]
+    public void ColorTransfer_IncompatibleEncodingLeavesBothOwnersUnchanged()
+    {
+        using JxlImageBundle bundle = new(new JxlImageMetadata());
+        JxlColorEncoding encoding = new();
+        using JxlImage3<float> first = new(TestEnvironment.Configuration, 1, 1);
+        JxlImageOperations.FillImage(3F, first);
+        Assert.True(bundle.SetFromImage(first, encoding));
+
+        using JxlImage3<float> rejected = new(TestEnvironment.Configuration, 2, 1);
+        JxlImageOperations.FillImage(9F, rejected);
+        JxlColorEncoding gray = new() { ColorSpace = JxlColorSpace.Gray };
+
+        Assert.False(bundle.SetFromImage(rejected, gray));
+        Assert.Equal(1, bundle.Color.XSize);
+        Assert.Equal(2, rejected.XSize);
+        Assert.Same(encoding, bundle.CurrentColorEncoding);
+
+        for (int c = 0; c < 3; c++)
+        {
+            Assert.Equal(3F, bundle.Color.PlaneRow(c, 0)[0]);
+            Assert.Equal(9F, rejected.PlaneRow(c, 0)[0]);
+        }
+    }
+
     /// <summary>
     /// Checks that released plane storage cannot be reused through its previous dimensions.
     /// </summary>

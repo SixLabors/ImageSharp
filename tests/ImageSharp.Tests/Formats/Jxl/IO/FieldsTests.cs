@@ -10,11 +10,206 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 
 public class FieldsTests
 {
+    /// <summary>
+    /// Checks that the one-bit default shortcut replaces earlier serialized color fields.
+    /// </summary>
+    [Fact]
+    public void ReadColorHeader_DefaultShortcutRestoresFields()
+    {
+        JxlColorEncoding encoding = new()
+        {
+            NeedsIcc = true,
+            HaveFields = false,
+            ColorSpace = JxlColorSpace.Unknown,
+            WhitePoint = JxlWhitePoint.Custom,
+            White = new() { X = 123, Y = -456 },
+            Primaries = JxlPrimaries.Custom,
+            Red = new() { X = 654, Y = -321 },
+            RenderingIntent = IccRenderingIntent.AbsoluteColorimetric,
+            TransferFunction = new() { HaveGamma = true, Gamma = 3333334 },
+            IccProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39)
+        };
+
+        Assert.True(encoding.Cmyk);
+
+        // A set first bit replaces the complete serialized color header. No ICC flag or color-space bits follow.
+        using MemoryStream input = new([0x01]);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, encoding));
+        Assert.Equal(1, reader.TotalBitsConsumed);
+        Assert.False(encoding.NeedsIcc);
+        Assert.True(encoding.HaveFields);
+        Assert.Null(encoding.IccProfile);
+        Assert.False(encoding.Cmyk);
+        Assert.Equal(JxlColorSpace.Rgb, encoding.ColorSpace);
+        Assert.Equal(JxlWhitePoint.D65, encoding.WhitePoint);
+        Assert.Equal(JxlPrimaries.SRgb, encoding.Primaries);
+        Assert.Equal(IccRenderingIntent.MediaRelativeColorimetric, encoding.RenderingIntent);
+        Assert.True(encoding.TransferFunction.IsSrgb);
+        Assert.Equal(0, encoding.White.X);
+        Assert.Equal(0, encoding.White.Y);
+        Assert.Equal(0, encoding.Red.X);
+        Assert.Equal(0, encoding.Red.Y);
+        Assert.True(JxlBundle.AllDefault(encoding));
+    }
+
+    /// <summary>
+    /// Checks that ICC-only headers retain their color space before the profile payload is available.
+    /// </summary>
+    [Theory]
+    [InlineData(new byte[] { 0x06 }, 1, 4)]
+    [InlineData(new byte[] { 0x1A }, 3, 8)]
+    public void ReadColorHeader_IccFlagKeepsColorSpace(byte[] wire, int expectedColorSpace, int expectedBits)
+    {
+        // After all_default=0 and want_icc=1, only the color-space enum is present in this header.
+        using MemoryStream input = new(wire);
+        JxlBitReader reader = new(input);
+        JxlColorEncoding encoding = new();
+
+        Assert.True(JxlBundle.Read(reader, encoding));
+        Assert.Equal(expectedBits, reader.TotalBitsConsumed);
+        Assert.Equal((JxlColorSpace)expectedColorSpace, encoding.ColorSpace);
+        Assert.True(encoding.NeedsIcc);
+        Assert.False(encoding.HaveFields);
+        Assert.Null(encoding.IccProfile);
+        Assert.False(encoding.TryGetPrimaries(out _));
+    }
+
+    /// <summary>
+    /// Checks custom white and primary coordinate order against fixed signed-integer wire data.
+    /// </summary>
+    [Fact]
+    public void ReadColorHeader_CustomCoordinatesRetainWireOrder()
+    {
+        // RGB, custom white, custom primaries, sRGB transfer and absolute intent. Coordinates use millionths:
+        // white=(312700,329000), red=(640000,330000), green=(300000,600000), blue=(150000,60000).
+        using MemoryStream input = new(
+            [0x20, 0x84, 0xAF, 0x98, 0xA0, 0x14, 0x24, 0x08, 0x80, 0x38, 0x81, 0x48, 0x28,
+             0xE0, 0x93, 0x08, 0xF8, 0x24, 0x80, 0x4F, 0x12, 0x60, 0xEA, 0x70, 0x0D]);
+
+        JxlBitReader reader = new(input);
+        JxlColorEncoding encoding = new();
+
+        Assert.True(JxlBundle.Read(reader, encoding));
+        Assert.Equal(199, reader.TotalBitsConsumed);
+        Assert.Equal(JxlWhitePoint.Custom, encoding.WhitePoint);
+        Assert.Equal(JxlPrimaries.Custom, encoding.Primaries);
+        Assert.Equal((312700, 329000), (encoding.White.X, encoding.White.Y));
+        Assert.Equal((640000, 330000), (encoding.Red.X, encoding.Red.Y));
+        Assert.Equal((300000, 600000), (encoding.Green.X, encoding.Green.Y));
+        Assert.Equal((150000, 60000), (encoding.Blue.X, encoding.Blue.Y));
+        Assert.True(encoding.TransferFunction.IsSrgb);
+        Assert.Equal(IccRenderingIntent.AbsoluteColorimetric, encoding.RenderingIntent);
+        Assert.False(encoding.NeedsIcc);
+        Assert.True(encoding.HaveFields);
+    }
+
+    /// <summary>
+    /// Checks exact gamma integers and both limits of the encoded OETF exponent.
+    /// </summary>
+    [Theory]
+    [InlineData(new byte[] { 0x50, 0x89, 0x09, 0x00, 0x02 }, 1220U, false)]
+    [InlineData(new byte[] { 0x50, 0x8B, 0x09, 0x00, 0x02 }, 1221U, true)]
+    [InlineData(new byte[] { 0x50, 0xAD, 0xB9, 0x65, 0x02 }, 3333334U, true)]
+    [InlineData(new byte[] { 0x50, 0x01, 0x2D, 0x31, 0x03 }, 10000000U, true)]
+    [InlineData(new byte[] { 0x50, 0x03, 0x2D, 0x31, 0x03 }, 10000001U, false)]
+    public void ReadColorHeader_CustomGammaRespectsIntegerBounds(byte[] wire, uint gamma, bool valid)
+    {
+        // Default RGB primaries and white, followed by have_gamma=1, the 24-bit integer and relative intent.
+        // 3333334 must remain distinct from the implicit XYB exponent 3333333.
+        using MemoryStream input = new(wire);
+        JxlBitReader reader = new(input);
+        JxlColorEncoding encoding = new();
+
+        Assert.Equal(valid, JxlBundle.Read(reader, encoding));
+        Assert.Equal(valid ? 35 : 33, reader.TotalBitsConsumed);
+
+        if (valid)
+        {
+            Assert.True(encoding.TransferFunction.HaveGamma);
+            Assert.Equal(gamma, encoding.TransferFunction.Gamma);
+        }
+    }
+
+    /// <summary>
+    /// Checks that XYB supplies its white point and transfer function without reading their fields.
+    /// </summary>
+    [Fact]
+    public void ReadColorHeader_XybUsesImplicitFields()
+    {
+        // all_default=0, want_icc=0, XYB enum, relative intent. No white, primary or transfer bits are present.
+        using MemoryStream input = new([0x08, 0x01]);
+        JxlBitReader reader = new(input);
+        JxlColorEncoding encoding = new();
+
+        Assert.True(JxlBundle.Read(reader, encoding));
+        Assert.Equal(10, reader.TotalBitsConsumed);
+        Assert.Equal(JxlColorSpace.Xyb, encoding.ColorSpace);
+        Assert.Equal(JxlWhitePoint.D65, encoding.WhitePoint);
+        Assert.True(encoding.TransferFunction.HaveGamma);
+        Assert.Equal(3333333U, encoding.TransferFunction.Gamma);
+        Assert.False(encoding.HasPrimaries);
+        Assert.True(encoding.HaveFields);
+    }
+
+    /// <summary>
+    /// Checks that grayscale headers read white point and transfer fields without primary fields.
+    /// </summary>
+    [Fact]
+    public void ReadColorHeader_GrayOmitsPrimaries()
+    {
+        // all_default=0, want_icc=0, Gray, D65, have_gamma=0, BT.709 transfer, relative intent.
+        using MemoryStream input = new([0x94, 0x02]);
+        JxlBitReader reader = new(input);
+        JxlColorEncoding encoding = new();
+
+        Assert.True(JxlBundle.Read(reader, encoding));
+        Assert.Equal(11, reader.TotalBitsConsumed);
+        Assert.Equal(JxlColorSpace.Gray, encoding.ColorSpace);
+        Assert.Equal(JxlWhitePoint.D65, encoding.WhitePoint);
+        Assert.False(encoding.HasPrimaries);
+        Assert.True(encoding.TransferFunction.Is709);
+        Assert.True(encoding.HaveFields);
+    }
+
+    /// <summary>
+    /// Checks that a defined Unknown transfer code cannot describe colors without an ICC payload.
+    /// </summary>
+    [Fact]
+    public void ReadColorHeader_UnknownTransferRequiresIcc()
+    {
+        // Explicit RGB/D65/sRGB primaries, Unknown transfer, relative intent, with want_icc=0.
+        using MemoryStream input = new([0x50, 0x84, 0x00]);
+        JxlBitReader reader = new(input);
+
+        Assert.False(JxlBundle.Read(reader, new JxlColorEncoding()));
+        Assert.Equal(17, reader.TotalBitsConsumed);
+    }
+
+    /// <summary>
+    /// Checks both ends of the signed custom-coordinate encoding without floating-point rounding.
+    /// </summary>
+    [Fact]
+    public void ReadCustomCoordinates_SupportSignedWireExtremes()
+    {
+        // Each selector is 3. The 21-bit payloads restore packed values 4194303 and 4194302.
+        using MemoryStream input = new([0xFF, 0xFF, 0xFF, 0xFD, 0xFF, 0x3F]);
+        JxlBitReader reader = new(input);
+        JxlCustomXy coordinates = new();
+
+        Assert.True(coordinates.Visit(new JxlReadVisitor(reader)));
+        Assert.Equal(46, reader.TotalBitsConsumed);
+        Assert.Equal(-2097152, coordinates.X);
+        Assert.Equal(2097151, coordinates.Y);
+    }
+
     /// <summary>
     /// Checks byte and UInt32 enum fields against fixed LSB-first wire data.
     /// </summary>

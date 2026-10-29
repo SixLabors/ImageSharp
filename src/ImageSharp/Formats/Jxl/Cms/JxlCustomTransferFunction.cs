@@ -1,21 +1,39 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Fields;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Cms;
 
+/// <summary>
+/// Stores a named transfer function or the exact integer gamma field from a JPEG XL header.
+/// </summary>
 internal struct JxlCustomTransferFunction
 {
     private const uint MaxGamma = 8192;
     private const uint GammaMultiplier = 10000000;
+    private const uint XybGamma = GammaMultiplier / 3;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlCustomTransferFunction"/> struct with sRGB transfer defaults.
+    /// </summary>
     public JxlCustomTransferFunction()
     {
     }
 
+    /// <summary>
+    /// Gets or sets whether the encoding uses a custom gamma instead of a named transfer function.
+    /// </summary>
     public bool HaveGamma { get; set; }
 
-    public uint Gamma { get; set; }
+    /// <summary>
+    /// Gets or sets the OETF exponent multiplied by ten million. Direct wire decoding preserves this integer.
+    /// </summary>
+    public uint Gamma { get; set; } = GammaMultiplier;
 
+    /// <summary>
+    /// Gets or sets the named transfer function used when <see cref="HaveGamma"/> is false.
+    /// </summary>
     public JxlTransferFunction TransferFunction { get; set; } = JxlTransferFunction.SRgb;
 
     public readonly bool IsUnknown => !this.HaveGamma && this.TransferFunction == JxlTransferFunction.Unknown;
@@ -32,6 +50,71 @@ internal struct JxlCustomTransferFunction
 
     public readonly bool IsDci => !this.HaveGamma && this.TransferFunction == JxlTransferFunction.Dci;
 
+    /// <summary>
+    /// Visits the named transfer function or exact integer gamma for the current color space.
+    /// </summary>
+    /// <param name="visitor">The header field operation.</param>
+    /// <param name="colorSpace">The color space that determines whether transfer fields are implicit.</param>
+    /// <returns>Whether the transfer fields satisfy the wire encoding and gamma bounds.</returns>
+    public bool Visit(JxlVisitor visitor, JxlColorSpace colorSpace)
+    {
+        bool implicitTransfer = colorSpace == JxlColorSpace.Xyb;
+
+        if (implicitTransfer)
+        {
+            // XYB has an implicit one-third exponent. It consumes no transfer bits.
+            // Keep the encoded integer approximation, rather than converting through a floating-point setter.
+            this.HaveGamma = true;
+            this.Gamma = XybGamma;
+            this.TransferFunction = JxlTransferFunction.Unknown;
+        }
+
+        if (visitor.Conditional(!implicitTransfer))
+        {
+            bool haveGamma = this.HaveGamma;
+
+            if (!visitor.Boolean(false, ref haveGamma))
+            {
+                return false;
+            }
+
+            this.HaveGamma = haveGamma;
+
+            if (visitor.Conditional(haveGamma))
+            {
+                uint gamma = this.Gamma;
+
+                if (!visitor.Bits(24, GammaMultiplier, ref gamma))
+                {
+                    return false;
+                }
+
+                // The OETF exponent is gamma / 10000000 and must be within [1/8192,1].
+                // Integer validation preserves the exact decoded value and cannot round an invalid exponent into range.
+                if (gamma > GammaMultiplier || ((ulong)gamma * MaxGamma) < GammaMultiplier)
+                {
+                    return false;
+                }
+
+                this.Gamma = gamma;
+            }
+
+            if (visitor.Conditional(!haveGamma))
+            {
+                JxlTransferFunction transferFunction = this.TransferFunction;
+
+                if (!visitor.Enum(JxlTransferFunction.SRgb, ref transferFunction))
+                {
+                    return false;
+                }
+
+                this.TransferFunction = transferFunction;
+            }
+        }
+
+        return true;
+    }
+
     public readonly JxlTransferFunction GetTransferFunction()
     {
         if (this.HaveGamma)
@@ -42,10 +125,14 @@ internal struct JxlCustomTransferFunction
         return this.TransferFunction;
     }
 
-    public void SetTransferFunction(JxlTransferFunction tf)
+    /// <summary>
+    /// Selects a named transfer function instead of a custom gamma.
+    /// </summary>
+    /// <param name="transferFunction">The transfer function to select.</param>
+    public void SetTransferFunction(JxlTransferFunction transferFunction)
     {
         this.HaveGamma = false;
-        this.TransferFunction = tf;
+        this.TransferFunction = transferFunction;
     }
 
     public readonly float GetGamma()

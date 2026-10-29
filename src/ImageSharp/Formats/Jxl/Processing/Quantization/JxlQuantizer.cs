@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
@@ -68,7 +69,7 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// Quantizer DC
     /// </summary>
-    private int quantDc;
+    private int dcQuantization;
 
     /// <summary>
     /// The zero bias.
@@ -76,34 +77,34 @@ internal sealed class JxlQuantizer
     private readonly InlineArray3<float> zeroBias;
 
     /// <summary>
-    /// The dequant matrices.
+    /// The dequantization matrices used by this quantizer.
     /// </summary>
-    private readonly JxlDequantMatrices? dequant;
+    private readonly JxlDequantMatrices dequantizationMatrices;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlQuantizer"/> class using the default
     /// DC quantizer &amp; scale factors.
     /// </summary>
-    /// <param name="dequant">The dequant.</param>
-    public JxlQuantizer(JxlDequantMatrices dequant)
-        : this(dequant, DefaultQuant, GlobalScaleDenominator / DefaultQuant)
+    /// <param name="dequantizationMatrices">The matrices used to restore coefficient magnitudes.</param>
+    public JxlQuantizer(JxlDequantMatrices dequantizationMatrices)
+        : this(dequantizationMatrices, DefaultQuant, GlobalScaleDenominator / DefaultQuant)
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlQuantizer"/> class.
     /// </summary>
-    /// <param name="dequant">The dequant.</param>
-    /// <param name="quantDc">The DC quantizer.</param>
+    /// <param name="dequantizationMatrices">The matrices used to restore coefficient magnitudes.</param>
+    /// <param name="dcQuantization">The DC quantizer.</param>
     /// <param name="globalScale">The scale factor.</param>
-    public JxlQuantizer(JxlDequantMatrices dequant, int quantDc, int globalScale)
+    public JxlQuantizer(JxlDequantMatrices dequantizationMatrices, int dcQuantization, int globalScale)
     {
-        this.dequant = dequant;
-        this.quantDc = quantDc;
+        this.dequantizationMatrices = dequantizationMatrices;
+        this.dcQuantization = dcQuantization;
         this.globalScale = globalScale;
 
         this.RecomputeFromGlobalScale();
-        this.InverseQuantDc = this.InverseGlobalScale / this.quantDc;
+        this.InverseQuantDc = this.InverseGlobalScale / this.dcQuantization;
 
         ZeroBiasDefault.CopyTo(this.zeroBias);
     }
@@ -184,46 +185,46 @@ internal sealed class JxlQuantizer
     {
         this.Scale = this.globalScale * (1.0f / GlobalScaleDenominator);
         this.InverseGlobalScale = 1.0f * GlobalScaleDenominator / this.globalScale;
-        this.InverseQuantDc = this.InverseGlobalScale / this.quantDc;
+        this.InverseQuantDc = this.InverseGlobalScale / this.dcQuantization;
 
-        for (int c = 0; c < 3; c++)
+        for (int channelIndex = 0; channelIndex < 3; channelIndex++)
         {
-            this.mulDc[c] = this.GetDcStep(c);
-            this.inverseMulDc[c] = this.GetInverseDcStep(c);
+            this.mulDc[channelIndex] = this.GetDcStep(channelIndex);
+            this.inverseMulDc[channelIndex] = this.GetInverseDcStep(channelIndex);
         }
     }
 
     /// <summary>
-    /// Returns the dequant matrix.
+    /// Returns the dequantization matrix.
     /// </summary>
     /// <param name="strategy">The quant kind</param>
-    /// <param name="c">The quantization index</param>
-    /// <returns>The dequant matrix.</returns>
-    public ReadOnlySpan<float> DequantMatrix(JxlAcStrategyType strategy, int c)
-        => this.dequant!.GetMatrix(strategy, c);
+    /// <param name="channelIndex">The XYB channel index.</param>
+    /// <returns>The dequantization matrix.</returns>
+    public ReadOnlySpan<float> DequantMatrix(JxlAcStrategyType strategy, int channelIndex)
+        => this.dequantizationMatrices.GetMatrix(strategy, channelIndex);
 
     /// <summary>
-    /// Returns the inverse dequant matrix.
+    /// Returns the inverse dequantization matrix.
     /// </summary>
     /// <param name="strategy">The quant kind</param>
-    /// <param name="c">The quantization index</param>
-    /// <returns>The inverse dequant matrix.</returns>
-    public ReadOnlySpan<float> InverseDequantMatrix(JxlAcStrategyType strategy, int c)
-        => this.dequant!.GetInverseMatrix(strategy, c);
+    /// <param name="channelIndex">The XYB channel index.</param>
+    /// <returns>The inverse dequantization matrix.</returns>
+    public ReadOnlySpan<float> InverseDequantMatrix(JxlAcStrategyType strategy, int channelIndex)
+        => this.dequantizationMatrices.GetInverseMatrix(strategy, channelIndex);
 
     /// <summary>
     /// Returns the DC quantization step.
     /// </summary>
-    /// <param name="c">The quantization index</param>
+    /// <param name="channelIndex">The XYB channel index.</param>
     /// <returns>The DC quantization step</returns>
-    public float GetDcStep(int c) => this.InverseQuantDc * this.dequant!.GetDcQuant(c);
+    public float GetDcStep(int channelIndex) => this.InverseQuantDc * this.dequantizationMatrices.GetDcQuant(channelIndex);
 
     /// <summary>
     /// Returns the inverse DC quantization step.
     /// </summary>
-    /// <param name="c">The quantization index</param>
+    /// <param name="channelIndex">The XYB channel index.</param>
     /// <returns>The inverse DC quantization step</returns>
-    public float GetInverseDcStep(int c) => this.dequant!.GetInverseDcQuant(c) * (this.Scale * this.quantDc);
+    public float GetInverseDcStep(int channelIndex) => this.dequantizationMatrices.GetInverseDcQuant(channelIndex) * (this.Scale * this.dcQuantization);
 
     /// <summary>
     /// Creates JXL quantizer parameters with values reflecting those in this quantizer instance.
@@ -231,7 +232,7 @@ internal sealed class JxlQuantizer
     /// <returns>The quantizer parameters.</returns>
     public JxlQuantizerParameters GetParameters() => new()
     {
-        QuantDc = (uint)this.quantDc,
+        QuantDc = (uint)this.dcQuantization,
         GlobalScale = (uint)this.globalScale
     };
 
@@ -242,14 +243,14 @@ internal sealed class JxlQuantizer
     /// <exception cref="IOException">Thrown when it is not possible to parse the quantizer parameters.</exception>
     public void Decode(JxlBitReader reader)
     {
-        JxlQuantizerParameters qp = new();
-        if (!JxlBundle.Read(reader, qp))
+        JxlQuantizerParameters parameters = new();
+        if (!JxlBundle.Read(reader, parameters))
         {
             throw new IOException("Could not read quantizer parameters");
         }
 
-        this.globalScale = (int)qp.GlobalScale;
-        this.quantDc = (int)qp.QuantDc;
+        this.globalScale = (int)parameters.GlobalScale;
+        this.dcQuantization = (int)parameters.QuantDc;
 
         this.RecomputeFromGlobalScale();
     }
@@ -257,15 +258,18 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// Recomputes the scaling factors and quant.
     /// </summary>
-    public void ComputeGlobalScaleAndQuant(float quantDc, float quantMedian, float quantMedianAbsd)
+    /// <param name="dcQuantization">The requested DC quantization scale.</param>
+    /// <param name="medianQuantization">The median of the per-block quantization values.</param>
+    /// <param name="medianAbsoluteDeviation">The median absolute deviation from that median.</param>
+    public void ComputeGlobalScaleAndQuant(float dcQuantization, float medianQuantization, float medianAbsoluteDeviation)
     {
         const int quantFieldTarget = 5;
-        float scale = GlobalScaleDenominator * (quantMedian - quantMedianAbsd) / quantFieldTarget;
+        float scale = GlobalScaleDenominator * (medianQuantization - medianAbsoluteDeviation) / quantFieldTarget;
 
         scale = Math.Clamp(scale, 1, 1 << 15);
 
         int newGlobalScale = (int)scale;
-        int scaledQuantDc = (int)(quantDc * GlobalScaleNumerator * 1.6f);
+        int scaledQuantDc = (int)(dcQuantization * GlobalScaleNumerator * 1.6f);
 
         if (newGlobalScale > scaledQuantDc)
         {
@@ -281,92 +285,93 @@ internal sealed class JxlQuantizer
 
         this.RecomputeFromGlobalScale();
 
-        float valueF = (quantDc * this.InverseGlobalScale) + 0.5f;
+        float valueF = (dcQuantization * this.InverseGlobalScale) + 0.5f;
         float clipValueF = MathF.Min(1 << 16, valueF);
         int newQuant = (int)clipValueF;
-        this.quantDc = newQuant;
+        this.dcQuantization = newQuant;
 
         this.RecomputeFromGlobalScale();
     }
 
     /// <summary>
-    /// Quantizes the specified rectangular selection.
+    /// Converts floating-point quantization values to integers within a block region.
     /// </summary>
-    public void SetQuantFieldRect(JxlPlane<float> qf, in Rectangle rect, JxlPlane<int> rawQuantField)
+    /// <param name="quantizationField">The source per-block quantization values.</param>
+    /// <param name="blockBounds">The region in blocks, applied to both fields.</param>
+    /// <param name="quantizedField">The destination integer quantization values.</param>
+    public void SetQuantFieldRect(JxlPlane<float> quantizationField, in Rectangle blockBounds, JxlPlane<int> quantizedField)
     {
-        for (int y = 0; y < rect.Height; y++)
+        for (int y = 0; y < blockBounds.Height; y++)
         {
-            ReadOnlySpan<float> rowQf = qf.GetRow(rect, y);
-            Span<int> rowQi = rawQuantField.GetRow(rect, y);
+            ReadOnlySpan<float> quantizationRow = quantizationField.GetRow(blockBounds, y);
+            Span<int> quantizedRow = quantizedField.GetRow(blockBounds, y);
 
-            for (int x = 0; x < rect.Width; x++)
+            for (int x = 0; x < blockBounds.Width; x++)
             {
-                int val = Clamp((rowQf[x] * this.InverseGlobalScale) + 0.5f);
+                int val = Clamp((quantizationRow[x] * this.InverseGlobalScale) + 0.5f);
 
-                rowQi[x] = val;
+                quantizedRow[x] = val;
             }
         }
     }
 
     /// <summary>
-    /// Set the quant field.
+    /// Sets the global quantization scale and optionally writes the integer quantization field.
     /// </summary>
-    public bool SetQuantField(Configuration configuration, float quantDc, JxlPlane<float> qf, JxlPlane<int>? rawQuantField)
+    /// <param name="configuration">The configuration that owns temporary sample storage.</param>
+    /// <param name="dcQuantization">The requested DC quantization scale.</param>
+    /// <param name="quantizationField">The source per-block quantization values.</param>
+    /// <param name="quantizedField">The destination integer field, or null to update only the global scale.</param>
+    /// <returns>Whether the destination field has matching dimensions.</returns>
+    public bool SetQuantField(Configuration configuration, float dcQuantization, JxlPlane<float> quantizationField, JxlPlane<int>? quantizedField)
     {
-        IMemoryOwner<float> data = configuration.MemoryAllocator.Allocate<float>(qf.XSize * qf.YSize);
-        Span<float> dataSpan = data.Memory.Span;
-
-        for (int y = 0; y < qf.YSize; y++)
+        if (quantizedField is not null && quantizedField.GetRectangle() != quantizationField.GetRectangle())
         {
-            ReadOnlySpan<float> rowQf = qf.GetRow(y);
-
-            for (int x = 0; x < qf.XSize; y++)
-            {
-                float quant = rowQf[x];
-
-                dataSpan[(qf.XSize * y) + x] = quant;
-            }
+            return false;
         }
 
-        dataSpan[dataSpan.Length / 2] = JxlSpanHelper.NthElement(dataSpan, dataSpan.Length / 2);
-        float quantMedian = dataSpan[dataSpan.Length / 2];
+        // A valid frame supplies one value per DCT block. Copy logical samples only: GetRow also exposes
+        // the plane's padded stride and following rows. Sorting must not include that storage or mutate the source field.
+        int sampleCount = quantizationField.XSize * quantizationField.YSize;
+        using IMemoryOwner<float> samplesOwner = configuration.MemoryAllocator.Allocate<float>(sampleCount);
+        Span<float> samples = samplesOwner.Memory.Span[..sampleCount];
 
-        IMemoryOwner<float> deviations = configuration.MemoryAllocator.Allocate<float>(dataSpan.Length);
-        Span<float> deviationsSpan = deviations.Memory.Span;
-        for (int i = 0; i < dataSpan.Length; i++)
+        for (int y = 0; y < quantizationField.YSize; y++)
         {
-            deviationsSpan[i] = MathF.Abs(dataSpan[i] - quantMedian);
+            quantizationField.GetRow(y)[..quantizationField.XSize].CopyTo(samples.Slice(y * quantizationField.XSize, quantizationField.XSize));
         }
 
-        deviationsSpan[deviationsSpan.Length / 2] = JxlSpanHelper.NthElement(deviationsSpan, deviationsSpan.Length / 2);
-        float quantMedianAbsd = deviationsSpan[deviationsSpan.Length / 2];
+        samples.Sort();
+        float medianQuantization = samples[sampleCount / 2];
 
-        this.ComputeGlobalScaleAndQuant(quantDc, quantMedian, quantMedianAbsd);
+        // Reuse the copied samples for absolute deviations. These have a different order from the original
+        // values, so sort them before reading their median. Shared tensor operations calculate the deviations.
+        TensorPrimitives.Subtract(samples, medianQuantization, samples);
+        TensorPrimitives.Abs(samples, samples);
+        samples.Sort();
+        float medianAbsoluteDeviation = samples[sampleCount / 2];
 
-        if (rawQuantField != null)
+        this.ComputeGlobalScaleAndQuant(dcQuantization, medianQuantization, medianAbsoluteDeviation);
+
+        if (quantizedField is not null)
         {
-            if (rawQuantField.GetRectangle() != qf.GetRectangle())
-            {
-                data.Dispose();
-                deviations.Dispose();
-
-                return false;
-            }
-
-            this.SetQuantFieldRect(qf, qf.GetRectangle(), rawQuantField);
+            this.SetQuantFieldRect(quantizationField, quantizationField.GetRectangle(), quantizedField);
         }
-
-        data.Dispose();
-        deviations.Dispose();
 
         return true;
     }
 
-    public void SetQuant(float quantDc, float quantAc, JxlPlane<int> rawQuantField)
+    /// <summary>
+    /// Sets uniform AC quantization and the requested DC quantization scale.
+    /// </summary>
+    /// <param name="dcQuantization">The requested DC quantization scale.</param>
+    /// <param name="acQuantization">The AC quantization value for every block.</param>
+    /// <param name="quantizedField">The destination integer quantization field.</param>
+    public void SetQuant(float dcQuantization, float acQuantization, JxlPlane<int> quantizedField)
     {
-        this.ComputeGlobalScaleAndQuant(quantDc, quantAc, 0);
+        this.ComputeGlobalScaleAndQuant(dcQuantization, acQuantization, 0);
 
-        int value = Clamp((quantAc * this.InverseGlobalScale) + 0.5f);
-        JxlImageOperations.FillImage(value, rawQuantField);
+        int value = Clamp((acQuantization * this.InverseGlobalScale) + 0.5f);
+        JxlImageOperations.FillImage(value, quantizedField);
     }
 }

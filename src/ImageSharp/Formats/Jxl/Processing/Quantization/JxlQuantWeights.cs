@@ -25,8 +25,7 @@ internal static class JxlQuantWeights
     public const int Log2NumQuantModes = 3;
 
     // The format rejects quantization weights outside this reciprocal-safe interval.
-    private const float AlmostZero = 1e-8f;
-    private const float MaximumWeight = 1F / AlmostZero;
+    private const float MaximumWeight = 1F / JxlQuantizerConstants.MinimumWeight;
 
     /// <summary>
     /// DCT quantizer encoding. (6 distance bands)
@@ -677,7 +676,7 @@ internal static class JxlQuantWeights
         {
             bands[0] = parameters.DistanceBands[c][0];
 
-            if (bands[0] < AlmostZero)
+            if (bands[0] < JxlQuantizerConstants.MinimumWeight)
             {
                 return false;
             }
@@ -686,7 +685,7 @@ internal static class JxlQuantWeights
             {
                 bands[i] = bands[i - 1] * Mult(parameters.DistanceBands[c][i]);
 
-                if (bands[i] < AlmostZero)
+                if (bands[i] < JxlQuantizerConstants.MinimumWeight)
                 {
                     return false;
                 }
@@ -930,7 +929,7 @@ internal static class JxlQuantWeights
                 {
                     bands[0] = encoding.ModeWeights[c][5];
 
-                    if (bands[0] < AlmostZero)
+                    if (bands[0] < JxlQuantizerConstants.MinimumWeight)
                     {
                         throw new InvalidOperationException("Invalid AFV bands");
                     }
@@ -939,7 +938,7 @@ internal static class JxlQuantWeights
                     {
                         bands[i] = bands[i - 1] * Mult(encoding.ModeWeights[c][i + 5]);
 
-                        if (bands[i] < AlmostZero)
+                        if (bands[i] < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("Invalid AFV bands");
                         }
@@ -1049,7 +1048,7 @@ internal static class JxlQuantWeights
         public float Invoke(float value)
         {
             // Ordered comparisons also reject NaN. Positive finite weights in [1e-8,1e8) have finite positive reciprocals.
-            if (!(value >= AlmostZero && value < MaximumWeight))
+            if (!(value >= JxlQuantizerConstants.MinimumWeight && value < MaximumWeight))
             {
                 throw new InvalidImageContentException("The quantization weight is outside the supported range.");
             }
@@ -1061,7 +1060,8 @@ internal static class JxlQuantWeights
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<float> Invoke(Vector128<float> value)
         {
-            if (!(Vector128.GreaterThanOrEqualAll(value, Vector128.Create(AlmostZero)) && Vector128.LessThanAll(value, Vector128.Create(MaximumWeight))))
+            if (!(Vector128.GreaterThanOrEqualAll(value, Vector128.Create(JxlQuantizerConstants.MinimumWeight))
+                && Vector128.LessThanAll(value, Vector128.Create(MaximumWeight))))
             {
                 throw new InvalidImageContentException("The quantization weight is outside the supported range.");
             }
@@ -1073,7 +1073,8 @@ internal static class JxlQuantWeights
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector256<float> Invoke(Vector256<float> value)
         {
-            if (!(Vector256.GreaterThanOrEqualAll(value, Vector256.Create(AlmostZero)) && Vector256.LessThanAll(value, Vector256.Create(MaximumWeight))))
+            if (!(Vector256.GreaterThanOrEqualAll(value, Vector256.Create(JxlQuantizerConstants.MinimumWeight))
+                && Vector256.LessThanAll(value, Vector256.Create(MaximumWeight))))
             {
                 throw new InvalidImageContentException("The quantization weight is outside the supported range.");
             }
@@ -1085,7 +1086,8 @@ internal static class JxlQuantWeights
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector512<float> Invoke(Vector512<float> value)
         {
-            if (!(Vector512.GreaterThanOrEqualAll(value, Vector512.Create(AlmostZero)) && Vector512.LessThanAll(value, Vector512.Create(MaximumWeight))))
+            if (!(Vector512.GreaterThanOrEqualAll(value, Vector512.Create(JxlQuantizerConstants.MinimumWeight))
+                && Vector512.LessThanAll(value, Vector512.Create(MaximumWeight))))
             {
                 throw new InvalidImageContentException("The quantization weight is outside the supported range.");
             }
@@ -1112,12 +1114,12 @@ internal static class JxlQuantWeights
                 }
             }
 
-            if (parameters.DistanceBands[c][0] < AlmostZero)
+            if (parameters.DistanceBands[c][0] < JxlQuantizerConstants.MinimumWeight)
             {
                 throw new InvalidOperationException("Distance band seed is too small");
             }
 
-            parameters.DistanceBands[c][0] *= 64f;
+            parameters.DistanceBands[c][0] *= JxlQuantizerConstants.AcWeightScale;
         }
 
         return true;
@@ -1182,12 +1184,12 @@ internal static class JxlQuantWeights
                             return false;
                         }
 
-                        if (Math.Abs(encoding.ModeWeights[c][i]) < AlmostZero)
+                        if (Math.Abs(encoding.ModeWeights[c][i]) < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("ID Quantizer is too small");
                         }
 
-                        encoding.ModeWeights[c][i] *= 64;
+                        encoding.ModeWeights[c][i] *= JxlQuantizerConstants.AcWeightScale;
                     }
                 }
 
@@ -1210,12 +1212,12 @@ internal static class JxlQuantWeights
                             return false;
                         }
 
-                        if (Math.Abs(encoding.ModeWeights[c][i]) < AlmostZero)
+                        if (Math.Abs(encoding.ModeWeights[c][i]) < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("Quantizer is too small");
                         }
 
-                        encoding.ModeWeights[c][i] *= 64;
+                        encoding.ModeWeights[c][i] *= JxlQuantizerConstants.AcWeightScale;
                     }
                 }
 
@@ -1236,7 +1238,7 @@ internal static class JxlQuantWeights
                         return false;
                     }
 
-                    if (Math.Abs(encoding.ModeWeights[c][0]) < AlmostZero)
+                    if (Math.Abs(encoding.ModeWeights[c][0]) < JxlQuantizerConstants.MinimumWeight)
                     {
                         throw new InvalidOperationException("DCT4X8 multiplier is too small");
                     }
@@ -1266,7 +1268,7 @@ internal static class JxlQuantWeights
                             return false;
                         }
 
-                        if (Math.Abs(encoding.ModeWeights[c][i]) < AlmostZero)
+                        if (Math.Abs(encoding.ModeWeights[c][i]) < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("DCT4 multiplier is too small");
                         }
@@ -1300,7 +1302,7 @@ internal static class JxlQuantWeights
 
                     for (int i = 0; i < 6; i++)
                     {
-                        encoding.ModeWeights[c][i] *= 64;
+                        encoding.ModeWeights[c][i] *= JxlQuantizerConstants.AcWeightScale;
                     }
                 }
 

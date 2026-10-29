@@ -24,8 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 /// <param name="frameDimensions">The borrowed parsed frame dimensions.</param>
 internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFrameDimensions frameDimensions) : IDisposable
 {
-    private const float AlmostZero = 1e-8f;
-
     private readonly Configuration configuration = configuration;
 
     /// <summary>
@@ -219,7 +217,7 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
 
             // Native raw weights require both a positive denominator and positive integer entries.
             // F16 read rejects nonfinite fields; this additional bound excludes zero and negative denominators.
-            if (denominator < AlmostZero)
+            if (denominator < JxlQuantizerConstants.MinimumWeight)
             {
                 throw new InvalidImageContentException("The raw quantization denominator is too small.");
             }

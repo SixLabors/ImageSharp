@@ -4,7 +4,10 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
@@ -141,6 +144,104 @@ internal sealed class JxlDequantMatrices : IDisposable
                 throw new InvalidOperationException("Quantizer modes were partially updated; this method needs to be updated too");
             }
         }
+    }
+
+    /// <summary>Reads a complete matrix header into this frame's existing descriptor slots.</summary>
+    /// <param name="configuration">The configuration that owns any raw table samples.</param>
+    /// <param name="reader">The reader positioned at the all-default flag.</param>
+    /// <param name="modularFrameDecoder">The frame modular context, or null for a standalone table stream.</param>
+    /// <returns>Whether all descriptors were read successfully.</returns>
+    /// <remarks>
+    /// A new header invalidates prepared views and releases earlier raw payloads. Failed reads release partial raw payloads too.
+    /// The descriptor slots and coefficient allocation remain owned by this instance for later preparation.
+    /// </remarks>
+    public bool Decode(Configuration configuration, JxlBitReader reader, JxlModularFrameDecoder? modularFrameDecoder)
+    {
+        this.computedMask = 0;
+        this.preparedKinds = 0;
+        this.preparedStorage = default;
+
+        // Every header replaces all seventeen modes. Reuse their fixed storage; inactive parameter banks need no clearing.
+        foreach (JxlQuantizerEncoding encoding in this.encodings)
+        {
+            encoding.Dispose();
+            encoding.Mode = JxlQuantMode.Library;
+            encoding.Predefined = 0;
+        }
+
+        bool success = false;
+        try
+        {
+            if (!reader.ReadBoolean())
+            {
+                for (int i = 0; i < this.encodings.Length; i++)
+                {
+                    if (!JxlQuantWeights.Decode(configuration, reader, this.encodings[i], RequiredSizeX[i], RequiredSizeY[i], i, modularFrameDecoder))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            success = true;
+            return true;
+        }
+        finally
+        {
+            if (!success)
+            {
+                // No caller can use a partial matrix header. Release raw tables read before the failing field or truncated input.
+                foreach (JxlQuantizerEncoding encoding in this.encodings)
+                {
+                    encoding.Dispose();
+                    encoding.Mode = JxlQuantMode.Library;
+                    encoding.Predefined = 0;
+                }
+            }
+        }
+    }
+
+    /// <summary>Reads the three DC multipliers, restoring format defaults when the default flag is set.</summary>
+    /// <param name="reader">The reader positioned at the DC all-default flag.</param>
+    /// <returns>Whether all custom fields are finite and at least 1e-8 after scaling.</returns>
+    /// <remarks>A failed read leaves all three previous multipliers unchanged. DC changes do not invalidate the separate AC matrices.</remarks>
+    public bool DecodeDc(JxlBitReader reader)
+    {
+        InlineArray3<float> dc = default;
+        InlineArray3<float> inverseDc = default;
+        if (reader.ReadBoolean())
+        {
+            // Native frame setup starts from these defaults. Reset explicitly when the same owner reads another default header.
+            for (int c = 0; c < 3; c++)
+            {
+                dc[c] = JxlQuantizerConstants.DcQuant[c];
+                inverseDc[c] = JxlQuantizerConstants.InverseDcQuant[c];
+            }
+        }
+        else
+        {
+            for (int c = 0; c < 3; c++)
+            {
+                if (!JxlF16Coder.Read(reader, ref dc[c]))
+                {
+                    return false;
+                }
+
+                // The wire stores each multiplier scaled by 128. Validate after undoing that scale, as required by the format.
+                dc[c] *= 1F / JxlQuantizerConstants.DcWeightScale;
+                if (dc[c] < JxlQuantizerConstants.MinimumWeight)
+                {
+                    return false;
+                }
+
+                inverseDc[c] = 1F / dc[c];
+            }
+        }
+
+        // Publish both directions only after every field succeeds. An invalid later channel cannot leave mixed old and new values.
+        this.dcQuant = dc;
+        this.inverseDcQuant = inverseDc;
+        return true;
     }
 
     /// <summary>Prepares exactly the table kinds required by a complete strategy mask.</summary>

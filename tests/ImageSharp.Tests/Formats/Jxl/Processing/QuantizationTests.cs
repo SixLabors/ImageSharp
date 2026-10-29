@@ -560,4 +560,160 @@ public class QuantizationTests
         Assert.Equal(0, allocator.LiveBufferBytes);
         Assert.Single(allocator.ReturnLog);
     }
+
+    /// <summary>Checks both complete matrix-header forms, descriptor reuse, and retained coefficient allocation capacity.</summary>
+    /// <param name="allDefault">Whether the wire uses its one-bit shortcut instead of seventeen Library modes.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DequantMatrices_ReadHeadersReusesSlotsAndInvalidatesPreparedViews(bool allDefault)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+        using (JxlDequantMatrices matrices = new())
+        {
+            JxlQuantizerEncoding first = matrices.GetEncodings()[0];
+            JxlQuantizerEncoding last = matrices.GetEncodings()[^1];
+            uint strategy = 1U << (int)JxlAcStrategyType.DCT;
+            Assert.True(matrices.EnsureComputed(configuration, strategy));
+            long preparedBytes = allocator.LiveBufferBytes;
+            last.Mode = JxlQuantMode.Raw;
+            last.PrepareRawTable(configuration, 192).Fill(1);
+
+            // Flag one has no payload. Flag zero requires seventeen three-bit Library modes (all zero); the library index has zero bits.
+            using MemoryStream input = new(allDefault ? [1] : [0, 0, 0, 0, 0, 0, 0]);
+            JxlBitReader reader = new(input);
+            Assert.True(matrices.Decode(configuration, reader, null));
+            Assert.Equal(allDefault ? 1L : 52L, reader.TotalBitsConsumed);
+            Assert.Same(first, matrices.GetEncodings()[0]);
+            Assert.Same(last, matrices.GetEncodings()[^1]);
+            Assert.True(last.QuantizationTable.IsEmpty);
+            Assert.True(matrices.GetPreparedStorage().IsEmpty);
+            Assert.Equal(preparedBytes, allocator.LiveBufferBytes);
+            foreach (JxlQuantizerEncoding descriptor in matrices.GetEncodings())
+            {
+                Assert.Equal(JxlQuantMode.Library, descriptor.Mode);
+                Assert.Equal(0, descriptor.Predefined);
+            }
+
+            // Parsing invalidates coefficient contents, but preparation can regenerate into the same allocation after borrowers have finished.
+            Assert.True(matrices.EnsureComputed(configuration, strategy));
+            Assert.Equal(2, allocator.AllocationLog.Count);
+            Assert.Equal(preparedBytes, allocator.LiveBufferBytes);
+        }
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.Equal(2, allocator.ReturnLog.Count);
+    }
+
+    /// <summary>Checks cleanup after a later invalid descriptor and after truncated custom matrix fields.</summary>
+    /// <param name="truncated">Whether the first DCT descriptor ends before its second channel seed.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DequantMatrices_FailedHeaderReleasesRawPayloadsAndResetsSlots(bool truncated)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+        using JxlDequantMatrices matrices = new();
+        JxlQuantizerEncoding last = matrices.GetEncodings()[^1];
+        last.Mode = JxlQuantMode.Raw;
+        last.PrepareRawTable(configuration, 192).Fill(1);
+
+        // Flag zero, DCT mode 6, one band, then half seeds 1/32,1/16,1/8 occupy exactly seven bytes.
+        // The next descriptor is ID mode 1 followed by a forbidden half NaN (0x7E00). No fields come from the library writer.
+        using MemoryStream input = new(truncated
+            ? [0x0C, 0x00, 0x28]
+            : [0x0C, 0x00, 0x28, 0x00, 0x2C, 0x00, 0x30, 0x01, 0xF0, 0x03]);
+
+        JxlBitReader reader = new(input);
+        if (truncated)
+        {
+            Assert.Throws<EndOfStreamException>(() => matrices.Decode(configuration, reader, null));
+        }
+        else
+        {
+            Assert.False(matrices.Decode(configuration, reader, null));
+        }
+
+        Assert.Same(last, matrices.GetEncodings()[^1]);
+        Assert.True(last.QuantizationTable.IsEmpty);
+        Assert.True(matrices.GetPreparedStorage().IsEmpty);
+        foreach (JxlQuantizerEncoding descriptor in matrices.GetEncodings())
+        {
+            Assert.Equal(JxlQuantMode.Library, descriptor.Mode);
+        }
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.Single(allocator.ReturnLog);
+    }
+
+    /// <summary>Checks DC wire scaling, reciprocal publication, and explicit defaults on a reused owner.</summary>
+    [Fact]
+    public void DequantMatrices_ReadDcScalesFieldsAndRestoresDefaults()
+    {
+        using JxlDequantMatrices matrices = new();
+
+        // Flag zero precedes half fields 128,256,512 (0x5800,0x5C00,0x6000). The decoded DC multipliers are 1,2,4.
+        using (MemoryStream input = new([0x00, 0xB0, 0x00, 0xB8, 0x00, 0xC0, 0x00]))
+        {
+            JxlBitReader reader = new(input);
+            Assert.True(matrices.DecodeDc(reader));
+            Assert.Equal(49L, reader.TotalBitsConsumed);
+            for (int c = 0; c < 3; c++)
+            {
+                Assert.Equal((float)(1 << c), matrices.GetDcQuant(c));
+                Assert.Equal(1F / (1 << c), matrices.GetInverseDcQuant(c));
+            }
+        }
+
+        using MemoryStream defaults = new([1]);
+        Assert.True(matrices.DecodeDc(new(defaults)));
+        for (int c = 0; c < 3; c++)
+        {
+            Assert.Equal(JxlQuantizerConstants.DcQuant[c], matrices.GetDcQuant(c));
+            Assert.Equal(JxlQuantizerConstants.InverseDcQuant[c], matrices.GetInverseDcQuant(c));
+        }
+    }
+
+    /// <summary>Checks that invalid later DC fields cannot publish an earlier valid channel.</summary>
+    /// <param name="byte2">The byte that contains the second half field's low seven bits.</param>
+    /// <param name="byte3">The byte that contains the middle eight bits of that shifted field.</param>
+    /// <param name="byte4">The byte that contains the field's remaining sign bit.</param>
+    [Theory]
+    [InlineData((byte)0, (byte)0, (byte)0)]
+    [InlineData((byte)0, (byte)0x78, (byte)1)]
+    [InlineData((byte)0, (byte)0xFC, (byte)0)]
+    [InlineData((byte)2, (byte)0, (byte)0)]
+    public void DequantMatrices_InvalidDcFieldsLeaveAllPreviousValues(byte byte2, byte byte3, byte byte4)
+    {
+        using JxlDequantMatrices matrices = new();
+
+        // First channel is a valid half 128. Second is zero, minus one, NaN, or the smallest subnormal; F16/128 is too small for the last case.
+        using MemoryStream input = new([0x00, 0xB0, byte2, byte3, byte4]);
+        Assert.False(matrices.DecodeDc(new(input)));
+        for (int c = 0; c < 3; c++)
+        {
+            Assert.Equal(JxlQuantizerConstants.DcQuant[c], matrices.GetDcQuant(c));
+            Assert.Equal(JxlQuantizerConstants.InverseDcQuant[c], matrices.GetInverseDcQuant(c));
+        }
+    }
+
+    /// <summary>Checks the existing reader's EOF boundary after a valid first DC field.</summary>
+    [Fact]
+    public void DequantMatrices_TruncatedDcHeaderLeavesAllPreviousValues()
+    {
+        using JxlDequantMatrices matrices = new();
+        using MemoryStream input = new([0x00, 0xB0, 0x00]);
+        Assert.Throws<EndOfStreamException>(() => matrices.DecodeDc(new(input)));
+        for (int c = 0; c < 3; c++)
+        {
+            Assert.Equal(JxlQuantizerConstants.DcQuant[c], matrices.GetDcQuant(c));
+            Assert.Equal(JxlQuantizerConstants.InverseDcQuant[c], matrices.GetInverseDcQuant(c));
+        }
+    }
 }

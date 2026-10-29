@@ -37,7 +37,7 @@ internal static class JxlQuantizerWeightsEncoder
             for (int i = 0; i < parameters.NumDistanceBands; i++)
             {
                 // each DCT distance band is a 16-bit half-precision floating-point number
-                if (!JxlF16Coder.Write(bands[i] * (i == 0 ? (1 / 64.0f) : 1.0f), writer))
+                if (!JxlF16Coder.Write(bands[i] * (i == 0 ? (1F / JxlQuantizerConstants.AcWeightScale) : 1.0f), writer))
                 {
                     return false;
                 }
@@ -67,7 +67,7 @@ internal static class JxlQuantizerWeightsEncoder
 
                     for (int i = 0; i < 3; i++)
                     {
-                        if (!JxlF16Coder.Write(idWeight[i] * (1.0f / 64), writer))
+                        if (!JxlF16Coder.Write(idWeight[i] * (1F / JxlQuantizerConstants.AcWeightScale), writer))
                         {
                             return false;
                         }
@@ -83,7 +83,7 @@ internal static class JxlQuantizerWeightsEncoder
 
                     for (int i = 0; i < 6; i++)
                     {
-                        if (!JxlF16Coder.Write(dct2Weight[i] * (1.0f / 64), writer))
+                        if (!JxlF16Coder.Write(dct2Weight[i] * (1F / JxlQuantizerConstants.AcWeightScale), writer))
                         {
                             return false;
                         }
@@ -148,7 +148,7 @@ internal static class JxlQuantizerWeightsEncoder
 
                     for (int i = 0; i < 9; i++)
                     {
-                        if (!JxlF16Coder.Write(afvWeights[i] * (i < 6 ? 1.0f / 64 : 1.0f), writer))
+                        if (!JxlF16Coder.Write(afvWeights[i] * (i < 6 ? 1F / JxlQuantizerConstants.AcWeightScale : 1F), writer))
                         {
                             return false;
                         }
@@ -221,9 +221,9 @@ internal static class JxlQuantizerWeightsEncoder
 
             if (!allDefault)
             {
-                if (!JxlF16Coder.Write(values[0] * 128.0f, writer) ||
-                    !JxlF16Coder.Write(values[1] * 128.0f, writer) ||
-                    !JxlF16Coder.Write(values[2] * 128.0f, writer))
+                if (!JxlF16Coder.Write(values[0] * JxlQuantizerConstants.DcWeightScale, writer) ||
+                    !JxlF16Coder.Write(values[1] * JxlQuantizerConstants.DcWeightScale, writer) ||
+                    !JxlF16Coder.Write(values[2] * JxlQuantizerConstants.DcWeightScale, writer))
                 {
                     return false;
                 }
@@ -288,7 +288,7 @@ internal static class JxlQuantizerWeightsEncoder
         ms.Position = 0;
         JxlBitReader reader = new(ms);
 
-        if (!matrices.Decode(configuration, reader))
+        if (!matrices.Decode(configuration, reader, null))
         {
             return false;
         }

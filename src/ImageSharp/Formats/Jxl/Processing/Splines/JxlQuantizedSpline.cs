@@ -241,15 +241,27 @@ internal sealed class JxlQuantizedSpline : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Reads one spline's control-point deltas and DCT coefficients.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns control-point storage.</param>
+    /// <param name="contextMap">The stable map from spline contexts to histograms.</param>
+    /// <param name="decoder">The entropy reader shared by all splines in the stream.</param>
+    /// <param name="br">The encoded spline fields.</param>
+    /// <param name="window">The decoder's LZ77 window, borrowed by the owning spline stream.</param>
+    /// <param name="maxControlPoints">The maximum permitted total control-point count.</param>
+    /// <param name="totalControlPoints">The accumulated control-point count.</param>
+    /// <returns>Whether all coefficient groups were decoded.</returns>
     public bool TryDecode(
         Configuration configuration,
-        Span<byte> contextMap,
+        ReadOnlySpan<byte> contextMap,
         JxlAnsSymbolReader decoder,
         JxlBitReader br,
+        Span<int> window,
         int maxControlPoints,
         ref int totalControlPoints)
     {
-        int numControlPoints = decoder.ReadHybridUnsignedInteger(NumControlPointsContext, br, contextMap);
+        int numControlPoints = decoder.ReadHybridUInt((int)JxlSplineEntropyContext.NumControlPoints, br, contextMap, window);
         if (numControlPoints > maxControlPoints)
         {
             throw new InvalidOperationException("Too many control points");
@@ -273,8 +285,8 @@ internal sealed class JxlQuantizedSpline : IDisposable
         {
             ref JxlControlPoint controlPoint = ref controlPoints[i];
 
-            controlPoint.First = JxlPackSigned.UnpackSigned(decoder.ReadHybridUnsignedInteger(ControlPointsContext, br, contextMap));
-            controlPoint.Second = JxlPackSigned.UnpackSigned(decoder.ReadHybridUnsignedInteger(ControlPointsContext, br, contextMap));
+            controlPoint.First = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlSplineEntropyContext.ControlPoints, br, contextMap, window));
+            controlPoint.Second = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlSplineEntropyContext.ControlPoints, br, contextMap, window));
 
             if (controlPoint.First >= deltaLimit || controlPoint.First <= -deltaLimit ||
                 controlPoint.Second >= deltaLimit || controlPoint.Second <= -deltaLimit)
@@ -285,34 +297,48 @@ internal sealed class JxlQuantizedSpline : IDisposable
 
         for (int i = 0; i < this.ColorDct.Length; i++)
         {
-            if (!TryDecodeDct(contextMap, this.ColorDct[i]))
+            if (!TryDecodeDct(contextMap, this.ColorDct[i], decoder, br, window))
             {
                 return false;
             }
         }
 
-        if (!TryDecodeDct(contextMap, this.SigmaDct))
+        if (!TryDecodeDct(contextMap, this.SigmaDct, decoder, br, window))
         {
             return false;
         }
 
         return true;
+    }
 
-        bool TryDecodeDct(ReadOnlySpan<byte> contextMap, Span<int> dct)
+    /// <summary>
+    /// Reads one DCT coefficient group without capturing the stream's borrowed spans.
+    /// </summary>
+    /// <param name="contextMap">The spline histogram mapping.</param>
+    /// <param name="dct">The destination coefficients.</param>
+    /// <param name="decoder">The owning entropy reader.</param>
+    /// <param name="br">The encoded coefficient fields.</param>
+    /// <param name="window">The window borrowed before the spline loops.</param>
+    /// <returns>Whether the coefficient group is valid.</returns>
+    private static bool TryDecodeDct(
+        ReadOnlySpan<byte> contextMap,
+        Span<int> dct,
+        JxlAnsSymbolReader decoder,
+        JxlBitReader br,
+        Span<int> window)
+    {
+        const int invalidCoefficient = int.MinValue;
+
+        for (int i = 0; i < 32; i++)
         {
-            const int invalidCoefficient = int.MinValue;
-
-            for (int i = 0; i < 32; i++)
+            dct[i] = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlSplineEntropyContext.Dct, br, contextMap, window));
+            if (dct[i] == invalidCoefficient)
             {
-                dct[i] = JxlPackSigned.UnpackSigned(decoder.ReadHybridUnsignedInteger(DctContext, br, contextMap));
-                if (dct[i] == invalidCoefficient)
-                {
-                    throw new InvalidOperationException("The DCT coefficient is invalid");
-                }
+                throw new InvalidOperationException("The DCT coefficient is invalid");
             }
-
-            return true;
         }
+
+        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -39,7 +39,11 @@ internal class JxlPassesSharedState
 
     public int CoeffOrderSize { get; set; }
 
-    public List<byte> CoeffOrders { get; set; } = [];
+    /// <summary>
+    /// Gets or sets coefficient indices, arranged as consecutive pass-sized orders.
+    /// </summary>
+    /// <remarks>Large transforms need indices greater than 255. Keep the indices as integers until coefficient lookup.</remarks>
+    public List<int> CoeffOrders { get; set; } = [];
 
     public JxlPlane<byte> QuantDc { get; set; }
 
@@ -74,11 +78,11 @@ internal class JxlPassesSharedState
         this.CoeffOrderSize = JxlCoefficientOrder.CoefficientOrderMaxSize;
 
         if (encoder &&
-            this.CoeffOrders.Count < (frameHeader.Passes.NumPasses & JxlCoefficientOrder.CoefficientOrderMaxSize) &&
+            this.CoeffOrders.Count < ((int)frameHeader.Passes.NumberOfPasses * JxlCoefficientOrder.CoefficientOrderMaxSize) &&
             frameHeader.Encoding == JxlFrameEncoding.VarDct)
         {
-            // we add the padding to CoeffOrders so its length is equal to the variable upperBound
-            int upperBound = frameHeader.Passes.NumPasses & JxlCoefficientOrder.CoefficientOrderMaxSize;
+            // Each progressive pass has one complete coefficient order. Reserve consecutive pass-sized ranges.
+            int upperBound = (int)frameHeader.Passes.NumberOfPasses * JxlCoefficientOrder.CoefficientOrderMaxSize;
             int length = this.CoeffOrders.Count;
             int delta = upperBound - length;
 

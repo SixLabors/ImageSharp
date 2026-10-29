@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Compression;
 
 /// <summary>
-/// Decodes the short two-dimensional LZ77 distances shared by lossless WebP and JPEG XL.
+/// Decodes short LZ77 distances expressed as row and column offsets.
 /// </summary>
 internal static class Lz77DistanceCodes
 {

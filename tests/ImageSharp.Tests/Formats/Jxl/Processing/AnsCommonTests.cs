@@ -51,7 +51,7 @@ public class AnsCommonTests
         List<byte> contextMap = [];
         JxlAnsReader.DecodeHistograms(Configuration.Default, bitReader, 1, code, ref contextMap, false);
 
-        using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(code, bitReader, 0);
+        using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(Configuration.Default, code, bitReader, 0);
 
         Assert.Equal(expected, reader.CheckAnsFinalState());
     }

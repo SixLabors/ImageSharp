@@ -36,15 +36,15 @@ public class EntropyCoderTests
         {
         }
 
-        public override uint PeekBits32(uint n)
+        public override uint PeekBits32(uint bitCount)
         {
-            Assert.Equal(this.NBits, n);
+            Assert.Equal(this.NBits, bitCount);
             return (uint)this.Bits;
         }
 
-        public override uint ReadBits32(uint n)
+        public override uint ReadBits32(uint bitCount)
         {
-            Assert.Equal(this.NBits, n);
+            Assert.Equal(this.NBits, bitCount);
             return (uint)this.Bits;
         }
     }
@@ -82,10 +82,7 @@ public class EntropyCoderTests
 
             Assert.Equal(
                 integers[i],
-                JxlAnsSymbolReader.ReadHybridUintConfig(
-                    config,
-                    token[i],
-                    ref br));
+                (uint)JxlAnsSymbolReader.ReadHybridUIntConfiguration(config, (int)token[i], br));
         }
     }
 

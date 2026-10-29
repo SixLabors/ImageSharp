@@ -8,13 +8,22 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
+/// <summary>
+/// Reads the mapping from entropy contexts to their shared histograms.
+/// </summary>
 internal static class JxlContextMapDecoder
 {
     private const int MaxClusters = 256;
 
+    /// <summary>
+    /// Checks that a decoded map uses every histogram and contains no index outside the declared count.
+    /// </summary>
+    /// <param name="contextMap">The decoded histogram indices.</param>
+    /// <param name="numHTrees">The histogram count derived from the map.</param>
     public static void VerifyContextMap(List<byte> contextMap, int numHTrees)
     {
         Span<bool> haveHTree = stackalloc bool[numHTrees];
+        haveHTree.Clear();
 
         int numFound = 0;
 
@@ -38,6 +47,13 @@ internal static class JxlContextMapDecoder
         }
     }
 
+    /// <summary>
+    /// Reads a nonempty context map, including its optional move-to-front representation.
+    /// </summary>
+    /// <param name="configuration">The configuration used to decode the map's entropy tables.</param>
+    /// <param name="contextMap">Storage whose logical length equals the number of entropy contexts.</param>
+    /// <param name="numHTrees">The resulting histogram count.</param>
+    /// <param name="input">The encoded context map.</param>
     public static void DecodeContextMap(Configuration configuration, List<byte> contextMap, ref int numHTrees, JxlBitReader input)
     {
         // True - simple context map, without any ANS entropy coding,
@@ -69,27 +85,28 @@ internal static class JxlContextMapDecoder
             JxlAnsCode ansCode = new();
             List<byte> sinkContextMap = [];
 
-            if (!JxlAnsReader.DecodeHistograms(configuration, input, 1, ansCode, sinkContextMap, contextMap.Count <= 2))
-            {
-                throw new InvalidOperationException("Context map histogram couldn't be decoded");
-            }
+            JxlAnsReader.DecodeHistograms(configuration, input, 1, ansCode, ref sinkContextMap, contextMap.Count <= 2);
 
-            JxlAnsSymbolReader ans = JxlAnsSymbolReader.Create(ansCode, input);
+            // Context-map symbols use direct distances. A zero multiplier disables image-row distance shortcuts.
+            using JxlAnsSymbolReader ans = JxlAnsSymbolReader.Create(configuration, ansCode, input, 0);
 
+            // The nested stream owns its LZ77 window. Borrow it and the stable map once for the complete symbol loop.
+            Span<int> window = ans.Lz77Window;
+            ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(sinkContextMap);
             int i = 0;
-            int maxSymbols = 0;
 
             while (i < cmSpan.Length)
             {
-                uint sym = ans.ReadHybridUInt(true, 0, input, sinkContextMap);
-                maxSymbols = sym > maxSymbols ? (int)sym : maxSymbols;
+                int sym = ans.ReadHybridUInt(0, input, contexts, window);
+
+                // A context-map entry is one byte. Validate the full decoded UInt32 bit pattern before narrowing it.
+                if ((uint)sym >= MaxClusters)
+                {
+                    throw new InvalidOperationException("Invalid cluster ID");
+                }
+
                 cmSpan[i] = (byte)sym;
                 i++;
-            }
-
-            if (maxSymbols >= MaxClusters)
-            {
-                throw new InvalidOperationException("Invalid cluster ID");
             }
 
             if (!ans.CheckAnsFinalState())

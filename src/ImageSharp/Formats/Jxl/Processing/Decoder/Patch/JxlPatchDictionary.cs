@@ -48,6 +48,15 @@ internal sealed class JxlPatchDictionary
         return result;
     }
 
+    /// <summary>
+    /// Reads patch references, positions, and blending settings from their entropy stream.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns entropy and patch-tree storage.</param>
+    /// <param name="br">The encoded patch fields.</param>
+    /// <param name="xsize">The destination width.</param>
+    /// <param name="ysize">The destination height.</param>
+    /// <param name="numExtraChannels">The available extra-channel count.</param>
+    /// <param name="usesExtraChannels">Whether decoded blending settings use extra channels.</param>
     public void Decode(
         Configuration configuration,
         JxlBitReader br,
@@ -62,19 +71,16 @@ internal sealed class JxlPatchDictionary
         List<byte> contextMap = [];
         JxlAnsCode code = new();
 
-        var status = DecodeHistograms(
-            configuration,
-            br,
-            PatchDictionaryContexts,
-            code,
-            contextMap);
+        JxlAnsReader.DecodeHistograms(configuration, br, (int)JxlPatchContext.NumPatchDictionaryContexts, code, ref contextMap, false);
 
-        JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(code, br);
+        // Patch fields use direct LZ77 distances; multiplier zero selects that native stream rule.
+        using JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(configuration, code, br, 0);
 
-        ulong ReadNum(JxlPatchContext context)
-            => decoder.ReadHybridUnsignedInteger(context, br, contextMap);
+        // References and positions share one entropy stream. Borrow its map and LZ77 window before either loop.
+        ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
+        Span<int> window = decoder.Lz77Window;
 
-        ulong numRefPatch = ReadNum(JxlPatchContext.NumRefPatch);
+        ulong numRefPatch = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.NumRefPatch, br, contexts, window);
 
         ulong numPixels = xsize * ysize;
         ulong maxRefPatches = 1024 + (numPixels / 4);
@@ -93,7 +99,7 @@ internal sealed class JxlPatchDictionary
         {
             JxlPatchReferencePosition refPos = new()
             {
-                Ref = (int)ReadNum(JxlPatchContext.ReferenceFrame)
+                Ref = decoder.ReadHybridUInt((int)JxlPatchContext.ReferenceFrame, br, contexts, window)
             };
 
             if (refPos.Ref >= kMaxNumReferenceFrames || this.referenceFrames[(int)refPos.Ref].Frame.XSize == 0)
@@ -108,10 +114,10 @@ internal sealed class JxlPatchDictionary
 
             JxlImageBundle ib = this.referenceFrames[refPos.Ref].Frame;
 
-            refPos.X0 = (int)ReadNum(JxlPatchContext.PatchReferencePosition);
-            refPos.Y0 = (int)ReadNum(JxlPatchContext.PatchReferencePosition);
-            refPos.XSize = (int)ReadNum(JxlPatchContext.PatchSize) + 1;
-            refPos.YSize = (int)ReadNum(JxlPatchContext.PatchSize) + 1;
+            refPos.X0 = decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
+            refPos.Y0 = decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
+            refPos.XSize = decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
+            refPos.YSize = decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
 
             if (refPos.X0 + refPos.XSize > ib.XSize)
             {
@@ -123,7 +129,7 @@ internal sealed class JxlPatchDictionary
                 throw new InvalidOperationException("Invalid position specified in reference frame");
             }
 
-            ulong idCount = ReadNum(JxlPatchContext.PatchCount);
+            ulong idCount = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchCount, br, contexts, window);
 
             if (idCount > maxPatches)
             {
@@ -164,12 +170,12 @@ internal sealed class JxlPatchDictionary
 
                 if (i == 0)
                 {
-                    pos.X = (int)ReadNum(JxlPatchContext.PatchPosition);
-                    pos.Y = (int)ReadNum(JxlPatchContext.PatchPosition);
+                    pos.X = decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
+                    pos.Y = decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
                 }
                 else
                 {
-                    long deltaX = JxlPackSigned.UnpackSigned((uint)ReadNum(JxlPatchContext.PatchOffset));
+                    long deltaX = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchOffset, br, contexts, window));
 
                     if (deltaX < 0 && (int)(-deltaX) > this.positions[^1].X)
                     {
@@ -178,7 +184,7 @@ internal sealed class JxlPatchDictionary
 
                     pos.X = (int)(this.positions[^1].X + deltaX);
 
-                    long deltaY = JxlPackSigned.UnpackSigned((uint)ReadNum(JxlPatchContext.PatchOffset));
+                    long deltaY = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchOffset, br, contexts, window));
 
                     if (deltaY < 0 && (int)(-deltaY) > this.positions[^1].Y)
                     {
@@ -200,7 +206,7 @@ internal sealed class JxlPatchDictionary
 
                 for (int j = 0; j < this.blendingsStride; j++)
                 {
-                    uint blendMode = (uint)ReadNum(JxlPatchContext.PatchBlendMode);
+                    uint blendMode = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchBlendMode, br, contexts, window);
 
                     if ((int)blendMode >= (int)JxlPatchContext.PatchBlendMode)
                     {
@@ -224,7 +230,7 @@ internal sealed class JxlPatchDictionary
 
                     if (UsesAlpha(info.Mode) && chooseAlpha)
                     {
-                        info.AlphaChannel = (int)ReadNum(JxlPatchContext.PatchAlphaChannel);
+                        info.AlphaChannel = decoder.ReadHybridUInt((int)JxlPatchContext.PatchAlphaChannel, br, contexts, window);
 
                         if (info.AlphaChannel >= (int)numExtraChannels)
                         {
@@ -238,7 +244,7 @@ internal sealed class JxlPatchDictionary
 
                     if (UsesClamp(info.Mode))
                     {
-                        info.Clamp = ReadNum(JxlPatchContext.PatchClamp) != 0;
+                        info.Clamp = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchClamp, br, contexts, window) != 0;
                     }
                     else
                     {

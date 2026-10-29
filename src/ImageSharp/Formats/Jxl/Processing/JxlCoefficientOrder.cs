@@ -51,7 +51,17 @@ internal static class JxlCoefficientOrder
         return Math.Min(token, PermutationContexts - 1u);
     }
 
-    public static bool ReadPermutation(int skip, int size, Span<uint> order, JxlBitReader bitReader, JxlAnsSymbolReader reader, Span<byte> contextMap)
+    /// <summary>
+    /// Reads a coefficient permutation from an initialized entropy stream.
+    /// </summary>
+    /// <param name="skip">The leading coefficients that keep their original order.</param>
+    /// <param name="size">The coefficient count.</param>
+    /// <param name="order">The destination permutation, or an empty span when only validation is required.</param>
+    /// <param name="bitReader">The encoded permutation fields.</param>
+    /// <param name="reader">The caller-owned entropy reader.</param>
+    /// <param name="contextMap">The stable mapping from permutation contexts to histograms.</param>
+    /// <returns>Whether the Lehmer code describes a valid permutation.</returns>
+    public static bool ReadPermutation(int skip, int size, Span<uint> order, JxlBitReader bitReader, JxlAnsSymbolReader reader, ReadOnlySpan<byte> contextMap)
     {
         DebugGuard.MustBeLessThanOrEqualTo(size, 65536, nameof(size));
 
@@ -61,7 +71,9 @@ internal static class JxlCoefficientOrder
         Span<uint> temp = stackalloc uint[size * 2];
         temp.Clear();
 
-        uint end = reader.ReadHybridUnsignedInteger(CoeffOrderContext((uint)size), bitReader, contextMap) + skip;
+        // Borrow the reader's window once; all coefficient symbols advance the same entropy and LZ77 state.
+        Span<int> window = reader.Lz77Window;
+        uint end = (uint)reader.ReadHybridUInt((int)CoeffOrderContext((uint)size), bitReader, contextMap, window) + (uint)skip;
 
         if (end > size)
         {
@@ -72,7 +84,7 @@ internal static class JxlCoefficientOrder
 
         for (int i = skip; i < end; i++)
         {
-            lehmer[i] = reader.ReadHybridUnsignedInteger(CoeffOrderContext(last), bitReader, contextMap);
+            lehmer[i] = (uint)reader.ReadHybridUInt((int)CoeffOrderContext(last), bitReader, contextMap, window);
             last = lehmer[i];
             if (lehmer[i] >= size - i)
             {

@@ -44,14 +44,26 @@ internal sealed class JxlSplines
         this.segmentYStart = EmptyMemoryOwner.Instance;
     }
 
+    /// <summary>
+    /// Reads spline positions, quantization, and control-point coefficients from the entropy stream.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns entropy and control-point storage.</param>
+    /// <param name="reader">The encoded spline fields.</param>
+    /// <param name="numPixels">The image pixel count used to limit spline data.</param>
     public void Decode(Configuration configuration, JxlBitReader reader, int numPixels)
     {
         List<byte> contextMap = [];
 
-        JxlAnsReader.DecodeHistograms(reader, NumSplineContexts, out JxlAnsCode code, contextMap);
-        JxlAnsSymbolReader decoder = new(code, reader);
+        JxlAnsCode code = new();
+        JxlAnsReader.DecodeHistograms(configuration, reader, (int)JxlSplineEntropyContext.NumSplineContexts, code, ref contextMap, false);
 
-        int numSplines = decoder.ReadHybridUint(NumSplinesContext, reader, contextMap);
+        // Spline fields use direct LZ77 distances; multiplier zero selects that native stream rule.
+        using JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(configuration, code, reader, 0);
+
+        // One stream covers starting positions and every spline. Keep its borrowed window and map stable across those loops.
+        Span<int> window = decoder.Lz77Window;
+        ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
+        int numSplines = decoder.ReadHybridUInt((int)JxlSplineEntropyContext.NumSplines, reader, contexts, window);
         int maxControlPoints = Math.Min(MaxNumControlPoints, numPixels / MaxNumControlPointsPerPixelRatio);
 
         if (numSplines > maxControlPoints || numSplines + 1 > maxControlPoints)
@@ -63,7 +75,8 @@ internal sealed class JxlSplines
 
         DecodeAllStartingPoints(this.startingPointsStorage, reader, decoder, contextMap, numSplines);
 
-        this.QuantizationAdjustment = JxlPackSigned.UnpackSigned(decoder.ReadHybridUint(QuantizationAdjustmentContext, reader, contextMap));
+        int quantizationAdjustment = decoder.ReadHybridUInt((int)JxlSplineEntropyContext.QuantizationAdjustment, reader, contexts, window);
+        this.QuantizationAdjustment = JxlPackSigned.UnpackSigned((uint)quantizationAdjustment);
         this.splinesStorage = new List<JxlQuantizedSpline>(numSplines);
 
         int numControlPoints = numSplines;
@@ -73,9 +86,10 @@ internal sealed class JxlSplines
             JxlQuantizedSpline spline = new();
             if (!spline.TryDecode(
                 configuration,
-                CollectionsMarshal.AsSpan(contextMap),
+                contexts,
                 decoder,
                 reader,
+                window,
                 maxControlPoints,
                 ref numControlPoints))
             {

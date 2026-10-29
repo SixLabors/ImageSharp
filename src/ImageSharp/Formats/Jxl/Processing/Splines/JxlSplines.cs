@@ -12,7 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
 
 internal sealed class JxlSplines
 {
-    private List<JxlQuantizedSpline> splinesStorage = [];
+    /// <summary>
+    /// Owns decoded splines. A view supplied through SetData remains owned by its caller.
+    /// </summary>
+    private readonly List<JxlQuantizedSpline> splinesStorage = [];
     private readonly List<PointF> startingPointsStorage = [];
     private JxlSplineDataView data = new();
     private readonly List<JxlSplineSegment> segments = [];
@@ -27,19 +30,35 @@ internal sealed class JxlSplines
 
     public int QuantizationAdjustment { get; private set; }
 
+    /// <summary>
+    /// Releases decoded storage and borrows a caller-owned spline view.
+    /// </summary>
+    /// <param name="data">The spline data, which the caller keeps alive while this object uses it.</param>
     public void SetData(JxlSplineDataView data)
     {
         this.Clear();
         this.data = data;
     }
 
+    /// <summary>
+    /// Releases decoded splines and cached segment storage, then removes the active data view.
+    /// </summary>
     public void Clear()
     {
         this.QuantizationAdjustment = 0;
+
+        // Only this list owns its entries. SetData can borrow a different list without transferring ownership.
+        foreach (JxlQuantizedSpline spline in this.splinesStorage)
+        {
+            spline.Dispose();
+        }
+
         this.splinesStorage.Clear();
         this.startingPointsStorage.Clear();
         this.data = new();
         this.segments.Clear();
+        this.segmentIndices.Dispose();
+        this.segmentYStart.Dispose();
         this.segmentIndices = EmptyMemoryOwner.Instance;
         this.segmentYStart = EmptyMemoryOwner.Instance;
     }
@@ -52,67 +71,84 @@ internal sealed class JxlSplines
     /// <param name="numPixels">The image pixel count used to limit spline data.</param>
     public void Decode(Configuration configuration, JxlBitReader reader, int numPixels)
     {
-        List<byte> contextMap = [];
+        this.Clear();
 
-        JxlAnsCode code = new();
-        JxlAnsReader.DecodeHistograms(configuration, reader, (int)JxlSplineEntropyContext.NumSplineContexts, code, ref contextMap, false);
-
-        // Spline fields use direct LZ77 distances; multiplier zero selects that native stream rule.
-        using JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(configuration, code, reader, 0);
-
-        // One stream covers starting positions and every spline. Keep its borrowed window and map stable across those loops.
-        Span<int> window = decoder.Lz77Window;
-        ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
-        int numSplines = decoder.ReadHybridUInt((int)JxlSplineEntropyContext.NumSplines, reader, contexts, window);
-        int maxControlPoints = Math.Min(MaxNumControlPoints, numPixels / MaxNumControlPointsPerPixelRatio);
-
-        if (numSplines > maxControlPoints || numSplines + 1 > maxControlPoints)
+        try
         {
-            throw new InvalidOperationException("Too many splines: " + numSplines);
-        }
+            // Native spline limits bound both control-point storage and the amount of data per image pixel.
+            const int maximumControlPoints = 1 << 20;
+            const int maxControlPointsPerPixelRatio = 2;
 
-        numSplines++;
+            List<byte> contextMap = [];
 
-        DecodeAllStartingPoints(this.startingPointsStorage, reader, decoder, contextMap, numSplines);
+            JxlAnsCode code = new();
+            JxlAnsReader.DecodeHistograms(configuration, reader, (int)JxlSplineEntropyContext.NumSplineContexts, code, ref contextMap, false);
 
-        int quantizationAdjustment = decoder.ReadHybridUInt((int)JxlSplineEntropyContext.QuantizationAdjustment, reader, contexts, window);
-        this.QuantizationAdjustment = JxlPackSigned.UnpackSigned((uint)quantizationAdjustment);
-        this.splinesStorage = new List<JxlQuantizedSpline>(numSplines);
+            // Spline fields use direct LZ77 distances; multiplier zero selects that native stream rule.
+            using JxlAnsSymbolReader decoder = JxlAnsSymbolReader.Create(configuration, code, reader, 0);
 
-        int numControlPoints = numSplines;
+            // One stream covers starting positions and every spline. Keep its borrowed window and map stable across those loops.
+            Span<int> window = decoder.Lz77Window;
+            ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
+            uint encodedSplines = (uint)decoder.ReadHybridUInt((int)JxlSplineEntropyContext.NumSplines, reader, contexts, window);
+            int maxControlPoints = Math.Min(maximumControlPoints, numPixels / maxControlPointsPerPixelRatio);
 
-        for (int i = 0; i < numSplines; ++i)
-        {
-            JxlQuantizedSpline spline = new();
-            if (!spline.TryDecode(
-                configuration,
-                contexts,
-                decoder,
-                reader,
-                window,
-                maxControlPoints,
-                ref numControlPoints))
+            // The wire count excludes the first spline. Reject before adding one or narrowing the UInt32 value.
+            if (encodedSplines >= (uint)maxControlPoints)
             {
-                throw new InvalidOperationException("Could not decode quantized spline. Index of the quantized spline: " + i);
+                throw new InvalidOperationException("Too many splines: " + encodedSplines);
             }
 
-            this.splinesStorage.Add(spline);
+            int numSplines = (int)encodedSplines + 1;
+
+            DecodeAllStartingPoints(this.startingPointsStorage, reader, decoder, contextMap, numSplines);
+
+            int quantizationAdjustment = decoder.ReadHybridUInt((int)JxlSplineEntropyContext.QuantizationAdjustment, reader, contexts, window);
+            this.QuantizationAdjustment = JxlPackSigned.UnpackSigned((uint)quantizationAdjustment);
+            _ = this.splinesStorage.EnsureCapacity(numSplines);
+
+            int numControlPoints = numSplines;
+
+            // Attach each spline before decoding. Clear also releases the current allocation if that decode fails.
+            for (int i = 0; i < numSplines; ++i)
+            {
+                JxlQuantizedSpline spline = new();
+                this.splinesStorage.Add(spline);
+
+                if (!spline.TryDecode(
+                    configuration,
+                    contexts,
+                    decoder,
+                    reader,
+                    window,
+                    maxControlPoints,
+                    ref numControlPoints))
+                {
+                    throw new InvalidOperationException("Could not decode quantized spline. Index of the quantized spline: " + i);
+                }
+            }
+
+            if (!decoder.CheckAnsFinalState())
+            {
+                throw new InvalidOperationException("Not ANS final state");
+            }
+
+            this.data = new JxlSplineDataView()
+            {
+                Splines = this.splinesStorage,
+                StartingPoints = this.startingPointsStorage
+            };
+
+            if (!this.HasAny)
+            {
+                throw new InvalidOperationException("Decoded splines but got none");
+            }
         }
-
-        if (!decoder.CheckAnsFinalState())
+        catch
         {
-            throw new InvalidOperationException("Not ANS final state");
-        }
-
-        this.data = new JxlSplineDataView()
-        {
-            Splines = this.splinesStorage,
-            StartingPoints = this.startingPointsStorage
-        };
-
-        if (!this.HasAny)
-        {
-            throw new InvalidOperationException("Decoded splines but got none");
+            // No decoded owner escapes a failed stream, including a later spline or the final ANS check.
+            this.Clear();
+            throw;
         }
     }
 

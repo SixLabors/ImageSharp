@@ -13,8 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 /// </summary>
 internal static partial class JxlSimdUtils
 {
-    public static int MaxVectorSize => Vector<float>.Count * sizeof(float);
-
     /// <summary>
     /// Fills consecutive integers, starting with the supplied value.
     /// </summary>

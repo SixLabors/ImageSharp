@@ -40,92 +40,114 @@ internal class JxlFrameEncoder
 #pragma warning restore format
     }
 
-    public static unsafe void SimplifyInvisible(JxlImage3<float> image, JxlPlane<float> alpha, bool lossless)
+    /// <summary>
+    /// Replaces invisible samples in encoder-owned working planes with zeros or the native causal neighbor estimate.
+    /// </summary>
+    /// <param name="image">The owned working color planes to update.</param>
+    /// <param name="alpha">The borrowed unassociated alpha plane with matching logical dimensions.</param>
+    /// <param name="lossless">Whether to clear invisible samples instead of estimating them from neighbors.</param>
+    /// <remarks>
+    /// The encoder caller decides whether invisible samples may change. This method does not select a transparency policy.
+    /// </remarks>
+    public static void SimplifyInvisible(JxlImage3<float> image, JxlPlane<float> alpha, bool lossless)
     {
+        int width = image.XSize;
+        int height = image.YSize;
+        ReadOnlySpan<float> alphaSamples = alpha.GetRow(0);
+        int alphaStride = alpha.PixelsPerRow;
+
         for (int c = 0; c < 3; c++)
         {
-            for (int y = 0; y < image.YSize; y++)
+            JxlPlane<float> plane = image.Plane(c);
+            Span<float> samples = plane.GetRow(0);
+            int stride = plane.PixelsPerRow;
+
+            if (lossless)
             {
-                Span<float> row = image.PlaneRow(c, y);
-                Span<float> prow = y > 0 ? image.PlaneRow(c, y - 1) : [];
-                Span<float> nrow = y + 1 < image.YSize ? image.PlaneRow(c, y + 1) : [];
-                Span<float> a = alpha.GetRow(y);
-                Span<float> pa = y > 0 ? alpha.GetRow(y - 1) : [];
-                Span<float> na = y + 1 < image.YSize ? alpha.GetRow(y + 1) : [];
-
-                // We create a pointer to 'a', to remove bounds checks in a hot loop.
-                // We also use a debug guard, so the range is valid.
-                DebugGuard.MustBeGreaterThanOrEqualTo(a.Length, image.XSize, nameof(a));
-                fixed (float* unsafeA = a)
+                // Independent components share the existing SIMD traversal. Exclude physical padding from both input and output.
+                for (int y = 0; y < height; y++)
                 {
-                    for (int x = 0; x < image.XSize; ++x)
+                    EncodingUtilities.ReplaceTransparentPixels(alphaSamples.Slice(y * alphaStride, width), samples.Slice(y * stride, width));
+                }
+
+                continue;
+            }
+
+            // Native traversal uses the updated left and previous-row samples, but the original right and next-row samples.
+            // Preserve channel, row, and column order. Adjacent transparent pixels cannot be evaluated independently with SIMD.
+            for (int y = 0; y < height; y++)
+            {
+                Span<float> row = samples.Slice(y * stride, width);
+                ReadOnlySpan<float> previousRow = y > 0 ? samples.Slice((y - 1) * stride, width) : default;
+                ReadOnlySpan<float> nextRow = y + 1 < height ? samples.Slice((y + 1) * stride, width) : default;
+                ReadOnlySpan<float> alphaRow = alphaSamples.Slice(y * alphaStride, width);
+                ReadOnlySpan<float> previousAlpha = y > 0 ? alphaSamples.Slice((y - 1) * alphaStride, width) : default;
+                ReadOnlySpan<float> nextAlpha = y + 1 < height ? alphaSamples.Slice((y + 1) * alphaStride, width) : default;
+
+                for (int x = 0; x < width; ++x)
+                {
+                    if (alphaRow[x] == 0F)
                     {
-                        if (unsafeA[x] == 0)
+                        float weightSum = 0F;
+                        row[x] = 0;
+
+                        // Left and upper-right samples extend the existing estimate with weight one, even when invisible.
+                        // Visible neighbors receive weight two. Keep the native addition order to preserve its float rounding.
+                        if (x > 0)
                         {
-                            if (lossless)
-                            {
-                                row[x] = 0;
-                                continue;
-                            }
+                            row[x] += row[x - 1];
+                            weightSum++;
 
-                            float d = 0.0f;
-                            row[x] = 0;
-
-                            if (x > 0)
+                            if (alphaRow[x - 1] > 0F)
                             {
                                 row[x] += row[x - 1];
-                                d++;
-
-                                if (unsafeA[x - 1] > 0.0f)
-                                {
-                                    row[x] += row[x - 1];
-                                    d++;
-                                }
+                                weightSum++;
                             }
+                        }
 
-                            if (x < image.XSize - 1)
+                        if (x < width - 1)
+                        {
+                            if (y > 0)
                             {
-                                if (y > 0)
-                                {
-                                    row[x] += prow[x + 1];
-                                    d++;
-                                }
-
-                                if (unsafeA[x + 1] > 0.0f)
-                                {
-                                    row[x] += 2.0f * row[x + 1];
-                                    d += 2.0f;
-                                }
-
-                                if (y > 0 && pa[x + 1] > 0.0f)
-                                {
-                                    row[x] += 2.0f * prow[x + 1];
-                                    d += 2.0f;
-                                }
-
-                                if (y + 1 < image.YSize && na[x + 1] > 0.0f)
-                                {
-                                    row[x] += 2.0f * nrow[x + 1];
-                                    d += 2.0f;
-                                }
+                                row[x] += previousRow[x + 1];
+                                weightSum++;
                             }
 
-                            if (y > 0 && pa[x] > 0.0f)
+                            if (alphaRow[x + 1] > 0F)
                             {
-                                row[x] += 2.0f * prow[x];
-                                d += 2.0f;
+                                row[x] += 2F * row[x + 1];
+                                weightSum += 2F;
                             }
 
-                            if (y + 1 < image.YSize && na[x] > 0.0f)
+                            if (y > 0 && previousAlpha[x + 1] > 0F)
                             {
-                                row[x] += 2.0f * nrow[x];
-                                d += 2.0f;
+                                row[x] += 2F * previousRow[x + 1];
+                                weightSum += 2F;
                             }
 
-                            if (d > 1.0f)
+                            if (y + 1 < height && nextAlpha[x + 1] > 0F)
                             {
-                                row[x] /= d;
+                                row[x] += 2F * nextRow[x + 1];
+                                weightSum += 2F;
                             }
+                        }
+
+                        if (y > 0 && previousAlpha[x] > 0F)
+                        {
+                            row[x] += 2F * previousRow[x];
+                            weightSum += 2F;
+                        }
+
+                        if (y + 1 < height && nextAlpha[x] > 0F)
+                        {
+                            row[x] += 2F * nextRow[x];
+                            weightSum += 2F;
+                        }
+
+                        // No contributing neighbor leaves zero. A single weight-one contribution needs no division.
+                        if (weightSum > 1F)
+                        {
+                            row[x] /= weightSum;
                         }
                     }
                 }

@@ -331,7 +331,7 @@ internal sealed class JxlQuantizer
         }
 
         // A valid frame supplies one value per DCT block. Copy logical samples only: GetRow also exposes
-        // the plane's padded stride and following rows. Sorting must not include that storage or mutate the source field.
+        // the plane's padded stride and following rows. Selection must not include that storage or mutate the source field.
         int sampleCount = quantizationField.XSize * quantizationField.YSize;
         using IMemoryOwner<float> samplesOwner = configuration.MemoryAllocator.Allocate<float>(sampleCount);
         Span<float> samples = samplesOwner.Memory.Span[..sampleCount];
@@ -341,15 +341,13 @@ internal sealed class JxlQuantizer
             quantizationField.GetRow(y)[..quantizationField.XSize].CopyTo(samples.Slice(y * quantizationField.XSize, quantizationField.XSize));
         }
 
-        samples.Sort();
-        float medianQuantization = samples[sampleCount / 2];
+        float medianQuantization = samples.NthElement(sampleCount / 2);
 
-        // Reuse the copied samples for absolute deviations. These have a different order from the original
-        // values, so sort them before reading their median. Shared tensor operations calculate the deviations.
+        // Selection only permutes the copied values. Once their median is retained, the same allocation can
+        // hold absolute deviations. Shared tensor operations provide all SIMD widths and the scalar fallback.
         TensorPrimitives.Subtract(samples, medianQuantization, samples);
         TensorPrimitives.Abs(samples, samples);
-        samples.Sort();
-        float medianAbsoluteDeviation = samples[sampleCount / 2];
+        float medianAbsoluteDeviation = samples.NthElement(sampleCount / 2);
 
         this.ComputeGlobalScaleAndQuant(dcQuantization, medianQuantization, medianAbsoluteDeviation);
 

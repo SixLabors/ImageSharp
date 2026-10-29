@@ -4,6 +4,8 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
@@ -34,12 +36,42 @@ internal static class JxlAdaptiveQuantization
     private const float SGRetMul = SGMul2 * 18.6580932135f * JxlMath.InverseLog2E;
     private const float SGVOffset = 7.7825991679894591f;
 
+    /// <summary>The positive regularization term that keeps the fitted derivative numerator and denominator nonzero.</summary>
+    private const float DerivativeEpsilon = 0.01F;
+
+    /// <summary>The float coefficient applied to the squared photon value in the derivative numerator.</summary>
+    private const float DerivativeNumeratorScale = SGRetMul * 3F * SGMul;
+
+    /// <summary>The float coefficient applied to the cubic photon value in the derivative denominator.</summary>
+    private const float DerivativeDenominatorScale = JxlMath.InverseLog2E * SGMul;
+
+    /// <summary>The positive denominator offset, prepared with the native float coefficient products.</summary>
+    private const float DerivativeOffset = (SGVOffset * JxlMath.InverseLog2E) + DerivativeEpsilon;
+
     private const float DcQuantPow = 0.83f;
     private const float DcQuant = 1.095924047623553f;
     private const float AcQuant = 0.765f;
 
     private const int DefaultButteraugliIterations = 2;
     private const int MaxButteraugliIterations = 4;
+
+    /// <summary>The pixel width and height of one modulation block.</summary>
+    private const int ModulationBlockSize = 8;
+
+    /// <summary>The positive photon offset used by the fitted derivative ratio.</summary>
+    private const float GammaModulationBias = 0.16F;
+
+    /// <summary>The fitted strength of the average derivative correction in log2 units.</summary>
+    private const float GammaModulationStrength = 0.1005613337192697F;
+
+    /// <summary>The maximum contribution of one horizontal or vertical Y edge.</summary>
+    private const float HighFrequencyLimit = 0.0206F;
+
+    /// <summary>The largest blue-excess contribution retained from one sample.</summary>
+    private const float BlueModulationLimit = 0.010474084867598155F;
+
+    /// <summary>The Y offset used when measuring blue excess over red and green activations.</summary>
+    private const float BlueModulationOffset = 0.0031994768654636393F;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float ComputeMaskForAcStrategyUse(float outputValue)
@@ -50,240 +82,245 @@ internal static class JxlAdaptiveQuantization
         return multiplier / (outputValue + offset);
     }
 
-    public static Vector<float> ComputeMask(Vector<float> outputValue)
+    /// <summary>Converts one block's erosion value to the exponent used by adaptive modulation.</summary>
+    /// <param name="outputValue">The four-minimum erosion response for one 8-by-8 block.</param>
+    /// <returns>The native masking exponent before gamma, edge and blue corrections.</returns>
+    private static float ComputeMask(float outputValue)
     {
-        Vector<float> @base = Vector.Create(-0.7647f);
-        Vector<float> mul4 = Vector.Create(9.4708735624378946f);
-        Vector<float> mul2 = Vector.Create(17.35036561631863f);
-        Vector<float> offset2 = Vector.Create(302.59587815579727f);
-        Vector<float> mul3 = Vector.Create(6.7943250517376494f);
-        Vector<float> offset3 = Vector.Create(3.7179635626140772f);
-        Vector<float> offset4 = Vector.Create(0.25f) * offset3;
-        Vector<float> mul0 = Vector.Create(0.80061762862741759f);
+        float value = MathF.Max(outputValue * 0.80061762862741759F, 1e-3F);
+        float reciprocal2 = 1F / (value + 302.59587815579727F);
+        float reciprocal3 = 1F / float.MultiplyAddEstimate(value, value, 3.7179635626140772F);
+        float reciprocal4 = 1F / float.MultiplyAddEstimate(value, value, 0.25F * 3.7179635626140772F);
 
-        Vector<float> v1 = Vector.Max(outputValue * mul0, Vector.Create(1e-3f));
-        Vector<float> v2 = Vector<float>.One / (v1 + offset2);
-        Vector<float> v3 = Vector<float>.One / ((v1 * v1) + offset3);
-        Vector<float> v4 = Vector<float>.One / ((v1 * v1) + offset4);
-
-        return @base + ((mul4 * v4) + ((mul2 * v2) + (mul3 * v3)));
+        // Preserve the native nested multiply-add order. These fitted terms jointly approximate perceptual masking.
+        return -0.7647F + float.MultiplyAddEstimate(
+            9.4708735624378946F,
+            reciprocal4,
+            float.MultiplyAddEstimate(17.35036561631863F, reciprocal2, 6.7943250517376494F * reciprocal3));
     }
 
-    public static float RatioOfDerivativesOfCubicRootToSimpleGamma(float v, bool invert = false)
+    /// <summary>Converts between cubic-root and perceptual-gamma derivative scales.</summary>
+    /// <param name="value">The cubic-root photon values. Negative values use zero photons.</param>
+    /// <param name="invert">Whether to return the cubic-root-to-gamma ratio instead of its reciprocal.</param>
+    /// <returns>The derivative ratios, with the native positive regularization terms.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float RatioOfDerivativesOfCubicRootToSimpleGamma(float value, bool invert = false)
     {
-        float epsilon = 1e-2f;
-        v = Math.Max(0, v); // cannot be < 0
-        const float numMul = SGRetMul * 3 * SGMul;
-        float voffset = (SGVOffset * JxlMath.InverseLog2E) + epsilon;
-        const float denMul = JxlMath.InverseLog2E * SGMul;
+        value = MathF.Max(0F, value);
+        float squared = value * value;
+        float numerator = float.MultiplyAddEstimate(DerivativeNumeratorScale, squared, DerivativeEpsilon);
+        float denominator = float.MultiplyAddEstimate(DerivativeDenominatorScale * value, squared, DerivativeOffset);
 
-        float v2 = v * v;
-        float num = (numMul * v2) + epsilon;
-        float den = ((denMul * v) * v2) + voffset;
-
-        return invert ? num / den : den / num;
+        return invert ? numerator / denominator : denominator / numerator;
     }
 
-    public static Vector<float> RatioOfDerivativesOfCubicRootToSimpleGamma(Vector<float> v, bool invert)
+    /// <summary>Converts between cubic-root and perceptual-gamma derivative scales.</summary>
+    /// <param name="value">The cubic-root photon values. Negative values use zero photons.</param>
+    /// <param name="invert">Whether to return the cubic-root-to-gamma ratio instead of its reciprocal.</param>
+    /// <returns>The derivative ratios, with the native positive regularization terms.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector<float> RatioOfDerivativesOfCubicRootToSimpleGamma(Vector<float> value, bool invert)
     {
-        float epsilon = 1e-2f;
-        v = Vector.Max(Vector<float>.Zero, v);
+        value = Vector.Max(Vector.Create(0F), value);
+        Vector<float> squared = value * value;
+        Vector<float> numerator = Vector.MultiplyAddEstimate(Vector.Create(DerivativeNumeratorScale), squared, Vector.Create(DerivativeEpsilon));
+        Vector<float> denominator = Vector.MultiplyAddEstimate(Vector.Create(DerivativeDenominatorScale) * value, squared, Vector.Create(DerivativeOffset));
 
-        Vector<float> numMul = Vector.Create(SGRetMul * 3 * SGMul);
-        Vector<float> vOffset = Vector.Create((SGVOffset * JxlMath.InverseLog2E) + epsilon);
-        Vector<float> denMul = Vector.Create(JxlMath.InverseLog2E * SGMul);
-
-        Vector<float> v2 = v * v;
-        Vector<float> num = (numMul * v2) + Vector.Create(epsilon);
-        Vector<float> den = ((denMul * v) * v2) + vOffset;
-
-        return invert ? num / den : den / num;
+        return invert ? numerator / denominator : denominator / numerator;
     }
 
-    public static float GammaModulation(int x, int y, JxlPlane<float> xybX, JxlPlane<float> xybY, Rectangle rect, float outVal)
+    /// <summary>Converts between cubic-root and perceptual-gamma derivative scales.</summary>
+    /// <param name="value">The cubic-root photon values. Negative values use zero photons.</param>
+    /// <param name="invert">Whether to return the cubic-root-to-gamma ratio instead of its reciprocal.</param>
+    /// <returns>The derivative ratios, with the native positive regularization terms.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<float> RatioOfDerivativesOfCubicRootToSimpleGamma(Vector128<float> value, bool invert)
     {
-        const float biasConst = 0.16f;
-        const float gamma = 0.1005613337192697f;
+        value = Vector128.Max(Vector128.Create(0F), value);
+        Vector128<float> squared = value * value;
+        Vector128<float> numerator = Vector128.MultiplyAddEstimate(Vector128.Create(DerivativeNumeratorScale), squared, Vector128.Create(DerivativeEpsilon));
+        Vector128<float> denominator = Vector128.MultiplyAddEstimate(
+            Vector128.Create(DerivativeDenominatorScale) * value,
+            squared,
+            Vector128.Create(DerivativeOffset));
 
-        Vector<float> overallRatio = Vector<float>.Zero;
-        Vector<float> bias = new(biasConst);
-
-        for (int dy = 0; dy < 8; dy++)
-        {
-            ReadOnlySpan<float> rowInX = xybX.GetRow(rect, y + dy);
-            ReadOnlySpan<float> rowInY = xybY.GetRow(rect, y + dy);
-
-            for (int dx = 0; dx < 8; dx += Vector<float>.Count)
-            {
-                Vector<float> iny = new(rowInY[(x + dx)..]);
-                iny += bias;
-
-                Vector<float> inx = new(rowInX[(x + dx)..]);
-
-                Vector<float> r = iny - inx;
-                Vector<float> ratioR = RatioOfDerivativesOfCubicRootToSimpleGamma(r, invert: true);
-                overallRatio += ratioR;
-
-                Vector<float> g = iny + inx;
-                Vector<float> ratioG = RatioOfDerivativesOfCubicRootToSimpleGamma(g, invert: true);
-                overallRatio += ratioG;
-            }
-        }
-
-        float overallRatioScalar = Vector.Sum(overallRatio) * (0.5f / 64.0f);
-
-        return (gamma * MathF.Log2(overallRatioScalar)) + outVal;
+        return invert ? numerator / denominator : denominator / numerator;
     }
 
-    // Change precision in 8x8 blocks that have significant amounts of blue
-    // content (but are not close to solid blue).
-    // This is based on the idea that M and L cone activations saturate the
-    // S (blue) receptors, and the S reception becomes more important when
-    // both M and L levels are low. In that case M and L receptors may be
-    // observing S-spectra instead and viewing them with higher spatial
-    // accuracy, justifying spending more bits here.
-    public static Vector<float> BlueModulation(int x, int y, JxlPlane<float> planex, JxlPlane<float> planey, JxlPlane<float> planeb, Rectangle rect, Vector<float> outVal)
+    /// <summary>Converts between cubic-root and perceptual-gamma derivative scales.</summary>
+    /// <param name="value">The cubic-root photon values. Negative values use zero photons.</param>
+    /// <param name="invert">Whether to return the cubic-root-to-gamma ratio instead of its reciprocal.</param>
+    /// <returns>The derivative ratios, with the native positive regularization terms.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<float> RatioOfDerivativesOfCubicRootToSimpleGamma(Vector256<float> value, bool invert)
     {
-        const float limitConst = 0.010474084867598155f;
-        const float offsetConst = 0.0031994768654636393f;
-        const float multiplier = 0.90590804735610064f;
-        const float maxLimit = 15.463398341612438f;
+        value = Vector256.Max(Vector256.Create(0F), value);
+        Vector256<float> squared = value * value;
+        Vector256<float> numerator = Vector256.MultiplyAddEstimate(Vector256.Create(DerivativeNumeratorScale), squared, Vector256.Create(DerivativeEpsilon));
+        Vector256<float> denominator = Vector256.MultiplyAddEstimate(
+            Vector256.Create(DerivativeDenominatorScale) * value,
+            squared,
+            Vector256.Create(DerivativeOffset));
 
-        Vector<float> sum = Vector<float>.Zero;
-        Vector<float> limit = new(limitConst);
-        Vector<float> offset = new(offsetConst);
-
-        for (int dy = 0; dy < 8; dy++)
-        {
-            ReadOnlySpan<float> rowInX = planex.GetRow(rect, y + dy);
-            ReadOnlySpan<float> rowInY = planey.GetRow(rect, y + dy);
-            ReadOnlySpan<float> rowInB = planeb.GetRow(rect, y + dy);
-
-            for (int dx = 0; dx < 8; dx += Vector<float>.Count)
-            {
-                Vector<float> pX = Vector.Create(rowInX[(x + dx)..]);
-                Vector<float> pB = Vector.Create(rowInB[(x + dx)..]);
-                Vector<float> pYRaw = Vector.Create(rowInY[(x + dx)..]) + offset;
-
-                Vector<float> pYEffective = pYRaw + Vector.Abs(pX);
-                Vector<float> excess = pB - pYEffective;
-
-                Vector<float> contribution = Vector.Min(excess, limit);
-                contribution = Vector.ConditionalSelect(Vector.GreaterThan(pB, pYEffective), contribution, Vector<float>.Zero);
-
-                sum += contribution;
-            }
-        }
-
-        float scalarSum = Vector.Sum(sum);
-
-        if (scalarSum >= 32 * limitConst)
-        {
-            scalarSum = (64 * limitConst) - scalarSum;
-        }
-
-        if (scalarSum >= maxLimit * limitConst)
-        {
-            scalarSum = maxLimit * limitConst;
-        }
-
-        scalarSum *= multiplier;
-
-        return new Vector<float>(scalarSum) + outVal;
+        return invert ? numerator / denominator : denominator / numerator;
     }
 
-    private static float HfModulationScalar(int x, int y, JxlPlane<float> xybY, Rectangle rect, float outVal)
+    /// <summary>Converts between cubic-root and perceptual-gamma derivative scales.</summary>
+    /// <param name="value">The cubic-root photon values. Negative values use zero photons.</param>
+    /// <param name="invert">Whether to return the cubic-root-to-gamma ratio instead of its reciprocal.</param>
+    /// <returns>The derivative ratios, with the native positive regularization terms.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<float> RatioOfDerivativesOfCubicRootToSimpleGamma(Vector512<float> value, bool invert)
     {
-        const float valueMinY = 0.0206f;
-        const float mulY = -0.38f;
-        const float offset = 0.42f;
+        value = Vector512.Max(Vector512.Create(0F), value);
+        Vector512<float> squared = value * value;
+        Vector512<float> numerator = Vector512.MultiplyAddEstimate(Vector512.Create(DerivativeNumeratorScale), squared, Vector512.Create(DerivativeEpsilon));
+        Vector512<float> denominator = Vector512.MultiplyAddEstimate(
+            Vector512.Create(DerivativeDenominatorScale) * value,
+            squared,
+            Vector512.Create(DerivativeOffset));
 
-        float sumY = 0;
-
-        for (int dy = 0; dy < 8; dy++)
-        {
-            ReadOnlySpan<float> rowInY = xybY.GetRow(rect, y + dy)[x..];
-            ReadOnlySpan<float> rowInYNext = dy == 7
-                ? rowInY
-                : xybY.GetRow(rect, y + dy + 1)[x..];
-
-            for (int dx = 0; dx < 7; dx++)
-            {
-                sumY += MathF.Min(valueMinY, MathF.Abs(rowInY[dx] - rowInY[dx + 1]));
-            }
-
-            for (int dx = 0; dx < 8; dx++)
-            {
-                sumY += MathF.Min(valueMinY, MathF.Abs(rowInY[dx] - rowInYNext[dx]));
-            }
-        }
-
-        float scalarSumY = sumY * mulY;
-        scalarSumY += offset;
-
-        return scalarSumY + outVal;
+        return invert ? numerator / denominator : denominator / numerator;
     }
 
-    private static Vector<float> HfModulationVectorized(int x, int y, JxlPlane<float> xybY, Rectangle rect, Vector<float> outVal)
+    /// <summary>Accumulates the three independent native modulation responses for one block.</summary>
+    /// <param name="x">The X sample.</param>
+    /// <param name="y">The Y sample.</param>
+    /// <param name="blue">The B sample.</param>
+    /// <param name="right">The next Y sample, or the same sample at the block's right edge.</param>
+    /// <param name="below">The next Y row, or the same sample at the block's bottom edge.</param>
+    /// <param name="gammaSum">The accumulated red and green derivative ratios.</param>
+    /// <param name="highFrequencySum">The accumulated capped horizontal and vertical Y differences.</param>
+    /// <param name="blueSum">The accumulated excess blue response.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AccumulateModulations(
+        float x,
+        float y,
+        float blue,
+        float right,
+        float below,
+        ref float gammaSum,
+        ref float highFrequencySum,
+        ref float blueSum)
     {
-        const float valueMinY = 0.0206f;
-        const float mulY = -0.38f;
-        const float offset = 0.42f;
+        float biasedY = y + GammaModulationBias;
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY - x, true);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY + x, true);
+        highFrequencySum += MathF.Min(HighFrequencyLimit, MathF.Abs(y - right));
+        highFrequencySum += MathF.Min(HighFrequencyLimit, MathF.Abs(y - below));
 
-        Vector<float> sumY = Vector<float>.Zero;
-        Vector<float> valueMinVY = new(valueMinY);
-
-        ReadOnlySpan<uint> maskRight = [uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue, 0];
-
-        for (int dy = 0; dy < 8; dy++)
-        {
-            ReadOnlySpan<float> rowInY = xybY.GetRow(rect, y + dy)[x..];
-            ReadOnlySpan<float> rowInYNext = dy == 7
-                ? rowInY
-                : xybY.GetRow(rect, y + dy + 1)[x..];
-
-            for (int dx = 0; dx < 8; dx += Vector<float>.Count)
-            {
-                Vector<uint> mask = Vector.Create(maskRight[dx..]);
-                Vector<float> maskFloat = Vector.AsVectorSingle(mask);
-
-                Vector<float> pY = Vector.Create(rowInY[dx..]);
-                Vector<float> prY = Vector.Create(rowInY[(dx + 1)..]);
-                Vector<float> pdY = Vector.Create(rowInYNext[dx..]);
-
-                Vector<float> horizontal = Vector.Min(valueMinVY, Vector.Abs(pY - prY));
-                Vector<float> vertical = Vector.Min(valueMinVY, Vector.Abs(pY - pdY));
-
-                sumY += Vector.BitwiseAnd(horizontal, maskFloat);
-                sumY += vertical;
-            }
-        }
-
-        float scalarSumY = Vector.Sum(sumY);
-        scalarSumY *= mulY;
-        scalarSumY += offset;
-
-        return new Vector<float>(scalarSumY) + outVal;
+        float effectiveY = (y + BlueModulationOffset) + MathF.Abs(x);
+        blueSum += blue > effectiveY ? MathF.Min(blue - effectiveY, BlueModulationLimit) : 0F;
     }
 
-    public static Vector<float> HfModulation(int x, int y, JxlPlane<float> xybY, Rectangle rect, Vector<float> outVal)
+    /// <summary>Accumulates modulation responses independently in each sample lane.</summary>
+    /// <param name="x">The X sample lanes.</param>
+    /// <param name="y">The corresponding Y lanes.</param>
+    /// <param name="blue">The corresponding B lanes.</param>
+    /// <param name="right">The right Y neighbors, repeated at each eight-column block edge.</param>
+    /// <param name="below">The lower Y neighbors, repeated on the block's final row.</param>
+    /// <param name="gammaSum">The lane-wise derivative sums.</param>
+    /// <param name="highFrequencySum">The lane-wise capped edge sums.</param>
+    /// <param name="blueSum">The lane-wise blue-excess sums.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AccumulateModulations(
+        Vector128<float> x,
+        Vector128<float> y,
+        Vector128<float> blue,
+        Vector128<float> right,
+        Vector128<float> below,
+        ref Vector128<float> gammaSum,
+        ref Vector128<float> highFrequencySum,
+        ref Vector128<float> blueSum)
     {
-        if (Vector<float>.Count == 1)
-        {
-            // We don't have SIMD support, everything is scalar.
-            // Loop iterations are different in scalar HF modulation,
-            // so it's more efficient to go with a separate duplicated
-            // routine.
-            float result = HfModulationScalar(x, y, xybY, rect, outVal.ToScalar());
-            return Vector.Create(result);
-        }
-        else
-        {
-            // We have SIMD support
-            return HfModulationVectorized(x, y, xybY, rect, outVal);
-        }
+        Vector128<float> biasedY = y + Vector128.Create(GammaModulationBias);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY - x, true);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY + x, true);
+        highFrequencySum += Vector128.Min(Vector128.Create(HighFrequencyLimit), Vector128.Abs(y - right));
+        highFrequencySum += Vector128.Min(Vector128.Create(HighFrequencyLimit), Vector128.Abs(y - below));
+
+        Vector128<float> effectiveY = (y + Vector128.Create(BlueModulationOffset)) + Vector128.Abs(x);
+        blueSum += Vector128.ConditionalSelect(
+            Vector128.GreaterThan(blue, effectiveY),
+            Vector128.Min(blue - effectiveY, Vector128.Create(BlueModulationLimit)),
+            Vector128<float>.Zero);
     }
 
+    /// <summary>Accumulates modulation responses independently in each sample lane.</summary>
+    /// <param name="x">The X sample lanes.</param>
+    /// <param name="y">The corresponding Y lanes.</param>
+    /// <param name="blue">The corresponding B lanes.</param>
+    /// <param name="right">The right Y neighbors, repeated at each eight-column block edge.</param>
+    /// <param name="below">The lower Y neighbors, repeated on the block's final row.</param>
+    /// <param name="gammaSum">The lane-wise derivative sums.</param>
+    /// <param name="highFrequencySum">The lane-wise capped edge sums.</param>
+    /// <param name="blueSum">The lane-wise blue-excess sums.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AccumulateModulations(
+        Vector256<float> x,
+        Vector256<float> y,
+        Vector256<float> blue,
+        Vector256<float> right,
+        Vector256<float> below,
+        ref Vector256<float> gammaSum,
+        ref Vector256<float> highFrequencySum,
+        ref Vector256<float> blueSum)
+    {
+        Vector256<float> biasedY = y + Vector256.Create(GammaModulationBias);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY - x, true);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY + x, true);
+        highFrequencySum += Vector256.Min(Vector256.Create(HighFrequencyLimit), Vector256.Abs(y - right));
+        highFrequencySum += Vector256.Min(Vector256.Create(HighFrequencyLimit), Vector256.Abs(y - below));
+
+        Vector256<float> effectiveY = (y + Vector256.Create(BlueModulationOffset)) + Vector256.Abs(x);
+        blueSum += Vector256.ConditionalSelect(
+            Vector256.GreaterThan(blue, effectiveY),
+            Vector256.Min(blue - effectiveY, Vector256.Create(BlueModulationLimit)),
+            Vector256<float>.Zero);
+    }
+
+    /// <summary>Accumulates modulation responses independently in each sample lane.</summary>
+    /// <param name="x">The X sample lanes.</param>
+    /// <param name="y">The corresponding Y lanes.</param>
+    /// <param name="blue">The corresponding B lanes.</param>
+    /// <param name="right">The right Y neighbors, repeated at each eight-column block edge.</param>
+    /// <param name="below">The lower Y neighbors, repeated on the block's final row.</param>
+    /// <param name="gammaSum">The lane-wise derivative sums.</param>
+    /// <param name="highFrequencySum">The lane-wise capped edge sums.</param>
+    /// <param name="blueSum">The lane-wise blue-excess sums.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AccumulateModulations(
+        Vector512<float> x,
+        Vector512<float> y,
+        Vector512<float> blue,
+        Vector512<float> right,
+        Vector512<float> below,
+        ref Vector512<float> gammaSum,
+        ref Vector512<float> highFrequencySum,
+        ref Vector512<float> blueSum)
+    {
+        Vector512<float> biasedY = y + Vector512.Create(GammaModulationBias);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY - x, true);
+        gammaSum += RatioOfDerivativesOfCubicRootToSimpleGamma(biasedY + x, true);
+        highFrequencySum += Vector512.Min(Vector512.Create(HighFrequencyLimit), Vector512.Abs(y - right));
+        highFrequencySum += Vector512.Min(Vector512.Create(HighFrequencyLimit), Vector512.Abs(y - below));
+
+        Vector512<float> effectiveY = (y + Vector512.Create(BlueModulationOffset)) + Vector512.Abs(x);
+        blueSum += Vector512.ConditionalSelect(
+            Vector512.GreaterThan(blue, effectiveY),
+            Vector512.Min(blue - effectiveY, Vector512.Create(BlueModulationLimit)),
+            Vector512<float>.Zero);
+    }
+
+    /// <summary>Applies gamma, edge and blue corrections to precomputed block masking values.</summary>
+    /// <param name="butteraugliTarget">The perceptual target that damps modulation between targets two and fourteen.</param>
+    /// <param name="xybX">The source X plane.</param>
+    /// <param name="xybY">The source Y plane.</param>
+    /// <param name="xybB">The source B plane.</param>
+    /// <param name="rectIn">The source pixel region. Its dimensions are multiples of eight.</param>
+    /// <param name="scale">The multiplicative quantization scale.</param>
+    /// <param name="rectOut">The output block region, relative to the source region's origin.</param>
+    /// <param name="output">The precomputed erosion responses, replaced by positive quantization multipliers.</param>
     private static void PerBlockModulations(
         float butteraugliTarget,
         JxlPlane<float> xybX,
@@ -294,42 +331,164 @@ internal static class JxlAdaptiveQuantization
         Rectangle rectOut,
         JxlPlane<float> output)
     {
-        float baseLevel = 0.48f * scale;
+        float baseLevel = 0.48F * scale;
+        float dampen = butteraugliTarget < 2F ? 1F : MathF.Max(0F, 1F - ((butteraugliTarget - 2F) / 12F));
+        float multiplier = scale * dampen;
+        float add = (1F - dampen) * baseLevel;
 
-        const float dampenRampStart = 2.0f;
-        const float dampenRampEnd = 14.0f;
+        // Borrow each complete plane once. The region offsets select samples; physical strides remain independent.
+        ReadOnlySpan<float> samplesX = xybX.GetRow(0);
+        ReadOnlySpan<float> samplesY = xybY.GetRow(0);
+        ReadOnlySpan<float> samplesB = xybB.GetRow(0);
+        Span<float> outputSamples = output.GetRow(0);
+        int xStride = xybX.PixelsPerRow;
+        int yStride = xybY.PixelsPerRow;
+        int blueStride = xybB.PixelsPerRow;
+        int outputStride = output.PixelsPerRow;
 
-        float dampen = 1.0f;
-
-        if (butteraugliTarget >= dampenRampStart)
+        for (int blockY = rectOut.Top; blockY < rectOut.Bottom; blockY++)
         {
-            dampen = 1.0f - ((butteraugliTarget - dampenRampStart) / (dampenRampEnd - dampenRampStart));
+            int top = rectIn.Top + (blockY * ModulationBlockSize);
+            Span<float> outputRow = outputSamples.Slice(blockY * outputStride, output.XSize);
 
-            if (dampen < 0)
+            for (int blockX = rectOut.Left; blockX < rectOut.Right; blockX++)
             {
-                dampen = 0;
-            }
-        }
+                int left = rectIn.Left + (blockX * ModulationBlockSize);
+                float gammaSum;
+                float highFrequencySum;
+                float blueSum;
 
-        float mul = scale * dampen;
-        float add = (1.0f - dampen) * baseLevel;
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    Vector512<float> gamma = Vector512<float>.Zero;
+                    Vector512<float> edges = Vector512<float>.Zero;
+                    Vector512<float> blue = Vector512<float>.Zero;
+                    Vector256<int> rightIndices = Vector256.Create(1, 2, 3, 4, 5, 6, 7, 7);
 
-        for (int iy = rectOut.Y0(); iy < rectOut.Y1(); iy++)
-        {
-            int y = iy * 8;
-            Span<float> rowOut = output.GetRow(iy);
+                    // Each 256-bit half holds one complete row. Pairing rows uses all sixteen lanes without crossing an 8-by-8 block.
+                    // Repeat each row's final Y lane for its right neighbor. The resulting difference is zero before any reduction.
+                    // The full-row shuffle must move column four into column three; a 128-bit lane-local shuffle cannot form that neighbor.
+                    for (int row = 0; row < ModulationBlockSize; row += 2)
+                    {
+                        int y = top + row;
+                        Vector256<float> y0 = Vector256.Create(samplesY.Slice((y * yStride) + left, ModulationBlockSize));
+                        Vector256<float> y1 = Vector256.Create(samplesY.Slice(((y + 1) * yStride) + left, ModulationBlockSize));
+                        Vector256<float> y2 = row == ModulationBlockSize - 2
+                            ? y1
+                            : Vector256.Create(samplesY.Slice(((y + 2) * yStride) + left, ModulationBlockSize));
 
-            for (int ix = rectOut.X0(); ix < rectOut.X1(); ix++)
-            {
-                int x = ix * 8;
+                        Vector512<float> x = Vector512.Create(
+                            Vector256.Create(samplesX.Slice((y * xStride) + left, ModulationBlockSize)),
+                            Vector256.Create(samplesX.Slice(((y + 1) * xStride) + left, ModulationBlockSize)));
 
-                Vector<float> maskVal = ComputeMask(Vector.Create(rowOut[ix]));
+                        Vector512<float> b = Vector512.Create(
+                            Vector256.Create(samplesB.Slice((y * blueStride) + left, ModulationBlockSize)),
+                            Vector256.Create(samplesB.Slice(((y + 1) * blueStride) + left, ModulationBlockSize)));
 
-                maskVal = GammaModulation(x, y, xybX, xybY, rectIn, maskVal);
-                float outVal = HfModulationScalar(x, y, xybY, rectIn, maskVal);
-                outVal = MathF.Min(outVal, BlueModulation(x, y, xybX, xybY, xybB, rectIn, maskVal));
+                        Vector512<float> right = Vector512.Create(Vector256.Shuffle(y0, rightIndices), Vector256.Shuffle(y1, rightIndices));
+                        AccumulateModulations(x, Vector512.Create(y0, y1), b, right, Vector512.Create(y1, y2), ref gamma, ref edges, ref blue);
+                    }
 
-                rowOut[ix] = (MathF.Pow(2.0f, outVal * 1.442695041f) * mul) + add;
+                    gammaSum = Vector512.Sum(gamma);
+                    highFrequencySum = Vector512.Sum(edges);
+                    blueSum = Vector512.Sum(blue);
+                }
+                else if (Vector256.IsHardwareAccelerated)
+                {
+                    Vector256<float> gamma = Vector256<float>.Zero;
+                    Vector256<float> edges = Vector256<float>.Zero;
+                    Vector256<float> blue = Vector256<float>.Zero;
+                    Vector256<int> rightIndices = Vector256.Create(1, 2, 3, 4, 5, 6, 7, 7);
+
+                    // One register holds the block's eight columns. No load includes row padding or the following block.
+                    // Shuffle crosses the 128-bit boundary at columns three/four. A native lane-local shuffle would select the wrong neighbor.
+                    for (int row = 0; row < ModulationBlockSize; row++)
+                    {
+                        int y = top + row;
+                        int nextY = row == ModulationBlockSize - 1 ? y : y + 1;
+                        Vector256<float> x = Vector256.Create(samplesX.Slice((y * xStride) + left, ModulationBlockSize));
+                        Vector256<float> currentY = Vector256.Create(samplesY.Slice((y * yStride) + left, ModulationBlockSize));
+                        Vector256<float> b = Vector256.Create(samplesB.Slice((y * blueStride) + left, ModulationBlockSize));
+                        Vector256<float> right = Vector256.Shuffle(currentY, rightIndices);
+                        Vector256<float> below = Vector256.Create(samplesY.Slice((nextY * yStride) + left, ModulationBlockSize));
+                        AccumulateModulations(x, currentY, b, right, below, ref gamma, ref edges, ref blue);
+                    }
+
+                    gammaSum = Vector256.Sum(gamma);
+                    highFrequencySum = Vector256.Sum(edges);
+                    blueSum = Vector256.Sum(blue);
+                }
+                else if (Vector128.IsHardwareAccelerated)
+                {
+                    Vector128<float> gamma = Vector128<float>.Zero;
+                    Vector128<float> edges = Vector128<float>.Zero;
+                    Vector128<float> blue = Vector128<float>.Zero;
+
+                    // Four lanes cover half a row. The first right-neighbor load remains inside the eight samples.
+                    // The second half repeats its final lane, so it never loads the ninth sample of a block.
+                    for (int row = 0; row < ModulationBlockSize; row++)
+                    {
+                        int y = top + row;
+                        int nextY = row == ModulationBlockSize - 1 ? y : y + 1;
+
+                        for (int column = 0; column < ModulationBlockSize; column += Vector128<float>.Count)
+                        {
+                            int x = left + column;
+                            Vector128<float> currentX = Vector128.Create(samplesX.Slice((y * xStride) + x, Vector128<float>.Count));
+                            Vector128<float> currentY = Vector128.Create(samplesY.Slice((y * yStride) + x, Vector128<float>.Count));
+                            Vector128<float> b = Vector128.Create(samplesB.Slice((y * blueStride) + x, Vector128<float>.Count));
+                            Vector128<float> right = column == 0
+                                ? Vector128.Create(samplesY.Slice((y * yStride) + x + 1, Vector128<float>.Count))
+                                : Vector128_.ShuffleNative(currentY, 0b11_11_10_01);
+
+                            Vector128<float> below = Vector128.Create(samplesY.Slice((nextY * yStride) + x, Vector128<float>.Count));
+                            AccumulateModulations(currentX, currentY, b, right, below, ref gamma, ref edges, ref blue);
+                        }
+                    }
+
+                    gammaSum = Vector128.Sum(gamma);
+                    highFrequencySum = Vector128.Sum(edges);
+                    blueSum = Vector128.Sum(blue);
+                }
+                else
+                {
+                    gammaSum = 0F;
+                    highFrequencySum = 0F;
+                    blueSum = 0F;
+
+                    for (int row = 0; row < ModulationBlockSize; row++)
+                    {
+                        int y = top + row;
+                        int nextY = row == ModulationBlockSize - 1 ? y : y + 1;
+
+                        for (int column = 0; column < ModulationBlockSize; column++)
+                        {
+                            int x = left + column;
+                            int rightX = column == ModulationBlockSize - 1 ? x : x + 1;
+                            AccumulateModulations(
+                                samplesX[(y * xStride) + x],
+                                samplesY[(y * yStride) + x],
+                                samplesB[(y * blueStride) + x],
+                                samplesY[(y * yStride) + rightX],
+                                samplesY[(nextY * yStride) + x],
+                                ref gammaSum,
+                                ref highFrequencySum,
+                                ref blueSum);
+                        }
+                    }
+                }
+
+                // Both alternative corrections start from the same gamma-adjusted mask. Blue does not follow the HF correction.
+                float mask = ComputeMask(outputRow[blockX]);
+                mask = float.MultiplyAddEstimate(GammaModulationStrength, MathF.Log2(gammaSum * (0.5F / 64F)), mask);
+                float highFrequency = ((highFrequencySum * -0.38F) + 0.42F) + mask;
+                blueSum = blueSum >= 32F * BlueModulationLimit ? (64F * BlueModulationLimit) - blueSum : blueSum;
+                blueSum = MathF.Min(blueSum, 15.463398341612438F * BlueModulationLimit);
+                float blueCorrection = (blueSum * 0.90590804735610064F) + mask;
+                float exponent = MathF.Min(highFrequency, blueCorrection) * 1.442695041F;
+
+                // The previous stages modulate an exponent. Convert it to the multiplicative field only once per block.
+                outputRow[blockX] = (float.Exp2(exponent) * multiplier) + add;
             }
         }
     }
@@ -350,6 +509,12 @@ internal static class JxlAdaptiveQuantization
         return Vector.Create(0.25f) * Vector.SquareRoot((v * Vector.SquareRoot(kMul * 1e8f)) + kLogOffset);
     }
 
+    /// <summary>Inserts one finite sample into four ordered minima.</summary>
+    /// <param name="v">The new sample.</param>
+    /// <param name="min0">The lowest retained sample.</param>
+    /// <param name="min1">The second-lowest retained sample.</param>
+    /// <param name="min2">The third-lowest retained sample.</param>
+    /// <param name="min3">The fourth-lowest retained sample.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StoreMin4(float v, ref float min0, ref float min1, ref float min2, ref float min3)
     {
@@ -380,125 +545,532 @@ internal static class JxlAdaptiveQuantization
         }
     }
 
-    // Look for smooth areas near the area of degradation.
-    // If the areas are generally smooth, don't do masking.
-    // Output is downsampled by 2x.
+    /// <summary>
+    /// Filters the four lowest samples of each clamped three-by-three neighborhood and downsamples the result by two in each axis.
+    /// </summary>
+    /// <param name="butteraugliTarget">The perceptual target used to select the four minimum weights.</param>
+    /// <param name="fromRect">The source region, twice the destination width and height.</param>
+    /// <param name="from">The borrowed source plane. Neighbor positions clamp at its global image edges.</param>
+    /// <param name="toRect">The destination region, independent of the source origin and physical stride.</param>
+    /// <param name="to">The distinct destination plane. Samples outside toRect remain unchanged.</param>
+    /// <returns>Whether the source and destination regions have the required two-to-one dimensions.</returns>
     public static bool FuzzyErosion(float butteraugliTarget, Rectangle fromRect, JxlPlane<float> from, Rectangle toRect, JxlPlane<float> to)
     {
-        int width = from.XSize;
-        int height = from.YSize;
-        const int step = 1;
-
-        if (toRect.Width != fromRect.Width || toRect.Height != fromRect.Height)
+        // Each output combines four source neighborhoods. This checks the actual downsampling contract, not equal-sized image regions.
+        if ((long)toRect.Width * 2 != fromRect.Width || (long)toRect.Height * 2 != fromRect.Height)
         {
             return false;
         }
 
-        ReadOnlySpan<float> mulBase = [0.125f, 0.1f, 0.09f, 0.06f];
-        ReadOnlySpan<float> mulAdd = [0.0f, -0.1f, -0.09f, -0.06f];
-        float mul = 0f;
+        ReadOnlySpan<float> mulBase = [0.125F, 0.1F, 0.09F, 0.06F];
+        ReadOnlySpan<float> mulAdd = [0F, -0.1F, -0.09F, -0.06F];
+        float mul = butteraugliTarget < 2F ? (2F - butteraugliTarget) * 0.5F : 0F;
+        InlineArray4<float> weights = default;
+        float normSum = 0F;
 
-        if (butteraugliTarget < 2.0f)
+        for (int i = 0; i < 4; i++)
         {
-            mul = (2.0f - butteraugliTarget) * (1.0f / 2.0f);
+            weights[i] = mulBase[i] + (mul * mulAdd[i]);
+            normSum += weights[i];
         }
 
-        InlineArray4<float> multipliers = default;
-        float normSum = 0;
-
-        for (int ii = 0; ii < 4; ii++)
+        const float total = 0.29959705784054957F;
+        for (int i = 0; i < 4; i++)
         {
-            multipliers[ii] = mulBase[ii] + (mul * mulAdd[ii]);
-            normSum += multipliers[ii];
+            weights[i] *= total / normSum;
         }
 
-        const float total = 0.29959705784054957f;
+        FuzzyErosionOperator operation = new(weights[0], weights[1], weights[2], weights[3]);
+        ReadOnlySpan<float> source = from.GetRow(0);
+        Span<float> destination = to.GetRow(0);
+        // Reserve a right neighbor after every vector's final source pair. This bound uses the full source width, not the tile edge.
+        int vectorEnd = Math.Min(toRect.Width, (from.XSize - fromRect.Left - 1) / 2);
 
-        for (int ii = 0; ii < 4; ii++)
+        for (int y = 0; y < toRect.Height; y++)
         {
-            multipliers[ii] *= total / normSum;
-        }
+            int sourceY = fromRect.Top + (2 * y);
 
-        for (int fy = 0; fy < fromRect.Height; fy++)
-        {
-            int y = fy + fromRect.Y0();
-            int ym1 = y >= step ? y - step : y;
-            int yp1 = y + step < height ? y + step : y;
+            // A source row pair needs four rows of neighborhoods. Clamp at the plane edges, including repeated rows at height two.
+            ReadOnlySpan<float> top = source.Slice(Math.Max(0, sourceY - 1) * from.PixelsPerRow, from.XSize);
+            ReadOnlySpan<float> upper = source.Slice(sourceY * from.PixelsPerRow, from.XSize);
+            ReadOnlySpan<float> lower = source.Slice((sourceY + 1) * from.PixelsPerRow, from.XSize);
+            ReadOnlySpan<float> bottom = source.Slice(Math.Min(from.YSize - 1, sourceY + 2) * from.PixelsPerRow, from.XSize);
+            Span<float> output = destination.Slice(((toRect.Top + y) * to.PixelsPerRow) + toRect.Left, toRect.Width);
+            int x = 0;
 
-            Span<float> rowt = from.GetRow(ym1);
-            Span<float> row = from.GetRow(y);
-            Span<float> rowb = from.GetRow(yp1);
-            Span<float> rowOut = to.GetRow(toRect, fy / 2);
-
-            for (int fx = 0; fx < fromRect.Height; fx++)
+            // The first output pair can touch the global left edge. Complete it with clamped scalar reads before vector interiors.
+            if (fromRect.Left == 0 && x < output.Length)
             {
-                int x = fx + fromRect.X0();
-                int xm1 = x >= step ? x - step : x;
-                int xp1 = x + step < width ? x + step : x;
+                output[x++] = Erode2x2(top, upper, lower, bottom, fromRect.Left, operation);
+            }
 
-                // float min[4] = { row[x], row[xm1], row[xp1], rowt[xm1] };
-                InlineArray4<float> min = default;
-                min[0] = row[x];
-                min[1] = row[xm1];
-                min[2] = row[xp1];
-                min[3] = rowt[xm1];
-
-                if (min[0] > min[1])
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= vectorEnd - Vector512<float>.Count; x += Vector512<float>.Count)
                 {
-                    RuntimeUtility.Swap(ref min[0], ref min[1]);
-                }
+                    int sourceX = fromRect.Left + (2 * x);
+                    ErodePair(top, upper, lower, bottom, sourceX, operation, out Vector512<float> upper0, out Vector512<float> lower0);
+                    ErodePair(top, upper, lower, bottom, sourceX + Vector512<float>.Count, operation, out Vector512<float> upper1, out Vector512<float> lower1);
+                    SimdUtils.Deinterleave2(upper0.AsInt32(), upper1.AsInt32(), out Vector512<int> upperEven, out Vector512<int> upperOdd);
+                    SimdUtils.Deinterleave2(lower0.AsInt32(), lower1.AsInt32(), out Vector512<int> lowerEven, out Vector512<int> lowerOdd);
 
-                if (min[0] > min[2])
+                    // Deinterleaving only moves bits. Add the four neighborhoods in native row-major order, without regrouping the lower pair.
+                    Vector512<float> result = upperEven.AsSingle() + upperOdd.AsSingle();
+                    result += lowerEven.AsSingle();
+                    result += lowerOdd.AsSingle();
+                    result.StoreUnsafe(ref MemoryMarshal.GetReference(output), (uint)x);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= vectorEnd - Vector256<float>.Count; x += Vector256<float>.Count)
                 {
-                    RuntimeUtility.Swap(ref min[0], ref min[2]);
-                }
+                    int sourceX = fromRect.Left + (2 * x);
+                    ErodePair(top, upper, lower, bottom, sourceX, operation, out Vector256<float> upper0, out Vector256<float> lower0);
+                    ErodePair(top, upper, lower, bottom, sourceX + Vector256<float>.Count, operation, out Vector256<float> upper1, out Vector256<float> lower1);
+                    SimdUtils.Deinterleave2(upper0.AsInt32(), upper1.AsInt32(), out Vector256<int> upperEven, out Vector256<int> upperOdd);
+                    SimdUtils.Deinterleave2(lower0.AsInt32(), lower1.AsInt32(), out Vector256<int> lowerEven, out Vector256<int> lowerOdd);
 
-                if (min[0] > min[3])
+                    // Deinterleaving only moves bits. Add the four neighborhoods in native row-major order, without regrouping the lower pair.
+                    Vector256<float> result = upperEven.AsSingle() + upperOdd.AsSingle();
+                    result += lowerEven.AsSingle();
+                    result += lowerOdd.AsSingle();
+                    result.StoreUnsafe(ref MemoryMarshal.GetReference(output), (uint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= vectorEnd - Vector128<float>.Count; x += Vector128<float>.Count)
                 {
-                    RuntimeUtility.Swap(ref min[0], ref min[3]);
-                }
+                    int sourceX = fromRect.Left + (2 * x);
+                    ErodePair(top, upper, lower, bottom, sourceX, operation, out Vector128<float> upper0, out Vector128<float> lower0);
+                    ErodePair(top, upper, lower, bottom, sourceX + Vector128<float>.Count, operation, out Vector128<float> upper1, out Vector128<float> lower1);
+                    SimdUtils.Deinterleave2(upper0.AsInt32(), upper1.AsInt32(), out Vector128<int> upperEven, out Vector128<int> upperOdd);
+                    SimdUtils.Deinterleave2(lower0.AsInt32(), lower1.AsInt32(), out Vector128<int> lowerEven, out Vector128<int> lowerOdd);
 
-                if (min[1] > min[2])
-                {
-                    RuntimeUtility.Swap(ref min[1], ref min[2]);
+                    // Deinterleaving only moves bits. Add the four neighborhoods in native row-major order, without regrouping the lower pair.
+                    Vector128<float> result = upperEven.AsSingle() + upperOdd.AsSingle();
+                    result += lowerEven.AsSingle();
+                    result += lowerOdd.AsSingle();
+                    result.StoreUnsafe(ref MemoryMarshal.GetReference(output), (uint)x);
                 }
+            }
 
-                if (min[1] > min[3])
-                {
-                    RuntimeUtility.Swap(ref min[1], ref min[3]);
-                }
-
-                if (min[2] > min[3])
-                {
-                    RuntimeUtility.Swap(ref min[2], ref min[3]);
-                }
-
-                // remaining 5 values of a 3x3 neighborhood
-                ref float rmin0 = ref min[0];
-                ref float rmin1 = ref min[1];
-                ref float rmin2 = ref min[2];
-                ref float rmin3 = ref min[3];
-                StoreMin4(rowt[x], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowt[xp1], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowb[xm1], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowb[x], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-                StoreMin4(rowb[xp1], ref rmin0, ref rmin1, ref rmin2, ref rmin3);
-
-                float v = (multipliers[0] * min[0]) + (multipliers[1] * min[1]) +
-                          (multipliers[2] * min[2]) + (multipliers[3] * min[3]);
-
-                if (fx % 2 == 0 && fy % 2 == 0)
-                {
-                    rowOut[fx / 2] = v;
-                }
-                else
-                {
-                    rowOut[fx / 2] += v;
-                }
+            for (; x < output.Length; x++)
+            {
+                output[x] = Erode2x2(top, upper, lower, bottom, fromRect.Left + (2 * x), operation);
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Combines one clamped source pair from each of two rows with the same order as the vector interior.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The global source column of the left sample.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <returns>The sum of the four filtered neighborhoods in upper-left, upper-right, lower-left, lower-right order.</returns>
+    private static float Erode2x2(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation)
+    {
+        int left = Math.Max(0, x - 1);
+        int right = Math.Min(upper.Length - 1, x + 2);
+        float result = operation.Invoke(upper[x], upper[left], upper[x + 1], top[left], top[x], top[x + 1], lower[left], lower[x], lower[x + 1]);
+        result += operation.Invoke(upper[x + 1], upper[x], upper[right], top[x], top[x + 1], top[right], lower[x], lower[x + 1], lower[right]);
+        result += operation.Invoke(lower[x], lower[left], lower[x + 1], upper[left], upper[x], upper[x + 1], bottom[left], bottom[x], bottom[x + 1]);
+        result += operation.Invoke(lower[x + 1], lower[x], lower[right], upper[x], upper[x + 1], upper[right], bottom[x], bottom[x + 1], bottom[right]);
+        return result;
+    }
+
+    /// <summary>
+    /// Filters corresponding source columns in two adjacent rows while reusing their common neighborhood loads.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The first global source column. Its vector and one-sample halo stay inside every row.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <param name="upperResult">Filtered upper-row samples in original column order.</param>
+    /// <param name="lowerResult">Filtered lower-row samples in original column order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ErodePair(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation,
+        out Vector128<float> upperResult,
+        out Vector128<float> lowerResult)
+    {
+        Vector128<float> topLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x - 1));
+        Vector128<float> topCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x));
+        Vector128<float> topRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x + 1));
+        Vector128<float> upperLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x - 1));
+        Vector128<float> upperCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x));
+        Vector128<float> upperRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x + 1));
+        Vector128<float> lowerLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x - 1));
+        Vector128<float> lowerCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x));
+        Vector128<float> lowerRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x + 1));
+        Vector128<float> bottomLeft = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x - 1));
+        Vector128<float> bottomCenter = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x));
+        Vector128<float> bottomRight = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x + 1));
+
+        upperResult = operation.Invoke(upperCenter, upperLeft, upperRight, topLeft, topCenter, topRight, lowerLeft, lowerCenter, lowerRight);
+
+        lowerResult = operation.Invoke(lowerCenter, lowerLeft, lowerRight, upperLeft, upperCenter, upperRight, bottomLeft, bottomCenter, bottomRight);
+    }
+
+    /// <summary>
+    /// Filters corresponding source columns in two adjacent rows while reusing their common neighborhood loads.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The first global source column. Its vector and one-sample halo stay inside every row.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <param name="upperResult">Filtered upper-row samples in original column order.</param>
+    /// <param name="lowerResult">Filtered lower-row samples in original column order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ErodePair(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation,
+        out Vector256<float> upperResult,
+        out Vector256<float> lowerResult)
+    {
+        Vector256<float> topLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x - 1));
+        Vector256<float> topCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x));
+        Vector256<float> topRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x + 1));
+        Vector256<float> upperLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x - 1));
+        Vector256<float> upperCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x));
+        Vector256<float> upperRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x + 1));
+        Vector256<float> lowerLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x - 1));
+        Vector256<float> lowerCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x));
+        Vector256<float> lowerRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x + 1));
+        Vector256<float> bottomLeft = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x - 1));
+        Vector256<float> bottomCenter = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x));
+        Vector256<float> bottomRight = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x + 1));
+
+        upperResult = operation.Invoke(upperCenter, upperLeft, upperRight, topLeft, topCenter, topRight, lowerLeft, lowerCenter, lowerRight);
+
+        lowerResult = operation.Invoke(lowerCenter, lowerLeft, lowerRight, upperLeft, upperCenter, upperRight, bottomLeft, bottomCenter, bottomRight);
+    }
+
+    /// <summary>
+    /// Filters corresponding source columns in two adjacent rows while reusing their common neighborhood loads.
+    /// </summary>
+    /// <param name="top">The row above the upper source row.</param>
+    /// <param name="upper">The upper source row.</param>
+    /// <param name="lower">The lower source row.</param>
+    /// <param name="bottom">The row below the lower source row.</param>
+    /// <param name="x">The first global source column. Its vector and one-sample halo stay inside every row.</param>
+    /// <param name="operation">The prepared four-minimum weights.</param>
+    /// <param name="upperResult">Filtered upper-row samples in original column order.</param>
+    /// <param name="lowerResult">Filtered lower-row samples in original column order.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ErodePair(
+        ReadOnlySpan<float> top,
+        ReadOnlySpan<float> upper,
+        ReadOnlySpan<float> lower,
+        ReadOnlySpan<float> bottom,
+        int x,
+        in FuzzyErosionOperator operation,
+        out Vector512<float> upperResult,
+        out Vector512<float> lowerResult)
+    {
+        Vector512<float> topLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x - 1));
+        Vector512<float> topCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x));
+        Vector512<float> topRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(top), (uint)(x + 1));
+        Vector512<float> upperLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x - 1));
+        Vector512<float> upperCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x));
+        Vector512<float> upperRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(upper), (uint)(x + 1));
+        Vector512<float> lowerLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x - 1));
+        Vector512<float> lowerCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x));
+        Vector512<float> lowerRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(lower), (uint)(x + 1));
+        Vector512<float> bottomLeft = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x - 1));
+        Vector512<float> bottomCenter = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x));
+        Vector512<float> bottomRight = Vector512.LoadUnsafe(ref MemoryMarshal.GetReference(bottom), (uint)(x + 1));
+
+        upperResult = operation.Invoke(upperCenter, upperLeft, upperRight, topLeft, topCenter, topRight, lowerLeft, lowerCenter, lowerRight);
+
+        lowerResult = operation.Invoke(lowerCenter, lowerLeft, lowerRight, upperLeft, upperCenter, upperRight, bottomLeft, bottomCenter, bottomRight);
+    }
+
+    /// <summary>
+    /// Evaluates the adaptive quantizer's four-lowest-neighbor filter, distinct from Butteraugli's three-minimum masking filter.
+    /// </summary>
+    /// <param name="weight0">The lowest sample weight.</param>
+    /// <param name="weight1">The second-lowest sample weight.</param>
+    /// <param name="weight2">The third-lowest sample weight.</param>
+    /// <param name="weight3">The fourth-lowest sample weight.</param>
+    private readonly struct FuzzyErosionOperator(float weight0, float weight1, float weight2, float weight3)
+    {
+        /// <summary>
+        /// Returns the weighted four lowest finite values of one three-by-three neighborhood.
+        /// </summary>
+        /// <param name="first">The center sample.</param>
+        /// <param name="second">The left sample.</param>
+        /// <param name="third">The right sample.</param>
+        /// <param name="fourth">The upper-left sample.</param>
+        /// <param name="fifth">The upper sample.</param>
+        /// <param name="sixth">The upper-right sample.</param>
+        /// <param name="seventh">The lower-left sample.</param>
+        /// <param name="eighth">The lower sample.</param>
+        /// <param name="ninth">The lower-right sample.</param>
+        /// <returns>The weighted four-minimum sum in native arithmetic order.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(
+            float first,
+            float second,
+            float third,
+            float fourth,
+            float fifth,
+            float sixth,
+            float seventh,
+            float eighth,
+            float ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            float minimum = MathF.Min(first, second);
+            second = MathF.Max(first, second);
+            first = minimum;
+            minimum = MathF.Min(third, fourth);
+            fourth = MathF.Max(third, fourth);
+            third = minimum;
+            minimum = MathF.Min(first, third);
+            third = MathF.Max(first, third);
+            first = minimum;
+            minimum = MathF.Min(second, fourth);
+            fourth = MathF.Max(second, fourth);
+            second = minimum;
+            minimum = MathF.Min(second, third);
+            third = MathF.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            return (((weight0 * first) + (weight1 * second)) + (weight2 * third)) + (weight3 * fourth);
+        }
+
+        /// <inheritdoc cref="Invoke(float, float, float, float, float, float, float, float, float)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(
+            Vector128<float> first,
+            Vector128<float> second,
+            Vector128<float> third,
+            Vector128<float> fourth,
+            Vector128<float> fifth,
+            Vector128<float> sixth,
+            Vector128<float> seventh,
+            Vector128<float> eighth,
+            Vector128<float> ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            Vector128<float> minimum = Vector128.Min(first, second);
+            second = Vector128.Max(first, second);
+            first = minimum;
+            minimum = Vector128.Min(third, fourth);
+            fourth = Vector128.Max(third, fourth);
+            third = minimum;
+            minimum = Vector128.Min(first, third);
+            third = Vector128.Max(first, third);
+            first = minimum;
+            minimum = Vector128.Min(second, fourth);
+            fourth = Vector128.Max(second, fourth);
+            second = minimum;
+            minimum = Vector128.Min(second, third);
+            third = Vector128.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            Vector128<float> result = (Vector128.Create(weight0) * first) + (Vector128.Create(weight1) * second);
+            result += Vector128.Create(weight2) * third;
+            return result + (Vector128.Create(weight3) * fourth);
+        }
+
+        /// <inheritdoc cref="Invoke(float, float, float, float, float, float, float, float, float)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(
+            Vector256<float> first,
+            Vector256<float> second,
+            Vector256<float> third,
+            Vector256<float> fourth,
+            Vector256<float> fifth,
+            Vector256<float> sixth,
+            Vector256<float> seventh,
+            Vector256<float> eighth,
+            Vector256<float> ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            Vector256<float> minimum = Vector256.Min(first, second);
+            second = Vector256.Max(first, second);
+            first = minimum;
+            minimum = Vector256.Min(third, fourth);
+            fourth = Vector256.Max(third, fourth);
+            third = minimum;
+            minimum = Vector256.Min(first, third);
+            third = Vector256.Max(first, third);
+            first = minimum;
+            minimum = Vector256.Min(second, fourth);
+            fourth = Vector256.Max(second, fourth);
+            second = minimum;
+            minimum = Vector256.Min(second, third);
+            third = Vector256.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            Vector256<float> result = (Vector256.Create(weight0) * first) + (Vector256.Create(weight1) * second);
+            result += Vector256.Create(weight2) * third;
+            return result + (Vector256.Create(weight3) * fourth);
+        }
+
+        /// <inheritdoc cref="Invoke(float, float, float, float, float, float, float, float, float)" />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(
+            Vector512<float> first,
+            Vector512<float> second,
+            Vector512<float> third,
+            Vector512<float> fourth,
+            Vector512<float> fifth,
+            Vector512<float> sixth,
+            Vector512<float> seventh,
+            Vector512<float> eighth,
+            Vector512<float> ninth)
+        {
+            // Sort the initial four values, then retain only the four lowest while inserting the remaining neighbors.
+            // Every SIMD lane performs this same finite-value ordering independently; equal values retain the same four magnitudes.
+            Vector512<float> minimum = Vector512.Min(first, second);
+            second = Vector512.Max(first, second);
+            first = minimum;
+            minimum = Vector512.Min(third, fourth);
+            fourth = Vector512.Max(third, fourth);
+            third = minimum;
+            minimum = Vector512.Min(first, third);
+            third = Vector512.Max(first, third);
+            first = minimum;
+            minimum = Vector512.Min(second, fourth);
+            fourth = Vector512.Max(second, fourth);
+            second = minimum;
+            minimum = Vector512.Min(second, third);
+            third = Vector512.Max(second, third);
+            second = minimum;
+
+            StoreMin4(fifth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(sixth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(seventh, ref first, ref second, ref third, ref fourth);
+            StoreMin4(eighth, ref first, ref second, ref third, ref fourth);
+            StoreMin4(ninth, ref first, ref second, ref third, ref fourth);
+            Vector512<float> result = (Vector512.Create(weight0) * first) + (Vector512.Create(weight1) * second);
+            result += Vector512.Create(weight2) * third;
+            return result + (Vector512.Create(weight3) * fourth);
+        }
+    }
+
+    /// <summary>
+    /// Inserts independent finite samples into four ordered minima without changing lane order.
+    /// </summary>
+    /// <param name="value">The new sample in each lane.</param>
+    /// <param name="min0">The lowest retained sample in each lane.</param>
+    /// <param name="min1">The second-lowest retained sample in each lane.</param>
+    /// <param name="min2">The third-lowest retained sample in each lane.</param>
+    /// <param name="min3">The fourth-lowest retained sample in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin4(
+        Vector128<float> value,
+        ref Vector128<float> min0,
+        ref Vector128<float> min1,
+        ref Vector128<float> min2,
+        ref Vector128<float> min3)
+    {
+        Vector128<float> next = Vector128.Max(value, min0);
+        min0 = Vector128.Min(value, min0);
+        value = Vector128.Max(next, min1);
+        min1 = Vector128.Min(next, min1);
+        next = Vector128.Max(value, min2);
+        min2 = Vector128.Min(value, min2);
+        min3 = Vector128.Min(next, min3);
+    }
+
+    /// <summary>
+    /// Inserts independent finite samples into four ordered minima without changing lane order.
+    /// </summary>
+    /// <param name="value">The new sample in each lane.</param>
+    /// <param name="min0">The lowest retained sample in each lane.</param>
+    /// <param name="min1">The second-lowest retained sample in each lane.</param>
+    /// <param name="min2">The third-lowest retained sample in each lane.</param>
+    /// <param name="min3">The fourth-lowest retained sample in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin4(
+        Vector256<float> value,
+        ref Vector256<float> min0,
+        ref Vector256<float> min1,
+        ref Vector256<float> min2,
+        ref Vector256<float> min3)
+    {
+        Vector256<float> next = Vector256.Max(value, min0);
+        min0 = Vector256.Min(value, min0);
+        value = Vector256.Max(next, min1);
+        min1 = Vector256.Min(next, min1);
+        next = Vector256.Max(value, min2);
+        min2 = Vector256.Min(value, min2);
+        min3 = Vector256.Min(next, min3);
+    }
+
+    /// <summary>
+    /// Inserts independent finite samples into four ordered minima without changing lane order.
+    /// </summary>
+    /// <param name="value">The new sample in each lane.</param>
+    /// <param name="min0">The lowest retained sample in each lane.</param>
+    /// <param name="min1">The second-lowest retained sample in each lane.</param>
+    /// <param name="min2">The third-lowest retained sample in each lane.</param>
+    /// <param name="min3">The fourth-lowest retained sample in each lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void StoreMin4(
+        Vector512<float> value,
+        ref Vector512<float> min0,
+        ref Vector512<float> min1,
+        ref Vector512<float> min2,
+        ref Vector512<float> min3)
+    {
+        Vector512<float> next = Vector512.Max(value, min0);
+        min0 = Vector512.Min(value, min0);
+        value = Vector512.Max(next, min1);
+        min1 = Vector512.Min(next, min1);
+        next = Vector512.Max(value, min2);
+        min2 = Vector512.Min(value, min2);
+        min3 = Vector512.Min(next, min3);
     }
 
     private static void Blur1x1Masking(Configuration configuration, JxlPlane<float> mask1x1, Rectangle rect)
@@ -961,7 +1533,8 @@ internal static class JxlAdaptiveQuantization
         float qfLower = initialQfMin / (asymmetry * qfMaxDeviationLow);
         float qfHigher = initialQfMax * (qfMaxDeviationLow / asymmetry);
 
-        if (qfHigher / qfLower < 253)
+        // Native requires a representable quantization range below 253 before the iterative search begins.
+        if (qfHigher / qfLower >= 253)
         {
             return false;
         }
@@ -1070,6 +1643,8 @@ internal static class JxlAdaptiveQuantization
                         if (diff > 1.0f)
                         {
                             float old = rowQ[x];
+                            // Increase the requested precision before checking whether integer quantization preserves that change.
+                            rowQ[x] *= diff;
                             int qfOld = (int)MathF.Round(old * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
                             int qfNew = (int)MathF.Round(rowQ[x] * quantizer.InverseGlobalScale, MidpointRounding.AwayFromZero);
 
@@ -1120,7 +1695,7 @@ internal static class JxlAdaptiveQuantization
                             }
                         }
 
-                        if (rowQ[x] < qfHigher)
+                        if (rowQ[x] > qfHigher)
                         {
                             rowQ[x] = qfHigher;
                         }

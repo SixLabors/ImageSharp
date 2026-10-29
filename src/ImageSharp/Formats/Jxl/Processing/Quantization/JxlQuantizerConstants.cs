@@ -8,6 +8,15 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 /// </summary>
 internal static class JxlQuantizerConstants
 {
+    /// <summary>The lower bound used to validate nonzero quantization weights and raw denominators.</summary>
+    public const float MinimumWeight = 1E-8F;
+
+    /// <summary>The multiplier that converts a stored F16 AC seed or fixed weight to its coefficient units.</summary>
+    public const float AcWeightScale = 64F;
+
+    /// <summary>The multiplier applied to a DC weight before its F16 field is stored.</summary>
+    public const float DcWeightScale = 128F;
+
     public const int Log2MaxDistanceBands = 4;
 
     public const int MaxDistanceBands = 1 + (1 << Log2MaxDistanceBands);

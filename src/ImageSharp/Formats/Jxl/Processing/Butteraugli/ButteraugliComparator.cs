@@ -283,10 +283,11 @@ internal sealed class ButteraugliComparator : IDisposable
             return false;
         }
 
+        // Native MF comparison uses its MF weight in both directions. HF asymmetry applies only to the HF and UHF bands.
         if (!Butteraugli.MaltaDiffMapLf(
             this.pi0.Mf.Plane(1),
             pi1.Mf.Plane(1),
-            Butteraugli.WHfMalta,
+            Butteraugli.WMfMalta,
             Butteraugli.WMfMalta,
             Butteraugli.Norm1Mf,
             diffs,
@@ -299,7 +300,7 @@ internal sealed class ButteraugliComparator : IDisposable
         if (!Butteraugli.MaltaDiffMapLf(
             this.pi0.Mf.Plane(0),
             pi1.Mf.Plane(0),
-            Butteraugli.WHfMaltaX,
+            Butteraugli.WMfMaltaX,
             Butteraugli.WMfMaltaX,
             Butteraugli.Norm1MfX,
             diffs,

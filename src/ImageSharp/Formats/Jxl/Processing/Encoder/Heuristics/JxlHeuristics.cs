@@ -767,10 +767,14 @@ internal static class JxlHeuristics
             // otherwise these are max errors specified by user compression parameters.
             ReadOnlySpan<float> wp = cparams.DisablePerceptualOptimizations ? mseWeights : cparams.MaxError;
 
-            float[][] weights = [[1.0f / wp[0]], [1.0f / wp[1]], [1.0f / wp[2]]];
+            ReadOnlySpan<float> weights = [1.0f / wp[0], 1.0f / wp[1], 1.0f / wp[2]];
 
-            JxlDctQuantWeightParameters dctParameters = new(weights);
-            JxlQuantizerEncoding[] encodings = ArrayHelpers.CreateAndInitialize(JxlQuantizerConstants.NumberOfQuantizerTables, () => JxlQuantizerEncoding.Dct(dctParameters));
+            JxlDctQuantWeightParameters dctParameters = new(weights, 1);
+            JxlQuantizerEncoding[] encodings = new JxlQuantizerEncoding[JxlQuantizerConstants.NumberOfQuantizerTables];
+            for (int i = 0; i < encodings.Length; i++)
+            {
+                encodings[i] = JxlQuantizerEncoding.Dct(in dctParameters);
+            }
 
             dequantMatrices.SetCustom(encodings, modularFrameEncoder);
             Span<float> dcWeights = [1.0f / wp[0], 1.0f / wp[1], 1.0f / wp[2]];

@@ -14,29 +14,45 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 
 /// <summary>
-/// Implementation of Google Butteraugli, an advanced
-/// image comparison system. Unlike PSNR or SSIM,
-/// Butteraugli compares images the way humans may
-/// spot differences instead of pixelwise.
+/// Computes perceptual difference maps and scores for linear RGB images.
 /// </summary>
-internal static class Butteraugli
+internal static partial class Butteraugli
 {
-    // NOTE: The meaning of those constants
-    // is not perfectly understood.
-    public const float WMfMalta = 37.0819870399f;
-    public const float Norm1Mf = 130262059.556f;
-    public const float WMfMaltaX = 8246.75321353f;
-    public const float Norm1MfX = 1009002.70582f;
+    /// <summary>The penalty weight for Y middle-frequency Malta differences.</summary>
+    public const double WMfMalta = 37.0819870399D;
 
-    public const float WHfMalta = 18.7237414387f;
-    public const float Norm1Hf = 4498534.45232f;
-    public const float WHfMaltaX = 6923.99476109f;
-    public const float Norm1HfX = 8051.15833247f;
+    /// <summary>The Y magnitude offset used to normalize middle-frequency Malta differences.</summary>
+    public const double Norm1Mf = 130262059.556D;
 
-    public const float WUhfMalta = 1.10039032555f;
-    public const float Norm1Uhf = 71.7800275169f;
-    public const float WUhfMaltaX = 173.5f;
-    public const float Norm1UhfX = 5.0f;
+    /// <summary>The penalty weight for X middle-frequency Malta differences.</summary>
+    public const double WMfMaltaX = 8246.75321353D;
+
+    /// <summary>The X magnitude offset used to normalize middle-frequency Malta differences.</summary>
+    public const double Norm1MfX = 1009002.70582D;
+
+    /// <summary>The penalty weight for Y high-frequency Malta differences.</summary>
+    public const double WHfMalta = 18.7237414387D;
+
+    /// <summary>The Y magnitude offset used to normalize high-frequency Malta differences.</summary>
+    public const double Norm1Hf = 4498534.45232D;
+
+    /// <summary>The penalty weight for X high-frequency Malta differences.</summary>
+    public const double WHfMaltaX = 6923.99476109D;
+
+    /// <summary>The X magnitude offset used to normalize high-frequency Malta differences.</summary>
+    public const double Norm1HfX = 8051.15833247D;
+
+    /// <summary>The penalty weight for Y ultra-high-frequency Malta differences.</summary>
+    public const double WUhfMalta = 1.10039032555D;
+
+    /// <summary>The Y magnitude offset used to normalize ultra-high-frequency Malta differences.</summary>
+    public const double Norm1Uhf = 71.7800275169D;
+
+    /// <summary>The penalty weight for X ultra-high-frequency Malta differences.</summary>
+    public const double WUhfMaltaX = 173.5D;
+
+    /// <summary>The X magnitude offset used to normalize ultra-high-frequency Malta differences.</summary>
+    public const double Norm1UhfX = 5.0D;
 
     private const float IntensityTargetNormalizationHack = 0.79079917404f;
 
@@ -45,6 +61,48 @@ internal static class Butteraugli
 
     private const float GlobalScale =
         1.0f / InternalGoodQualityThreshold;
+
+    /// <summary>The red contribution to the first perceptual absorbance.</summary>
+    private const float Absorbance0Red = 0.29956550340058319F;
+
+    /// <summary>The green contribution to the first perceptual absorbance.</summary>
+    private const float Absorbance0Green = 0.63373087833825936F;
+
+    /// <summary>The blue contribution to the first perceptual absorbance.</summary>
+    private const float Absorbance0Blue = 0.077705617820981968F;
+
+    /// <summary>The red contribution to the second perceptual absorbance.</summary>
+    private const float Absorbance1Red = 0.22158691104574774F;
+
+    /// <summary>The green contribution to the second perceptual absorbance.</summary>
+    private const float Absorbance1Green = 0.69391388044116142F;
+
+    /// <summary>The blue contribution to the second perceptual absorbance.</summary>
+    private const float Absorbance1Blue = 0.0987313588422F;
+
+    /// <summary>The red and green contributions to the third perceptual absorbance.</summary>
+    private const float Absorbance2RedGreen = 0.02F;
+
+    /// <summary>The blue contribution to the third perceptual absorbance.</summary>
+    private const float Absorbance2Blue = 0.20480129041026129F;
+
+    /// <summary>The native positive offset and reconstruction floor for the first two absorbances.</summary>
+    private const float Absorbance01Bias = 1.7557483643287353F;
+
+    /// <summary>The native positive offset and reconstruction floor for the third absorbance.</summary>
+    private const float Absorbance2Bias = 12.226454707163354F;
+
+    /// <summary>The native lower bound for the blurred image's sensitivity response.</summary>
+    private const float MinimumOpsinSensitivity = 1e-4F;
+
+    /// <summary>The positive offset inside the perceptual response's logarithm.</summary>
+    private const float OpsinGammaInputBias = 9.9710635769299145F;
+
+    /// <summary>The native float product that converts log2 to the scaled natural-log response.</summary>
+    private const float OpsinGammaSlope = 19.245013259874995F * JxlMath.InverseLog2E;
+
+    /// <summary>The offset applied after the perceptual logarithm.</summary>
+    private const float OpsinGammaOffset = -23.16046239805755F;
 
 #pragma warning disable // Just indentation warnings
     /// <summary>
@@ -101,12 +159,50 @@ internal static class Butteraugli
     /// </summary>
     private const float MaskDcYMultiplier = 0.505054525019F;
 
-    // These five Gaussian kernels are fixed by the comparison equations. Build them once, outside repeated comparisons.
-    private static readonly float[] OpsinDynamicsKernel = ComputeKernel(1.2F);
-    private static readonly float[] LowFrequencyKernel = ComputeKernel(7.15593339443F);
-    private static readonly float[] HighFrequencyKernel = ComputeKernel(3.22489901262F);
-    private static readonly float[] UltraHighFrequencyKernel = ComputeKernel(1.56416327805F);
-    private static readonly float[] MaskingKernel = ComputeKernel(2.7F);
+    // Native ComputeKernel first converts sigma to float, then evaluates its scaler and exponential in double.
+    // These fixed coefficients retain the final rounded float bits. Border normalization and Opsin normalization
+    // remain separate float operations, in native order.
+    /// <summary>
+    /// Gets the five-tap Opsin Gaussian with float sigma 1.2 and a radius of two samples.
+    /// </summary>
+    private static ReadOnlySpan<float> OpsinDynamicsKernel => [0.249352232F, 0.70664829F, 1F, 0.70664829F, 0.249352232F];
+
+    /// <summary>
+    /// Gets the 33-tap low-frequency Gaussian with float sigma 7.15593339443 and a radius of 16 samples.
+    /// </summary>
+    private static ReadOnlySpan<float> LowFrequencyKernel =>
+    [
+        0.0821145922F, 0.111141749F, 0.147520736F, 0.19202058F, 0.245110229F, 0.306827277F, 0.376656473F, 0.453435808F, 0.535309672F, 0.619745314F,
+        0.703623533F, 0.783405066F, 0.855364621F, 0.915872633F, 0.961696029F, 0.99028331F,
+        1F,
+        0.99028331F, 0.961696029F, 0.915872633F, 0.855364621F, 0.783405066F, 0.703623533F, 0.619745314F, 0.535309672F, 0.453435808F, 0.376656473F,
+        0.306827277F, 0.245110229F, 0.19202058F, 0.147520736F, 0.111141749F, 0.0821145922F
+    ];
+
+    /// <summary>
+    /// Gets the 15-tap high-frequency Gaussian with float sigma 3.22489901262 and a radius of seven samples.
+    /// </summary>
+    private static ReadOnlySpan<float> HighFrequencyKernel =>
+    [
+        0.0948199779F, 0.177147314F, 0.300614655F, 0.463368475F, 0.648759365F, 0.825052559F, 0.953060329F,
+        1F,
+        0.953060329F, 0.825052559F, 0.648759365F, 0.463368475F, 0.300614655F, 0.177147314F, 0.0948199779F
+    ];
+
+    /// <summary>
+    /// Gets the seven-tap ultra-high-frequency Gaussian with float sigma 1.56416327805 and a radius of three samples.
+    /// </summary>
+    private static ReadOnlySpan<float> UltraHighFrequencyKernel => [0.158931509F, 0.441552371F, 0.815165043F, 1F, 0.815165043F, 0.441552371F, 0.158931509F];
+
+    /// <summary>
+    /// Gets the 13-tap masking Gaussian with float sigma 2.7 and a radius of six samples.
+    /// </summary>
+    private static ReadOnlySpan<float> MaskingKernel =>
+    [
+        0.0846579969F, 0.180021748F, 0.333739787F, 0.539407492F, 0.760067225F, 0.933712125F,
+        1F,
+        0.933712125F, 0.760067225F, 0.539407492F, 0.333739787F, 0.180021748F, 0.0846579969F
+    ];
 
     /// <summary>
     /// The normalized five-tap weights used by the mirrored single-scan Opsin blur.
@@ -139,27 +235,6 @@ internal static class Butteraugli
         }
 
         OpsinBlurWeights = weights;
-    }
-
-    /// <summary>
-    /// Builds one fixed Gaussian kernel without normalizing its border weights.
-    /// </summary>
-    /// <param name="sigma">The standard deviation fixed by the comparison stage.</param>
-    /// <returns>The symmetric samples from minus to plus two-and-one-quarter standard deviations.</returns>
-    private static float[] ComputeKernel(float sigma)
-    {
-        const float m = 2.25f;  // Accuracy increases when m is increased
-        float scaler = -1.0f / (2.0f * sigma * sigma);
-        int diff = Math.Max(1, (int)(m * MathF.Abs(sigma)));
-
-        float[] kernel = new float[(2 * diff) + 1];
-
-        for (int i = -diff; i <= diff; i++)
-        {
-            kernel[i + diff] = MathF.Exp(scaler * i * i);
-        }
-
-        return kernel;
     }
 
     /// <summary>
@@ -413,103 +488,91 @@ internal static class Butteraugli
         return ConvolutionWithTranspose(input, kernel, transposed) && ConvolutionWithTranspose(transposed, kernel, output);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> MaximumClamp(Vector<float> value, float maximum)
-    {
-        Vector<float> multiplier = new(0.724216145665f);
-        Vector<float> maximumValue = new(maximum);
-        Vector<float> ifPositive = ((value - maximumValue) * multiplier) + maximumValue;
-        Vector<float> ifNegative = ((value + maximumValue) * multiplier) - maximumValue;
-        Vector<float> positiveOrValue = Vector.ConditionalSelect(Vector.GreaterThan(value, maximumValue), ifPositive, value);
-        Vector<float> result = Vector.ConditionalSelect(Vector.LessThan(value, Vector.Negate(maximumValue)), ifNegative, positiveOrValue);
-
-        return result;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> RemoveRangeAroundZero(Vector<float> x, float width)
-    {
-        Vector<float> w = new(width);
-
-        return Vector.ConditionalSelect(
-            Vector.GreaterThan(x, w),
-            x - w,
-            Vector.ConditionalSelect(
-                Vector.LessThan(x, -w),
-                x + w,
-                Vector<float>.Zero));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> AmplifyRangeAroundZero(Vector<float> x, float width)
-    {
-        Vector<float> w = new(width);
-
-        return Vector.ConditionalSelect(
-            Vector.GreaterThan(x, w),
-            x + w,
-            Vector.ConditionalSelect(
-                Vector.LessThan(x, -w),
-                x - w,
-                x + x));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void XybLowFrequencyToValues(
-        Vector<float> x,
-        Vector<float> y,
-        Vector<float> bArg,
-        out Vector<float> valX,
-        out Vector<float> valY,
-        out Vector<float> valB)
-    {
-        Vector<float> xMul = new(33.832837186260f);
-        Vector<float> yMul = new(14.458268100570f);
-        Vector<float> bMul = new(49.87984651440f);
-        Vector<float> yToBMul = new(-0.362267051518f);
-
-        Vector<float> b = (yToBMul * y) + bArg;
-
-        valB = b * bMul;
-        valX = x * xMul;
-        valY = y * yMul;
-    }
-
     /// <summary>
     /// Converts low-frequency XYB planes to the weighted values used by the comparison equations.
     /// </summary>
-    /// <param name="xybLf">The preallocated low-frequency image, updated in place.</param>
+    /// <param name="xybLf">The preallocated low-frequency image, updated in place without changing row padding.</param>
     public static void XybLowFrequencyToValues(JxlImage3<float> xybLf)
     {
-        int lanes = Vector<float>.Count;
-
-        Span<float> samples0 = xybLf.Plane(0).GetRow(0);
-        Span<float> samples1 = xybLf.Plane(1).GetRow(0);
-        Span<float> samples2 = xybLf.Plane(2).GetRow(0);
+        // These are the native Butteraugli low-frequency weights. B first removes its correlated Y contribution,
+        // then applies its own weight. X and Y receive independent weights for the later squared differences.
+        const float xMultiplier = 33.832837186260F;
+        const float yMultiplier = 14.458268100570F;
+        const float bMultiplier = 49.87984651440F;
+        const float yToBMultiplier = -0.362267051518F;
+        JxlPlane<float> planeX = xybLf.Plane(0);
+        JxlPlane<float> planeY = xybLf.Plane(1);
+        JxlPlane<float> planeB = xybLf.Plane(2);
+        Span<float> samplesX = planeX.GetRow(0);
+        Span<float> samplesY = planeY.GetRow(0);
+        Span<float> samplesB = planeB.GetRow(0);
+        int strideX = planeX.PixelsPerRow;
+        int strideY = planeY.PixelsPerRow;
+        int strideB = planeB.PixelsPerRow;
+        int width = xybLf.XSize;
 
         for (int y = 0; y < xybLf.YSize; y++)
         {
-            Span<float> rowX = samples0[(y * xybLf.Plane(0).PixelsPerRow)..];
-            Span<float> rowY = samples1[(y * xybLf.Plane(1).PixelsPerRow)..];
-            Span<float> rowB = samples2[(y * xybLf.Plane(2).PixelsPerRow)..];
+            ref float rowX = ref MemoryMarshal.GetReference(samplesX.Slice(y * strideX, width));
+            ref float rowY = ref MemoryMarshal.GetReference(samplesY.Slice(y * strideY, width));
+            ref float rowB = ref MemoryMarshal.GetReference(samplesB.Slice(y * strideB, width));
+            int x = 0;
 
-            for (int x = 0; x < xybLf.XSize; x += lanes)
+            // Each lane contains one position from each plane. Load all three original components before writing;
+            // in particular, B must use the original Y rather than its weighted value. Only complete logical blocks
+            // enter SIMD, so no load or store depends on the allocator's physical row padding.
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector<float> valX = new(rowX.Slice(x, lanes));
-                Vector<float> valY = new(rowY.Slice(x, lanes));
-                Vector<float> valB = new(rowB.Slice(x, lanes));
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
+                {
+                    Vector512<float> inputX = Vector512.LoadUnsafe(ref rowX, (uint)x);
+                    Vector512<float> inputY = Vector512.LoadUnsafe(ref rowY, (uint)x);
+                    Vector512<float> inputB = Vector512.LoadUnsafe(ref rowB, (uint)x);
+                    Vector512<float> outputB = Vector512.MultiplyAddEstimate(Vector512.Create(yToBMultiplier), inputY, inputB);
+                    (inputX * Vector512.Create(xMultiplier)).StoreUnsafe(ref rowX, (uint)x);
+                    (inputY * Vector512.Create(yMultiplier)).StoreUnsafe(ref rowY, (uint)x);
+                    (outputB * Vector512.Create(bMultiplier)).StoreUnsafe(ref rowB, (uint)x);
+                }
+            }
 
-                XybLowFrequencyToValues(
-                    valX,
-                    valY,
-                    valB,
-                    out valX,
-                    out valY,
-                    out valB);
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    Vector256<float> inputX = Vector256.LoadUnsafe(ref rowX, (uint)x);
+                    Vector256<float> inputY = Vector256.LoadUnsafe(ref rowY, (uint)x);
+                    Vector256<float> inputB = Vector256.LoadUnsafe(ref rowB, (uint)x);
+                    Vector256<float> outputB = Vector256.MultiplyAddEstimate(Vector256.Create(yToBMultiplier), inputY, inputB);
+                    (inputX * Vector256.Create(xMultiplier)).StoreUnsafe(ref rowX, (uint)x);
+                    (inputY * Vector256.Create(yMultiplier)).StoreUnsafe(ref rowY, (uint)x);
+                    (outputB * Vector256.Create(bMultiplier)).StoreUnsafe(ref rowB, (uint)x);
+                }
+            }
 
-                valX.CopyTo(rowX.Slice(x, lanes));
-                valY.CopyTo(rowY.Slice(x, lanes));
-                valB.CopyTo(rowB.Slice(x, lanes));
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    Vector128<float> inputX = Vector128.LoadUnsafe(ref rowX, (uint)x);
+                    Vector128<float> inputY = Vector128.LoadUnsafe(ref rowY, (uint)x);
+                    Vector128<float> inputB = Vector128.LoadUnsafe(ref rowB, (uint)x);
+                    Vector128<float> outputB = Vector128.MultiplyAddEstimate(Vector128.Create(yToBMultiplier), inputY, inputB);
+                    (inputX * Vector128.Create(xMultiplier)).StoreUnsafe(ref rowX, (uint)x);
+                    (inputY * Vector128.Create(yMultiplier)).StoreUnsafe(ref rowY, (uint)x);
+                    (outputB * Vector128.Create(bMultiplier)).StoreUnsafe(ref rowB, (uint)x);
+                }
+            }
+
+            // The remainder uses the same multiply-add followed by multiplication as each SIMD lane and native MulAdd.
+            for (; x < width; x++)
+            {
+                float inputX = Unsafe.Add(ref rowX, x);
+                float inputY = Unsafe.Add(ref rowY, x);
+                float inputB = Unsafe.Add(ref rowB, x);
+                float outputB = float.MultiplyAddEstimate(yToBMultiplier, inputY, inputB);
+                Unsafe.Add(ref rowX, x) = inputX * xMultiplier;
+                Unsafe.Add(ref rowY, x) = inputY * yMultiplier;
+                Unsafe.Add(ref rowB, x) = outputB * bMultiplier;
             }
         }
     }
@@ -527,35 +590,17 @@ internal static class Butteraugli
             return false;
         }
 
-        int xSize = inY.XSize;
-        int ySize = inY.YSize;
-        int lanes = Vector<float>.Count;
-
-        const float suppress = 46.0f;
-        const float s = 0.653020556257f;
-
-        Vector<float> sv = new(s);
-        Vector<float> oneMinusS = new(1.0f - s);
-        Vector<float> ywv = new(suppress);
-
-        Span<float> samplesY = inY.GetRow(0);
+        ReadOnlySpan<float> samplesY = inY.GetRow(0);
         Span<float> samplesX = inOutX.GetRow(0);
 
-        for (int y = 0; y < ySize; y++)
+        for (int y = 0; y < inY.YSize; y++)
         {
-            ReadOnlySpan<float> rowY = samplesY[(y * inY.PixelsPerRow)..];
-            Span<float> rowX = samplesX[(y * inOutX.PixelsPerRow)..];
+            ReadOnlySpan<float> rowY = samplesY.Slice(y * inY.PixelsPerRow, inY.XSize);
+            Span<float> rowX = samplesX.Slice(y * inOutX.PixelsPerRow, inOutX.XSize);
 
-            for (int x = 0; x < xSize; x += lanes)
-            {
-                Vector<float> vx = new(rowX.Slice(x, lanes));
-                Vector<float> vy = new(rowY.Slice(x, lanes));
-
-                Vector<float> scaler =
-                    ((ywv / ((vy * vy) + ywv)) * oneMinusS) + sv;
-
-                (scaler * vx).CopyTo(rowX.Slice(x, lanes));
-            }
+            // Each lane combines X and Y at the same position. The shared loop handles complete registers and scalar tails,
+            // so the result can replace X without reading or changing physical row padding.
+            TensorPrimitives_.Invoke(rowX, rowY, rowX, default(SuppressXByYOperator));
         }
 
         return true;
@@ -626,85 +671,41 @@ internal static class Butteraugli
     /// <returns>Whether all blur and frequency-separation stages succeeded.</returns>
     public static bool SeparateMfAndHf(Configuration configuration, JxlImage3<float> mf, Span<JxlPlane<float>> hf, ButteraugliBlurTemp blurTemp)
     {
-        int xSize = mf.XSize;
-        int ySize = mf.YSize;
-
-        int lanes = Vector<float>.Count;
-
-        for (int i = 0; i < 3; i++)
+        for (int c = 0; c < 2; c++)
         {
-            if (i == 2)
-            {
-                if (!Blur(mf.Plane(i), HighFrequencyKernel, blurTemp, mf.Plane(i)))
-                {
-                    return false;
-                }
-
-                break;
-            }
-
-            Span<float> firstSamples = mf.Plane(i).GetRow(0);
-            Span<float> secondSamples = hf[i].GetRow(0);
-
-            for (int y = 0; y < ySize; y++)
-            {
-                Span<float> rowMf = firstSamples[(y * mf.Plane(i).PixelsPerRow)..];
-                Span<float> rowHf = secondSamples[(y * hf[i].PixelsPerRow)..];
-
-                for (int x = 0; x < xSize; x += lanes)
-                {
-                    new Vector<float>(rowMf.Slice(x, lanes))
-                        .CopyTo(rowHf.Slice(x, lanes));
-                }
-            }
-
-            if (!Blur(mf.Plane(i), HighFrequencyKernel, blurTemp, mf.Plane(i)))
+            // Keep the original middle-frequency samples in place. This blur writes its result into the prepared HF plane
+            // through the existing transposed workspace; separation can then consume both inputs without a copy pass.
+            if (!Blur(mf.Plane(c), HighFrequencyKernel, blurTemp, hf[c]))
             {
                 return false;
             }
 
-            if (i == 0)
+            if (c == 0)
             {
-                const float removeMfRange = 0.29f;
+                SeparateFrequencyBands(
+                    mf.Plane(c),
+                    hf[c],
+                    default(TensorPrimitives_.IdentityOperator),
+                    new RemoveRangeAroundZeroOperator(0.29F),
+                    default(TensorPrimitives_.IdentityOperator));
 
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowMf = firstSamples[(y * mf.Plane(0).PixelsPerRow)..];
-                    Span<float> rowHf = secondSamples[(y * hf[0].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> mfv = new(rowMf.Slice(x, lanes));
-                        Vector<float> hfv = new Vector<float>(rowHf.Slice(x, lanes)) - mfv;
-
-                        mfv = RemoveRangeAroundZero(mfv, removeMfRange);
-
-                        mfv.CopyTo(rowMf.Slice(x, lanes));
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                    }
-                }
             }
             else
             {
-                const float addMfRange = 0.1f;
+                SeparateFrequencyBands(
+                    mf.Plane(c),
+                    hf[c],
+                    default(TensorPrimitives_.IdentityOperator),
+                    new AmplifyRangeAroundZeroOperator(0.1F),
+                    default(TensorPrimitives_.IdentityOperator));
 
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowMf = firstSamples[(y * mf.Plane(1).PixelsPerRow)..];
-                    Span<float> rowHf = secondSamples[(y * hf[1].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> mfv = new(rowMf.Slice(x, lanes));
-                        Vector<float> hfv = new Vector<float>(rowHf.Slice(x, lanes)) - mfv;
-
-                        mfv = AmplifyRangeAroundZero(mfv, addMfRange);
-
-                        mfv.CopyTo(rowMf.Slice(x, lanes));
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                    }
-                }
             }
+        }
+
+        // B has no separate HF plane. Its complete result remains in the middle-frequency image.
+        if (!Blur(mf.Plane(2), HighFrequencyKernel, blurTemp, mf.Plane(2)))
+        {
+            return false;
         }
 
         return SuppressXByY(hf[1], hf[0]);
@@ -720,93 +721,121 @@ internal static class Butteraugli
     /// <returns>Whether both frequency separations succeeded.</returns>
     public static bool SeparateHFAndUHF(Configuration configuration, Span<JxlPlane<float>> hf, Span<JxlPlane<float>> uhf, ButteraugliBlurTemp blurTemp)
     {
-        int xSize = hf[0].XSize;
-        int ySize = hf[0].YSize;
-
-        int lanes = Vector<float>.Count;
-
-        for (int i = 0; i < 2; i++)
+        for (int c = 0; c < 2; c++)
         {
-            Span<float> firstSamples = hf[i].GetRow(0);
-            Span<float> secondSamples = uhf[i].GetRow(0);
-
-            for (int y = 0; y < ySize; y++)
-            {
-                Span<float> rowUhf = secondSamples[(y * uhf[i].PixelsPerRow)..];
-                Span<float> rowHf = firstSamples[(y * hf[i].PixelsPerRow)..];
-
-                for (int x = 0; x < xSize; x += lanes)
-                {
-                    new Vector<float>(rowHf.Slice(x, lanes)).CopyTo(rowUhf.Slice(x, lanes));
-                }
-            }
-
-            if (!Blur(hf[i], UltraHighFrequencyKernel, blurTemp, hf[i]))
+            if (!Blur(hf[c], UltraHighFrequencyKernel, blurTemp, uhf[c]))
             {
                 return false;
             }
 
-            if (i == 0)
+            if (c == 0)
             {
-                const float removeHfRange = 1.5f;
-                const float removeUhfRange = 0.04f;
+                SeparateFrequencyBands(
+                    hf[c],
+                    uhf[c],
+                    default(TensorPrimitives_.IdentityOperator),
+                    new RemoveRangeAroundZeroOperator(1.5F),
+                    new RemoveRangeAroundZeroOperator(0.04F));
 
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowUhf = secondSamples[(y * uhf[0].PixelsPerRow)..];
-                    Span<float> rowHf = firstSamples[(y * hf[0].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> hfv = new(rowHf.Slice(x, lanes));
-                        Vector<float> uhfv = new Vector<float>(rowUhf.Slice(x, lanes)) - hfv;
-
-                        hfv = RemoveRangeAroundZero(hfv, removeHfRange);
-                        uhfv = RemoveRangeAroundZero(uhfv, removeUhfRange);
-
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                        uhfv.CopyTo(rowUhf.Slice(x, lanes));
-                    }
-                }
             }
             else
             {
-                const float addHfRange = 0.132f;
-                const float maxClampHf = 28.4691806922f;
-                const float maxClampUhf = 5.19175294647f;
-                const float mulYHf = 2.155f;
-                const float mulYUhf = 2.69313763794f;
+                // Native Y separation clips the blurred HF before subtracting it from the original HF.
+                // The retained HF is then scaled and amplified; UHF is clipped and scaled independently.
+                SeparateFrequencyBands(
+                    hf[c],
+                    uhf[c],
+                    new MaximumClampOperator(28.4691806922F),
+                    default(HighFrequencyYOperator),
+                    default(UltraHighFrequencyYOperator));
 
-                Vector<float> mulHf = new(mulYHf);
-                Vector<float> mulUhf = new(mulYUhf);
-
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowUhf = secondSamples[(y * uhf[1].PixelsPerRow)..];
-                    Span<float> rowHf = firstSamples[(y * hf[1].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> hfv = new(rowHf.Slice(x, lanes));
-                        hfv = MaximumClamp(hfv, maxClampHf);
-
-                        Vector<float> uhfv = new Vector<float>(rowUhf.Slice(x, lanes)) - hfv;
-
-                        uhfv = MaximumClamp(uhfv, maxClampUhf);
-                        uhfv *= mulUhf;
-
-                        uhfv.CopyTo(rowUhf.Slice(x, lanes));
-
-                        hfv *= mulHf;
-                        hfv = AmplifyRangeAroundZero(hfv, addHfRange);
-
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                    }
-                }
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Separates original and blurred samples into two bands using the selected component equations.
+    /// </summary>
+    /// <typeparam name="TBeforeSubtraction">The operation applied to blurred samples before residual subtraction.</typeparam>
+    /// <typeparam name="TLowFrequency">The operation applied to the subtraction base for the retained lower-frequency band.</typeparam>
+    /// <typeparam name="THighFrequency">The operation applied to residual samples for the higher-frequency band.</typeparam>
+    /// <param name="original">The original samples, replaced with the lower-frequency result.</param>
+    /// <param name="blurred">The distinct blurred samples, replaced with the higher-frequency result.</param>
+    /// <param name="beforeSubtraction">The selected operation for the subtraction base.</param>
+    /// <param name="lowFrequency">The selected lower-frequency equation.</param>
+    /// <param name="highFrequency">The selected higher-frequency equation.</param>
+    private static void SeparateFrequencyBands<TBeforeSubtraction, TLowFrequency, THighFrequency>(
+        JxlPlane<float> original,
+        JxlPlane<float> blurred,
+        TBeforeSubtraction beforeSubtraction,
+        TLowFrequency lowFrequency,
+        THighFrequency highFrequency)
+        where TBeforeSubtraction : struct, TensorPrimitives_.IUnaryOperator
+        where TLowFrequency : struct, TensorPrimitives_.IUnaryOperator
+        where THighFrequency : struct, TensorPrimitives_.IUnaryOperator
+    {
+        Span<float> originalSamples = original.GetRow(0);
+        Span<float> blurredSamples = blurred.GetRow(0);
+        int originalStride = original.PixelsPerRow;
+        int blurredStride = blurred.PixelsPerRow;
+        int width = original.XSize;
+
+        for (int y = 0; y < original.YSize; y++)
+        {
+            ref float originalRow = ref MemoryMarshal.GetReference(originalSamples.Slice(y * originalStride, width));
+            ref float blurredRow = ref MemoryMarshal.GetReference(blurredSamples.Slice(y * blurredStride, width));
+            int x = 0;
+
+            // Corresponding lanes contain one original sample and its blurred base. Load both before either store.
+            // Closed operator types select each channel's equations outside traversal; no channel or stage flag enters
+            // these loops. Complete registers and scalar tails touch only logical samples, regardless of physical stride.
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
+                {
+                    Vector512<float> source = Vector512.LoadUnsafe(ref originalRow, (uint)x);
+                    Vector512<float> baseFrequency = beforeSubtraction.Invoke(Vector512.LoadUnsafe(ref blurredRow, (uint)x));
+                    Vector512<float> residual = source - baseFrequency;
+                    lowFrequency.Invoke(baseFrequency).StoreUnsafe(ref originalRow, (uint)x);
+                    highFrequency.Invoke(residual).StoreUnsafe(ref blurredRow, (uint)x);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    Vector256<float> source = Vector256.LoadUnsafe(ref originalRow, (uint)x);
+                    Vector256<float> baseFrequency = beforeSubtraction.Invoke(Vector256.LoadUnsafe(ref blurredRow, (uint)x));
+                    Vector256<float> residual = source - baseFrequency;
+                    lowFrequency.Invoke(baseFrequency).StoreUnsafe(ref originalRow, (uint)x);
+                    highFrequency.Invoke(residual).StoreUnsafe(ref blurredRow, (uint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    Vector128<float> source = Vector128.LoadUnsafe(ref originalRow, (uint)x);
+                    Vector128<float> baseFrequency = beforeSubtraction.Invoke(Vector128.LoadUnsafe(ref blurredRow, (uint)x));
+                    Vector128<float> residual = source - baseFrequency;
+                    lowFrequency.Invoke(baseFrequency).StoreUnsafe(ref originalRow, (uint)x);
+                    highFrequency.Invoke(residual).StoreUnsafe(ref blurredRow, (uint)x);
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                float source = Unsafe.Add(ref originalRow, x);
+                float baseFrequency = beforeSubtraction.Invoke(Unsafe.Add(ref blurredRow, x));
+                float residual = source - baseFrequency;
+                Unsafe.Add(ref originalRow, x) = lowFrequency.Invoke(baseFrequency);
+                Unsafe.Add(ref blurredRow, x) = highFrequency.Invoke(residual);
+            }
+        }
     }
 
     /// <summary>
@@ -851,483 +880,54 @@ internal static class Butteraugli
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> Sum(
-        Vector<float> a,
-        Vector<float> b,
-        Vector<float> c,
-        Vector<float> d)
-        => (a + b) + (c + d);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> Sum(
-        Vector<float> a,
-        Vector<float> b,
-        Vector<float> c,
-        Vector<float> d,
-        Vector<float> e)
-        => Sum(a, b, c, d + e);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> Sum(
-        Vector<float> a,
-        Vector<float> b,
-        Vector<float> c,
-        Vector<float> d,
-        Vector<float> e,
-        Vector<float> f,
-        Vector<float> g)
-        => Sum(a, b, c, Sum(d, e, f, g));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> Sum(
-        Vector<float> a,
-        Vector<float> b,
-        Vector<float> c,
-        Vector<float> d,
-        Vector<float> e,
-        Vector<float> f,
-        Vector<float> g,
-        Vector<float> h,
-        Vector<float> i)
-        => (Sum(a, b, c, d) + Sum(e, f, g, h)) + i;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> MaltaUnitLF(
-        ReadOnlySpan<float> row,
-        int index,
-        int xs)
-    {
-        // helper
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static Vector<float> Load(ReadOnlySpan<float> row, int index)
-            => new(row.Slice(index, Vector<float>.Count));
-
-        int xs3 = 3 * xs;
-
-        Vector<float> center = Load(row, index);
-
-        Vector<float> sumYConst = Sum(
-            Load(row, index - 4),
-            Load(row, index - 2),
-            center,
-            Load(row, index + 2),
-            Load(row, index + 4));
-
-        Vector<float> retval = sumYConst * sumYConst;
-
-        Vector<float> sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs),
-            Load(row, index - xs - xs),
-            center,
-            Load(row, index + xs + xs),
-            Load(row, index + xs3 + xs));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 - 3),
-            Load(row, index - xs - xs - 2),
-            center,
-            Load(row, index + xs + xs + 2),
-            Load(row, index + xs3 + 3));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 + 3),
-            Load(row, index - xs - xs + 2),
-            center,
-            Load(row, index + xs + xs - 2),
-            Load(row, index + xs3 - 3));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs + 1),
-            Load(row, index - xs - xs + 1),
-            center,
-            Load(row, index + xs + xs - 1),
-            Load(row, index + xs3 + xs - 1));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs - 1),
-            Load(row, index - xs - xs - 1),
-            center,
-            Load(row, index + xs + xs + 1),
-            Load(row, index + xs3 + xs + 1));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - 4 - xs),
-            Load(row, index - 2 - xs),
-            center,
-            Load(row, index + 2 + xs),
-            Load(row, index + 4 + xs));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - 4 + xs),
-            Load(row, index - 2 + xs),
-            center,
-            Load(row, index + 2 - xs),
-            Load(row, index + 4 - xs));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 - 2),
-            Load(row, index - xs - xs - 1),
-            center,
-            Load(row, index + xs + xs + 1),
-            Load(row, index + xs3 + 2));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 + 2),
-            Load(row, index - xs - xs + 1),
-            center,
-            Load(row, index + xs + xs - 1),
-            Load(row, index + xs3 - 2));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs - xs - 3),
-            Load(row, index - xs - 2),
-            center,
-            Load(row, index + xs + 2),
-            Load(row, index + xs + xs + 3));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs - xs + 3),
-            Load(row, index - xs + 2),
-            center,
-            Load(row, index + xs - 2),
-            Load(row, index + xs + xs - 3));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index + xs + xs - 4),
-            Load(row, index + xs - 2),
-            center,
-            Load(row, index - xs + 2),
-            Load(row, index - xs - xs + 4));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs - xs - 4),
-            Load(row, index - xs - 2),
-            center,
-            Load(row, index + xs + 2),
-            Load(row, index + xs + xs + 4));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs - 2),
-            Load(row, index - xs - xs - 1),
-            center,
-            Load(row, index + xs + xs + 1),
-            Load(row, index + xs3 + xs + 2));
-        retval = (sum * sum) + retval;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs + 2),
-            Load(row, index - xs - xs + 1),
-            center,
-            Load(row, index + xs + xs - 1),
-            Load(row, index + xs3 + xs - 2));
-        retval = (sum * sum) + retval;
-
-        return retval;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> MaltaUnit(
-        ReadOnlySpan<float> row,
-        int index,
-        int xs)
-    {
-        // helper
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static Vector<float> Load(ReadOnlySpan<float> row, int index)
-            => new(row.Slice(index, Vector<float>.Count));
-
-        int xs3 = 3 * xs;
-
-        Vector<float> center = Load(row, index);
-
-        Vector<float> sumYConst = Sum(
-            Load(row, index - 4),
-            Load(row, index - 3),
-            Load(row, index - 2),
-            Load(row, index - 1),
-            center,
-            Load(row, index + 1),
-            Load(row, index + 2),
-            Load(row, index + 3),
-            Load(row, index + 4));
-
-        Vector<float> retval = sumYConst * sumYConst;
-
-        Vector<float> sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs),
-            Load(row, index - xs3),
-            Load(row, index - xs - xs),
-            Load(row, index - xs),
-            center,
-            Load(row, index + xs),
-            Load(row, index + xs + xs),
-            Load(row, index + xs3),
-            Load(row, index + xs3 + xs));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - 3),
-            Load(row, index - xs - xs - 2),
-            Load(row, index - xs - 1),
-            center,
-            Load(row, index + xs + 1),
-            Load(row, index + xs + xs + 2),
-            Load(row, index + xs3 + 3));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 + 3),
-            Load(row, index - xs - xs + 2),
-            Load(row, index - xs + 1),
-            center,
-            Load(row, index + xs - 1),
-            Load(row, index + xs + xs - 2),
-            Load(row, index + xs3 - 3));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs + 1),
-            Load(row, index - xs3 + 1),
-            Load(row, index - xs - xs + 1),
-            Load(row, index - xs),
-            center,
-            Load(row, index + xs),
-            Load(row, index + xs + xs - 1),
-            Load(row, index + xs3 - 1),
-            Load(row, index + xs3 + xs - 1));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs - 1),
-            Load(row, index - xs3 - 1),
-            Load(row, index - xs - xs - 1),
-            Load(row, index - xs),
-            center,
-            Load(row, index + xs),
-            Load(row, index + xs + xs + 1),
-            Load(row, index + xs3 + 1),
-            Load(row, index + xs3 + xs + 1));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - 4 - xs),
-            Load(row, index - 3 - xs),
-            Load(row, index - 2 - xs),
-            Load(row, index - 1),
-            center,
-            Load(row, index + 1),
-            Load(row, index + 2 + xs),
-            Load(row, index + 3 + xs),
-            Load(row, index + 4 + xs));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - 4 + xs),
-            Load(row, index - 3 + xs),
-            Load(row, index - 2 + xs),
-            Load(row, index - 1),
-            center,
-            Load(row, index + 1),
-            Load(row, index + 2 - xs),
-            Load(row, index + 3 - xs),
-            Load(row, index + 4 - xs));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - 2),
-            Load(row, index - xs - xs - 1),
-            Load(row, index - xs - 1),
-            center,
-            Load(row, index + xs + 1),
-            Load(row, index + xs + xs + 1),
-            Load(row, index + xs3 + 2));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 + 2),
-            Load(row, index - xs - xs + 1),
-            Load(row, index - xs + 1),
-            center,
-            Load(row, index + xs - 1),
-            Load(row, index + xs + xs - 1),
-            Load(row, index + xs3 - 2));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs - xs - 3),
-            Load(row, index - xs - 2),
-            Load(row, index - xs - 1),
-            center,
-            Load(row, index + xs + 1),
-            Load(row, index + xs + 2),
-            Load(row, index + xs + xs + 3));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs - xs + 3),
-            Load(row, index - xs + 2),
-            Load(row, index - xs + 1),
-            center,
-            Load(row, index + xs - 1),
-            Load(row, index + xs - 2),
-            Load(row, index + xs + xs - 3));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index + xs - 4),
-            Load(row, index + xs - 3),
-            Load(row, index + xs - 2),
-            Load(row, index - 1),
-            center,
-            Load(row, index + 1),
-            Load(row, index - xs + 2),
-            Load(row, index - xs + 3),
-            Load(row, index - xs + 4));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs - 4),
-            Load(row, index - xs - 3),
-            Load(row, index - xs - 2),
-            Load(row, index - 1),
-            center,
-            Load(row, index + 1),
-            Load(row, index + xs + 2),
-            Load(row, index + xs + 3),
-            Load(row, index + xs + 4));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs - 1),
-            Load(row, index - xs3 - 1),
-            Load(row, index - xs - xs - 1),
-            Load(row, index - xs),
-            center,
-            Load(row, index + xs),
-            Load(row, index + xs + xs + 1),
-            Load(row, index + xs3 + 1),
-            Load(row, index + xs3 + xs + 1));
-        retval += sum * sum;
-
-        sum = Sum(
-            Load(row, index - xs3 - xs + 1),
-            Load(row, index - xs3 + 1),
-            Load(row, index - xs - xs + 1),
-            Load(row, index - xs),
-            center,
-            Load(row, index + xs),
-            Load(row, index + xs + xs - 1),
-            Load(row, index + xs3 - 1),
-            Load(row, index + xs3 + xs - 1));
-        retval += sum * sum;
-
-        return retval;
-    }
-
     /// <summary>
-    /// Evaluates one Malta result using a zero-padded neighborhood when a complete SIMD load would cross an image edge.
+    /// Accumulates a Malta difference with the selected frequency range's normalization and neighborhood.
     /// </summary>
-    /// <param name="diffs">The complete borrowed difference plane, starting at its first logical sample.</param>
-    /// <param name="width">The logical plane width.</param>
-    /// <param name="height">The logical plane height.</param>
-    /// <param name="stride">The physical row stride.</param>
-    /// <param name="x0">The sample column.</param>
-    /// <param name="y0">The sample row.</param>
     /// <param name="isLf">Whether to use the low-frequency Malta equation.</param>
-    /// <returns>The first lane of the selected Malta equation.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float PaddedMaltaUnit(ReadOnlySpan<float> diffs, int width, int height, int stride, int x0, int y0, bool isLf)
-    {
-        int index = (y0 * stride) + x0;
-        if (x0 >= 4 && y0 >= 4 && x0 + Vector<float>.Count + 4 <= width && y0 < height - 4)
-        {
-            return isLf ? MaltaUnitLF(diffs, index, stride)[0] : MaltaUnit(diffs, index, stride)[0];
-        }
-
-        // The equation reaches four rows and columns from the center. Extra columns keep every SIMD load
-        // inside this local buffer even though only its first result lane is used at image borders.
-        int paddedStride = 8 + Vector<float>.Count;
-        Span<float> borderImage = stackalloc float[9 * paddedStride];
-        borderImage.Clear();
-
-        for (int dy = 0; dy < 9; dy++)
-        {
-            int y = y0 + dy - 4;
-            if ((uint)y >= (uint)height)
-            {
-                continue;
-            }
-
-            ReadOnlySpan<float> rowDiffs = diffs[(y * stride)..];
-            Span<float> paddedRow = borderImage[(dy * paddedStride)..];
-
-            for (int dx = 0; dx < 9; dx++)
-            {
-                int x = x0 + dx - 4;
-                if ((uint)x < (uint)width)
-                {
-                    paddedRow[dx] = rowDiffs[x];
-                }
-            }
-        }
-
-        int center = (4 * paddedStride) + 4;
-        return isLf ? MaltaUnitLF(borderImage, center, paddedStride)[0] : MaltaUnit(borderImage, center, paddedStride)[0];
-    }
-
+    /// <param name="lum0">The borrowed reference band, at least eight samples wide and eight rows high.</param>
+    /// <param name="lum1">The equally sized borrowed distorted band.</param>
+    /// <param name="w0Gt1">The primary symmetric-difference weight, retained in double until operation setup.</param>
+    /// <param name="w0Lt1">The secondary magnitude-penalty weight, retained in double until operation setup.</param>
+    /// <param name="norm1">The magnitude normalization, retained in double until operation setup.</param>
+    /// <param name="diffs">The equally sized prepared-difference workspace, separate from the input and AC planes.</param>
+    /// <param name="blockDiffAc">The equally sized existing AC accumulation plane.</param>
+    /// <returns>Whether input and workspace dimensions match.</returns>
     public static bool MaltaDiffMap(
         bool isLf,
         JxlPlane<float> lum0,
         JxlPlane<float> lum1,
-        float w0Gt1,
-        float w0Lt1,
-        float norm1,
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
         JxlPlane<float> diffs,
         JxlPlane<float> blockDiffAc)
-    {
-        if (isLf)
-        {
-            const float len = 3.75f;
-            const float mulli = 0.39905817637f;
+        => isLf
+            ? MaltaDiffMapLf(lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc)
+            : MaltaDiffMap(lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc);
 
-            return MaltaDiffMap(true, lum0, lum1, w0Gt1, w0Lt1, norm1, len, mulli, diffs, blockDiffAc);
-        }
-        else
-        {
-            const float len = 3.75f;
-            const float mulli = 0.611612573796f;
-
-            return MaltaDiffMap(false, lum0, lum1, w0Gt1, w0Lt1, norm1, len, mulli, diffs, blockDiffAc);
-        }
-    }
-
+    /// <summary>
+    /// Prepares float differences and accumulates the selected Malta neighborhood without changing either input band.
+    /// </summary>
+    /// <param name="isLf">Whether to use the low-frequency ray samples.</param>
+    /// <param name="lum0">The borrowed reference band, at least eight samples wide and eight rows high.</param>
+    /// <param name="lum1">The equally sized borrowed distorted band.</param>
+    /// <param name="w0Gt1">The primary symmetric-difference weight.</param>
+    /// <param name="w0Lt1">The secondary reference-magnitude penalty weight.</param>
+    /// <param name="norm1">The native magnitude normalization.</param>
+    /// <param name="effectiveHalfLength">The native effective ray half-length used to normalize the penalty.</param>
+    /// <param name="multiplier">The frequency-specific scale used when preparing the penalty coefficients.</param>
+    /// <param name="diffs">The equally sized workspace, separate from the input and AC planes and replaced with prepared float differences.</param>
+    /// <param name="blockDiffAc">The equally sized existing AC accumulation, updated only at logical samples.</param>
+    /// <returns>Whether the input and workspace dimensions match.</returns>
     public static bool MaltaDiffMap(
         bool isLf,
         JxlPlane<float> lum0,
         JxlPlane<float> lum1,
-        float w0Gt1,
-        float w0Lt1,
-        float norm1,
-        float len,
-        float mulli,
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
+        double effectiveHalfLength,
+        double multiplier,
         JxlPlane<float> diffs,
         JxlPlane<float> blockDiffAc)
     {
@@ -1338,180 +938,103 @@ internal static class Butteraugli
 
         int width = lum0.XSize;
         int height = lum0.YSize;
-
-        const float weight0 = 0.5f;
-        const float weight1 = 0.33f;
-
-        float norm2_0Gt1 =
-            (float)(mulli * MathF.Sqrt(weight0 * w0Gt1) / ((len * 2) + 1) * norm1);
-
-        float norm2_0Lt1 =
-            (float)(mulli * MathF.Sqrt(weight1 * w0Lt1) / ((len * 2) + 1) * norm1);
-
-        // Malta neighborhoods reach four rows and four columns from each center. Borrow complete planes once,
-        // then retain global indices so negative relative offsets never refer to a sliced-away preceding row.
         ReadOnlySpan<float> samples0 = lum0.GetRow(0);
         ReadOnlySpan<float> samples1 = lum1.GetRow(0);
         Span<float> differenceSamples = diffs.GetRow(0);
         Span<float> outputSamples = blockDiffAc.GetRow(0);
+        MaltaDifferenceOperator operation = new(w0Gt1, w0Lt1, norm1, effectiveHalfLength, multiplier);
 
         for (int y = 0; y < height; y++)
         {
-            ReadOnlySpan<float> row0 = samples0[(y * lum0.PixelsPerRow)..];
-            ReadOnlySpan<float> row1 = samples1[(y * lum1.PixelsPerRow)..];
-            Span<float> rowDiffs = differenceSamples[(y * diffs.PixelsPerRow)..];
-
-            for (int x = 0; x < width; x++)
-            {
-                float absVal = 0.5f *
-                    (MathF.Abs(row0[x]) + MathF.Abs(row1[x]));
-
-                float diff = row0[x] - row1[x];
-
-                float scaler = norm2_0Gt1 / ((float)norm1 + absVal);
-
-                rowDiffs[x] = scaler * diff;
-
-                float scaler2 = norm2_0Lt1 / ((float)norm1 + absVal);
-
-                float fabs0 = MathF.Abs(row0[x]);
-
-                float tooSmall = 0.55f * fabs0;
-                float tooBig = 1.05f * fabs0;
-
-                if (row0[x] < 0)
-                {
-                    if (row1[x] > -tooSmall)
-                    {
-                        rowDiffs[x] -= scaler2 * (row1[x] + tooSmall);
-                    }
-                    else if (row1[x] < -tooBig)
-                    {
-                        rowDiffs[x] += scaler2 * (-row1[x] - tooBig);
-                    }
-                }
-                else
-                {
-                    if (row1[x] < tooSmall)
-                    {
-                        rowDiffs[x] += scaler2 * (tooSmall - row1[x]);
-                    }
-                    else if (row1[x] > tooBig)
-                    {
-                        rowDiffs[x] -= scaler2 * (row1[x] - tooBig);
-                    }
-                }
-            }
+            ReadOnlySpan<float> row0 = samples0.Slice(y * lum0.PixelsPerRow, width);
+            ReadOnlySpan<float> row1 = samples1.Slice(y * lum1.PixelsPerRow, width);
+            Span<float> differenceRow = differenceSamples.Slice(y * diffs.PixelsPerRow, width);
+            TensorPrimitives_.Invoke(row0, row1, differenceRow, operation);
         }
 
-        int y0 = 0;
-
-        for (; y0 < 4; y0++)
+        // Small-image comparison expands inputs to at least 8 by 8 before reaching Malta. Every ray has a four-sample
+        // halo. Reuse one scalar 9-by-9 border block; SIMD never reads a halo from physical allocator padding.
+        Span<float> border = stackalloc float[81];
+        if (isLf)
         {
-            Span<float> row = outputSamples[(y0 * blockDiffAc.PixelsPerRow)..];
-
-            for (int x = 0; x < width; x++)
-            {
-                row[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
-            }
+            AccumulateMaltaLf(differenceSamples, width, height, diffs.PixelsPerRow, outputSamples, blockDiffAc.PixelsPerRow, border);
         }
-
-        int lanes = Vector<float>.Count;
-        int alignedX = Math.Max(4, lanes);
-
-        int stride = diffs.PixelsPerRow;
-
-        for (; y0 < height - 4; y0++)
+        else
         {
-            Span<float> output = outputSamples[(y0 * blockDiffAc.PixelsPerRow)..];
-            ref float outputReference = ref MemoryMarshal.GetReference(output);
-
-            int x = 0;
-
-            for (; x < Math.Min(alignedX, width); x++)
-            {
-                output[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
-            }
-
-            // Every lane and its four neighboring columns remain inside the logical width. Border calls use the zero-padded scalar-lane path.
-            for (; x + lanes + 4 <= width; x += lanes)
-            {
-                Vector<float> value = Vector.LoadUnsafe(ref Unsafe.Add(ref outputReference, x));
-
-                Vector<float> malta = isLf
-                    ? MaltaUnitLF(differenceSamples, (y0 * stride) + x, stride)
-                    : MaltaUnit(differenceSamples, (y0 * stride) + x, stride);
-
-                (value + malta).CopyTo(output[x..]);
-            }
-
-            for (; x < width; x++)
-            {
-                output[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
-            }
-        }
-
-        for (; y0 < height; y0++)
-        {
-            Span<float> row = outputSamples[(y0 * blockDiffAc.PixelsPerRow)..];
-
-            for (int x = 0; x < width; x++)
-            {
-                row[x] += PaddedMaltaUnit(differenceSamples, width, height, diffs.PixelsPerRow, x, y0, isLf);
-            }
+            AccumulateMalta(differenceSamples, width, height, diffs.PixelsPerRow, outputSamples, blockDiffAc.PixelsPerRow, border);
         }
 
         return true;
     }
 
+    /// <summary>
+    /// Accumulates full Malta differences with the native high-frequency scale and effective ray length.
+    /// </summary>
+    /// <param name="lum0">The borrowed reference band, at least eight samples wide and eight rows high.</param>
+    /// <param name="lum1">The equally sized borrowed distorted band.</param>
+    /// <param name="w0Gt1">The primary symmetric-difference weight.</param>
+    /// <param name="w0Lt1">The secondary reference-magnitude penalty weight.</param>
+    /// <param name="norm1">The magnitude normalization.</param>
+    /// <param name="diffs">The equally sized difference workspace, separate from the input and AC planes.</param>
+    /// <param name="blockDiffAc">The equally sized existing AC accumulation.</param>
+    /// <returns>Whether the input and workspace dimensions match.</returns>
     public static bool MaltaDiffMap(
         JxlPlane<float> lum0,
         JxlPlane<float> lum1,
-        float w0Gt1,
-        float w0Lt1,
-        float norm1,
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
         JxlPlane<float> diffs,
         JxlPlane<float> blockDiffAc)
-    {
-        const float len = 3.75f;
-        const float mulli = 0.39905817637f;
+        => MaltaDiffMap(false, lum0, lum1, w0Gt1, w0Lt1, norm1, 3.75D, 0.39905817637D, diffs, blockDiffAc);
 
-        return MaltaDiffMap(
-            false,
-            lum0,
-            lum1,
-            w0Gt1,
-            w0Lt1,
-            norm1,
-            len,
-            mulli,
-            diffs,
-            blockDiffAc);
-    }
-
+    /// <summary>
+    /// Accumulates sparse low-frequency Malta differences with the native scale and effective ray length.
+    /// </summary>
+    /// <param name="lum0">The borrowed reference band, at least eight samples wide and eight rows high.</param>
+    /// <param name="lum1">The equally sized borrowed distorted band.</param>
+    /// <param name="w0Gt1">The primary symmetric-difference weight.</param>
+    /// <param name="w0Lt1">The secondary reference-magnitude penalty weight.</param>
+    /// <param name="norm1">The magnitude normalization.</param>
+    /// <param name="diffs">The equally sized difference workspace, separate from the input and AC planes.</param>
+    /// <param name="blockDiffAc">The equally sized existing AC accumulation.</param>
+    /// <returns>Whether the input and workspace dimensions match.</returns>
     public static bool MaltaDiffMapLf(
         JxlPlane<float> lum0,
         JxlPlane<float> lum1,
-        float w0Gt1,
-        float w0Lt1,
-        float norm1,
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
         JxlPlane<float> diffs,
         JxlPlane<float> blockDiffAc)
-    {
-        const float len = 3.75f;
-        const float mulli = 0.611612573796f;
+        => MaltaDiffMap(true, lum0, lum1, w0Gt1, w0Lt1, norm1, 3.75D, 0.611612573796D, diffs, blockDiffAc);
 
-        return MaltaDiffMap(
-            true,
-            lum0,
-            lum1,
-            w0Gt1,
-            w0Lt1,
-            norm1,
-            len,
-            mulli,
-            diffs,
-            blockDiffAc);
+    /// <summary>
+    /// Copies a center's valid neighbors into the reused zero-extended scalar Malta block.
+    /// </summary>
+    /// <param name="differences">The borrowed complete difference plane at its logical origin.</param>
+    /// <param name="width">The logical source width.</param>
+    /// <param name="height">The logical source height.</param>
+    /// <param name="stride">The physical source stride in samples.</param>
+    /// <param name="x">The valid center column.</param>
+    /// <param name="y">The valid center row.</param>
+    /// <param name="border">The 81-sample block, cleared before valid source rows are copied into it.</param>
+    private static void PrepareMaltaBorder(ReadOnlySpan<float> differences, int width, int height, int stride, int x, int y, Span<float> border)
+    {
+        border.Clear();
+        int firstX = Math.Max(0, x - 4);
+        int lastX = Math.Min(width, x + 5);
+        int copyWidth = lastX - firstX;
+        int destinationX = firstX - (x - 4);
+
+        for (int dy = -4; dy <= 4; dy++)
+        {
+            int sourceY = y + dy;
+            if ((uint)sourceY < (uint)height)
+            {
+                differences.Slice((sourceY * stride) + firstX, copyWidth).CopyTo(border.Slice(((dy + 4) * 9) + destinationX, copyWidth));
+            }
+        }
     }
 
     /// <summary>
@@ -1519,51 +1042,69 @@ internal static class Butteraugli
     /// </summary>
     /// <param name="hf">The borrowed high-frequency X and Y planes.</param>
     /// <param name="uhf">The borrowed ultra-high-frequency X and Y planes.</param>
-    /// <param name="output">The distinct preallocated masking output.</param>
+    /// <param name="output">The distinct preallocated masking output, with the same dimensions as the four input bands.</param>
     public static void CombineChannelsForMasking(InlineArray2<JxlPlane<float>> hf, InlineArray2<JxlPlane<float>> uhf, JxlPlane<float> output)
     {
-        // Only X and Y components are involved in masking.
-        ReadOnlySpan<float> muls =
-        [
-            2.5f,
-            0.4f,
-            0.4f
-        ];
-
-        int width = hf[0].XSize;
-        int height = hf[0].YSize;
-
-        Span<float> hfSamples0 = hf[0].GetRow(0);
-        Span<float> hfSamples1 = hf[1].GetRow(0);
-        Span<float> uhfSamples0 = uhf[0].GetRow(0);
-        Span<float> uhfSamples1 = uhf[1].GetRow(0);
+        ReadOnlySpan<float> hfX = hf[0].GetRow(0);
+        ReadOnlySpan<float> hfY = hf[1].GetRow(0);
+        ReadOnlySpan<float> uhfX = uhf[0].GetRow(0);
+        ReadOnlySpan<float> uhfY = uhf[1].GetRow(0);
         Span<float> outputSamples = output.GetRow(0);
+        int hfXStride = hf[0].PixelsPerRow;
+        int hfYStride = hf[1].PixelsPerRow;
+        int uhfXStride = uhf[0].PixelsPerRow;
+        int uhfYStride = uhf[1].PixelsPerRow;
+        int width = output.XSize;
+        MaskingMagnitudeOperator operation = default;
 
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < output.YSize; y++)
         {
-            ReadOnlySpan<float> rowYHf = hfSamples1[(y * hf[1].PixelsPerRow)..];
-            ReadOnlySpan<float> rowYUhf = uhfSamples1[(y * uhf[1].PixelsPerRow)..];
-            ReadOnlySpan<float> rowXHf = hfSamples0[(y * hf[0].PixelsPerRow)..];
-            ReadOnlySpan<float> rowXUhf = uhfSamples0[(y * uhf[0].PixelsPerRow)..];
-
-            Span<float> row = outputSamples[(y * output.PixelsPerRow)..];
-
+            ref float rowHfX = ref MemoryMarshal.GetReference(hfX.Slice(y * hfXStride, width));
+            ref float rowHfY = ref MemoryMarshal.GetReference(hfY.Slice(y * hfYStride, width));
+            ref float rowUhfX = ref MemoryMarshal.GetReference(uhfX.Slice(y * uhfXStride, width));
+            ref float rowUhfY = ref MemoryMarshal.GetReference(uhfY.Slice(y * uhfYStride, width));
+            ref float result = ref MemoryMarshal.GetReference(outputSamples.Slice(y * output.PixelsPerRow, width));
             int x = 0;
 
-            // Each lane processes one logical sample. The scalar remainder retains the same arithmetic order.
-            for (; x <= width - Vector<float>.Count; x += Vector<float>.Count)
+            // The four planes remain separate. Sum the X bands in registers, then use the shared ternary operator
+            // for the native magnitude equation. Each lane writes one logical output sample without an intermediate pass.
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector<float> xDiff = (new Vector<float>(rowXUhf[x..]) + new Vector<float>(rowXHf[x..])) * Vector.Create(muls[0]);
-                Vector<float> yDiff = (new Vector<float>(rowYUhf[x..]) * Vector.Create(muls[1])) + (new Vector<float>(rowYHf[x..]) * Vector.Create(muls[2]));
-                Vector.SquareRoot((xDiff * xDiff) + (yDiff * yDiff)).CopyTo(row[x..]);
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
+                {
+                    Vector512<float> xSum = Vector512.LoadUnsafe(ref rowUhfX, (uint)x) + Vector512.LoadUnsafe(ref rowHfX, (uint)x);
+                    Vector512<float> yUhf = Vector512.LoadUnsafe(ref rowUhfY, (uint)x);
+                    Vector512<float> yHf = Vector512.LoadUnsafe(ref rowHfY, (uint)x);
+                    operation.Invoke(xSum, yUhf, yHf).StoreUnsafe(ref result, (uint)x);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    Vector256<float> xSum = Vector256.LoadUnsafe(ref rowUhfX, (uint)x) + Vector256.LoadUnsafe(ref rowHfX, (uint)x);
+                    Vector256<float> yUhf = Vector256.LoadUnsafe(ref rowUhfY, (uint)x);
+                    Vector256<float> yHf = Vector256.LoadUnsafe(ref rowHfY, (uint)x);
+                    operation.Invoke(xSum, yUhf, yHf).StoreUnsafe(ref result, (uint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    Vector128<float> xSum = Vector128.LoadUnsafe(ref rowUhfX, (uint)x) + Vector128.LoadUnsafe(ref rowHfX, (uint)x);
+                    Vector128<float> yUhf = Vector128.LoadUnsafe(ref rowUhfY, (uint)x);
+                    Vector128<float> yHf = Vector128.LoadUnsafe(ref rowHfY, (uint)x);
+                    operation.Invoke(xSum, yUhf, yHf).StoreUnsafe(ref result, (uint)x);
+                }
             }
 
             for (; x < width; x++)
             {
-                float xDiff = (rowXUhf[x] + rowXHf[x]) * muls[0];
-                float yDiff = (rowYUhf[x] * muls[1]) + (rowYHf[x] * muls[2]);
-
-                row[x] = MathF.Sqrt((xDiff * xDiff) + (yDiff * yDiff));
+                float xSum = Unsafe.Add(ref rowUhfX, x) + Unsafe.Add(ref rowHfX, x);
+                Unsafe.Add(ref result, x) = operation.Invoke(xSum, Unsafe.Add(ref rowUhfY, x), Unsafe.Add(ref rowHfY, x));
             }
         }
     }
@@ -2091,6 +1632,529 @@ internal static class Butteraugli
     }
 
     /// <summary>
+    /// Prepares Malta differences using float samples and coefficients normalized once during setup.
+    /// </summary>
+    /// <param name="w0Gt1">The native primary symmetric-difference weight, before narrowing.</param>
+    /// <param name="w0Lt1">The native secondary magnitude-penalty weight, before narrowing.</param>
+    /// <param name="norm1">The native magnitude normalization, before narrowing.</param>
+    /// <param name="effectiveHalfLength">The native effective ray half-length.</param>
+    /// <param name="multiplier">The native frequency-specific scale.</param>
+    private readonly struct MaltaDifferenceOperator(
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
+        double effectiveHalfLength,
+        double multiplier) : TensorPrimitives_.IBinaryOperator
+    {
+        /// <summary>The lower secondary-response boundary as a fraction of the reference magnitude.</summary>
+        private const float LowerFraction = 0.55F;
+
+        /// <summary>The upper secondary-response boundary as a fraction of the reference magnitude.</summary>
+        private const float UpperFraction = 1.05F;
+
+        /// <summary>The native magnitude offset rounded once for the float denominator.</summary>
+        private readonly float normalization = (float)norm1;
+
+        /// <summary>The primary coefficient, computed in native double precision once and then rounded to float.</summary>
+        private readonly float firstCoefficient = (float)(multiplier * Math.Sqrt(0.5F * w0Gt1) / ((effectiveHalfLength * 2D) + 1D) * norm1);
+
+        /// <summary>The secondary coefficient. Native promotes its already-rounded 0.33F weight before the double product.</summary>
+        private readonly float secondCoefficient = (float)(multiplier * Math.Sqrt(0.33F * w0Lt1) / ((effectiveHalfLength * 2D) + 1D) * norm1);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second)
+        {
+            float magnitude = MathF.Abs(first);
+            float denominator = this.normalization + (0.5F * (magnitude + MathF.Abs(second)));
+            float result = (this.firstCoefficient / denominator) * (first - second);
+            float secondaryScale = this.secondCoefficient / denominator;
+            bool negative = first < 0F;
+            float actual = negative ? -second : second;
+            float lower = LowerFraction * magnitude;
+            float upper = UpperFraction * magnitude;
+            float response;
+            if (actual < lower)
+            {
+                response = lower - actual;
+            }
+            else if (actual > upper)
+            {
+                response = upper - actual;
+            }
+            else
+            {
+                return result;
+            }
+
+            // Native evaluates the secondary threshold and impact in double for each sample. This comparison retains
+            // float pixel arithmetic instead. Scalar and SIMD use the same rounded fractions and one final multiply-add;
+            // they follow the native objective but do not claim its double-secondary rounding bits.
+            return float.MultiplyAddEstimate(secondaryScale, negative ? -response : response, result);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second)
+        {
+            Vector128<float> magnitude = Vector128.Abs(first);
+            Vector128<float> denominator = Vector128.Create(this.normalization) + (Vector128.Create(0.5F) * (magnitude + Vector128.Abs(second)));
+            Vector128<float> result = (Vector128.Create(this.firstCoefficient) / denominator) * (first - second);
+            Vector128<float> secondaryScale = Vector128.Create(this.secondCoefficient) / denominator;
+            Vector128<float> negative = Vector128.LessThan(first, Vector128<float>.Zero);
+            Vector128<float> actual = Vector128.ConditionalSelect(negative, -second, second);
+            Vector128<float> lower = Vector128.Create(LowerFraction) * magnitude;
+            Vector128<float> upper = Vector128.Create(UpperFraction) * magnitude;
+            Vector128<float> below = Vector128.LessThan(actual, lower);
+            Vector128<float> above = Vector128.GreaterThan(actual, upper);
+            Vector128<float> response = Vector128.ConditionalSelect(below, lower - actual, upper - actual);
+            response = Vector128.ConditionalSelect(negative, -response, response);
+            Vector128<float> corrected = Vector128.MultiplyAddEstimate(secondaryScale, response, result);
+
+            // Inactive lanes retain the original result, including its zero sign. Each active lane selects exactly one
+            // half-open secondary objective; reflecting negative references gives the scalar sign rules without branching.
+            return Vector128.ConditionalSelect(Vector128.BitwiseOr(below, above), corrected, result);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second)
+        {
+            Vector256<float> magnitude = Vector256.Abs(first);
+            Vector256<float> denominator = Vector256.Create(this.normalization) + (Vector256.Create(0.5F) * (magnitude + Vector256.Abs(second)));
+            Vector256<float> result = (Vector256.Create(this.firstCoefficient) / denominator) * (first - second);
+            Vector256<float> secondaryScale = Vector256.Create(this.secondCoefficient) / denominator;
+            Vector256<float> negative = Vector256.LessThan(first, Vector256<float>.Zero);
+            Vector256<float> actual = Vector256.ConditionalSelect(negative, -second, second);
+            Vector256<float> lower = Vector256.Create(LowerFraction) * magnitude;
+            Vector256<float> upper = Vector256.Create(UpperFraction) * magnitude;
+            Vector256<float> below = Vector256.LessThan(actual, lower);
+            Vector256<float> above = Vector256.GreaterThan(actual, upper);
+            Vector256<float> response = Vector256.ConditionalSelect(below, lower - actual, upper - actual);
+            response = Vector256.ConditionalSelect(negative, -response, response);
+            Vector256<float> corrected = Vector256.MultiplyAddEstimate(secondaryScale, response, result);
+
+            // Inactive lanes retain the original result, including its zero sign. Each active lane selects exactly one
+            // half-open secondary objective; reflecting negative references gives the scalar sign rules without branching.
+            return Vector256.ConditionalSelect(Vector256.BitwiseOr(below, above), corrected, result);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second)
+        {
+            Vector512<float> magnitude = Vector512.Abs(first);
+            Vector512<float> denominator = Vector512.Create(this.normalization) + (Vector512.Create(0.5F) * (magnitude + Vector512.Abs(second)));
+            Vector512<float> result = (Vector512.Create(this.firstCoefficient) / denominator) * (first - second);
+            Vector512<float> secondaryScale = Vector512.Create(this.secondCoefficient) / denominator;
+            Vector512<float> negative = Vector512.LessThan(first, Vector512<float>.Zero);
+            Vector512<float> actual = Vector512.ConditionalSelect(negative, -second, second);
+            Vector512<float> lower = Vector512.Create(LowerFraction) * magnitude;
+            Vector512<float> upper = Vector512.Create(UpperFraction) * magnitude;
+            Vector512<float> below = Vector512.LessThan(actual, lower);
+            Vector512<float> above = Vector512.GreaterThan(actual, upper);
+            Vector512<float> response = Vector512.ConditionalSelect(below, lower - actual, upper - actual);
+            response = Vector512.ConditionalSelect(negative, -response, response);
+            Vector512<float> corrected = Vector512.MultiplyAddEstimate(secondaryScale, response, result);
+
+            // Inactive lanes retain the original result, including its zero sign. Each active lane selects exactly one
+            // half-open secondary objective; reflecting negative references gives the scalar sign rules without branching.
+            return Vector512.ConditionalSelect(Vector512.BitwiseOr(below, above), corrected, result);
+        }
+    }
+
+    /// <summary>
+    /// Combines summed X bands and the two Y bands into the native masking magnitude.
+    /// </summary>
+    private readonly struct MaskingMagnitudeOperator : TensorPrimitives_.ITernaryOperator
+    {
+        /// <summary>The weight for the sum of X high and ultra-high frequencies.</summary>
+        private const float XMultiplier = 2.5F;
+
+        /// <summary>The weight applied separately to each Y frequency band.</summary>
+        private const float YMultiplier = 0.4F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+        {
+            float x = first * XMultiplier;
+            float y = (second * YMultiplier) + (third * YMultiplier);
+
+            return MathF.Sqrt((x * x) + (y * y));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            Vector128<float> x = first * Vector128.Create(XMultiplier);
+            Vector128<float> y = (second * Vector128.Create(YMultiplier)) + (third * Vector128.Create(YMultiplier));
+
+            return Vector128.Sqrt((x * x) + (y * y));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            Vector256<float> x = first * Vector256.Create(XMultiplier);
+            Vector256<float> y = (second * Vector256.Create(YMultiplier)) + (third * Vector256.Create(YMultiplier));
+
+            return Vector256.Sqrt((x * x) + (y * y));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            Vector512<float> x = first * Vector512.Create(XMultiplier);
+            Vector512<float> y = (second * Vector512.Create(YMultiplier)) + (third * Vector512.Create(YMultiplier));
+
+            return Vector512.Sqrt((x * x) + (y * y));
+        }
+    }
+
+    /// <summary>
+    /// Removes the interval around zero from independent frequency samples.
+    /// </summary>
+    /// <param name="width">The nonnegative half-width of the central interval.</param>
+    private readonly struct RemoveRangeAroundZeroOperator(float width) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The half-width used by the native frequency equation.</summary>
+        private readonly float width = width;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+            => value > this.width ? value - this.width : value < -this.width ? value + this.width : 0F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> width = Vector128.Create(this.width);
+
+            return Vector128.ConditionalSelect(
+                Vector128.GreaterThan(value, width),
+                value - width,
+                Vector128.ConditionalSelect(Vector128.LessThan(value, -width), value + width, Vector128<float>.Zero));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            Vector256<float> width = Vector256.Create(this.width);
+
+            return Vector256.ConditionalSelect(
+                Vector256.GreaterThan(value, width),
+                value - width,
+                Vector256.ConditionalSelect(Vector256.LessThan(value, -width), value + width, Vector256<float>.Zero));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> width = Vector512.Create(this.width);
+
+            return Vector512.ConditionalSelect(
+                Vector512.GreaterThan(value, width),
+                value - width,
+                Vector512.ConditionalSelect(Vector512.LessThan(value, -width), value + width, Vector512<float>.Zero));
+        }
+    }
+
+    /// <summary>
+    /// Doubles samples inside the central interval and offsets samples outside it.
+    /// </summary>
+    /// <param name="width">The nonnegative half-width of the central interval.</param>
+    private readonly struct AmplifyRangeAroundZeroOperator(float width) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The half-width used by the native frequency equation.</summary>
+        private readonly float width = width;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+            => value > this.width ? value + this.width : value < -this.width ? value - this.width : value + value;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> width = Vector128.Create(this.width);
+
+            return Vector128.ConditionalSelect(
+                Vector128.GreaterThan(value, width),
+                value + width,
+                Vector128.ConditionalSelect(Vector128.LessThan(value, -width), value - width, value + value));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            Vector256<float> width = Vector256.Create(this.width);
+
+            return Vector256.ConditionalSelect(
+                Vector256.GreaterThan(value, width),
+                value + width,
+                Vector256.ConditionalSelect(Vector256.LessThan(value, -width), value - width, value + value));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> width = Vector512.Create(this.width);
+
+            return Vector512.ConditionalSelect(
+                Vector512.GreaterThan(value, width),
+                value + width,
+                Vector512.ConditionalSelect(Vector512.LessThan(value, -width), value - width, value + value));
+        }
+    }
+
+    /// <summary>
+    /// Reduces the slope beyond positive and negative frequency thresholds using the native multiply-add order.
+    /// </summary>
+    /// <param name="maximum">The positive magnitude at which the slope changes.</param>
+    private readonly struct MaximumClampOperator(float maximum) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The slope retained outside the central interval.</summary>
+        private const float Multiplier = 0.724216145665F;
+
+        /// <summary>The magnitude at which the native response changes slope.</summary>
+        private readonly float maximum = maximum;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+        {
+            if (value >= this.maximum)
+            {
+                return float.MultiplyAddEstimate(value - this.maximum, Multiplier, this.maximum);
+            }
+
+            if (value < -this.maximum)
+            {
+                return float.MultiplyAddEstimate(value + this.maximum, Multiplier, -this.maximum);
+            }
+
+            return value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> maximum = Vector128.Create(this.maximum);
+            Vector128<float> positive = Vector128.MultiplyAddEstimate(value - maximum, Vector128.Create(Multiplier), maximum);
+            Vector128<float> negative = Vector128.MultiplyAddEstimate(value + maximum, Vector128.Create(Multiplier), -maximum);
+            Vector128<float> positiveOrValue = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(value, maximum), positive, value);
+
+            return Vector128.ConditionalSelect(Vector128.LessThan(value, -maximum), negative, positiveOrValue);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            Vector256<float> maximum = Vector256.Create(this.maximum);
+            Vector256<float> positive = Vector256.MultiplyAddEstimate(value - maximum, Vector256.Create(Multiplier), maximum);
+            Vector256<float> negative = Vector256.MultiplyAddEstimate(value + maximum, Vector256.Create(Multiplier), -maximum);
+            Vector256<float> positiveOrValue = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(value, maximum), positive, value);
+
+            return Vector256.ConditionalSelect(Vector256.LessThan(value, -maximum), negative, positiveOrValue);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> maximum = Vector512.Create(this.maximum);
+            Vector512<float> positive = Vector512.MultiplyAddEstimate(value - maximum, Vector512.Create(Multiplier), maximum);
+            Vector512<float> negative = Vector512.MultiplyAddEstimate(value + maximum, Vector512.Create(Multiplier), -maximum);
+            Vector512<float> positiveOrValue = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(value, maximum), positive, value);
+
+            return Vector512.ConditionalSelect(Vector512.LessThan(value, -maximum), negative, positiveOrValue);
+        }
+    }
+
+    /// <summary>
+    /// Scales retained Y high frequencies before amplifying their central interval.
+    /// </summary>
+    private readonly struct HighFrequencyYOperator : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The native scale applied before central amplification.</summary>
+        private const float Multiplier = 2.155F;
+
+        /// <summary>The central half-width after scaling.</summary>
+        private const float Width = 0.132F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+    }
+
+    /// <summary>
+    /// Reduces large Y ultra-high-frequency responses before applying their native scale.
+    /// </summary>
+    private readonly struct UltraHighFrequencyYOperator : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The magnitude where the unscaled response changes slope.</summary>
+        private const float Maximum = 5.19175294647F;
+
+        /// <summary>The native scale applied after the response changes slope.</summary>
+        private const float Multiplier = 2.69313763794F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+    }
+
+    /// <summary>
+    /// Reduces X sensitivity where the same sample has a large Y response.
+    /// </summary>
+    private readonly struct SuppressXByYOperator : TensorPrimitives_.IBinaryOperator
+    {
+        /// <summary>The squared Y magnitude that halves the variable part of the response.</summary>
+        private const float Suppression = 46F;
+
+        /// <summary>The response retained when the Y magnitude grows without bound.</summary>
+        private const float MinimumResponse = 0.653020556257F;
+
+        /// <summary>The variable response, rounded once from the native coefficient.</summary>
+        private const float VariableResponse = (float)(1D - 0.653020556257D);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second)
+        {
+            // Native Butteraugli uses Y squared, so positive and negative Y suppress X equally.
+            // The response is one at Y = 0 and tends to MinimumResponse as the Y magnitude increases.
+            float denominator = float.MultiplyAddEstimate(second, second, Suppression);
+
+            return float.MultiplyAddEstimate(Suppression / denominator, VariableResponse, MinimumResponse) * first;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second)
+        {
+            Vector128<float> denominator = Vector128.MultiplyAddEstimate(second, second, Vector128.Create(Suppression));
+
+            return Vector128.MultiplyAddEstimate(
+                Vector128.Create(Suppression) / denominator,
+                Vector128.Create(VariableResponse),
+                Vector128.Create(MinimumResponse)) * first;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second)
+        {
+            Vector256<float> denominator = Vector256.MultiplyAddEstimate(second, second, Vector256.Create(Suppression));
+
+            return Vector256.MultiplyAddEstimate(
+                Vector256.Create(Suppression) / denominator,
+                Vector256.Create(VariableResponse),
+                Vector256.Create(MinimumResponse)) * first;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second)
+        {
+            Vector512<float> denominator = Vector512.MultiplyAddEstimate(second, second, Vector512.Create(Suppression));
+
+            return Vector512.MultiplyAddEstimate(
+                Vector512.Create(Suppression) / denominator,
+                Vector512.Create(VariableResponse),
+                Vector512.Create(MinimumResponse)) * first;
+        }
+    }
+
+    /// <summary>
+    /// Applies the native low- and high-frequency masks to independently accumulated squared errors.
+    /// </summary>
+    private readonly struct MaskedDifferenceOperator : TensorPrimitives_.ITernaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second, float third)
+            => MathF.Sqrt((second * MaskDcY(first)) + (third * MaskY(first)));
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second, Vector128<float> third)
+        {
+            // The mask plane controls sensitivity; second and third retain separate DC and AC squared-error totals.
+            Vector128<float> dcMask = Vector128.Create(MaskDcYMultiplier) / ((Vector128.Create(MaskDcYScaler) * first) + Vector128.Create(MaskDcYOffset));
+            Vector128<float> acMask = Vector128.Create(MaskYMultiplier) / ((Vector128.Create(MaskYScaler) * first) + Vector128.Create(MaskYOffset));
+            dcMask = Vector128.Create(GlobalScale) * (Vector128<float>.One + dcMask);
+            acMask = Vector128.Create(GlobalScale) * (Vector128<float>.One + acMask);
+            dcMask *= dcMask;
+            acMask *= acMask;
+            return Vector128.Sqrt((second * dcMask) + (third * acMask));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second, Vector256<float> third)
+        {
+            // The mask plane controls sensitivity; second and third retain separate DC and AC squared-error totals.
+            Vector256<float> dcMask = Vector256.Create(MaskDcYMultiplier) / ((Vector256.Create(MaskDcYScaler) * first) + Vector256.Create(MaskDcYOffset));
+            Vector256<float> acMask = Vector256.Create(MaskYMultiplier) / ((Vector256.Create(MaskYScaler) * first) + Vector256.Create(MaskYOffset));
+            dcMask = Vector256.Create(GlobalScale) * (Vector256<float>.One + dcMask);
+            acMask = Vector256.Create(GlobalScale) * (Vector256<float>.One + acMask);
+            dcMask *= dcMask;
+            acMask *= acMask;
+            return Vector256.Sqrt((second * dcMask) + (third * acMask));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second, Vector512<float> third)
+        {
+            // The mask plane controls sensitivity; second and third retain separate DC and AC squared-error totals.
+            Vector512<float> dcMask = Vector512.Create(MaskDcYMultiplier) / ((Vector512.Create(MaskDcYScaler) * first) + Vector512.Create(MaskDcYOffset));
+            Vector512<float> acMask = Vector512.Create(MaskYMultiplier) / ((Vector512.Create(MaskYScaler) * first) + Vector512.Create(MaskYOffset));
+            dcMask = Vector512.Create(GlobalScale) * (Vector512<float>.One + dcMask);
+            acMask = Vector512.Create(GlobalScale) * (Vector512<float>.One + acMask);
+            dcMask *= dcMask;
+            acMask *= acMask;
+            return Vector512.Sqrt((second * dcMask) + (third * acMask));
+        }
+    }
+
+    /// <summary>
     /// Accumulates a weighted squared difference without changing the subtraction or multiplication order.
     /// </summary>
     /// <param name="weight">The fixed squared-error weight.</param>
@@ -2330,66 +2394,13 @@ internal static class Butteraugli
         }
     }
 
-    public static void OpsinAbsorbance(
-        bool clamp,
-        Vector<float> in0,
-        Vector<float> in1,
-        Vector<float> in2,
-        out Vector<float> out0,
-        out Vector<float> out1,
-        out Vector<float> out2)
-    {
-        Vector<float> mix0 = new(0.29956550340058319f);
-        Vector<float> mix1 = new(0.63373087833825936f);
-        Vector<float> mix2 = new(0.077705617820981968f);
-        Vector<float> mix3 = new(1.7557483643287353f);
-
-        Vector<float> mix4 = new(0.22158691104574774f);
-        Vector<float> mix5 = new(0.69391388044116142f);
-        Vector<float> mix6 = new(0.0987313588422f);
-        Vector<float> mix7 = new(1.7557483643287353f);
-
-        Vector<float> mix8 = new(0.02f);
-        Vector<float> mix9 = new(0.02f);
-        Vector<float> mix10 = new(0.20480129041026129f);
-        Vector<float> mix11 = new(12.226454707163354f);
-
-        out0 = (mix0 * in0) + ((mix1 * in1) + ((mix2 * in2) + mix3));
-        out1 = (mix4 * in0) + ((mix5 * in1) + ((mix6 * in2) + mix7));
-        out2 = (mix8 * in0) + ((mix9 * in1) + ((mix10 * in2) + mix11));
-
-        if (clamp)
-        {
-            out0 = Vector.Max(out0, mix3);
-            out1 = Vector.Max(out1, mix7);
-            out2 = Vector.Max(out2, mix11);
-        }
-    }
-
-    // A simple HDR-compatible gamma function
-    private static Vector<float> Gamma(Vector<float> v)
-    {
-        Vector<float> kRetMul = Vector.Create(19.245013259874995f * JxlMath.InverseLog2E);
-        Vector<float> kRetAdd = Vector.Create(-23.16046239805755f);
-
-        // if (value < 0) value = 0;
-        v = Vector.ConditionalSelect(Vector.LessThan(v, Vector<float>.Zero), Vector<float>.Zero, v);
-
-        Vector<float> biased = v + Vector.Create(9.9710635769299145f);
-        Vector<float> log = Vector.Log2(biased);
-
-        return (kRetMul * log) + kRetAdd;
-    }
-
-    /// <summary>
-    /// Transforms borrowed RGB samples into the perceptual XYB representation using prepared blur and output storage.
-    /// </summary>
+    /// <summary>Transforms borrowed RGB samples with the prepared comparison blur and output storage.</summary>
     /// <param name="configuration">The comparison configuration.</param>
-    /// <param name="rgb">The borrowed RGB image. It may also supply the output storage.</param>
-    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="rgb">The borrowed RGB image. It can also supply the output storage.</param>
+    /// <param name="parameters">The perceptual comparison parameters, including the intensity of one input unit in nits.</param>
     /// <param name="blurred">The distinct preallocated three-plane blur workspace.</param>
     /// <param name="blurTemp">The prepared transposed blur workspace.</param>
-    /// <param name="xyb">The preallocated transformed output.</param>
+    /// <param name="xyb">The preallocated transformed output, with the same logical dimensions as the input.</param>
     /// <returns>Whether all blur stages completed.</returns>
     public static bool OpsinDynamicsImage(
         Configuration configuration,
@@ -2399,12 +2410,6 @@ internal static class Butteraugli
         ButteraugliBlurTemp blurTemp,
         JxlImage3<float> xyb)
     {
-        if (blurred == null)
-        {
-            return false;
-        }
-
-
         if (!Blur(rgb.Plane(0), OpsinDynamicsKernel, blurTemp, blurred.Plane(0)))
         {
             return false;
@@ -2420,93 +2425,516 @@ internal static class Butteraugli
             return false;
         }
 
-        Vector<float> intensityMultiplier = new((float)parameters.IntensityTarget);
+        // Blur finishes before any source samples are replaced. All nine row views borrow existing owners.
+        // Retained planes can have different physical strides despite equal logical dimensions.
+        ReadOnlySpan<float> source0 = rgb.PlaneRow(0, 0);
+        ReadOnlySpan<float> source1 = rgb.PlaneRow(1, 0);
+        ReadOnlySpan<float> source2 = rgb.PlaneRow(2, 0);
+        ReadOnlySpan<float> blurred0 = blurred.PlaneRow(0, 0);
+        ReadOnlySpan<float> blurred1 = blurred.PlaneRow(1, 0);
+        ReadOnlySpan<float> blurred2 = blurred.PlaneRow(2, 0);
+        Span<float> destination0 = xyb.PlaneRow(0, 0);
+        Span<float> destination1 = xyb.PlaneRow(1, 0);
+        Span<float> destination2 = xyb.PlaneRow(2, 0);
+        int sourceStride0 = rgb.Plane(0).PixelsPerRow;
+        int sourceStride1 = rgb.Plane(1).PixelsPerRow;
+        int sourceStride2 = rgb.Plane(2).PixelsPerRow;
+        int blurredStride0 = blurred.Plane(0).PixelsPerRow;
+        int blurredStride1 = blurred.Plane(1).PixelsPerRow;
+        int blurredStride2 = blurred.Plane(2).PixelsPerRow;
+        int destinationStride0 = xyb.Plane(0).PixelsPerRow;
+        int destinationStride1 = xyb.Plane(1).PixelsPerRow;
+        int destinationStride2 = xyb.Plane(2).PixelsPerRow;
+        int width = rgb.XSize;
+        float intensity = parameters.IntensityTarget;
 
-        int lanes = Vector<float>.Count;
-
-        Vector<float> minValue = new(1e-4f);
-
-        Span<float> rgbSamples0 = rgb.Plane(0).GetRow(0);
-        Span<float> rgbSamples1 = rgb.Plane(1).GetRow(0);
-        Span<float> rgbSamples2 = rgb.Plane(2).GetRow(0);
-        Span<float> blurredSamples0 = blurred.Plane(0).GetRow(0);
-        Span<float> blurredSamples1 = blurred.Plane(1).GetRow(0);
-        Span<float> blurredSamples2 = blurred.Plane(2).GetRow(0);
-        Span<float> xybSamples0 = xyb.Plane(0).GetRow(0);
-        Span<float> xybSamples1 = xyb.Plane(1).GetRow(0);
-        Span<float> xybSamples2 = xyb.Plane(2).GetRow(0);
-
-        for (int y = 0; y < rgb.YSize; ++y)
+        for (int y = 0; y < rgb.YSize; y++)
         {
-            ReadOnlySpan<float> rowR = rgbSamples0[(y * rgb.Plane(0).PixelsPerRow)..];
-            ReadOnlySpan<float> rowG = rgbSamples1[(y * rgb.Plane(1).PixelsPerRow)..];
-            ReadOnlySpan<float> rowB = rgbSamples2[(y * rgb.Plane(2).PixelsPerRow)..];
+            ReadOnlySpan<float> row0 = source0.Slice(y * sourceStride0, width);
+            ReadOnlySpan<float> row1 = source1.Slice(y * sourceStride1, width);
+            ReadOnlySpan<float> row2 = source2.Slice(y * sourceStride2, width);
+            ReadOnlySpan<float> blur0 = blurred0.Slice(y * blurredStride0, width);
+            ReadOnlySpan<float> blur1 = blurred1.Slice(y * blurredStride1, width);
+            ReadOnlySpan<float> blur2 = blurred2.Slice(y * blurredStride2, width);
+            Span<float> output0 = destination0.Slice(y * destinationStride0, width);
+            Span<float> output1 = destination1.Slice(y * destinationStride1, width);
+            Span<float> output2 = destination2.Slice(y * destinationStride2, width);
+            ref float input0 = ref MemoryMarshal.GetReference(row0);
+            ref float input1 = ref MemoryMarshal.GetReference(row1);
+            ref float input2 = ref MemoryMarshal.GetReference(row2);
+            ref float smoothed0 = ref MemoryMarshal.GetReference(blur0);
+            ref float smoothed1 = ref MemoryMarshal.GetReference(blur1);
+            ref float smoothed2 = ref MemoryMarshal.GetReference(blur2);
+            ref float result0 = ref MemoryMarshal.GetReference(output0);
+            ref float result1 = ref MemoryMarshal.GetReference(output1);
+            ref float result2 = ref MemoryMarshal.GetReference(output2);
+            int x = 0;
 
-            ReadOnlySpan<float> blurredR = blurredSamples0[(y * blurred.Plane(0).PixelsPerRow)..];
-            ReadOnlySpan<float> blurredG = blurredSamples1[(y * blurred.Plane(1).PixelsPerRow)..];
-            ReadOnlySpan<float> blurredB = blurredSamples2[(y * blurred.Plane(2).PixelsPerRow)..];
-
-            Span<float> outX = xybSamples0[(y * xyb.Plane(0).PixelsPerRow)..];
-            Span<float> outY = xybSamples1[(y * xyb.Plane(1).PixelsPerRow)..];
-            Span<float> outB = xybSamples2[(y * xyb.Plane(2).PixelsPerRow)..];
-
-            for (int x = 0; x < rgb.XSize; x += lanes)
+            // One register holds one component from consecutive pixels. Each block reads all six inputs before any output store.
+            // Only full registers enter each loop. Narrower widths and the scalar remainder never access logical row padding.
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector<float> sensitivity0;
-                Vector<float> sensitivity1;
-                Vector<float> sensitivity2;
+                Vector512<float> multiplier = Vector512.Create(intensity);
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
                 {
-                    OpsinAbsorbance(
-                        true,
-                        new Vector<float>(blurredR[x..]) * intensityMultiplier,
-                        new Vector<float>(blurredG[x..]) * intensityMultiplier,
-                        new Vector<float>(blurredB[x..]) * intensityMultiplier,
-                        out Vector<float> pre0,
-                        out Vector<float> pre1,
-                        out Vector<float> pre2);
+                    OpsinDynamics(
+                        Vector512.LoadUnsafe(ref input0, (uint)x),
+                        Vector512.LoadUnsafe(ref input1, (uint)x),
+                        Vector512.LoadUnsafe(ref input2, (uint)x),
+                        Vector512.LoadUnsafe(ref smoothed0, (uint)x),
+                        Vector512.LoadUnsafe(ref smoothed1, (uint)x),
+                        Vector512.LoadUnsafe(ref smoothed2, (uint)x),
+                        multiplier,
+                        out Vector512<float> value0,
+                        out Vector512<float> value1,
+                        out Vector512<float> value2);
 
-                    pre0 = Vector.Max(pre0, minValue);
-                    pre1 = Vector.Max(pre1, minValue);
-                    pre2 = Vector.Max(pre2, minValue);
-
-                    sensitivity0 = Gamma(pre0) / pre0;
-                    sensitivity1 = Gamma(pre1) / pre1;
-                    sensitivity2 = Gamma(pre2) / pre2;
-
-                    sensitivity0 = Vector.Max(sensitivity0, minValue);
-                    sensitivity1 = Vector.Max(sensitivity1, minValue);
-                    sensitivity2 = Vector.Max(sensitivity2, minValue);
+                    value0.StoreUnsafe(ref result0, (uint)x);
+                    value1.StoreUnsafe(ref result1, (uint)x);
+                    value2.StoreUnsafe(ref result2, (uint)x);
                 }
+            }
 
-                OpsinAbsorbance(
-                    false,
-                    new Vector<float>(rowR[x..]) * intensityMultiplier,
-                    new Vector<float>(rowG[x..]) * intensityMultiplier,
-                    new Vector<float>(rowB[x..]) * intensityMultiplier,
-                    out Vector<float> cur0,
-                    out Vector<float> cur1,
-                    out Vector<float> cur2);
+            if (Vector256.IsHardwareAccelerated)
+            {
+                Vector256<float> multiplier = Vector256.Create(intensity);
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    OpsinDynamics(
+                        Vector256.LoadUnsafe(ref input0, (uint)x),
+                        Vector256.LoadUnsafe(ref input1, (uint)x),
+                        Vector256.LoadUnsafe(ref input2, (uint)x),
+                        Vector256.LoadUnsafe(ref smoothed0, (uint)x),
+                        Vector256.LoadUnsafe(ref smoothed1, (uint)x),
+                        Vector256.LoadUnsafe(ref smoothed2, (uint)x),
+                        multiplier,
+                        out Vector256<float> value0,
+                        out Vector256<float> value1,
+                        out Vector256<float> value2);
 
-                cur0 *= sensitivity0;
-                cur1 *= sensitivity1;
-                cur2 *= sensitivity2;
+                    value0.StoreUnsafe(ref result0, (uint)x);
+                    value1.StoreUnsafe(ref result1, (uint)x);
+                    value2.StoreUnsafe(ref result2, (uint)x);
+                }
+            }
 
-                Vector<float> min01 = new(1.7557483643287353f);
-                Vector<float> min2 = new(12.226454707163354f);
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Vector128<float> multiplier = Vector128.Create(intensity);
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    OpsinDynamics(
+                        Vector128.LoadUnsafe(ref input0, (uint)x),
+                        Vector128.LoadUnsafe(ref input1, (uint)x),
+                        Vector128.LoadUnsafe(ref input2, (uint)x),
+                        Vector128.LoadUnsafe(ref smoothed0, (uint)x),
+                        Vector128.LoadUnsafe(ref smoothed1, (uint)x),
+                        Vector128.LoadUnsafe(ref smoothed2, (uint)x),
+                        multiplier,
+                        out Vector128<float> value0,
+                        out Vector128<float> value1,
+                        out Vector128<float> value2);
 
-                cur0 = Vector.Max(cur0, min01);
-                cur1 = Vector.Max(cur1, min01);
-                cur2 = Vector.Max(cur2, min2);
+                    value0.StoreUnsafe(ref result0, (uint)x);
+                    value1.StoreUnsafe(ref result1, (uint)x);
+                    value2.StoreUnsafe(ref result2, (uint)x);
+                }
+            }
 
-                (cur0 - cur1).CopyTo(outX[x..]);
-                (cur0 + cur1).CopyTo(outY[x..]);
-                cur2.CopyTo(outB[x..]);
+            for (; x < width; x++)
+            {
+                OpsinDynamics(
+                    row0[x],
+                    row1[x],
+                    row2[x],
+                    blur0[x],
+                    blur1[x],
+                    blur2[x],
+                    intensity,
+                    out float value0,
+                    out float value1,
+                    out float value2);
+
+                output0[x] = value0;
+                output1[x] = value1;
+                output2[x] = value2;
             }
         }
 
         return true;
     }
 
+    /// <summary>Adapts one RGB pixel using its blurred sensitivity in the native arithmetic order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        float r,
+        float g,
+        float b,
+        float blurredR,
+        float blurredG,
+        float blurredB,
+        float intensity,
+        out float x,
+        out float y,
+        out float blue)
+    {
+        OpsinAbsorbance(blurredR * intensity, blurredG * intensity, blurredB * intensity, out float pre0, out float pre1, out float pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = MathF.Max(pre0, Absorbance01Bias);
+        pre1 = MathF.Max(pre1, Absorbance01Bias);
+        pre2 = MathF.Max(pre2, Absorbance2Bias);
+        float sensitivity0 = MathF.Max(Gamma(pre0) / pre0, MinimumOpsinSensitivity);
+        float sensitivity1 = MathF.Max(Gamma(pre1) / pre1, MinimumOpsinSensitivity);
+        float sensitivity2 = MathF.Max(Gamma(pre2) / pre2, MinimumOpsinSensitivity);
+
+        OpsinAbsorbance(r * intensity, g * intensity, b * intensity, out float current0, out float current1, out float current2);
+        current0 = MathF.Max(current0 * sensitivity0, Absorbance01Bias);
+        current1 = MathF.Max(current1 * sensitivity1, Absorbance01Bias);
+        current2 = MathF.Max(current2 * sensitivity2, Absorbance2Bias);
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes one RGB sample into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(float r, float g, float b, out float first, out float second, out float third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = float.MultiplyAddEstimate(Absorbance0Blue, b, Absorbance01Bias);
+        first = float.MultiplyAddEstimate(Absorbance0Green, g, first);
+        first = float.MultiplyAddEstimate(Absorbance0Red, r, first);
+
+        second = float.MultiplyAddEstimate(Absorbance1Blue, b, Absorbance01Bias);
+        second = float.MultiplyAddEstimate(Absorbance1Green, g, second);
+        second = float.MultiplyAddEstimate(Absorbance1Red, r, second);
+
+        third = float.MultiplyAddEstimate(Absorbance2Blue, b, Absorbance2Bias);
+        third = float.MultiplyAddEstimate(Absorbance2RedGreen, g, third);
+        third = float.MultiplyAddEstimate(Absorbance2RedGreen, r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for one positive absorbance.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Gamma(float value)
+        => float.MultiplyAddEstimate(OpsinGammaSlope, MathF.Log2(value + OpsinGammaInputBias), OpsinGammaOffset);
+
+    /// <summary>Adapts 4 independent RGB pixels using their blurred sensitivities, without changing pixel lane order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        Vector128<float> r,
+        Vector128<float> g,
+        Vector128<float> b,
+        Vector128<float> blurredR,
+        Vector128<float> blurredG,
+        Vector128<float> blurredB,
+        Vector128<float> intensity,
+        out Vector128<float> x,
+        out Vector128<float> y,
+        out Vector128<float> blue)
+    {
+        OpsinAbsorbance(
+            blurredR * intensity,
+            blurredG * intensity,
+            blurredB * intensity,
+            out Vector128<float> pre0,
+            out Vector128<float> pre1,
+            out Vector128<float> pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = Vector128.Max(pre0, Vector128.Create(Absorbance01Bias));
+        pre1 = Vector128.Max(pre1, Vector128.Create(Absorbance01Bias));
+        pre2 = Vector128.Max(pre2, Vector128.Create(Absorbance2Bias));
+        Vector128<float> sensitivity0 = Vector128.Max(Gamma(pre0) / pre0, Vector128.Create(MinimumOpsinSensitivity));
+        Vector128<float> sensitivity1 = Vector128.Max(Gamma(pre1) / pre1, Vector128.Create(MinimumOpsinSensitivity));
+        Vector128<float> sensitivity2 = Vector128.Max(Gamma(pre2) / pre2, Vector128.Create(MinimumOpsinSensitivity));
+
+        OpsinAbsorbance(
+            r * intensity,
+            g * intensity,
+            b * intensity,
+            out Vector128<float> current0,
+            out Vector128<float> current1,
+            out Vector128<float> current2);
+
+        current0 = Vector128.Max(current0 * sensitivity0, Vector128.Create(Absorbance01Bias));
+        current1 = Vector128.Max(current1 * sensitivity1, Vector128.Create(Absorbance01Bias));
+        current2 = Vector128.Max(current2 * sensitivity2, Vector128.Create(Absorbance2Bias));
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes 4 independent RGB samples into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(
+        Vector128<float> r,
+        Vector128<float> g,
+        Vector128<float> b,
+        out Vector128<float> first,
+        out Vector128<float> second,
+        out Vector128<float> third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance0Blue), b, Vector128.Create(Absorbance01Bias));
+        first = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance0Green), g, first);
+        first = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance0Red), r, first);
+
+        second = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance1Blue), b, Vector128.Create(Absorbance01Bias));
+        second = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance1Green), g, second);
+        second = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance1Red), r, second);
+
+        third = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance2Blue), b, Vector128.Create(Absorbance2Bias));
+        third = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance2RedGreen), g, third);
+        third = Vector128.MultiplyAddEstimate(Vector128.Create(Absorbance2RedGreen), r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for 4 positive absorbance lanes.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<float> Gamma(Vector128<float> value)
+    {
+        Vector128<float> logarithm = Vector128.Log2(value + Vector128.Create(OpsinGammaInputBias));
+        return Vector128.MultiplyAddEstimate(Vector128.Create(OpsinGammaSlope), logarithm, Vector128.Create(OpsinGammaOffset));
+    }
+
+    /// <summary>Adapts 8 independent RGB pixels using their blurred sensitivities, without changing pixel lane order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        Vector256<float> r,
+        Vector256<float> g,
+        Vector256<float> b,
+        Vector256<float> blurredR,
+        Vector256<float> blurredG,
+        Vector256<float> blurredB,
+        Vector256<float> intensity,
+        out Vector256<float> x,
+        out Vector256<float> y,
+        out Vector256<float> blue)
+    {
+        OpsinAbsorbance(
+            blurredR * intensity,
+            blurredG * intensity,
+            blurredB * intensity,
+            out Vector256<float> pre0,
+            out Vector256<float> pre1,
+            out Vector256<float> pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = Vector256.Max(pre0, Vector256.Create(Absorbance01Bias));
+        pre1 = Vector256.Max(pre1, Vector256.Create(Absorbance01Bias));
+        pre2 = Vector256.Max(pre2, Vector256.Create(Absorbance2Bias));
+        Vector256<float> sensitivity0 = Vector256.Max(Gamma(pre0) / pre0, Vector256.Create(MinimumOpsinSensitivity));
+        Vector256<float> sensitivity1 = Vector256.Max(Gamma(pre1) / pre1, Vector256.Create(MinimumOpsinSensitivity));
+        Vector256<float> sensitivity2 = Vector256.Max(Gamma(pre2) / pre2, Vector256.Create(MinimumOpsinSensitivity));
+
+        OpsinAbsorbance(
+            r * intensity,
+            g * intensity,
+            b * intensity,
+            out Vector256<float> current0,
+            out Vector256<float> current1,
+            out Vector256<float> current2);
+
+        current0 = Vector256.Max(current0 * sensitivity0, Vector256.Create(Absorbance01Bias));
+        current1 = Vector256.Max(current1 * sensitivity1, Vector256.Create(Absorbance01Bias));
+        current2 = Vector256.Max(current2 * sensitivity2, Vector256.Create(Absorbance2Bias));
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes 8 independent RGB samples into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(
+        Vector256<float> r,
+        Vector256<float> g,
+        Vector256<float> b,
+        out Vector256<float> first,
+        out Vector256<float> second,
+        out Vector256<float> third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance0Blue), b, Vector256.Create(Absorbance01Bias));
+        first = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance0Green), g, first);
+        first = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance0Red), r, first);
+
+        second = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance1Blue), b, Vector256.Create(Absorbance01Bias));
+        second = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance1Green), g, second);
+        second = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance1Red), r, second);
+
+        third = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance2Blue), b, Vector256.Create(Absorbance2Bias));
+        third = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance2RedGreen), g, third);
+        third = Vector256.MultiplyAddEstimate(Vector256.Create(Absorbance2RedGreen), r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for 8 positive absorbance lanes.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<float> Gamma(Vector256<float> value)
+    {
+        Vector256<float> logarithm = Vector256.Log2(value + Vector256.Create(OpsinGammaInputBias));
+        return Vector256.MultiplyAddEstimate(Vector256.Create(OpsinGammaSlope), logarithm, Vector256.Create(OpsinGammaOffset));
+    }
+
+    /// <summary>Adapts 16 independent RGB pixels using their blurred sensitivities, without changing pixel lane order.</summary>
+    /// <param name="r">The red input samples.</param>
+    /// <param name="g">The green input samples.</param>
+    /// <param name="b">The blue input samples.</param>
+    /// <param name="blurredR">The blurred red samples.</param>
+    /// <param name="blurredG">The blurred green samples.</param>
+    /// <param name="blurredB">The blurred blue samples.</param>
+    /// <param name="intensity">The intensity multiplier applied before both absorbance calculations.</param>
+    /// <param name="x">The perceptual X result.</param>
+    /// <param name="y">The perceptual Y result.</param>
+    /// <param name="blue">The perceptual B result.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinDynamics(
+        Vector512<float> r,
+        Vector512<float> g,
+        Vector512<float> b,
+        Vector512<float> blurredR,
+        Vector512<float> blurredG,
+        Vector512<float> blurredB,
+        Vector512<float> intensity,
+        out Vector512<float> x,
+        out Vector512<float> y,
+        out Vector512<float> blue)
+    {
+        OpsinAbsorbance(
+            blurredR * intensity,
+            blurredG * intensity,
+            blurredB * intensity,
+            out Vector512<float> pre0,
+            out Vector512<float> pre1,
+            out Vector512<float> pre2);
+
+        // The blurred absorbance floor keeps Gamma's input and its sensitivity divisor positive.
+        pre0 = Vector512.Max(pre0, Vector512.Create(Absorbance01Bias));
+        pre1 = Vector512.Max(pre1, Vector512.Create(Absorbance01Bias));
+        pre2 = Vector512.Max(pre2, Vector512.Create(Absorbance2Bias));
+        Vector512<float> sensitivity0 = Vector512.Max(Gamma(pre0) / pre0, Vector512.Create(MinimumOpsinSensitivity));
+        Vector512<float> sensitivity1 = Vector512.Max(Gamma(pre1) / pre1, Vector512.Create(MinimumOpsinSensitivity));
+        Vector512<float> sensitivity2 = Vector512.Max(Gamma(pre2) / pre2, Vector512.Create(MinimumOpsinSensitivity));
+
+        OpsinAbsorbance(
+            r * intensity,
+            g * intensity,
+            b * intensity,
+            out Vector512<float> current0,
+            out Vector512<float> current1,
+            out Vector512<float> current2);
+
+        current0 = Vector512.Max(current0 * sensitivity0, Vector512.Create(Absorbance01Bias));
+        current1 = Vector512.Max(current1 * sensitivity1, Vector512.Create(Absorbance01Bias));
+        current2 = Vector512.Max(current2 * sensitivity2, Vector512.Create(Absorbance2Bias));
+        x = current0 - current1;
+        y = current0 + current1;
+        blue = current2;
+    }
+
+    /// <summary>Mixes 16 independent RGB samples into unclamped perceptual absorbance.</summary>
+    /// <param name="r">The intensity-scaled red components.</param>
+    /// <param name="g">The intensity-scaled green components.</param>
+    /// <param name="b">The intensity-scaled blue components.</param>
+    /// <param name="first">The first absorbance.</param>
+    /// <param name="second">The second absorbance.</param>
+    /// <param name="third">The third absorbance.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OpsinAbsorbance(
+        Vector512<float> r,
+        Vector512<float> g,
+        Vector512<float> b,
+        out Vector512<float> first,
+        out Vector512<float> second,
+        out Vector512<float> third)
+    {
+        // Preserve B+bias, then G, then R as nested multiply-add estimates. Clamp policy belongs to the adaptation stage.
+        first = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance0Blue), b, Vector512.Create(Absorbance01Bias));
+        first = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance0Green), g, first);
+        first = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance0Red), r, first);
+
+        second = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance1Blue), b, Vector512.Create(Absorbance01Bias));
+        second = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance1Green), g, second);
+        second = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance1Red), r, second);
+
+        third = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance2Blue), b, Vector512.Create(Absorbance2Bias));
+        third = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance2RedGreen), g, third);
+        third = Vector512.MultiplyAddEstimate(Vector512.Create(Absorbance2RedGreen), r, third);
+    }
+
+    /// <summary>Evaluates the perceptual logarithmic response for 16 positive absorbance lanes.</summary>
+    /// <param name="value">The absorbance after its native positive floor.</param>
+    /// <returns>The response using the existing .NET log2 policy and the native final multiply-add order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<float> Gamma(Vector512<float> value)
+    {
+        Vector512<float> logarithm = Vector512.Log2(value + Vector512.Create(OpsinGammaInputBias));
+        return Vector512.MultiplyAddEstimate(Vector512.Create(OpsinGammaSlope), logarithm, Vector512.Create(OpsinGammaOffset));
+    }
+
+    /// <summary>
+    /// Compares two linear RGB images while replacing their samples with intermediate frequency bands.
+    /// </summary>
+    /// <param name="configuration">The configuration used for temporary comparison storage.</param>
+    /// <param name="image0">The reference samples, overwritten during comparison.</param>
+    /// <param name="image1">The distorted samples, overwritten during comparison.</param>
+    /// <param name="parameters">The perceptual comparison parameters.</param>
+    /// <param name="diffmap">The preallocated output plane, with the same dimensions as the inputs.</param>
+    /// <returns>Whether all comparison stages succeeded.</returns>
     public static bool ButteraugliDiffmapInPlace(
         Configuration configuration,
         JxlImage3<float> image0,
@@ -2717,34 +3145,30 @@ internal static class Butteraugli
         DeallocateHFAndUHF(hf0, uhf0);
         DeallocateHFAndUHF(hf1, uhf1);
 
-        using JxlPlane<float> newBlockDiffAc = new(configuration, xSize, ySize);
-        if (!Mask(configuration, mask0, mask1, blurTemp, mask, newBlockDiffAc, image0.Plane(0), image0.Plane(1), image0.Plane(2), image1.Plane(0)))
+        // Native Mask adds its correction to the accumulated AC errors and writes the mask separately.
+        // DC errors remain independent: the final equation applies a different mask to each frequency range.
+        if (!Mask(configuration, mask0, mask1, blurTemp, blockDiffAc, mask, image0.Plane(0), image0.Plane(1), image0.Plane(2), image1.Plane(0)))
         {
             return false;
         }
 
+        ReadOnlySpan<float> maskSamples = mask.GetRow(0);
+        ReadOnlySpan<float> dcSamples = blockDiffDc.GetRow(0);
+        ReadOnlySpan<float> acSamples = blockDiffAc.GetRow(0);
+        Span<float> outputSamples = diffmap.GetRow(0);
+
+        for (int y = 0; y < ySize; y++)
         {
-            ReadOnlySpan<float> combinedSamples = newBlockDiffAc.GetRow(0);
-            Span<float> outputSamples = diffmap.GetRow(0);
-            ReadOnlySpan<float> maskSamples = mask.GetRow(0);
+            ReadOnlySpan<float> maskRow = maskSamples.Slice(y * mask.PixelsPerRow, xSize);
+            ReadOnlySpan<float> dcRow = dcSamples.Slice(y * blockDiffDc.PixelsPerRow, xSize);
+            ReadOnlySpan<float> acRow = acSamples.Slice(y * blockDiffAc.PixelsPerRow, xSize);
+            Span<float> outputRow = outputSamples.Slice(y * diffmap.PixelsPerRow, xSize);
 
-            for (int y = 0; y < ySize; y++)
-            {
-                ReadOnlySpan<float> dc = combinedSamples[(y * newBlockDiffAc.PixelsPerRow)..];
-                ReadOnlySpan<float> ac = dc;
-                Span<float> output = outputSamples[(y * diffmap.PixelsPerRow)..];
-                ReadOnlySpan<float> maskRow = maskSamples[(y * mask.PixelsPerRow)..];
-
-                for (int x = 0; x < xSize; x++)
-                {
-                    float m = maskRow[x];
-
-                    output[x] = MathF.Sqrt((dc[x] * (float)MaskDcY(m)) + (ac[x] * (float)MaskY(m)));
-                }
-            }
-
-            return true;
+            // Each lane is one pixel. The shared traversal selects 512-, 256-, 128-bit or scalar arithmetic and handles row tails.
+            TensorPrimitives_.Invoke(maskRow, dcRow, acRow, outputRow, default(MaskedDifferenceOperator));
         }
+
+        return true;
     }
 
     /// <summary>
@@ -2775,42 +3199,175 @@ internal static class Butteraugli
     /// <param name="output">The distinct preallocated image with each dimension rounded up after division by two.</param>
     public static void SubSample2x(JxlImage3<float> input, JxlImage3<float> output)
     {
+        const float contribution = 0.25F;
+        int pairedWidth = input.XSize / 2;
+        int pairedHeight = input.YSize / 2;
+        bool hasFinalColumn = (input.XSize & 1) != 0;
+        bool hasFinalRow = (input.YSize & 1) != 0;
+
         for (int c = 0; c < 3; c++)
         {
             JxlPlane<float> inputPlane = input.Plane(c);
             JxlPlane<float> outputPlane = output.Plane(c);
             ReadOnlySpan<float> sourceSamples = inputPlane.GetRow(0);
             Span<float> outputSamples = outputPlane.GetRow(0);
+            int sourceStride = inputPlane.PixelsPerRow;
+            int outputStride = outputPlane.PixelsPerRow;
 
-            for (int y = 0; y < output.YSize; y++)
+            for (int y = 0; y < pairedHeight; y++)
             {
-                outputSamples.Slice(y * outputPlane.PixelsPerRow, output.XSize).Clear();
-            }
+                ref float upper = ref MemoryMarshal.GetReference(sourceSamples.Slice(2 * y * sourceStride, input.XSize));
+                ref float lower = ref MemoryMarshal.GetReference(sourceSamples.Slice(((2 * y) + 1) * sourceStride, input.XSize));
+                ref float destination = ref MemoryMarshal.GetReference(outputSamples.Slice(y * outputStride, output.XSize));
+                int x = 0;
 
-            for (int y = 0; y < input.YSize; y++)
-            {
-                ReadOnlySpan<float> sourceRow = sourceSamples[(y * inputPlane.PixelsPerRow)..];
-                Span<float> outputRow = outputSamples[((y / 2) * outputPlane.PixelsPerRow)..];
-
-                for (int x = 0; x < input.XSize; x++)
+                // Two source registers contain consecutive even/odd pairs. Deinterleave2 places one source pair in each
+                // output lane, without changing float bits. The four quarter contributions retain native row-major order:
+                // upper even, upper odd, lower even, lower odd. The initial zero addition also retains native signed-zero behavior.
+                // Only complete pairs enter SIMD; source padding and an unmatched final column are never loaded here.
+                if (Vector512.IsHardwareAccelerated)
                 {
-                    outputRow[x / 2] += 0.25F * sourceRow[x];
+                    for (; x <= pairedWidth - Vector512<float>.Count; x += Vector512<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector512<int> upperFirst = Vector512.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector512<int> upperSecond = Vector512.LoadUnsafe(ref upper, sourceX + (uint)Vector512<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector512<int> upperEven, out Vector512<int> upperOdd);
+                        Vector512<int> lowerFirst = Vector512.LoadUnsafe(ref lower, sourceX).AsInt32();
+                        Vector512<int> lowerSecond = Vector512.LoadUnsafe(ref lower, sourceX + (uint)Vector512<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(lowerFirst, lowerSecond, out Vector512<int> lowerEven, out Vector512<int> lowerOdd);
+                        Vector512<float> result = Vector512<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result += contribution * lowerEven.AsSingle();
+                        result += contribution * lowerOdd.AsSingle();
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector256.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector256<float>.Count; x += Vector256<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector256<int> upperFirst = Vector256.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector256<int> upperSecond = Vector256.LoadUnsafe(ref upper, sourceX + (uint)Vector256<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector256<int> upperEven, out Vector256<int> upperOdd);
+                        Vector256<int> lowerFirst = Vector256.LoadUnsafe(ref lower, sourceX).AsInt32();
+                        Vector256<int> lowerSecond = Vector256.LoadUnsafe(ref lower, sourceX + (uint)Vector256<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(lowerFirst, lowerSecond, out Vector256<int> lowerEven, out Vector256<int> lowerOdd);
+                        Vector256<float> result = Vector256<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result += contribution * lowerEven.AsSingle();
+                        result += contribution * lowerOdd.AsSingle();
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector128<float>.Count; x += Vector128<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector128<int> upperFirst = Vector128.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector128<int> upperSecond = Vector128.LoadUnsafe(ref upper, sourceX + (uint)Vector128<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector128<int> upperEven, out Vector128<int> upperOdd);
+                        Vector128<int> lowerFirst = Vector128.LoadUnsafe(ref lower, sourceX).AsInt32();
+                        Vector128<int> lowerSecond = Vector128.LoadUnsafe(ref lower, sourceX + (uint)Vector128<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(lowerFirst, lowerSecond, out Vector128<int> lowerEven, out Vector128<int> lowerOdd);
+                        Vector128<float> result = Vector128<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result += contribution * lowerEven.AsSingle();
+                        result += contribution * lowerOdd.AsSingle();
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                for (; x < pairedWidth; x++)
+                {
+                    int sourceX = 2 * x;
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, sourceX));
+                    result += contribution * Unsafe.Add(ref upper, sourceX + 1);
+                    result += contribution * Unsafe.Add(ref lower, sourceX);
+                    result += contribution * Unsafe.Add(ref lower, sourceX + 1);
+                    Unsafe.Add(ref destination, x) = result;
+                }
+
+                if (hasFinalColumn)
+                {
+                    // An unmatched column contributes two samples instead of four. Native doubles after both additions.
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, input.XSize - 1));
+                    result += contribution * Unsafe.Add(ref lower, input.XSize - 1);
+                    Unsafe.Add(ref destination, pairedWidth) = result * 2F;
                 }
             }
 
-            // A final unmatched row or column supplies two samples rather than four. Preserve the native edge normalization.
-            if ((input.XSize & 1) != 0)
+            if (hasFinalRow)
             {
-                for (int y = 0; y < output.YSize; y++)
-                {
-                    outputSamples[(y * outputPlane.PixelsPerRow) + output.XSize - 1] *= 2F;
-                }
-            }
+                ref float upper = ref MemoryMarshal.GetReference(sourceSamples.Slice((input.YSize - 1) * sourceStride, input.XSize));
+                ref float destination = ref MemoryMarshal.GetReference(outputSamples.Slice(pairedHeight * outputStride, output.XSize));
+                int x = 0;
 
-            if ((input.YSize & 1) != 0)
-            {
-                Span<float> lastRow = outputSamples.Slice((output.YSize - 1) * outputPlane.PixelsPerRow, output.XSize);
-                TensorPrimitives.Multiply(lastRow, 2F, lastRow);
+                // The unmatched row has only the two upper contributions. Keep it outside the full-row loops so their
+                // register loads need no missing-row branch. Native doubles this completed row after its column correction.
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector512<float>.Count; x += Vector512<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector512<int> upperFirst = Vector512.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector512<int> upperSecond = Vector512.LoadUnsafe(ref upper, sourceX + (uint)Vector512<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector512<int> upperEven, out Vector512<int> upperOdd);
+                        Vector512<float> result = Vector512<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result *= 2F;
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector256.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector256<float>.Count; x += Vector256<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector256<int> upperFirst = Vector256.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector256<int> upperSecond = Vector256.LoadUnsafe(ref upper, sourceX + (uint)Vector256<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector256<int> upperEven, out Vector256<int> upperOdd);
+                        Vector256<float> result = Vector256<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result *= 2F;
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector128<float>.Count; x += Vector128<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector128<int> upperFirst = Vector128.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector128<int> upperSecond = Vector128.LoadUnsafe(ref upper, sourceX + (uint)Vector128<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector128<int> upperEven, out Vector128<int> upperOdd);
+                        Vector128<float> result = Vector128<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result *= 2F;
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                for (; x < pairedWidth; x++)
+                {
+                    int sourceX = 2 * x;
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, sourceX));
+                    result += contribution * Unsafe.Add(ref upper, sourceX + 1);
+                    Unsafe.Add(ref destination, x) = result * 2F;
+                }
+
+                if (hasFinalColumn)
+                {
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, input.XSize - 1));
+                    result *= 2F;
+                    Unsafe.Add(ref destination, pairedWidth) = result * 2F;
+                }
             }
         }
     }
@@ -2956,7 +3513,7 @@ internal static class Butteraugli
     /// <param name="rgb0">The reference pixels, which full-size comparison can modify.</param>
     /// <param name="rgb1">The distorted pixels, which full-size comparison can modify.</param>
     /// <param name="parameters">The perceptual comparison parameters.</param>
-    /// <param name="diffmap">The caller-owned output plane. Its identity does not change.</param>
+    /// <param name="diffmap">The caller-owned output plane. Storage is reused when it fits; the plane's identity does not change.</param>
     /// <param name="diffvalue">The comparison score, or zero when comparison fails.</param>
     /// <returns>Whether every comparison stage succeeded.</returns>
     public static bool ButteraugliInterfaceInPlace(
@@ -3003,17 +3560,28 @@ internal static class Butteraugli
             }
         }
 
-        JxlPlane<float> subDiffmap = new();
+        // The half-size result must survive the full-size comparison. Each result has its own dimensions and allocation.
+        // Smaller images need no second comparison; zero dimensions leave this scoped owner without sample storage.
+        bool compareSubsample = xsize >= 15 && ysize >= 15;
+        using JxlPlane<float> subDiffmap = new(configuration, compareSubsample ? (xsize + 1) / 2 : 0, compareSubsample ? (ysize + 1) / 2 : 0);
 
-        if (xsize >= 15 && ysize >= 15)
+        if (compareSubsample)
         {
             using JxlImage3<float> rgb0Sub = SubSample2x(configuration, rgb0);
             using JxlImage3<float> rgb1Sub = SubSample2x(configuration, rgb1);
 
-            if (!ButteraugliDiffmapInPlace(configuration, rgb0Sub, rgb1Sub, parameters, diffmap))
+            if (!ButteraugliDiffmapInPlace(configuration, rgb0Sub, rgb1Sub, parameters, subDiffmap))
             {
                 return false;
             }
+        }
+
+        // The raw comparison writes preallocated output. This entry point owns preparation, including an initially empty output plane.
+        // Swap only after allocation succeeds, and release the displaced allocation through the scoped replacement.
+        if (!diffmap.ShrinkTo(xsize, ysize))
+        {
+            using JxlPlane<float> outputStorage = new(configuration, xsize, ysize);
+            diffmap.Swap(outputStorage);
         }
 
         if (!ButteraugliDiffmapInPlace(configuration, rgb0, rgb1, parameters, diffmap))
@@ -3021,7 +3589,7 @@ internal static class Butteraugli
             return false;
         }
 
-        if (xsize >= 15 && ysize >= 15)
+        if (compareSubsample)
         {
             AddSupersampled2x(subDiffmap, 0.5f, diffmap);
         }
@@ -3250,23 +3818,47 @@ internal static class Butteraugli
         return retval;
     }
 
+    /// <summary>
+    /// Accumulates full Malta differences into one component of an existing AC image.
+    /// </summary>
+    /// <param name="lum0">The borrowed reference band, at least eight samples wide and eight rows high.</param>
+    /// <param name="lum1">The equally sized borrowed distorted band.</param>
+    /// <param name="w0Gt1">The primary symmetric-difference weight, retained until operation setup.</param>
+    /// <param name="w0Lt1">The secondary magnitude-penalty weight, retained until operation setup.</param>
+    /// <param name="norm1">The native magnitude normalization, retained until operation setup.</param>
+    /// <param name="diffs">The equally sized prepared-difference workspace, separate from the input and AC planes.</param>
+    /// <param name="blockDiffAc">The equally sized existing AC accumulation image.</param>
+    /// <param name="c">The accumulation component, in X, Y, B order.</param>
+    /// <returns>Whether the input and workspace dimensions match.</returns>
     public static bool MaltaDiffMap(
         JxlPlane<float> lum0,
         JxlPlane<float> lum1,
-        float w0Gt1,
-        float w0Lt1,
-        float norm1,
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
         JxlPlane<float> diffs,
         JxlImage3<float> blockDiffAc,
         int c)
         => MaltaDiffMap(isLf: false, lum0, lum1, w0Gt1, w0Lt1, norm1, diffs, blockDiffAc.Plane(c));
 
+    /// <summary>
+    /// Accumulates low-frequency Malta differences into one component of an existing AC image.
+    /// </summary>
+    /// <param name="lum0">The borrowed reference band, at least eight samples wide and eight rows high.</param>
+    /// <param name="lum1">The equally sized borrowed distorted band.</param>
+    /// <param name="w0Gt1">The primary symmetric-difference weight, retained until operation setup.</param>
+    /// <param name="w0Lt1">The secondary magnitude-penalty weight, retained until operation setup.</param>
+    /// <param name="norm1">The native magnitude normalization, retained until operation setup.</param>
+    /// <param name="diffs">The equally sized prepared-difference workspace, separate from the input and AC planes.</param>
+    /// <param name="blockDiffAc">The equally sized existing AC accumulation image.</param>
+    /// <param name="c">The accumulation component, in X, Y, B order.</param>
+    /// <returns>Whether the input and workspace dimensions match.</returns>
     public static bool MaltaDiffMapLf(
         JxlPlane<float> lum0,
         JxlPlane<float> lum1,
-        float w0Gt1,
-        float w0Lt1,
-        float norm1,
+        double w0Gt1,
+        double w0Lt1,
+        double norm1,
         JxlPlane<float> diffs,
         JxlImage3<float> blockDiffAc,
         int c)

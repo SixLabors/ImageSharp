@@ -818,20 +818,18 @@ internal static class JxlModularEncoding
         }
     }
 
-    /// <summary>
-    /// Reads one modular group's channels using local or shared entropy tables and prediction trees.
-    /// </summary>
-    /// <param name="configuration">The configuration that owns entropy and prediction storage.</param>
-    /// <param name="br">The encoded group fields.</param>
-    /// <param name="image">The destination modular channels.</param>
-    /// <param name="header">The group header.</param>
-    /// <param name="groupId">The group identifier used by prediction.</param>
-    /// <param name="options">The channel and transform limits.</param>
-    /// <param name="globalTree">The prediction tree available to groups that request it.</param>
-    /// <param name="globalCode">The entropy tables available to groups that request them.</param>
-    /// <param name="globalContextMap">The context mapping for the shared entropy tables.</param>
-    /// <param name="allowTruncatedGroup">Whether to keep partial channel data if decoding fails.</param>
-    /// <returns>Whether the group completed its entropy checks.</returns>
+    /// <summary>Reads one modular group using either its local entropy tables or a complete borrowed global context.</summary>
+    /// <param name="configuration">The configuration used by decoded samples and prediction scratch.</param>
+    /// <param name="br">The source reader positioned at the group header.</param>
+    /// <param name="image">The owned destination channels.</param>
+    /// <param name="header">The owned destination for this group's fields.</param>
+    /// <param name="groupId">The format's modular stream identifier.</param>
+    /// <param name="options">The modular decode limits.</param>
+    /// <param name="globalTree">The borrowed global tree, or null for a standalone stream.</param>
+    /// <param name="globalCode">The matching global entropy code, or null when no global context exists.</param>
+    /// <param name="globalContextMap">The matching global context map, or null when no global context exists.</param>
+    /// <param name="allowTruncatedGroup">Whether an incomplete group may retain decoded sample data.</param>
+    /// <returns>Whether group decoding and terminal entropy checks succeeded.</returns>
     public static bool ModularDecode(
         Configuration configuration,
         JxlBitReader br,
@@ -839,9 +837,9 @@ internal static class JxlModularEncoding
         JxlGroupHeader header,
         int groupId,
         JxlModularOptions options,
-        Tree globalTree,
-        JxlAnsCode globalCode,
-        List<byte> globalContextMap,
+        Tree? globalTree,
+        JxlAnsCode? globalCode,
+        List<byte>? globalContextMap,
         bool allowTruncatedGroup)
     {
         if (image.Channels.Count == 0)
@@ -932,7 +930,8 @@ internal static class JxlModularEncoding
             }
             else
             {
-                if (globalTree.Count == 0)
+                // Standalone modular streams have no shared context. A wire request for a global tree requires all three parts.
+                if (globalTree is null || globalCode is null || globalContextMap is null || globalTree.Count == 0)
                 {
                     throw new InvalidOperationException("No global tree available but one was requested");
                 }
@@ -1019,6 +1018,19 @@ internal static class JxlModularEncoding
         }
     }
 
+    /// <summary>Decodes a modular group and optionally reverses its transforms.</summary>
+    /// <param name="configuration">The configuration used by owned samples and scratch.</param>
+    /// <param name="br">The source reader positioned at the group header.</param>
+    /// <param name="image">The owned destination channels.</param>
+    /// <param name="header">The owned group header, retained for inverse transforms.</param>
+    /// <param name="groupId">The format's modular stream identifier.</param>
+    /// <param name="options">The modular decode limits.</param>
+    /// <param name="undoTransforms">Whether to restore the requested channel layout after decoding.</param>
+    /// <param name="tree">The borrowed global tree, or null for a standalone stream.</param>
+    /// <param name="code">The matching global entropy code, or null when no global context exists.</param>
+    /// <param name="contextMap">The matching global context map, or null when no global context exists.</param>
+    /// <param name="allowTruncatedGroup">Whether an incomplete group may retain decoded sample data.</param>
+    /// <returns>Whether decoded samples and the final channel layout are valid.</returns>
     public static bool ModularGenericDecompress(
         Configuration configuration,
         JxlBitReader br,
@@ -1027,9 +1039,9 @@ internal static class JxlModularEncoding
         int groupId,
         JxlModularOptions options,
         bool undoTransforms,
-        Tree tree,
-        JxlAnsCode code,
-        List<byte> contextMap,
+        Tree? tree,
+        JxlAnsCode? code,
+        List<byte>? contextMap,
         bool allowTruncatedGroup)
     {
         List<Size> reqSizes = new(capacity: image.Channels.Count);

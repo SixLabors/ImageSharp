@@ -31,7 +31,10 @@ internal class JxlPassesCommonContext
 
     public JxlAcStrategyImage AcStrategy { get; set; }
 
-    public JxlDequantMatrices Matrices { get; set; } = new();
+    /// <summary>
+    /// Gets the common context's matrix owner. Its quantizer and encoder views borrow this same instance.
+    /// </summary>
+    public JxlDequantMatrices Matrices { get; } = new();
 
     public JxlQuantizer Quantizer { get; set; }
 

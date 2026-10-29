@@ -683,7 +683,8 @@ internal static class JxlPalette
             }
 
             distance += diff * diff * weight * weight;
-            int sumWeight = c == 0 ? 3 : c == 1 ? 5 : 1;
+            // Weight both sums in float. Explicit entries can use the full integer precision; multiplying them as Int32 can overflow before conversion.
+            float sumWeight = c == 0 ? 3F : c == 1 ? 5F : 1F;
             sumA += a[c] * sumWeight;
             sumB += b[c] * sumWeight;
         }
@@ -694,26 +695,30 @@ internal static class JxlPalette
     }
 
     /// <summary>
-    /// Selects the nearest implicit cube entry using the native integer quantization formula.
+    /// Selects a canonical implicit RGB cube entry in the decoder's capped sample range.
     /// </summary>
-    /// <param name="color">The bounded source components.</param>
+    /// <param name="color">The rounded, nonnegative source components. Their values remain unchanged.</param>
     /// <param name="paletteSize">The number of explicit entries preceding the two implicit cubes.</param>
-    /// <param name="bitDepth">The source precision used to quantize cube positions.</param>
+    /// <param name="bitDepth">The decoder's implicit-color precision, at most 24 bits.</param>
     /// <param name="highQuality">Whether to select the larger five-position cube instead of the offset four-position cube.</param>
     /// <returns>The implicit index after the explicit palette entries.</returns>
-    private static int QuantizeColorToImplicitPaletteIndex(Span<int> color, int paletteSize, int bitDepth, bool highQuality)
+    private static int QuantizeColorToImplicitPaletteIndex(ReadOnlySpan<int> color, int paletteSize, int bitDepth, bool highQuality)
     {
         int index = 0;
         int quant = (1 << bitDepth) - 1;
         int half = bitDepth > 1 ? (1 << (bitDepth - 1)) : 0;
+        int components = Math.Min(color.Length, RgbChannels);
 
+        // Native palette.cc and Rust palette.rs cap implicit colors to 24 bits and define only RGB cube digits; later components are zero.
+        // Upstream rounding already makes color nonnegative. Bound only each local cube input, preserving full-precision scoring data.
+        // At 24 bits, 4*quant+half is at most 75,497,468, so the existing Int32 quantization arithmetic cannot overflow.
         if (highQuality)
         {
             int multiplier = 1;
 
-            for (int i = 0; i < color.Length; i++)
+            for (int i = 0; i < components; i++)
             {
-                int value = color[i];
+                int value = Math.Min(color[i], quant);
                 int quantized = (((LargeCube - 1) * value) + half) / quant;
                 index += quantized * multiplier;
                 multiplier *= LargeCube;
@@ -726,9 +731,9 @@ internal static class JxlPalette
             int multiplier = 1;
             int bdMinus3 = 1 << Math.Max(0, bitDepth - 3);
 
-            for (int i = 0; i < color.Length; i++)
+            for (int i = 0; i < components; i++)
             {
-                int value = color[i];
+                int value = Math.Min(color[i], quant);
                 value -= bdMinus3;
                 value = Math.Max(0, value);
 

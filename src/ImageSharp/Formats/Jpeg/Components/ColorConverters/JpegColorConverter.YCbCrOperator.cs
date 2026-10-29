@@ -18,22 +18,22 @@ internal abstract partial class JpegColorConverterBase
         /// <summary>
         /// The BT.601 red contribution from centered Cr.
         /// </summary>
-        public const float RCrMult = 1.402F;
+        public const float RCrMult = ColorNumerics.Bt601RedCrMultiplier;
 
         /// <summary>
         /// The BT.601 green contribution from centered Cb.
         /// </summary>
-        public const float GCbMult = (float)(0.114 * 1.772 / 0.587);
+        public const float GCbMult = ColorNumerics.Bt601GreenCbMultiplier;
 
         /// <summary>
         /// The BT.601 green contribution from centered Cr.
         /// </summary>
-        public const float GCrMult = (float)(0.299 * 1.402 / 0.587);
+        public const float GCrMult = ColorNumerics.Bt601GreenCrMultiplier;
 
         /// <summary>
         /// The BT.601 blue contribution from centered Cb.
         /// </summary>
-        public const float BCbMult = 1.772F;
+        public const float BCbMult = ColorNumerics.Bt601BlueCbMultiplier;
 
         /// <inheritdoc/>
         public static JpegColorSpace ColorSpace => JpegColorSpace.YCbCr;
@@ -290,15 +290,8 @@ internal abstract partial class JpegColorConverterBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref float c0, ref float c1, ref float c2, float halfValue)
         {
-            float y = c0;
-            float cb = c1 - halfValue;
-            float cr = c2 - halfValue;
-
-            // Each lane is an independent sample. ICC needs the fractional device values, while
-            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
-            c0 = y + (RCrMult * cr);
-            c1 = y - (GCbMult * cb) - (GCrMult * cr);
-            c2 = y + (BCbMult * cb);
+            // JPEG centers stored chroma here. Its outer conversion owns device normalization and storage rounding.
+            ColorNumerics.ConvertBt601YCbCrToRgb(c0, c1 - halfValue, c2 - halfValue, out c0, out c1, out c2);
         }
 
         /// <inheritdoc/>
@@ -330,15 +323,8 @@ internal abstract partial class JpegColorConverterBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, Vector128<float> halfValue)
         {
-            Vector128<float> y = c0;
-            Vector128<float> cb = c1 - halfValue;
-            Vector128<float> cr = c2 - halfValue;
-
-            // Each lane is an independent sample. ICC needs the fractional device values, while
-            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
-            c0 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(RCrMult), y);
-            c1 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(-GCrMult), Vector128.MultiplyAddEstimate(cb, Vector128.Create(-GCbMult), y));
-            c2 = Vector128.MultiplyAddEstimate(cb, Vector128.Create(BCbMult), y);
+            // JPEG centers stored chroma here. Its outer conversion owns device normalization and storage rounding.
+            ColorNumerics.ConvertBt601YCbCrToRgb(c0, c1 - halfValue, c2 - halfValue, out c0, out c1, out c2);
         }
 
         /// <inheritdoc/>
@@ -370,15 +356,8 @@ internal abstract partial class JpegColorConverterBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, Vector256<float> halfValue)
         {
-            Vector256<float> y = c0;
-            Vector256<float> cb = c1 - halfValue;
-            Vector256<float> cr = c2 - halfValue;
-
-            // Each lane is an independent sample. ICC needs the fractional device values, while
-            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
-            c0 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(RCrMult), y);
-            c1 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(-GCrMult), Vector256.MultiplyAddEstimate(cb, Vector256.Create(-GCbMult), y));
-            c2 = Vector256.MultiplyAddEstimate(cb, Vector256.Create(BCbMult), y);
+            // JPEG centers stored chroma here. Its outer conversion owns device normalization and storage rounding.
+            ColorNumerics.ConvertBt601YCbCrToRgb(c0, c1 - halfValue, c2 - halfValue, out c0, out c1, out c2);
         }
 
         /// <inheritdoc/>
@@ -410,15 +389,8 @@ internal abstract partial class JpegColorConverterBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, Vector512<float> halfValue)
         {
-            Vector512<float> y = c0;
-            Vector512<float> cb = c1 - halfValue;
-            Vector512<float> cr = c2 - halfValue;
-
-            // Each lane is an independent sample. ICC needs the fractional device values, while
-            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
-            c0 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(RCrMult), y);
-            c1 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(-GCrMult), Vector512.MultiplyAddEstimate(cb, Vector512.Create(-GCbMult), y));
-            c2 = Vector512.MultiplyAddEstimate(cb, Vector512.Create(BCbMult), y);
+            // JPEG centers stored chroma here. Its outer conversion owns device normalization and storage rounding.
+            ColorNumerics.ConvertBt601YCbCrToRgb(c0, c1 - halfValue, c2 - halfValue, out c0, out c1, out c2);
         }
 
         /// <inheritdoc/>

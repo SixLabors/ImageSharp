@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
@@ -23,8 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 /// <param name="frameDimensions">The borrowed parsed frame dimensions.</param>
 internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFrameDimensions frameDimensions) : IDisposable
 {
-    private const float AlmostZero = 1e-8f;
-
     private readonly Configuration configuration = configuration;
 
     /// <summary>
@@ -189,85 +188,91 @@ internal sealed class JxlModularFrameDecoder(Configuration configuration, JxlFra
         }
     }
 
-    public void DecodeQuantizerTable(int requiredSizeX, int requiredSizeY, JxlBitReader reader, JxlQuantizerEncoding encoding, int index, JxlModularFrameDecoder? decoder)
+    /// <summary>Reads one positive raw quantization table through the existing modular decoder.</summary>
+    /// <param name="configuration">The configuration that owns decoded channels and retained raw values.</param>
+    /// <param name="requiredSizeX">The table width in coefficients.</param>
+    /// <param name="requiredSizeY">The table height in coefficients.</param>
+    /// <param name="reader">The reader positioned at the F16 table denominator.</param>
+    /// <param name="encoding">The descriptor that owns the completed raw table.</param>
+    /// <param name="index">The format's quantization-table index.</param>
+    /// <param name="decoder">The frame's global modular context, or null for a standalone parameter roundtrip.</param>
+    /// <returns>Whether the denominator and complete modular table were decoded successfully.</returns>
+    public static bool DecodeQuantizerTable(
+        Configuration configuration,
+        int requiredSizeX,
+        int requiredSizeY,
+        JxlBitReader reader,
+        JxlQuantizerEncoding encoding,
+        int index,
+        JxlModularFrameDecoder? decoder)
     {
-        float qtableDen = 0;
-
-        // When we decode a quantizer table, there's an F16
-        // indicating quantizer table denominator.
-        if (!JxlF16Coder.Read(reader, ref qtableDen))
+        bool complete = false;
+        try
         {
-            throw new InvalidOperationException("Quantizer table denominator is too small");
-        }
+            float denominator = 0;
+            if (!JxlF16Coder.Read(reader, ref denominator))
+            {
+                return false;
+            }
 
-        encoding.QuantizationTableDenominator = qtableDen;
+            // Native raw weights require both a positive denominator and positive integer entries.
+            // F16 read rejects nonfinite fields; this additional bound excludes zero and negative denominators.
+            if (denominator < JxlQuantizerConstants.MinimumWeight)
+            {
+                throw new InvalidImageContentException("The raw quantization denominator is too small.");
+            }
 
-        using JxlModularImage img = JxlModularImage.Create(this.configuration, requiredSizeX, requiredSizeY, 8, 3);
-
-        // Using default modular options.
-        JxlModularOptions options = new();
-
-        if (decoder is not null)
-        {
-            JxlModularStreamId quantizerTable = JxlModularStreamId.CreateQuantizerTable(index);
-            JxlModularEncoding.ModularGenericDecompress(
-                this.configuration,
+            encoding.QuantizationTableDenominator = denominator;
+            using JxlModularImage image = JxlModularImage.Create(configuration, requiredSizeX, requiredSizeY, 8, 3);
+            JxlGroupHeader header = new();
+            JxlModularOptions options = new();
+            int groupId = decoder is null ? 0 : JxlModularStreamId.CreateQuantizerTable(index).GetId(decoder.frameDimensions);
+            if (!JxlModularEncoding.ModularGenericDecompress(
+                configuration,
                 reader,
-                img,
-                null,
-                quantizerTable.GetId(decoder.frameDimensions),
+                image,
+                header,
+                groupId,
                 options,
                 true,
-                decoder.tree,
-                decoder.code,
-                decoder.contextMap);
-        }
-        else
-        {
-            JxlModularEncoding.ModularGenericDecompress(
-                this.configuration,
-                reader,
-                img,
-                null,
-                0,
-                options,
-                true);
-        }
-
-        if (encoding.QuantizationTable is null)
-        {
-            encoding.QuantizationTable = new int[requiredSizeX * requiredSizeY * 3];
-        }
-        else
-        {
-            if (encoding.QuantizationTable.Length != requiredSizeX * requiredSizeY * 3)
+                decoder?.tree,
+                decoder?.code,
+                decoder?.contextMap,
+                false))
             {
-                throw new InvalidOperationException("The length of the quantization table doesn't match");
+                return false;
             }
-        }
 
-        Span<int> qtable = encoding.QuantizationTable.AsSpan();
-
-        for (int c = 0; c < 3; c++)
-        {
-            JxlModularChannel currentChannel = img.Channels[c];
-            Span<int> channelSamples = currentChannel.GetRow(0);
-            int channelStride = currentChannel.Plane.PixelsPerRow;
-
-            for (int y = 0; y < requiredSizeY; y++)
+            // Retain logical coefficients after the temporary modular image is disposed. Its physical row padding is not table data.
+            // Borrow each channel span once, then copy into the descriptor's single packed X, Y and B allocation.
+            Span<int> destination = encoding.PrepareRawTable(configuration, requiredSizeX * requiredSizeY * 3);
+            for (int c = 0; c < 3; c++)
             {
-                Span<int> row = channelSamples[(y * channelStride)..];
-
-                for (int x = 0; x < requiredSizeX; x++)
+                JxlModularChannel channel = image.Channels[c];
+                ReadOnlySpan<int> channelSamples = channel.GetRow(0);
+                int stride = channel.Plane.PixelsPerRow;
+                int channelOffset = c * requiredSizeX * requiredSizeY;
+                for (int y = 0; y < requiredSizeY; y++)
                 {
-                    qtable[(c * requiredSizeX * requiredSizeY) + (y * requiredSizeX) + x] = row[x];
-
-                    // The raw quantization table should never have a negative or zero value.
-                    if (row[x] <= 0)
+                    ReadOnlySpan<int> row = channelSamples.Slice(y * stride, requiredSizeX);
+                    if (TensorPrimitives.Min(row) <= 0)
                     {
-                        throw new InvalidOperationException("Invalid raw quantization table");
+                        throw new InvalidImageContentException("The raw quantization table contains a nonpositive value.");
                     }
+
+                    row.CopyTo(destination.Slice(channelOffset + (y * requiredSizeX), requiredSizeX));
                 }
+            }
+
+            complete = true;
+            return true;
+        }
+        finally
+        {
+            if (!complete)
+            {
+                // A failed replacement must not retain partially copied raw coefficients, including a reused allocation.
+                encoding.Dispose();
             }
         }
     }

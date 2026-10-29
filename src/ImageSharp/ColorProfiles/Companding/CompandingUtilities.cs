@@ -264,7 +264,8 @@ public static class CompandingUtilities
     /// Evaluates a transfer curve and enforces the result contract for every companding entry point.
     /// </summary>
     /// <typeparam name="TOperator">The curve arithmetic, independent of color range and pixel layout.</typeparam>
-    private readonly struct BoundedOperator<TOperator> : TensorPrimitives_.IUnaryOperator
+    /// <remarks>Configure this value once before a fused component traversal. It owns the same result limits as the companding entry points.</remarks>
+    internal readonly struct BoundedOperator<TOperator> : TensorPrimitives_.IUnaryOperator
         where TOperator : struct, TensorPrimitives_.IUnaryOperator
     {
         private readonly TOperator operation;

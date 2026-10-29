@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -13,7 +11,6 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
@@ -27,7 +24,8 @@ internal static class JxlQuantWeights
 
     public const int Log2NumQuantModes = 3;
 
-    private const float AlmostZero = 1e-8f;
+    // The format rejects quantization weights outside this reciprocal-safe interval.
+    private const float MaximumWeight = 1F / JxlQuantizerConstants.MinimumWeight;
 
     /// <summary>
     /// DCT quantizer encoding. (6 distance bands)
@@ -35,9 +33,9 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [3150f, 0f, -0.4f, -0.4f, -0.4f, -2f],
-                [560f, 0f, -0.3f, -0.3f, -0.3f, -0.3f],
-                [512f, -2f, -1f, 0f, -1f, -2f]
+                3150f, 0f, -0.4f, -0.4f, -0.4f, -2f,
+                560f, 0f, -0.3f, -0.3f, -0.3f, -0.3f,
+                512f, -2f, -1f, 0f, -1f, -2f
             ],
             6));
 
@@ -46,9 +44,9 @@ internal static class JxlQuantWeights
     /// </summary>
     public static readonly JxlQuantizerEncoding Identity = JxlQuantizerEncoding.Identity(
         [
-            [280f, 3160f, 3160f],
-            [60f, 864f, 864f],
-            [18f, 200f, 200f],
+            280f, 3160f, 3160f,
+            60f, 864f, 864f,
+            18f, 200f, 200f
         ]);
 
     /// <summary>
@@ -56,9 +54,9 @@ internal static class JxlQuantWeights
     /// </summary>
     public static readonly JxlQuantizerEncoding Dct2x2 = JxlQuantizerEncoding.Dct2(
         [
-            [3840f, 2560f, 1280f, 640f, 480f, 300f],
-            [960f, 640f, 320f, 180f, 140f, 120f],
-            [640f, 320f, 128f, 64f, 32f, 16f],
+            3840f, 2560f, 1280f, 640f, 480f, 300f,
+            960f, 640f, 320f, 180f, 140f, 120f,
+            640f, 320f, 128f, 64f, 32f, 16f
         ]);
 
     /// <summary>
@@ -67,15 +65,15 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct4x4 = JxlQuantizerEncoding.Dct4(
         new JxlDctQuantWeightParameters(
             [
-                [2200, 0, 0, 0],
-                [392, 0, 0, 0],
-                [112, -0.25f, -0.25f, -0.5f]
+                2200, 0, 0, 0,
+                392, 0, 0, 0,
+                112, -0.25f, -0.25f, -0.5f
             ],
             4),
         [
-            [1, 1],
-            [1, 1],
-            [1, 1]
+            1, 1,
+            1, 1,
+            1, 1
         ]);
 
     /// <summary>
@@ -84,33 +82,27 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct16x16 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    8996.8725711814115328f,
-                    -1.3000777393353804f,
-                    -0.49424529824571225f,
-                    -0.439093774457103443f,
-                    -0.6350101832695744f,
-                    -0.90177264050827612f,
-                    -1.6162099239887414f,
-                ],
-                [
-                    3191.48366296844234752f,
-                    -0.67424582104194355f,
-                    -0.80745813428471001f,
-                    -0.44925837484843441f,
-                    -0.35865440981033403f,
-                    -0.31322389111877305f,
-                    -0.37615025315725483f,
-                ],
-                [
-                    1157.50408145487200256f,
-                    -2.0531423165804414f,
-                    -1.4f,
-                    -0.50687130033378396f,
-                    -0.42708730624733904f,
-                    -1.4856834539296244f,
-                    -4.9209142884401604f,
-                ]
+                8996.8725711814115328f,
+                -1.3000777393353804f,
+                -0.49424529824571225f,
+                -0.439093774457103443f,
+                -0.6350101832695744f,
+                -0.90177264050827612f,
+                -1.6162099239887414f,
+                3191.48366296844234752f,
+                -0.67424582104194355f,
+                -0.80745813428471001f,
+                -0.44925837484843441f,
+                -0.35865440981033403f,
+                -0.31322389111877305f,
+                -0.37615025315725483f,
+                1157.50408145487200256f,
+                -2.0531423165804414f,
+                -1.4f,
+                -0.50687130033378396f,
+                -0.42708730624733904f,
+                -1.4856834539296244f,
+                -4.9209142884401604f
             ],
             7));
 
@@ -120,36 +112,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct32x32 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    15718.40830982518931456f,
-                    -1.025f,
-                    -0.98f,
-                    -0.9012f,
-                    -0.4f,
-                    -0.48819395464f,
-                    -0.421064f,
-                    -0.27f,
-                ],
-                [
-                    7305.7636810695983104f,
-                    -0.8041958212306401f,
-                    -0.7633036457487539f,
-                    -0.55660379990111464f,
-                    -0.49785304658857626f,
-                    -0.43699592683512467f,
-                    -0.40180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    3803.53173721215041536f,
-                    -3.060733579805728f,
-                    -2.0413270132490346f,
-                    -2.0235650159727417f,
-                    -0.5495389509954993f,
-                    -0.4f,
-                    -0.4f,
-                    -0.3f,
-                ]
+                15718.40830982518931456f,
+                -1.025f,
+                -0.98f,
+                -0.9012f,
+                -0.4f,
+                -0.48819395464f,
+                -0.421064f,
+                -0.27f,
+                7305.7636810695983104f,
+                -0.8041958212306401f,
+                -0.7633036457487539f,
+                -0.55660379990111464f,
+                -0.49785304658857626f,
+                -0.43699592683512467f,
+                -0.40180866526242109f,
+                -0.27321683125358037f,
+                3803.53173721215041536f,
+                -3.060733579805728f,
+                -2.0413270132490346f,
+                -2.0235650159727417f,
+                -0.5495389509954993f,
+                -0.4f,
+                -0.4f,
+                -0.3f
             ],
             8));
 
@@ -159,33 +145,27 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct8x16 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    7240.7734393502f,
-                    -0.7f,
-                    -0.7f,
-                    -0.2f,
-                    -0.2f,
-                    -0.2f,
-                    -0.5f,
-                ],
-                [
-                    1448.15468787004f,
-                    -0.5f,
-                    -0.5f,
-                    -0.5f,
-                    -0.2f,
-                    -0.2f,
-                    -0.2f,
-                ],
-                [
-                    506.854140754517f,
-                    -1.4f,
-                    -0.2f,
-                    -0.5f,
-                    -0.5f,
-                    -1.5f,
-                    -3.6f,
-                ]
+                7240.7734393502f,
+                -0.7f,
+                -0.7f,
+                -0.2f,
+                -0.2f,
+                -0.2f,
+                -0.5f,
+                1448.15468787004f,
+                -0.5f,
+                -0.5f,
+                -0.5f,
+                -0.2f,
+                -0.2f,
+                -0.2f,
+                506.854140754517f,
+                -1.4f,
+                -0.2f,
+                -0.5f,
+                -0.5f,
+                -1.5f,
+                -3.6f
             ],
             7));
 
@@ -195,36 +175,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct8x32 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    16283.2494710648897f,
-                    -1.7812845336559429f,
-                    -1.6309059012653515f,
-                    -1.0382179034313539f,
-                    -0.85f,
-                    -0.7f,
-                    -0.9f,
-                    -1.2360638576849587f,
-                ],
-                [
-                    5089.15750884921511936f,
-                    -0.320049391452786891f,
-                    -0.35362849922161446f,
-                    -0.30340000000000003f,
-                    -0.61f,
-                    -0.5f,
-                    -0.5f,
-                    -0.6f,
-                ],
-                [
-                    3397.77603275308720128f,
-                    -0.321327362693153371f,
-                    -0.34507619223117997f,
-                    -0.70340000000000003f,
-                    -0.9f,
-                    -1.0f,
-                    -1.0f,
-                    -1.1754605576265209f,
-                ]
+                16283.2494710648897f,
+                -1.7812845336559429f,
+                -1.6309059012653515f,
+                -1.0382179034313539f,
+                -0.85f,
+                -0.7f,
+                -0.9f,
+                -1.2360638576849587f,
+                5089.15750884921511936f,
+                -0.320049391452786891f,
+                -0.35362849922161446f,
+                -0.30340000000000003f,
+                -0.61f,
+                -0.5f,
+                -0.5f,
+                -0.6f,
+                3397.77603275308720128f,
+                -0.321327362693153371f,
+                -0.34507619223117997f,
+                -0.70340000000000003f,
+                -0.9f,
+                -1.0f,
+                -1.0f,
+                -1.1754605576265209f
             ],
             8));
 
@@ -234,36 +208,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct16x32 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    13844.97076442300573f,
-                    -0.97113799999999995f,
-                    -0.658f,
-                    -0.42026f,
-                    -0.22712f,
-                    -0.2206f,
-                    -0.226f,
-                    -0.6f,
-                ],
-                [
-                    4798.964084220744293f,
-                    -0.61125308982767057f,
-                    -0.83770786552491361f,
-                    -0.79014862079498627f,
-                    -0.2692727459704829f,
-                    -0.38272769465388551f,
-                    -0.22924222653091453f,
-                    -0.20719098826199578f,
-                ],
-                [
-                    1807.236946760964614f,
-                    -1.2f,
-                    -1.2f,
-                    -0.7f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                13844.97076442300573f,
+                -0.97113799999999995f,
+                -0.658f,
+                -0.42026f,
+                -0.22712f,
+                -0.2206f,
+                -0.226f,
+                -0.6f,
+                4798.964084220744293f,
+                -0.61125308982767057f,
+                -0.83770786552491361f,
+                -0.79014862079498627f,
+                -0.2692727459704829f,
+                -0.38272769465388551f,
+                -0.22924222653091453f,
+                -0.20719098826199578f,
+                1807.236946760964614f,
+                -1.2f,
+                -1.2f,
+                -0.7f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -273,24 +241,18 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct4x8 = JxlQuantizerEncoding.Dct4x8(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    2198.050556016380522f,
-                    -0.96269623020744692f,
-                    -0.76194253026666783f,
-                    -0.6551140670773547f
-                ],
-                [
-                    764.3655248643528689f,
-                    -0.92630200888366945f,
-                    -0.9675229603596517f,
-                    -0.27845290869168118f
-                ],
-                [
-                    527.107573587542228f,
-                    -1.4594385811273854f,
-                    -1.450082094097871593f,
-                    -1.5843722511996204f
-                ]
+                2198.050556016380522f,
+                -0.96269623020744692f,
+                -0.76194253026666783f,
+                -0.6551140670773547f,
+                764.3655248643528689f,
+                -0.92630200888366945f,
+                -0.9675229603596517f,
+                -0.27845290869168118f,
+                527.107573587542228f,
+                -1.4594385811273854f,
+                -1.450082094097871593f,
+                -1.5843722511996204f
             ],
             4),
         [1, 1, 1]);
@@ -299,50 +261,45 @@ internal static class JxlQuantWeights
     /// AFV quantizer encoding.
     /// </summary>
     public static readonly JxlQuantizerEncoding Afv = JxlQuantizerEncoding.Afv(
-        Dct4x8.DctParameters!,
-        Dct4x4.DctParameters!,
+        Dct4x8.DctParameters,
+        Dct4x4.DctParameters,
         [
-            [3072, 3072, 256, 256, 256, 414, 0, 0, 0],
-            [1024, 1024, 50, 50, 50, 58, 0, 0, 0],
-            [384, 384, 12, 12, 12, 22, -0.25f, -0.25f, -0.25f]
+            3072, 3072, 256, 256, 256, 414, 0, 0, 0,
+            1024, 1024, 50, 50, 50, 58, 0, 0, 0,
+            384, 384, 12, 12, 12, 22, -0.25f, -0.25f, -0.25f
         ]);
 
+    // Round these compile-time seed products to float once. Rounding their operands first can change the resulting coefficient.
     /// <summary>
     /// DCT64x64 quantizer encoding.
     /// </summary>
     public static readonly JxlQuantizerEncoding Dct64x64 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    0.9f * 26629.073922049845f,
-                    -1.025f,
-                    -0.78f,
-                    -0.65012f,
-                    -0.19041574084286472f,
-                    -0.20819395464f,
-                    -0.421064f,
-                    -0.32733845535848671f,
-                ],
-                [
-                    0.9f * 9311.3238710010046f,
-                    -0.3041958212306401f,
-                    -0.3633036457487539f,
-                    -0.35660379990111464f,
-                    -0.3443074455424403f,
-                    -0.33699592683512467f,
-                    -0.30180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    0.9f * 4992.2486445538634f,
-                    -1.2f,
-                    -1.2f,
-                    -0.8f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                (float)(0.9 * 26629.073922049845),
+                -1.025f,
+                -0.78f,
+                -0.65012f,
+                -0.19041574084286472f,
+                -0.20819395464f,
+                -0.421064f,
+                -0.32733845535848671f,
+                (float)(0.9 * 9311.3238710010046),
+                -0.3041958212306401f,
+                -0.3633036457487539f,
+                -0.35660379990111464f,
+                -0.3443074455424403f,
+                -0.33699592683512467f,
+                -0.30180866526242109f,
+                -0.27321683125358037f,
+                (float)(0.9 * 4992.2486445538634),
+                -1.2f,
+                -1.2f,
+                -0.8f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -352,36 +309,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct32x64 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    0.65f * 23629.073922049845f,
-                    -1.025f,
-                    -0.78f,
-                    -0.65012f,
-                    -0.19041574084286472f,
-                    -0.20819395464f,
-                    -0.421064f,
-                    -0.32733845535848671f,
-                ],
-                [
-                    0.65f * 8611.3238710010046f,
-                    -0.3041958212306401f,
-                    -0.3633036457487539f,
-                    -0.35660379990111464f,
-                    -0.3443074455424403f,
-                    -0.33699592683512467f,
-                    -0.30180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    0.65f * 4492.2486445538634f,
-                    -1.2f,
-                    -1.2f,
-                    -0.8f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                (float)(0.65 * 23629.073922049845),
+                -1.025f,
+                -0.78f,
+                -0.65012f,
+                -0.19041574084286472f,
+                -0.20819395464f,
+                -0.421064f,
+                -0.32733845535848671f,
+                (float)(0.65 * 8611.3238710010046),
+                -0.3041958212306401f,
+                -0.3633036457487539f,
+                -0.35660379990111464f,
+                -0.3443074455424403f,
+                -0.33699592683512467f,
+                -0.30180866526242109f,
+                -0.27321683125358037f,
+                (float)(0.65 * 4492.2486445538634),
+                -1.2f,
+                -1.2f,
+                -0.8f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -391,36 +342,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct128x128 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    1.8f * 26629.073922049845f,
-                    -1.025f,
-                    -0.78f,
-                    -0.65012f,
-                    -0.19041574084286472f,
-                    -0.20819395464f,
-                    -0.421064f,
-                    -0.32733845535848671f,
-                ],
-                [
-                    1.8f * 9311.3238710010046f,
-                    -0.3041958212306401f,
-                    -0.3633036457487539f,
-                    -0.35660379990111464f,
-                    -0.3443074455424403f,
-                    -0.33699592683512467f,
-                    -0.30180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    1.8f * 4992.2486445538634f,
-                    -1.2f,
-                    -1.2f,
-                    -0.8f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                (float)(1.8 * 26629.073922049845),
+                -1.025f,
+                -0.78f,
+                -0.65012f,
+                -0.19041574084286472f,
+                -0.20819395464f,
+                -0.421064f,
+                -0.32733845535848671f,
+                (float)(1.8 * 9311.3238710010046),
+                -0.3041958212306401f,
+                -0.3633036457487539f,
+                -0.35660379990111464f,
+                -0.3443074455424403f,
+                -0.33699592683512467f,
+                -0.30180866526242109f,
+                -0.27321683125358037f,
+                (float)(1.8 * 4992.2486445538634),
+                -1.2f,
+                -1.2f,
+                -0.8f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -430,36 +375,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct64x128 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    1.3f * 23629.073922049845f,
-                    -1.025f,
-                    -0.78f,
-                    -0.65012f,
-                    -0.19041574084286472f,
-                    -0.20819395464f,
-                    -0.421064f,
-                    -0.32733845535848671f,
-                ],
-                [
-                    1.3f * 8611.3238710010046f,
-                    -0.3041958212306401f,
-                    -0.3633036457487539f,
-                    -0.35660379990111464f,
-                    -0.3443074455424403f,
-                    -0.33699592683512467f,
-                    -0.30180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    1.3f * 4492.2486445538634f,
-                    -1.2f,
-                    -1.2f,
-                    -0.8f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                (float)(1.3 * 23629.073922049845),
+                -1.025f,
+                -0.78f,
+                -0.65012f,
+                -0.19041574084286472f,
+                -0.20819395464f,
+                -0.421064f,
+                -0.32733845535848671f,
+                (float)(1.3 * 8611.3238710010046),
+                -0.3041958212306401f,
+                -0.3633036457487539f,
+                -0.35660379990111464f,
+                -0.3443074455424403f,
+                -0.33699592683512467f,
+                -0.30180866526242109f,
+                -0.27321683125358037f,
+                (float)(1.3 * 4492.2486445538634),
+                -1.2f,
+                -1.2f,
+                -0.8f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -469,36 +408,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct256x256 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    3.6f * 26629.073922049845f,
-                    -1.025f,
-                    -0.78f,
-                    -0.65012f,
-                    -0.19041574084286472f,
-                    -0.20819395464f,
-                    -0.421064f,
-                    -0.32733845535848671f,
-                ],
-                [
-                    3.6f * 9311.3238710010046f,
-                    -0.3041958212306401f,
-                    -0.3633036457487539f,
-                    -0.35660379990111464f,
-                    -0.3443074455424403f,
-                    -0.33699592683512467f,
-                    -0.30180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    3.6f * 4992.2486445538634f,
-                    -1.2f,
-                    -1.2f,
-                    -0.8f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                (float)(3.6 * 26629.073922049845),
+                -1.025f,
+                -0.78f,
+                -0.65012f,
+                -0.19041574084286472f,
+                -0.20819395464f,
+                -0.421064f,
+                -0.32733845535848671f,
+                (float)(3.6 * 9311.3238710010046),
+                -0.3041958212306401f,
+                -0.3633036457487539f,
+                -0.35660379990111464f,
+                -0.3443074455424403f,
+                -0.33699592683512467f,
+                -0.30180866526242109f,
+                -0.27321683125358037f,
+                (float)(3.6 * 4992.2486445538634),
+                -1.2f,
+                -1.2f,
+                -0.8f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -508,36 +441,30 @@ internal static class JxlQuantWeights
     public static readonly JxlQuantizerEncoding Dct128x256 = JxlQuantizerEncoding.Dct(
         new JxlDctQuantWeightParameters(
             [
-                [
-                    2.6f * 23629.073922049845f,
-                    -1.025f,
-                    -0.78f,
-                    -0.65012f,
-                    -0.19041574084286472f,
-                    -0.20819395464f,
-                    -0.421064f,
-                    -0.32733845535848671f,
-                ],
-                [
-                    2.6f * 8611.3238710010046f,
-                    -0.3041958212306401f,
-                    -0.3633036457487539f,
-                    -0.35660379990111464f,
-                    -0.3443074455424403f,
-                    -0.33699592683512467f,
-                    -0.30180866526242109f,
-                    -0.27321683125358037f,
-                ],
-                [
-                    2.6f * 4492.2486445538634f,
-                    -1.2f,
-                    -1.2f,
-                    -0.8f,
-                    -0.7f,
-                    -0.7f,
-                    -0.4f,
-                    -0.5f,
-                ]
+                (float)(2.6 * 23629.073922049845),
+                -1.025f,
+                -0.78f,
+                -0.65012f,
+                -0.19041574084286472f,
+                -0.20819395464f,
+                -0.421064f,
+                -0.32733845535848671f,
+                (float)(2.6 * 8611.3238710010046),
+                -0.3041958212306401f,
+                -0.3633036457487539f,
+                -0.35660379990111464f,
+                -0.3443074455424403f,
+                -0.33699592683512467f,
+                -0.30180866526242109f,
+                -0.27321683125358037f,
+                (float)(2.6 * 4492.2486445538634),
+                -1.2f,
+                -1.2f,
+                -0.8f,
+                -0.7f,
+                -0.7f,
+                -0.4f,
+                -0.5f
             ],
             8));
 
@@ -561,12 +488,17 @@ internal static class JxlQuantWeights
         12.97166202570235f,
     ];
 
-    public static void GetQuantWeightsDCT2(float[][] dct2Weights, Span<float> weights)
+
+    /// <summary>Expands the six DCT2 weights per channel into coefficient order.</summary>
+    /// <param name="dct2Weights">Three fixed mode rows. Only the first six entries of each row are active.</param>
+    /// <param name="weights">The destination for three 8 by 8 coefficient planes.</param>
+    public static void GetQuantWeightsDCT2(in InlineArray3<InlineArray9<float>> dct2Weights, Span<float> weights)
     {
         for (int c = 0; c < 3; c++)
         {
             int start = c * 64;
 
+            // DC uses separate quantization. This unused slot follows the native table and is cleared after the dequantization weights are calculated.
             weights[start] = 0xBAD;
             weights[start + 1] = weights[start + 8] = dct2Weights[c][0];
             weights[start + 9] = dct2Weights[c][1];
@@ -607,16 +539,16 @@ internal static class JxlQuantWeights
         }
     }
 
-    public static void GetQuantWeightsIdentity(float[][] idWeights, Span<float> weights)
+    /// <summary>Expands the three identity weights per channel into coefficient order.</summary>
+    /// <param name="idWeights">Three fixed mode rows. Only the first three entries of each row are active.</param>
+    /// <param name="weights">The destination for three 8 by 8 coefficient planes.</param>
+    public static void GetQuantWeightsIdentity(in InlineArray3<InlineArray9<float>> idWeights, Span<float> weights)
     {
         for (int c = 0; c < 3; c++)
         {
             int c64 = 64 * c;
 
-            for (int i = 0; i < 64; i++)
-            {
-                weights[c64 + i] = idWeights[c][0];
-            }
+            weights.Slice(c64, 64).Fill(idWeights[c][0]);
 
             weights[c64 + 1] = idWeights[c][1];
             weights[c64 + 8] = idWeights[c][1];
@@ -726,12 +658,12 @@ internal static class JxlQuantWeights
     /// </summary>
     /// <param name="rowCount">The number of coefficient rows.</param>
     /// <param name="columnCount">The number of coefficients per row.</param>
-    /// <param name="distanceBands">The distance-band parameters for each channel.</param>
-    /// <param name="bandCount">The number of bands per channel.</param>
+    /// <param name="parameters">The fixed channel rows and their active distance-band count.</param>
     /// <param name="output">The destination weights, in channel, row, and column order.</param>
     /// <returns>Whether the cumulative bands satisfy the native minimum weight.</returns>
-    public static bool GetQuantWeights(int rowCount, int columnCount, float[][] distanceBands, int bandCount, Span<float> output)
+    public static bool GetQuantWeights(int rowCount, int columnCount, in JxlDctQuantWeightParameters parameters, Span<float> output)
     {
+        int bandCount = parameters.NumDistanceBands;
         Span<float> bands = stackalloc float[JxlQuantizerConstants.MaxDistanceBands];
         Span<float> logStorage = stackalloc float[JxlQuantizerConstants.MaxDistanceBands - 1];
         Span<float> logRatios = logStorage[..(bandCount - 1)];
@@ -742,18 +674,18 @@ internal static class JxlQuantWeights
 
         for (int c = 0; c < 3; c++)
         {
-            bands[0] = distanceBands[c][0];
+            bands[0] = parameters.DistanceBands[c][0];
 
-            if (bands[0] < AlmostZero)
+            if (bands[0] < JxlQuantizerConstants.MinimumWeight)
             {
                 return false;
             }
 
             for (int i = 1; i < bandCount; i++)
             {
-                bands[i] = bands[i - 1] * Mult(distanceBands[c][i]);
+                bands[i] = bands[i - 1] * Mult(parameters.DistanceBands[c][i]);
 
-                if (bands[i] < AlmostZero)
+                if (bands[i] < JxlQuantizerConstants.MinimumWeight)
                 {
                     return false;
                 }
@@ -824,20 +756,18 @@ internal static class JxlQuantWeights
     }
 
     /// <summary>
-    /// Builds forward and inverse quantization tables for one transform.
+    /// Builds dequantization weights and their reciprocals for one transform in the caller's final storage.
     /// </summary>
     /// <param name="encoding">The quantization weight parameters.</param>
-    /// <param name="quantizationTable">The destination forward weights.</param>
-    /// <param name="inverseQuantizationTable">The destination inverse weights.</param>
-    /// <param name="tableIndex">The table index. This implementation does not yet use it.</param>
+    /// <param name="dequantizationTable">The destination dequantization weights. Each entry is the reciprocal of the generated weight.</param>
+    /// <param name="quantizationTable">The destination quantization weights. Low-frequency entries are cleared after preparation.</param>
     /// <param name="kind">The transform table kind.</param>
     /// <param name="writeOffset">The starting destination offset, advanced past the written weights.</param>
     /// <returns>Whether the encoding supports the selected transform.</returns>
     public static bool ComputeQuantTable(
         JxlQuantizerEncoding encoding,
+        Span<float> dequantizationTable,
         Span<float> quantizationTable,
-        Span<float> inverseQuantizationTable,
-        int tableIndex,
         JxlQuantTable kind,
         ref int writeOffset)
     {
@@ -848,7 +778,9 @@ internal static class JxlQuantWeights
         int wcols = 8 * JxlDequantMatrices.RequiredSizeY[quantSizeTable];
         int num = wrows * wcols;
 
-        Span<float> weights = stackalloc float[3 * num];
+        // Generate all three channel planes directly in their final allocation. The largest transform has 196,608 entries.
+        // Keeping this view avoids a proportional stack allocation and subsequent copies of the complete table.
+        Span<float> weights = quantizationTable.Slice(writeOffset, 3 * num);
 
         switch (encoding.Mode)
         {
@@ -866,7 +798,7 @@ internal static class JxlQuantWeights
                     return false;
                 }
 
-                GetQuantWeightsIdentity(encoding.IdWeights!, weights);
+                GetQuantWeightsIdentity(in encoding.ModeWeights, weights);
                 break;
             }
 
@@ -877,7 +809,7 @@ internal static class JxlQuantWeights
                     return false;
                 }
 
-                GetQuantWeightsDCT2(encoding.Dct2Weights!, weights);
+                GetQuantWeightsDCT2(in encoding.ModeWeights, weights);
                 break;
             }
 
@@ -891,7 +823,7 @@ internal static class JxlQuantWeights
                 Span<float> weights4x4 = stackalloc float[3 * 4 * 4];
 
                 // Always use 4x4 GetQuantWeights for DCT4 quantization tables.
-                if (!GetQuantWeights(4, 4, encoding.DctParameters!.DistanceBands, encoding.DctParameters.NumDistanceBands, weights4x4))
+                if (!GetQuantWeights(4, 4, in encoding.DctParameters, weights4x4))
                 {
                     return false;
                 }
@@ -906,9 +838,9 @@ internal static class JxlQuantWeights
                         }
                     }
 
-                    weights[(c * num) + 1] /= encoding.Dct4Multipliers![c][0];
-                    weights[(c * num) + n] /= encoding.Dct4Multipliers[c][0];
-                    weights[(c * num) + n + 1] /= encoding.Dct4Multipliers[c][1];
+                    weights[(c * num) + 1] /= encoding.ModeWeights[c][0];
+                    weights[(c * num) + n] /= encoding.ModeWeights[c][0];
+                    weights[(c * num) + n + 1] /= encoding.ModeWeights[c][1];
                 }
 
                 break;
@@ -923,7 +855,7 @@ internal static class JxlQuantWeights
 
                 Span<float> weights4x8 = stackalloc float[3 * 4 * 8];
 
-                if (!GetQuantWeights(4, 8, encoding.DctParameters!.DistanceBands, encoding.DctParameters.NumDistanceBands, weights4x8))
+                if (!GetQuantWeights(4, 8, in encoding.DctParameters, weights4x8))
                 {
                     return false;
                 }
@@ -938,7 +870,7 @@ internal static class JxlQuantWeights
                         }
                     }
 
-                    weights[(c * num) + n] /= encoding.Dct4x8Multipliers![c];
+                    weights[(c * num) + n] /= encoding.ModeWeights[c][0];
                 }
 
                 break;
@@ -946,7 +878,7 @@ internal static class JxlQuantWeights
 
             case JxlQuantMode.Dct:
             {
-                if (!GetQuantWeights(wrows, wcols, encoding.DctParameters!.DistanceBands, encoding.DctParameters.NumDistanceBands, weights))
+                if (!GetQuantWeights(wrows, wcols, in encoding.DctParameters, weights))
                 {
                     return false;
                 }
@@ -956,12 +888,12 @@ internal static class JxlQuantWeights
 
             case JxlQuantMode.Raw:
             {
-                if (encoding.QuantizationTable is null || encoding.QuantizationTable.Length != 3 * num)
+                if (encoding.QuantizationTable.Length != 3 * num)
                 {
                     throw new InvalidOperationException("Invalid raw quantizer table encoding");
                 }
 
-                Span<int> qtable = encoding.QuantizationTable.AsSpan();
+                ReadOnlySpan<int> qtable = encoding.QuantizationTable.Span;
 
                 for (int i = 0; i < 3 * num; i++)
                 {
@@ -975,14 +907,14 @@ internal static class JxlQuantWeights
             {
                 Span<float> weights4x8 = stackalloc float[3 * 4 * 8];
 
-                if (!GetQuantWeights(4, 8, encoding.DctParameters!.DistanceBands, encoding.DctParameters.NumDistanceBands, weights4x8))
+                if (!GetQuantWeights(4, 8, in encoding.DctParameters, weights4x8))
                 {
                     return false;
                 }
 
                 Span<float> weights4x4 = stackalloc float[3 * 4 * 4];
 
-                if (!GetQuantWeights(4, 4, encoding.DctParametersAfv4x4!.DistanceBands, encoding.DctParametersAfv4x4.NumDistanceBands, weights4x4))
+                if (!GetQuantWeights(4, 4, in encoding.DctParametersAfv4x4, weights4x4))
                 {
                     return false;
                 }
@@ -995,18 +927,18 @@ internal static class JxlQuantWeights
 
                 for (int c = 0; c < 3; c++)
                 {
-                    bands[0] = encoding.AfvWeights![c][5];
+                    bands[0] = encoding.ModeWeights[c][5];
 
-                    if (bands[0] < AlmostZero)
+                    if (bands[0] < JxlQuantizerConstants.MinimumWeight)
                     {
                         throw new InvalidOperationException("Invalid AFV bands");
                     }
 
                     for (int i = 1; i < 4; i++)
                     {
-                        bands[i] = bands[i - 1] * Mult(encoding.AfvWeights[c][i + 5]);
+                        bands[i] = bands[i - 1] * Mult(encoding.ModeWeights[c][i + 5]);
 
-                        if (bands[i] < AlmostZero)
+                        if (bands[i] < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("Invalid AFV bands");
                         }
@@ -1020,11 +952,11 @@ internal static class JxlQuantWeights
 
                     weights[start] = 1;
 
-                    SetWeight(0, 1, encoding.AfvWeights[c][0], weights);
-                    SetWeight(1, 0, encoding.AfvWeights[c][1], weights);
-                    SetWeight(0, 2, encoding.AfvWeights[c][2], weights);
-                    SetWeight(2, 0, encoding.AfvWeights[c][3], weights);
-                    SetWeight(2, 2, encoding.AfvWeights[c][4], weights);
+                    SetWeight(0, 1, encoding.ModeWeights[c][0], weights);
+                    SetWeight(1, 0, encoding.ModeWeights[c][1], weights);
+                    SetWeight(0, 2, encoding.ModeWeights[c][2], weights);
+                    SetWeight(2, 0, encoding.ModeWeights[c][3], weights);
+                    SetWeight(2, 2, encoding.ModeWeights[c][4], weights);
 
                     // All other AFV weights.
                     for (int y = 0; y < 4; y++)
@@ -1074,32 +1006,16 @@ internal static class JxlQuantWeights
 
                 break;
             }
+
+            default:
+                return false;
         }
 
         int prevPos = writeOffset;
 
-        // Don't zero-init
-        Span<float> invVal = stackalloc float[64];
-        Span<float> val = stackalloc float[64];
-
-        for (int i = 0; i < num * 3; i += 64)
-        {
-            weights.Slice(i, 64).CopyTo(invVal);
-
-            // TODO: there's an unlikely check right here in
-            // reference:
-            //    if (JXL_UNLIKELY(!AllFalse(d, Ge(inv_val, Set(d, 1.0f / kAlmostZero))) ||
-            //             !AllFalse(d, Lt(inv_val, Set(d, kAlmostZero)))))
-            //    {
-            //      throw new InvalidOperationException("Invalid quantization table");
-            //    }
-            // should we trade performance for an unlikely check?
-            val.Fill(1.0f);
-            TensorPrimitives.Divide(val, invVal, val);
-
-            val.CopyTo(quantizationTable.Slice(writeOffset + i, 64));
-            invVal.CopyTo(inverseQuantizationTable.Slice(writeOffset + i, 64));
-        }
+        // libjxl quant_weights.cc validates this interval before division. Validate and invert together;
+        // no temporary table, fill with ones, or extra validation pass is required. Each lane owns one coefficient.
+        TensorPrimitives_.Invoke(weights, dequantizationTable.Slice(writeOffset, weights.Length), default(ReciprocalWeightOperator));
 
         writeOffset += 3 * num;
 
@@ -1114,7 +1030,7 @@ internal static class JxlQuantWeights
             {
                 for (int x = 0; x < xs; x++)
                 {
-                    inverseQuantizationTable[prevPos + (c * ys * xs * JxlFrameDimensions.DctBlockSize) + (y * JxlFrameDimensions.BlockDimensions * xs) + x] = 0;
+                    quantizationTable[prevPos + (c * ys * xs * JxlFrameDimensions.DctBlockSize) + (y * JxlFrameDimensions.BlockDimensions * xs) + x] = 0;
                 }
             }
         }
@@ -1122,7 +1038,69 @@ internal static class JxlQuantWeights
         return true;
     }
 
-    public static bool DecodeDctParameters(JxlBitReader reader, JxlDctQuantWeightParameters parameters)
+    /// <summary>
+    /// Validates generated weights and returns their reciprocals. Preparation rejects invalid weights instead of clipping them.
+    /// </summary>
+    private readonly struct ReciprocalWeightOperator : TensorPrimitives_.IUnaryOperator
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+        {
+            // Ordered comparisons also reject NaN. Positive finite weights in [1e-8,1e8) have finite positive reciprocals.
+            if (!(value >= JxlQuantizerConstants.MinimumWeight && value < MaximumWeight))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return 1F / value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            if (!(Vector128.GreaterThanOrEqualAll(value, Vector128.Create(JxlQuantizerConstants.MinimumWeight))
+                && Vector128.LessThanAll(value, Vector128.Create(MaximumWeight))))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return Vector128<float>.One / value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            if (!(Vector256.GreaterThanOrEqualAll(value, Vector256.Create(JxlQuantizerConstants.MinimumWeight))
+                && Vector256.LessThanAll(value, Vector256.Create(MaximumWeight))))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return Vector256<float>.One / value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            if (!(Vector512.GreaterThanOrEqualAll(value, Vector512.Create(JxlQuantizerConstants.MinimumWeight))
+                && Vector512.LessThanAll(value, Vector512.Create(MaximumWeight))))
+            {
+                throw new InvalidImageContentException("The quantization weight is outside the supported range.");
+            }
+
+            return Vector512<float>.One / value;
+        }
+    }
+
+    /// <summary>Reads the complete active distance-band rows into the existing value storage.</summary>
+    /// <param name="reader">The source bit reader.</param>
+    /// <param name="parameters">The destination value, updated without copying its fixed rows.</param>
+    /// <returns>Whether all band values were read successfully.</returns>
+    public static bool DecodeDctParameters(JxlBitReader reader, ref JxlDctQuantWeightParameters parameters)
     {
         parameters.NumDistanceBands = (int)reader.ReadBits32(JxlQuantizerConstants.Log2MaxDistanceBands) + 1;
 
@@ -1136,12 +1114,12 @@ internal static class JxlQuantWeights
                 }
             }
 
-            if (parameters.DistanceBands[c][0] < AlmostZero)
+            if (parameters.DistanceBands[c][0] < JxlQuantizerConstants.MinimumWeight)
             {
                 throw new InvalidOperationException("Distance band seed is too small");
             }
 
-            parameters.DistanceBands[c][0] *= 64f;
+            parameters.DistanceBands[c][0] *= JxlQuantizerConstants.AcWeightScale;
         }
 
         return true;
@@ -1152,11 +1130,11 @@ internal static class JxlQuantWeights
     /// </summary>
     /// <param name="configuration">The configuration used by the modular decoder.</param>
     /// <param name="reader">The source bit reader.</param>
-    /// <param name="encoding">The destination quantization parameters.</param>
+    /// <param name="encoding">The owned destination. Reading a new header releases its earlier raw payload.</param>
     /// <param name="requiredSizeX">The required horizontal extent in blocks.</param>
     /// <param name="requiredSizeY">The required vertical extent in blocks.</param>
     /// <param name="quantizationTableIndex">The index that identifies the table in the modular stream.</param>
-    /// <param name="modularFrameDecoder">The decoder for raw quantization tables.</param>
+    /// <param name="modularFrameDecoder">The frame modular context, or null for a standalone raw-table stream.</param>
     /// <returns>Whether the parameters were read successfully.</returns>
     public static bool Decode(
         Configuration configuration,
@@ -1165,13 +1143,15 @@ internal static class JxlQuantWeights
         int requiredSizeX,
         int requiredSizeY,
         int quantizationTableIndex,
-        JxlModularFrameDecoder modularFrameDecoder)
+        JxlModularFrameDecoder? modularFrameDecoder)
     {
         int requiredSize = requiredSizeX * requiredSizeY;
 
         requiredSizeX *= JxlFrameDimensions.BlockDimensions;
         requiredSizeY *= JxlFrameDimensions.BlockDimensions;
 
+        // This is a new descriptor header. Release an earlier raw payload before the wire mode selects different storage.
+        encoding.Dispose();
         int mode = (int)reader.ReadBits32(JxlQuantizerConstants.Log2NumQuantModes);
 
         switch ((JxlQuantMode)mode)
@@ -1199,17 +1179,17 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 3; i++)
                     {
-                        if (!JxlF16Coder.Read(reader, ref encoding.IdWeights![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.ModeWeights[c][i]))
                         {
                             return false;
                         }
 
-                        if (Math.Abs(encoding.IdWeights[c][i]) < AlmostZero)
+                        if (Math.Abs(encoding.ModeWeights[c][i]) < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("ID Quantizer is too small");
                         }
 
-                        encoding.IdWeights[c][i] *= 64;
+                        encoding.ModeWeights[c][i] *= JxlQuantizerConstants.AcWeightScale;
                     }
                 }
 
@@ -1227,17 +1207,17 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 6; i++)
                     {
-                        if (!JxlF16Coder.Read(reader, ref encoding.Dct2Weights![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.ModeWeights[c][i]))
                         {
                             return false;
                         }
 
-                        if (Math.Abs(encoding.Dct2Weights[c][i]) < AlmostZero)
+                        if (Math.Abs(encoding.ModeWeights[c][i]) < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("Quantizer is too small");
                         }
 
-                        encoding.Dct2Weights[c][i] *= 64;
+                        encoding.ModeWeights[c][i] *= JxlQuantizerConstants.AcWeightScale;
                     }
                 }
 
@@ -1253,18 +1233,18 @@ internal static class JxlQuantWeights
 
                 for (int c = 0; c < 3; c++)
                 {
-                    if (!JxlF16Coder.Read(reader, ref encoding.Dct4x8Multipliers![c]))
+                    if (!JxlF16Coder.Read(reader, ref encoding.ModeWeights[c][0]))
                     {
                         return false;
                     }
 
-                    if (Math.Abs(encoding.Dct4x8Multipliers[c]) < AlmostZero)
+                    if (Math.Abs(encoding.ModeWeights[c][0]) < JxlQuantizerConstants.MinimumWeight)
                     {
                         throw new InvalidOperationException("DCT4X8 multiplier is too small");
                     }
                 }
 
-                if (!DecodeDctParameters(reader, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, ref encoding.DctParameters))
                 {
                     return false;
                 }
@@ -1283,19 +1263,19 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 2; i++)
                     {
-                        if (!JxlF16Coder.Read(reader, ref encoding.Dct4Multipliers![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.ModeWeights[c][i]))
                         {
                             return false;
                         }
 
-                        if (Math.Abs(encoding.Dct4Multipliers[c][i]) < AlmostZero)
+                        if (Math.Abs(encoding.ModeWeights[c][i]) < JxlQuantizerConstants.MinimumWeight)
                         {
                             throw new InvalidOperationException("DCT4 multiplier is too small");
                         }
                     }
                 }
 
-                if (!DecodeDctParameters(reader, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, ref encoding.DctParameters))
                 {
                     return false;
                 }
@@ -1314,7 +1294,7 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 9; i++)
                     {
-                        if (!JxlF16Coder.Read(reader, ref encoding.AfvWeights![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.ModeWeights[c][i]))
                         {
                             return false;
                         }
@@ -1322,16 +1302,16 @@ internal static class JxlQuantWeights
 
                     for (int i = 0; i < 6; i++)
                     {
-                        encoding.AfvWeights![c][i] *= 64;
+                        encoding.ModeWeights[c][i] *= JxlQuantizerConstants.AcWeightScale;
                     }
                 }
 
-                if (!DecodeDctParameters(reader, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, ref encoding.DctParameters))
                 {
                     return false;
                 }
 
-                if (!DecodeDctParameters(reader, encoding.DctParametersAfv4x4!))
+                if (!DecodeDctParameters(reader, ref encoding.DctParametersAfv4x4))
                 {
                     return false;
                 }
@@ -1341,7 +1321,7 @@ internal static class JxlQuantWeights
 
             case JxlQuantMode.Dct:
             {
-                if (!DecodeDctParameters(reader, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, ref encoding.DctParameters))
                 {
                     return false;
                 }
@@ -1351,10 +1331,7 @@ internal static class JxlQuantWeights
 
             case JxlQuantMode.Raw:
             {
-                // Set mode early, to avoid mem-leak.
-                encoding.Mode = JxlQuantMode.Raw;
-
-                if (!JxlModularFrameDecoder.DecodeQuantTable(
+                if (!JxlModularFrameDecoder.DecodeQuantizerTable(
                     configuration,
                     requiredSizeX,
                     requiredSizeY,

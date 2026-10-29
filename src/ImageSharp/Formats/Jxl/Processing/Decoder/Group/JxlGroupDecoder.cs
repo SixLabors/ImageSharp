@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg.Data;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
@@ -22,17 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
 
 internal static class JxlGroupDecoder
 {
-    public static void Transpose8x8InPlace(Span<int> block)
-    {
-        for (int x = 0; x < 8; x++)
-        {
-            for (int y = 0; y < 8; y++)
-            {
-                RuntimeUtility.Swap(ref block[(y * 8) + x], ref block[(x * 8) + y]);
-            }
-        }
-    }
-
     /// <summary>
     /// Restores one transform's AC planes, color correlation and separately coded lowest frequencies.
     /// </summary>
@@ -46,6 +34,7 @@ internal static class JxlGroupDecoder
     /// <param name="kind">The transform strategy.</param>
     /// <param name="size">The coefficient count per channel.</param>
     /// <param name="quantizer">The prepared frame quantizer and matrices.</param>
+    /// <param name="matrixStorage">The complete coefficient tables borrowed before the group loops.</param>
     /// <param name="coveredBlocks">The number of 8-by-8 blocks covered by the transform.</param>
     /// <param name="sbx">The DC image's horizontal offset for each channel.</param>
     /// <param name="dcRow">The current DC samples.</param>
@@ -67,6 +56,7 @@ internal static class JxlGroupDecoder
         JxlAcStrategyType kind,
         int size,
         JxlQuantizer quantizer,
+        ReadOnlySpan<float> matrixStorage,
         int coveredBlocks,
         Span<int> sbx,
         Span<float> dcRow,
@@ -81,7 +71,7 @@ internal static class JxlGroupDecoder
         float inverseQuantization = invGlobalScale / quant;
         float xScale = inverseQuantization * xDmMultiplier;
         float bScale = inverseQuantization * bDmMultiplier;
-        ReadOnlySpan<float> matrices = quantizer.DequantMatrix(kind, 0);
+        ReadOnlySpan<float> matrices = quantizer.DequantMatrix(matrixStorage, kind, 0);
         int coefficientCount = coveredBlocks * JxlFrameDimensions.DctBlockSize;
 
         // The matrix table stores X, Y and B consecutively for this transform. Only logical coefficients participate.
@@ -184,7 +174,7 @@ internal static class JxlGroupDecoder
 
             JxlFrameHeader.JpegOrder(frameHeader.ColorTransform, jpegIsGray, out jpegCMap);
 
-            Span<JxlQuantizerEncoding> qe = decState.Shared.Matrices.GetEncodings();
+            ReadOnlySpan<JxlQuantizerEncoding> qe = decState.Shared.Matrices.GetEncodings();
 
             if (qe.Length == 0 ||
                 qe[0].Mode != JxlQuantMode.Raw ||
@@ -193,12 +183,12 @@ internal static class JxlGroupDecoder
                 return false;
             }
 
-            if (qe[0].QuantizationTable!.Length != 3 * 8 * 8)
+            if (qe[0].QuantizationTable.Length != 3 * 8 * 8)
             {
                 return false;
             }
 
-            ReadOnlySpan<int> qTable = qe[0].QuantizationTable.AsSpan();
+            ReadOnlySpan<int> qTable = qe[0].QuantizationTable.Span;
 
             for (int c = 0; c < 3; c++)
             {
@@ -437,8 +427,7 @@ internal static class JxlGroupDecoder
                               ? jpegRow1[(sbx[c] * JxlFrameDimensions.DctBlockSize)..]
                               : jpegRow2[(sbx[c] * JxlFrameDimensions.DctBlockSize)..];
 
-                        // JPEG XL is transposed, JPEG is not.
-                        JxlDctAcPointer transposedDct = c switch
+                        JxlDctAcPointer quantizedDct = c switch
                         {
                             0 => qblock0,
                             1 => qblock1,
@@ -446,55 +435,51 @@ internal static class JxlGroupDecoder
                             _ => throw new InvalidOperationException()
                         };
 
-                        Transpose8x8InPlace(transposedDct.Pointer32);
+                        // JPEG XL stores the two coefficient axes in the opposite order to JPEG.
+                        // Source coefficients belong to the frame or group cache. Write their transpose directly into the distinct JPEG block.
+                        // Keeping source storage unchanged also preserves accumulated coefficients for later progressive passes.
+                        SimdUtils.Transpose(
+                            quantizedDct.Pointer32[..JxlFrameDimensions.DctBlockSize],
+                            JxlFrameDimensions.BlockDimensions,
+                            jpegPos[..JxlFrameDimensions.DctBlockSize],
+                            JxlFrameDimensions.BlockDimensions,
+                            JxlFrameDimensions.BlockDimensions,
+                            JxlFrameDimensions.BlockDimensions);
 
-                        // No CfL, so there is no need to store the Y block converted to integers.
-                        if (!cs.Is444 || (rowCMap0[absTx] == 0 && rowCMap2[absTx] == 0))
+                        if (cs.Is444 && (rowCMap0[absTx] != 0 || rowCMap2[absTx] != 0))
                         {
-                            for (int i = 0; i < JxlFrameDimensions.DctBlockSize; i += Vector<int>.Count)
+                            if (c == 1)
                             {
-                                Vector<int> ini = Vector.Create<int>(transposedDct.Pointer32[i..]);
-                                ini.CopyTo(jpegPos[i..]);
+                                // Y is processed before X and B. Retain its transposed coefficients before the separately coded DC replaces entry zero.
+                                jpegPos[..JxlFrameDimensions.DctBlockSize].CopyTo(transposedDctY);
+                            }
+                            else
+                            {
+                                // Correlation updates the completed JPEG block in place. The retained Y block keeps its pre-DC coefficient values.
+                                // The quantization-table ratio and color ratio both carry 11 fractional bits.
+                                // Each multiplication drops one fixed-point scale; add half a unit before the native arithmetic right shift.
+                                Vector<int> scale = new(JxlColorCorrelation.RatioJpeg(c == 0 ? rowCMap0[absTx] : rowCMap2[absTx]));
+                                Vector<int> round = new(1 << (JxlChromaFromLuma.CflFixedPointPrecision - 1));
+
+                                for (int i = 0; i < JxlFrameDimensions.DctBlockSize; i += Vector<int>.Count)
+                                {
+                                    Vector<int> input = Vector.Create<int>(jpegPos[i..]);
+                                    Vector<int> inputY = Vector.Create<int>(transposedDctY[i..]);
+                                    Vector<int> qt = Vector.Create<int>(scaledQTable[((c * size) + i)..]);
+
+                                    Vector<int> coeffScale = ((qt * scale) + round) >> JxlChromaFromLuma.CflFixedPointPrecision;
+                                    Vector<int> cflFactor = ((inputY * coeffScale) + round) >> JxlChromaFromLuma.CflFixedPointPrecision;
+                                    Vector<int> result = input + cflFactor;
+
+                                    result.CopyTo(jpegPos[i..]);
+                                }
                             }
                         }
-                        else if (c == 1)
-                        {
-                            // Y channel: save for restoring X/B, but nothing else to do.
-                            for (int i = 0; i < JxlFrameDimensions.DctBlockSize; i += Vector<int>.Count)
-                            {
-                                Vector<int> ini = Vector.Create<int>(transposedDct.Pointer32[i..]);
-                                ini.CopyTo(transposedDctY[i..]);
-                                ini.CopyTo(jpegPos[i..]);
-                            }
-                        }
-                        else
-                        {
-                            // transposedDctY contains the Y channel block, transposed.
-                            Vector<int> scale = new(JxlColorCorrelation.RatioJpeg(c == 0 ? rowCMap0[absTx] : rowCMap2[absTx]));
-                            Vector<int> round = new(1 << (JxlChromaFromLuma.ColorTileDimensionInBlocks - 1));
 
-                            for (int i = 0; i < JxlFrameDimensions.DctBlockSize; i += Vector<int>.Count)
-                            {
-                                Vector<int> input = Vector.Create<int>(transposedDct.Pointer32[i..]);
-                                Vector<int> inputY = Vector.Create<int>(transposedDctY[i..]);
-                                Vector<int> qt = Vector.Create<int>(scaledQTable[((c * size) + i)..]);
-
-                                Vector<int> coeffScale = ((qt * scale) + round) >> JxlChromaFromLuma.ColorTileDimensionInBlocks;
-                                Vector<int> cflFactor = ((inputY * coeffScale) + round) >> JxlChromaFromLuma.ColorTileDimensionInBlocks;
-                                Vector<int> result = input + cflFactor;
-
-                                result.CopyTo(jpegPos[i..]);
-                            }
-                        }
-
-                        jpegPos[0] = (int)Math.Clamp(
-                            c == 0
-                            ? dcRow0[sbx[c] - dcOff[c]]
-                            : c == 1
-                              ? dcRow1[sbx[c] - dcOff[c]]
-                              : dcRow2[sbx[c] - dcOff[c]],
-                            -2047.0f,
-                            2047.0f);
+                        // The DC offset is a coefficient value, not a column offset. Subtract it after reading this block's DC sample.
+                        // JPEG stores this separately coded coefficient in the signed range [-2047,2047].
+                        float dc = c == 0 ? dcRow0[sbx[c]] : c == 1 ? dcRow1[sbx[c]] : dcRow2[sbx[c]];
+                        jpegPos[0] = (int)Math.Clamp(dc - dcOff[c], -2047F, 2047F);
 
                         Vector<int> overflow = Vector<int>.Zero;
                         Vector<int> underflow = Vector<int>.Zero;

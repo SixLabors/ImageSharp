@@ -1,227 +1,174 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
 /// <summary>
-/// Specifies weights and quantizer modes.
+/// Owns one quantization descriptor's fixed parameters and optional raw integer table.
 /// </summary>
-internal sealed class JxlQuantizerEncoding
+/// <remarks>
+/// Fixed mode weights use three rows of nine floats. Identity, DCT2, DCT4, DCT4x8 and AFV use the first 3, 6, 2, 1 and 9 values per row.
+/// DCT distance bands use separate fixed value fields. Only raw mode needs allocator-owned sample storage.
+/// </remarks>
+internal sealed class JxlQuantizerEncoding : IDisposable
 {
-    public JxlQuantizerEncoding()
-    {
-    }
+    private IMemoryOwner<int>? rawOwner;
+    private Memory<int> rawAllocation;
+    private Memory<int> rawTable;
 
-    public JxlQuantizerEncoding(JxlQuantizerEncoding other)
-    {
-        // Simple shallow copy
-        this.AfvWeights = other.AfvWeights;
-        this.Dct2Weights = other.Dct2Weights;
-        this.Dct4Multipliers = other.Dct4Multipliers;
-        this.Dct4x8Multipliers = other.Dct4x8Multipliers;
-        this.DctParameters = other.DctParameters;
-        this.DctParametersAfv4x4 = other.DctParametersAfv4x4;
-        this.IdWeights = other.IdWeights;
-        this.Mode = other.Mode;
-        this.Predefined = other.Predefined;
-        this.QuantizationTable = other.QuantizationTable;
-        this.QuantizationTableDenominator = other.QuantizationTableDenominator;
+    /// <summary>The primary DCT distance bands. Parsing updates this field by reference.</summary>
+    [SuppressMessage(
+        "StyleCop.CSharp.MaintainabilityRules",
+        "SA1401:Fields should be private",
+        Justification = "Fixed parameter storage must support reference parsing without value copies.")]
+    public JxlDctQuantWeightParameters DctParameters;
 
-        if (other.QuantizationTable is not null)
-        {
-            // Do a deep clone for the quantization table.
-            // Using AsSpan() should be way faster than a normal array copy...
-            this.QuantizationTable = GC.AllocateUninitializedArray<int>(other.QuantizationTable.Length);
-            other.QuantizationTable.AsSpan().CopyTo(this.QuantizationTable);
-        }
-    }
+    /// <summary>The AFV 4 by 4 sub-block's distance bands, independent of its primary 4 by 8 bands.</summary>
+    [SuppressMessage(
+        "StyleCop.CSharp.MaintainabilityRules",
+        "SA1401:Fields should be private",
+        Justification = "Fixed parameter storage must support reference parsing without value copies.")]
+    public JxlDctQuantWeightParameters DctParametersAfv4x4;
 
-    /// <summary>
-    /// Gets or sets the kind of transform used for this quantizer encoding.
-    /// </summary>
+    /// <summary>The three fixed weight rows. The selected mode determines the active prefix of each row.</summary>
+    [SuppressMessage(
+        "StyleCop.CSharp.MaintainabilityRules",
+        "SA1401:Fields should be private",
+        Justification = "Fixed parameter storage must support reference parsing without value copies.")]
+    public InlineArray3<InlineArray9<float>> ModeWeights;
+
+    /// <summary>Gets or sets the wire-defined quantization mode.</summary>
     public JxlQuantMode Mode { get; set; }
 
-    /// <summary>
-    /// Gets or sets the weights for DCT4+ tables.
-    /// </summary>
-    public JxlDctQuantWeightParameters? DctParameters { get; set; }
+    /// <summary>Gets the logical raw table, stored as consecutive X, Y and B coefficient planes.</summary>
+    /// <remarks>The borrowed memory remains valid until raw preparation or disposal changes its allocation.</remarks>
+    public ReadOnlyMemory<int> QuantizationTable => this.rawTable;
 
-    /// <summary>
-    /// Gets or sets the weights for the 4x4 sub-block in AFV.
-    /// </summary>
-    public JxlDctQuantWeightParameters? DctParametersAfv4x4 { get; set; }
+    /// <summary>Gets or sets the raw table's positive F16 denominator.</summary>
+    public float QuantizationTableDenominator { get; set; } = 1F / (8 * 255);
 
-    /// <summary>
-    /// Gets or sets the weights for the identity transform.
-    /// </summary>
-    public float[][]? IdWeights { get; set; }
-
-    /// <summary>
-    /// Gets or sets the weights for the DCT2 transform.
-    /// </summary>
-    public float[][]? Dct2Weights { get; set; }
-
-    /// <summary>
-    /// Gets or sets the multipliers for the DCT4 transform.
-    /// </summary>
-    public float[][]? Dct4Multipliers { get; set; }
-
-    /// <summary>
-    /// Gets or sets the weights for the AFV transform.
-    /// </summary>
-    public float[][]? AfvWeights { get; set; }
-
-    /// <summary>
-    /// Gets or sets the multipliers for the 4x8 DCT block-based transform.
-    /// </summary>
-    public float[]? Dct4x8Multipliers { get; set; }
-
-    /// <summary>
-    /// Gets or sets the explicit quantization table (like in JPEG).
-    /// </summary>
-    /// <remarks>
-    /// Only used when <see cref="Mode"/> == <see cref="JxlQuantMode.Raw"/>.
-    /// </remarks>
-    public int[]? QuantizationTable { get; set; }
-
-    /// <summary>
-    /// Gets or sets the denominator for each item in the explicit quantization table.
-    /// </summary>
-    /// <remarks>
-    /// Only used when <see cref="Mode"/> == <see cref="JxlQuantMode.Raw"/>.
-    /// </remarks>
-    public float QuantizationTableDenominator { get; set; } = 1f / (8 * 255);
-
-    /// <summary>
-    /// Gets or sets a value indicating which predefined table to use. The value is
-    /// only used when <see cref="Mode"/> == <see cref="JxlQuantMode.Library"/>.
-    /// </summary>
+    /// <summary>Gets or sets the library index used only by Library mode.</summary>
     public byte Predefined { get; set; }
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the Library quantizer mode
-    /// and the specified library index.
-    /// </summary>
-    /// <param name="libraryIndex">The library index (aka predefined table).</param>
-    /// <returns>A new Library quantizer encoding.</returns>
+    /// <summary>Prepares raw sample storage at the table-read boundary and returns its logical writable span.</summary>
+    /// <param name="configuration">The configuration that owns raw sample storage.</param>
+    /// <param name="length">The complete X, Y and B table length established by the transform kind.</param>
+    /// <returns>The destination for the decoded positive integer values.</returns>
+    public Span<int> PrepareRawTable(Configuration configuration, int length)
+    {
+        if (length > this.rawAllocation.Length)
+        {
+            IMemoryOwner<int> replacement = configuration.MemoryAllocator.Allocate<int>(length);
+            Memory<int> memory = replacement.Memory;
+            this.rawOwner?.Dispose();
+            this.rawOwner = replacement;
+            this.rawAllocation = memory;
+        }
+
+        this.rawTable = this.rawAllocation[..length];
+        return this.rawTable.Span;
+    }
+
+    /// <summary>Creates a library descriptor without allocating coefficient or raw table storage.</summary>
+    /// <param name="libraryIndex">The predefined library index.</param>
+    /// <returns>The new owned descriptor.</returns>
     public static JxlQuantizerEncoding Library(int libraryIndex)
     {
         DebugGuard.MustBeLessThan(libraryIndex, JxlQuantWeights.NumPredefinedTables, nameof(libraryIndex));
-
-        return new()
-        {
-            Mode = JxlQuantMode.Library,
-            Predefined = (byte)libraryIndex
-        };
+        return new() { Mode = JxlQuantMode.Library, Predefined = (byte)libraryIndex };
     }
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the Identity quantizer mode
-    /// and the specified XYB/identity weights.
-    /// </summary>
-    /// <param name="xybWeights">Weights for the identity transform.</param>
-    /// <returns>A new Identity quantizer encoding.</returns>
-    public static JxlQuantizerEncoding Identity(float[][] xybWeights)
-        => new()
-        {
-            Mode = JxlQuantMode.Id,
-            IdWeights = xybWeights
-        };
+    /// <summary>Copies identity weights into a new descriptor.</summary>
+    /// <param name="xybWeights">Three consecutive channel rows of three values.</param>
+    /// <returns>The new owned descriptor.</returns>
+    public static JxlQuantizerEncoding Identity(ReadOnlySpan<float> xybWeights)
+    {
+        JxlQuantizerEncoding encoding = new() { Mode = JxlQuantMode.Id };
+        encoding.CopyWeights(xybWeights, 3);
+        return encoding;
+    }
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the DCT2x2 quantizer mode
-    /// and the specified XYB/DCT2x2 weights.
-    /// </summary>
-    /// <param name="xybWeights">Weights for the DCT2x2 transform.</param>
-    /// <returns>A new DCT2x2 quantizer encoding.</returns>
-    public static JxlQuantizerEncoding Dct2(float[][] xybWeights)
-        => new()
-        {
-            Mode = JxlQuantMode.Dct2,
-            Dct2Weights = xybWeights
-        };
+    /// <summary>Copies DCT2 weights into a new descriptor.</summary>
+    /// <param name="xybWeights">Three consecutive channel rows of six values.</param>
+    /// <returns>The new owned descriptor.</returns>
+    public static JxlQuantizerEncoding Dct2(ReadOnlySpan<float> xybWeights)
+    {
+        JxlQuantizerEncoding encoding = new() { Mode = JxlQuantMode.Dct2 };
+        encoding.CopyWeights(xybWeights, 6);
+        return encoding;
+    }
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the DCT4x4 quantizer mode,
-    /// the specified XYB/DCT4x4 multipliers, and quantizer weight parameters.
-    /// </summary>
-    /// <param name="parameters">Quantizer weights for the DCT4x4 transform.</param>
-    /// <param name="xybMul">XYB multipliers for the DCT4x4 transform.</param>
-    /// <returns>A new DCT4x4 quantizer encoding.</returns>
-    public static JxlQuantizerEncoding Dct4(JxlDctQuantWeightParameters parameters, float[][] xybMul)
-        => new()
-        {
-            Mode = JxlQuantMode.Dct4,
-            DctParameters = parameters,
-            Dct4Multipliers = xybMul
-        };
+    /// <summary>Copies the DCT4 distance bands and sub-block multipliers into a new descriptor.</summary>
+    /// <param name="parameters">The distance-band values, copied once.</param>
+    /// <param name="xybMul">Three consecutive channel rows of two multipliers.</param>
+    /// <returns>The new owned descriptor.</returns>
+    public static JxlQuantizerEncoding Dct4(in JxlDctQuantWeightParameters parameters, ReadOnlySpan<float> xybMul)
+    {
+        JxlQuantizerEncoding encoding = new() { Mode = JxlQuantMode.Dct4, DctParameters = parameters };
+        encoding.CopyWeights(xybMul, 2);
+        return encoding;
+    }
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the DCT4x8 quantizer mode,
-    /// the specified XYB/DCT4x8 multipliers, and quantizer weight parameters.
-    /// </summary>
-    /// <param name="parameters">Quantizer weights for the DCT4x8 transform.</param>
-    /// <param name="xybMul">XYB multipliers for the DCT4x8 transform.</param>
-    /// <returns>A new DCT4x8 quantizer encoding.</returns>
-    public static JxlQuantizerEncoding Dct4x8(JxlDctQuantWeightParameters parameters, float[] xybMul)
-        => new()
-        {
-            Mode = JxlQuantMode.Dct4x8,
-            DctParameters = parameters,
-            Dct4x8Multipliers = xybMul
-        };
+    /// <summary>Copies the DCT4x8 distance bands and channel multipliers into a new descriptor.</summary>
+    /// <param name="parameters">The distance-band values, copied once.</param>
+    /// <param name="xybMul">One multiplier for each of the three channels.</param>
+    /// <returns>The new owned descriptor.</returns>
+    public static JxlQuantizerEncoding Dct4x8(in JxlDctQuantWeightParameters parameters, ReadOnlySpan<float> xybMul)
+    {
+        JxlQuantizerEncoding encoding = new() { Mode = JxlQuantMode.Dct4x8, DctParameters = parameters };
+        encoding.CopyWeights(xybMul, 1);
+        return encoding;
+    }
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the DCT quantizer mode
-    /// and quantizer weight parameters.
-    /// </summary>
-    /// <param name="parameters">Quantizer weights for the DCT transform.</param>
-    /// <returns>A new DCT quantizer encoding.</returns>
-    public static JxlQuantizerEncoding Dct(JxlDctQuantWeightParameters parameters)
-        => new()
-        {
-            Mode = JxlQuantMode.Dct,
-            DctParameters = parameters,
-        };
+    /// <summary>Copies DCT distance bands into a new descriptor.</summary>
+    /// <param name="parameters">The three distance-band rows and their active count.</param>
+    /// <returns>The new owned descriptor.</returns>
+    public static JxlQuantizerEncoding Dct(in JxlDctQuantWeightParameters parameters)
+        => new() { Mode = JxlQuantMode.Dct, DctParameters = parameters };
 
-    /// <summary>
-    /// Creates a new quantizer encoding with the AFV quantizer mode,
-    /// quantizer weight parameters for 4x8/4x4 blocks, and weights.
-    /// </summary>
-    /// <param name="params4x8">Quantizer weights for the 4x8 sub-block for the AFV transform.</param>
-    /// <param name="params4x4">Quantizer weights for the 4x4 sub-block for the AFV transform.</param>
-    /// <param name="weights">Quantizer weights.</param>
-    /// <returns>A new DCT quantizer encoding.</returns>
+    /// <summary>Copies independent AFV sub-block bands and fixed weights into a new descriptor.</summary>
+    /// <param name="params4x8">The 4 by 8 distance-band values.</param>
+    /// <param name="params4x4">The 4 by 4 distance-band values.</param>
+    /// <param name="weights">Three consecutive channel rows of nine fixed weights.</param>
+    /// <returns>The new owned descriptor.</returns>
     public static JxlQuantizerEncoding Afv(
-        JxlDctQuantWeightParameters params4x8,
-        JxlDctQuantWeightParameters params4x4,
-        float[][] weights)
-        => new()
-        {
-            Mode = JxlQuantMode.Afv,
-            DctParameters = params4x8,
-            AfvWeights = weights,
-            DctParametersAfv4x4 = params4x4
-        };
-
-    /// <summary>
-    /// Creates a new raw quantizer encoding.
-    /// </summary>
-    /// <param name="quantizationTable">The quantization table for raw quantization.</param>
-    /// <param name="shift">The shift value for the denominator.</param>
-    /// <returns>A raw quantizer encoding.</returns>
-    public static JxlQuantizerEncoding Raw(Span<int> quantizationTable, int shift = 0)
+        in JxlDctQuantWeightParameters params4x8,
+        in JxlDctQuantWeightParameters params4x4,
+        ReadOnlySpan<float> weights)
     {
         JxlQuantizerEncoding encoding = new()
         {
-            Mode = JxlQuantMode.Raw,
-            QuantizationTableDenominator = (1 << shift) * (1f / (8 * 255)),
-            QuantizationTable = GC.AllocateUninitializedArray<int>(quantizationTable.Length)
+            Mode = JxlQuantMode.Afv,
+            DctParameters = params4x8,
+            DctParametersAfv4x4 = params4x4
         };
 
-        quantizationTable.CopyTo(encoding.QuantizationTable);
+        encoding.CopyWeights(weights, 9);
         return encoding;
+    }
+
+    /// <summary>Copies packed channel prefixes into the common fixed mode bank.</summary>
+    /// <param name="weights">Three consecutive channel prefixes.</param>
+    /// <param name="valuesPerChannel">The mode's number of active values in each row.</param>
+    private void CopyWeights(ReadOnlySpan<float> weights, int valuesPerChannel)
+    {
+        for (int c = 0; c < 3; c++)
+        {
+            Span<float> row = this.ModeWeights[c];
+            weights.Slice(c * valuesPerChannel, valuesPerChannel).CopyTo(row);
+        }
+    }
+
+    /// <summary>Releases raw storage. Fixed fields remain unchanged, including shared default parameters.</summary>
+    public void Dispose()
+    {
+        this.rawOwner?.Dispose();
+        this.rawOwner = null;
+        this.rawAllocation = default;
+        this.rawTable = default;
     }
 }

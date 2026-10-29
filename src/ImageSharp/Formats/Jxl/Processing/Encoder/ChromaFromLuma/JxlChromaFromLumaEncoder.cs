@@ -133,6 +133,7 @@ internal static class JxlChromaFromLumaEncoder
         JxlPlane<float> dcValues,
         Span<float> mem)
     {
+        ReadOnlySpan<float> matrixStorage = dequant.GetPreparedStorage();
         int widthBlocks = opsinRect.Width / JxlFrameDimensions.BlockDimensions;
         const float distanceMultiplierAC = 1e-9f;
         int dctScratchSize = JxlDct.MaximumWorkingSetLength;
@@ -219,8 +220,8 @@ internal static class JxlChromaFromLumaEncoder
                 JxlTransformsEncoder.TransformFromPixels(acs.Strategy, rowB[(x * JxlFrameDimensions.BlockDimensions)..], stride, blockB, scratchSpace);
                 JxlTransformsEncoder.DcFromLowestFrequencies(acs.Strategy, blockB, dcB, xs, scratchSpace);
 
-                Span<float> qmX = dequant.GetInverseMatrix(acs.Strategy, 0);
-                Span<float> qmB = dequant.GetInverseMatrix(acs.Strategy, 2);
+                ReadOnlySpan<float> qmX = dequant.GetInverseMatrix(matrixStorage, acs.Strategy, 0);
+                ReadOnlySpan<float> qmB = dequant.GetInverseMatrix(matrixStorage, acs.Strategy, 2);
                 float qDcX = useDct8 ? 1 : 1.0f / quantizer.GetInverseDcStep(0);
                 float qDcB = useDct8 ? 1 : 1.0f / quantizer.GetInverseDcStep(2);
 

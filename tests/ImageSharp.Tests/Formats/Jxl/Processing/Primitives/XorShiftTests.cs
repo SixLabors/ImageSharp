@@ -4,7 +4,10 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing.Primitives;
@@ -271,21 +274,94 @@ public class XorShiftTests
      0xA6511C10AEE742B6uL, 0x48FB48F2CACCB43EuL]
     ];
 
+    /// <summary>
+    /// Checks every native reference word across scalar and all SIMD paths.
+    /// </summary>
     [Fact]
     public void TestGolden()
     {
-        JxlXorShift rng = new(12345);
-        Span<ulong> lanes = stackalloc ulong[JxlXorShift.Generators];
-
-        for (ulong vector = 0; vector < Vectors; vector++)
+        static void RunTest()
         {
-            rng.Fill(lanes);
+            // libjxl's xorshift128plus_test.cc supplies these exact 64 batches for seed 12345.
+            JxlXorShift rng = new(12345);
+            Span<ulong> lanes = stackalloc ulong[JxlXorShift.Generators + 1];
+            lanes[^1] = ulong.MaxValue;
 
-            for (int i = 0; i < JxlXorShift.Generators; i++)
+            for (int vector = 0; vector < Vectors; vector++)
             {
-                Assert.Equal(ExpectedVectors[(int)vector][i], lanes[i]);
+                rng.Fill(lanes);
+
+                for (int i = 0; i < JxlXorShift.Generators; i++)
+                {
+                    Assert.Equal(ExpectedVectors[vector][i], lanes[i]);
+                }
+
+                Assert.Equal(ulong.MaxValue, lanes[^1]);
             }
         }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks native random samples, row strides, rectangle guards, short tails, and generator advancement at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void GenerateRandomImage_PreservesNativeSequenceAndRectangle()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<int> widths = [0, 1, 3, 4, 7, 8, 15, 16, 17, 31, 32, 33];
+            Span<ulong> next = stackalloc ulong[JxlXorShift.Generators];
+
+            foreach (int width in widths)
+            {
+                using JxlPlane<float> plane = new(TestEnvironment.Configuration, width + 7, 4, 2);
+                Span<float> allocation = plane.GetRowMinus(0, 2);
+                allocation.Fill(-7F);
+                Span<float> samples = plane.GetRow(0);
+                JxlXorShift rng = new(12345);
+                JxlNoiseDecoder.GenerateRandomImage(rng, new Rectangle(3, 1, width, 2), plane);
+                int batchesPerRow = Math.Max(1, (width + 15) / 16);
+
+                // Each native batch supplies sixteen UInt32 words. Read the fixed reference words in native memory order.
+                // The integer bit formula has no rounding and remains independent of the production conversion code.
+                for (int y = 0; y < plane.YSize; y++)
+                {
+                    for (int x = 0; x < plane.PixelsPerRow; x++)
+                    {
+                        float expected = -7F;
+                        if (y >= 1 && y < 3 && x >= 3 && x < width + 3)
+                        {
+                            int position = x - 3;
+                            int batch = ((y - 1) * batchesPerRow) + (position / 16);
+                            int word = (position % 16) / 2;
+                            int shift = (BitConverter.IsLittleEndian ? position & 1 : 1 - (position & 1)) * 32;
+                            uint random = (uint)(ExpectedVectors[batch][word] >> shift);
+                            expected = BitConverter.UInt32BitsToSingle((random >> 9) | 0x3F800000U);
+                        }
+
+                        Assert.Equal(expected, samples[(y * plane.PixelsPerRow) + x]);
+                    }
+                }
+
+                Assert.Equal(-7F, allocation[0]);
+                Assert.Equal(-7F, allocation[1]);
+
+                // Native consumes one final batch even for an empty row. A tail must not advance the generator a second time.
+                rng.Fill(next);
+                for (int i = 0; i < next.Length; i++)
+                {
+                    Assert.Equal(ExpectedVectors[2 * batchesPerRow][i], next[i]);
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Fact]

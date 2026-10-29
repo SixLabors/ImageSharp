@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
@@ -13,14 +13,62 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
 internal static class JxlNoiseDecoder
 {
+    /// <summary>
+    /// Converts random words to floats in [1,2) without changing values outside the destination.
+    /// </summary>
+    /// <param name="randomBits">One random word per output sample.</param>
+    /// <param name="floats">The logical output samples.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void BitsToFloatingPoint(ReadOnlySpan<uint> randomBits, Span<float> floats)
     {
-        Vector<uint> bits = new(randomBits);
-        Vector<float> rand12 = ((bits >> 9) | new Vector<uint>(0x3F800000u)).As<uint, float>();
-        rand12.StoreUnsafe(ref MemoryMarshal.GetReference(floats));
+        const int mantissaShift = 9;
+        const uint unitExponentBits = 0x3F800000U;
+        ref uint input = ref MemoryMarshal.GetReference(randomBits);
+        ref float output = ref MemoryMarshal.GetReference(floats);
+        uint i = 0;
+
+        // Each UInt32 supplies 23 random mantissa bits. The fixed exponent produces [1,2), as in native noise reconstruction.
+        // The later noise filter has zero coefficient sum, so this constant offset contributes nothing to its output.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; i + Vector512<uint>.Count <= floats.Length; i += (uint)Vector512<uint>.Count)
+            {
+                Vector512<uint> bits = Vector512.LoadUnsafe(ref input, i);
+                ((bits >> mantissaShift) | Vector512.Create(unitExponentBits)).AsSingle().StoreUnsafe(ref output, i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; i + Vector256<uint>.Count <= floats.Length; i += (uint)Vector256<uint>.Count)
+            {
+                Vector256<uint> bits = Vector256.LoadUnsafe(ref input, i);
+                ((bits >> mantissaShift) | Vector256.Create(unitExponentBits)).AsSingle().StoreUnsafe(ref output, i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; i + Vector128<uint>.Count <= floats.Length; i += (uint)Vector128<uint>.Count)
+            {
+                Vector128<uint> bits = Vector128.LoadUnsafe(ref input, i);
+                ((bits >> mantissaShift) | Vector128.Create(unitExponentBits)).AsSingle().StoreUnsafe(ref output, i);
+            }
+        }
+
+        // Store only real samples. The scalar tail uses the identical bit pattern and does not write row padding or adjacent rectangles.
+        for (; i < floats.Length; i++)
+        {
+            Unsafe.Add(ref output, i) = BitConverter.UInt32BitsToSingle((Unsafe.Add(ref input, i) >> mantissaShift) | unitExponentBits);
+        }
     }
 
+    /// <summary>
+    /// Fills one rectangle with the native random sequence while preserving samples outside it.
+    /// </summary>
+    /// <param name="rng">The generator advanced by this rectangle.</param>
+    /// <param name="rectangle">The logical output rectangle.</param>
+    /// <param name="noise">The plane that owns the output storage.</param>
     public static void GenerateRandomImage(JxlXorShift rng, Rectangle rectangle, JxlPlane<float> noise)
     {
         const int floatsPerBatch = JxlXorShift.Generators * sizeof(ulong) / sizeof(float);
@@ -28,42 +76,40 @@ internal static class JxlNoiseDecoder
         int xSize = rectangle.Width;
         int ySize = rectangle.Height;
 
-        Span<ulong> batch64 = stackalloc ulong[JxlXorShift.Generators];
-        Span<uint> batch32 = stackalloc uint[JxlXorShift.Generators * 2];
-
-        // stackalloc doesn't zero-initialize, so clear values
-        batch64.Clear();
-        batch32.Clear();
-
-        int n = Vector<float>.Count;
+        InlineArray8<ulong> batchStorage = default;
+        Span<ulong> batch64 = batchStorage;
+        ReadOnlySpan<uint> batch32 = MemoryMarshal.Cast<ulong, uint>(batch64);
+        Span<float> storage = noise.GetRow(0);
+        int stride = noise.PixelsPerRow;
 
         for (int y = 0; y < ySize; y++)
         {
-            Span<float> row = noise.GetRow(rectangle, y);
+            Span<float> row = storage.Slice(((rectangle.Y + y) * stride) + rectangle.X, xSize);
             int x = 0;
+
             for (; x + floatsPerBatch < xSize; x += floatsPerBatch)
             {
                 rng.Fill(batch64);
-                MemoryMarshal.Cast<uint, ulong>(batch32).CopyTo(batch64);
-                for (int i = 0; i < floatsPerBatch; i += n)
-                {
-                    BitsToFloatingPoint(batch32[i..], row[(x + i)..]);
-                }
+                BitsToFloatingPoint(batch32, row.Slice(x, floatsPerBatch));
             }
 
+            // Native consumes one final batch per row, including an exactly full batch or an empty row.
+            // The UInt32 view borrows the freshly filled words directly. No copied or uninitialized batch is read.
             rng.Fill(batch64);
-            MemoryMarshal.Cast<uint, ulong>(batch32).CopyTo(batch64);
-
-            int batchPos = 0;
-
-            for (; x < xSize; x += n)
-            {
-                BitsToFloatingPoint(batch32[batchPos..], row[x..]);
-                batchPos += n;
-            }
+            BitsToFloatingPoint(batch32, row[x..]);
         }
     }
 
+    /// <summary>
+    /// Fills three noise rectangles with one continuous frame-and-position random sequence.
+    /// </summary>
+    /// <param name="visibleFrameIndex">The visible frame seed.</param>
+    /// <param name="nonVisibleFrameIndex">The non-visible frame seed.</param>
+    /// <param name="x0">The group's horizontal seed coordinate.</param>
+    /// <param name="y0">The group's vertical seed coordinate.</param>
+    /// <param name="plane0">The first output plane and rectangle.</param>
+    /// <param name="plane1">The second output plane and rectangle.</param>
+    /// <param name="plane2">The third output plane and rectangle.</param>
     public static void Random3Planes(
         int visibleFrameIndex,
         int nonVisibleFrameIndex,

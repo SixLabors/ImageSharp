@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 /// </summary>
 internal sealed class JxlBitDepthMetadata : IJxlFields
 {
+    private bool floatingPointSample;
     private uint bitsPerSample;
     private uint exponentBitsPerSample;
 
@@ -19,15 +20,17 @@ internal sealed class JxlBitDepthMetadata : IJxlFields
     public JxlBitDepthMetadata() => JxlBundle.Init(this);
 
     /// <summary>
-    /// Gets or sets a value indicating whether
-    /// the original (uncompressed) samples are floating point or
-    /// unsigned integer.
+    /// Gets or sets whether the original samples use floating-point storage instead of unsigned integer storage.
     /// </summary>
-    public bool FloatingPointSample { get; set; }
+    public bool FloatingPointSample
+    {
+        get => this.floatingPointSample;
+        set => this.floatingPointSample = value;
+    }
 
     /// <summary>
     /// Gets or sets the bit depth of the original (uncompressed) image samples.
-    /// Must be in the range [1, 32].
+    /// Integer samples use 1 through 31 bits. Floating-point samples must satisfy the exponent and mantissa limits.
     /// </summary>
     public uint BitsPerSample
     {
@@ -57,8 +60,15 @@ internal sealed class JxlBitDepthMetadata : IJxlFields
         set => this.exponentBitsPerSample = value;
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
+        // The leading flag selects different U32 alternatives for the same bit-depth field. It is part of every bit-depth header.
+        if (!visitor.Boolean(false, ref this.floatingPointSample))
+        {
+            return false;
+        }
+
         if (!this.FloatingPointSample)
         {
             bool successful = visitor.U32(
@@ -89,22 +99,21 @@ internal sealed class JxlBitDepthMetadata : IJxlFields
                 return false;
             }
 
-            this.exponentBitsPerSample--;
+            // The four-bit wire value is exponent width minus one. Publish the stored width only after the field succeeds.
+            uint encodedExponent = unchecked(this.exponentBitsPerSample - 1U);
 
-            if (!visitor.Bits(4, 7, ref this.exponentBitsPerSample))
+            if (!visitor.Bits(4, 7, ref encodedExponent))
             {
                 return false;
             }
 
-            this.exponentBitsPerSample++;
+            this.exponentBitsPerSample = unchecked(encodedExponent + 1U);
         }
 
         if (this.FloatingPointSample)
         {
             if (this.exponentBitsPerSample is < 2 or > 8)
             {
-                DebugGuard.IsTrue(false, "Invalid exponent_bits_per_sample");
-
                 return false;
             }
 
@@ -112,15 +121,11 @@ internal sealed class JxlBitDepthMetadata : IJxlFields
 
             if (mantissaBits is < 2 or > 23)
             {
-                DebugGuard.IsTrue(false, "Invalid bits_per_sample");
-
                 return false;
             }
         }
         else if (this.bitsPerSample > 31)
         {
-            DebugGuard.IsTrue(false, "Invalid bits_per_sample");
-
             return false;
         }
 

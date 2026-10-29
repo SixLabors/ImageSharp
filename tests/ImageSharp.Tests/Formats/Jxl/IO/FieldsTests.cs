@@ -1189,6 +1189,179 @@ public class FieldsTests
         }
     }
 
+    /// <summary>
+    /// Checks the sample-type flag, bit-depth alternatives and exponent offset against fixed native header fields.
+    /// </summary>
+    /// <param name="wire">The fixed bit-depth header bytes.</param>
+    /// <param name="floatingPoint">Whether samples use floating-point storage.</param>
+    /// <param name="sampleBits">The complete sample width in bits.</param>
+    /// <param name="exponentBits">The exponent width, or zero for integer samples.</param>
+    /// <param name="bitCount">The header length before byte padding.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x00 }, false, 8U, 0U, 3)]
+    [InlineData(new byte[] { 0x02 }, false, 10U, 0U, 3)]
+    [InlineData(new byte[] { 0x04 }, false, 12U, 0U, 3)]
+    [InlineData(new byte[] { 0x06, 0x00 }, false, 1U, 0U, 9)]
+    [InlineData(new byte[] { 0xF6, 0x00 }, false, 31U, 0U, 9)]
+    [InlineData(new byte[] { 0x39 }, true, 32U, 8U, 7)]
+    [InlineData(new byte[] { 0x23 }, true, 16U, 5U, 7)]
+    [InlineData(new byte[] { 0x35 }, true, 24U, 7U, 7)]
+    [InlineData(new byte[] { 0x27, 0x02 }, true, 5U, 2U, 13)]
+    public void BitDepthHeader_ReadAndWriteMatchesFixedWire(byte[] wire, bool floatingPoint, uint sampleBits, uint exponentBits, int bitCount)
+    {
+        // The leading Boolean selects the U32 alternatives. Integer input must also clear a previous floating-point exponent width.
+        JxlBitDepthMetadata depth = new() { FloatingPointSample = true, BitsPerSample = 16, ExponentBitsPerSample = 5 };
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, depth));
+        Assert.Equal((floatingPoint, sampleBits, exponentBits), (depth.FloatingPointSample, depth.BitsPerSample, depth.ExponentBitsPerSample));
+        Assert.Equal(bitCount, reader.TotalBitsConsumed);
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(depth, writer, JxlLayerType.Header, null));
+        Assert.Equal(bitCount, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks invalid integer width, exponent width and mantissa width at the bit-depth parser boundary.
+    /// </summary>
+    /// <param name="wire">The fixed header bytes containing an invalid sample representation.</param>
+    [Theory]
+    [InlineData(new byte[] { 0xFE, 0x00 })]
+    [InlineData(new byte[] { 0x41 })]
+    [InlineData(new byte[] { 0x1F, 0x02 })]
+    [InlineData(new byte[] { 0x07, 0x0F })]
+    public void ReadBitDepthHeader_RejectsInvalidSampleRepresentation(byte[] wire)
+    {
+        // These encode integer32, float32/exponent9, float4/exponent2 and float33/exponent8, respectively.
+        // The last two leave one or 24 mantissa bits; native JPEG XL requires two through 23.
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.False(JxlBundle.Read(reader, new JxlBitDepthMetadata()));
+    }
+
+    /// <summary>
+    /// Checks the preview-specific dimension distributions against fixed native header fields.
+    /// </summary>
+    /// <param name="wire">The fixed preview header bytes.</param>
+    /// <param name="width">The preview width in pixels.</param>
+    /// <param name="height">The preview height in pixels.</param>
+    /// <param name="bitCount">The header length before byte padding.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x00, 0x02 }, 1, 1, 12)]
+    [InlineData(new byte[] { 0x09 }, 128, 128, 6)]
+    [InlineData(new byte[] { 0x0B }, 256, 256, 6)]
+    [InlineData(new byte[] { 0x0D, 0x04 }, 24, 16, 11)]
+    [InlineData(new byte[] { 0x02, 0x08 }, 65, 65, 14)]
+    [InlineData(new byte[] { 0x04, 0x20 }, 321, 321, 16)]
+    [InlineData(new byte[] { 0x06, 0x80, 0x00 }, 1345, 1345, 18)]
+    [InlineData(new byte[] { 0xFF, 0x1F }, 4352, 4352, 15)]
+    [InlineData(new byte[] { 0xFE, 0x7F, 0xEC, 0xFF }, 5439, 5440, 32)]
+    public void PreviewHeader_ReadAndWriteMatchesFixedWire(byte[] wire, int width, int height, int bitCount)
+    {
+        // Compact previews store units of eight pixels; other previews use their own ranges up to 5440 pixels.
+        // The largest case has an odd width so Set retains the non-divided form instead of the smaller compact distribution.
+        JxlPreviewHeader preview = new();
+        preview.Set(24, 16);
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, preview));
+        Assert.Equal((width, height), (preview.XSize, preview.YSize));
+        Assert.Equal(bitCount, reader.TotalBitsConsumed);
+
+        preview.Set(width, height);
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(preview, writer, JxlLayerType.Header, null));
+        Assert.Equal(bitCount, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks animation timing, repetition and timecode fields against fixed native header fields.
+    /// </summary>
+    /// <param name="wire">The fixed animation header bytes.</param>
+    /// <param name="numerator">The ticks-per-second numerator.</param>
+    /// <param name="denominator">The ticks-per-second denominator.</param>
+    /// <param name="loops">The repetition count, or zero for unlimited repetition.</param>
+    /// <param name="timecodes">Whether frames include timecodes.</param>
+    /// <param name="bitCount">The header length before byte padding.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x02, 0x00, 0x00 }, 1U, 1U, 0U, false, 17)]
+    [InlineData(new byte[] { 0x50, 0x00 }, 100U, 1U, 1U, false, 10)]
+    [InlineData(new byte[] { 0x45 }, 1000U, 1001U, 0U, true, 7)]
+    [InlineData(new byte[] { 0x5E, 0x80, 0xFF, 0xFF, 0x00 }, 24U, 1U, 65535U, false, 33)]
+    [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F }, 1073741824U, 1024U, uint.MaxValue, true, 79)]
+    public void AnimationHeader_ReadAndWriteMatchesFixedWire(byte[] wire, uint numerator, uint denominator, uint loops, bool timecodes, int bitCount)
+    {
+        // The final case uses all payload bits of the longest alternatives. In particular, the loop count must remain unsigned.
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+        JxlAnimationHeader animation = new();
+
+        Assert.True(JxlBundle.Read(reader, animation));
+        Assert.Equal(
+            (numerator, denominator, loops, timecodes),
+            (animation.TpsNumerator, animation.TpsDenominator, animation.LoopCount, animation.ContainsTimecodes));
+
+        Assert.Equal(bitCount, reader.TotalBitsConsumed);
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(animation, writer, JxlLayerType.Header, null));
+        Assert.Equal(bitCount, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks that each header initializes its defaults and restores them after reuse.
+    /// </summary>
+    [Fact]
+    public void MetadataHeaders_DefaultsRestoreAfterReuse()
+    {
+        JxlBitDepthMetadata depth = new();
+        JxlPreviewHeader preview = new();
+        JxlAnimationHeader animation = new();
+
+        Assert.Equal((false, 8U, 0U), (depth.FloatingPointSample, depth.BitsPerSample, depth.ExponentBitsPerSample));
+        Assert.Equal((1, 1), (preview.XSize, preview.YSize));
+        Assert.Equal((1U, 1U, 0U, false), (animation.TpsNumerator, animation.TpsDenominator, animation.LoopCount, animation.ContainsTimecodes));
+
+        depth.FloatingPointSample = true;
+        depth.BitsPerSample = 16;
+        depth.ExponentBitsPerSample = 5;
+        preview.Set(256, 256);
+        animation.TpsNumerator = 1000;
+        animation.TpsDenominator = 1001;
+        animation.LoopCount = uint.MaxValue;
+        animation.ContainsTimecodes = true;
+
+        JxlBundle.SetDefault(depth);
+        JxlBundle.SetDefault(preview);
+        JxlBundle.SetDefault(animation);
+
+        Assert.Equal((false, 8U, 0U), (depth.FloatingPointSample, depth.BitsPerSample, depth.ExponentBitsPerSample));
+        Assert.Equal((1, 1), (preview.XSize, preview.YSize));
+        Assert.Equal((1U, 1U, 0U, false), (animation.TpsNumerator, animation.TpsDenominator, animation.LoopCount, animation.ContainsTimecodes));
+    }
+
     [Fact]
     public void TestRoundtripFrame()
     {

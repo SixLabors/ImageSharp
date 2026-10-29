@@ -7,13 +7,19 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
-internal class JxlPassesSharedState
+/// <summary>
+/// Contains internal state for decoding and encoding of passes
+/// in a progressive image. This class contains shared state used
+/// both by the passes decoder and encoder.
+/// </summary>
+internal class JxlPassesCommonContext
 {
     // Make this a field so we can get a ref to it
     public JxlBlockContextMap BlockContextMap;
@@ -52,7 +58,7 @@ internal class JxlPassesSharedState
 
     public int NumHistograms { get; set; }
 
-    public JxlPassesSharedState(Configuration configuration, JxlFrameHeader frameHeader, bool encoder)
+    public JxlPassesCommonContext(Configuration configuration, JxlFrameHeader frameHeader, bool encoder)
     {
         if (frameHeader.Metadata is null)
         {

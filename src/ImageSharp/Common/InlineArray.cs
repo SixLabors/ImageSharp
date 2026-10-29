@@ -72,6 +72,15 @@ internal struct InlineArray19<T>
 }
 
 /// <summary>
+/// Represents a safe, fixed sized buffer of 25 elements.
+/// </summary>
+[InlineArray(25)]
+internal struct InlineArray25<T>
+{
+    private T t;
+}
+
+/// <summary>
 /// Represents a safe, fixed sized buffer of 26 elements.
 /// </summary>
 [InlineArray(26)]

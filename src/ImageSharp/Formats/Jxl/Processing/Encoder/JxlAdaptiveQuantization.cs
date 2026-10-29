@@ -689,7 +689,7 @@ internal static class JxlAdaptiveQuantization
 
     private static JxlImageBundle RoundtripImage(Configuration configuration, JxlFrameHeader frameHeader, JxlImage3F opsin, JxlPassesEncoderState encState, JxlCmsInterface cms)
     {
-        JxlPassesDecoderState decState = new(frameHeader, configuration);
+        JxlPassesDecoderContext decState = new(frameHeader, configuration);
 
         decState.OutputEncodingInfo.SetFromMetadata(encState.Shared.Metadata);
         decState.Shared = encState.Shared;
@@ -725,7 +725,7 @@ internal static class JxlAdaptiveQuantization
             throw new InvalidOperationException("Could not set image bundle");
         }
 
-        JxlPassesDecoderState.PipelineOptions options = new()
+        JxlPassesDecoderContext.PipelineOptions options = new()
         {
             UseSlowRenderPipeline = false,
             Coalescing = false,

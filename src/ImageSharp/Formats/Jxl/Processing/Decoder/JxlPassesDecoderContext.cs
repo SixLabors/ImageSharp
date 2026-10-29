@@ -13,9 +13,12 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
-internal sealed class JxlPassesDecoderState
+/// <summary>
+/// Contains internal state for decoding passes of a progressive image.
+/// </summary>
+internal sealed class JxlPassesDecoderContext
 {
-    public JxlPassesDecoderState(JxlFrameHeader header, Configuration configuration)
+    public JxlPassesDecoderContext(JxlFrameHeader header, Configuration configuration)
     {
         this.XDmMultiplier = MathF.Pow(1 / 1.25f, header.XQmScale - 2f);
         this.BDmMultiplier = MathF.Pow(1 / 1.25f, header.BQmScale - 2f);
@@ -38,9 +41,9 @@ internal sealed class JxlPassesDecoderState
         this.Shared = this.SharedStorage;
     }
 
-    public JxlPassesSharedState SharedStorage { get; set; }
+    public JxlPassesCommonContext SharedStorage { get; set; }
 
-    public JxlPassesSharedState Shared { get; set; }
+    public JxlPassesCommonContext Shared { get; set; }
 
     public RenderPipelineStageBase Upsampler8x { get; set; } = new();
 

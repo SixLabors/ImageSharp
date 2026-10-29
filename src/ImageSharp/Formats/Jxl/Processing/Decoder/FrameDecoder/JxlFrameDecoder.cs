@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.FrameDecoder;
 
 internal sealed class JxlFrameDecoder
 {
-    private JxlPassesDecoderState decoderState;
+    private JxlPassesDecoderContext decoderState;
     private List<JxlTocEntry> toc = [];
     private ulong sectionSizesSum;
     private JxlFrameHeader frameHeader;
@@ -154,7 +154,7 @@ internal sealed class JxlFrameDecoder
         return yStride;
     }
 
-    public static void DecodeGlobalDcInfo(Configuration configuration, JxlBitReader reader, bool isJpeg, JxlPassesDecoderState state)
+    public static void DecodeGlobalDcInfo(Configuration configuration, JxlBitReader reader, bool isJpeg, JxlPassesDecoderContext state)
     {
         state.SharedStorage.Quantizer.Decode(reader);
 
@@ -176,7 +176,7 @@ internal sealed class JxlFrameDecoder
         state.SharedStorage.AcStrategy.FillInvalid();
     }
 
-    public static void DecodeFrame(JxlPassesDecoderState decoderState, Stream stream, ref JxlFrameHeader header, JxlImageBundle decoded, JxlCodecMetadata metadata, bool useSlowRenderingPipeline)
+    public static void DecodeFrame(JxlPassesDecoderContext decoderState, Stream stream, ref JxlFrameHeader header, JxlImageBundle decoded, JxlCodecMetadata metadata, bool useSlowRenderingPipeline)
     {
         JxlFrameDecoder frameDecoder = new(decoderState, metadata, useSlowRenderingPipeline);
         JxlBitReader reader = new(stream);

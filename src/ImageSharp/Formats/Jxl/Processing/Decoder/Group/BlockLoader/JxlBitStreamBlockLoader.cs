@@ -171,7 +171,7 @@ internal sealed class JxlBitStreamBlockLoader : IJxlGetBlock
         int groupIndex,
         int histogramSelectorBits,
         Rectangle rect,
-        JxlPassesDecoderState decState,
+        JxlPassesDecoderContext decState,
         int firstPass)
     {
         for (int i = 0; i < 3; i++)

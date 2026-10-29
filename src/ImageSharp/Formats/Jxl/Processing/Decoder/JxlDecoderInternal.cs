@@ -250,7 +250,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     /// <summary>
     /// State for passes decoder.
     /// </summary>
-    private JxlPassesDecoderState? passesState;
+    private JxlPassesDecoderContext? passesState;
 
     /// <summary>
     /// State for frame decoder.

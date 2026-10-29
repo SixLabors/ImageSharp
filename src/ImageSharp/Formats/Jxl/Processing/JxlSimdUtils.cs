@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -106,13 +105,6 @@ internal static partial class JxlSimdUtils
                 }
             }
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> Pow(Vector<float> @base, Vector<float> exponent)
-    {
-        Vector<float> vec = Vector.Log2(@base) * exponent;
-        return vec * vec;
     }
 
     /// <summary>
@@ -507,39 +499,6 @@ internal static partial class JxlSimdUtils
         Vector<float> @base,
         Vector<float> exponent)
         => FastPow2f(Vector.Log2(@base) * exponent);
-
-    public static uint MaxValue(Span<uint> data)
-    {
-        int lanes = Vector<uint>.Count;
-        int lastFull = lanes * (data.Length / lanes);
-
-        Vector<uint> max = Vector<uint>.Zero;
-        ref uint dataRef = ref MemoryMarshal.GetReference(data);
-
-        for (int i = 0; i < lastFull; i += lanes)
-        {
-            max = Vector.Max(max, Vector.LoadUnsafe(ref Unsafe.Add(ref dataRef, i)));
-        }
-
-        if (lastFull < data.Length)
-        {
-            Vector<uint> stop = Vector.Create((uint)data.Length);
-            Vector<uint> fence = Iota((uint)lastFull);
-            Vector<uint> take = Vector.LessThan(fence, stop);
-            max = Vector.Max(
-                max,
-                Vector.ConditionalSelect(
-                    take,
-                    Vector.LoadUnsafe(ref Unsafe.Add(ref dataRef, lastFull)),
-                    Vector<uint>.Zero));
-        }
-
-        // The following part is to find the largest number in
-        // the vector.
-        Span<uint> copy = stackalloc uint[Vector<uint>.Count];
-        max.CopyTo(copy);
-        return TensorPrimitives.Max<uint>(copy);
-    }
 
     /// <summary>
     /// A SIMD utility method which takes in the 128 bit vector

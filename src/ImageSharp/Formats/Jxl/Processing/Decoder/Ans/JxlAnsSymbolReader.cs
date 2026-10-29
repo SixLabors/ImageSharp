@@ -110,13 +110,19 @@ internal sealed class JxlAnsSymbolReader : IDisposable
         return new JxlAnsSymbolReader(code, br, distanceMultiplier, lz77);
     }
 
-    public bool CheckAnsFinalState() => this.state == JxlAnsConstants.AnsTableSize << 16;
+    /// <summary>
+    /// Checks that decoding consumed the entropy stream's terminal ANS state.
+    /// </summary>
+    /// <returns>Whether the stream ended at the format's signature state.</returns>
+    public bool CheckAnsFinalState() => this.state == JxlAnsConstants.AnsSignature << 16;
 
     public int ReadSymbolAnsWithoutRefill(int histogramIndex, JxlBitReader br)
     {
         uint res = this.state & (JxlAnsConstants.AnsTableSize - 1);
 
-        Span<JxlAnsEntry> table = this.aliasTables.AsSpan(0, histogramIndex << this.logAlphaSize);
+        // Histograms occupy consecutive, equal-sized tables. The histogram selects the starting offset,
+        // not the prefix length. Histogram zero therefore still has one complete table.
+        Span<JxlAnsEntry> table = this.aliasTables.AsSpan(histogramIndex << this.logAlphaSize, 1 << this.logAlphaSize);
         JxlAnsSymbol symbol = JxlAnsHelper.Lookup(table, (int)res, this.logEntrySize, this.entrySizeMinus1);
 
         this.state = (uint)((symbol.Frequency * (this.state >> JxlAnsConstants.AnsLogTableSize)) + symbol.Offset);
@@ -161,7 +167,7 @@ internal sealed class JxlAnsSymbolReader : IDisposable
         uint splitToken = config.SplitToken;
         uint msbInToken = config.MsbInToken;
         uint lsbInToken = config.LsbInToken;
-        uint splitExponent = config.SplitToken;
+        uint splitExponent = config.SplitExponent;
 
         if (token < splitToken)
         {
@@ -170,6 +176,7 @@ internal sealed class JxlAnsSymbolReader : IDisposable
 
         uint numBits = splitExponent - (msbInToken + lsbInToken) +
                      (uint)((token - splitToken) >> (int)(msbInToken + lsbInToken));
+        // Keep malformed shift counts within the UInt32 primitive's width, as in the reference decoder.
         numBits &= 31u;
 
         int low = token & ((1 << (int)lsbInToken) - 1);
@@ -196,6 +203,9 @@ internal sealed class JxlAnsSymbolReader : IDisposable
             run =
                 ReadHybridUIntConfiguration(this.lz77LengthUInt, token - this.lz77Threshold, br) +
                 this.lz77MinLength - 1;
+
+            // A run token repeats the previous value. It does not also encode a new literal.
+            return;
         }
 
         value = ReadHybridUIntConfiguration(this.configs[context], token, br);
@@ -291,10 +301,10 @@ internal sealed class JxlAnsSymbolReader : IDisposable
         => this.ReadHybridUIntClustered(usesLz77, contextMap[context], br);
 
     public int ReadHybridUInt(int context, JxlBitReader br, Span<byte> contextMap)
-        => this.ReadHybridUIntClustered(true, contextMap[context], br);
+        => this.ReadHybridUIntClustered(this.UsesLz77, contextMap[context], br);
 
     public int ReadHybridUInt(int context, JxlBitReader br, List<byte> contextMap)
-        => this.ReadHybridUIntClustered(true, contextMap[context], br);
+        => this.ReadHybridUIntClustered(this.UsesLz77, contextMap[context], br);
 
     public bool IsSingleValueAndAdvance(int context, ref int value, int count)
     {

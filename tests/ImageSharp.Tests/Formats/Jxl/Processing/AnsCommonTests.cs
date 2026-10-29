@@ -13,6 +13,50 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 public class AnsCommonTests
 {
     /// <summary>
+    /// Checks hybrid-integer expansion against fixed tokens and bit payloads.
+    /// </summary>
+    /// <param name="mostSignificantBits">The number of high value bits carried by the token.</param>
+    /// <param name="leastSignificantBits">The number of low value bits carried by the token.</param>
+    /// <param name="expected">The decoded UInt32 value.</param>
+    [Theory]
+    [InlineData(2, 0, 37)]
+    [InlineData(1, 1, 42)]
+    public void ReadHybridUInt_UsesSplitExponent(int mostSignificantBits, int leastSignificantBits, int expected)
+    {
+        JxlAnsHybridUIntConfiguration configuration = new(4, (uint)mostSignificantBits, (uint)leastSignificantBits);
+
+        // Token 20 selects three payload bits in both configurations. The fixed payload is binary 101.
+        using MemoryStream input = new([0x05]);
+        JxlBitReader reader = new(input);
+
+        Assert.Equal(expected, JxlAnsSymbolReader.ReadHybridUIntConfiguration(configuration, 20, reader));
+        Assert.Equal(3, reader.TotalBitsConsumed);
+    }
+
+    /// <summary>
+    /// Checks the terminal state against the ANS signature rather than the frequency-table size.
+    /// </summary>
+    /// <param name="signature">The high word of the fixed little-endian ANS state.</param>
+    /// <param name="expected">Whether the state is terminal.</param>
+    [Theory]
+    [InlineData(0x13, true)]
+    [InlineData(0x10, false)]
+    public void CheckAnsFinalState_UsesFormatSignature(byte signature, bool expected)
+    {
+        // Ten header bits select no LZ77, ANS, a 32-entry table, split exponent zero, and symbol zero.
+        // The following 32 LSB-first bits hold the terminal state. Its high word begins at bit 26.
+        using MemoryStream input = new([0x80, 0, 0, (byte)(signature << 2), 0, 0]);
+        JxlBitReader bitReader = new(input);
+        JxlAnsCode code = new();
+        List<byte> contextMap = [];
+        JxlAnsReader.DecodeHistograms(Configuration.Default, bitReader, 1, code, ref contextMap, false);
+
+        using JxlAnsSymbolReader reader = JxlAnsSymbolReader.Create(code, bitReader, 0);
+
+        Assert.Equal(expected, reader.CheckAnsFinalState());
+    }
+
+    /// <summary>
     /// Checks that alias lookup visits every symbol offset exactly once at its declared frequency.
     /// </summary>
     /// <param name="distribution">The independently specified frequencies.</param>

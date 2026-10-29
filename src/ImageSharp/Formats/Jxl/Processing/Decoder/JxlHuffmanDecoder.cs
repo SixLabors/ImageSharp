@@ -137,7 +137,7 @@ internal sealed class JxlHuffmanDecoder
     /// </summary>
     /// <param name="alphabetSize">Alphabet size (256 at most)</param>
     /// <param name="br">Bit-stream reader</param>
-    /// <param name="table">Output table (must have at most 8 items)</param>
+    /// <param name="table">The 256-entry output lookup table.</param>
     /// <returns>Status of the operation</returns>
     public static bool ReadSimpleCode(int alphabetSize, JxlBitReader br, Span<JxlHuffmanCode> table)
     {
@@ -248,7 +248,8 @@ internal sealed class JxlHuffmanDecoder
 
         while (tableSize != GoalSize)
         {
-            table[tableSize..].CopyTo(table);
+            // Higher lookup bits do not belong to these short codes. Repeat the initialized prefix into the next equal-sized block.
+            table[..tableSize].CopyTo(table.Slice(tableSize, tableSize));
             tableSize <<= 1;
         }
 

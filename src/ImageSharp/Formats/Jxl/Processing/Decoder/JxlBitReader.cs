@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 /// <param name="stream">The stream bounded to the current codestream or section.</param>
 /// <remarks>
 /// Prefetch can advance the stream, but only reads and skips advance the logical bit position.
+/// Peeks return zero for unavailable high bits so a Huffman lookup can select a shorter terminal code.
+/// Reads and skips still require every consumed bit to exist in the input.
 /// The caller owns the stream and must keep it alive while using this reader.
 /// </remarks>
 internal sealed class JxlBitReader(Stream stream)
@@ -41,6 +43,11 @@ internal sealed class JxlBitReader(Stream stream)
     private long bytesFetched;
 
     /// <summary>
+    /// Whether the bounded input has ended. Repeated terminal Huffman peeks must not repeat stream reads.
+    /// </summary>
+    private bool endOfInput;
+
+    /// <summary>
     /// Gets the number of bits consumed, excluding prefetched bits.
     /// </summary>
     public long TotalBitsConsumed => (this.bytesFetched * 8) - this.bufferRemainingBits - this.lookaheadBits;
@@ -61,6 +68,7 @@ internal sealed class JxlBitReader(Stream stream)
 
             if (read == 0)
             {
+                this.endOfInput = true;
                 break;
             }
 
@@ -76,26 +84,19 @@ internal sealed class JxlBitReader(Stream stream)
     }
 
     /// <summary>
-    /// Ensures that the requested field is buffered without consuming any bits.
+    /// Buffers the available portion of a field without consuming bits or fabricating input length.
     /// </summary>
     /// <param name="bitCount">The field width, from one to 64 bits.</param>
-    private void EnsureBits(int bitCount)
+    private void PrefetchBits(int bitCount)
     {
-        if (this.bufferRemainingBits == 0)
+        if (this.bufferRemainingBits == 0 && !this.endOfInput)
         {
             this.RefillCore(out this.buffer, out this.bufferRemainingBits);
         }
 
-        if (bitCount > this.bufferRemainingBits && this.lookaheadBits == 0)
+        if (bitCount > this.bufferRemainingBits && this.lookaheadBits == 0 && !this.endOfInput)
         {
             this.RefillCore(out this.lookahead, out this.lookaheadBits);
-        }
-
-        // A short final block cannot satisfy a larger field. Preserve the buffered bits on
-        // failure; neither their count nor the logical position may wrap or advance.
-        if (bitCount > this.bufferRemainingBits + this.lookaheadBits)
-        {
-            throw new EndOfStreamException();
         }
     }
 
@@ -112,7 +113,14 @@ internal sealed class JxlBitReader(Stream stream)
             return 0;
         }
 
-        this.EnsureBits(bitCount);
+        this.PrefetchBits(bitCount);
+
+        // Huffman table lookups can inspect more bits than their selected code consumes. Missing high bits remain zero,
+        // as in the native reader. Only consumption must fit the actual buffered length; failure retains the available bits.
+        if (!peek && bitCount > this.bufferRemainingBits + this.lookaheadBits)
+        {
+            throw new EndOfStreamException();
+        }
 
         // Current bits occupy the low end. A field crossing the block boundary continues
         // into lookahead. Keep both blocks until consumption so repeated peeks are identical.
@@ -172,7 +180,7 @@ internal sealed class JxlBitReader(Stream stream)
     public uint ReadBits32(uint bitCount) => (uint)this.ReadBitsCore((int)bitCount, false);
 
     /// <summary>
-    /// Peeks an unsigned field of up to 32 bits without consuming it.
+    /// Peeks an unsigned field of up to 32 bits without consuming it. Unavailable high bits are zero.
     /// </summary>
     /// <param name="bitCount">The field width, from zero to 32 bits.</param>
     /// <returns>The field value.</returns>
@@ -192,7 +200,7 @@ internal sealed class JxlBitReader(Stream stream)
     public ulong ReadBits64(ulong bitCount) => this.ReadBitsCore((int)bitCount, false);
 
     /// <summary>
-    /// Peeks an unsigned field of up to 64 bits without consuming it.
+    /// Peeks an unsigned field of up to 64 bits without consuming it. Unavailable high bits are zero.
     /// </summary>
     /// <param name="bitCount">The field width, from zero to 64 bits.</param>
     /// <returns>The field value.</returns>

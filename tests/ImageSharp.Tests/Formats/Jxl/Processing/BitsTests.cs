@@ -70,6 +70,8 @@ public class BitsTests
         using MemoryStream input = new([0x12, 0x34]);
         JxlBitReader reader = new(input);
 
+        Assert.Equal(0x3412U, reader.PeekBits32(32));
+        Assert.Equal(0, reader.TotalBitsConsumed);
         Assert.Throws<EndOfStreamException>(() => reader.ReadBits32(17));
         Assert.Equal(0, reader.TotalBitsConsumed);
         Assert.Equal(0x3412U, reader.ReadBits32(16));

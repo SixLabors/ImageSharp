@@ -15,6 +15,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 public class EntropyCoderTests
 {
     /// <summary>
+    /// Checks terminal zero-bit and one-bit Huffman symbols through the encoded table and bounded bit reader.
+    /// </summary>
+    /// <param name="wire">The fixed simple-code header and final symbol bits.</param>
+    /// <param name="headerBits">The exact header length.</param>
+    /// <param name="codeBits">The number of bits in each decoded code.</param>
+    /// <param name="first">The first decoded symbol.</param>
+    /// <param name="second">The second decoded symbol.</param>
+    [Theory]
+    [InlineData((byte)0x11, 5, 0, (ushort)1, (ushort)1)]
+    [InlineData((byte)0xA5, 6, 1, (ushort)0, (ushort)1)]
+    public void HuffmanSymbols_ConsumeOnlyEncodedBitsAtEnd(byte wire, int headerBits, int codeBits, ushort first, ushort second)
+    {
+        // 0x11 declares the sole symbol 1, whose code needs no bits. 0xA5 declares symbols 0 and 1, followed by codes 0 and 1.
+        using MemoryStream input = new([wire]);
+        JxlBitReader reader = new(input);
+        JxlHuffmanDecoder decoder = new();
+
+        Assert.True(decoder.ReadFromBitStream(2, reader));
+        Assert.Equal(headerBits, reader.TotalBitsConsumed);
+
+        if (codeBits == 0)
+        {
+            // Move past the unused byte padding. A zero-bit symbol remains valid with no input left to peek.
+            reader.SkipBits32((uint)(8 - headerBits));
+        }
+
+        long before = reader.TotalBitsConsumed;
+        Assert.Equal(first, decoder.ReadSymbol(reader));
+        Assert.Equal(codeBits, reader.TotalBitsConsumed - before);
+        Assert.Equal(second, decoder.ReadSymbol(reader));
+        Assert.Equal(8, reader.TotalBitsConsumed);
+        Assert.Throws<EndOfStreamException>(() => reader.ReadBoolean());
+
+        if (codeBits != 0)
+        {
+            // Zero-filled lookahead must not let the next one-bit code consume a nonexistent bit.
+            Assert.Throws<EndOfStreamException>(() => decoder.ReadSymbol(reader));
+        }
+    }
+
+    /// <summary>
     /// Checks reference records when fewer matching channels exist than the requested property capacity.
     /// </summary>
     [Fact]

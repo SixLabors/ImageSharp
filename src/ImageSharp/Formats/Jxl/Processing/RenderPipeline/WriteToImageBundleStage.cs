@@ -11,8 +11,10 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 internal class WriteToImageBundleStage(Configuration configuration, JxlImageBundle bundle, JxlColorEncoding colorEncoding)
     : RenderPipelineStageBase(configuration)
 {
+    /// <inheritdoc />
     public override string Name => "WriteIB";
 
+    /// <inheritdoc />
     public override void SetInputSizes(Span<Size> inputSizes)
     {
         if (inputSizes.Length < 3)
@@ -39,6 +41,7 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
             throw new InvalidOperationException("Could not set the image of an image bundle");
         }
 
+        // Add all extra channels to the image bundle.
         for (int c = 3; c < inputSizes.Length; c++)
         {
             JxlPlane<float> ch = new(this.GetConfiguration(), inputSizes[c].Width, inputSizes[c].Height);
@@ -46,6 +49,7 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
         }
     }
 
+    /// <inheritdoc />
     public override void ProcessRow(
         Buffer2D<Memory<float>> inputRows,
         Buffer2D<Memory<float>> outputRows,
@@ -79,5 +83,7 @@ internal class WriteToImageBundleStage(Configuration configuration, JxlImageBund
         }
     }
 
-    public override RenderPipelineChannelMode GetChannelMode(int channel) => RenderPipelineChannelMode.Input;
+    /// <inheritdoc />
+    public override RenderPipelineChannelMode GetChannelMode(int channel)
+        => RenderPipelineChannelMode.Input; // We only decode input. We don't write anything back to the output.
 }

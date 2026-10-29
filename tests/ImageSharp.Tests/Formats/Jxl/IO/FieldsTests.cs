@@ -19,6 +19,153 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 public class FieldsTests
 {
     /// <summary>
+    /// Checks modular group counts and transform parameters against fixed native wire encodings.
+    /// </summary>
+    /// <param name="wire">The fixed least-significant-bit-first group header.</param>
+    /// <param name="bitCount">The header length before byte padding.</param>
+    /// <param name="expectedType">The single encoded transform identifier, or Invalid when the count is zero.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x02 }, 4, (byte)JxlTransformType.Invalid)]
+    [InlineData(new byte[] { 0x06, 0x00 }, 13, (byte)JxlTransformType.Rct)]
+    [InlineData(new byte[] { 0x16, 0x28, 0x00, 0x00 }, 31, (byte)JxlTransformType.Palette)]
+    [InlineData(new byte[] { 0x66, 0x30, 0x03 }, 21, (byte)JxlTransformType.Squeeze)]
+    public void ModularGroupHeader_ReadAndWriteMatchesFixedWire(byte[] wire, int bitCount, byte expectedType)
+    {
+        JxlTransformType type = (JxlTransformType)expectedType;
+
+        // The common prefix is global-tree=false, weighted-prediction defaults=true, then the transform count.
+        // RCT starts at channel 0 and uses mode 6. Palette starts at channel 0 with three channels, 256 colors, no deltas and predictor Zero.
+        // Squeeze has one horizontal in-place step beginning at channel 3 and covering one channel.
+        JxlGroupHeader header = new() { UseGlobalTree = true };
+        header.WeightedHeader.P1C = 1;
+
+        if (type == JxlTransformType.Invalid)
+        {
+            // The zero-count wire must also remove entries left by a previous group header.
+            header.Transforms.Add(new JxlTransform(JxlTransformType.Rct));
+            header.Transforms.Add(new JxlTransform(JxlTransformType.Palette));
+        }
+
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.True(JxlBundle.Read(reader, header));
+        Assert.Equal(bitCount, reader.TotalBitsConsumed);
+        Assert.False(header.UseGlobalTree);
+        Assert.Equal(16, header.WeightedHeader.P1C);
+        Assert.Equal(type == JxlTransformType.Invalid ? 0 : 1, header.Transforms.Count);
+
+        if (type != JxlTransformType.Invalid)
+        {
+            JxlTransform transform = header.Transforms[0];
+            Assert.Equal(type, transform.TransformType);
+
+            switch (type)
+            {
+                case JxlTransformType.Rct:
+                    Assert.Equal(0, transform.BeginC);
+                    Assert.Equal(6, transform.RctType);
+                    break;
+
+                case JxlTransformType.Palette:
+                    Assert.Equal(0, transform.BeginC);
+                    Assert.Equal(3, transform.NumC);
+                    Assert.Equal(256, transform.Colors);
+                    Assert.Equal(0, transform.Deltas);
+                    Assert.Equal(JxlPredictor.Zero, transform.Predictor);
+                    break;
+
+                case JxlTransformType.Squeeze:
+                    JxlSqueezeParameters step = Assert.Single(transform.Squeezes);
+                    Assert.True(step.Horizontal);
+                    Assert.True(step.InPlace);
+                    Assert.Equal(3, step.BeginC);
+                    Assert.Equal(1, step.NumC);
+                    break;
+            }
+        }
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(header, writer, JxlLayerType.Header, null));
+        Assert.Equal(bitCount, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks owned predictor defaults and resets a previously populated transform list through the existing visitor.
+    /// </summary>
+    [Fact]
+    public void ModularGroupHeader_DefaultsRestoreOwnedFields()
+    {
+        JxlGroupHeader header = new();
+        JxlModularHeader weighted = header.WeightedHeader;
+
+        Assert.Equal(
+            (16, 10, 7, 7, 7, 0, 0),
+            (weighted.P1C, weighted.P2C, weighted.P3Ca, weighted.P3Cb, weighted.P3Cc, weighted.P3Cd, weighted.P3Ce));
+
+        Assert.Equal(new uint[] { 13, 12, 12, 12 }, weighted.GetW().ToArray());
+        Assert.True(JxlBundle.AllDefault(header));
+
+        header.UseGlobalTree = true;
+        weighted.P1C = 1;
+        header.Transforms.Add(new JxlTransform(JxlTransformType.Rct));
+        JxlBundle.SetDefault(header);
+
+        Assert.False(header.UseGlobalTree);
+        Assert.Same(weighted, header.WeightedHeader);
+        Assert.Equal(16, weighted.P1C);
+        Assert.Empty(header.Transforms);
+
+        // A value-type constructor must set the stored step, rather than an IJxlFields boxed copy.
+        JxlSqueezeParameters step = new();
+        Assert.Equal((false, false, 0, 2), (step.Horizontal, step.InPlace, step.BeginC, step.NumC));
+    }
+
+    /// <summary>
+    /// Rejects reserved transform identifiers, RCT modes and prediction modes from the encoded input.
+    /// </summary>
+    /// <param name="wire">The fixed group header with one invalid transform field.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x36 })]
+    [InlineData(new byte[] { 0x06, 0x18, 0x04 })]
+    [InlineData(new byte[] { 0x16, 0x28, 0x00, 0x70 })]
+    public void ModularGroupHeader_ReadRejectsReservedTransformValues(byte[] wire)
+    {
+        // These encode transform ID 3, RCT mode 42, and predictor 14 (Best), respectively.
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+
+        Assert.False(JxlBundle.Read(reader, new JxlGroupHeader()));
+    }
+
+    /// <summary>
+    /// Checks that header ownership separates mutable squeeze metadata and supports assigning its own list.
+    /// </summary>
+    [Fact]
+    public void ModularGroupHeader_AssigningTransformsPreservesSourceMetadata()
+    {
+        JxlTransform source = new(JxlTransformType.Squeeze);
+        source.Squeezes.Add(new JxlSqueezeParameters { Horizontal = true, NumC = 1 });
+        JxlGroupHeader header = new() { Transforms = [source] };
+
+        header.Transforms = header.Transforms;
+
+        JxlTransform stored = Assert.Single(header.Transforms);
+        stored.Squeezes.Clear();
+
+        JxlSqueezeParameters originalStep = Assert.Single(source.Squeezes);
+        Assert.True(originalStep.Horizontal);
+        Assert.Equal(1, originalStep.NumC);
+        Assert.Equal(JxlTransformType.Squeeze, stored.TransformType);
+    }
+
+    /// <summary>
     /// Checks progressive pass counts, shifts and transition indices against fixed native field encodings.
     /// </summary>
     /// <param name="wire">The fixed least-significant-bit-first pass header.</param>

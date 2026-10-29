@@ -15,7 +15,17 @@ internal struct JxlSqueezeParameters : IJxlFields
     private int beginC;
     private int numC;
 
-    public JxlSqueezeParameters() => JxlBundle.Init(this);
+    /// <summary>
+    /// Initializes one vertical, non-in-place squeeze step starting at channel zero and covering two channels.
+    /// </summary>
+    public JxlSqueezeParameters()
+    {
+        // Calling Bundle.Init through IJxlFields would initialize a boxed copy of this value, not the stored step.
+        this.horizontal = false;
+        this.inPlace = false;
+        this.beginC = 0;
+        this.numC = 2;
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the transform is horizontal.
@@ -35,20 +45,30 @@ internal struct JxlSqueezeParameters : IJxlFields
         set => this.inPlace = value;
     }
 
+    /// <summary>
+    /// Gets or sets the first selected channel index.
+    /// </summary>
     public int BeginC
     {
         readonly get => this.beginC;
         set => this.beginC = value;
     }
 
+    /// <summary>
+    /// Gets or sets the number of selected channels.
+    /// </summary>
     public int NumC
     {
         readonly get => this.numC;
         set => this.numC = value;
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
+        uint beginC = (uint)this.beginC;
+        uint numC = (uint)this.numC;
+
         if (!visitor.Boolean(false, ref this.horizontal) ||
             !visitor.Boolean(false, ref this.inPlace) ||
             !visitor.U32(
@@ -57,18 +77,21 @@ internal struct JxlSqueezeParameters : IJxlFields
                 JxlFieldExpressions.BitsOffset(10, 72),
                 JxlFieldExpressions.BitsOffset(13, 1096),
                 0,
-                ref this.beginC) ||
+                ref beginC) ||
             !visitor.U32(
                 JxlFieldExpressions.Value(1),
                 JxlFieldExpressions.Value(2),
                 JxlFieldExpressions.Value(3),
                 JxlFieldExpressions.BitsOffset(4, 4),
                 2,
-                ref this.numC))
+                ref numC))
         {
             return false;
         }
 
+        // Both wire distributions fit in Int32. Publish the decoded values into the actual value-type fields.
+        this.beginC = (int)beginC;
+        this.numC = (int)numC;
         return true;
     }
 }

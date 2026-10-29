@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding.ContextPrediction;
@@ -100,25 +99,6 @@ internal sealed class JxlTransform : IJxlFields, IDeepCloneable<JxlTransform>
             {
                 throw new InvalidOperationException($"Channel {c} is not equal");
             }
-        }
-    }
-
-    public static void ComputeMinMax(JxlModularChannel channel, out int min, out int max)
-    {
-        // Start with opposite bounds so the first iteration
-        // guarantees to set these values
-        min = int.MaxValue;
-        max = int.MinValue;
-
-        for (int y = 0; y < channel.Height; y++)
-        {
-            ReadOnlySpan<int> p = channel.GetRow(y);
-
-            int minRow = TensorPrimitives.Min(p);
-            int maxRow = TensorPrimitives.Max(p);
-
-            min = Math.Min(minRow, min);
-            max = Math.Max(maxRow, max);
         }
     }
 

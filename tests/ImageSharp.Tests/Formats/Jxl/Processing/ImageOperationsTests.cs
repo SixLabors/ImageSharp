@@ -8,11 +8,55 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class ImageOperationsTests
 {
+    /// <summary>
+    /// Checks that range scans exclude a prefix, padding and retained rows at every SIMD width and in the scalar path.
+    /// </summary>
+    [Fact]
+    public void PlaneMinMax_UsesOnlyLogicalSamples()
+    {
+        static void RunTest()
+        {
+            using JxlPlane<int> plane = new(TestEnvironment.Configuration, 33, 3, 2);
+            Span<int> allocation = plane.GetRowMinus(0, 2);
+            Span<int> samples = plane.GetRow(0);
+            ReadOnlySpan<int> widths = [0, 3, 17, 33];
+
+            foreach (int width in widths)
+            {
+                Assert.True(plane.ShrinkTo(width, 2));
+
+                // These extremes belong only to the prefix, padding and unused third row. Logical samples lie between -width and width.
+                allocation.Fill(int.MaxValue);
+                allocation[0] = int.MinValue;
+                for (int x = 0; x < width; x++)
+                {
+                    samples[x] = x + 1;
+                    samples[plane.PixelsPerRow + x] = -x - 1;
+                }
+
+                JxlImageOperations.ImageMinMax(plane, out int minimum, out int maximum);
+                Assert.Equal(width == 0 ? int.MaxValue : -width, minimum);
+                Assert.Equal(width == 0 ? int.MinValue : width, maximum);
+            }
+
+            // A logical shrink retains the allocation. Neither the other columns nor the earlier two-row extent belongs to this scan.
+            Assert.True(plane.ShrinkTo(1, 1));
+            JxlImageOperations.ImageMinMax(plane, out int finalMinimum, out int finalMaximum);
+            Assert.Equal(1, finalMinimum);
+            Assert.Equal(1, finalMaximum);
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     /// <summary>
     /// Checks that groups reuse coefficient scratch and release replaced buffers when it grows.
     /// </summary>

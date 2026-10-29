@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -459,27 +460,33 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Searches the entire plane to find the smallest and largest value.
+    /// Finds the smallest and largest logical samples without reading a storage prefix, row padding or unused rows.
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>
     /// <param name="image">The plane where to search for the minimum &amp; maximum values.</param>
     /// <param name="min">Lowest value found in the plane.</param>
     /// <param name="max">Largest value found in the plane.</param>
+    /// <remarks>An empty plane returns the sample type's maximum value as min and minimum value as max.</remarks>
     public static void ImageMinMax<T>(JxlPlane<T> image, out T min, out T max)
         where T : unmanaged, INumber<T>, IMinMaxValue<T>
     {
-        min = T.MaxValue;   // Start with opposite
-        max = T.MinValue;   // Start with opposite
+        min = T.MaxValue;
+        max = T.MinValue;
+
+        // Empty planes are valid owners. Retain the existing empty result without passing an empty row to tensor reductions.
+        if (image.XSize == 0)
+        {
+            return;
+        }
+
+        ReadOnlySpan<T> samples = image.GetRow(0);
 
         for (int y = 0; y < image.YSize; y++)
         {
-            Span<T> row = image.GetRow(y);
-
-            for (int x = 0; x < image.XSize; x++)
-            {
-                min = T.Min(min, row[x]);
-                max = T.Max(max, row[x]);
-            }
+            // Reduce only this logical row. Shared tensor operations supply all supported SIMD widths and scalar remainders.
+            ReadOnlySpan<T> row = samples.Slice(y * image.PixelsPerRow, image.XSize);
+            min = T.Min(min, TensorPrimitives.Min(row));
+            max = T.Max(max, TensorPrimitives.Max(row));
         }
     }
 

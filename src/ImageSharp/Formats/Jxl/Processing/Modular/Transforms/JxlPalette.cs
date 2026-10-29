@@ -789,7 +789,7 @@ internal static class JxlPalette
                 throw new InvalidOperationException("No colors");
             }
 
-            JxlTransform.ComputeMinMax(beginCChannel, out int minValue, out int maxValue);
+            JxlImageOperations.ImageMinMax(beginCChannel.Plane, out int minValue, out int maxValue);
             int lookupTableSize = maxValue - minValue + 1;
 
             if (lookupTableSize < MaxPaletteLookupTableSize)

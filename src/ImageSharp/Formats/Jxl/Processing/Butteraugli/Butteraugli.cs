@@ -3087,7 +3087,7 @@ internal static class Butteraugli
     /// <param name="rgb0">The reference pixels, which full-size comparison can modify.</param>
     /// <param name="rgb1">The distorted pixels, which full-size comparison can modify.</param>
     /// <param name="parameters">The perceptual comparison parameters.</param>
-    /// <param name="diffmap">The caller-owned output plane. Its identity does not change.</param>
+    /// <param name="diffmap">The caller-owned output plane. Storage is reused when it fits; the plane's identity does not change.</param>
     /// <param name="diffvalue">The comparison score, or zero when comparison fails.</param>
     /// <returns>Whether every comparison stage succeeded.</returns>
     public static bool ButteraugliInterfaceInPlace(
@@ -3134,17 +3134,28 @@ internal static class Butteraugli
             }
         }
 
-        JxlPlane<float> subDiffmap = new();
+        // The half-size result must survive the full-size comparison. Each result has its own dimensions and allocation.
+        // Smaller images need no second comparison; zero dimensions leave this scoped owner without sample storage.
+        bool compareSubsample = xsize >= 15 && ysize >= 15;
+        using JxlPlane<float> subDiffmap = new(configuration, compareSubsample ? (xsize + 1) / 2 : 0, compareSubsample ? (ysize + 1) / 2 : 0);
 
-        if (xsize >= 15 && ysize >= 15)
+        if (compareSubsample)
         {
             using JxlImage3<float> rgb0Sub = SubSample2x(configuration, rgb0);
             using JxlImage3<float> rgb1Sub = SubSample2x(configuration, rgb1);
 
-            if (!ButteraugliDiffmapInPlace(configuration, rgb0Sub, rgb1Sub, parameters, diffmap))
+            if (!ButteraugliDiffmapInPlace(configuration, rgb0Sub, rgb1Sub, parameters, subDiffmap))
             {
                 return false;
             }
+        }
+
+        // The raw comparison writes preallocated output. This entry point owns preparation, including an initially empty output plane.
+        // Swap only after allocation succeeds, and release the displaced allocation through the scoped replacement.
+        if (!diffmap.ShrinkTo(xsize, ysize))
+        {
+            using JxlPlane<float> outputStorage = new(configuration, xsize, ysize);
+            diffmap.Swap(outputStorage);
         }
 
         if (!ButteraugliDiffmapInPlace(configuration, rgb0, rgb1, parameters, diffmap))
@@ -3152,7 +3163,7 @@ internal static class Butteraugli
             return false;
         }
 
-        if (xsize >= 15 && ysize >= 15)
+        if (compareSubsample)
         {
             AddSupersampled2x(subDiffmap, 0.5f, diffmap);
         }

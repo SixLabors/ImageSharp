@@ -82,6 +82,59 @@ public class ButteraugliTests
     }
 
     /// <summary>
+    /// Checks standalone output preparation, separate half-resolution results and allocator cleanup for identical samples.
+    /// </summary>
+    [Fact]
+    public void InPlaceInterface_PreparesOutputAndRetainsSubsampledResult()
+    {
+        static void RunTest()
+        {
+            Configuration configuration = TestEnvironment.Configuration.Clone();
+            TestMemoryAllocator allocator = new();
+            allocator.EnableNonThreadSafeLogging();
+            configuration.MemoryAllocator = allocator;
+            ReadOnlySpan<int> heights = [8, 17];
+
+            foreach (int height in heights)
+            {
+                // Height 8 selects only the full-size comparison. Height 17 also produces and merges a half-size map.
+                // Start with empty or undersized output to exercise this entry point's ownership, rather than its raw kernel.
+                using (JxlImage3<float> reference = new(configuration, 17, height))
+                using (JxlImage3<float> distorted = new(configuration, 17, height))
+                using (JxlPlane<float> difference = new(configuration, height == 8 ? 0 : 1, height == 8 ? 0 : 1))
+                {
+                    JxlImageOperations.ZeroFillImage(reference);
+                    JxlImageOperations.ZeroFillImage(distorted);
+                    Assert.True(Butteraugli.ButteraugliInterfaceInPlace(
+                        configuration,
+                        reference,
+                        distorted,
+                        new ButteraugliParameters(),
+                        difference,
+                        out double score));
+
+                    Assert.Equal(0D, score);
+                    Assert.Equal(17, difference.XSize);
+                    Assert.Equal(height, difference.YSize);
+                    ReadOnlySpan<float> samples = difference.GetRow(0);
+
+                    for (int y = 0; y < height; y++)
+                    {
+                        Assert.Equal(-1, samples.Slice(y * difference.PixelsPerRow, difference.XSize).IndexOfAnyExcept(0F));
+                    }
+                }
+
+                // The old output allocation and both comparison levels must be returned when the outer owners are disposed.
+                Assert.Equal(0, allocator.LiveBufferBytes);
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
     /// Checks weighted squared differences, accumulation and reused output across all SIMD widths and scalar tails.
     /// </summary>
     /// <param name="width">The logical width, independent of the padded physical stride.</param>
@@ -476,7 +529,7 @@ public class ButteraugliTests
         ButteraugliParameters butteraugliParameters = new();
         JxlPlane<float> diffmap = new();
         Assert.True(
-            Butteraugli.ButteraugliInterface(TestEnvironment.Configuration,, rgb0, rgb1, butteraugliParameters, diffmap, out double diffval),
+            Butteraugli.ButteraugliInterface(TestEnvironment.Configuration, rgb0, rgb1, butteraugliParameters, diffmap, out double diffval),
             "Couldn't initialize Butteraugli");
 
         double distp = Butteraugli.ComputeDistanceP(diffmap, butteraugliParameters, 3.0);

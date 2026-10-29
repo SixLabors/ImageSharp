@@ -173,11 +173,7 @@ internal static class JxlQuantizerWeightsEncoder
     {
         bool allDefault = true;
 
-        // We need a Memory<T> as well as Span<T>.
-        //    Memory<T> - so we can use it in lambda expression
-        //    Span<T> - micro-optimization, offers slightly better performance
-        Memory<JxlQuantizerEncoding> encodingsMemory = matrices.GetEncodingsMemory();
-        Span<JxlQuantizerEncoding> encodings = encodingsMemory.Span;
+        ReadOnlySpan<JxlQuantizerEncoding> encodings = matrices.GetEncodings();
 
         for (int i = 0; i < encodings.Length; i++)
         {
@@ -193,11 +189,12 @@ internal static class JxlQuantizerWeightsEncoder
         {
             writer.Write(1, allDefault ? 1 : 0);
 
-            if (allDefault)
+            if (!allDefault)
             {
-                for (int i = 0; i < encodingsMemory.Length; i++)
+                ReadOnlySpan<JxlQuantizerEncoding> tables = matrices.GetEncodings();
+                for (int i = 0; i < tables.Length; i++)
                 {
-                    if (!EncodeQuant(configuration, encodingsMemory.Span[i], i, JxlDequantMatrices.RequiredSizeX[i], JxlDequantMatrices.RequiredSizeY[i], writer, encoder!))
+                    if (!EncodeQuant(configuration, tables[i], i, JxlDequantMatrices.RequiredSizeX[i], JxlDequantMatrices.RequiredSizeY[i], writer, encoder!))
                     {
                         return false;
                     }
@@ -211,20 +208,20 @@ internal static class JxlQuantizerWeightsEncoder
     public static bool DequantMatricesEncodeDc(JxlDequantMatrices matrices, JxlBitWriter writer)
     {
         Span<float> dcQuant = matrices.GetDcQuants();
-        bool allDefault = dcQuant[0] != JxlQuantizerConstants.DcQuant[0]
-            || dcQuant[1] != JxlQuantizerConstants.DcQuant[1]
-            || dcQuant[2] != JxlQuantizerConstants.DcQuant[2];
+        bool allDefault = dcQuant[0] == JxlQuantizerConstants.DcQuant[0]
+            && dcQuant[1] == JxlQuantizerConstants.DcQuant[1]
+            && dcQuant[2] == JxlQuantizerConstants.DcQuant[2];
 
         return writer.WithMaxBits(1 + (sizeof(float) * JxlMath.BitsPerByte * 3), () =>
         {
-            Span<float> dcQuant = matrices.GetDcQuants();
+            ReadOnlySpan<float> values = matrices.GetDcQuants();
             writer.Write(1, allDefault ? 1 : 0);
 
             if (!allDefault)
             {
-                if (!JxlF16Coder.Write(dcQuant[0] * 128.0f, writer) ||
-                    !JxlF16Coder.Write(dcQuant[1] * 128.0f, writer) ||
-                    !JxlF16Coder.Write(dcQuant[2] * 128.0f, writer))
+                if (!JxlF16Coder.Write(values[0] * 128.0f, writer) ||
+                    !JxlF16Coder.Write(values[1] * 128.0f, writer) ||
+                    !JxlF16Coder.Write(values[2] * 128.0f, writer))
                 {
                     return false;
                 }

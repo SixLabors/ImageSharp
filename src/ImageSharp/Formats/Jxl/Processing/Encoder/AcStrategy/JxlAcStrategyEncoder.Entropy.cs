@@ -31,6 +31,7 @@ internal static partial class JxlAcStrategyEncoder
     /// <param name="x">The source pixel column of the candidate's top-left corner.</param>
     /// <param name="y">The source pixel row of the candidate's top-left corner.</param>
     /// <param name="config">The borrowed source, quantization, mask and matrix storage, with their physical strides.</param>
+    /// <param name="matrixStorage">The prepared coefficient tables borrowed before the search loops.</param>
     /// <param name="cmapFactors">The X, Y and B color-correlation factors. The Y factor is zero.</param>
     /// <param name="block">Three packed coefficient regions, each large enough for this strategy's sample count.</param>
     /// <param name="fullScratchSpace">One maximum-area error region followed by the existing transform workspace.</param>
@@ -42,6 +43,7 @@ internal static partial class JxlAcStrategyEncoder
         int x,
         int y,
         JxlAcStrategyConfiguration config,
+        ReadOnlySpan<float> matrixStorage,
         Span<float> cmapFactors,
         Span<float> block,
         Span<float> fullScratchSpace,
@@ -105,8 +107,8 @@ internal static partial class JxlAcStrategyEncoder
         for (int c = 0; c < 3; c++)
         {
             ReadOnlySpan<float> coefficients = block.Slice(c * size, size);
-            ReadOnlySpan<float> inverseMatrix = config.Dequant.GetInverseMatrix(acs.Strategy, c)[..size];
-            ReadOnlySpan<float> matrix = config.Dequant.GetMatrix(acs.Strategy, c)[..size];
+            ReadOnlySpan<float> inverseMatrix = config.Dequant.GetInverseMatrix(matrixStorage, acs.Strategy, c)[..size];
+            ReadOnlySpan<float> matrix = config.Dequant.GetMatrix(matrixStorage, acs.Strategy, c)[..size];
             EntropyOperator operation = new(quantNorm, cmapFactors[c]);
             float coefficientCost = ComputeErrors(coefficients, luminance, inverseMatrix, matrix, error, operation, out int nonzero);
 

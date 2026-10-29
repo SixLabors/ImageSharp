@@ -333,12 +333,25 @@ internal static partial class JxlAcStrategyEncoder
         entropyEstimate[(cy * 8) + cx] = entropy;
     }
 
+    /// <summary>Selects the lowest-cost transform for one eight-pixel square.</summary>
+    /// <param name="x">The source pixel column.</param>
+    /// <param name="y">The source pixel row.</param>
+    /// <param name="encodingSpeedTier">The encoder search speed tier.</param>
+    /// <param name="butteraugliTarget">The requested perceptual distance.</param>
+    /// <param name="config">The borrowed source views and search weights.</param>
+    /// <param name="matrixStorage">The coefficient tables borrowed before the rectangle search.</param>
+    /// <param name="contextMapFactors">The X, Y and B color-correlation factors.</param>
+    /// <param name="block">The reusable three-channel coefficient workspace.</param>
+    /// <param name="scratchSpace">The reusable error and transform workspace.</param>
+    /// <param name="entropyOut">The selected transform's cost.</param>
+    /// <param name="bestTx">The selected transform strategy.</param>
     public static void FindBest8x8Transform(
         int x,
         int y,
         int encodingSpeedTier,
         float butteraugliTarget,
         JxlAcStrategyConfiguration config,
+        ReadOnlySpan<float> matrixStorage,
         Span<float> contextMapFactors,
         Span<float> block,
         Span<float> scratchSpace,
@@ -386,6 +399,7 @@ internal static partial class JxlAcStrategyEncoder
                 x,
                 y,
                 config,
+                matrixStorage,
                 contextMapFactors,
                 block,
                 scratchSpace,
@@ -404,6 +418,23 @@ internal static partial class JxlAcStrategyEncoder
         entropyOut = (float)best;
     }
 
+    /// <summary>Replaces an allowed block region when the candidate transform lowers its estimated cost.</summary>
+    /// <param name="acsRaw">The candidate strategy.</param>
+    /// <param name="bx">The rectangle's frame block column.</param>
+    /// <param name="by">The rectangle's frame block row.</param>
+    /// <param name="cx">The candidate's relative block column.</param>
+    /// <param name="cy">The candidate's relative block row.</param>
+    /// <param name="config">The borrowed source views and search weights.</param>
+    /// <param name="matrixStorage">The coefficient tables borrowed before the rectangle search.</param>
+    /// <param name="cmapFactors">The X, Y and B color-correlation factors.</param>
+    /// <param name="acStrategy">The destination strategy map.</param>
+    /// <param name="entropyMul">The candidate's fixed cost multiplier.</param>
+    /// <param name="candidatePriority">The priority used to prevent overlapping accepted transforms.</param>
+    /// <param name="priority">The rectangle's existing block priorities.</param>
+    /// <param name="entropyEstimate">The cost stored for each rectangle block.</param>
+    /// <param name="block">The reusable three-channel coefficient workspace.</param>
+    /// <param name="scratchSpace">The reusable error and transform workspace.</param>
+    /// <returns>Whether candidate estimation completed.</returns>
     public static bool TryMergeAcStrategy(
         JxlAcStrategyType acsRaw,
         int bx,
@@ -411,6 +442,7 @@ internal static partial class JxlAcStrategyEncoder
         int cx,
         int cy,
         JxlAcStrategyConfiguration config,
+        ReadOnlySpan<float> matrixStorage,
         Span<float> cmapFactors,
         JxlAcStrategyImage acStrategy,
         float entropyMul,
@@ -445,6 +477,7 @@ internal static partial class JxlAcStrategyEncoder
             (bx + cx) * 8,
             (by + cy) * 8,
             config,
+            matrixStorage,
             cmapFactors,
             block,
             scratchSpace,
@@ -486,6 +519,7 @@ internal static partial class JxlAcStrategyEncoder
     /// <param name="cx">The square's block column within the search rectangle.</param>
     /// <param name="cy">The square's block row within the search rectangle.</param>
     /// <param name="config">The borrowed source views, matrices and search weights.</param>
+    /// <param name="matrixStorage">The complete coefficient tables borrowed before the rectangle search.</param>
     /// <param name="cmapFactors">The three channel correlation factors.</param>
     /// <param name="acStrategy">The selected strategies to update.</param>
     /// <param name="entropyMulJXK">The existing entropy multiplier for divided candidates.</param>
@@ -502,6 +536,7 @@ internal static partial class JxlAcStrategyEncoder
         int cx,
         int cy,
         JxlAcStrategyConfiguration config,
+        ReadOnlySpan<float> matrixStorage,
         Span<float> cmapFactors,
         JxlAcStrategyImage acStrategy,
         float entropyMulJXK,
@@ -557,6 +592,7 @@ internal static partial class JxlAcStrategyEncoder
                     (bx + cx + 0) * 8,
                     (by + cy + 0) * 8,
                     config,
+                    matrixStorage,
                     cmapFactors,
                     block,
                     scratchSpace,
@@ -574,6 +610,7 @@ internal static partial class JxlAcStrategyEncoder
                     (bx + cx + blocksHalf) * 8,
                     (by + cy + 0) * 8,
                     config,
+                    matrixStorage,
                     cmapFactors,
                     block,
                     scratchSpace,
@@ -594,6 +631,7 @@ internal static partial class JxlAcStrategyEncoder
                     (bx + cx + 0) * 8,
                     (by + cy + 0) * 8,
                     config,
+                    matrixStorage,
                     cmapFactors,
                     block,
                     scratchSpace,
@@ -611,6 +649,7 @@ internal static partial class JxlAcStrategyEncoder
                     (bx + cx + 0) * 8,
                     (by + cy + blocksHalf) * 8,
                     config,
+                    matrixStorage,
                     cmapFactors,
                     block,
                     scratchSpace,
@@ -629,6 +668,7 @@ internal static partial class JxlAcStrategyEncoder
                 (bx + cx + 0) * 8,
                 (by + cy + 0) * 8,
                 config,
+                matrixStorage,
                 cmapFactors,
                 block,
                 scratchSpace,
@@ -706,6 +746,7 @@ internal static partial class JxlAcStrategyEncoder
     /// </summary>
     /// <param name="cparams">The fixed compression settings.</param>
     /// <param name="config">The borrowed source views, matrices and search weights.</param>
+    /// <param name="matrixStorage">The complete coefficient tables borrowed before the rectangle search.</param>
     /// <param name="rect">The rectangle in block coordinates, at most eight by eight blocks.</param>
     /// <param name="cmap">The frame's color-correlation maps.</param>
     /// <param name="block">The borrowed float allocation: three coefficient regions followed by error and transform scratch.</param>
@@ -714,6 +755,7 @@ internal static partial class JxlAcStrategyEncoder
     public static bool ProcessAcStrategyRectangle(
         JxlCompressionParameters cparams,
         JxlAcStrategyConfiguration config,
+        ReadOnlySpan<float> matrixStorage,
         Rectangle rect,
         JxlColorCorrelationMap cmap,
         Span<float> block,
@@ -763,6 +805,7 @@ internal static partial class JxlAcStrategyEncoder
                     (int)cparams.SpeedTier,
                     butteraugliTarget,
                     config,
+                    matrixStorage,
                     cmapFactors,
                     block,
                     scratchSpace,
@@ -826,6 +869,7 @@ internal static partial class JxlAcStrategyEncoder
                                     cx,
                                     cy,
                                     config,
+                                    matrixStorage,
                                     cmapFactors,
                                     acStrategy,
                                     mt.EntropyMultiplier,
@@ -865,6 +909,7 @@ internal static partial class JxlAcStrategyEncoder
                                     cx,
                                     cy,
                                     config,
+                                    matrixStorage,
                                     cmapFactors,
                                     acStrategy,
                                     mt.EntropyMultiplier,
@@ -905,6 +950,7 @@ internal static partial class JxlAcStrategyEncoder
                                     cx,
                                     cy,
                                     config,
+                                    matrixStorage,
                                     cmapFactors,
                                     acStrategy,
                                     mt.EntropyMultiplier,
@@ -938,6 +984,7 @@ internal static partial class JxlAcStrategyEncoder
                         cx,
                         cy,
                         config,
+                        matrixStorage,
                         cmapFactors,
                         acStrategy,
                         mt.EntropyMultiplier,
@@ -972,6 +1019,7 @@ internal static partial class JxlAcStrategyEncoder
                         cx,
                         cy,
                         config,
+                        matrixStorage,
                         cmapFactors,
                         acStrategy,
                         entropy_mul16X8,
@@ -1005,6 +1053,7 @@ internal static partial class JxlAcStrategyEncoder
                     cx,
                     cy,
                     config,
+                    matrixStorage,
                     cmapFactors,
                     acStrategy,
                     entropy_mul16X32,

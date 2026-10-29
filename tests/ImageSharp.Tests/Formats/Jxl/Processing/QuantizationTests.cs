@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
@@ -293,5 +296,129 @@ public class QuantizationTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks native default flags and the half-precision fields written for custom DC quantization.
+    /// </summary>
+    [Fact]
+    public void QuantizationHeaders_WriteDefaultFlagsAndCustomDcValues()
+    {
+        using JxlDequantMatrices matrices = new();
+        using MemoryStream stream = new();
+        JxlBitWriter writer = new(stream);
+        Assert.True(JxlQuantizerWeightsEncoder.DequantMatricesEncode(TestEnvironment.Configuration, matrices, writer, null));
+        Assert.True(JxlQuantizerWeightsEncoder.DequantMatricesEncodeDc(matrices, writer));
+
+        // Native headers use one bit equal to one for each default set, with no table fields after either flag.
+        Assert.Equal(2L, writer.BitsWritten);
+        writer.ZeroPadToByte();
+        Assert.Equal(new byte[] { 3 }, stream.ToArray());
+
+        stream.SetLength(0);
+        stream.Position = 0;
+        writer = new(stream);
+        InlineArray3<float> inverseDc = default;
+        inverseDc[0] = inverseDc[1] = inverseDc[2] = 1F;
+        matrices.SetDcQuant(inverseDc);
+        Assert.True(JxlQuantizerWeightsEncoder.DequantMatricesEncodeDc(matrices, writer));
+
+        // Custom values use flag zero, then three half-precision fields equal to DCQuant*128.
+        // Each value here is 128 (half bits 0x5800), shifted one bit by the flag in this least-significant-bit-first stream.
+        Assert.Equal(49L, writer.BitsWritten);
+        writer.ZeroPadToByte();
+        Assert.Equal(new byte[] { 0, 0xB0, 0, 0xB0, 0, 0xB0, 0 }, stream.ToArray());
+    }
+
+    /// <summary>
+    /// Checks compact table allocation, shared orientation storage, exact channel boundaries, and reuse at preparation.
+    /// </summary>
+    [Fact]
+    public void DequantMatrices_PrepareOnlyRequestedKindsAndReuseOrientations()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        using (JxlDequantMatrices matrices = new())
+        {
+            JxlQuantizerEncoding[] encodings = new JxlQuantizerEncoding[JxlQuantizerConstants.NumberOfQuantizerTables];
+            for (int i = 0; i < encodings.Length; i++)
+            {
+                encodings[i] = JxlQuantizerEncoding.Library(0);
+            }
+
+            encodings[(int)JxlQuantTable.DCT8X16] = JxlQuantizerEncoding.Dct(new JxlDctQuantWeightParameters([[2F], [4F], [8F]], 1));
+            matrices.SetEncodings(encodings);
+            uint mask = (1U << (int)JxlAcStrategyType.DCT) | (1U << (int)JxlAcStrategyType.DCT8X16);
+            Assert.True(matrices.EnsureComputed(configuration, mask));
+
+            // DCT8 uses 64 coefficients per channel; the rectangle uses 128. Three channels and two directions need 1152 floats.
+            // The other 15 table kinds require no coefficient storage.
+            ReadOnlySpan<float> storage = matrices.GetPreparedStorage();
+            Assert.Equal(1152, storage.Length);
+            Assert.Equal(4608L, allocator.LiveBufferBytes);
+            Assert.Equal(192, matrices.GetMatrix(storage, JxlAcStrategyType.DCT, 0).Length);
+            Assert.Equal(128, matrices.GetMatrix(storage, JxlAcStrategyType.DCT, 1).Length);
+            Assert.Equal(64, matrices.GetMatrix(storage, JxlAcStrategyType.DCT, 2).Length);
+            Assert.Equal(384, matrices.GetMatrix(storage, JxlAcStrategyType.DCT8X16, 0).Length);
+
+            for (int c = 0; c < 3; c++)
+            {
+                float weight = c == 0 ? 2F : c == 1 ? 4F : 8F;
+                ReadOnlySpan<float> forward = matrices.GetMatrix(storage, JxlAcStrategyType.DCT8X16, c);
+                ReadOnlySpan<float> inverse = matrices.GetInverseMatrix(storage, JxlAcStrategyType.DCT8X16, c);
+                Assert.Equal(1F / weight, forward[127]);
+                Assert.Equal(weight, inverse[127]);
+                Assert.Equal(0F, inverse[0]);
+            }
+
+            // These two orientations use the same quantization kind. Adding the second strategy must not rent or recompute.
+            mask |= 1U << (int)JxlAcStrategyType.DCT16X8;
+            Assert.True(matrices.EnsureComputed(configuration, mask));
+            storage = matrices.GetPreparedStorage();
+            ReadOnlySpan<float> horizontal = matrices.GetMatrix(storage, JxlAcStrategyType.DCT16X8, 0);
+            ReadOnlySpan<float> vertical = matrices.GetMatrix(storage, JxlAcStrategyType.DCT8X16, 0);
+            Assert.True(horizontal.Overlaps(vertical, out int offset));
+            Assert.Equal(0, offset);
+            Assert.Single(allocator.AllocationLog);
+        }
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.Single(allocator.ReturnLog);
+    }
+
+    /// <summary>
+    /// Checks that failed generation releases its allocation and permits a later complete preparation.
+    /// </summary>
+    [Fact]
+    public void DequantMatrices_FailedPreparationReleasesReplacement()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = TestEnvironment.Configuration.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        using (JxlDequantMatrices matrices = new())
+        {
+            JxlQuantizerEncoding[] encodings = JxlDequantMatrices.GetLibrary();
+
+            // Identity parameters are valid only for an 8 by 8 table. The 16 by 16 request must fail through real table generation.
+            encodings[(int)JxlQuantTable.DCT16X16] = JxlQuantizerEncoding.Identity([[1F, 1F, 1F], [1F, 1F, 1F], [1F, 1F, 1F]]);
+            matrices.SetEncodings(encodings);
+            Assert.False(matrices.EnsureComputed(configuration, 1U << (int)JxlAcStrategyType.DCT16X16));
+            Assert.True(matrices.GetPreparedStorage().IsEmpty);
+            Assert.Equal(0, allocator.LiveBufferBytes);
+            Assert.Single(allocator.ReturnLog);
+
+            matrices.SetEncodings(JxlDequantMatrices.GetLibrary());
+            Assert.True(matrices.EnsureComputed(configuration, 1U << (int)JxlAcStrategyType.DCT));
+            Assert.Equal(384, matrices.GetPreparedStorage().Length);
+            Assert.Equal(1536L, allocator.LiveBufferBytes);
+        }
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.Equal(2, allocator.ReturnLog.Count);
     }
 }

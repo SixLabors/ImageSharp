@@ -196,20 +196,22 @@ internal sealed partial class JxlQuantizer
     /// <summary>
     /// Returns the dequantization matrix.
     /// </summary>
+    /// <param name="storage">The prepared matrix storage borrowed at the group or search entry.</param>
     /// <param name="strategy">The quant kind</param>
     /// <param name="channelIndex">The XYB channel index.</param>
     /// <returns>The dequantization matrix.</returns>
-    public ReadOnlySpan<float> DequantMatrix(JxlAcStrategyType strategy, int channelIndex)
-        => this.dequantizationMatrices.GetMatrix(strategy, channelIndex);
+    public ReadOnlySpan<float> DequantMatrix(ReadOnlySpan<float> storage, JxlAcStrategyType strategy, int channelIndex)
+        => this.dequantizationMatrices.GetMatrix(storage, strategy, channelIndex);
 
     /// <summary>
     /// Returns the inverse dequantization matrix.
     /// </summary>
+    /// <param name="storage">The prepared matrix storage borrowed at the group or search entry.</param>
     /// <param name="strategy">The quant kind</param>
     /// <param name="channelIndex">The XYB channel index.</param>
     /// <returns>The inverse dequantization matrix.</returns>
-    public ReadOnlySpan<float> InverseDequantMatrix(JxlAcStrategyType strategy, int channelIndex)
-        => this.dequantizationMatrices.GetInverseMatrix(strategy, channelIndex);
+    public ReadOnlySpan<float> InverseDequantMatrix(ReadOnlySpan<float> storage, JxlAcStrategyType strategy, int channelIndex)
+        => this.dequantizationMatrices.GetInverseMatrix(storage, strategy, channelIndex);
 
     /// <summary>
     /// Returns the DC quantization step.

@@ -829,15 +829,15 @@ internal static class JxlQuantWeights
     /// Builds dequantization weights and their reciprocals for one transform in the caller's final storage.
     /// </summary>
     /// <param name="encoding">The quantization weight parameters.</param>
-    /// <param name="quantizationTable">The destination dequantization weights. Each entry is the reciprocal of the generated weight.</param>
-    /// <param name="inverseQuantizationTable">The destination quantization weights. Low-frequency entries are cleared after preparation.</param>
+    /// <param name="dequantizationTable">The destination dequantization weights. Each entry is the reciprocal of the generated weight.</param>
+    /// <param name="quantizationTable">The destination quantization weights. Low-frequency entries are cleared after preparation.</param>
     /// <param name="kind">The transform table kind.</param>
     /// <param name="writeOffset">The starting destination offset, advanced past the written weights.</param>
     /// <returns>Whether the encoding supports the selected transform.</returns>
     public static bool ComputeQuantTable(
         JxlQuantizerEncoding encoding,
+        Span<float> dequantizationTable,
         Span<float> quantizationTable,
-        Span<float> inverseQuantizationTable,
         JxlQuantTable kind,
         ref int writeOffset)
     {
@@ -850,7 +850,7 @@ internal static class JxlQuantWeights
 
         // Generate all three channel planes directly in their final allocation. The largest transform has 196,608 entries.
         // Keeping this view avoids a proportional stack allocation and subsequent copies of the complete table.
-        Span<float> weights = inverseQuantizationTable.Slice(writeOffset, 3 * num);
+        Span<float> weights = quantizationTable.Slice(writeOffset, 3 * num);
 
         switch (encoding.Mode)
         {
@@ -1085,7 +1085,7 @@ internal static class JxlQuantWeights
 
         // libjxl quant_weights.cc validates this interval before division. Validate and invert together;
         // no temporary table, fill with ones, or extra validation pass is required. Each lane owns one coefficient.
-        TensorPrimitives_.Invoke(weights, quantizationTable.Slice(writeOffset, weights.Length), default(ReciprocalWeightOperator));
+        TensorPrimitives_.Invoke(weights, dequantizationTable.Slice(writeOffset, weights.Length), default(ReciprocalWeightOperator));
 
         writeOffset += 3 * num;
 
@@ -1100,7 +1100,7 @@ internal static class JxlQuantWeights
             {
                 for (int x = 0; x < xs; x++)
                 {
-                    inverseQuantizationTable[prevPos + (c * ys * xs * JxlFrameDimensions.DctBlockSize) + (y * JxlFrameDimensions.BlockDimensions * xs) + x] = 0;
+                    quantizationTable[prevPos + (c * ys * xs * JxlFrameDimensions.DctBlockSize) + (y * JxlFrameDimensions.BlockDimensions * xs) + x] = 0;
                 }
             }
         }

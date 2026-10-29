@@ -46,6 +46,7 @@ internal static class JxlGroupDecoder
     /// <param name="kind">The transform strategy.</param>
     /// <param name="size">The coefficient count per channel.</param>
     /// <param name="quantizer">The prepared frame quantizer and matrices.</param>
+    /// <param name="matrixStorage">The complete coefficient tables borrowed before the group loops.</param>
     /// <param name="coveredBlocks">The number of 8-by-8 blocks covered by the transform.</param>
     /// <param name="sbx">The DC image's horizontal offset for each channel.</param>
     /// <param name="dcRow">The current DC samples.</param>
@@ -67,6 +68,7 @@ internal static class JxlGroupDecoder
         JxlAcStrategyType kind,
         int size,
         JxlQuantizer quantizer,
+        ReadOnlySpan<float> matrixStorage,
         int coveredBlocks,
         Span<int> sbx,
         Span<float> dcRow,
@@ -81,7 +83,7 @@ internal static class JxlGroupDecoder
         float inverseQuantization = invGlobalScale / quant;
         float xScale = inverseQuantization * xDmMultiplier;
         float bScale = inverseQuantization * bDmMultiplier;
-        ReadOnlySpan<float> matrices = quantizer.DequantMatrix(kind, 0);
+        ReadOnlySpan<float> matrices = quantizer.DequantMatrix(matrixStorage, kind, 0);
         int coefficientCount = coveredBlocks * JxlFrameDimensions.DctBlockSize;
 
         // The matrix table stores X, Y and B consecutively for this transform. Only logical coefficients participate.
@@ -184,7 +186,7 @@ internal static class JxlGroupDecoder
 
             JxlFrameHeader.JpegOrder(frameHeader.ColorTransform, jpegIsGray, out jpegCMap);
 
-            Span<JxlQuantizerEncoding> qe = decState.Shared.Matrices.GetEncodings();
+            ReadOnlySpan<JxlQuantizerEncoding> qe = decState.Shared.Matrices.GetEncodings();
 
             if (qe.Length == 0 ||
                 qe[0].Mode != JxlQuantMode.Raw ||

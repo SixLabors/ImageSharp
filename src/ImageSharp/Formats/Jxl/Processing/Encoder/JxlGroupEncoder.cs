@@ -75,6 +75,7 @@ internal static class JxlGroupEncoder
     /// Quantizes one transform's AC plane using its four frequency-quadrant thresholds.
     /// </summary>
     /// <param name="quantizer">The prepared frame quantizer and inverse matrices.</param>
+    /// <param name="matrixStorage">The matrix storage borrowed before the group block loops.</param>
     /// <param name="channelIndex">The XYB channel index.</param>
     /// <param name="matrixMultiplier">The channel's inverse matrix multiplier.</param>
     /// <param name="strategy">The transform strategy.</param>
@@ -86,6 +87,7 @@ internal static class JxlGroupEncoder
     /// <param name="destination">The caller-owned integer coefficient plane.</param>
     public static void QuantizeBlockAc(
         JxlQuantizer quantizer,
+        ReadOnlySpan<float> matrixStorage,
         int channelIndex,
         float matrixMultiplier,
         JxlAcStrategyType strategy,
@@ -96,7 +98,7 @@ internal static class JxlGroupEncoder
         int quant,
         Span<int> destination)
     {
-        ReadOnlySpan<float> inverseMatrix = quantizer.InverseDequantMatrix(strategy, channelIndex);
+        ReadOnlySpan<float> inverseMatrix = quantizer.InverseDequantMatrix(matrixStorage, strategy, channelIndex);
         float scale = (quantizer.Scale * quant) * matrixMultiplier;
         int blockCount = blocksWide * blocksHigh;
 
@@ -128,8 +130,20 @@ internal static class JxlGroupEncoder
         }
     }
 
+    /// <summary>Refines the integer block quantizer against frequency-weighted coefficient error.</summary>
+    /// <param name="quantizer">The prepared frame quantizer.</param>
+    /// <param name="matrixStorage">The complete coefficient tables borrowed before the group loops.</param>
+    /// <param name="c">The XYB channel index.</param>
+    /// <param name="qmMultiplier">The channel's inverse matrix multiplier.</param>
+    /// <param name="quantKind">The transform strategy.</param>
+    /// <param name="width">The canonical coefficient width, in blocks.</param>
+    /// <param name="height">The canonical coefficient height, in blocks.</param>
+    /// <param name="thresholds">The four frequency-quadrant thresholds, adjusted in place.</param>
+    /// <param name="blockIn">The source coefficient plane.</param>
+    /// <param name="quant">The positive integer quantizer, updated with the selected value.</param>
     public static void AdjustQuantBlockAC(
         JxlQuantizer quantizer,
+        ReadOnlySpan<float> matrixStorage,
         int c,
         float qmMultiplier,
         JxlAcStrategyType quantKind,
@@ -155,7 +169,7 @@ internal static class JxlGroupEncoder
             return;
         }
 
-        ReadOnlySpan<float> qm = quantizer.InverseDequantMatrix(quantKind, c);
+        ReadOnlySpan<float> qm = quantizer.InverseDequantMatrix(matrixStorage, quantKind, c);
         float qac = quantizer.Scale * quant;
 
         if (width > 1 || height > 1)
@@ -358,10 +372,24 @@ internal static class JxlGroupEncoder
         }
     }
 
+    /// <summary>Quantizes and reconstructs Y before the encoder removes Y correlation from X and B.</summary>
+    /// <param name="encoderState">The borrowed encoder controls and channel multipliers.</param>
+    /// <param name="size">The coefficient count per channel.</param>
+    /// <param name="quantizer">The prepared frame quantizer.</param>
+    /// <param name="matrixStorage">The complete coefficient tables borrowed before the group loops.</param>
+    /// <param name="errorDiffusion">The requested error-diffusion setting.</param>
+    /// <param name="quantKind">The transform strategy.</param>
+    /// <param name="width">The canonical coefficient width, in blocks.</param>
+    /// <param name="height">The canonical coefficient height, in blocks.</param>
+    /// <param name="biases">The prepared channel biases and shared bias numerator.</param>
+    /// <param name="quant">The positive integer quantizer, updated with the selected value.</param>
+    /// <param name="inOut">Three coefficient planes. The Y plane receives reconstructed coefficients.</param>
+    /// <param name="quantized">The integer destination for the same three coefficient planes.</param>
     public static void QuantizeRoundtripYBlockAc(
         JxlPassesEncoderState encoderState,
         int size,
         JxlQuantizer quantizer,
+        ReadOnlySpan<float> matrixStorage,
         bool errorDiffusion,
         JxlAcStrategyType quantKind,
         int width,
@@ -392,6 +420,7 @@ internal static class JxlGroupEncoder
 
                 AdjustQuantBlockAC(
                     quantizer,
+                    matrixStorage,
                     channel,
                     val[channel],
                     quantKind,
@@ -421,6 +450,7 @@ internal static class JxlGroupEncoder
 
         QuantizeBlockAc(
             quantizer,
+            matrixStorage,
             1,
             1.0f,
             quantKind,
@@ -431,7 +461,7 @@ internal static class JxlGroupEncoder
             quant,
             quantized[size..]);
 
-        ReadOnlySpan<float> dequantMatrix = quantizer.DequantMatrix(quantKind, 1);
+        ReadOnlySpan<float> dequantMatrix = quantizer.DequantMatrix(matrixStorage, quantKind, 1);
 
         // Reconstruct Y before quantizing its correlated X/B residuals. Bias, matrix and scale stay in registers;
         // the quantizer writes directly into the existing float coefficient plane and leaves integer output unchanged.
@@ -439,6 +469,13 @@ internal static class JxlGroupEncoder
         JxlQuantizer.Dequantize(quantized.Slice(size, coefficientCount), dequantMatrix, quantizer.InverseQuantAc(quant), 1, biases, inOut[size..]);
     }
 
+    /// <summary>Transforms and quantizes one group while borrowing its prepared matrices once.</summary>
+    /// <param name="configuration">The configuration that owns coefficient scratch.</param>
+    /// <param name="groupIndex">The frame group index.</param>
+    /// <param name="encoderState">The borrowed frame controls and coefficient destinations.</param>
+    /// <param name="opsin">The source XYB planes.</param>
+    /// <param name="rectangle">The source region.</param>
+    /// <param name="dc">The destination DC planes.</param>
     public static void ComputeCoefficients(
         Configuration configuration,
         int groupIndex,
@@ -447,6 +484,7 @@ internal static class JxlGroupEncoder
         Rectangle rectangle,
         JxlImage3<float> dc)
     {
+        ReadOnlySpan<float> matrixStorage = encoderState.Shared.Matrices.GetPreparedStorage();
         Rectangle blockGroupRect = encoderState.Shared.FrameDimensions.BlockGroupRect(groupIndex);
         Rectangle cmapRect = new(
             blockGroupRect.X0() / JxlChromaFromLuma.ColorTileDimensionInBlocks,
@@ -577,6 +615,7 @@ internal static class JxlGroupEncoder
                             encoderState,
                             size,
                             encoderState.Shared.Quantizer,
+                            matrixStorage,
                             errorDiffusion,
                             acs.Strategy,
                             xBlocks,
@@ -603,6 +642,7 @@ internal static class JxlGroupEncoder
 
                             QuantizeBlockAc(
                                 encoderState.Shared.Quantizer,
+                                matrixStorage,
                                 c,
                                 c == 0 ? encoderState.XQmMultiplier : encoderState.BQmMultiplier,
                                 acs.Strategy,

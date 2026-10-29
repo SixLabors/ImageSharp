@@ -109,14 +109,14 @@ internal sealed class JxlAcStrategyHeuristics : IDisposable
                 acsMask |= (uint)(1 << i);
             }
 
-            if (!matrices.EnsureComputed(this.Configuration, (int)acsMask))
+            if (!matrices.EnsureComputed(this.Configuration, acsMask))
             {
                 return false;
             }
         }
         else
         {
-            if (!matrices.EnsureComputed(this.Configuration, 1))
+            if (!matrices.EnsureComputed(this.Configuration, 1U))
             {
                 return false;
             }
@@ -185,10 +185,12 @@ internal sealed class JxlAcStrategyHeuristics : IDisposable
 
         // Borrow the span once for this rectangle. The kernel reuses its regions for every candidate; none escape this call.
         Span<float> scratch = this.scratch.Span;
+        ReadOnlySpan<float> matrixStorage = this.Config.Dequant.GetPreparedStorage();
 
         return JxlAcStrategyEncoder.ProcessAcStrategyRectangle(
             this.CompressionParameters,
             this.Config,
+            matrixStorage,
             rect,
             cmap,
             scratch,

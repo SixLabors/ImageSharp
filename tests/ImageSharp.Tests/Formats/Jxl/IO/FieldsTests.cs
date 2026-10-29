@@ -19,6 +19,116 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 public class FieldsTests
 {
     /// <summary>
+    /// Checks image dimensions against the size-header fields in libjxl headers.cc, including every built-in ratio.
+    /// </summary>
+    /// <param name="wire">The fixed, least-significant-bit-first header bytes.</param>
+    /// <param name="width">The decoded image width in pixels.</param>
+    /// <param name="height">The decoded image height in pixels.</param>
+    /// <param name="bitCount">The header length before byte padding.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x00, 0x10 }, 1, 1, 15)]
+    [InlineData(new byte[] { 0x41, 0x00 }, 8, 8, 9)]
+    [InlineData(new byte[] { 0x7F, 0x00 }, 256, 256, 9)]
+    [InlineData(new byte[] { 0x05, 0x08 }, 40, 24, 14)]
+    [InlineData(new byte[] { 0x80, 0x00, 0x18, 0x00 }, 13, 17, 26)]
+    [InlineData(new byte[] { 0x40, 0x10 }, 9, 9, 15)]
+    [InlineData(new byte[] { 0x40, 0x20 }, 10, 9, 15)]
+    [InlineData(new byte[] { 0x40, 0x30 }, 12, 9, 15)]
+    [InlineData(new byte[] { 0x40, 0x40 }, 13, 9, 15)]
+    [InlineData(new byte[] { 0x40, 0x50 }, 16, 9, 15)]
+    [InlineData(new byte[] { 0x40, 0x60 }, 11, 9, 15)]
+    [InlineData(new byte[] { 0x40, 0x70 }, 18, 9, 15)]
+    [InlineData(new byte[] { 0x02, 0x10, 0x01 }, 513, 513, 19)]
+    [InlineData(new byte[] { 0x04, 0x00, 0x21 }, 8193, 8193, 24)]
+    [InlineData(new byte[] { 0x06, 0x00, 0x20, 0x00, 0x02 }, 262145, 262145, 36)]
+    [InlineData(new byte[] { 0xFE, 0xFF, 0xFF, 0xFF, 0x0B }, 1908874353, 1073741824, 36)]
+    [InlineData(new byte[] { 0xF6, 0xFF, 0xFF, 0xFF, 0x0F }, 2147483646, 1073741823, 36)]
+    public void SizeHeader_ReadAndWriteMatchesFixedWire(byte[] wire, int width, int height, int bitCount)
+    {
+        // Read independent wire bytes into a reused header so earlier size representations cannot determine the result.
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+        JxlSizeHeader size = new();
+        size.Set(40, 24);
+
+        Assert.True(JxlBundle.Read(reader, size));
+        Assert.Equal((width, height), (size.XSize, size.YSize));
+        Assert.Equal(bitCount, reader.TotalBitsConsumed);
+
+        // Select the native compact form from dimensions, then compare its output with the same fixed wire bytes.
+        size.Set(width, height);
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(size, writer, JxlLayerType.Header, null));
+        Assert.Equal(bitCount, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks that initialization and explicit reset restore explicit one-by-one size fields.
+    /// </summary>
+    [Fact]
+    public void SizeHeader_DefaultsRestoreOnePixelDimensions()
+    {
+        JxlSizeHeader size = new();
+
+        Assert.Equal((1, 1), (size.XSize, size.YSize));
+        Assert.True(JxlBundle.AllDefault(size));
+
+        size.Set(40, 24);
+        JxlBundle.SetDefault(size);
+
+        Assert.Equal((1, 1), (size.XSize, size.YSize));
+        Assert.True(JxlBundle.AllDefault(size));
+
+        // Defaults use explicit dimensions, not the square ratio selected by Set. Both nine-bit values store dimension minus one.
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(size, writer, JxlLayerType.Header, null));
+        Assert.Equal(26, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks the derived width before it can overflow the Int32 image-dimension contract.
+    /// </summary>
+    [Fact]
+    public void ReadSizeHeader_RejectsDerivedWidthOutsideImageRange()
+    {
+        // Height is 2^30 and ratio seven is 2:1. The encoded height fits, but its width is 2^31.
+        using MemoryStream input = new([0xFE, 0xFF, 0xFF, 0xFF, 0x0F]);
+        JxlBitReader reader = new(input);
+        JxlSizeHeader size = new();
+
+        Assert.False(JxlBundle.Read(reader, size));
+    }
+
+    /// <summary>
+    /// Checks that the encoder boundary rejects dimensions that cannot describe an image.
+    /// </summary>
+    /// <param name="width">The supplied width.</param>
+    /// <param name="height">The supplied height.</param>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 0)]
+    [InlineData(-1, 1)]
+    [InlineData(1, -1)]
+    public void SizeHeader_SetRejectsNonpositiveDimensions(int width, int height)
+    {
+        JxlSizeHeader size = new();
+
+        Assert.Throws<ArgumentException>(() => size.Set(width, height));
+    }
+
+    /// <summary>
     /// Checks box-header byte order, minimum sizes, and final unbounded boxes against fixed wire bytes.
     /// </summary>
     /// <param name="wire">The complete fixed header, with its type before any extended size.</param>
@@ -1123,7 +1233,8 @@ public class FieldsTests
     public void TestOutOfRange()
     {
         JxlSizeHeader h = new();
-        h.Set(unchecked((int)0xFFFFFFFF), unchecked((int)0xFFFFFFFF));
+        // Positive Int32 dimensions are valid inputs to Set, but exceed the largest 30-bit wire representation.
+        h.Set(int.MaxValue, int.MaxValue);
 
         int extensionBits = 999;
         long totalBits = 999;

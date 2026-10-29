@@ -24,7 +24,7 @@ internal sealed class JxlPreviewHeader : IJxlFields
             {
                 SignedRational signedRational = JxlAspectRatioHelpers.FixedAspectRatios(this.ratio);
 
-                return JxlAspectRatioHelpers.MultiplyTruncate(signedRational, this.YSize);
+                return (int)JxlAspectRatioHelpers.MultiplyTruncate(signedRational, this.YSize);
             }
 
             return this.div8 ? (this.xSizeDiv8 * 8) : this.xSize;

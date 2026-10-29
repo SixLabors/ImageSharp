@@ -24,6 +24,14 @@ internal static class JxlOpsinConstants
 
     public static ReadOnlySpan<float> OpsinAbsorbanceBias => [OpsinAbsorbanceBias0, OpsinAbsorbanceBias1, OpsinAbsorbanceBias2];
 
+    /// <summary>Gets the frozen forward absorbance matrix in row-major order.</summary>
+    public static ReadOnlySpan<float> OpsinAbsorbanceMatrix =>
+    [
+        0.30F, 1F - 0.078F - 0.30F, 0.078F,
+        0.23F, 1F - 0.078F - 0.23F, 0.078F,
+        0.24342268924547819F, 0.20476744424496821F, 1F - 0.24342268924547819F - 0.20476744424496821F
+    ];
+
     /// <summary>Gets the output scales for X, Y and B minus Y in the native scaled-XYB representation.</summary>
     public static ReadOnlySpan<float> ScaledXybScale => [22.995788804F, 1.183000077F, 1.502141333F];
 

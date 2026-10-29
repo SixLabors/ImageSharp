@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
@@ -10,6 +13,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
@@ -303,6 +307,179 @@ public class OpsinImageTests
                             }
 
                             Assert.Equal(expected, actual[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>Checks the actual forward row path, native matrix equations, shared input expansion and exact storage bounds.</summary>
+    [Fact]
+    public void ForwardOpsin_ConvertsRowsAndRetainsRequestedLinearSamples()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+            ReadOnlySpan<float> intensities = [255F, 65504F];
+            ReadOnlySpan<float> matrix =
+            [
+                0.30F, 1F - 0.078F - 0.30F, 0.078F,
+                0.23F, 1F - 0.078F - 0.23F, 0.078F,
+                0.24342268924547819F, 0.20476744424496821F, 1F - 0.24342268924547819F - 0.20476744424496821F
+            ];
+
+            const float bias = 0.0037930732552754493F;
+            ReadOnlySpan<float> sourceValues =
+            [
+                0F, 0F, 0F,
+                1F, 1F, 1F,
+                0.5F, 0.25F, 0.75F,
+                -bias / 0.30F, 0F, 0F,
+                65504F, -65504F, 65504F,
+                -65504F, 65504F, -65504F,
+                float.Epsilon, float.Epsilon, float.Epsilon,
+                -0.25F, 0.125F, 0.5F
+            ];
+
+            Span<float> coefficients = stackalloc float[12];
+            coefficients[9] = coefficients[10] = coefficients[11] = -MathF.Cbrt(bias);
+            const float untouched = -777F;
+            CompandingUtilities.BoundedOperator<SRgbCompanding.ExpandOperator> expand = new(new(1.055F, 0.055F, 0.04045F), PixelColorRange.Extended);
+            foreach (int width in widths)
+            {
+                using JxlImage3<float> image = new(TestEnvironment.Configuration, width + 19, 1);
+                using JxlImage3<float> retained = new(TestEnvironment.Configuration, width + 35, 1);
+                Span<float> storage0 = image.PlaneRow(0, 0);
+                Span<float> storage1 = image.PlaneRow(1, 0);
+                Span<float> storage2 = image.PlaneRow(2, 0);
+                Span<float> linear0 = retained.PlaneRow(0, 0);
+                Span<float> linear1 = retained.PlaneRow(1, 0);
+                Span<float> linear2 = retained.PlaneRow(2, 0);
+                Span<float> row0 = storage0.Slice(2, width);
+                Span<float> row1 = storage1.Slice(2, width);
+                Span<float> row2 = storage2.Slice(2, width);
+                foreach (float intensity in intensities)
+                {
+                    // These are native input parameters, independent of the production coefficient preparation method.
+                    for (int i = 0; i < matrix.Length; i++)
+                    {
+                        coefficients[i] = matrix[i] * (intensity / 255F);
+                    }
+
+                    for (int mode = 0; mode < 4; mode++)
+                    {
+                        bool encoded = mode >= 2;
+                        bool retainLinear = (mode & 1) != 0;
+                        storage0.Fill(untouched);
+                        storage1.Fill(untouched);
+                        storage2.Fill(untouched);
+                        linear0.Fill(untouched);
+                        linear1.Fill(untouched);
+                        linear2.Fill(untouched);
+                        for (int x = 0; x < width; x++)
+                        {
+                            int sample = (x % 8) * 3;
+                            row0[x] = sourceValues[sample];
+                            row1[x] = sourceValues[sample + 1];
+                            row2[x] = sourceValues[sample + 2];
+                        }
+
+                        Span<float> retained0 = retainLinear ? linear0.Slice(4, width) : [];
+                        Span<float> retained1 = retainLinear ? linear1.Slice(4, width) : [];
+                        Span<float> retained2 = retainLinear ? linear2.Slice(4, width) : [];
+                        if (encoded)
+                        {
+                            JxlXybEncoder.RgbRowToXyb(row0, row1, row2, row0, row1, row2, retained0, retained1, retained2, coefficients, expand);
+                        }
+                        else
+                        {
+                            JxlXybEncoder.RgbRowToXyb(
+                                row0,
+                                row1,
+                                row2,
+                                row0,
+                                row1,
+                                row2,
+                                retained0,
+                                retained1,
+                                retained2,
+                                coefficients,
+                                default(TensorPrimitives_.IdentityOperator));
+                        }
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            int sample = (x % 8) * 3;
+                            Vector4 linear = new(sourceValues[sample], sourceValues[sample + 1], sourceValues[sample + 2], 1F);
+                            if (encoded)
+                            {
+                                // The public shared API defines the requested input expansion and finite result range.
+                                linear = SRgbCompanding.Expand(linear, 32, PixelColorRange.Extended);
+                            }
+
+                            InlineArray3<float> roots = default;
+                            float absoluteBound = 0F;
+                            float scale = intensity / 255F;
+
+                            // Evaluate the frozen native equations independently of the supplied coefficient bank.
+                            Vector3 absorbance = new(
+                                float.MultiplyAddEstimate(0.078F * scale, linear.Z, bias),
+                                float.MultiplyAddEstimate(0.078F * scale, linear.Z, bias),
+                                float.MultiplyAddEstimate((1F - 0.24342268924547819F - 0.20476744424496821F) * scale, linear.Z, bias));
+
+                            absorbance.X = float.MultiplyAddEstimate((1F - 0.078F - 0.30F) * scale, linear.Y, absorbance.X);
+                            absorbance.X = float.MultiplyAddEstimate(0.30F * scale, linear.X, absorbance.X);
+                            absorbance.Y = float.MultiplyAddEstimate((1F - 0.078F - 0.23F) * scale, linear.Y, absorbance.Y);
+                            absorbance.Y = float.MultiplyAddEstimate(0.23F * scale, linear.X, absorbance.Y);
+                            absorbance.Z = float.MultiplyAddEstimate(0.20476744424496821F * scale, linear.Y, absorbance.Z);
+                            absorbance.Z = float.MultiplyAddEstimate(0.24342268924547819F * scale, linear.X, absorbance.Z);
+                            for (int c = 0; c < 3; c++)
+                            {
+                                // MathF.Cbrt is independent of the SIMD reciprocal-root approximation.
+                                float root = MathF.Cbrt(MathF.Max(0F, absorbance[c]));
+                                roots[c] = root - MathF.Cbrt(bias);
+
+                                // Native documents six root ULPs. One additional root ULP covers the reference's separate bias addition.
+                                // Use an absolute XYB bound: cancellation near black does not preserve a relative biased-result ULP bound.
+                                absoluteBound = MathF.Max(absoluteBound, 7F * (MathF.BitIncrement(root) - root));
+                            }
+
+                            Assert.Equal(0.5F * (roots[0] - roots[1]), row0[x], absoluteBound);
+                            Assert.Equal(0.5F * (roots[0] + roots[1]), row1[x], absoluteBound);
+                            Assert.Equal(roots[2], row2[x], absoluteBound);
+                            if (retainLinear)
+                            {
+                                Assert.Equal(linear.X, retained0[x]);
+                                Assert.Equal(linear.Y, retained1[x]);
+                                Assert.Equal(linear.Z, retained2[x]);
+                            }
+                        }
+
+                        // Inspect full allocations, not just logical rows. No SIMD block may overwrite either prefix or trailing storage.
+                        for (int c = 0; c < 3; c++)
+                        {
+                            ReadOnlySpan<float> pixels = c == 0 ? storage0 : c == 1 ? storage1 : storage2;
+                            for (int i = 0; i < pixels.Length; i++)
+                            {
+                                if (i < 2 || i >= width + 2)
+                                {
+                                    Assert.Equal(untouched, pixels[i]);
+                                }
+                            }
+
+                            pixels = c == 0 ? linear0 : c == 1 ? linear1 : linear2;
+                            for (int i = 0; i < pixels.Length; i++)
+                            {
+                                if (!retainLinear || i < 4 || i >= width + 4)
+                                {
+                                    Assert.Equal(untouched, pixels[i]);
+                                }
+                            }
                         }
                     }
                 }

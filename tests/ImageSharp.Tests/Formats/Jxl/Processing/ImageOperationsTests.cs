@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Memory;
@@ -14,6 +15,138 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 
 public class ImageOperationsTests
 {
+    /// <summary>
+    /// Checks exact zero-alpha clearing, independent physical strides, padding, and tails through the shared planar operation.
+    /// </summary>
+    [Fact]
+    public void SimplifyInvisible_LosslessClearsOnlyZeroAlpha()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<int> widths = [0, 1, 3, 4, 7, 8, 15, 16, 17, 31, 32, 33];
+            ReadOnlySpan<float> alphaValues = [0F, -0F, 1F, -1F, float.NaN, 0.5F];
+
+            foreach (int width in widths)
+            {
+                using JxlImage3<float> image = new(TestEnvironment.Configuration, width, 2);
+                using JxlPlane<float> alpha = new(TestEnvironment.Configuration, width + 17, 2, 2);
+                Assert.True(alpha.ShrinkTo(width, 2));
+                Span<float> alphaAllocation = alpha.GetRowMinus(0, 2);
+                alphaAllocation.Fill(-77F);
+                Span<float> alphaSamples = alpha.GetRow(0);
+
+                // Shrinking retains the larger alpha stride. Neither its padding nor the color padding belongs to the operation.
+                for (int y = 0; y < 2; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        alphaSamples[(y * alpha.PixelsPerRow) + x] = alphaValues[(x + y) % alphaValues.Length];
+                    }
+                }
+
+                for (int c = 0; c < 3; c++)
+                {
+                    Span<float> samples = image.PlaneRow(c, 0);
+                    samples.Fill(-99F);
+
+                    for (int y = 0; y < 2; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            samples[(y * image.PixelsPerRow) + x] = x % 3 == 0 ? -0F : (c + 1) * (x - 7F);
+                        }
+                    }
+                }
+
+                JxlFrameEncoder.SimplifyInvisible(image, alpha, true);
+
+                for (int c = 0; c < 3; c++)
+                {
+                    ReadOnlySpan<float> samples = image.PlaneRow(c, 0);
+                    for (int y = 0; y < 2; y++)
+                    {
+                        for (int x = 0; x < image.PixelsPerRow; x++)
+                        {
+                            float expected = -99F;
+                            if (x < width)
+                            {
+                                float opacity = alphaValues[(x + y) % alphaValues.Length];
+                                float original = x % 3 == 0 ? -0F : (c + 1) * (x - 7F);
+                                expected = opacity == 0F ? 0F : original;
+                            }
+
+                            // Bit equality distinguishes the required positive replacement zero from retained negative zero.
+                            Assert.Equal(BitConverter.SingleToUInt32Bits(expected), BitConverter.SingleToUInt32Bits(samples[(y * image.PixelsPerRow) + x]));
+                        }
+                    }
+                }
+
+                for (int y = 0; y < 2; y++)
+                {
+                    for (int x = 0; x < alpha.PixelsPerRow; x++)
+                    {
+                        float expected = x < width ? alphaValues[(x + y) % alphaValues.Length] : -77F;
+                        Assert.Equal(BitConverter.SingleToUInt32Bits(expected), BitConverter.SingleToUInt32Bits(alphaSamples[(y * alpha.PixelsPerRow) + x]));
+                    }
+                }
+
+                Assert.Equal(-77F, alphaAllocation[0]);
+                Assert.Equal(-77F, alphaAllocation[1]);
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks the native sequential neighbor estimate at all four borders and across adjacent invisible samples.
+    /// </summary>
+    [Fact]
+    public void SimplifyInvisible_LossyRetainsCausalNeighborOrder()
+    {
+        ReadOnlySpan<float> original = [8F, 100F, 100F, 100F, 100F, 24F];
+        ReadOnlySpan<float> opacity = [1F, 0F, 0F, 0F, 0F, 1F];
+        ReadOnlySpan<float> expected = [8F, 16F, 64F / 3F, 32F / 3F, 20F, 24F];
+        using JxlImage3<float> image = new(TestEnvironment.Configuration, 3, 2);
+        using JxlPlane<float> alpha = new(TestEnvironment.Configuration, 3, 2);
+        Span<float> alphaSamples = alpha.GetRow(0);
+
+        for (int y = 0; y < 2; y++)
+        {
+            opacity.Slice(y * 3, 3).CopyTo(alphaSamples.Slice(y * alpha.PixelsPerRow, 3));
+        }
+
+        for (int c = 0; c < 3; c++)
+        {
+            Span<float> samples = image.PlaneRow(c, 0);
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < 3; x++)
+                {
+                    samples[(y * image.PixelsPerRow) + x] = original[(y * 3) + x] * (1 << c);
+                }
+            }
+        }
+
+        JxlFrameEncoder.SimplifyInvisible(image, alpha, false);
+
+        // Native weights produce 16=(8+8+48)/4, then 64/3 and 32/3. Their rounded sum is 32; (32+48)/4 gives 20.
+        // Scaling by powers of two checks independent color planes without changing the float addition and division results.
+        for (int c = 0; c < 3; c++)
+        {
+            ReadOnlySpan<float> samples = image.PlaneRow(c, 0);
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < 3; x++)
+                {
+                    Assert.Equal(expected[(y * 3) + x] * (1 << c), samples[(y * image.PixelsPerRow) + x]);
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Checks that range scans exclude a prefix, padding and retained rows at every SIMD width and in the scalar path.
     /// </summary>

@@ -454,62 +454,91 @@ internal static class Butteraugli
                 x + x));
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void XybLowFrequencyToValues(
-        Vector<float> x,
-        Vector<float> y,
-        Vector<float> bArg,
-        out Vector<float> valX,
-        out Vector<float> valY,
-        out Vector<float> valB)
-    {
-        Vector<float> xMul = new(33.832837186260f);
-        Vector<float> yMul = new(14.458268100570f);
-        Vector<float> bMul = new(49.87984651440f);
-        Vector<float> yToBMul = new(-0.362267051518f);
-
-        Vector<float> b = (yToBMul * y) + bArg;
-
-        valB = b * bMul;
-        valX = x * xMul;
-        valY = y * yMul;
-    }
-
     /// <summary>
     /// Converts low-frequency XYB planes to the weighted values used by the comparison equations.
     /// </summary>
-    /// <param name="xybLf">The preallocated low-frequency image, updated in place.</param>
+    /// <param name="xybLf">The preallocated low-frequency image, updated in place without changing row padding.</param>
     public static void XybLowFrequencyToValues(JxlImage3<float> xybLf)
     {
-        int lanes = Vector<float>.Count;
-
-        Span<float> samples0 = xybLf.Plane(0).GetRow(0);
-        Span<float> samples1 = xybLf.Plane(1).GetRow(0);
-        Span<float> samples2 = xybLf.Plane(2).GetRow(0);
+        // These are the native Butteraugli low-frequency weights. B first removes its correlated Y contribution,
+        // then applies its own weight. X and Y receive independent weights for the later squared differences.
+        const float xMultiplier = 33.832837186260F;
+        const float yMultiplier = 14.458268100570F;
+        const float bMultiplier = 49.87984651440F;
+        const float yToBMultiplier = -0.362267051518F;
+        JxlPlane<float> planeX = xybLf.Plane(0);
+        JxlPlane<float> planeY = xybLf.Plane(1);
+        JxlPlane<float> planeB = xybLf.Plane(2);
+        Span<float> samplesX = planeX.GetRow(0);
+        Span<float> samplesY = planeY.GetRow(0);
+        Span<float> samplesB = planeB.GetRow(0);
+        int strideX = planeX.PixelsPerRow;
+        int strideY = planeY.PixelsPerRow;
+        int strideB = planeB.PixelsPerRow;
+        int width = xybLf.XSize;
 
         for (int y = 0; y < xybLf.YSize; y++)
         {
-            Span<float> rowX = samples0[(y * xybLf.Plane(0).PixelsPerRow)..];
-            Span<float> rowY = samples1[(y * xybLf.Plane(1).PixelsPerRow)..];
-            Span<float> rowB = samples2[(y * xybLf.Plane(2).PixelsPerRow)..];
+            ref float rowX = ref MemoryMarshal.GetReference(samplesX.Slice(y * strideX, width));
+            ref float rowY = ref MemoryMarshal.GetReference(samplesY.Slice(y * strideY, width));
+            ref float rowB = ref MemoryMarshal.GetReference(samplesB.Slice(y * strideB, width));
+            int x = 0;
 
-            for (int x = 0; x < xybLf.XSize; x += lanes)
+            // Each lane contains one position from each plane. Load all three original components before writing;
+            // in particular, B must use the original Y rather than its weighted value. Only complete logical blocks
+            // enter SIMD, so no load or store depends on the allocator's physical row padding.
+            if (Vector512.IsHardwareAccelerated)
             {
-                Vector<float> valX = new(rowX.Slice(x, lanes));
-                Vector<float> valY = new(rowY.Slice(x, lanes));
-                Vector<float> valB = new(rowB.Slice(x, lanes));
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
+                {
+                    Vector512<float> inputX = Vector512.LoadUnsafe(ref rowX, (uint)x);
+                    Vector512<float> inputY = Vector512.LoadUnsafe(ref rowY, (uint)x);
+                    Vector512<float> inputB = Vector512.LoadUnsafe(ref rowB, (uint)x);
+                    Vector512<float> outputB = Vector512.MultiplyAddEstimate(Vector512.Create(yToBMultiplier), inputY, inputB);
+                    (inputX * Vector512.Create(xMultiplier)).StoreUnsafe(ref rowX, (uint)x);
+                    (inputY * Vector512.Create(yMultiplier)).StoreUnsafe(ref rowY, (uint)x);
+                    (outputB * Vector512.Create(bMultiplier)).StoreUnsafe(ref rowB, (uint)x);
+                }
+            }
 
-                XybLowFrequencyToValues(
-                    valX,
-                    valY,
-                    valB,
-                    out valX,
-                    out valY,
-                    out valB);
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    Vector256<float> inputX = Vector256.LoadUnsafe(ref rowX, (uint)x);
+                    Vector256<float> inputY = Vector256.LoadUnsafe(ref rowY, (uint)x);
+                    Vector256<float> inputB = Vector256.LoadUnsafe(ref rowB, (uint)x);
+                    Vector256<float> outputB = Vector256.MultiplyAddEstimate(Vector256.Create(yToBMultiplier), inputY, inputB);
+                    (inputX * Vector256.Create(xMultiplier)).StoreUnsafe(ref rowX, (uint)x);
+                    (inputY * Vector256.Create(yMultiplier)).StoreUnsafe(ref rowY, (uint)x);
+                    (outputB * Vector256.Create(bMultiplier)).StoreUnsafe(ref rowB, (uint)x);
+                }
+            }
 
-                valX.CopyTo(rowX.Slice(x, lanes));
-                valY.CopyTo(rowY.Slice(x, lanes));
-                valB.CopyTo(rowB.Slice(x, lanes));
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    Vector128<float> inputX = Vector128.LoadUnsafe(ref rowX, (uint)x);
+                    Vector128<float> inputY = Vector128.LoadUnsafe(ref rowY, (uint)x);
+                    Vector128<float> inputB = Vector128.LoadUnsafe(ref rowB, (uint)x);
+                    Vector128<float> outputB = Vector128.MultiplyAddEstimate(Vector128.Create(yToBMultiplier), inputY, inputB);
+                    (inputX * Vector128.Create(xMultiplier)).StoreUnsafe(ref rowX, (uint)x);
+                    (inputY * Vector128.Create(yMultiplier)).StoreUnsafe(ref rowY, (uint)x);
+                    (outputB * Vector128.Create(bMultiplier)).StoreUnsafe(ref rowB, (uint)x);
+                }
+            }
+
+            // The remainder uses the same multiply-add followed by multiplication as each SIMD lane and native MulAdd.
+            for (; x < width; x++)
+            {
+                float inputX = Unsafe.Add(ref rowX, x);
+                float inputY = Unsafe.Add(ref rowY, x);
+                float inputB = Unsafe.Add(ref rowB, x);
+                float outputB = float.MultiplyAddEstimate(yToBMultiplier, inputY, inputB);
+                Unsafe.Add(ref rowX, x) = inputX * xMultiplier;
+                Unsafe.Add(ref rowY, x) = inputY * yMultiplier;
+                Unsafe.Add(ref rowB, x) = outputB * bMultiplier;
             }
         }
     }
@@ -527,35 +556,17 @@ internal static class Butteraugli
             return false;
         }
 
-        int xSize = inY.XSize;
-        int ySize = inY.YSize;
-        int lanes = Vector<float>.Count;
-
-        const float suppress = 46.0f;
-        const float s = 0.653020556257f;
-
-        Vector<float> sv = new(s);
-        Vector<float> oneMinusS = new(1.0f - s);
-        Vector<float> ywv = new(suppress);
-
-        Span<float> samplesY = inY.GetRow(0);
+        ReadOnlySpan<float> samplesY = inY.GetRow(0);
         Span<float> samplesX = inOutX.GetRow(0);
 
-        for (int y = 0; y < ySize; y++)
+        for (int y = 0; y < inY.YSize; y++)
         {
-            ReadOnlySpan<float> rowY = samplesY[(y * inY.PixelsPerRow)..];
-            Span<float> rowX = samplesX[(y * inOutX.PixelsPerRow)..];
+            ReadOnlySpan<float> rowY = samplesY.Slice(y * inY.PixelsPerRow, inY.XSize);
+            Span<float> rowX = samplesX.Slice(y * inOutX.PixelsPerRow, inOutX.XSize);
 
-            for (int x = 0; x < xSize; x += lanes)
-            {
-                Vector<float> vx = new(rowX.Slice(x, lanes));
-                Vector<float> vy = new(rowY.Slice(x, lanes));
-
-                Vector<float> scaler =
-                    ((ywv / ((vy * vy) + ywv)) * oneMinusS) + sv;
-
-                (scaler * vx).CopyTo(rowX.Slice(x, lanes));
-            }
+            // Each lane combines X and Y at the same position. The shared loop handles complete registers and scalar tails,
+            // so the result can replace X without reading or changing physical row padding.
+            TensorPrimitives_.Invoke(rowX, rowY, rowX, default(SuppressXByYOperator));
         }
 
         return true;
@@ -2087,6 +2098,68 @@ internal static class Butteraugli
             Span<float> rowDiff = differenceSamples[(y * diffmap.PixelsPerRow)..];
 
             TensorPrimitives_.Invoke(row0[..i0.XSize], row1[..i0.XSize], rowDiff[..i0.XSize], rowDiff[..i0.XSize], operation);
+        }
+    }
+
+    /// <summary>
+    /// Reduces X sensitivity where the same sample has a large Y response.
+    /// </summary>
+    private readonly struct SuppressXByYOperator : TensorPrimitives_.IBinaryOperator
+    {
+        /// <summary>The squared Y magnitude that halves the variable part of the response.</summary>
+        private const float Suppression = 46F;
+
+        /// <summary>The response retained when the Y magnitude grows without bound.</summary>
+        private const float MinimumResponse = 0.653020556257F;
+
+        /// <summary>The variable response, rounded once from the native coefficient.</summary>
+        private const float VariableResponse = (float)(1D - 0.653020556257D);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second)
+        {
+            // Native Butteraugli uses Y squared, so positive and negative Y suppress X equally.
+            // The response is one at Y = 0 and tends to MinimumResponse as the Y magnitude increases.
+            float denominator = float.MultiplyAddEstimate(second, second, Suppression);
+
+            return float.MultiplyAddEstimate(Suppression / denominator, VariableResponse, MinimumResponse) * first;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second)
+        {
+            Vector128<float> denominator = Vector128.MultiplyAddEstimate(second, second, Vector128.Create(Suppression));
+
+            return Vector128.MultiplyAddEstimate(
+                Vector128.Create(Suppression) / denominator,
+                Vector128.Create(VariableResponse),
+                Vector128.Create(MinimumResponse)) * first;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second)
+        {
+            Vector256<float> denominator = Vector256.MultiplyAddEstimate(second, second, Vector256.Create(Suppression));
+
+            return Vector256.MultiplyAddEstimate(
+                Vector256.Create(Suppression) / denominator,
+                Vector256.Create(VariableResponse),
+                Vector256.Create(MinimumResponse)) * first;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second)
+        {
+            Vector512<float> denominator = Vector512.MultiplyAddEstimate(second, second, Vector512.Create(Suppression));
+
+            return Vector512.MultiplyAddEstimate(
+                Vector512.Create(Suppression) / denominator,
+                Vector512.Create(VariableResponse),
+                Vector512.Create(MinimumResponse)) * first;
         }
     }
 

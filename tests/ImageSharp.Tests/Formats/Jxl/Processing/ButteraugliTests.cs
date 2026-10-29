@@ -24,6 +24,64 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 public class ButteraugliTests
 {
     /// <summary>
+    /// Checks the native suppression endpoints, signed Y symmetry and exact logical row bounds at each SIMD width.
+    /// </summary>
+    [Fact]
+    public void SuppressXByY_PreservesZeroYAndApproachesMinimumResponse()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            // At |Y| = 2^20, the variable response is less than half a float ULP at the native minimum response.
+            // Both signs must therefore round to the same minimum, while zero Y must retain X unchanged.
+            const float largeY = 1048576F;
+            const float minimumResponse = 0.653020556257F;
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+
+            foreach (int width in widths)
+            {
+                using JxlPlane<float> inputY = new(TestEnvironment.Configuration, width, 3);
+                using JxlPlane<float> inputOutputX = new(TestEnvironment.Configuration, width, 3);
+                Span<float> ySamples = inputY.GetRow(0);
+                Span<float> xSamples = inputOutputX.GetRow(0);
+                ySamples.Fill(padding);
+                xSamples.Fill(padding);
+
+                for (int y = 0; y < 3; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        ySamples[(y * inputY.PixelsPerRow) + x] = y == 0 ? 0F : y == 1 ? largeY : -largeY;
+                        xSamples[(y * inputOutputX.PixelsPerRow) + x] = ((x % 5) - 2) * 0.25F;
+                    }
+                }
+
+                Assert.True(Butteraugli.SuppressXByY(inputY, inputOutputX));
+
+                for (int y = 0; y < 3; y++)
+                {
+                    ReadOnlySpan<float> row = xSamples.Slice(y * inputOutputX.PixelsPerRow, inputOutputX.PixelsPerRow);
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        float original = ((x % 5) - 2) * 0.25F;
+                        Assert.Equal(y == 0 ? original : original * minimumResponse, row[x]);
+                    }
+
+                    for (int x = width; x < row.Length; x++)
+                    {
+                        Assert.Equal(padding, row[x]);
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
     /// Checks weighted squared differences, accumulation and reused output across all SIMD widths and scalar tails.
     /// </summary>
     /// <param name="width">The logical width, independent of the padded physical stride.</param>
@@ -440,5 +498,85 @@ public class ButteraugliTests
 
         Assert.True(new TolerantMath(5e-7).AreEqual(diffval, diffval2), $"Diffval != diffval2 (diffval={diffval}, diffval2={diffval2})");
         Assert.True(new TolerantMath(1e-7).AreEqual(distp, distp2), $"Distp != distp2 (distp={distp}, distp2={distp2})");
+    }
+
+    /// <summary>
+    /// Checks the native low-frequency basis weights, Y removal from B and exact row bounds at each SIMD width.
+    /// </summary>
+    [Fact]
+    public void LowFrequencyToValues_UsesOriginalYAndPreservesPadding()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            const float xWeight = 33.832837186260F;
+            const float yWeight = 14.458268100570F;
+            const float bWeight = 49.87984651440F;
+            const float yToBWeight = -0.362267051518F;
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+
+            foreach (int width in widths)
+            {
+                using JxlImage3<float> image = new(TestEnvironment.Configuration, width, 3);
+                JxlPlane<float> planeX = image.Plane(0);
+                JxlPlane<float> planeY = image.Plane(1);
+                JxlPlane<float> planeB = image.Plane(2);
+                Span<float> samplesX = planeX.GetRow(0);
+                Span<float> samplesY = planeY.GetRow(0);
+                Span<float> samplesB = planeB.GetRow(0);
+                samplesX.Fill(padding);
+                samplesY.Fill(padding);
+                samplesB.Fill(padding);
+
+                // The first two rows isolate B and Y. The third cancels the native Y-to-B term exactly.
+                // Dyadic samples keep that cancellation exact with fused or separate multiply-add instructions.
+                for (int y = 0; y < 3; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        float sample = ((x % 5) - 2) * 0.25F;
+                        samplesX[(y * planeX.PixelsPerRow) + x] = sample;
+                        samplesY[(y * planeY.PixelsPerRow) + x] = y == 0 ? 0F : sample;
+                        samplesB[(y * planeB.PixelsPerRow) + x] = y == 0 ? sample : y == 1 ? 0F : -(sample * yToBWeight);
+                    }
+                }
+
+                Butteraugli.XybLowFrequencyToValues(image);
+
+                for (int y = 0; y < 3; y++)
+                {
+                    ReadOnlySpan<float> rowX = samplesX.Slice(y * planeX.PixelsPerRow, planeX.PixelsPerRow);
+                    ReadOnlySpan<float> rowY = samplesY.Slice(y * planeY.PixelsPerRow, planeY.PixelsPerRow);
+                    ReadOnlySpan<float> rowB = samplesB.Slice(y * planeB.PixelsPerRow, planeB.PixelsPerRow);
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        float sample = ((x % 5) - 2) * 0.25F;
+                        Assert.Equal(sample * xWeight, rowX[x]);
+                        Assert.Equal(y == 0 ? 0F : sample * yWeight, rowY[x]);
+                        Assert.Equal(y == 0 ? sample * bWeight : y == 1 ? (sample * yToBWeight) * bWeight : 0F, rowB[x]);
+                    }
+
+                    for (int x = width; x < rowX.Length; x++)
+                    {
+                        Assert.Equal(padding, rowX[x]);
+                    }
+
+                    for (int x = width; x < rowY.Length; x++)
+                    {
+                        Assert.Equal(padding, rowY[x]);
+                    }
+
+                    for (int x = width; x < rowB.Length; x++)
+                    {
+                        Assert.Equal(padding, rowB[x]);
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 }

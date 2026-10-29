@@ -2906,42 +2906,175 @@ internal static class Butteraugli
     /// <param name="output">The distinct preallocated image with each dimension rounded up after division by two.</param>
     public static void SubSample2x(JxlImage3<float> input, JxlImage3<float> output)
     {
+        const float contribution = 0.25F;
+        int pairedWidth = input.XSize / 2;
+        int pairedHeight = input.YSize / 2;
+        bool hasFinalColumn = (input.XSize & 1) != 0;
+        bool hasFinalRow = (input.YSize & 1) != 0;
+
         for (int c = 0; c < 3; c++)
         {
             JxlPlane<float> inputPlane = input.Plane(c);
             JxlPlane<float> outputPlane = output.Plane(c);
             ReadOnlySpan<float> sourceSamples = inputPlane.GetRow(0);
             Span<float> outputSamples = outputPlane.GetRow(0);
+            int sourceStride = inputPlane.PixelsPerRow;
+            int outputStride = outputPlane.PixelsPerRow;
 
-            for (int y = 0; y < output.YSize; y++)
+            for (int y = 0; y < pairedHeight; y++)
             {
-                outputSamples.Slice(y * outputPlane.PixelsPerRow, output.XSize).Clear();
-            }
+                ref float upper = ref MemoryMarshal.GetReference(sourceSamples.Slice(2 * y * sourceStride, input.XSize));
+                ref float lower = ref MemoryMarshal.GetReference(sourceSamples.Slice(((2 * y) + 1) * sourceStride, input.XSize));
+                ref float destination = ref MemoryMarshal.GetReference(outputSamples.Slice(y * outputStride, output.XSize));
+                int x = 0;
 
-            for (int y = 0; y < input.YSize; y++)
-            {
-                ReadOnlySpan<float> sourceRow = sourceSamples[(y * inputPlane.PixelsPerRow)..];
-                Span<float> outputRow = outputSamples[((y / 2) * outputPlane.PixelsPerRow)..];
-
-                for (int x = 0; x < input.XSize; x++)
+                // Two source registers contain consecutive even/odd pairs. Deinterleave2 places one source pair in each
+                // output lane, without changing float bits. The four quarter contributions retain native row-major order:
+                // upper even, upper odd, lower even, lower odd. The initial zero addition also retains native signed-zero behavior.
+                // Only complete pairs enter SIMD; source padding and an unmatched final column are never loaded here.
+                if (Vector512.IsHardwareAccelerated)
                 {
-                    outputRow[x / 2] += 0.25F * sourceRow[x];
+                    for (; x <= pairedWidth - Vector512<float>.Count; x += Vector512<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector512<int> upperFirst = Vector512.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector512<int> upperSecond = Vector512.LoadUnsafe(ref upper, sourceX + (uint)Vector512<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector512<int> upperEven, out Vector512<int> upperOdd);
+                        Vector512<int> lowerFirst = Vector512.LoadUnsafe(ref lower, sourceX).AsInt32();
+                        Vector512<int> lowerSecond = Vector512.LoadUnsafe(ref lower, sourceX + (uint)Vector512<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(lowerFirst, lowerSecond, out Vector512<int> lowerEven, out Vector512<int> lowerOdd);
+                        Vector512<float> result = Vector512<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result += contribution * lowerEven.AsSingle();
+                        result += contribution * lowerOdd.AsSingle();
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector256.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector256<float>.Count; x += Vector256<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector256<int> upperFirst = Vector256.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector256<int> upperSecond = Vector256.LoadUnsafe(ref upper, sourceX + (uint)Vector256<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector256<int> upperEven, out Vector256<int> upperOdd);
+                        Vector256<int> lowerFirst = Vector256.LoadUnsafe(ref lower, sourceX).AsInt32();
+                        Vector256<int> lowerSecond = Vector256.LoadUnsafe(ref lower, sourceX + (uint)Vector256<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(lowerFirst, lowerSecond, out Vector256<int> lowerEven, out Vector256<int> lowerOdd);
+                        Vector256<float> result = Vector256<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result += contribution * lowerEven.AsSingle();
+                        result += contribution * lowerOdd.AsSingle();
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector128<float>.Count; x += Vector128<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector128<int> upperFirst = Vector128.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector128<int> upperSecond = Vector128.LoadUnsafe(ref upper, sourceX + (uint)Vector128<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector128<int> upperEven, out Vector128<int> upperOdd);
+                        Vector128<int> lowerFirst = Vector128.LoadUnsafe(ref lower, sourceX).AsInt32();
+                        Vector128<int> lowerSecond = Vector128.LoadUnsafe(ref lower, sourceX + (uint)Vector128<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(lowerFirst, lowerSecond, out Vector128<int> lowerEven, out Vector128<int> lowerOdd);
+                        Vector128<float> result = Vector128<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result += contribution * lowerEven.AsSingle();
+                        result += contribution * lowerOdd.AsSingle();
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                for (; x < pairedWidth; x++)
+                {
+                    int sourceX = 2 * x;
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, sourceX));
+                    result += contribution * Unsafe.Add(ref upper, sourceX + 1);
+                    result += contribution * Unsafe.Add(ref lower, sourceX);
+                    result += contribution * Unsafe.Add(ref lower, sourceX + 1);
+                    Unsafe.Add(ref destination, x) = result;
+                }
+
+                if (hasFinalColumn)
+                {
+                    // An unmatched column contributes two samples instead of four. Native doubles after both additions.
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, input.XSize - 1));
+                    result += contribution * Unsafe.Add(ref lower, input.XSize - 1);
+                    Unsafe.Add(ref destination, pairedWidth) = result * 2F;
                 }
             }
 
-            // A final unmatched row or column supplies two samples rather than four. Preserve the native edge normalization.
-            if ((input.XSize & 1) != 0)
+            if (hasFinalRow)
             {
-                for (int y = 0; y < output.YSize; y++)
-                {
-                    outputSamples[(y * outputPlane.PixelsPerRow) + output.XSize - 1] *= 2F;
-                }
-            }
+                ref float upper = ref MemoryMarshal.GetReference(sourceSamples.Slice((input.YSize - 1) * sourceStride, input.XSize));
+                ref float destination = ref MemoryMarshal.GetReference(outputSamples.Slice(pairedHeight * outputStride, output.XSize));
+                int x = 0;
 
-            if ((input.YSize & 1) != 0)
-            {
-                Span<float> lastRow = outputSamples.Slice((output.YSize - 1) * outputPlane.PixelsPerRow, output.XSize);
-                TensorPrimitives.Multiply(lastRow, 2F, lastRow);
+                // The unmatched row has only the two upper contributions. Keep it outside the full-row loops so their
+                // register loads need no missing-row branch. Native doubles this completed row after its column correction.
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector512<float>.Count; x += Vector512<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector512<int> upperFirst = Vector512.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector512<int> upperSecond = Vector512.LoadUnsafe(ref upper, sourceX + (uint)Vector512<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector512<int> upperEven, out Vector512<int> upperOdd);
+                        Vector512<float> result = Vector512<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result *= 2F;
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector256.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector256<float>.Count; x += Vector256<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector256<int> upperFirst = Vector256.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector256<int> upperSecond = Vector256.LoadUnsafe(ref upper, sourceX + (uint)Vector256<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector256<int> upperEven, out Vector256<int> upperOdd);
+                        Vector256<float> result = Vector256<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result *= 2F;
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    for (; x <= pairedWidth - Vector128<float>.Count; x += Vector128<float>.Count)
+                    {
+                        uint sourceX = (uint)(2 * x);
+                        Vector128<int> upperFirst = Vector128.LoadUnsafe(ref upper, sourceX).AsInt32();
+                        Vector128<int> upperSecond = Vector128.LoadUnsafe(ref upper, sourceX + (uint)Vector128<float>.Count).AsInt32();
+                        SimdUtils.Deinterleave2(upperFirst, upperSecond, out Vector128<int> upperEven, out Vector128<int> upperOdd);
+                        Vector128<float> result = Vector128<float>.Zero + (contribution * upperEven.AsSingle());
+                        result += contribution * upperOdd.AsSingle();
+                        result *= 2F;
+                        result.StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
+
+                for (; x < pairedWidth; x++)
+                {
+                    int sourceX = 2 * x;
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, sourceX));
+                    result += contribution * Unsafe.Add(ref upper, sourceX + 1);
+                    Unsafe.Add(ref destination, x) = result * 2F;
+                }
+
+                if (hasFinalColumn)
+                {
+                    float result = 0F + (contribution * Unsafe.Add(ref upper, input.XSize - 1));
+                    result *= 2F;
+                    Unsafe.Add(ref destination, pairedWidth) = result * 2F;
+                }
             }
         }
     }

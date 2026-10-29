@@ -632,4 +632,126 @@ public class ButteraugliTests
             RunTest,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
+
+    /// <summary>
+    /// Checks native accumulation order, odd edges, input preservation and logical output bounds at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void SubSample2x_PreservesContributionOrderAndNormalizesOddEdges()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            ReadOnlySpan<Size> sizes = [new(1, 1), new(3, 1), new(1, 3), new(6, 4), new(34, 6), new(35, 7), new(66, 4)];
+
+            foreach (Size size in sizes)
+            {
+                using JxlImage3<float> input = new(TestEnvironment.Configuration, size.Width, size.Height);
+                using JxlImage3<float> output = new(TestEnvironment.Configuration, (size.Width + 1) / 2, (size.Height + 1) / 2);
+
+                for (int c = 0; c < 3; c++)
+                {
+                    JxlPlane<float> inputPlane = input.Plane(c);
+                    JxlPlane<float> outputPlane = output.Plane(c);
+                    Span<float> source = inputPlane.GetRow(0);
+                    source.Fill(padding);
+                    outputPlane.GetRow(0).Fill(padding);
+
+                    for (int y = 0; y < size.Height; y++)
+                    {
+                        for (int x = 0; x < size.Width; x++)
+                        {
+                            // The first plane distinguishes chronological addition from a regrouped average: complete
+                            // groups produce 3/4096, rather than the exact-arithmetic mean 1/1024. All samples stay within the HDR range.
+                            // The third plane uses negative zero to check the initial positive-zero addition.
+                            source[(y * inputPlane.PixelsPerRow) + x] = c == 0
+                                ? (((y & 1) * 2) + (x & 1)) switch
+                                {
+                                    0 => 32768F,
+                                    1 => 1F / 1024F,
+                                    2 => -32768F,
+                                    _ => 3F / 1024F
+                                }
+                                : c == 1 ? ((x * 3) - (y * 5) + 1) * 0.25F : BitConverter.Int32BitsToSingle(int.MinValue);
+
+                        }
+                    }
+                }
+
+                Butteraugli.SubSample2x(input, output);
+
+                for (int c = 0; c < 3; c++)
+                {
+                    JxlPlane<float> inputPlane = input.Plane(c);
+                    JxlPlane<float> outputPlane = output.Plane(c);
+                    ReadOnlySpan<float> source = inputPlane.GetRow(0);
+                    ReadOnlySpan<float> destination = outputPlane.GetRow(0);
+
+                    for (int y = 0; y < output.YSize; y++)
+                    {
+                        for (int x = 0; x < output.XSize; x++)
+                        {
+                            // Use the native source-pixel visitation order as an independent scalar oracle. Each available
+                            // source contributes one quarter before the unmatched column and row are doubled, in that order.
+                            float expected = 0F;
+                            for (int dy = 0; dy < 2 && ((2 * y) + dy) < size.Height; dy++)
+                            {
+                                for (int dx = 0; dx < 2 && ((2 * x) + dx) < size.Width; dx++)
+                                {
+                                    expected += 0.25F * source[(((2 * y) + dy) * inputPlane.PixelsPerRow) + (2 * x) + dx];
+                                }
+                            }
+
+                            if ((size.Width & 1) != 0 && x == output.XSize - 1)
+                            {
+                                expected *= 2F;
+                            }
+
+                            if ((size.Height & 1) != 0 && y == output.YSize - 1)
+                            {
+                                expected *= 2F;
+                            }
+
+                            Assert.Equal(
+                                BitConverter.SingleToInt32Bits(expected),
+                                BitConverter.SingleToInt32Bits(destination[(y * outputPlane.PixelsPerRow) + x]));
+
+                        }
+
+                        for (int x = output.XSize; x < outputPlane.PixelsPerRow; x++)
+                        {
+                            Assert.Equal(padding, destination[(y * outputPlane.PixelsPerRow) + x]);
+                        }
+                    }
+
+                    for (int y = 0; y < size.Height; y++)
+                    {
+                        for (int x = 0; x < size.Width; x++)
+                        {
+                            float expected = c == 0
+                                ? (((y & 1) * 2) + (x & 1)) switch
+                                {
+                                    0 => 32768F,
+                                    1 => 1F / 1024F,
+                                    2 => -32768F,
+                                    _ => 3F / 1024F
+                                }
+                                : c == 1 ? ((x * 3) - (y * 5) + 1) * 0.25F : BitConverter.Int32BitsToSingle(int.MinValue);
+
+                            Assert.Equal(BitConverter.SingleToInt32Bits(expected), BitConverter.SingleToInt32Bits(source[(y * inputPlane.PixelsPerRow) + x]));
+                        }
+
+                        for (int x = size.Width; x < inputPlane.PixelsPerRow; x++)
+                        {
+                            Assert.Equal(padding, source[(y * inputPlane.PixelsPerRow) + x]);
+                        }
+                    }
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
 }

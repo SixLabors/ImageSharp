@@ -539,17 +539,17 @@ internal static class JxlDotDetectionUtils
 
         for (int c = 0; c < 3; c++)
         {
-            if (!Separable5(configuration, original.Plane(c), rect, weights3, forig.Plane(c)))
+            if (!Separable5(original.Plane(c), rect, weights3, forig.Plane(c)))
             {
                 return null;
             }
 
-            if (!Separable5(configuration, forig.Plane(c), rect, weights3, smooth.Plane(c)))
+            if (!Separable5(forig.Plane(c), rect, weights3, smooth.Plane(c)))
             {
                 return null;
             }
 
-            if (!Separable5(configuration, original.Plane(c), rect, weights1, forig.Plane(c)))
+            if (!Separable5(original.Plane(c), rect, weights1, forig.Plane(c)))
             {
                 return null;
             }

@@ -11,27 +11,18 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 internal sealed class ButteraugliBlurTemp : IDisposable
 {
     /// <summary>
-    /// Gets the owned transposed scratch plane. Callers borrow it until the next blur or disposal.
+    /// Allocates transposed scratch storage for every blur in a fixed-size comparison.
     /// </summary>
-    public JxlPlane<float> TransposedTemp { get; } = new();
+    /// <param name="configuration">The configuration that owns the sample allocation.</param>
+    /// <param name="width">The comparison width.</param>
+    /// <param name="height">The comparison height.</param>
+    public ButteraugliBlurTemp(Configuration configuration, int width, int height)
+        => this.TransposedTemp = new(configuration, height, width);
 
     /// <summary>
-    /// Reuses or replaces the scratch allocation for the transposed input dimensions.
+    /// Gets the owned transposed scratch plane. Callers borrow it until the next blur or disposal.
     /// </summary>
-    /// <param name="configuration">The allocator configuration used if the existing capacity is too small.</param>
-    /// <param name="input">The input plane whose dimensions are transposed.</param>
-    /// <returns>The borrowed scratch plane, with width equal to the input height and height equal to its width.</returns>
-    public JxlPlane<float> GetTransposed(Configuration configuration, JxlPlane<float> input)
-    {
-        if (!this.TransposedTemp.ShrinkTo(input.YSize, input.XSize))
-        {
-            // Allocate before exchanging ownership. Disposal then releases the old allocation, including on a later blur failure.
-            using JxlPlane<float> replacement = new(configuration, input.YSize, input.XSize);
-            this.TransposedTemp.Swap(replacement);
-        }
-
-        return this.TransposedTemp;
-    }
+    public JxlPlane<float> TransposedTemp { get; }
 
     /// <inheritdoc />
     public void Dispose() => this.TransposedTemp.Dispose();

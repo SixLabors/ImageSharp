@@ -36,7 +36,7 @@ internal static class JxlImageOperations
         where T : unmanaged => a.XSize == b.XSize && a.YSize == b.YSize;
 
     /// <summary>
-    /// Copies everything from one plane to another.
+    /// Copies logical samples between equally sized planes without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of planes to copy.</typeparam>
     /// <param name="from">Source plane (read-only)</param>
@@ -57,11 +57,13 @@ internal static class JxlImageOperations
             return true;
         }
 
+        // Borrow each allocation once at its logical origin. Source and destination can retain different physical row strides.
+        ReadOnlySpan<T> source = from.GetRow(0);
+        Span<T> destination = to.GetRow(0);
+
         for (int y = 0; y < from.YSize; y++)
         {
-            Span<T> rowFrom = from.GetRow(y);
-            Span<T> rowTo = to.GetRow(y);
-            rowFrom[..from.XSize].CopyTo(rowTo);
+            source.Slice(y * from.PixelsPerRow, from.XSize).CopyTo(destination.Slice(y * to.PixelsPerRow, to.XSize));
         }
 
         return true;
@@ -84,7 +86,7 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Copies everything from one image to another.
+    /// Copies logical samples in all three planes without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of image to copy.</typeparam>
     /// <param name="from">Source image (read-only)</param>
@@ -105,17 +107,9 @@ internal static class JxlImageOperations
             return true;
         }
 
-        for (int c = 0; c < 3; c++)
-        {
-            for (int y = 0; y < from.YSize; y++)
-            {
-                Span<T> rowFrom = from.PlaneRow(c, y);
-                Span<T> rowTo = to.PlaneRow(c, y);
-                rowFrom[..from.XSize].CopyTo(rowTo);
-            }
-        }
-
-        return true;
+        return CopyImage(from.Plane(0), to.Plane(0))
+            && CopyImage(from.Plane(1), to.Plane(1))
+            && CopyImage(from.Plane(2), to.Plane(2));
     }
 
     /// <summary>
@@ -384,7 +378,7 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Fills every value in the plane with <paramref name="value"/>.
+    /// Fills logical samples with <paramref name="value"/> without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>
     /// <param name="value">The value to fill everything with.</param>
@@ -392,15 +386,17 @@ internal static class JxlImageOperations
     public static void FillImage<T>(T value, JxlPlane<T> image)
         where T : unmanaged
     {
+        // GetRow(0) excludes any prefix. Slice the retained stride so padding remains unchanged after a logical shrink.
+        Span<T> storage = image.GetRow(0);
+
         for (int y = 0; y < image.YSize; y++)
         {
-            Span<T> row = image.GetRow(y);
-            row[..image.XSize].Fill(value);
+            storage.Slice(y * image.PixelsPerRow, image.XSize).Fill(value);
         }
     }
 
     /// <summary>
-    /// Fills every value in every plane of the image with <paramref name="value"/>.
+    /// Fills logical samples in all three planes with <paramref name="value"/>, leaving padding unchanged.
     /// </summary>
     /// <typeparam name="T">The type of the image.</typeparam>
     /// <param name="value">The value to fill every plane with.</param>
@@ -414,7 +410,7 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Sets every value in the plane to 0. See also <seealso cref="JxlPlane{T}.Clear()"/> .
+    /// Clears logical samples without changing row padding or a storage prefix.
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>
     /// <param name="image">The image to clear.</param>
@@ -426,9 +422,12 @@ internal static class JxlImageOperations
             return;
         }
 
+        Span<T> storage = image.GetRow(0);
+
+        // Only the logical width belongs to this clear. Retained capacity can include padding and unused rows.
         for (int y = 0; y < image.YSize; y++)
         {
-            image.GetRow(y)[..image.XSize].Clear();
+            storage.Slice(y * image.PixelsPerRow, image.XSize).Clear();
         }
     }
 
@@ -503,17 +502,16 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
-    /// Clears every plane within the image.
+    /// Clears logical samples in all three planes, leaving padding unchanged.
     /// </summary>
     /// <typeparam name="T">The type of the image</typeparam>
     /// <param name="image">The image whose all planes will be cleared.</param>
     public static void ZeroFillImage<T>(JxlImage3<T> image)
         where T : unmanaged
     {
-        for (int plane = 0; plane < 3; plane++)
-        {
-            ZeroFillImage(image.Plane(plane));
-        }
+        ZeroFillImage(image.Plane(0));
+        ZeroFillImage(image.Plane(1));
+        ZeroFillImage(image.Plane(2));
     }
 
     private static bool DownsampleImageCore(JxlPlane<float> input, int factor, JxlPlane<float> output)

@@ -33,13 +33,13 @@ internal sealed class JxlComparator(ButteraugliParameters parameters, JxlCmsInte
     public float BadQualityScore => Butteraugli.Butteraugli.ButteraugliFuzzyInverse(0.5f);
 
     /// <summary>
-    /// Compares borrowed samples with the current reference and writes an optional difference map.
+    /// Compares borrowed samples with the current reference and writes the difference map into reusable storage.
     /// </summary>
     /// <param name="configuration">The configuration that owns temporary sample storage.</param>
     /// <param name="actual">The borrowed image to compare without changing its samples.</param>
-    /// <param name="diffMap">The caller-owned difference map, or null when only a score is required.</param>
+    /// <param name="diffMap">The caller-owned map allocated at the reference dimensions.</param>
     /// <param name="score">The computed perceptual difference.</param>
-    public void CompareWith(Configuration configuration, JxlImageBundle actual, JxlPlane<float>? diffMap, out float score)
+    public void CompareWith(Configuration configuration, JxlImageBundle actual, JxlPlane<float> diffMap, out float score)
     {
         DebugGuard.NotNull(this.comparator, nameof(this.comparator));
 
@@ -58,7 +58,7 @@ internal sealed class JxlComparator(ButteraugliParameters parameters, JxlCmsInte
             throw new InvalidOperationException("Could not convert the comparison image to linear sRGB.");
         }
 
-        using JxlPlane<float> tempDiffmap = new(configuration, this.width, this.height);
+        // The caller allocates its map before a search. Every comparison overwrites the logical samples without exchanging storage.
         bool scaleIntensity = this.intensityTarget != 0 && actual.Metadata.IntensityTarget != this.intensityTarget;
         using JxlImage3<float>? scaledStorage = scaleIntensity && ReferenceEquals(actualLinearSRgb, actual)
             ? new(configuration, this.width, this.height)
@@ -72,23 +72,27 @@ internal sealed class JxlComparator(ButteraugliParameters parameters, JxlCmsInte
             float scale = actual.Metadata.IntensityTarget / this.intensityTarget;
             for (int c = 0; c < 3; ++c)
             {
+                JxlPlane<float> source = actualLinearSRgb.Color!.Plane(c);
+                JxlPlane<float> destination = scaledActualLinearSRgb.Plane(c);
+                ReadOnlySpan<float> sourceSamples = source.GetRow(0);
+                Span<float> destinationSamples = destination.GetRow(0);
+
                 for (int y = 0; y < this.height; ++y)
                 {
-                    // PlaneRow includes subsequent rows. Restrict the operation to this logical row, excluding padding.
-                    ReadOnlySpan<float> sourceRow = actualLinearSRgb.Color!.PlaneRow(c, y)[..this.width];
-                    Span<float> scaledRow = scaledActualLinearSRgb.PlaneRow(c, y)[..this.width];
+                    // Strides include padding. Select only the logical samples without acquiring Memory.Span for each row.
+                    ReadOnlySpan<float> sourceRow = sourceSamples.Slice(y * source.PixelsPerRow, this.width);
+                    Span<float> scaledRow = destinationSamples.Slice(y * destination.PixelsPerRow, this.width);
                     TensorPrimitives.Multiply(sourceRow, scale, scaledRow);
                 }
             }
         }
 
-        if (!this.comparator.Diffmap(configuration, scaledActualLinearSRgb, tempDiffmap))
+        if (!this.comparator.Diffmap(configuration, scaledActualLinearSRgb, diffMap))
         {
             throw new InvalidOperationException("Diffmap failed");
         }
 
-        score = Butteraugli.Butteraugli.ButteraugliScoreFromDiffmap(tempDiffmap, parameters);
-        diffMap?.Swap(tempDiffmap);
+        score = Butteraugli.Butteraugli.ButteraugliScoreFromDiffmap(diffMap, parameters);
     }
 
     /// <summary>

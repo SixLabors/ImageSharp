@@ -44,6 +44,31 @@ internal sealed class ButteraugliPsychoImage : IDisposable
     /// </summary>
     public JxlImage3<float> Lf { get; } = new();
 
+    /// <summary>
+    /// Allocates every frequency band before comparisons begin, without replacing the owned plane wrappers.
+    /// </summary>
+    /// <param name="configuration">The configuration used for sample allocations.</param>
+    /// <param name="width">The comparison width in samples.</param>
+    /// <param name="height">The comparison height in rows.</param>
+    /// <remarks>The containing comparator releases partially allocated bands if setup fails.</remarks>
+    public void Allocate(Configuration configuration, int width, int height)
+    {
+        using JxlImage3<float> middle = new(configuration, width, height);
+        this.Mf.Swap(middle);
+
+        using JxlImage3<float> low = new(configuration, width, height);
+        this.Lf.Swap(low);
+
+        for (int c = 0; c < 2; c++)
+        {
+            using JxlPlane<float> high = new(configuration, width, height);
+            this.Hf[c].Swap(high);
+
+            using JxlPlane<float> ultraHigh = new(configuration, width, height);
+            this.Uhf[c].Swap(ultraHigh);
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

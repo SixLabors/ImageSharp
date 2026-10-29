@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
@@ -301,10 +300,13 @@ internal sealed class JxlQuantizer
     /// <param name="quantizedField">The destination integer quantization values.</param>
     public void SetQuantFieldRect(JxlPlane<float> quantizationField, in Rectangle blockBounds, JxlPlane<int> quantizedField)
     {
+        ReadOnlySpan<float> source = quantizationField.GetRow(0);
+        Span<int> destination = quantizedField.GetRow(0);
+
         for (int y = 0; y < blockBounds.Height; y++)
         {
-            ReadOnlySpan<float> quantizationRow = quantizationField.GetRow(blockBounds, y);
-            Span<int> quantizedRow = quantizedField.GetRow(blockBounds, y);
+            ReadOnlySpan<float> quantizationRow = source[(((blockBounds.Top + y) * quantizationField.PixelsPerRow) + blockBounds.Left)..];
+            Span<int> quantizedRow = destination[(((blockBounds.Top + y) * quantizedField.PixelsPerRow) + blockBounds.Left)..];
 
             for (int x = 0; x < blockBounds.Width; x++)
             {
@@ -318,12 +320,12 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// Sets the global quantization scale and optionally writes the integer quantization field.
     /// </summary>
-    /// <param name="configuration">The configuration that owns temporary sample storage.</param>
     /// <param name="dcQuantization">The requested DC quantization scale.</param>
     /// <param name="quantizationField">The source per-block quantization values.</param>
     /// <param name="quantizedField">The destination integer field, or null to update only the global scale.</param>
+    /// <param name="scratch">Reusable storage with capacity for every logical sample. It must not overlap either field.</param>
     /// <returns>Whether the destination field has matching dimensions.</returns>
-    public bool SetQuantField(Configuration configuration, float dcQuantization, JxlPlane<float> quantizationField, JxlPlane<int>? quantizedField)
+    public bool SetQuantField(float dcQuantization, JxlPlane<float> quantizationField, JxlPlane<int>? quantizedField, Span<float> scratch)
     {
         if (quantizedField is not null && quantizedField.GetRectangle() != quantizationField.GetRectangle())
         {
@@ -333,12 +335,13 @@ internal sealed class JxlQuantizer
         // A valid frame supplies one value per DCT block. Copy logical samples only: GetRow also exposes
         // the plane's padded stride and following rows. Selection must not include that storage or mutate the source field.
         int sampleCount = quantizationField.XSize * quantizationField.YSize;
-        using IMemoryOwner<float> samplesOwner = configuration.MemoryAllocator.Allocate<float>(sampleCount);
-        Span<float> samples = samplesOwner.Memory.Span[..sampleCount];
+        Span<float> samples = scratch[..sampleCount];
+        ReadOnlySpan<float> source = quantizationField.GetRow(0);
 
         for (int y = 0; y < quantizationField.YSize; y++)
         {
-            quantizationField.GetRow(y)[..quantizationField.XSize].CopyTo(samples.Slice(y * quantizationField.XSize, quantizationField.XSize));
+            ReadOnlySpan<float> row = source.Slice(y * quantizationField.PixelsPerRow, quantizationField.XSize);
+            row.CopyTo(samples.Slice(y * quantizationField.XSize, quantizationField.XSize));
         }
 
         float medianQuantization = samples.NthElement(sampleCount / 2);

@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
@@ -15,6 +17,47 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 /// </summary>
 internal static class JxlConvolve
 {
+    /// <summary>
+    /// Applies a symmetric separable five-by-five kernel in one traversal without intermediate sample allocations.
+    /// </summary>
+    /// <param name="input">The borrowed source plane.</param>
+    /// <param name="rectangle">The source rectangle. Its horizontal edges define the reflected row bounds.</param>
+    /// <param name="weights">The symmetric horizontal and vertical weights in four-value groups.</param>
+    /// <param name="output">The distinct output plane, with logical dimensions equal to the source rectangle.</param>
+    /// <returns>Whether the output dimensions match the source rectangle.</returns>
+    /// <remarks>Vertical neighbors reflect at the full input image edges. The caller supplies a rectangle inside the input plane.</remarks>
+    public static bool Separable5(JxlPlane<float> input, in Rectangle rectangle, in JxlWeightsSeparable5 weights, JxlPlane<float> output)
+    {
+        if (rectangle.Width != output.XSize || rectangle.Height != output.YSize)
+        {
+            return false;
+        }
+
+        // Borrow once at each logical origin. Storage prefixes and different physical row strides remain outside the operation.
+        ReadOnlySpan<float> source = input.GetRow(0);
+        Span<float> destination = output.GetRow(0);
+        int inputStride = input.PixelsPerRow;
+        int outputStride = output.PixelsPerRow;
+
+        for (int y = 0; y < rectangle.Height; y++)
+        {
+            int sourceY = rectangle.Y + y;
+
+            // Reflect at image edges. Mirror also handles repeated reflections for images only one to four rows high.
+            ReadOnlySpan<float> top2 = source.Slice((JxlImageOperations.Mirror(sourceY - 2, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> top1 = source.Slice((JxlImageOperations.Mirror(sourceY - 1, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> middle = source.Slice((sourceY * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> bottom1 = source.Slice((JxlImageOperations.Mirror(sourceY + 1L, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            ReadOnlySpan<float> bottom2 = source.Slice((JxlImageOperations.Mirror(sourceY + 2L, input.YSize) * inputStride) + rectangle.X, rectangle.Width);
+            Span<float> rowOutput = destination.Slice(y * outputStride, rectangle.Width);
+
+            // Horizontal results stay in registers. Combine the five rows directly into the output without a row cache or another image pass.
+            JxlConvolveSeparable5.ConvolveRow(top2, top1, middle, bottom1, bottom2, weights, rowOutput);
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Weighted sum of 1x5 pixels around ix, iy with [wx2, wx1, wx0, wx1, wx2].
     /// </summary>

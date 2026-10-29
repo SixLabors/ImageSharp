@@ -60,6 +60,12 @@ internal sealed class JxlAcStrategyImage : IDisposable
     public int PixelsPerRow => this.stride;
 
     /// <summary>
+    /// Borrows all transform selections so a bulk traversal can acquire its span once.
+    /// </summary>
+    /// <returns>The first row, its padding and subsequent rows, addressed with <see cref="PixelsPerRow"/>.</returns>
+    public ReadOnlySpan<byte> GetRows() => this.row.Span;
+
+    /// <summary>
     /// Borrows a row of transform selections.
     /// </summary>
     /// <param name="y">The row index in blocks.</param>

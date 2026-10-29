@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Numerics.Tensors;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
@@ -72,79 +71,60 @@ internal static class JxlGroupEncoder
     private static readonly DenseMatrix<double> Mul1 = new(Mul1Data);
     private static readonly DenseMatrix<double> Mul2 = new(Mul2Data);
 
+    /// <summary>
+    /// Quantizes one transform's AC plane using its four frequency-quadrant thresholds.
+    /// </summary>
+    /// <param name="quantizer">The prepared frame quantizer and inverse matrices.</param>
+    /// <param name="channelIndex">The XYB channel index.</param>
+    /// <param name="matrixMultiplier">The channel's inverse matrix multiplier.</param>
+    /// <param name="strategy">The transform strategy.</param>
+    /// <param name="blocksWide">The canonical coefficient width, in 8-sample blocks.</param>
+    /// <param name="blocksHigh">The canonical coefficient height, in 8-sample blocks.</param>
+    /// <param name="thresholds">The four quadrant thresholds, adjusted in place for larger chroma blocks.</param>
+    /// <param name="coefficients">The float coefficient plane.</param>
+    /// <param name="quant">The positive block quantizer.</param>
+    /// <param name="destination">The caller-owned integer coefficient plane.</param>
     public static void QuantizeBlockAc(
         JxlQuantizer quantizer,
-        int c,
-        float qmMultiplier,
-        JxlAcStrategyType quantKind,
-        int width,
-        int height,
+        int channelIndex,
+        float matrixMultiplier,
+        JxlAcStrategyType strategy,
+        int blocksWide,
+        int blocksHigh,
         Span<float> thresholds,
-        Span<float> blockIn,
+        Span<float> coefficients,
         int quant,
-        Span<int> blockOut)
+        Span<int> destination)
     {
-        ReadOnlySpan<float> qm = quantizer.InverseDequantMatrix(quantKind, c);
-        float quantAc = quantizer.Scale * quant;
+        ReadOnlySpan<float> inverseMatrix = quantizer.InverseDequantMatrix(strategy, channelIndex);
+        float scale = (quantizer.Scale * quant) * matrixMultiplier;
+        int blockCount = blocksWide * blocksHigh;
 
-        if (c != 1 && width * height >= 4)
+        if (channelIndex != 1 && blockCount >= 4)
         {
-            float sub = 0.00744f * width * width;
-
-            for (int i = 0; i < 4; i++)
+            // The native chroma heuristic uses covered area, not width squared. It never lowers a threshold below one half.
+            float reduction = 0.00744F * blockCount;
+            for (int quadrant = 0; quadrant < 4; quadrant++)
             {
-                thresholds[i] -= sub;
-
-                if (thresholds[i] < 0.5f)
-                {
-                    thresholds[i] = 0.5f;
-                }
+                thresholds[quadrant] = MathF.Max(thresholds[quadrant] - reduction, 0.5F);
             }
         }
 
-        // We need 8 floats at once; reference software
-        // uses a fixed-size of 8 items in the vector (HWY_CAPPED(float, 8)).
-        // TODO: can we update this to use Vector<T>?
-        Vector256<float> quantV = Vector256.Create(quantAc * qmMultiplier);
-
-        int yGeTarget = height * 8 / 2;
-        int xGeTarget = width * 8 / 2;
-
-        for (int y = 0; y < height * 8; y++)
+        int rowLength = blocksWide * JxlFrameDimensions.BlockDimensions;
+        int rowCount = blocksHigh * JxlFrameDimensions.BlockDimensions;
+        for (int y = 0; y < rowCount; y++)
         {
-            int yFix = (y >= yGeTarget ? 1 : 0) * 2;
-            int off = (y * 8) + width;
+            int offset = y * rowLength;
+            int quadrant = y < rowCount / 2 ? 0 : 2;
 
-            for (int x = 0; x < width * 8; x += 8)
-            {
-                Vector256<float> threshold = Vector256<float>.Zero;
-
-                if (width == 1)
-                {
-                    // 🐛: in reference software, it seems like
-                    // this:
-                    //    Load(kMask + x)
-                    // has a potential for a program crash.
-                    // https://github.com/libjxl/libjxl/blob/ef67fde2ec16d52e644c5a0969230b9a85e3eb31/lib/jxl/enc_group.cc#L85
-                    // x can be > 0
-                    // and there's 8 items to load, with kMask itself having 8 items
-                    // So if x is 1 or higher and it tries loading kMask[1..], then there's only
-                    // 7 items remaining - kaboom 💥
-                    // So we're not implementing this. Seems like a bug.
-                    throw new InvalidOperationException("width=1 not supported");
-                }
-                else
-                {
-                    threshold = Vector256.Create(thresholds[yFix + (x >= xGeTarget ? 1 : 0)]);
-                }
-
-                Vector256<float> q = Vector256.Create(qm[(off + x)..]) * quantV;
-                Vector256<float> input = Vector256.Create<float>(blockIn[(off + x)..]);
-                Vector256<float> value = q * input;
-                Vector256<float> nonZeroMask = Vector256.GreaterThanOrEqual(Vector256.Abs(value), threshold);
-                Vector256<int> v = Vector256.ConvertToInt32Native(Vector256.ConditionalSelect(nonZeroMask, Vector256.Round(value), Vector256<float>.Zero));
-                v.CopyTo(blockOut[(off + x)..]);
-            }
+            // Each half-row has one threshold. The quantizer keeps narrow rows in one register and traverses wider constant intervals.
+            JxlQuantizer.Quantize(
+                coefficients.Slice(offset, rowLength),
+                inverseMatrix.Slice(offset, rowLength),
+                scale,
+                thresholds[quadrant],
+                thresholds[quadrant + 1],
+                destination.Slice(offset, rowLength));
         }
     }
 
@@ -484,7 +464,7 @@ internal static class JxlGroupEncoder
         JxlPlane<int> fullQuantField = encoderState.RawQuantField;
         JxlCompressParameters cparams = encoderState.CompressParameters;
 
-        int dctScratchSize = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
+        int dctScratchSize = JxlDct.MaximumWorkingSetLength;
 
         using IMemoryOwner<int> mem = configuration.MemoryAllocator.Allocate<int>(3 * JxlAcStrategy.MaximumCoefficientArea);
         using IMemoryOwner<float> fmem = configuration.MemoryAllocator.Allocate<float>((5 * JxlAcStrategy.MaximumCoefficientArea) + dctScratchSize);
@@ -599,8 +579,8 @@ internal static class JxlGroupEncoder
                             encoderState.Shared.Quantizer,
                             errorDiffusion,
                             acs.Strategy,
-                            widthBlocks,
-                            heightBlocks,
+                            xBlocks,
+                            yBlocks,
                             JxlQuantizer.DefaultQuantBias,
                             ref quantAc,
                             coeffsIn,

@@ -4,6 +4,7 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -51,9 +52,9 @@ internal sealed class JxlAcStrategyHeuristics : IDisposable
         if (!this.useDct8Only)
         {
             // Counts are float elements, not bytes. Three maximum-area regions hold the candidate's channel coefficients.
-            // A fourth holds reconstruction error. The remaining two regions and three SIMD-width strips serve the forward/inverse transforms.
+            // A fourth holds reconstruction error. The remaining regions serve block storage and two banks of one-dimensional transform vectors.
             // Each maximum-area region accommodates a 256 by 256 transform. Rounded coefficients remain float vectors in the entropy calculation.
-            int dctScratchLength = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
+            int dctScratchLength = JxlDct.MaximumWorkingSetLength;
             int scratchLength = (6 * JxlAcStrategy.MaximumCoefficientArea) + dctScratchLength;
             IMemoryOwner<float> memory = configuration.MemoryAllocator.Allocate<float>(scratchLength);
             this.memoryOwner = memory;

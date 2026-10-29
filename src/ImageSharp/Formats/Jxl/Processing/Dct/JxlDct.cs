@@ -1,305 +1,334 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 
 /// <summary>
-/// Discrete Cosine Transform with SIMD support.
+/// Converts strided sample blocks and canonically ordered JPEG XL DCT coefficients.
 /// </summary>
-internal static class JxlDct
+/// <remarks>
+/// The coefficient matrix has min(rows, columns) rows and max(rows, columns) columns. A tall or square source therefore has transposed coefficients.
+/// Each SIMD lane holds an independent one-dimensional transform. The two axes retain libjxl's operation order and normalization.
+/// </remarks>
+internal static partial class JxlDct
 {
     /// <summary>
-    /// Creates a new coefficient bundle.
+    /// Gets the maximum one-dimensional workspace length, in floats, for the enabled SIMD width and supported 256-point transforms.
     /// </summary>
-    /// <param name="n">Number of items.</param>
-    /// <param name="sz">Coefficient size.</param>
-    /// <returns>A new coefficient bundle.</returns>
-    public static CoefficientBundle CoeffBundle(int n, int sz) => new(n, sz);
-
-    public static void Dct1DCore(int n, int sz, Span<float> mem, Span<float> tmp)
+    /// <remarks>
+    /// The first bank holds the current vectors. The second bank holds the even and odd stages.
+    /// Recursive calls exchange these banks after their input values are no longer needed. No transform call allocates storage.
+    /// The lane count follows the same hardware checks as transform dispatch. Scalar execution requires one lane per position.
+    /// </remarks>
+    public static int MaximumWorkingSetLength
     {
-        if (n == 2)
+        get
         {
-            Vector<float> in1 = new(mem);
-            Vector<float> in2 = new(mem[sz..]);
-            (in1 + in2).CopyTo(mem);
-            (in1 - in2).CopyTo(mem[sz..]);
-        }
-        else
-        {
-            CoefficientBundle cb = CoeffBundle(n / 2, sz);
+            // Dispatch cannot enter a wider worker when its hardware check is false. Reserve two banks only for the widest enabled worker.
+            int lanes = Vector512.IsHardwareAccelerated ? Vector512<float>.Count
+                : Vector256.IsHardwareAccelerated ? Vector256<float>.Count
+                : Vector128.IsHardwareAccelerated ? Vector128<float>.Count : 1;
 
-            cb.AddReverse(mem, mem[(n / 2 * sz)..], tmp);
-            Dct1DCore(n / 2, sz, tmp, tmp[(n * sz)..]);
-
-            cb.SubReverse(mem, mem[(n / 2 * sz)..], tmp[(n / 2 * sz)..]);
-            cb.Multiply(tmp);
-
-            Dct1DCore(n / 2, sz, tmp[(n / 2 * sz)..], tmp[(n * sz)..]);
-            cb.B(tmp[(n / 2 * sz)..]);
-
-            CoeffBundle(n, sz).InverseEvenOdd(tmp, mem);
-        }
-    }
-
-    public static void InverseDct1DCore(int n, int sz, Span<float> from, int fromStride, Span<float> to, int toStride, Span<float> tmp)
-    {
-        if (n == 1)
-        {
-            from.CopyTo(to);
-        }
-        else if (n == 2)
-        {
-            Vector<float> in1 = new(from);
-            Vector<float> in2 = new(from[fromStride..]);
-            (in1 + in2).CopyTo(to);
-            (in1 + in2).CopyTo(to[toStride..]);
-        }
-        else
-        {
-            CoefficientBundle cbDiv2 = CoeffBundle(n / 2, sz);
-            CoefficientBundle cb = CoeffBundle(n, sz);
-
-            cb.ForwardEvenOdd(from, fromStride, tmp);
-            InverseDct1DCore(n / 2, sz, tmp, sz, tmp, sz, tmp[(n * sz)..]);
-
-            cbDiv2.BTranspose(tmp[((n / 2) * sz)..]);
-            InverseDct1DCore(n / 2, sz, tmp[((n / 2) * sz)..], sz, tmp[((n / 2) * sz)..], sz, tmp[(n * sz)..]);
-
-            cb.MultiplyAndAdd(tmp, to, toStride);
-        }
-    }
-
-    public static void Dct1DWrapper(int n, int m, bool fit, JxlDctSource from, JxlDctOutput to, int mp, Span<float> tmp)
-    {
-        CoefficientBundle cb = CoeffBundle(n, m);
-
-        for (int i = 0; i < mp; i += m)
-        {
-            cb.LoadFromBlock(from, i, tmp);
-            Dct1DCore(n, m, tmp, tmp[(n * m)..]);
-            cb.StoreToBlockAndScale(tmp, ref to, i);
-
-            if (fit)
-            {
-                return;
-            }
-        }
-    }
-
-    public static void InverseDct1DWrapper(int n, int m, bool fit, JxlDctSource from, JxlDctOutput to, int mp, Span<float> tmp)
-    {
-        for (int i = 0; i < mp; i += m)
-        {
-            InverseDct1DCore(n, m, from.Address(0, i), from.Stride, to.Address(0, i), to.Stride, tmp);
-
-            if (fit)
-            {
-                return;
-            }
-        }
-    }
-
-    public static void Dct1DCapped(int n, int m, int l, JxlDctSource from, JxlDctOutput to, Span<float> tmp)
-    {
-        bool fit = m <= l;
-        Dct1DWrapper(n, m, fit, from, to, m, tmp);
-    }
-
-    public static void InverseDct1DCapped(int n, int m, int l, JxlDctSource from, JxlDctOutput to, Span<float> tmp)
-    {
-        bool fit = m <= l;
-        InverseDct1DWrapper(n, m, fit, from, to, m, tmp);
-    }
-
-    public static void Dct1D(int n, int m, JxlDctSource from, JxlDctOutput to, Span<float> tmp)
-    {
-        int lanes = Vector<float>.Count;
-        Dct1DCapped(n, m, lanes, from, to, tmp);
-    }
-
-    public static void InverseDct1D(int n, int m, JxlDctSource source, JxlDctOutput output, Span<float> tmp)
-    {
-        int lanes = Vector<float>.Count;
-        InverseDct1DCapped(n, m, lanes, source, output, tmp);
-    }
-
-    public static void ComputeScaledDct(int rows, int columns, JxlDctSource from, Span<float> to, Span<float> scratchSpace)
-    {
-        Span<float> block = scratchSpace;
-        Span<float> tmp = scratchSpace[(rows * columns)..];
-
-        if (rows < columns)
-        {
-            Dct1D(rows, columns, from, new JxlDctOutput(block, columns), tmp);
-            SimdUtils.Transpose(block, columns, to, rows, rows, columns);
-            Dct1D(columns, rows, new JxlDctSource(to, rows), new JxlDctOutput(block, rows), tmp);
-            SimdUtils.Transpose(block, rows, to, columns, columns, rows);
-        }
-        else
-        {
-            Dct1D(rows, columns, from, new JxlDctOutput(to, columns), tmp);
-            SimdUtils.Transpose(to, columns, block, rows, rows, columns);
-            Dct1D(columns, rows, new JxlDctSource(block, rows), new JxlDctOutput(to, rows), tmp);
-        }
-    }
-
-    public static void ComputeScaledInverseDct(int rows, int columns, Span<float> from, JxlDctOutput to, Span<float> scratchSpace)
-    {
-        Span<float> block = scratchSpace;
-        Span<float> tmp = scratchSpace[(rows * columns)..];
-
-        if (rows < columns)
-        {
-            SimdUtils.Transpose(from, columns, block, rows, rows, columns);
-            InverseDct1D(columns, rows, new JxlDctSource(block, rows), new JxlDctOutput(from, rows), tmp);
-            SimdUtils.Transpose(from, rows, block, columns, columns, rows);
-            InverseDct1D(rows, columns, new JxlDctSource(block, columns), to, tmp);
-        }
-        else
-        {
-            InverseDct1D(columns, rows, new JxlDctSource(from, rows), new JxlDctOutput(block, rows), tmp);
-            SimdUtils.Transpose(block, rows, from, columns, columns, rows);
-            InverseDct1D(rows, columns, new JxlDctSource(from, columns), to, tmp);
+            return 2 * JxlAcStrategy.MaximumBlockDimension * lanes;
         }
     }
 
     /// <summary>
-    /// Core methods for the Discrete Cosine Transform (DCT).
+    /// Computes the normalized forward DCT without changing the source pixels.
     /// </summary>
-    public readonly struct CoefficientBundle(int n, int sz)
+    /// <param name="rows">The source height. Both dimensions are powers of two from one through 256.</param>
+    /// <param name="columns">The source width.</param>
+    /// <param name="source">The borrowed source samples. Source and output storage must not overlap.</param>
+    /// <param name="sourceStride">The physical source row stride, in floats.</param>
+    /// <param name="coefficients">The contiguous output coefficient matrix in canonical order.</param>
+    /// <param name="workspace">Borrowed scratch for one sample block and two banks of max(rows, columns) SIMD vectors.</param>
+    public static void ComputeScaledDct(int rows, int columns, ReadOnlySpan<float> source, int sourceStride, Span<float> coefficients, Span<float> workspace)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddReverse(Span<float> aIn1, Span<float> aIn2, Span<float> aOut)
+        int area = rows * columns;
+        bool transposed = rows >= columns;
+
+        // The forward order is height, then width. Retain the first-axis matrix in sample order until each complete row band is consumed.
+        // Transposed final stores would overwrite later bands in the coefficient buffer, so that case uses the existing block-sized scratch region.
+        Span<float> intermediate = transposed ? workspace[..area] : coefficients[..area];
+        Span<float> work = transposed ? workspace[area..] : workspace;
+        ForwardColumns(rows, columns, source, sourceStride, intermediate, columns, work);
+        ForwardRows(rows, columns, intermediate, columns, coefficients, transposed ? rows : columns, transposed, work);
+    }
+
+    /// <summary>
+    /// Restores pixels from a canonical coefficient matrix with the inverse DCT.
+    /// </summary>
+    /// <param name="rows">The restored height. Both dimensions are powers of two from one through 256.</param>
+    /// <param name="columns">The restored width.</param>
+    /// <param name="coefficients">The contiguous coefficient matrix. Its contents are consumed and can change.</param>
+    /// <param name="pixels">The borrowed destination samples. This storage must not overlap the coefficient or scratch storage.</param>
+    /// <param name="pixelsStride">The physical destination row stride, in floats.</param>
+    /// <param name="workspace">Borrowed scratch for two banks of max(rows, columns) SIMD vectors.</param>
+    public static void ComputeScaledInverseDct(int rows, int columns, Span<float> coefficients, Span<float> pixels, int pixelsStride, Span<float> workspace)
+    {
+        // Inverse axes run in the opposite order: width, then height. The first axis reuses the consumed coefficients.
+        // Only the final axis writes pixels. Row-band loads finish before their same-orientation stores, so no source clone is needed.
+        if (rows >= columns)
         {
-            for (int i = 0; i < n; i++)
+            InverseColumns(columns, rows, coefficients, rows, coefficients, rows, workspace);
+            InverseRows(columns, rows, coefficients, rows, pixels, pixelsStride, true, workspace);
+        }
+        else
+        {
+            InverseRows(rows, columns, coefficients, columns, coefficients, columns, false, workspace);
+            InverseColumns(rows, columns, coefficients, columns, pixels, pixelsStride, workspace);
+        }
+    }
+
+    /// <summary>
+    /// Applies the forward or inverse AFV basis to one four-by-four sample block.
+    /// </summary>
+    /// <param name="source">Sixteen input samples. The destination must not overlap this span.</param>
+    /// <param name="basis">Sixteen rows of sixteen coefficients. Row j contains input j's contribution to each output position.</param>
+    /// <param name="destination">Storage for sixteen output samples. Later samples remain unchanged.</param>
+    public static void TransformAfv4x4(ReadOnlySpan<float> source, ReadOnlySpan<float[]> basis, Span<float> destination)
+    {
+        ref float output = ref MemoryMarshal.GetReference(destination);
+
+        // A lane identifies one output position. Accumulate inputs in their serialized basis order, as libjxl does.
+        // The basis is shared constant data. Borrow its existing arrays directly; no matrix packing or reduction buffer is needed.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (int i = 0; i < 16; i += Vector512<float>.Count)
             {
-                Vector<float> in1 = new(aIn1[(i * sz)..]);
-                Vector<float> in2 = new(aIn2[((n - i - 1) * sz)..]);
-                (in1 + in2).CopyTo(aOut[(i * sz)..]);
+                Vector512<float> result = Vector512<float>.Zero;
+
+                for (int j = 0; j < 16; j++)
+                {
+                    ref float row = ref MemoryMarshal.GetArrayDataReference(basis[j]);
+                    Vector512<float> weights = Vector512.LoadUnsafe(ref row, (uint)i);
+                    result = Vector512.MultiplyAddEstimate(Vector512.Create(source[j]), weights, result);
+                }
+
+                result.StoreUnsafe(ref output, (uint)i);
             }
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SubReverse(Span<float> aIn1, Span<float> aIn2, Span<float> aOut)
+        else if (Vector256.IsHardwareAccelerated)
         {
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < 16; i += Vector256<float>.Count)
             {
-                Vector<float> in1 = new(aIn1[(i * sz)..]);
-                Vector<float> in2 = new(aIn2[((n - i - 1) * sz)..]);
-                (in1 - in2).CopyTo(aOut[(i * sz)..]);
+                Vector256<float> result = Vector256<float>.Zero;
+
+                for (int j = 0; j < 16; j++)
+                {
+                    ref float row = ref MemoryMarshal.GetArrayDataReference(basis[j]);
+                    Vector256<float> weights = Vector256.LoadUnsafe(ref row, (uint)i);
+                    result = Vector256.MultiplyAddEstimate(Vector256.Create(source[j]), weights, result);
+                }
+
+                result.StoreUnsafe(ref output, (uint)i);
             }
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void B(Span<float> coeff)
+        else if (Vector128.IsHardwareAccelerated)
         {
-            Vector<float> sqrt2 = new(JxlDctScales.Sqrt2);
-            Vector<float> in10 = new(coeff);
-            Vector<float> in20 = new(coeff[sz..]);
-            ((in10 * sqrt2) + in20).CopyTo(coeff);
-
-            for (int i = 1; i + 1 < n; i++)
+            for (int i = 0; i < 16; i += Vector128<float>.Count)
             {
-                Vector<float> in1 = new(coeff[(i * sz)..]);
-                Vector<float> in2 = new(coeff[((i + 1) * sz)..]);
-                (in1 + in2).CopyTo(coeff[(i * sz)..]);
+                Vector128<float> result = Vector128<float>.Zero;
+
+                for (int j = 0; j < 16; j++)
+                {
+                    ref float row = ref MemoryMarshal.GetArrayDataReference(basis[j]);
+                    Vector128<float> weights = Vector128.LoadUnsafe(ref row, (uint)i);
+                    result = Vector128.MultiplyAddEstimate(Vector128.Create(source[j]), weights, result);
+                }
+
+                result.StoreUnsafe(ref output, (uint)i);
             }
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BTranspose(Span<float> coeff)
+        else
         {
-            for (int i = n - 1; i > 0; i--)
+            for (int i = 0; i < 16; i++)
             {
-                Vector<float> in1 = new(coeff[(i * sz)..]);
-                Vector<float> in2 = new(coeff[((i - 1) * sz)..]);
-                (in1 + in2).CopyTo(coeff[(i * sz)..]);
-            }
+                float result = 0;
 
-            Vector<float> sqrt2 = new(JxlDctScales.Sqrt2);
-            Vector<float> in1x = new(coeff);
-            (in1x * sqrt2).CopyTo(coeff);
-        }
+                for (int j = 0; j < 16; j++)
+                {
+                    result = float.MultiplyAddEstimate(source[j], basis[j][i], result);
+                }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void InverseEvenOdd(Span<float> aIn, Span<float> aOut)
-        {
-            for (int i = 0; i < n / 2; i++)
-            {
-                new Vector<float>(aIn[(i * sz)..]).CopyTo(aOut[((2 * i) * sz)..]);
-            }
-
-            for (int i = n / 2; i < n; i++)
-            {
-                new Vector<float>(aIn[(i * sz)..]).CopyTo(aOut[(((2 * (i - (n / 2))) + 1) * sz)..]);
+                destination[i] = result;
             }
         }
+    }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ForwardEvenOdd(Span<float> aIn, int aInStride, Span<float> aOut)
+    /// <summary>
+    /// Selects complete SIMD batches once for each independent axis. Remaining one- or two-value batches use scalar arithmetic.
+    /// </summary>
+    /// <param name="length">The number of positions along each one-dimensional transform.</param>
+    /// <param name="count">The number of independent transforms.</param>
+    /// <param name="source">The borrowed input matrix.</param>
+    /// <param name="sourceStride">The input row stride, in floats.</param>
+    /// <param name="destination">The borrowed output matrix.</param>
+    /// <param name="destinationStride">The output row stride, in floats.</param>
+    /// <param name="workspace">The shared two-bank transform workspace.</param>
+    private static void ForwardColumns(
+        int length,
+        int count,
+        ReadOnlySpan<float> source,
+        int sourceStride,
+        Span<float> destination,
+        int destinationStride,
+        Span<float> workspace)
+    {
+        int first = 0;
+
+        if (Vector512.IsHardwareAccelerated && count - first >= Vector512<float>.Count)
         {
-            for (int i = 0; i < n / 2; i++)
-            {
-                new Vector<float>(aIn[(2 * i * aInStride)..]).CopyTo(aOut[(i * sz)..]);
-            }
-
-            for (int i = n / 2; i < n; i++)
-            {
-                new Vector<float>(aIn[(((2 * (i - (n / 2))) + 1) * aInStride)..]).CopyTo(aOut[(i * sz)..]);
-            }
+            first = ForwardColumns512(length, count, source, sourceStride, destination, destinationStride, first, workspace);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Multiply(Span<float> coeff)
+        if (Vector256.IsHardwareAccelerated && count - first >= Vector256<float>.Count)
         {
-            ReadOnlySpan<float> multipliers = JxlDctScales.GetMultipliers(n);
-
-            for (int i = 0; i < n / 2; i++)
-            {
-                Vector<float> in1 = new(coeff[(((n / 2) + i) * sz)..]);
-                Vector<float> mul = new(multipliers[i]);
-                (in1 * mul).CopyTo(coeff[((n / (2 + i)) * sz)..]);
-            }
+            first = ForwardColumns256(length, count, source, sourceStride, destination, destinationStride, first, workspace);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyAndAdd(Span<float> coeff, Span<float> output, int outStride)
+        if (Vector128.IsHardwareAccelerated && count - first >= Vector128<float>.Count)
         {
-            ReadOnlySpan<float> multipliers = JxlDctScales.GetMultipliers(n);
-
-            for (int i = 0; i < n / 2; i++)
-            {
-                Vector<float> mul = new(multipliers[i]);
-                Vector<float> in1 = new(coeff[(i * sz)..]);
-                Vector<float> in2 = new(coeff[((n / (2 + i)) * sz)..]);
-                Vector<float> out1 = (mul * in2) * in1;
-                Vector<float> out2 = -(mul * in2) + in1;
-                out1.CopyTo(output[(i * outStride)..]);
-                out2.CopyTo(output[((n - i - 1) * outStride)..]);
-            }
+            first = ForwardColumns128(length, count, source, sourceStride, destination, destinationStride, first, workspace);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void LoadFromBlock(in JxlDctSource input, int offset, Span<float> coeff)
+        if (first < count)
         {
-            for (int i = 0; i < n; i++)
-            {
-                input.LoadPart(i, offset).CopyTo(coeff[(i * sz)..]);
-            }
+            ForwardColumnsScalar(length, count, source, sourceStride, destination, destinationStride, first, workspace);
+        }
+    }
+
+    /// <summary>
+    /// Selects complete SIMD batches once for each independent axis. Remaining one- or two-value batches use scalar arithmetic.
+    /// </summary>
+    /// <param name="count">The number of independent transforms.</param>
+    /// <param name="length">The number of positions along each one-dimensional transform.</param>
+    /// <param name="source">The borrowed input matrix.</param>
+    /// <param name="sourceStride">The input row stride, in floats.</param>
+    /// <param name="destination">The borrowed output matrix.</param>
+    /// <param name="destinationStride">The output row stride, in floats.</param>
+    /// <param name="transposed">Whether transformed positions become destination rows and independent input rows become destination columns.</param>
+    /// <param name="workspace">The shared two-bank transform workspace.</param>
+    private static void ForwardRows(
+        int count,
+        int length,
+        ReadOnlySpan<float> source,
+        int sourceStride,
+        Span<float> destination,
+        int destinationStride,
+        bool transposed,
+        Span<float> workspace)
+    {
+        int first = 0;
+
+        if (Vector512.IsHardwareAccelerated && count - first >= Vector512<float>.Count && length >= Vector512<float>.Count)
+        {
+            first = ForwardRows512(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void StoreToBlockAndScale(Span<float> coeff, ref JxlDctOutput output, int offset)
+        if (Vector256.IsHardwareAccelerated && count - first >= Vector256<float>.Count && length >= Vector256<float>.Count)
         {
-            Vector<float> mul = new(1.0f / n);
-            for (int i = 0; i < n; i++)
-            {
-                output.StorePart(mul * new Vector<float>(coeff[(i * sz)..]), i, offset);
-            }
+            first = ForwardRows256(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
+        }
+
+        if (Vector128.IsHardwareAccelerated && count - first >= Vector128<float>.Count && length >= Vector128<float>.Count)
+        {
+            first = ForwardRows128(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
+        }
+
+        if (first < count)
+        {
+            ForwardRowsScalar(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
+        }
+    }
+
+    /// <summary>
+    /// Selects complete SIMD batches once for each independent axis. Remaining one- or two-value batches use scalar arithmetic.
+    /// </summary>
+    /// <param name="length">The number of positions along each one-dimensional transform.</param>
+    /// <param name="count">The number of independent transforms.</param>
+    /// <param name="source">The borrowed input matrix.</param>
+    /// <param name="sourceStride">The input row stride, in floats.</param>
+    /// <param name="destination">The borrowed output matrix.</param>
+    /// <param name="destinationStride">The output row stride, in floats.</param>
+    /// <param name="workspace">The shared two-bank transform workspace.</param>
+    private static void InverseColumns(
+        int length,
+        int count,
+        ReadOnlySpan<float> source,
+        int sourceStride,
+        Span<float> destination,
+        int destinationStride,
+        Span<float> workspace)
+    {
+        int first = 0;
+
+        if (Vector512.IsHardwareAccelerated && count - first >= Vector512<float>.Count)
+        {
+            first = InverseColumns512(length, count, source, sourceStride, destination, destinationStride, first, workspace);
+        }
+
+        if (Vector256.IsHardwareAccelerated && count - first >= Vector256<float>.Count)
+        {
+            first = InverseColumns256(length, count, source, sourceStride, destination, destinationStride, first, workspace);
+        }
+
+        if (Vector128.IsHardwareAccelerated && count - first >= Vector128<float>.Count)
+        {
+            first = InverseColumns128(length, count, source, sourceStride, destination, destinationStride, first, workspace);
+        }
+
+        if (first < count)
+        {
+            InverseColumnsScalar(length, count, source, sourceStride, destination, destinationStride, first, workspace);
+        }
+    }
+
+    /// <summary>
+    /// Selects complete SIMD batches once for each independent axis. Remaining one- or two-value batches use scalar arithmetic.
+    /// </summary>
+    /// <param name="count">The number of independent transforms.</param>
+    /// <param name="length">The number of positions along each one-dimensional transform.</param>
+    /// <param name="source">The borrowed input matrix.</param>
+    /// <param name="sourceStride">The input row stride, in floats.</param>
+    /// <param name="destination">The borrowed output matrix.</param>
+    /// <param name="destinationStride">The output row stride, in floats.</param>
+    /// <param name="transposed">Whether transformed positions become destination rows and independent input rows become destination columns.</param>
+    /// <param name="workspace">The shared two-bank transform workspace.</param>
+    private static void InverseRows(
+        int count,
+        int length,
+        ReadOnlySpan<float> source,
+        int sourceStride,
+        Span<float> destination,
+        int destinationStride,
+        bool transposed,
+        Span<float> workspace)
+    {
+        int first = 0;
+
+        if (Vector512.IsHardwareAccelerated && count - first >= Vector512<float>.Count && length >= Vector512<float>.Count)
+        {
+            first = InverseRows512(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
+        }
+
+        if (Vector256.IsHardwareAccelerated && count - first >= Vector256<float>.Count && length >= Vector256<float>.Count)
+        {
+            first = InverseRows256(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
+        }
+
+        if (Vector128.IsHardwareAccelerated && count - first >= Vector128<float>.Count && length >= Vector128<float>.Count)
+        {
+            first = InverseRows128(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
+        }
+
+        if (first < count)
+        {
+            InverseRowsScalar(length, count, source, sourceStride, destination, destinationStride, transposed, first, workspace);
         }
     }
 }

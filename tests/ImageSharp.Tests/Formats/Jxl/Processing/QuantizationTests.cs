@@ -9,6 +9,120 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.Processing;
 public class QuantizationTests
 {
     /// <summary>
+    /// Checks the native default band count and the rectangular transform's predefined table selection.
+    /// </summary>
+    [Fact]
+    public void DefaultWeights_MatchNativeBandAndTableMetadata()
+    {
+        Assert.Equal(8, JxlQuantWeights.Dct32x32.DctParameters!.NumDistanceBands);
+        Assert.Same(JxlQuantWeights.Dct32x64, JxlDequantMatrices.Library[(int)JxlQuantTable.DCT32X64]);
+    }
+
+    /// <summary>
+    /// Checks native signed band multipliers, exact constant intervals, independent channel layout, and all SIMD tails.
+    /// </summary>
+    [Fact]
+    public void DistanceWeights_ApplyMultipliersAndPreserveExactIntervalValues()
+    {
+        static void RunTest()
+        {
+            // Mult(0)=1 keeps every interval constant. This exercises the real interpolation path rather than the single-band fill.
+            float[][] constantBands = [[2F, 0F, 0F], [4F, 0F, 0F], [8F, 0F, 0F]];
+            float[][] varyingBands = [[2F, 1F, -1F], [4F, 1F, -1F], [8F, 1F, -1F]];
+            ReadOnlySpan<int> columns = [3, 4, 7, 8, 15, 16, 17, 31, 32, 33];
+
+            foreach (int columnCount in columns)
+            {
+                const int rowCount = 3;
+                int channelSize = rowCount * columnCount;
+                float[] storage = new float[(3 * channelSize) + 2];
+                storage.AsSpan().Fill(-77F);
+                Span<float> weights = storage.AsSpan(1, 3 * channelSize);
+                Assert.True(JxlQuantWeights.GetQuantWeights(rowCount, columnCount, constantBands, 3, weights));
+
+                for (int c = 0; c < 3; c++)
+                {
+                    for (int i = 0; i < channelSize; i++)
+                    {
+                        Assert.Equal(constantBands[c][0], weights[(c * channelSize) + i]);
+                    }
+                }
+
+                Assert.Equal(-77F, storage[0]);
+                Assert.Equal(-77F, storage[^1]);
+
+                // Mult(1)=2 and Mult(-1)=1/2 produce positive cumulative bands [a,2a,a]. Raw multiplication would reject them.
+                Assert.True(JxlQuantWeights.GetQuantWeights(rowCount, columnCount, varyingBands, 3, weights));
+                for (int c = 0; c < 3; c++)
+                {
+                    Assert.Equal(varyingBands[c][0], weights[c * channelSize]);
+                }
+
+                Assert.Equal(-77F, storage[0]);
+                Assert.Equal(-77F, storage[^1]);
+            }
+
+            // Scaled positions zero and one are the exact starts of successive geometric intervals.
+            ReadOnlySpan<float> samples = [2F, 8F, 4F];
+            ReadOnlySpan<float> logarithms = [2F, -1F];
+            Assert.Equal(2F, JxlQuantWeights.Interpolate(0F, samples, logarithms));
+            Assert.Equal(8F, JxlQuantWeights.Interpolate(1F, samples, logarithms));
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks half-row thresholds and ties-to-even integer rounding for narrow and full-width coefficient rows.
+    /// </summary>
+    [Fact]
+    public void Quantize_UsesQuadrantThresholdsAndEvenMidpoints()
+    {
+        static void RunTest()
+        {
+            ReadOnlySpan<float> samples = [-3.5F, -2.5F, -1.5F, -1.25F, -1.125F, -0.5F, 0F, 0.5F, 1.125F, 1.25F, 1.5F, 2.5F, 3.5F];
+            ReadOnlySpan<int> lowThreshold = [-4, -2, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 4];
+            ReadOnlySpan<int> highThreshold = [-4, -2, -2, -1, 0, 0, 0, 0, 0, 1, 2, 2, 4];
+            ReadOnlySpan<int> widths = [8, 16, 32, 64, 128, 256];
+
+            foreach (int width in widths)
+            {
+                float[] source = new float[width + 1];
+                float[] matrix = new float[width + 1];
+                int[] output = new int[width + 2];
+                matrix.AsSpan().Fill(2F);
+                output.AsSpan().Fill(-777);
+
+                for (int i = 0; i < width; i++)
+                {
+                    source[i] = samples[i % samples.Length];
+                }
+
+                source[width] = float.NaN;
+                matrix[width] = float.NaN;
+
+                // Matrix 2 and scale 0.5 leave sample magnitudes unchanged. The two tables state rounding and cutoff results independently.
+                JxlQuantizer.Quantize(source.AsSpan(0, width), matrix, 0.5F, 0.5F, 1.25F, output.AsSpan(1, width));
+
+                for (int i = 0; i < width; i++)
+                {
+                    int expected = i < width / 2 ? lowThreshold[i % samples.Length] : highThreshold[i % samples.Length];
+                    Assert.Equal(expected, output[1 + i]);
+                }
+
+                Assert.Equal(-777, output[0]);
+                Assert.Equal(-777, output[^1]);
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
     /// Checks numeric conversion, zero/unit bias, matrix scaling and correlation for both coefficient storage widths.
     /// </summary>
     [Fact]

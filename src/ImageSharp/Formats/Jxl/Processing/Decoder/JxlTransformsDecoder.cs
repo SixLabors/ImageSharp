@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -305,6 +304,21 @@ internal static class JxlTransformsDecoder
         ],
     ];
 
+    /// <summary>
+    /// Computes the low-frequency rectangle of a larger transform from its DC samples.
+    /// </summary>
+    /// <param name="dctRows">The full spatial transform height.</param>
+    /// <param name="dctCols">The full spatial transform width.</param>
+    /// <param name="lfRows">The number of low-frequency rows.</param>
+    /// <param name="lfCols">The number of low-frequency columns.</param>
+    /// <param name="rows">The small transform height in DC samples.</param>
+    /// <param name="cols">The small transform width in DC samples.</param>
+    /// <param name="input">The borrowed DC sample rows.</param>
+    /// <param name="inputStride">The physical input row stride, in floats.</param>
+    /// <param name="output">The borrowed low-frequency coefficient rows.</param>
+    /// <param name="outputStride">The physical output row stride, in floats.</param>
+    /// <param name="block">Borrowed storage for the small canonical coefficient matrix.</param>
+    /// <param name="scratchSpace">Borrowed transform workspace, separate from the input and block.</param>
     public static void ReinterpretingDct(
         int dctRows,
         int dctCols,
@@ -319,8 +333,9 @@ internal static class JxlTransformsDecoder
         Span<float> block,
         Span<float> scratchSpace)
     {
-        JxlDct.ComputeScaledDct(rows, cols, new JxlDctSource(input, inputStride), block, scratchSpace);
+        JxlDct.ComputeScaledDct(rows, cols, input, inputStride, block, scratchSpace);
 
+        // Each factor belongs to one frequency axis. Canonical coefficient orientation exchanges the axes for tall and square blocks.
         if (rows < cols)
         {
             ReadOnlySpan<float> sp1 = JxlDctScales.GetResampleScales(rows, dctRows);
@@ -328,9 +343,11 @@ internal static class JxlTransformsDecoder
 
             for (int y = 0; y < lfRows; y++)
             {
+                float rowScale = sp1[y];
+
                 for (int x = 0; x < lfCols; x++)
                 {
-                    output[(y * outputStride) + x] = block[(y * cols) + x] * sp1[y] * sp2[x];
+                    output[(y * outputStride) + x] = block[(y * cols) + x] * rowScale * sp2[x];
                 }
             }
         }
@@ -341,16 +358,26 @@ internal static class JxlTransformsDecoder
 
             for (int y = 0; y < lfCols; y++)
             {
+                float rowScale = sp1[y];
+
                 for (int x = 0; x < lfRows; x++)
                 {
-                    output[(y * outputStride) + x] = block[(y * rows) + x] * sp1[y] * sp2[y];
+                    output[(y * outputStride) + x] = block[(y * rows) + x] * rowScale * sp2[x];
                 }
             }
         }
     }
 
+    /// <summary>
+    /// Restores two-by-two sample cells from their average and three signed differences.
+    /// </summary>
+    /// <param name="s">The active square side: two, four or eight samples.</param>
+    /// <param name="block">The borrowed eight-column coefficient matrix. It can be the output allocation.</param>
+    /// <param name="strideOut">The physical destination row stride, in floats.</param>
+    /// <param name="output">The borrowed restored sample rows.</param>
     public static void Idct2TopBlock(int s, Span<float> block, int strideOut, Span<float> output)
     {
+        // All source cells must be consumed before output changes their layout. One eight-by-eight temporary permits in-place composition.
         Span<float> temp = stackalloc float[JxlFrameDimensions.DctBlockSize];
         int num2x2 = s >> 1;
 
@@ -370,10 +397,11 @@ internal static class JxlTransformsDecoder
                 float c10 = block[((y + num2x2) * JxlFrameDimensions.BlockDimensions) + x];
                 float c11 = block[((y + num2x2) * JxlFrameDimensions.BlockDimensions) + n2x2PlusX];
 
+                // The four Haar signs are (++ ++), (++ --), (+- +-), and (+- -+). The forward transform alone applies the quarter scale.
                 float r00 = (c00 + c01) + (c10 + c11);
-                float r01 = (c00 + c01) - (c10 - c11);
+                float r01 = (c00 + c01) - (c10 + c11);
                 float r10 = (c00 - c01) + (c10 - c11);
-                float r11 = (c00 - c01) - (c10 + c11);
+                float r11 = (c00 - c01) - (c10 - c11);
 
                 temp[(y2 * JxlFrameDimensions.BlockDimensions) + x2] = r00;
                 temp[(y2 * JxlFrameDimensions.BlockDimensions) + x2Plus1] = r01;
@@ -391,44 +419,13 @@ internal static class JxlTransformsDecoder
         }
     }
 
-    public static void AfvIdct4x4(Span<float> coeffs, Span<float> pixels)
-    {
-        if (!Vector.IsHardwareAccelerated || Vector<float>.Count > 16)
-        {
-            // Vector<float>.Count can be > 16 on some CPUs,
-            // e.g. some ARM SVE2 processors can reach 2048 bits
-            for (int i = 0; i < 16; i++)
-            {
-                float pixel = 0f;
-
-                for (int j = 0; j < 16; j++)
-                {
-                    float cf = coeffs[j];
-                    float basis = AfvBasis4x4[j][i];
-                    pixel = (cf * basis) + pixel;
-                }
-
-                pixels[i] = pixel;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < 16; i += Vector<float>.Count)
-            {
-                Vector<float> pixel = Vector<float>.Zero;
-
-                for (int j = 0; j < 16; j++)
-                {
-                    Vector<float> cf = Vector.Create(coeffs[j]);
-                    Vector<float> basis = Vector.Create<float>(AfvBasis4x4[j].AsSpan(i));
-                    pixel = (cf * basis) + pixel;
-                }
-
-                pixel.CopyTo(pixels[i..]);
-            }
-        }
-    }
-
+    /// <summary>
+    /// Converts the three AFV component transforms to pixels.
+    /// </summary>
+    /// <param name="afvKind">The horizontal and vertical AFV quadrant bits.</param>
+    /// <param name="coefficients">The borrowed source eight-by-eight coefficient matrix.</param>
+    /// <param name="pixels">The borrowed eight-by-eight destination sample rows.</param>
+    /// <param name="pixelsStride">The physical sample row stride, in floats.</param>
     public static void AfvTransformToPixels(int afvKind, Span<float> coefficients, Span<float> pixels, int pixelsStride)
     {
         Span<float> scratchSpace = stackalloc float[4 * 8 * 4]; // 128 floats, 512 bytes
@@ -468,7 +465,7 @@ internal static class JxlTransformsDecoder
         iy28 = 0;
 
         Span<float> block = stackalloc float[4 * 8]; // Don't zero-init
-        AfvIdct4x4(coeff, block);
+        JxlDct.TransformAfv4x4(coeff, AfvBasis4x4, block);
 
         int afvX4 = afvX * 4;
 
@@ -486,7 +483,7 @@ internal static class JxlTransformsDecoder
             }
         }
 
-        // IDCT4x4 in (odd, even) positions.
+        // The separate DCT4x4 occupies odd columns of the even coefficient rows. The AFV basis occupies their even columns.
         block[0] = dcs[1];
         for (int iy4 = 0; iy4 < 16; iy4 += 4)
         {
@@ -505,12 +502,7 @@ internal static class JxlTransformsDecoder
 
         iy28 = 0;
 
-        JxlDct.ComputeScaledInverseDct(
-            4,
-            4,
-            block,
-            new JxlDctOutput(pixels[((afvY * 4 * pixelsStride) + (afvX == 1 ? 0 : 4))..], pixelsStride),
-            scratchSpace);
+        JxlDct.ComputeScaledInverseDct(4, 4, block, pixels[((afvY * 4 * pixelsStride) + (afvX == 1 ? 0 : 4))..], pixelsStride, scratchSpace);
 
         block[0] = dcs[2];
 
@@ -532,12 +524,7 @@ internal static class JxlTransformsDecoder
 
         iy8 = 0;
 
-        JxlDct.ComputeScaledInverseDct(
-            4,
-            8,
-            block,
-            new JxlDctOutput(pixels[((afvY == 1 ? 0 : 4) * pixelsStride)..], pixelsStride),
-            scratchSpace);
+        JxlDct.ComputeScaledInverseDct(4, 8, block, pixels[((afvY == 1 ? 0 : 4) * pixelsStride)..], pixelsStride, scratchSpace);
     }
 
     public static void TransformToPixels(JxlAcStrategyType strategy, Span<float> coefficients, Span<float> pixels, int pixelsStride, Span<float> scratchSpace)
@@ -635,12 +622,7 @@ internal static class JxlTransformsDecoder
                         }
                     }
 
-                    JxlDct.ComputeScaledInverseDct(
-                        8,
-                        4,
-                        block,
-                        new JxlDctOutput(pixels[(x * 4)..], pixelsStride),
-                        scratchSpace);
+                    JxlDct.ComputeScaledInverseDct(8, 4, block, pixels[(x * 4)..], pixelsStride, scratchSpace);
                 }
 
                 break;
@@ -676,12 +658,7 @@ internal static class JxlTransformsDecoder
                         }
                     }
 
-                    JxlDct.ComputeScaledInverseDct(
-                        4,
-                        8,
-                        block,
-                        new JxlDctOutput(pixels[(y * 4 * pixelsStride)..], pixelsStride),
-                        scratchSpace);
+                    JxlDct.ComputeScaledInverseDct(4, 8, block, pixels[(y * 4 * pixelsStride)..], pixelsStride, scratchSpace);
                 }
 
                 break;
@@ -722,12 +699,7 @@ internal static class JxlTransformsDecoder
                             }
                         }
 
-                        JxlDct.ComputeScaledInverseDct(
-                            4,
-                            4,
-                            block,
-                            new JxlDctOutput(pixels[((y * 4 * pixelsStride) + (x * 4))..], pixelsStride),
-                            scratchSpace);
+                        JxlDct.ComputeScaledInverseDct(4, 4, block, pixels[((y * 4 * pixelsStride) + (x * 4))..], pixelsStride, scratchSpace);
                     }
                 }
 
@@ -756,55 +728,55 @@ internal static class JxlTransformsDecoder
 
             case JxlAcStrategyType.DCT16X16:
             {
-                JxlDct.ComputeScaledInverseDct(16, 16, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(16, 16, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT16X8:
             {
-                JxlDct.ComputeScaledInverseDct(16, 8, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(16, 8, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT8X16:
             {
-                JxlDct.ComputeScaledInverseDct(8, 16, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(8, 16, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X8:
             {
-                JxlDct.ComputeScaledInverseDct(32, 8, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(32, 8, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT8X32:
             {
-                JxlDct.ComputeScaledInverseDct(8, 32, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(8, 32, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X16:
             {
-                JxlDct.ComputeScaledInverseDct(32, 16, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(32, 16, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT16X32:
             {
-                JxlDct.ComputeScaledInverseDct(16, 32, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(16, 32, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X32:
             {
-                JxlDct.ComputeScaledInverseDct(32, 32, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(32, 32, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT:
             {
-                JxlDct.ComputeScaledInverseDct(8, 8, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(8, 8, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
@@ -834,55 +806,55 @@ internal static class JxlTransformsDecoder
 
             case JxlAcStrategyType.DCT64X32:
             {
-                JxlDct.ComputeScaledInverseDct(64, 32, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(64, 32, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X64:
             {
-                JxlDct.ComputeScaledInverseDct(32, 64, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(32, 64, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT64X64:
             {
-                JxlDct.ComputeScaledInverseDct(64, 64, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(64, 64, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT128X64:
             {
-                JxlDct.ComputeScaledInverseDct(128, 64, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(128, 64, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT64X128:
             {
-                JxlDct.ComputeScaledInverseDct(64, 128, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(64, 128, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT128X128:
             {
-                JxlDct.ComputeScaledInverseDct(128, 128, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(128, 128, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT256X128:
             {
-                JxlDct.ComputeScaledInverseDct(256, 128, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(256, 128, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT128X256:
             {
-                JxlDct.ComputeScaledInverseDct(128, 256, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(128, 256, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT256X256:
             {
-                JxlDct.ComputeScaledInverseDct(256, 256, coefficients, new JxlDctOutput(pixels, pixelsStride), scratchSpace);
+                JxlDct.ComputeScaledInverseDct(256, 256, coefficients, pixels, pixelsStride, scratchSpace);
                 break;
             }
         }

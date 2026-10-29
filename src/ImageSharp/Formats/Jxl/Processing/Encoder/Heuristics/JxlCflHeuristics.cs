@@ -4,6 +4,7 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
@@ -64,7 +65,7 @@ internal sealed class JxlCflHeuristics : IDisposable
         {
             // Transform blocks can cover up to 256 by 256 pixels. A color tile covers 64 by 64 pixels, independently of that maximum.
             // Regions follow ComputeTile's order: three transform blocks; four tile coefficient arrays; three DC arrays; transform scratch.
-            int dctScratchLength = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
+            int dctScratchLength = JxlDct.MaximumWorkingSetLength;
             int dcScratchLength = 3 * JxlAcStrategy.MaximumCoefficientBlocks * JxlAcStrategy.MaximumCoefficientBlocks;
 
             return (JxlAcStrategy.MaximumCoefficientArea * 3)

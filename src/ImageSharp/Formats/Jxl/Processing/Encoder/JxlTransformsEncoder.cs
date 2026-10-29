@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
@@ -310,6 +309,20 @@ internal static class JxlTransformsEncoder
       ],
     ];
 
+    /// <summary>
+    /// Restores DC samples from the rescaled low-frequency rectangle.
+    /// </summary>
+    /// <param name="dctRows">The full spatial transform height.</param>
+    /// <param name="dctCols">The full spatial transform width.</param>
+    /// <param name="lfRows">The number of low-frequency rows.</param>
+    /// <param name="lfCols">The number of low-frequency columns.</param>
+    /// <param name="rows">The small transform height in DC samples.</param>
+    /// <param name="cols">The small transform width in DC samples.</param>
+    /// <param name="input">The borrowed low-frequency coefficients in canonical orientation.</param>
+    /// <param name="inputStride">The physical input row stride, in floats.</param>
+    /// <param name="output">The borrowed restored DC samples.</param>
+    /// <param name="outputStride">The physical output row stride, in floats.</param>
+    /// <param name="scratch">Borrowed storage for a 32-by-32 coefficient region followed by the transform workspace.</param>
     public static void ReinterpretingInverseDct(
         int dctRows,
         int dctCols,
@@ -323,6 +336,7 @@ internal static class JxlTransformsEncoder
         int outputStride,
         Span<float> scratch)
     {
+        // Each factor belongs to one frequency axis. Canonical coefficient orientation exchanges the axes for tall and square blocks.
         if (rows < cols)
         {
             ReadOnlySpan<float> sp1 = JxlDctScales.GetResampleScales(dctRows, rows);
@@ -332,10 +346,11 @@ internal static class JxlTransformsEncoder
             {
                 int yCols = y * cols;
                 int yInputStride = y * inputStride;
+                float rowScale = sp1[y];
 
                 for (int x = 0; x < lfCols; x++)
                 {
-                    scratch[yCols + x] = input[yInputStride + x] * sp1[y] * sp2[y];
+                    scratch[yCols + x] = input[yInputStride + x] * rowScale * sp2[x];
                 }
             }
         }
@@ -348,27 +363,34 @@ internal static class JxlTransformsEncoder
             {
                 int yRows = y * rows;
                 int yInputStride = y * inputStride;
+                float rowScale = sp1[y];
 
                 for (int x = 0; x < lfRows; x++)
                 {
-                    scratch[yRows + x] = input[yInputStride + x] * sp1[y] * sp2[y];
+                    scratch[yRows + x] = input[yInputStride + x] * rowScale * sp2[x];
                 }
             }
         }
 
         Span<float> scratchSpace = scratch[(MaxBlocks * MaxBlocks)..];
-        JxlDct.ComputeScaledInverseDct(rows, cols, scratch, new JxlDctOutput(output, outputStride), scratchSpace);
+        JxlDct.ComputeScaledInverseDct(rows, cols, scratch, output, outputStride, scratchSpace);
     }
 
+    /// <summary>
+    /// Splits two-by-two sample cells into their average and three signed differences.
+    /// </summary>
+    /// <param name="s">The active square side: two, four or eight samples.</param>
+    /// <param name="block">The borrowed source sample rows. It can be the output allocation.</param>
+    /// <param name="stride">The physical source row stride, in floats.</param>
+    /// <param name="output">The destination eight-column coefficient matrix.</param>
     public static void Dct2TopBlock(int s, Span<float> block, int stride, Span<float> output)
     {
+        // All source cells must be consumed before output changes their layout. One eight-by-eight temporary permits in-place composition.
         Span<float> temp = stackalloc float[JxlFrameDimensions.DctBlockSize];
         int num2x2 = s >>> 1; // Logical right shift (no sign-extend)
 
         for (int y = 0; y < num2x2; y++)
         {
-            // TODO: convert repeated arithmetic (e.g. y * DctBlockSize)
-            // into variables?
             for (int x = 0; x < num2x2; x++)
             {
                 float c00 = block[(y * 2 * stride) + (x * 2)];
@@ -376,20 +398,21 @@ internal static class JxlTransformsEncoder
                 float c10 = block[(((y * 2) + 1) * stride) + (x * 2)];
                 float c11 = block[(((y * 2) + 1) * stride) + (x * 2) + 1];
 
+                // The four Haar signs are (++ ++), (++ --), (+- +-), and (+- -+). The forward transform alone applies the quarter scale.
                 float r00 = (c00 + c01) + (c10 + c11);
-                float r01 = (c00 + c01) - (c10 - c11);
+                float r01 = (c00 + c01) - (c10 + c11);
                 float r10 = (c00 - c01) + (c10 - c11);
-                float r11 = (c00 - c01) - (c10 + c11);
+                float r11 = (c00 - c01) - (c10 - c11);
 
                 r00 *= 0.25f;
                 r01 *= 0.25f;
                 r10 *= 0.25f;
                 r11 *= 0.25f;
 
-                temp[(y * JxlFrameDimensions.DctBlockSize) + x] = r00;
-                temp[(y * JxlFrameDimensions.DctBlockSize) + num2x2 + x] = r01;
-                temp[((y + num2x2) * JxlFrameDimensions.DctBlockSize) + x] = r10;
-                temp[((y + num2x2) * JxlFrameDimensions.DctBlockSize) + num2x2 + x] = r11;
+                temp[(y * JxlFrameDimensions.BlockDimensions) + x] = r00;
+                temp[(y * JxlFrameDimensions.BlockDimensions) + num2x2 + x] = r01;
+                temp[((y + num2x2) * JxlFrameDimensions.BlockDimensions) + x] = r10;
+                temp[((y + num2x2) * JxlFrameDimensions.BlockDimensions) + num2x2 + x] = r11;
             }
         }
 
@@ -402,44 +425,13 @@ internal static class JxlTransformsEncoder
         }
     }
 
-    public static void AfvDct4x4(Span<float> coeffs, Span<float> pixels)
-    {
-        if (!Vector.IsHardwareAccelerated || Vector<float>.Count > 16)
-        {
-            // Vector<float>.Count can be > 16 on some CPUs,
-            // e.g. some ARM SVE2 processors can reach 2048 bits
-            for (int i = 0; i < 16; i++)
-            {
-                float scalar = 0f;
-
-                for (int j = 0; j < 16; j++)
-                {
-                    float px = pixels[j];
-                    float basis = AfvBasisTranspose4x4[j][i];
-                    scalar = (px * basis) + scalar;
-                }
-
-                coeffs[i] = scalar;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < 16; i += Vector<float>.Count)
-            {
-                Vector<float> scalar = Vector<float>.Zero;
-
-                for (int j = 0; j < 16; j++)
-                {
-                    Vector<float> px = Vector.Create(pixels[j]);
-                    Vector<float> basis = Vector.Create<float>(AfvBasisTranspose4x4[j].AsSpan(i));
-                    scalar = (px * basis) + scalar;
-                }
-
-                scalar.CopyTo(pixels[i..]);
-            }
-        }
-    }
-
+    /// <summary>
+    /// Converts pixels to the three AFV component transforms.
+    /// </summary>
+    /// <param name="afvKind">The horizontal and vertical AFV quadrant bits.</param>
+    /// <param name="pixels">The borrowed eight-by-eight source sample rows.</param>
+    /// <param name="pixelsStride">The physical sample row stride, in floats.</param>
+    /// <param name="coefficients">The destination eight-by-eight coefficient matrix.</param>
     private static void AfvTransformFromPixels(int afvKind, Span<float> pixels, int pixelsStride, Span<float> coefficients)
     {
         Span<float> scratchSpace = stackalloc float[4 * 8 * 5];
@@ -460,7 +452,8 @@ internal static class JxlTransformsEncoder
         }
 
         Span<float> coeff = stackalloc float[4 * 4];
-        AfvDct4x4(block, coeff);
+        // The AFV basis fills even/even coefficients. DCT4x4 fills even/odd coefficients, and DCT4x8 fills the odd rows.
+        JxlDct.TransformAfv4x4(block, AfvBasisTranspose4x4, coeff);
 
         for (int iy = 0; iy < 4; iy++)
         {
@@ -470,27 +463,17 @@ internal static class JxlTransformsEncoder
             }
         }
 
-        JxlDct.ComputeScaledDct(
-            4,
-            4,
-            new JxlDctSource(pixels[((afvY * 4 * pixelsStride) + (afvX == 1 ? 0 : 4))..], pixelsStride),
-            block,
-            scratchSpace);
+        JxlDct.ComputeScaledDct(4, 4, pixels[((afvY * 4 * pixelsStride) + (afvX == 1 ? 0 : 4))..], pixelsStride, block, scratchSpace);
 
         for (int iy = 0; iy < 4; iy++)
         {
-            for (int ix = 0; ix < 8; ix++)
+            for (int ix = 0; ix < 4; ix++)
             {
                 coefficients[(iy * 2 * 8) + (ix * 2) + 1] = block[(iy * 4) + ix];
             }
         }
 
-        JxlDct.ComputeScaledDct(
-            4,
-            8,
-            new JxlDctSource(pixels[((afvY == 1 ? 0 : 4) * pixelsStride)..], pixelsStride),
-            block,
-            scratchSpace);
+        JxlDct.ComputeScaledDct(4, 8, pixels[((afvY == 1 ? 0 : 4) * pixelsStride)..], pixelsStride, block, scratchSpace);
 
         for (int iy = 0; iy < 4; iy++)
         {
@@ -569,12 +552,7 @@ internal static class JxlTransformsEncoder
 
                 for (int x = 0; x < 2; x++)
                 {
-                    JxlDct.ComputeScaledDct(
-                        8,
-                        4,
-                        new JxlDctSource(pixels[(x * 4)..], pixelsStride),
-                        block,
-                        scratchSpace);
+                    JxlDct.ComputeScaledDct(8, 4, pixels[(x * 4)..], pixelsStride, block, scratchSpace);
 
                     for (int iy = 0; iy < 4; iy++)
                     {
@@ -601,12 +579,7 @@ internal static class JxlTransformsEncoder
 
                 for (int y = 0; y < 2; y++)
                 {
-                    JxlDct.ComputeScaledDct(
-                        4,
-                        8,
-                        new JxlDctSource(pixels[(y * 4 * pixelsStride)..], pixelsStride),
-                        block,
-                        scratchSpace);
+                    JxlDct.ComputeScaledDct(4, 8, pixels[(y * 4 * pixelsStride)..], pixelsStride, block, scratchSpace);
 
                     for (int iy = 0; iy < 4; iy++)
                     {
@@ -634,12 +607,7 @@ internal static class JxlTransformsEncoder
                 {
                     for (int x = 0; x < 2; x++)
                     {
-                        JxlDct.ComputeScaledDct(
-                            4,
-                            4,
-                            new JxlDctSource(pixels[((y * 4 * pixelsStride) + (x * 4))..], pixelsStride),
-                            block,
-                            scratchSpace);
+                        JxlDct.ComputeScaledDct(4, 4, pixels[((y * 4 * pixelsStride) + (x * 4))..], pixelsStride, block, scratchSpace);
 
                         for (int iy = 0; iy < 4; iy++)
                         {
@@ -675,100 +643,55 @@ internal static class JxlTransformsEncoder
 
             case JxlAcStrategyType.DCT16X16:
             {
-                JxlDct.ComputeScaledDct(
-                    16,
-                    16,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(16, 16, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT16X8:
             {
-                JxlDct.ComputeScaledDct(
-                    16,
-                    8,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(16, 8, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT8X16:
             {
-                JxlDct.ComputeScaledDct(
-                    8,
-                    16,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(8, 16, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X8:
             {
-                JxlDct.ComputeScaledDct(
-                    32,
-                    8,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(32, 8, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT8X32:
             {
-                JxlDct.ComputeScaledDct(
-                    8,
-                    32,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(8, 32, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X16:
             {
-                JxlDct.ComputeScaledDct(
-                    32,
-                    16,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(32, 16, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT16X32:
             {
-                JxlDct.ComputeScaledDct(
-                    16,
-                    32,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(16, 32, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X32:
             {
-                JxlDct.ComputeScaledDct(
-                    32,
-                    32,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(32, 32, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT:
             {
-                JxlDct.ComputeScaledDct(
-                    8,
-                    8,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(8, 8, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
@@ -798,100 +721,55 @@ internal static class JxlTransformsEncoder
 
             case JxlAcStrategyType.DCT64X64:
             {
-                JxlDct.ComputeScaledDct(
-                    64,
-                    64,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(64, 64, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT64X32:
             {
-                JxlDct.ComputeScaledDct(
-                    64,
-                    32,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(64, 32, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT32X64:
             {
-                JxlDct.ComputeScaledDct(
-                    32,
-                    64,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(32, 64, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT128X128:
             {
-                JxlDct.ComputeScaledDct(
-                    128,
-                    128,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(128, 128, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT128X64:
             {
-                JxlDct.ComputeScaledDct(
-                    128,
-                    64,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(128, 64, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT64X128:
             {
-                JxlDct.ComputeScaledDct(
-                    64,
-                    128,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(64, 128, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT256X256:
             {
-                JxlDct.ComputeScaledDct(
-                    256,
-                    256,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(256, 256, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT256X128:
             {
-                JxlDct.ComputeScaledDct(
-                    256,
-                    128,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(256, 128, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
 
             case JxlAcStrategyType.DCT128X256:
             {
-                JxlDct.ComputeScaledDct(
-                    128,
-                    256,
-                    new JxlDctSource(pixels, pixelsStride),
-                    coefficients,
-                    scratchSpace);
+                JxlDct.ComputeScaledDct(128, 256, pixels, pixelsStride, coefficients, scratchSpace);
                 break;
             }
         }

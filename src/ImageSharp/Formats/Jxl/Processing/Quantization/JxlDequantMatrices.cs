@@ -92,9 +92,9 @@ internal sealed class JxlDequantMatrices
             int num = numBlocks * JxlFrameDimensions.DctBlockSize;
             int i3 = 3 * i;
 
-            for (int c = 0; c < 3; c++)
+            for (int channelIndex = 0; channelIndex < 3; channelIndex++)
             {
-                offsets[i3 + c] = pos + (c * num);
+                offsets[i3 + channelIndex] = pos + (channelIndex * num);
             }
 
             pos += 3 * num;
@@ -102,9 +102,9 @@ internal sealed class JxlDequantMatrices
 
         for (int i = 0; i < JxlAcStrategy.NumberOfValidStrategies; i++)
         {
-            for (int c = 0; c < 3; c++)
+            for (int channelIndex = 0; channelIndex < 3; channelIndex++)
             {
-                this.tableOffsets[(i * 3) + c] = offsets[((int)JxlQuantizerConstants.AcStrategyToQuantTableMap[i] * 3) + c];
+                this.tableOffsets[(i * 3) + channelIndex] = offsets[((int)JxlQuantizerConstants.AcStrategyToQuantTableMap[i] * 3) + channelIndex];
             }
         }
     }
@@ -169,7 +169,7 @@ internal sealed class JxlDequantMatrices
             JxlQuantWeights.Dct4x8,
             JxlQuantWeights.Afv,
             JxlQuantWeights.Dct64x64,
-            JxlQuantWeights.Dct32x32,
+            JxlQuantWeights.Dct32x64,
             JxlQuantWeights.Dct128x128,
             JxlQuantWeights.Dct64x128,
             JxlQuantWeights.Dct256x256,
@@ -187,36 +187,36 @@ internal sealed class JxlDequantMatrices
     }
 
     /// <summary>
-    /// Returns a matrix for the specified kind of quantizer and index.
+    /// Returns the dequantization matrix for a transform and color channel.
     /// </summary>
-    /// <param name="quantKind">Quantizer kind</param>
-    /// <param name="c">Index</param>
+    /// <param name="transformType">The AC transform type.</param>
+    /// <param name="channelIndex">The XYB channel index.</param>
     /// <returns>Matrix</returns>
-    public Span<float> GetMatrix(JxlAcStrategyType quantKind, int c)
+    public Span<float> GetMatrix(JxlAcStrategyType transformType, int channelIndex)
     {
-        DebugGuard.MustBeGreaterThan((1 << (int)quantKind) & this.computedMask, 0, nameof(quantKind));
-        return this.table.Span[this.tableOffsets[((int)quantKind * 3) + c]..];
+        DebugGuard.MustBeGreaterThan((1 << (int)transformType) & this.computedMask, 0, nameof(transformType));
+        return this.table.Span[this.tableOffsets[((int)transformType * 3) + channelIndex]..];
     }
 
     /// <summary>
-    /// Returns an inverse matrix for the specified kind of quantizer and index.
+    /// Returns the inverse dequantization matrix for a transform and color channel.
     /// </summary>
-    /// <param name="quantKind">Quantizer kind</param>
-    /// <param name="c">Index</param>
+    /// <param name="transformType">The AC transform type.</param>
+    /// <param name="channelIndex">The XYB channel index.</param>
     /// <returns>Inverse matrix</returns>
-    public Span<float> GetInverseMatrix(JxlAcStrategyType quantKind, int c)
+    public Span<float> GetInverseMatrix(JxlAcStrategyType transformType, int channelIndex)
     {
-        DebugGuard.MustBeGreaterThan((1 << (int)quantKind) & this.computedMask, 0, nameof(quantKind));
-        return this.inverseTable.Span[this.tableOffsets[((int)quantKind * 3) + c]..];
+        DebugGuard.MustBeGreaterThan((1 << (int)transformType) & this.computedMask, 0, nameof(transformType));
+        return this.inverseTable.Span[this.tableOffsets[((int)transformType * 3) + channelIndex]..];
     }
 
     /// <summary>
-    /// Returns a DC quant for index c.
+    /// Returns the DC quantization multiplier for a channel.
     /// </summary>
-    /// <param name="c">The DC quantizer index.</param>
-    /// <returns>DC quant for index <paramref name="c"/>.</returns>
+    /// <param name="channelIndex">The DC quantizer index.</param>
+    /// <returns>DC quant for index <paramref name="channelIndex"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float GetDcQuant(int c) => this.dcQuant[c];
+    public float GetDcQuant(int channelIndex) => this.dcQuant[channelIndex];
 
     /// <summary>
     /// Returns all DC quantizers. See also <seealso cref="GetDcQuant(int)"/>.
@@ -225,23 +225,23 @@ internal sealed class JxlDequantMatrices
     public Span<float> GetDcQuants() => this.dcQuant;
 
     /// <summary>
-    /// Returns an inverse DC quant for index c.
+    /// Returns the inverse DC quantization multiplier for a channel.
     /// </summary>
-    /// <param name="c">The inverse DC quantizer index.</param>
-    /// <returns>Inverse DC quant for index <paramref name="c"/>.</returns>
+    /// <param name="channelIndex">The inverse DC quantizer index.</param>
+    /// <returns>Inverse DC quant for index <paramref name="channelIndex"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float GetInverseDcQuant(int c) => this.inverseDcQuant[c];
+    public float GetInverseDcQuant(int channelIndex) => this.inverseDcQuant[channelIndex];
 
     /// <summary>
     /// Applies the specified DC quantizer.
     /// </summary>
-    /// <param name="dc">DC quantizer to apply to the dequantization matrices.</param>
-    public void SetDcQuant(InlineArray3<float> dc)
+    /// <param name="dcQuantizationValues">DC quantizer to apply to the dequantization matrices.</param>
+    public void SetDcQuant(InlineArray3<float> dcQuantizationValues)
     {
-        for (int c = 0; c < 3; c++)
+        for (int channelIndex = 0; channelIndex < 3; channelIndex++)
         {
-            this.dcQuant[c] = 1f / dc[c];
-            this.inverseDcQuant[c] = dc[c];
+            this.dcQuant[channelIndex] = 1f / dcQuantizationValues[channelIndex];
+            this.inverseDcQuant[channelIndex] = dcQuantizationValues[channelIndex];
         }
     }
 

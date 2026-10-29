@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
@@ -134,7 +135,7 @@ internal static class JxlChromaFromLumaEncoder
     {
         int widthBlocks = opsinRect.Width / JxlFrameDimensions.BlockDimensions;
         const float distanceMultiplierAC = 1e-9f;
-        int dctScratchSize = 3 * (JxlSimdUtils.MaxVectorSize / sizeof(float)) * JxlAcStrategy.MaximumBlockDimension;
+        int dctScratchSize = JxlDct.MaximumWorkingSetLength;
 
         int y0 = rect.Y0();
         int x0 = rect.X0();

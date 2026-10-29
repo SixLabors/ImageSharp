@@ -5,7 +5,9 @@ using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
@@ -149,7 +151,7 @@ internal static class JxlQuantWeights
                     -0.3f,
                 ]
             ],
-            7));
+            8));
 
     /// <summary>
     /// DCT8x16 quantizer encoding.
@@ -559,18 +561,6 @@ internal static class JxlQuantWeights
         12.97166202570235f,
     ];
 
-    private static Vector128<float> Gather(ReadOnlySpan<float> data, Vector128<int> indices)
-    {
-        Vector128<float> result = Vector128<float>.Zero;
-
-        for (int i = 0; i < 4; i++)
-        {
-            result = result.WithElement(i, data[indices[i]]);
-        }
-
-        return result;
-    }
-
     public static void GetQuantWeightsDCT2(float[][] dct2Weights, Span<float> weights)
     {
         for (int c = 0; c < 3; c++)
@@ -634,39 +624,121 @@ internal static class JxlQuantWeights
         }
     }
 
-    public static float Interpolate(float pos, float max, Span<float> array, int len)
-    {
-        float scaledPos = pos * (len - 1) / max;
-        int idx = (int)scaledPos;
-        float a = array[idx];
-        float b = array[idx + 1];
-        return a * MathF.Pow(b / a, scaledPos - idx);
-    }
-
+    /// <summary>
+    /// Interpolates geometrically between adjacent quantization weights.
+    /// </summary>
+    /// <param name="scaledPosition">The position in sample intervals, below sampleValues.Length minus one.</param>
+    /// <param name="sampleValues">The ordered sample values.</param>
+    /// <param name="logRatios">The precomputed base-two logarithms of adjacent sample ratios.</param>
+    /// <returns>The interpolated weight.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Mult(float v) => v > 0f
-        ? 1.0f + v
-        : 1.0f / (1.0f - v);
-
-    public static Vector128<float> InterpolateVec(Vector128<float> scaledPos, ReadOnlySpan<float> array)
+    public static float Interpolate(float scaledPosition, ReadOnlySpan<float> sampleValues, ReadOnlySpan<float> logRatios)
     {
-        Vector128<int> idx = Vector128.ConvertToInt32(scaledPos);
-        Vector128<float> frac = scaledPos - Vector128.ConvertToSingle(idx);
-
-        Vector128<float> a = Gather(array, idx);
-        Vector128<float> b = Gather(array[1..], idx);
-
-        return a * JxlSimdUtils.FastPowf(b / a, frac);
+        int sampleIndex = (int)scaledPosition;
+        float a = sampleValues[sampleIndex];
+        float fraction = scaledPosition - sampleIndex;
+        float logarithm = logRatios[sampleIndex];
+        return fraction == 0F || logarithm == 0F ? a : a * float.Exp2(logarithm * fraction);
     }
 
-    public static bool GetQuantWeights(
-        int rows,
-        int cols,
-        float[][] distanceBands,
-        int numBands,
-        Span<float> output)
+    /// <summary>
+    /// Converts a signed distance-band delta to its positive multiplicative factor.
+    /// </summary>
+    /// <param name="v">The encoded delta.</param>
+    /// <returns>One plus a positive delta, or the reciprocal of one minus a nonpositive delta.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float Mult(float v) => v > 0f ? 1.0f + v : 1.0f / (1.0f - v);
+
+    /// <summary>
+    /// Interpolates four quantization weights from sample-space positions.
+    /// </summary>
+    /// <param name="scaledPositions">Nonnegative sample-space positions below sampleValues.Length minus one.</param>
+    /// <param name="sampleValues">The ordered sample values.</param>
+    /// <param name="logRatios">The precomputed base-two logarithms of adjacent sample ratios.</param>
+    /// <returns>The four interpolated weights.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Interpolate(Vector128<float> scaledPositions, ReadOnlySpan<float> sampleValues, ReadOnlySpan<float> logRatios)
+    {
+        // Positions are nonnegative and below the final band. Native truncation cannot produce an out-of-range gather index.
+        Vector128<int> idx = Vector128.ConvertToInt32Native(scaledPositions);
+        Vector128<float> frac = scaledPositions - Vector128.ConvertToSingle(idx);
+        Vector128<float> a = Vector128_.Gather(ref Unsafe.As<float, int>(ref MemoryMarshal.GetReference(sampleValues)), idx).AsSingle();
+        Vector128<float> logarithm = Vector128_.Gather(ref Unsafe.As<float, int>(ref MemoryMarshal.GetReference(logRatios)), idx).AsSingle();
+        Vector128<float> exact = Vector128.Equals(frac, Vector128<float>.Zero) | Vector128.Equals(logarithm, Vector128<float>.Zero);
+
+        // Each lane uses its own interval and exponent. Shared Exp2 is approximate; restore exact interval starts and constant intervals.
+        return Vector128.ConditionalSelect(exact, a, a * Vector128_.Exp2(logarithm * frac));
+    }
+
+    /// <summary>
+    /// Interpolates eight quantization weights from sample-space positions.
+    /// </summary>
+    /// <param name="scaledPositions">Nonnegative sample-space positions below sampleValues.Length minus one.</param>
+    /// <param name="sampleValues">The ordered sample values.</param>
+    /// <param name="logRatios">The precomputed base-two logarithms of adjacent sample ratios.</param>
+    /// <returns>The eight interpolated weights.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Interpolate(Vector256<float> scaledPositions, ReadOnlySpan<float> sampleValues, ReadOnlySpan<float> logRatios)
+    {
+        Vector256<int> idx = Vector256.ConvertToInt32Native(scaledPositions);
+        Vector256<float> frac = scaledPositions - Vector256.ConvertToSingle(idx);
+        Vector256<float> a = Vector256_.Gather(ref Unsafe.As<float, int>(ref MemoryMarshal.GetReference(sampleValues)), idx).AsSingle();
+        Vector256<float> logarithm = Vector256_.Gather(ref Unsafe.As<float, int>(ref MemoryMarshal.GetReference(logRatios)), idx).AsSingle();
+        Vector256<float> exact = Vector256.Equals(frac, Vector256<float>.Zero) | Vector256.Equals(logarithm, Vector256<float>.Zero);
+        return Vector256.ConditionalSelect(exact, a, a * Vector256_.Exp2(logarithm * frac));
+    }
+
+    /// <summary>
+    /// Interpolates sixteen quantization weights from sample-space positions on a supported SIMD target.
+    /// </summary>
+    /// <param name="scaledPositions">Nonnegative sample-space positions below sampleValues.Length minus one.</param>
+    /// <param name="sampleValues">The ordered sample values.</param>
+    /// <param name="logRatios">The precomputed base-two logarithms of adjacent sample ratios.</param>
+    /// <returns>The sixteen interpolated weights.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Interpolate(Vector512<float> scaledPositions, ReadOnlySpan<float> sampleValues, ReadOnlySpan<float> logRatios)
+    {
+        Vector512<int> idx = Vector512.ConvertToInt32Native(scaledPositions);
+        Vector512<float> frac = scaledPositions - Vector512.ConvertToSingle(idx);
+        Vector512<float> a = Vector512_.Gather(ref Unsafe.As<float, int>(ref MemoryMarshal.GetReference(sampleValues)), idx).AsSingle();
+        Vector512<float> logarithm = Vector512_.Gather(ref Unsafe.As<float, int>(ref MemoryMarshal.GetReference(logRatios)), idx).AsSingle();
+        Vector512<float> exact = Vector512.Equals(frac, Vector512<float>.Zero) | Vector512.Equals(logarithm, Vector512<float>.Zero);
+        return Vector512.ConditionalSelect(exact, a, a * Vector512_.Exp2(logarithm * frac));
+    }
+
+    /// <summary>
+    /// Precomputes the logarithm used by every position in each geometric interval.
+    /// </summary>
+    /// <param name="bands">The positive cumulative band values.</param>
+    /// <param name="logRatios">Storage for bands.Length minus one adjacent logarithms.</param>
+    private static void PrepareLogRatios(ReadOnlySpan<float> bands, Span<float> logRatios)
+    {
+        for (int i = 0; i < logRatios.Length; i++)
+        {
+            logRatios[i] = bands[i + 1] / bands[i];
+        }
+
+        TensorPrimitives.Log2(logRatios, logRatios);
+    }
+
+    /// <summary>
+    /// Builds quantization weights from the distance bands for each color channel.
+    /// </summary>
+    /// <param name="rowCount">The number of coefficient rows.</param>
+    /// <param name="columnCount">The number of coefficients per row.</param>
+    /// <param name="distanceBands">The distance-band parameters for each channel.</param>
+    /// <param name="bandCount">The number of bands per channel.</param>
+    /// <param name="output">The destination weights, in channel, row, and column order.</param>
+    /// <returns>Whether the cumulative bands satisfy the native minimum weight.</returns>
+    public static bool GetQuantWeights(int rowCount, int columnCount, float[][] distanceBands, int bandCount, Span<float> output)
     {
         Span<float> bands = stackalloc float[JxlQuantizerConstants.MaxDistanceBands];
+        Span<float> logStorage = stackalloc float[JxlQuantizerConstants.MaxDistanceBands - 1];
+        Span<float> logRatios = logStorage[..(bandCount - 1)];
+        int channelSize = rowCount * columnCount;
+        float positionScale = (bandCount - 1) / (JxlDctScales.Sqrt2 + 1e-6f);
+        float columnStep = positionScale / (columnCount - 1);
+        float rowStep = positionScale / (rowCount - 1);
 
         for (int c = 0; c < 3; c++)
         {
@@ -677,9 +749,9 @@ internal static class JxlQuantWeights
                 return false;
             }
 
-            for (int i = 1; i < numBands; i++)
+            for (int i = 1; i < bandCount; i++)
             {
-                bands[i] = bands[i - 1] * distanceBands[c][i];
+                bands[i] = bands[i - 1] * Mult(distanceBands[c][i]);
 
                 if (bands[i] < AlmostZero)
                 {
@@ -687,31 +759,63 @@ internal static class JxlQuantWeights
                 }
             }
 
-            float scale = (numBands - 1) / (JxlDctScales.Sqrt2 + 1e-6f);
-            float rcpCol = scale / (cols - 1);
-            float rcpRow = scale / (rows - 1);
-
-            for (int y = 0; y < rows; y++)
+            Span<float> channel = output.Slice(c * channelSize, channelSize);
+            if (bandCount == 1)
             {
-                float dy = y * rcpRow;
+                channel.Fill(bands[0]);
+                continue;
+            }
+
+            // These two bounded stack tables serve every row of this channel. No per-coefficient logarithm or division is needed.
+            // The epsilon in positionScale keeps distances below bandCount-1, so truncation selects an existing adjacent interval.
+            // Interior values use shared Exp2 precision, which can differ from libjxl's separate FastPowf approximation.
+            ReadOnlySpan<float> sampleValues = bands[..bandCount];
+            PrepareLogRatios(sampleValues, logRatios);
+
+            for (int y = 0; y < rowCount; y++)
+            {
+                float dy = y * rowStep;
                 float dy2 = dy * dy;
+                Span<float> row = channel.Slice(y * columnCount, columnCount);
+                ref float destination = ref MemoryMarshal.GetReference(row);
+                int x = 0;
 
-                for (int x = 0; x < cols; x += 4)
+                // Lanes hold consecutive coefficient columns. Each store covers only complete registers within this logical row.
+                if (Vector512.IsHardwareAccelerated)
                 {
-                    Vector128<float> dx =
-                        Vector128.Create((float)x, x + 1, x + 2, x + 3)
-                        * Vector128.Create(rcpCol);
+                    for (; x <= columnCount - Vector512<float>.Count; x += Vector512<float>.Count)
+                    {
+                        Vector512<float> dx = (Vector512<float>.Indices + Vector512.Create((float)x)) * Vector512.Create(columnStep);
+                        Vector512<float> distance = Vector512.Sqrt(Vector512.MultiplyAddEstimate(dx, dx, Vector512.Create(dy2)));
+                        Interpolate(distance, sampleValues, logRatios).StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
 
-                    Vector128<float> scaledDistance =
-                        Vector128.Sqrt(
-                            (dx * dx) + Vector128.Create(dy2));
+                if (Vector256.IsHardwareAccelerated)
+                {
+                    for (; x <= columnCount - Vector256<float>.Count; x += Vector256<float>.Count)
+                    {
+                        Vector256<float> dx = (Vector256<float>.Indices + Vector256.Create((float)x)) * Vector256.Create(columnStep);
+                        Vector256<float> distance = Vector256.Sqrt(Vector256.MultiplyAddEstimate(dx, dx, Vector256.Create(dy2)));
+                        Interpolate(distance, sampleValues, logRatios).StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
 
-                    Vector128<float> weight =
-                        numBands == 1
-                            ? Vector128.Create(bands[0])
-                            : InterpolateVec(scaledDistance, bands);
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    for (; x <= columnCount - Vector128<float>.Count; x += Vector128<float>.Count)
+                    {
+                        Vector128<float> dx = (Vector128<float>.Indices + Vector128.Create((float)x)) * Vector128.Create(columnStep);
+                        Vector128<float> distance = Vector128.Sqrt(Vector128.MultiplyAddEstimate(dx, dx, Vector128.Create(dy2)));
+                        Interpolate(distance, sampleValues, logRatios).StoreUnsafe(ref destination, (uint)x);
+                    }
+                }
 
-                    weight.CopyTo(output[((c * cols * rows) + (y * cols) + x)..]);
+                for (; x < columnCount; x++)
+                {
+                    float dx = x * columnStep;
+                    float distance = MathF.Sqrt(float.MultiplyAddEstimate(dx, dx, dy2));
+                    row[x] = Interpolate(distance, sampleValues, logRatios);
                 }
             }
         }
@@ -719,7 +823,23 @@ internal static class JxlQuantWeights
         return true;
     }
 
-    public static bool ComputeQuantTable(JxlQuantizerEncoding encoding, Span<float> table, Span<float> inverseTable, int tableNum, JxlQuantTable kind, ref int pos)
+    /// <summary>
+    /// Builds forward and inverse quantization tables for one transform.
+    /// </summary>
+    /// <param name="encoding">The quantization weight parameters.</param>
+    /// <param name="quantizationTable">The destination forward weights.</param>
+    /// <param name="inverseQuantizationTable">The destination inverse weights.</param>
+    /// <param name="tableIndex">The table index. This implementation does not yet use it.</param>
+    /// <param name="kind">The transform table kind.</param>
+    /// <param name="writeOffset">The starting destination offset, advanced past the written weights.</param>
+    /// <returns>Whether the encoding supports the selected transform.</returns>
+    public static bool ComputeQuantTable(
+        JxlQuantizerEncoding encoding,
+        Span<float> quantizationTable,
+        Span<float> inverseQuantizationTable,
+        int tableIndex,
+        JxlQuantTable kind,
+        ref int writeOffset)
     {
         const int n = JxlFrameDimensions.BlockDimensions;
 
@@ -871,6 +991,7 @@ internal static class JxlQuantWeights
                 const float hi = 12.97166202570235f - lo + 1e-6f;
 
                 Span<float> bands = [0, 0, 0, 0];
+                Span<float> logRatios = stackalloc float[3];
 
                 for (int c = 0; c < 3; c++)
                 {
@@ -890,6 +1011,8 @@ internal static class JxlQuantWeights
                             throw new InvalidOperationException("Invalid AFV bands");
                         }
                     }
+
+                    PrepareLogRatios(bands, logRatios);
 
                     int start = c * 64;
 
@@ -913,7 +1036,8 @@ internal static class JxlQuantWeights
                                 continue;
                             }
 
-                            float interpolatedVal = Interpolate(AfvFrequencies[(y * 4) + x] - lo, hi, bands, 4);
+                            float position = (AfvFrequencies[(y * 4) + x] - lo) * 3 / hi;
+                            float interpolatedVal = Interpolate(position, bands, logRatios);
 
                             SetWeight(2 * x, 2 * y, interpolatedVal, weights);
                         }
@@ -952,7 +1076,7 @@ internal static class JxlQuantWeights
             }
         }
 
-        int prevPos = pos;
+        int prevPos = writeOffset;
 
         // Don't zero-init
         Span<float> invVal = stackalloc float[64];
@@ -973,11 +1097,11 @@ internal static class JxlQuantWeights
             val.Fill(1.0f);
             TensorPrimitives.Divide(val, invVal, val);
 
-            val.CopyTo(table.Slice(pos + i, 64));
-            invVal.CopyTo(inverseTable.Slice(pos + i, 64));
+            val.CopyTo(quantizationTable.Slice(writeOffset + i, 64));
+            invVal.CopyTo(inverseQuantizationTable.Slice(writeOffset + i, 64));
         }
 
-        pos += 3 * num;
+        writeOffset += 3 * num;
 
         int xs = JxlDequantMatrices.RequiredSizeX[quantSizeTable];
         int ys = JxlDequantMatrices.RequiredSizeY[quantSizeTable];
@@ -990,7 +1114,7 @@ internal static class JxlQuantWeights
             {
                 for (int x = 0; x < xs; x++)
                 {
-                    inverseTable[prevPos + (c * ys * xs * JxlFrameDimensions.DctBlockSize) + (y * JxlFrameDimensions.BlockDimensions * xs) + x] = 0;
+                    inverseQuantizationTable[prevPos + (c * ys * xs * JxlFrameDimensions.DctBlockSize) + (y * JxlFrameDimensions.BlockDimensions * xs) + x] = 0;
                 }
             }
         }
@@ -1023,20 +1147,38 @@ internal static class JxlQuantWeights
         return true;
     }
 
-    public static bool Decode(Configuration configuration, JxlBitReader br, JxlQuantizerEncoding encoding, int requiredSizeX, int requiredSizeY, int idx, JxlModularFrameDecoder modularFrameDecoder)
+    /// <summary>
+    /// Reads the quantization weight parameters for one table.
+    /// </summary>
+    /// <param name="configuration">The configuration used by the modular decoder.</param>
+    /// <param name="reader">The source bit reader.</param>
+    /// <param name="encoding">The destination quantization parameters.</param>
+    /// <param name="requiredSizeX">The required horizontal extent in blocks.</param>
+    /// <param name="requiredSizeY">The required vertical extent in blocks.</param>
+    /// <param name="quantizationTableIndex">The index that identifies the table in the modular stream.</param>
+    /// <param name="modularFrameDecoder">The decoder for raw quantization tables.</param>
+    /// <returns>Whether the parameters were read successfully.</returns>
+    public static bool Decode(
+        Configuration configuration,
+        JxlBitReader reader,
+        JxlQuantizerEncoding encoding,
+        int requiredSizeX,
+        int requiredSizeY,
+        int quantizationTableIndex,
+        JxlModularFrameDecoder modularFrameDecoder)
     {
         int requiredSize = requiredSizeX * requiredSizeY;
 
         requiredSizeX *= JxlFrameDimensions.BlockDimensions;
         requiredSizeY *= JxlFrameDimensions.BlockDimensions;
 
-        int mode = (int)br.ReadBits32(JxlQuantizerConstants.Log2NumQuantModes);
+        int mode = (int)reader.ReadBits32(JxlQuantizerConstants.Log2NumQuantModes);
 
         switch ((JxlQuantMode)mode)
         {
             case JxlQuantMode.Library:
             {
-                encoding.Predefined = (byte)br.ReadBits32(CeilLog2NumPredefinedTables);
+                encoding.Predefined = (byte)reader.ReadBits32(CeilLog2NumPredefinedTables);
 
                 if (encoding.Predefined >= NumPredefinedTables)
                 {
@@ -1057,7 +1199,7 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 3; i++)
                     {
-                        if (!JxlF16Coder.Read(br, ref encoding.IdWeights![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.IdWeights![c][i]))
                         {
                             return false;
                         }
@@ -1085,7 +1227,7 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 6; i++)
                     {
-                        if (!JxlF16Coder.Read(br, ref encoding.Dct2Weights![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.Dct2Weights![c][i]))
                         {
                             return false;
                         }
@@ -1111,7 +1253,7 @@ internal static class JxlQuantWeights
 
                 for (int c = 0; c < 3; c++)
                 {
-                    if (!JxlF16Coder.Read(br, ref encoding.Dct4x8Multipliers![c]))
+                    if (!JxlF16Coder.Read(reader, ref encoding.Dct4x8Multipliers![c]))
                     {
                         return false;
                     }
@@ -1122,7 +1264,7 @@ internal static class JxlQuantWeights
                     }
                 }
 
-                if (!DecodeDctParameters(br, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, encoding.DctParameters!))
                 {
                     return false;
                 }
@@ -1141,7 +1283,7 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 2; i++)
                     {
-                        if (!JxlF16Coder.Read(br, ref encoding.Dct4Multipliers![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.Dct4Multipliers![c][i]))
                         {
                             return false;
                         }
@@ -1153,7 +1295,7 @@ internal static class JxlQuantWeights
                     }
                 }
 
-                if (!DecodeDctParameters(br, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, encoding.DctParameters!))
                 {
                     return false;
                 }
@@ -1172,7 +1314,7 @@ internal static class JxlQuantWeights
                 {
                     for (int i = 0; i < 9; i++)
                     {
-                        if (!JxlF16Coder.Read(br, ref encoding.AfvWeights![c][i]))
+                        if (!JxlF16Coder.Read(reader, ref encoding.AfvWeights![c][i]))
                         {
                             return false;
                         }
@@ -1184,12 +1326,12 @@ internal static class JxlQuantWeights
                     }
                 }
 
-                if (!DecodeDctParameters(br, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, encoding.DctParameters!))
                 {
                     return false;
                 }
 
-                if (!DecodeDctParameters(br, encoding.DctParametersAfv4x4!))
+                if (!DecodeDctParameters(reader, encoding.DctParametersAfv4x4!))
                 {
                     return false;
                 }
@@ -1199,7 +1341,7 @@ internal static class JxlQuantWeights
 
             case JxlQuantMode.Dct:
             {
-                if (!DecodeDctParameters(br, encoding.DctParameters!))
+                if (!DecodeDctParameters(reader, encoding.DctParameters!))
                 {
                     return false;
                 }
@@ -1212,7 +1354,14 @@ internal static class JxlQuantWeights
                 // Set mode early, to avoid mem-leak.
                 encoding.Mode = JxlQuantMode.Raw;
 
-                if (!JxlModularFrameDecoder.DecodeQuantTable(configuration, requiredSizeX, requiredSizeY, br, encoding, idx, modularFrameDecoder))
+                if (!JxlModularFrameDecoder.DecodeQuantTable(
+                    configuration,
+                    requiredSizeX,
+                    requiredSizeY,
+                    reader,
+                    encoding,
+                    quantizationTableIndex,
+                    modularFrameDecoder))
                 {
                     return false;
                 }

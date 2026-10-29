@@ -754,4 +754,111 @@ public class ButteraugliTests
             RunTest,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
+
+    /// <summary>
+    /// Checks native single-sample frequency equations and logical row bounds at every SIMD width.
+    /// </summary>
+    [Fact]
+    public void FrequencySeparation_PreservesSingleSampleEquationsAndPadding()
+    {
+        static void RunTest()
+        {
+            const float padding = -123F;
+            ReadOnlySpan<int> widths = [1, 3, 17, 33];
+            ReadOnlySpan<(float X, float Y)> samples = [(-2F, -80F), (0.125F, 0.01F), (2F, 80F)];
+
+            foreach (int width in widths)
+            {
+                using JxlImage3<float> mf = new(TestEnvironment.Configuration, width, 1);
+                using JxlPlane<float> hfX = new(TestEnvironment.Configuration, width, 1);
+                using JxlPlane<float> hfY = new(TestEnvironment.Configuration, width, 1);
+                using JxlPlane<float> uhfX = new(TestEnvironment.Configuration, width, 1);
+                using JxlPlane<float> uhfY = new(TestEnvironment.Configuration, width, 1);
+                using ButteraugliBlurTemp blurTemp = new(TestEnvironment.Configuration, width, 1);
+                InlineArray2<JxlPlane<float>> hf = default;
+                InlineArray2<JxlPlane<float>> uhf = default;
+                hf[0] = hfX;
+                hf[1] = hfY;
+                uhf[0] = uhfX;
+                uhf[1] = uhfY;
+
+                for (int sampleIndex = 0; sampleIndex < (width == 1 ? samples.Length : 1); sampleIndex++)
+                {
+                    // A single sample has only the Gaussian center weight, exactly one, in both passes. Its blur is
+                    // therefore known independently of kernel construction. Wider zero samples exercise SIMD bounds only.
+                    float inputX = width == 1 ? samples[sampleIndex].X : 0F;
+                    float inputY = width == 1 ? samples[sampleIndex].Y : 0F;
+                    for (int c = 0; c < 3; c++)
+                    {
+                        Span<float> values = mf.Plane(c).GetRow(0);
+                        values.Fill(padding);
+                        values[..width].Fill(c == 0 ? inputX : c == 1 ? inputY : 0F);
+                    }
+
+                    hfX.GetRow(0).Fill(padding);
+                    hfY.GetRow(0).Fill(padding);
+                    uhfX.GetRow(0).Fill(padding);
+                    uhfY.GetRow(0).Fill(padding);
+                    Assert.True(Butteraugli.SeparateMfAndHf(TestEnvironment.Configuration, mf, hf, blurTemp));
+                    float mfX = MathF.CopySign(MathF.Max(MathF.Abs(inputX) - 0.29F, 0F), inputX);
+                    float mfY = MathF.Abs(inputY) > 0.1F ? MathF.CopySign(MathF.Abs(inputY) + 0.1F, inputY) : inputY + inputY;
+                    CheckPlane(mf.Plane(0), mfX);
+                    CheckPlane(mf.Plane(1), mfY);
+                    CheckPlane(mf.Plane(2), 0F);
+                    CheckPlane(hfX, 0F);
+                    CheckPlane(hfY, 0F);
+
+                    hfX.GetRow(0)[..width].Fill(inputX);
+                    hfY.GetRow(0)[..width].Fill(inputY);
+                    Assert.True(Butteraugli.SeparateHFAndUHF(TestEnvironment.Configuration, hf, uhf, blurTemp));
+
+                    // Native Y clips the blurred base BEFORE residual subtraction. Using the unclipped original would
+                    // produce zero UHF here; values outside the base threshold must instead produce a nonzero residual.
+                    const float slope = 0.724216145665F;
+                    const float hfMaximum = 28.4691806922F;
+                    const float uhfMaximum = 5.19175294647F;
+                    float clippedY = inputY;
+                    if (MathF.Abs(clippedY) > hfMaximum)
+                    {
+                        clippedY = MathF.CopySign(float.MultiplyAddEstimate(MathF.Abs(clippedY) - hfMaximum, slope, hfMaximum), clippedY);
+                    }
+
+                    float residualY = inputY - clippedY;
+                    if (MathF.Abs(residualY) > uhfMaximum)
+                    {
+                        residualY = MathF.CopySign(float.MultiplyAddEstimate(MathF.Abs(residualY) - uhfMaximum, slope, uhfMaximum), residualY);
+                    }
+
+                    float scaledY = clippedY * 2.155F;
+                    float hfResultY = MathF.Abs(scaledY) > 0.132F
+                        ? MathF.CopySign(MathF.Abs(scaledY) + 0.132F, scaledY)
+                        : scaledY + scaledY;
+
+                    CheckPlane(hfX, MathF.CopySign(MathF.Max(MathF.Abs(inputX) - 1.5F, 0F), inputX));
+                    CheckPlane(hfY, hfResultY);
+                    CheckPlane(uhfX, 0F);
+                    CheckPlane(uhfY, residualY * 2.69313763794F);
+                }
+            }
+
+            // Check each logical result and the padded suffix separately. Padding belongs to the plane, not the frequency calculation.
+            static void CheckPlane(JxlPlane<float> plane, float expected)
+            {
+                ReadOnlySpan<float> values = plane.GetRow(0);
+                for (int x = 0; x < plane.XSize; x++)
+                {
+                    Assert.Equal(expected, values[x]);
+                }
+
+                for (int x = plane.XSize; x < plane.PixelsPerRow; x++)
+                {
+                    Assert.Equal(-123F, values[x]);
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
 }

@@ -413,47 +413,6 @@ internal static class Butteraugli
         return ConvolutionWithTranspose(input, kernel, transposed) && ConvolutionWithTranspose(transposed, kernel, output);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> MaximumClamp(Vector<float> value, float maximum)
-    {
-        Vector<float> multiplier = new(0.724216145665f);
-        Vector<float> maximumValue = new(maximum);
-        Vector<float> ifPositive = ((value - maximumValue) * multiplier) + maximumValue;
-        Vector<float> ifNegative = ((value + maximumValue) * multiplier) - maximumValue;
-        Vector<float> positiveOrValue = Vector.ConditionalSelect(Vector.GreaterThan(value, maximumValue), ifPositive, value);
-        Vector<float> result = Vector.ConditionalSelect(Vector.LessThan(value, Vector.Negate(maximumValue)), ifNegative, positiveOrValue);
-
-        return result;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> RemoveRangeAroundZero(Vector<float> x, float width)
-    {
-        Vector<float> w = new(width);
-
-        return Vector.ConditionalSelect(
-            Vector.GreaterThan(x, w),
-            x - w,
-            Vector.ConditionalSelect(
-                Vector.LessThan(x, -w),
-                x + w,
-                Vector<float>.Zero));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector<float> AmplifyRangeAroundZero(Vector<float> x, float width)
-    {
-        Vector<float> w = new(width);
-
-        return Vector.ConditionalSelect(
-            Vector.GreaterThan(x, w),
-            x + w,
-            Vector.ConditionalSelect(
-                Vector.LessThan(x, -w),
-                x - w,
-                x + x));
-    }
-
     /// <summary>
     /// Converts low-frequency XYB planes to the weighted values used by the comparison equations.
     /// </summary>
@@ -637,85 +596,41 @@ internal static class Butteraugli
     /// <returns>Whether all blur and frequency-separation stages succeeded.</returns>
     public static bool SeparateMfAndHf(Configuration configuration, JxlImage3<float> mf, Span<JxlPlane<float>> hf, ButteraugliBlurTemp blurTemp)
     {
-        int xSize = mf.XSize;
-        int ySize = mf.YSize;
-
-        int lanes = Vector<float>.Count;
-
-        for (int i = 0; i < 3; i++)
+        for (int c = 0; c < 2; c++)
         {
-            if (i == 2)
-            {
-                if (!Blur(mf.Plane(i), HighFrequencyKernel, blurTemp, mf.Plane(i)))
-                {
-                    return false;
-                }
-
-                break;
-            }
-
-            Span<float> firstSamples = mf.Plane(i).GetRow(0);
-            Span<float> secondSamples = hf[i].GetRow(0);
-
-            for (int y = 0; y < ySize; y++)
-            {
-                Span<float> rowMf = firstSamples[(y * mf.Plane(i).PixelsPerRow)..];
-                Span<float> rowHf = secondSamples[(y * hf[i].PixelsPerRow)..];
-
-                for (int x = 0; x < xSize; x += lanes)
-                {
-                    new Vector<float>(rowMf.Slice(x, lanes))
-                        .CopyTo(rowHf.Slice(x, lanes));
-                }
-            }
-
-            if (!Blur(mf.Plane(i), HighFrequencyKernel, blurTemp, mf.Plane(i)))
+            // Keep the original middle-frequency samples in place. This blur writes its result into the prepared HF plane
+            // through the existing transposed workspace; separation can then consume both inputs without a copy pass.
+            if (!Blur(mf.Plane(c), HighFrequencyKernel, blurTemp, hf[c]))
             {
                 return false;
             }
 
-            if (i == 0)
+            if (c == 0)
             {
-                const float removeMfRange = 0.29f;
+                SeparateFrequencyBands(
+                    mf.Plane(c),
+                    hf[c],
+                    default(TensorPrimitives_.IdentityOperator),
+                    new RemoveRangeAroundZeroOperator(0.29F),
+                    default(TensorPrimitives_.IdentityOperator));
 
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowMf = firstSamples[(y * mf.Plane(0).PixelsPerRow)..];
-                    Span<float> rowHf = secondSamples[(y * hf[0].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> mfv = new(rowMf.Slice(x, lanes));
-                        Vector<float> hfv = new Vector<float>(rowHf.Slice(x, lanes)) - mfv;
-
-                        mfv = RemoveRangeAroundZero(mfv, removeMfRange);
-
-                        mfv.CopyTo(rowMf.Slice(x, lanes));
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                    }
-                }
             }
             else
             {
-                const float addMfRange = 0.1f;
+                SeparateFrequencyBands(
+                    mf.Plane(c),
+                    hf[c],
+                    default(TensorPrimitives_.IdentityOperator),
+                    new AmplifyRangeAroundZeroOperator(0.1F),
+                    default(TensorPrimitives_.IdentityOperator));
 
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowMf = firstSamples[(y * mf.Plane(1).PixelsPerRow)..];
-                    Span<float> rowHf = secondSamples[(y * hf[1].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> mfv = new(rowMf.Slice(x, lanes));
-                        Vector<float> hfv = new Vector<float>(rowHf.Slice(x, lanes)) - mfv;
-
-                        mfv = AmplifyRangeAroundZero(mfv, addMfRange);
-
-                        mfv.CopyTo(rowMf.Slice(x, lanes));
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                    }
-                }
             }
+        }
+
+        // B has no separate HF plane. Its complete result remains in the middle-frequency image.
+        if (!Blur(mf.Plane(2), HighFrequencyKernel, blurTemp, mf.Plane(2)))
+        {
+            return false;
         }
 
         return SuppressXByY(hf[1], hf[0]);
@@ -731,93 +646,121 @@ internal static class Butteraugli
     /// <returns>Whether both frequency separations succeeded.</returns>
     public static bool SeparateHFAndUHF(Configuration configuration, Span<JxlPlane<float>> hf, Span<JxlPlane<float>> uhf, ButteraugliBlurTemp blurTemp)
     {
-        int xSize = hf[0].XSize;
-        int ySize = hf[0].YSize;
-
-        int lanes = Vector<float>.Count;
-
-        for (int i = 0; i < 2; i++)
+        for (int c = 0; c < 2; c++)
         {
-            Span<float> firstSamples = hf[i].GetRow(0);
-            Span<float> secondSamples = uhf[i].GetRow(0);
-
-            for (int y = 0; y < ySize; y++)
-            {
-                Span<float> rowUhf = secondSamples[(y * uhf[i].PixelsPerRow)..];
-                Span<float> rowHf = firstSamples[(y * hf[i].PixelsPerRow)..];
-
-                for (int x = 0; x < xSize; x += lanes)
-                {
-                    new Vector<float>(rowHf.Slice(x, lanes)).CopyTo(rowUhf.Slice(x, lanes));
-                }
-            }
-
-            if (!Blur(hf[i], UltraHighFrequencyKernel, blurTemp, hf[i]))
+            if (!Blur(hf[c], UltraHighFrequencyKernel, blurTemp, uhf[c]))
             {
                 return false;
             }
 
-            if (i == 0)
+            if (c == 0)
             {
-                const float removeHfRange = 1.5f;
-                const float removeUhfRange = 0.04f;
+                SeparateFrequencyBands(
+                    hf[c],
+                    uhf[c],
+                    default(TensorPrimitives_.IdentityOperator),
+                    new RemoveRangeAroundZeroOperator(1.5F),
+                    new RemoveRangeAroundZeroOperator(0.04F));
 
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowUhf = secondSamples[(y * uhf[0].PixelsPerRow)..];
-                    Span<float> rowHf = firstSamples[(y * hf[0].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> hfv = new(rowHf.Slice(x, lanes));
-                        Vector<float> uhfv = new Vector<float>(rowUhf.Slice(x, lanes)) - hfv;
-
-                        hfv = RemoveRangeAroundZero(hfv, removeHfRange);
-                        uhfv = RemoveRangeAroundZero(uhfv, removeUhfRange);
-
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                        uhfv.CopyTo(rowUhf.Slice(x, lanes));
-                    }
-                }
             }
             else
             {
-                const float addHfRange = 0.132f;
-                const float maxClampHf = 28.4691806922f;
-                const float maxClampUhf = 5.19175294647f;
-                const float mulYHf = 2.155f;
-                const float mulYUhf = 2.69313763794f;
+                // Native Y separation clips the blurred HF before subtracting it from the original HF.
+                // The retained HF is then scaled and amplified; UHF is clipped and scaled independently.
+                SeparateFrequencyBands(
+                    hf[c],
+                    uhf[c],
+                    new MaximumClampOperator(28.4691806922F),
+                    default(HighFrequencyYOperator),
+                    default(UltraHighFrequencyYOperator));
 
-                Vector<float> mulHf = new(mulYHf);
-                Vector<float> mulUhf = new(mulYUhf);
-
-                for (int y = 0; y < ySize; y++)
-                {
-                    Span<float> rowUhf = secondSamples[(y * uhf[1].PixelsPerRow)..];
-                    Span<float> rowHf = firstSamples[(y * hf[1].PixelsPerRow)..];
-
-                    for (int x = 0; x < xSize; x += lanes)
-                    {
-                        Vector<float> hfv = new(rowHf.Slice(x, lanes));
-                        hfv = MaximumClamp(hfv, maxClampHf);
-
-                        Vector<float> uhfv = new Vector<float>(rowUhf.Slice(x, lanes)) - hfv;
-
-                        uhfv = MaximumClamp(uhfv, maxClampUhf);
-                        uhfv *= mulUhf;
-
-                        uhfv.CopyTo(rowUhf.Slice(x, lanes));
-
-                        hfv *= mulHf;
-                        hfv = AmplifyRangeAroundZero(hfv, addHfRange);
-
-                        hfv.CopyTo(rowHf.Slice(x, lanes));
-                    }
-                }
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Separates original and blurred samples into two bands using the selected component equations.
+    /// </summary>
+    /// <typeparam name="TBeforeSubtraction">The operation applied to blurred samples before residual subtraction.</typeparam>
+    /// <typeparam name="TLowFrequency">The operation applied to the subtraction base for the retained lower-frequency band.</typeparam>
+    /// <typeparam name="THighFrequency">The operation applied to residual samples for the higher-frequency band.</typeparam>
+    /// <param name="original">The original samples, replaced with the lower-frequency result.</param>
+    /// <param name="blurred">The distinct blurred samples, replaced with the higher-frequency result.</param>
+    /// <param name="beforeSubtraction">The selected operation for the subtraction base.</param>
+    /// <param name="lowFrequency">The selected lower-frequency equation.</param>
+    /// <param name="highFrequency">The selected higher-frequency equation.</param>
+    private static void SeparateFrequencyBands<TBeforeSubtraction, TLowFrequency, THighFrequency>(
+        JxlPlane<float> original,
+        JxlPlane<float> blurred,
+        TBeforeSubtraction beforeSubtraction,
+        TLowFrequency lowFrequency,
+        THighFrequency highFrequency)
+        where TBeforeSubtraction : struct, TensorPrimitives_.IUnaryOperator
+        where TLowFrequency : struct, TensorPrimitives_.IUnaryOperator
+        where THighFrequency : struct, TensorPrimitives_.IUnaryOperator
+    {
+        Span<float> originalSamples = original.GetRow(0);
+        Span<float> blurredSamples = blurred.GetRow(0);
+        int originalStride = original.PixelsPerRow;
+        int blurredStride = blurred.PixelsPerRow;
+        int width = original.XSize;
+
+        for (int y = 0; y < original.YSize; y++)
+        {
+            ref float originalRow = ref MemoryMarshal.GetReference(originalSamples.Slice(y * originalStride, width));
+            ref float blurredRow = ref MemoryMarshal.GetReference(blurredSamples.Slice(y * blurredStride, width));
+            int x = 0;
+
+            // Corresponding lanes contain one original sample and its blurred base. Load both before either store.
+            // Closed operator types select each channel's equations outside traversal; no channel or stage flag enters
+            // these loops. Complete registers and scalar tails touch only logical samples, regardless of physical stride.
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector512<float>.Count; x += Vector512<float>.Count)
+                {
+                    Vector512<float> source = Vector512.LoadUnsafe(ref originalRow, (uint)x);
+                    Vector512<float> baseFrequency = beforeSubtraction.Invoke(Vector512.LoadUnsafe(ref blurredRow, (uint)x));
+                    Vector512<float> residual = source - baseFrequency;
+                    lowFrequency.Invoke(baseFrequency).StoreUnsafe(ref originalRow, (uint)x);
+                    highFrequency.Invoke(residual).StoreUnsafe(ref blurredRow, (uint)x);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<float>.Count; x += Vector256<float>.Count)
+                {
+                    Vector256<float> source = Vector256.LoadUnsafe(ref originalRow, (uint)x);
+                    Vector256<float> baseFrequency = beforeSubtraction.Invoke(Vector256.LoadUnsafe(ref blurredRow, (uint)x));
+                    Vector256<float> residual = source - baseFrequency;
+                    lowFrequency.Invoke(baseFrequency).StoreUnsafe(ref originalRow, (uint)x);
+                    highFrequency.Invoke(residual).StoreUnsafe(ref blurredRow, (uint)x);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<float>.Count; x += Vector128<float>.Count)
+                {
+                    Vector128<float> source = Vector128.LoadUnsafe(ref originalRow, (uint)x);
+                    Vector128<float> baseFrequency = beforeSubtraction.Invoke(Vector128.LoadUnsafe(ref blurredRow, (uint)x));
+                    Vector128<float> residual = source - baseFrequency;
+                    lowFrequency.Invoke(baseFrequency).StoreUnsafe(ref originalRow, (uint)x);
+                    highFrequency.Invoke(residual).StoreUnsafe(ref blurredRow, (uint)x);
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                float source = Unsafe.Add(ref originalRow, x);
+                float baseFrequency = beforeSubtraction.Invoke(Unsafe.Add(ref blurredRow, x));
+                float residual = source - baseFrequency;
+                Unsafe.Add(ref originalRow, x) = lowFrequency.Invoke(baseFrequency);
+                Unsafe.Add(ref blurredRow, x) = highFrequency.Invoke(residual);
+            }
+        }
     }
 
     /// <summary>
@@ -2099,6 +2042,230 @@ internal static class Butteraugli
 
             TensorPrimitives_.Invoke(row0[..i0.XSize], row1[..i0.XSize], rowDiff[..i0.XSize], rowDiff[..i0.XSize], operation);
         }
+    }
+
+    /// <summary>
+    /// Removes the interval around zero from independent frequency samples.
+    /// </summary>
+    /// <param name="width">The nonnegative half-width of the central interval.</param>
+    private readonly struct RemoveRangeAroundZeroOperator(float width) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The half-width used by the native frequency equation.</summary>
+        private readonly float width = width;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+            => value > this.width ? value - this.width : value < -this.width ? value + this.width : 0F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> width = Vector128.Create(this.width);
+
+            return Vector128.ConditionalSelect(
+                Vector128.GreaterThan(value, width),
+                value - width,
+                Vector128.ConditionalSelect(Vector128.LessThan(value, -width), value + width, Vector128<float>.Zero));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            Vector256<float> width = Vector256.Create(this.width);
+
+            return Vector256.ConditionalSelect(
+                Vector256.GreaterThan(value, width),
+                value - width,
+                Vector256.ConditionalSelect(Vector256.LessThan(value, -width), value + width, Vector256<float>.Zero));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> width = Vector512.Create(this.width);
+
+            return Vector512.ConditionalSelect(
+                Vector512.GreaterThan(value, width),
+                value - width,
+                Vector512.ConditionalSelect(Vector512.LessThan(value, -width), value + width, Vector512<float>.Zero));
+        }
+    }
+
+    /// <summary>
+    /// Doubles samples inside the central interval and offsets samples outside it.
+    /// </summary>
+    /// <param name="width">The nonnegative half-width of the central interval.</param>
+    private readonly struct AmplifyRangeAroundZeroOperator(float width) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The half-width used by the native frequency equation.</summary>
+        private readonly float width = width;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+            => value > this.width ? value + this.width : value < -this.width ? value - this.width : value + value;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> width = Vector128.Create(this.width);
+
+            return Vector128.ConditionalSelect(
+                Vector128.GreaterThan(value, width),
+                value + width,
+                Vector128.ConditionalSelect(Vector128.LessThan(value, -width), value - width, value + value));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            Vector256<float> width = Vector256.Create(this.width);
+
+            return Vector256.ConditionalSelect(
+                Vector256.GreaterThan(value, width),
+                value + width,
+                Vector256.ConditionalSelect(Vector256.LessThan(value, -width), value - width, value + value));
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> width = Vector512.Create(this.width);
+
+            return Vector512.ConditionalSelect(
+                Vector512.GreaterThan(value, width),
+                value + width,
+                Vector512.ConditionalSelect(Vector512.LessThan(value, -width), value - width, value + value));
+        }
+    }
+
+    /// <summary>
+    /// Reduces the slope beyond positive and negative frequency thresholds using the native multiply-add order.
+    /// </summary>
+    /// <param name="maximum">The positive magnitude at which the slope changes.</param>
+    private readonly struct MaximumClampOperator(float maximum) : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The slope retained outside the central interval.</summary>
+        private const float Multiplier = 0.724216145665F;
+
+        /// <summary>The magnitude at which the native response changes slope.</summary>
+        private readonly float maximum = maximum;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value)
+        {
+            if (value >= this.maximum)
+            {
+                return float.MultiplyAddEstimate(value - this.maximum, Multiplier, this.maximum);
+            }
+
+            if (value < -this.maximum)
+            {
+                return float.MultiplyAddEstimate(value + this.maximum, Multiplier, -this.maximum);
+            }
+
+            return value;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+        {
+            Vector128<float> maximum = Vector128.Create(this.maximum);
+            Vector128<float> positive = Vector128.MultiplyAddEstimate(value - maximum, Vector128.Create(Multiplier), maximum);
+            Vector128<float> negative = Vector128.MultiplyAddEstimate(value + maximum, Vector128.Create(Multiplier), -maximum);
+            Vector128<float> positiveOrValue = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(value, maximum), positive, value);
+
+            return Vector128.ConditionalSelect(Vector128.LessThan(value, -maximum), negative, positiveOrValue);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+        {
+            Vector256<float> maximum = Vector256.Create(this.maximum);
+            Vector256<float> positive = Vector256.MultiplyAddEstimate(value - maximum, Vector256.Create(Multiplier), maximum);
+            Vector256<float> negative = Vector256.MultiplyAddEstimate(value + maximum, Vector256.Create(Multiplier), -maximum);
+            Vector256<float> positiveOrValue = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(value, maximum), positive, value);
+
+            return Vector256.ConditionalSelect(Vector256.LessThan(value, -maximum), negative, positiveOrValue);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+        {
+            Vector512<float> maximum = Vector512.Create(this.maximum);
+            Vector512<float> positive = Vector512.MultiplyAddEstimate(value - maximum, Vector512.Create(Multiplier), maximum);
+            Vector512<float> negative = Vector512.MultiplyAddEstimate(value + maximum, Vector512.Create(Multiplier), -maximum);
+            Vector512<float> positiveOrValue = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(value, maximum), positive, value);
+
+            return Vector512.ConditionalSelect(Vector512.LessThan(value, -maximum), negative, positiveOrValue);
+        }
+    }
+
+    /// <summary>
+    /// Scales retained Y high frequencies before amplifying their central interval.
+    /// </summary>
+    private readonly struct HighFrequencyYOperator : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The native scale applied before central amplification.</summary>
+        private const float Multiplier = 2.155F;
+
+        /// <summary>The central half-width after scaling.</summary>
+        private const float Width = 0.132F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value) => new AmplifyRangeAroundZeroOperator(Width).Invoke(value * Multiplier);
+    }
+
+    /// <summary>
+    /// Reduces large Y ultra-high-frequency responses before applying their native scale.
+    /// </summary>
+    private readonly struct UltraHighFrequencyYOperator : TensorPrimitives_.IUnaryOperator
+    {
+        /// <summary>The magnitude where the unscaled response changes slope.</summary>
+        private const float Maximum = 5.19175294647F;
+
+        /// <summary>The native scale applied after the response changes slope.</summary>
+        private const float Multiplier = 2.69313763794F;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value) => new MaximumClampOperator(Maximum).Invoke(value) * Multiplier;
     }
 
     /// <summary>

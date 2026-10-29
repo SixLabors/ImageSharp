@@ -198,13 +198,11 @@ internal static class JxlXybDecoder
         float mixedG = float.MultiplyAddEstimate(gammaG * gammaG, gammaG, biases.Y);
         float mixedB = float.MultiplyAddEstimate(gammaB * gammaB, gammaB, biases.Z);
 
-        // Match shared Transform3's X, then Y, then Z multiplication order. Translation is zero for this inverse matrix.
-        r = float.MultiplyAddEstimate(mixedG, matrix.M21, mixedR * matrix.M11);
-        r = float.MultiplyAddEstimate(mixedB, matrix.M31, r) + matrix.M41;
-        g = float.MultiplyAddEstimate(mixedG, matrix.M22, mixedR * matrix.M12);
-        g = float.MultiplyAddEstimate(mixedB, matrix.M32, g) + matrix.M42;
-        blue = float.MultiplyAddEstimate(mixedG, matrix.M23, mixedR * matrix.M13);
-        blue = float.MultiplyAddEstimate(mixedB, matrix.M33, blue) + matrix.M43;
+        // The runtime uses the same X, then Y, then Z multiply-add order as shared Transform3.
+        Vector3 linear = Vector3.Transform(new Vector3(mixedR, mixedG, mixedB), matrix);
+        r = linear.X;
+        g = linear.Y;
+        blue = linear.Z;
     }
 
     /// <summary>Reconstructs 4 independent pixels; each register holds one component in pixel order.</summary>

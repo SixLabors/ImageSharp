@@ -4,14 +4,29 @@
 using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
-using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats.Jxl.Cms;
+using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Transforms;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
+using SixLabors.ImageSharp.Memory;
+
+// For a 'stackalloc byte[128].Slice(0, n)' this suggests
+// to update to '(stackalloc byte[128])[..n]', then suggests
+// to remove the parentheses, producing invalid syntax.
+#pragma warning disable IDE0057 // Use range operator
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Heuristics;
 
@@ -122,6 +137,110 @@ internal static class JxlHeuristics
         -0.01610267f, 0.00278718f,  0.28896755f,  0.14111091f,  -0.03452303f,
         -0.00624645f, -0.02921014f, -0.04022174f, -0.03452303f, -0.01716200f,
     ];
+
+    public static void DownsampleImage2Sharper(Configuration configuration, ref JxlImage3<float> opsin)
+    {
+        using JxlImage3<float> downsampled = new(
+            configuration,
+            JxlMath.DivCeil(opsin.XSize, 2) + JxlFrameDimensions.BlockDimensions,
+            JxlMath.DivCeil(opsin.YSize, 2) + JxlFrameDimensions.BlockDimensions);
+
+        if (!downsampled.ShrinkTo(
+            downsampled.XSize - JxlFrameDimensions.BlockDimensions,
+            downsampled.YSize - JxlFrameDimensions.BlockDimensions))
+        {
+            throw new InvalidOperationException("Could not shrink the downsampled image.");
+        }
+
+        DownsampleImage2Sharper(configuration, opsin.Plane(0), downsampled.Plane(0));
+        DownsampleImage2Sharper(configuration, opsin.Plane(1), downsampled.Plane(1));
+        DownsampleImage2Sharper(configuration, opsin.Plane(2), downsampled.Plane(2));
+
+        opsin = downsampled;
+    }
+
+    public static void DownsampleImage2Iterative(Configuration configuration, JxlPlane<float> original, JxlPlane<float> output)
+    {
+        // Get the image sizes.
+        int xsize = original.XSize;
+        int ysize = original.YSize;
+        int xsize2 = JxlMath.DivCeil(original.XSize, 2);
+        int ysize2 = JxlMath.DivCeil(original.YSize, 2);
+
+        // oldBoxDownsample is there so it can be disposed.
+        JxlPlane<float> oldBoxDownsample = new(configuration, xsize, ysize);
+        JxlPlane<float> boxDownsample = oldBoxDownsample;
+        JxlImageOperations.ForceCopyImage(original, boxDownsample);
+
+        // Downsample.
+        boxDownsample = DownsampleImage(boxDownsample, 2);
+        oldBoxDownsample.Dispose();
+
+        // Create a mask.
+        JxlPlane<float> mask = new(configuration, boxDownsample.XSize, boxDownsample.YSize));
+        CreateMask(boxDownsample, mask);
+
+        // Try to shrink the output down to the width/height divided by 2.
+        if (!output.ShrinkTo(xsize2, ysize2))
+        {
+            throw new InvalidOperationException("Could not shrink output image");
+        }
+
+        // Contains the result of sharper image downscale.
+        JxlPlane<float> initial = new(
+            configuration,
+            JxlMath.DivCeil(original.XSize, 2) + JxlFrameDimensions.BlockDimensions,
+            JxlMath.DivCeil(original.YSize, 2) + JxlFrameDimensions.BlockDimensions);
+
+        if (!initial.ShrinkTo(initial.XSize - JxlFrameDimensions.BlockDimensions, initial.YSize - JxlFrameDimensions.BlockDimensions))
+        {
+            throw new InvalidOperationException("Could not shrink initial image");
+        }
+
+        // Downscale the image and store into initial.
+        DownsampleImage2Sharper(configuration, original, initial);
+
+        JxlPlane<float> down = new(configuration, initial.XSize, initial.YSize);
+        JxlImageOperations.ForceCopyImage(initial, down);
+
+        JxlPlane<float> up = new(configuration, xsize, ysize);
+        JxlPlane<float> corr = new(configuration, xsize, ysize);
+        JxlPlane<float> corr2 = new(configuration, xsize2, ysize2);
+        JxlPlane<float> weights = new(configuration, xsize, ysize);
+
+        for (int y = 0; y < weights.YSize; y++)
+        {
+            Span<float> row = weights.GetRow(y);
+            row[..weights.XSize].Fill(1);
+        }
+
+        JxlPlane<float> weights2 = new(configuration, xsize2, ysize2);
+        AntiUpsample(weights, weights2);
+
+        // Three iterations.
+        const int numberOfIterations = 3;
+        for (int it = 0; it < numberOfIterations; ++it)
+        {
+            UpsampleImage(down, up);
+            corr = JxlImageOperations.LinComb(configuration, 1, original, -1, up) ?? throw new InvalidOperationException("Linear combination failed");
+            ElementwiseMultiply(corr, weights, corr);
+            AntiUpsample(corr, corr2);
+            ElementwiseDivide(corr2, weights2, corr2);
+
+            down = JxlImageOperations.LinComb(configuration, 1, down, 1, corr2) ?? throw new InvalidOperationException("Linear combination failed");
+        }
+
+        // Reduce ringing.
+        ReduceRinging(initial, mask, down);
+
+        for (int y = 0; y < down.YSize; y++)
+        {
+            Span<float> downRow = down.GetRow(y);
+            Span<float> outputRow = output.GetRow(y);
+
+            downRow[..down.XSize].CopyTo(outputRow);
+        }
+    }
 
     public static void FindBestBlockEntropyModel(
         JxlCompressParameters cparameters,
@@ -569,20 +688,18 @@ internal static class JxlHeuristics
                         {
                             xi = 0;
                         }
-
-                        if (xi >= xsize)
+                        else if (xi >= xsize)
                         {
-                            xi = input.XSize - 1;
+                            xi = xsize - 1;
                         }
 
                         if (yi < 0)
                         {
                             yi = 0;
                         }
-
-                        if (yi >= ysize)
+                        else if (yi >= ysize)
                         {
-                            yi = input.YSize - 1;
+                            yi = ysize - 1;
                         }
 
                         min = MathF.Min(min, input.GetRow(yi)[xi]);
@@ -601,36 +718,35 @@ internal static class JxlHeuristics
                         {
                             xi = 0;
                         }
-
-                        if (xi >= xsize)
+                        else if (xi >= xsize)
                         {
-                            xi = input.XSize - 1;
+                            xi = xsize - 1;
                         }
 
                         if (yi < 0)
                         {
                             yi = 0;
                         }
-
-                        if (yi >= ysize)
+                        else if (yi >= ysize)
                         {
-                            yi = input.YSize - 1;
+                            yi = ysize - 1;
                         }
 
                         sum += input.GetRow(yi)[xi] * kernel[(ky * Size) + kx];
                     }
                 }
 
-                output.GetRow(y)[x] = sum;
+                ref float rowYX = ref output.GetRow(y)[x];
 
-                if (output.GetRow(y)[x] < min)
+                rowYX = sum;
+
+                if (rowYX < min)
                 {
-                    output.GetRow(y)[x] = min;
+                    rowYX = min;
                 }
-
-                if (output.GetRow(y)[x] > max)
+                else if (rowYX > max)
                 {
-                    output.GetRow(y)[x] = max;
+                    rowYX = max;
                 }
             }
         }
@@ -695,17 +811,7 @@ internal static class JxlHeuristics
 
             for (int ky = 0; ky < kernelY; ky++)
             {
-                int iy = (y * 2) + ky - ((kernelY - 1) / 2);
-
-                if (iy < 0)
-                {
-                    iy = 0;
-                }
-                else if (iy >= ySize)
-                {
-                    iy = ySize - 1;
-                }
-
+                int iy = Math.Clamp((y * 2) + ky - ((kernelY - 1) / 2), 0, ySize - 1);
                 rowIn[ky] = input.GetRowMemory(iy);
             }
 
@@ -890,6 +996,464 @@ internal static class JxlHeuristics
             + (weights[2] * squaredError[2]);
 
         return result;
+    }
+
+    public static void ComputeARHeuristics(Configuration configuration, JxlFrameHeader frameHeader, JxlPassesEncoderContext encoderState, JxlImage3<float> originalOpsin, Rectangle rect)
+    {
+        JxlCompressParameters cparams = encoderState.CompressionParameters;
+        JxlPassesCommonContext shared = encoderState.PassesCommonContext;
+        JxlFrameDimensions frameDimensions = shared.FrameDimensions;
+        JxlPlane<float> initialQuantMasking1x1 = encoderState.InitialQuantMasking1x1;
+        JxlPlane<byte> epfSharpness = shared.EpfSharpness;
+
+        float clampedButteraugli = MathF.Min(5.0f, cparams.ButteraugliDistance);
+        if (cparams.ButteraugliDistance < MinimumButteraugliForDynamicAR ||
+            cparams.SpeedTier > JxlSpeedTier.Wombat ||
+            frameHeader.LoopFilter.EpfIterations == 0)
+        {
+            JxlImageOperations.FillPlane((byte)4, epfSharpness, epfSharpness.GetRectangle());
+            return;
+        }
+
+        // Steps for the edge preserving filter
+        Span<byte> epfSteps = cparams.ButteraugliDistance > 4.5f ? [0, 4] : [0, 2, 7];
+
+        const int numberOfEPFValues = 8;
+        Span<int> epfStepsLookupTable = stackalloc int[numberOfEPFValues];
+        epfStepsLookupTable.Clear();
+
+        for (int i = 0; i < epfSteps.Length; i++)
+        {
+            epfStepsLookupTable[epfSteps[i]] = i;
+        }
+
+        // Contains the L2 distance for each coefficient. This will be
+        // initialized.
+        JxlPlane<float>[] errorImages = new JxlPlane<float>[numberOfEPFValues];
+
+        for (int i = 0; i < epfSteps.Length; i++)
+        {
+            // Allocate and reconstruct the images.
+            byte value = epfSteps[i];
+            JxlImage3<float> decoded = ReconstructImage(configuration, frameHeader, shared, encoderState.Coefficients);
+            errorImages[value] = new(configuration, frameDimensions.XSizeBlocks, frameDimensions.YSizeBlocks);
+
+            // Compute the L2 distance between original opsin and the decoded image.
+            for (int by = 0; by < frameDimensions.YSizeBlocks; by++)
+            {
+                Span<float> errorRow = errorImages[value].GetRow(by);
+                for (int bx = 0; bx < frameDimensions.XSize; bx++)
+                {
+                    errorRow[bx] = ComputeBlockL2Distance(originalOpsin, decoded, initialQuantMasking1x1, by, bx);
+                }
+            }
+        }
+
+        using Buffer2D<int> histo = configuration.MemoryAllocator.Allocate2D<int>(9, numberOfEPFValues);
+        Span<int> totals = stackalloc int[16].Slice(0, 9);
+        totals.Fill(1);
+        const float favorNoSmoothing = 0.99f;
+
+        for (int by = 0; by < frameDimensions.YSizeBlocks; by++)
+        {
+            // Get the current (output) and previous row. If Y
+            // is 0, then the previous row is also row 0.
+            Span<byte> outputRow = epfSharpness.GetRow(by);
+            Span<byte> previousRow = epfSharpness.GetRow(by > 0 ? by - 1 : 0);
+
+            for (int bx = 0; bx < frameDimensions.XSizeBlocks; bx++)
+            {
+                byte bestValue = 0;
+                float bestError = float.MaxValue;
+
+                // Neighboring values
+                byte topValue = by > 0 ? previousRow[bx] : (byte)0;
+                byte leftValue = bx > 0 ? outputRow[bx - 1] : (byte)0;
+
+                // Errors of neighboring values
+                float topError = errorImages[topValue].GetRow(by)[bx];
+                float leftError = errorImages[leftValue].GetRow(by)[bx];
+
+                for (int i = 0; i < epfSteps.Length; i++)
+                {
+                    // Current EPF step
+                    byte val = epfSteps[i];
+
+                    // Current error
+                    float error = errorImages[val].GetRow(by)[bx];
+
+                    if (val == 0)
+                    {
+                        error *= favorNoSmoothing;
+                    }
+
+                    if (error < bestError)
+                    {
+                        bestValue = val;
+                        bestError = error;
+                    }
+                }
+
+                if (bestError < MathF.Min(topError, leftError))
+                {
+                    outputRow[bx] = bestValue;
+                }
+                else if (topError < leftError)
+                {
+                    outputRow[bx] = topValue;
+                }
+                else
+                {
+                    outputRow[bx] = leftValue;
+                }
+
+                int context = (epfStepsLookupTable[topValue] * 3) + epfStepsLookupTable[leftValue];
+                histo[context, outputRow[bx]]++;
+                totals[context]++;
+            }
+        }
+
+        const float c3base = 0.98017198824148288f;
+        const float c3clamp = 0.85970338919928291f;
+        float c3 = MathF.Max(c3clamp, MathF.Pow(c3base, clampedButteraugli));
+        const float c5 = 0.1087690359555803f;
+
+        Span<float> mul = stackalloc float[32].Slice(0, 3 * 3 * 3);
+        mul.Clear();
+
+        foreach (byte topValue in epfSteps)
+        {
+            foreach (byte leftValue in epfSteps)
+            {
+                foreach (byte val in epfSteps)
+                {
+                    int context = (epfStepsLookupTable[topValue] * 3) + epfStepsLookupTable[leftValue];
+                    Span<int> contextHisto = histo.DangerousGetRowSpan(context);
+
+                    int multiplierIndex = epfStepsLookupTable[val] + (3 * context);
+                    mul[multiplierIndex] = 1.0f / (1.0f + (c5 * MathUtils.Log1P(contextHisto[val] / totals[context]) / clampedButteraugli));
+
+                    if (val == 0)
+                    {
+                        mul[multiplierIndex] *= c3;
+                    }
+                }
+            }
+        }
+
+        for (int by = 0; by < frameDimensions.YSizeBlocks; by++)
+        {
+            // Get the current (output) and previous row. If Y
+            // is 0, then the previous row is also row 0.
+            Span<byte> outputRow = epfSharpness.GetRow(by);
+            Span<byte> previousRow = epfSharpness.GetRow(by > 0 ? by - 1 : 0);
+
+            for (int bx = 0; bx < frameDimensions.XSizeBlocks; bx++)
+            {
+                byte bestValue = 0;
+                float bestError = float.MaxValue;
+
+                // Neighbors
+                byte topValue = by > 0 ? previousRow[bx] : (byte)0;
+                byte leftValue = bx > 0 ? outputRow[bx - 1] : (byte)0;
+
+                int context = (epfStepsLookupTable[topValue] * 3) + epfStepsLookupTable[leftValue];
+
+                foreach (byte val in epfSteps)
+                {
+                    int multiplierIndex = epfStepsLookupTable[val] + (3 * context);
+                    float error = errorImages[val].GetRow(by)[bx] * mul[multiplierIndex];
+
+                    if (error < bestError)
+                    {
+                        bestValue = val;
+                        bestError = error;
+                    }
+                }
+
+                outputRow[bx] = bestValue;
+            }
+        }
+    }
+
+    public static void DownsampleImage2Iterative(Configuration configuration, ref JxlImage3<float> opsin)
+    {
+        JxlImage3<float> downsampled = new(
+            configuration,
+            JxlMath.DivCeil(opsin.XSize, 2) + JxlFrameDimensions.BlockDimensions,
+            JxlMath.DivCeil(opsin.YSize, 2) + JxlFrameDimensions.BlockDimensions);
+
+        if (!downsampled.ShrinkTo(downsampled.XSize - JxlFrameDimensions.BlockDimensions, downsampled.YSize - JxlFrameDimensions.BlockDimensions))
+        {
+            throw new InvalidOperationException("Could not shrink image");
+        }
+
+        // Temporary conversion data
+        using JxlImage3<float> rgb = new(configuration, opsin.XSize, opsin.YSize);
+
+        JxlOpsinParameters opsinParameters = new();
+        opsinParameters.Initialize(JxlMath.DefaultIntensityTarget);
+
+        // Convert Opsin XYB to linear
+        if (!JxlXybDecoder.OpsinToLinear(opsin, rgb.GetRectangle(), rgb, opsinParameters))
+        {
+            throw new InvalidOperationException("Failed to convert Opsin color-space to RGB");
+        }
+
+        // Compute the Butteraugli mask for the image.
+        JxlPlane<float> mask = new(configuration, opsin.XSize, opsin.YSize);
+        ButteraugliParameters butterParameters = new();
+        ButteraugliComparator butter = ButteraugliComparator.Make(configuration, rgb, butterParameters);
+
+        if (!butter.Mask(configuration, mask))
+        {
+            throw new InvalidOperationException("Could not compute the Butteraugli mask.");
+        }
+
+        JxlPlane<float> maskFuzzy = new(configuration, opsin.XSize, opsin.YSize);
+
+        for (int c = 0; c < 3; c++)
+        {
+            // This calls into a separate method overload.
+            DownsampleImage2Iterative(configuration, opsin.Plane(c), downsampled.Plane(c));
+        }
+
+        opsin = downsampled;
+    }
+
+    public static JxlImage3<float> ReconstructImage(Configuration configuration, JxlFrameHeader origFrameHeader, JxlPassesCommonContext shared, IReadOnlyList<IJxlDctAcImage> coeffs)
+    {
+        JxlFrameDimensions frameDim = shared.FrameDimensions;
+
+        JxlFrameHeader frameHeader = origFrameHeader;
+        frameHeader.UpdateFlag(shared.ImageFeatures.PatchDictionary.HasAny, (ulong)JxlFrameHeaderFlags.Patches);
+        frameHeader.UpdateFlag(shared.ImageFeatures.Splines.HasAny, (ulong)JxlFrameHeaderFlags.Splines);
+        frameHeader.ColorTransform = JxlColorTransform.None;
+
+        JxlCodecMetadata metadata = frameHeader.Metadata!.DeepClone();
+        metadata.ImageMetadata!.ExtraChannels.Clear();
+        metadata.ImageMetadata!.ExtraChannelCount = metadata.ImageMetadata.ExtraChannels.Count;
+        frameHeader.Metadata = metadata;
+        frameHeader.ExtraChannelUpsampling.Clear();
+
+        bool isGray = shared.CodecMetadata.ImageMetadata.ColorEncoding.IsGray;
+
+        JxlPassesDecoderContext decState = new(frameHeader, configuration);
+
+        decState.OutputEncodingInfo.SetFromMetadata(shared.CodecMetadata);
+        decState.OutputEncodingInfo.MaybeSetColorEncoding(JxlColorEncoding.LinearSRgb(isGray));
+
+        decState.Shared = shared;
+        decState.Initialize(frameHeader);
+
+        JxlImageBundle decoded = new(shared.CodecMetadata.ImageMetadata)
+        {
+            Origin = frameHeader.FrameOrigin
+        };
+
+        JxlImage3<float> tmp = new(configuration, frameDim.XSize, frameDim.YSize);
+        decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding);
+
+        JxlPassesDecoderContext.PipelineOptions options = new()
+        {
+            UseSlowRenderPipeline = false,
+            Coalescing = false,
+            RenderSpotcolors = false,
+            RenderNoise = true
+        };
+
+        decState.PreparePipeline(frameHeader, shared.CodecMetadata.ImageMetadata, decoded, options);
+
+        decState.RenderPipeline.PrepareForThreads(1, false);
+        JxlGroupDecoderCache groupDecCaches = new(configuration);
+
+        void ProcessGroup(uint groupIndex, int thread)
+        {
+            if (frameHeader.LoopFilter.EpfIterations > 0)
+            {
+                frameHeader.LoopFilter.ComputeSigma(frameDim.BlockGroupRect(groupIndex), decState);
+            }
+
+            JxlRenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, thread);
+            JxlGroupDecoder.DecodeGroupForRoundtrip(frameHeader, coeffs, groupIndex, decState, ref groupDecCaches, thread, input, null, null);
+
+            if ((frameHeader.Flags & (ulong)JxlFrameHeaderFlags.Noise) != 0)
+            {
+                JxlNoiseDecoder.PrepareNoiseInput(decState, shared.FrameDimensions, frameHeader, (int)groupIndex, thread);
+            }
+
+            input.Done();
+        }
+
+        for (int i = 0; i < frameDim.NumGroups; i++)
+        {
+            ProcessGroup((uint)i, i);
+        }
+
+        return decoded.Color;
+    }
+
+    public static void LossyFrameHeuristics(
+        JxlFrameHeader frameHeader,
+        JxlPassesEncoderState encState,
+        JxlModularFrameEncoder modularFrameEncoder,
+        JxlImage3<float> linear,
+        JxlImage3<float> opsin,
+        Rectangle rect,
+        JxlCmsInterface cms,
+        JxlAuxiliaryOutput? auxOut)
+    {
+        JxlCompressParams cparams = encState.CompressParams;
+        bool streamingMode = encState.StreamingMode;
+        bool initializeGlobalState = encState.InitializeGlobalState;
+        JxlPassesCommonContext shared = encState.Shared;
+        JxlFrameDimensions frameDim = shared.FrameDimensions;
+        JxlImageFeatures imageFeatures = shared.ImageFeatures;
+        JxlDequantMatrices matrices = shared.Matrices;
+        JxlQuantizer quantizer = shared.Quantizer;
+        JxlPlane<float> initialQuantMasking1x1 = encState.InitialQuantMasking1x1;
+        JxlPlane<int> rawQuantField = shared.RawQuantField;
+        JxlColorCorrelationMap cmap = shared.ColorMap;
+        JxlAcStrategyImage acStrategy = shared.AcStrategy;
+        JxlBlockContextMap blockCtxMap = shared.BlockContextMap;
+        Configuration configuration = encState.Configuration;
+
+        bool overrideSplines = cparams.CustomSplines.HasAny;
+        if (overrideSplines)
+        {
+            imageFeatures.Splines.SetData(cparams.CustomSplines);
+        }
+
+        if (!streamingMode && cparams.SpeedTier <= JxlSpeedTier.Squirrel)
+        {
+            if (!overrideSplines)
+            {
+                imageFeatures.Splines = FindSplines(configuration, opsin);
+            }
+
+            imageFeatures.Splines.InitializeDrawCache(configuration, opsin.XSize, opsin.YSize, cmap.Base);
+            imageFeatures.Splines.SubtractFrom(opsin);
+        }
+
+        if (!streamingMode && JxlOverrideHelpers.ApplyOverride(cparams.Patches, cparams.SpeedTier <= JxlSpeedTier.Squirrel))
+        {
+            JxlPatchDictionaryEncoder.FindBestPatchDictionary(configuration, opsin, encState, cms, pool, auxOut);
+            JxlPatchDictionaryEncoder.SubtractFrom(imageFeatures.Patches, opsin);
+        }
+
+        float quantDc = JxlAdaptiveQuantization.InitialQuantDc(cparams.ButteraugliDistance);
+
+        JxlAcStrategyHeuristics acsHeuristics = new(configuration, cparams, matrices);
+        JxlCflHeuristics cflHeuristics = new(configuration, rect);
+        JxlPlane<float> initialQuantField;
+        JxlPlane<float> initialQuantMasking;
+
+        if (cparams.SpeedTier > JxlSpeedTier.Hare || cparams.DisablePerceptualOptimizations)
+        {
+            initialQuantField = new(configuration, frameDim.XSizeBlocks, frameDim.YSizeBlocks);
+            initialQuantMasking = new(configuration, frameDim.XSizeBlocks, frameDim.YSizeBlocks);
+
+            // Fill the quant field with 0.79 / butteraugliDistance.
+            float q = 0.79f / cparams.ButteraugliDistance;
+            JxlImageOperations.FillImage(q, initialQuantField);
+
+            // Fill initial quant masking with the inverse of q+0.001.
+            float masking = 1.0f / (q + 0.001f);
+            JxlImageOperations.FillImage(masking, initialQuantMasking);
+
+            if (cparams.DisablePerceptualOptimizations)
+            {
+                initialQuantMasking1x1 = new(configuration, frameDim.XSize, frameDim.YSize);
+                JxlImageOperations.FillImage(masking, initialQuantMasking1x1);
+            }
+
+            quantizer.ComputeGlobalScaleAndQuant(quantDc, q, 0);
+        }
+        else
+        {
+            float butteraugliDistanceForIqf = cparams.ButteraugliDistance;
+            if (!frameHeader.LoopFilter.UseGaborishConvolution)
+            {
+                butteraugliDistanceForIqf *= 0.62f;
+            }
+
+            initialQuantField = JxlAdaptiveQuantization.InitialQuantField(configuration, butteraugliDistanceForIqf, opsin, rect, pool, 1.0f, out initialQuantMasking, ref initialQuantMasking1x1);
+
+            float q = 0.39f / cparams.ButteraugliDistance;
+            quantizer.ComputeGlobalScaleAndQuant(quantDc, q, 0);
+        }
+
+        if (frameHeader.LoopFilter.UseGaborishConvolution)
+        {
+            ReadOnlySpan<float> weight = [1.0f, 1.0f, 1.0f];
+            JxlGaborish.InverseGaborish(opsin, rect, weight, pool);
+        }
+
+        if (initializeGlobalState)
+        {
+            JxlDequantMatrices.FindBestDequantMatrices(configuration, cparams, modularFrameEncoder, matrices);
+        }
+
+        acsHeuristics.Initialize(opsin, rect, initialQuantField, initialQuantMasking, initialQuantMasking1x1, matrices);
+
+        void ProcessTile(uint tid, int thread)
+        {
+            // Find the tile offset.
+            int nEncTiles = JxlMath.DivCeil(frameDim.XSizeBlocks, JxlChromaFromLuma.ColorTileDimensionInBlocks);
+            int tx = (int)(tid % nEncTiles);
+            int ty = (int)(tid / nEncTiles);
+
+            // Find the block ranges
+            int by0 = ty * JxlChromaFromLuma.ColorTileDimensionInBlocks;
+            int by1 = Math.Min((ty + 1) * JxlChromaFromLuma.ColorTileDimensionInBlocks, frameDim.YSizeBlocks);
+            int bx0 = tx * JxlChromaFromLuma.ColorTileDimensionInBlocks;
+            int bx1 = Math.Min((tx + 1) * JxlChromaFromLuma.ColorTileDimensionInBlocks, frameDim.XSizeBlocks);
+
+            // Create the rectangle
+            Rectangle r = new(bx0, by0, bx1 - bx0, by1 - by0);
+
+            // If the user settings allow worse performance,
+            // compute the CFL tile.
+            if (cparams.SpeedTier <= JxlSpeedTier.Squirrel)
+            {
+                cflHeuristics.ComputeTile(r, opsin, rect, matrices, null, null, null, false, cmap);
+            }
+
+            // Process the AC Strategy rectangle.
+            acsHeuristics.ProcessRectangle(r, cmap, acStrategy);
+
+            // Quantize.
+            JxlAdaptiveQuantization.AdjustQuantField(acStrategy, r, cparams.ButteraugliDistance, initialQuantField);
+            quantizer.SetQuantFieldRect(initialQuantField, r, rawQuantField);
+
+            // Compute the CFL tile for the quant field.
+            if (cparams.SpeedTier <= JxlSpeedTier.Hare)
+            {
+                cflHeuristics.ComputeTile(r, opsin, rect, matrices, acStrategy, rawQuantField, quantizer, cparams.SpeedTier >= JxlSpeedTier.Wombat, thread, cmap);
+            }
+        }
+
+        int numTiles = JxlMath.DivCeil(frameDim.XSizeBlocks, JxlChromaFromLuma.ColorTileDimensionInBlocks) * JxlMath.DivCeil(frameDim.YSizeBlocks, JxlChromaFromLuma.ColorTileDimensionInBlocks);
+
+        for (int i = 0; i < numTiles; i++)
+        {
+            ProcessTile((uint)i, i);
+        }
+
+        acsHeuristics.Finalize(acStrategy, auxOut);
+
+        if (!streamingMode && !cparams.DisablePerceptualOptimizations)
+        {
+            JxlPlane<byte> epfSharpness = shared.EpfSharpness;
+            JxlImageOperations.FillPlane((byte)4, epfSharpness, epfSharpness.GetRectangle());
+
+            JxlAdaptiveQuantization.FindBestQuantizer(frameHeader, linear, opsin, initialQuantField, encState, cms, pool, auxOut);
+        }
+
+        if (cparams.SpeedTier < JxlSpeedTier.Falcon && initializeGlobalState)
+        {
+            FindBestBlockEntropyModel(cparams, rawQuantField, acStrategy, blockCtxMap);
+        }
     }
 
     private sealed class OccCounters : IDisposable

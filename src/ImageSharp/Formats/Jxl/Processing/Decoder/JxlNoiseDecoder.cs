@@ -126,7 +126,7 @@ internal static class JxlNoiseDecoder
         GenerateRandomImage(rng, plane2.Bounds, plane2.Image);
     }
 
-    private static void PrepareNoiseInput(
+    public static void PrepareNoiseInput(
         JxlPassesDecoderContext decState,
         JxlFrameDimensions frameDim,
         JxlFrameHeader frameHeader,

@@ -408,7 +408,7 @@ internal sealed class JxlFrameHeader : IJxlFields
         }
     }
 
-    private void UpdateFlag(bool condition, ulong flag)
+    public void UpdateFlag(bool condition, ulong flag)
     {
         if (condition)
         {

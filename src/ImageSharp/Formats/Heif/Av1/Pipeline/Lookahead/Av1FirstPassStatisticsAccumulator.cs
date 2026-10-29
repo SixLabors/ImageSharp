@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Common.Helpers;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <summary>
@@ -19,8 +21,8 @@ internal static class Av1FirstPassStatisticsAccumulator
         section.Frame += frame.Frame;
         section.Weight += frame.Weight;
         section.IntraError += frame.IntraError;
-        section.LogIntraError += Av1FirstPassMath.Log1P(frame.IntraError);
-        section.LogCodedError += Av1FirstPassMath.Log1P(frame.CodedError);
+        section.LogIntraError += MathUtils.Log1P(frame.IntraError);
+        section.LogCodedError += MathUtils.Log1P(frame.CodedError);
         section.FrameAverageWaveletEnergy += frame.FrameAverageWaveletEnergy;
         section.CodedError += frame.CodedError;
         section.SecondReferenceCodedError += frame.SecondReferenceCodedError;

@@ -5,6 +5,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
@@ -34,9 +35,9 @@ internal class JxlPassesCommonContext
 
     public JxlQuantizer Quantizer { get; set; }
 
-    public JxlImageI RawQuantField { get; set; }
+    public JxlPlane<int> RawQuantField { get; set; }
 
-    public JxlImageB EpfSharpness { get; set; }
+    public JxlPlane<byte> EpfSharpness { get; set; }
 
     public JxlColorCorrelationMap ColorMap { get; set; }
 
@@ -46,13 +47,13 @@ internal class JxlPassesCommonContext
 
     public List<byte> CoeffOrders { get; set; } = [];
 
-    public JxlImageB QuantDc { get; set; }
+    public JxlPlane<byte> QuantDc { get; set; }
 
-    public JxlImage3F DcStorage { get; set; }
+    public JxlImage3<float> DcStorage { get; set; }
 
-    public JxlImage3F Dc { get; set; }
+    public JxlImage3<float> Dc { get; set; }
 
-    public JxlImage3F[] DcFrames { get; set; } = new JxlImage3F[4];
+    public JxlImage3<float>[] DcFrames { get; set; } = new JxlImage3<float>[4];
 
     public JxlReferenceFrame[] ReferenceFrames { get; set; } = new JxlReferenceFrame[4];
 
@@ -72,18 +73,18 @@ internal class JxlPassesCommonContext
         JxlFrameDimensions dimensions = frameHeader.FrameDimensions;
 
         this.AcStrategy = JxlAcStrategyImage.Create(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
-        this.RawQuantField = new JxlImageI(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
-        this.EpfSharpness = new JxlImageB(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.RawQuantField = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.EpfSharpness = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
         this.ColorMap = JxlColorCorrelationMap.Create(configuration, dimensions.XSize, dimensions.YSize);
 
         this.CoeffOrderSize = JxlCoefficientOrder.CoefficientOrderMaxSize;
 
         if (encoder &&
-            this.CoeffOrders.Count < (frameHeader.Passes.NumPasses & JxlCoefficientOrder.CoefficientOrderMaxSize) &&
+            this.CoeffOrders.Count < (frameHeader.Passes.NumberOfPasses & JxlCoefficientOrder.CoefficientOrderMaxSize) &&
             frameHeader.Encoding == JxlFrameEncoding.VarDct)
         {
             // we add the padding to CoeffOrders so its length is equal to the variable upperBound
-            int upperBound = frameHeader.Passes.NumPasses & JxlCoefficientOrder.CoefficientOrderMaxSize;
+            int upperBound = (int)(frameHeader.Passes.NumberOfPasses & JxlCoefficientOrder.CoefficientOrderMaxSize);
             int length = this.CoeffOrders.Count;
             int delta = upperBound - length;
 
@@ -93,7 +94,7 @@ internal class JxlPassesCommonContext
             }
         }
 
-        this.QuantDc = new JxlImageB(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.QuantDc = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
 
         bool useDcFrame = (frameHeader.Flags & (ulong)JxlFrameHeaderFlags.Dc) != 0;
         if (!encoder && useDcFrame)
@@ -103,7 +104,7 @@ internal class JxlPassesCommonContext
                 throw new InvalidOperationException("DC level for DC frames cannot be equal to 4");
             }
 
-            this.DcStorage = new JxlImage3F();
+            this.DcStorage = new();
             this.Dc = this.DcFrames[(int)frameHeader.DcLevel];
 
             if (this.Dc.XSize == 0)
@@ -115,7 +116,7 @@ internal class JxlPassesCommonContext
         }
         else
         {
-            this.DcStorage = new JxlImage3F(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+            this.DcStorage = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
             this.Dc = this.DcStorage;
         }
 

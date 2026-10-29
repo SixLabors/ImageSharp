@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -176,7 +177,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
         }
 
         // A unit with a low intra error adds more than one to the intra factor.
-        double logIntra = Av1FirstPassMath.Log1P(intraError);
+        double logIntra = MathUtils.Log1P(intraError);
         if (logIntra < 10.0)
         {
             record.IntraFactor += 1.0 + ((10.0 - logIntra) * 0.05);

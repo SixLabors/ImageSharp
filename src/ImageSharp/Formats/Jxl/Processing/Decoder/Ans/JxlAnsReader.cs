@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO;

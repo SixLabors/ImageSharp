@@ -1,16 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AcStrategy;
 
-internal static class JxlAcStrategyEncoder
+internal static partial class JxlAcStrategyEncoder
 {
     private static readonly byte[][] TypeColors =
     [
@@ -271,183 +268,6 @@ internal static class JxlAcStrategyEncoder
         }
 
         return false;
-    }
-
-    public static bool EstimateEntropy(
-        JxlAcStrategy acs,
-        float entropyMultiplier,
-        int x,
-        int y,
-        JxlAcStrategyConfiguration config,
-        Span<float> cmapFactors,
-        Span<float> block,
-        Span<float> fullScratchSpace,
-        out float entropy)
-    {
-        entropy = 0;
-        Span<float> memory = fullScratchSpace;
-        Span<float> scratchSpace = fullScratchSpace[JxlAcStrategy.MaximumCoefficientArea..];
-        int size = (1 << acs.Log2CoveredBlocks) * JxlFrameDimensions.DctBlockSize;
-
-        for (int c = 0; c < 3; c++)
-        {
-            Span<float> blockC = block[(size * c)..];
-            JxlTransformsEncoder.TransformFromPixels(
-                acs.Strategy,
-                config.PixelSpan(c, x, y),
-                config.SourceStride,
-                blockC,
-                scratchSpace);
-        }
-
-        int numBlocks = acs.CoveredBlocksX * acs.CoveredBlocksY;
-        float quantNorm16 = 0;
-
-        if (numBlocks == 1)
-        {
-            // There's only one 8x8. We don't need aggregation of values.
-            quantNorm16 = config.Quant(x / 8, y / 8);
-        }
-        else if (numBlocks == 2)
-        {
-            if (acs.CoveredBlocksY == 2)
-            {
-                quantNorm16 = Math.Max(config.Quant(x / 8, y / 8), config.Quant(x / 8, (y / 8) + 1));
-            }
-            else
-            {
-                quantNorm16 = Math.Max(config.Quant(x / 8, y / 8), config.Quant((x / 8) + 1, y / 8));
-            }
-        }
-        else
-        {
-            // Load quantizer field value, calculate empirical heuristic on masking field
-            // for weighting the information loss. Information loss manifests
-            // itself as ringing, and masking could hide it.
-            for (int iy = 0; iy < acs.CoveredBlocksY; iy++)
-            {
-                int yPos = (y / 8) + iy;
-
-                for (int ix = 0; ix < acs.CoveredBlocksX; ix++)
-                {
-                    float qval = config.Quant((x / 8) + ix, yPos);
-                    qval *= qval;
-                    qval *= qval;
-                    qval *= qval;
-                    quantNorm16 += qval * qval;
-                }
-            }
-
-            quantNorm16 /= numBlocks;
-            quantNorm16 = MathF.Pow(quantNorm16, 1.0f / 16.0f);
-        }
-
-        // Computation of entropy.
-        // We have to process 8 coeffs at once. Not sure if we can use
-        // Vector<T> here...
-        Vector256<float> quant = Vector256.Create(quantNorm16);
-        Vector256<float> loss = Vector256<float>.Zero;
-        for (int c = 0; c < 3; c++)
-        {
-            Span<float> inverseMatrix = config.Dequant.GetInverseMatrix(acs.Strategy, c);
-            Span<float> matrix = config.Dequant.GetMatrix(acs.Strategy, c);
-            Vector256<float> cmapFactor = Vector256.Create(cmapFactors[c]);
-
-            Vector256<float> entropyV = Vector256<float>.Zero;
-            Vector256<float> numZerosV = Vector256<float>.Zero;
-
-            for (int i = 0; i < (numBlocks * JxlFrameDimensions.DctBlockSize) - Vector<float>.Count; i += Vector<float>.Count)
-            {
-                Vector256<float> input = Vector256.Create<float>(block[((c * size) + i)..]);
-                Vector256<float> inY = Vector256.Create<float>(block[(size + i)..]) * cmapFactor;
-                Vector256<float> im = Vector256.Create<float>(inverseMatrix[i..]);
-                Vector256<float> value = (input - inY) * (im * quant);
-                Vector256<float> rvalue = Vector256.Round(value);
-                Vector256<float> diff = value - rvalue;
-                Vector256<float> m = Vector256.Create<float>(matrix[i..]);
-
-                (m * diff).CopyTo(memory[i..]);
-
-                Vector256<float> q = Vector256.Abs(rvalue);
-                Vector256<float> qIsZero = Vector256.Equals(q, Vector256<float>.Zero);
-
-                entropyV = Vector256.Sqrt(q) + entropyV;
-                numZerosV += Vector256.ConditionalSelect(qIsZero, Vector256<float>.Zero, Vector256<float>.One);
-            }
-
-            {
-                Span<float> maskULut = [12.0f, 0.0f, 4.0f];
-                Vector256<float> maskUOffset = Vector256.Create(maskULut[c]);
-                Vector256<float> lossC = Vector256<float>.Zero;
-
-                JxlTransformsDecoder.TransformToPixels(
-                    acs.Strategy,
-                    memory,
-                    block,
-                    acs.CoveredBlocksX * 8,
-                    scratchSpace);
-
-                for (int iy = 0; iy < acs.CoveredBlocksY; iy++)
-                {
-                    for (int ix = 0; ix < acs.CoveredBlocksX; ix++)
-                    {
-                        for (int dy = 0; dy < JxlFrameDimensions.BlockDimensions; ++dy)
-                        {
-                            // This loop here is expected to be vector size-aligned.
-                            // No need for <= N - VectorSize.
-                            for (int dx = 0; dx < JxlFrameDimensions.BlockDimensions; dx += Vector256<float>.Count)
-                            {
-                                Vector256<float> input = Vector256.Create<float>(block[
-                                      ((((iy * JxlFrameDimensions.BlockDimensions) + dy) * (acs.CoveredBlocksX * JxlFrameDimensions.BlockDimensions)) + (ix * JxlFrameDimensions.BlockDimensions) + dx)..]);
-
-                                if (x + (ix * 8) + dx + Vector256<float>.Count <= config.Mask1x1Width)
-                                {
-                                    Vector256<float> masku =
-                                        Vector256.LoadUnsafe(config.MaskingReference1x1(
-                                            x + (ix * 8) + dx,
-                                            y + (iy * 8) + dy)) * maskUOffset;
-                                    input = masku * input;
-                                    input *= input;
-                                    input *= input;
-                                    input *= input;
-                                    lossC += input;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Span<float> channelMultipliers = [
-                    MathF.Pow(8.2f, 8.0f),
-                    MathF.Pow(1.0f, 8.0f),
-                    MathF.Pow(1.03f, 8.0f)
-                ];
-
-                lossC *= Vector256.Create(channelMultipliers[c]);
-                loss += lossC;
-            }
-
-            entropy += config.CostDelta * Vector256.Sum(entropyV);
-            int numNZeroes = (int)Vector256.Sum(numZerosV);
-            int nbits = JxlMath.CeilLog2Nonzero(numNZeroes + 1) + 1;
-            entropy += config.ZerosMultiplier * (JxlMath.CeilLog2Nonzero(nbits + 17) + nbits);
-
-            if (c == 0 && numBlocks >= 2)
-            {
-                // It is X channel (red-green) and we often see ringing
-                // in the large blocks. Let's punish that more here.
-                float w = 1.0f + MathF.Max(3.0f, numBlocks / 8.0f);
-                entropy *= w;
-                loss *= Vector256.Create(w);
-            }
-        }
-
-        float lossScalar = MathF.Pow(Vector256.Sum(loss) / (numBlocks * JxlFrameDimensions.BlockDimensions), 1.0f / 8.0f) * (numBlocks * JxlFrameDimensions.DctBlockSize) / quantNorm16;
-
-        entropy *= entropyMultiplier;
-        entropy += config.InfoLossMultiplier * lossScalar;
-
-        return true;
     }
 
     public static JxlAcStrategyType AcsSquare(int blocks)
@@ -972,10 +792,7 @@ internal static class JxlAcStrategyEncoder
             new(JxlAcStrategyType.DCT16X32, 4, 4, 4, entropy_mul16X32),
             new(JxlAcStrategyType.DCT32X16, 4, 4, 4, entropy_mul16X32),
             new(JxlAcStrategyType.DCT64X32, 6, 1, 3, entropy_mul64X32),
-            new(JxlAcStrategyType.DCT32X64, 6, 1, 3, entropy_mul64X32),
-            default,
-            default,
-            default
+            new(JxlAcStrategyType.DCT32X64, 6, 1, 3, entropy_mul64X32)
         ];
 
         Span<byte> priority = stackalloc byte[64];
@@ -1205,31 +1022,84 @@ internal static class JxlAcStrategyEncoder
     }
 
     /// <summary>
-    /// For <see cref="FindBest8x8Transform"/>, represents a small
-    /// model which the encoder uses to try all available 8x8
-    /// transforms and see which one encodes best.
+    /// Describes one eight-by-eight transform candidate and its fixed search weights.
     /// </summary>
-    /// <param name="Type">
-    /// The transform type for this model.
-    /// </param>
-    /// <param name="EncodingSpeedTierMaxLimit">
-    /// If the encoding speed tier is higher (indicating
-    /// higher speeds but worse compression) than this
-    /// value, the attempt shall be ignored as it'll be
-    /// too slow.
-    /// </param>
-    /// <param name="EntropyMultiplier">
-    /// Multiplication for the entropy.
-    /// </param>
-    private readonly record struct TransformAttempt8x8(
-        JxlAcStrategyType Type,
-        int EncodingSpeedTierMaxLimit,
-        double EntropyMultiplier);
+    private readonly struct TransformAttempt8x8
+    {
+        /// <summary>
+        /// Initializes a candidate with the existing native search settings.
+        /// </summary>
+        /// <param name="type">The candidate transform.</param>
+        /// <param name="encodingSpeedTierMaxLimit">The largest encoding speed tier that considers this candidate.</param>
+        /// <param name="entropyMultiplier">The native entropy weight before normalization against the DCT candidate.</param>
+        public TransformAttempt8x8(JxlAcStrategyType type, int encodingSpeedTierMaxLimit, double entropyMultiplier)
+        {
+            this.Type = type;
+            this.EncodingSpeedTierMaxLimit = encodingSpeedTierMaxLimit;
+            this.EntropyMultiplier = entropyMultiplier;
+        }
 
-    private readonly record struct MergeAttempt(
-        JxlAcStrategyType Type,
-        byte Priority,
-        byte DecodingSpeedTierMaxLimit,
-        byte EncodingSpeedTierMaxLimit,
-        float EntropyMultiplier);
+        /// <summary>
+        /// Gets the candidate transform.
+        /// </summary>
+        public JxlAcStrategyType Type { get; }
+
+        /// <summary>
+        /// Gets the largest encoding speed tier that considers this candidate.
+        /// </summary>
+        public int EncodingSpeedTierMaxLimit { get; }
+
+        /// <summary>
+        /// Gets the native entropy weight before normalization against the DCT candidate.
+        /// </summary>
+        public double EntropyMultiplier { get; }
+    }
+
+    /// <summary>
+    /// Describes one multiblock merge candidate in the existing sequential search.
+    /// </summary>
+    private readonly struct MergeAttempt
+    {
+        /// <summary>
+        /// Initializes a candidate with the existing native search settings.
+        /// </summary>
+        /// <param name="type">The candidate transform.</param>
+        /// <param name="priority">The priority used to prevent competing merges from overlapping.</param>
+        /// <param name="decodingSpeedTierMaxLimit">The largest decoding speed tier that considers this candidate.</param>
+        /// <param name="encodingSpeedTierMaxLimit">The encoding speed limit stored in the native candidate table.</param>
+        /// <param name="entropyMultiplier">The multiplier applied to the estimated entropy.</param>
+        public MergeAttempt(JxlAcStrategyType type, byte priority, byte decodingSpeedTierMaxLimit, byte encodingSpeedTierMaxLimit, float entropyMultiplier)
+        {
+            this.Type = type;
+            this.Priority = priority;
+            this.DecodingSpeedTierMaxLimit = decodingSpeedTierMaxLimit;
+            this.EncodingSpeedTierMaxLimit = encodingSpeedTierMaxLimit;
+            this.EntropyMultiplier = entropyMultiplier;
+        }
+
+        /// <summary>
+        /// Gets the candidate transform.
+        /// </summary>
+        public JxlAcStrategyType Type { get; }
+
+        /// <summary>
+        /// Gets the priority used to prevent competing merges from overlapping.
+        /// </summary>
+        public byte Priority { get; }
+
+        /// <summary>
+        /// Gets the largest decoding speed tier that considers this candidate.
+        /// </summary>
+        public byte DecodingSpeedTierMaxLimit { get; }
+
+        /// <summary>
+        /// Gets the encoding speed limit stored in the native candidate table.
+        /// </summary>
+        public byte EncodingSpeedTierMaxLimit { get; }
+
+        /// <summary>
+        /// Gets the multiplier applied to the estimated entropy.
+        /// </summary>
+        public float EntropyMultiplier { get; }
+    }
 }

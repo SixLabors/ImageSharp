@@ -91,14 +91,21 @@ internal struct JxlAcStrategy
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsRawStrategyValid(int rawStrategy) => rawStrategy is < NumberOfValidStrategies and >= 0;
 
+    /// <summary>
+    /// Visits the canonical coefficient rectangle in alternating diagonal order, with its low-frequency block rectangle first.
+    /// </summary>
+    /// <param name="strategy">The validated spatial transform dimensions.</param>
+    /// <param name="isLookup">Whether output maps coefficient offsets to order positions, rather than order positions to coefficient offsets.</param>
+    /// <param name="output">Storage for the transform's complete coefficient area.</param>
     private static void CoefficientOrderAndLookup(JxlAcStrategy strategy, bool isLookup, Span<int> output)
     {
-        // TODO: CoefficientLayout
         int cx = strategy.CoveredBlocksX;
         int cy = strategy.CoveredBlocksY;
 
-        JxlForwardCoefficientOrder.CoefficientLayout(ref cx, ref cy);
+        // Coefficients use the short dimension as rows and the long dimension as columns, independently of the spatial block orientation.
+        JxlForwardCoefficientOrder.CoefficientLayout(ref cy, ref cx);
 
+        // cx and cy count eight-pixel blocks. Visit a square at the longer extent, retaining only diagonals that fit the aspect ratio.
         int xs = cx / cy;
         int xsm = xs - 1;
         int xss = JxlMath.CeilLog2Nonzero(xs);
@@ -111,9 +118,9 @@ internal struct JxlAcStrategy
                 int x = j;
                 int y = i - j;
 
-                if ((i & 1) == 0)
+                // Odd diagonals advance toward increasing row indices. The same direction rule applies in the second triangular half.
+                if ((i & 1) != 0)
                 {
-                    // swap
                     (x, y) = (y, x);
                 }
 

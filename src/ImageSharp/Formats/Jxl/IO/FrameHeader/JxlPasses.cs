@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Fields;
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 
 /// <summary>
-/// Used for decoding to lower resolutions.
+/// Stores progressive-pass coefficient shifts and resolution transitions.
 /// </summary>
 internal sealed class JxlPasses : IJxlFields
 {
@@ -19,6 +19,11 @@ internal sealed class JxlPasses : IJxlFields
     private uint numDownsample;
 
     /// <summary>
+    /// Initializes one full-resolution pass with no explicit downsampling transitions.
+    /// </summary>
+    public JxlPasses() => JxlBundle.Init(this);
+
+    /// <summary>
     /// Gets or sets the number of passes.
     /// </summary>
     public uint NumberOfPasses
@@ -28,7 +33,7 @@ internal sealed class JxlPasses : IJxlFields
     }
 
     /// <summary>
-    /// Gets or sets the number of downsamples.
+    /// Gets or sets the number of declared resolution transitions.
     /// </summary>
     public uint NumberOfDownsamples
     {
@@ -37,20 +42,26 @@ internal sealed class JxlPasses : IJxlFields
     }
 
     /// <summary>
-    /// Gets the downsample values.
+    /// Gets the spatial reduction factor reached at each declared transition.
     /// </summary>
     public uint[] Downsample { get; } = new uint[MaxPasses];
 
     /// <summary>
-    /// Gets the last pass values.
+    /// Gets the zero-based final pass index for each resolution transition.
     /// </summary>
     public uint[] LastPass { get; } = new uint[MaxPasses];
 
     /// <summary>
-    /// Gets the shift values.
+    /// Gets the coefficient bit shift for each pass. The final pass has an implicit zero shift.
     /// </summary>
     public uint[] Shift { get; } = new uint[MaxPasses];
 
+    /// <summary>
+    /// Gets the spatial refinement shifts covered by one valid pass index.
+    /// </summary>
+    /// <param name="pass">The zero-based pass index, below NumberOfPasses.</param>
+    /// <param name="minShift">The smallest shift reconstructed by this pass.</param>
+    /// <param name="maxShift">The largest shift reconstructed by this pass.</param>
     public void GetDownsamplingBracket(int pass, out int minShift, out int maxShift)
     {
         maxShift = 2;
@@ -100,18 +111,24 @@ internal sealed class JxlPasses : IJxlFields
         }
     }
 
-    public uint GetDownsamplingTargetForCompletedPasses(int num)
+    /// <summary>
+    /// Gets the downsampling factor after the specified number of completed passes.
+    /// </summary>
+    /// <param name="completedPassCount">The number of passes already decoded.</param>
+    /// <returns>The available factor: eight before refinement, then the declared factors, and one after all passes.</returns>
+    public uint GetDownsamplingTargetForCompletedPasses(int completedPassCount)
     {
-        if (num >= this.numPasses)
+        if (completedPassCount >= this.numPasses)
         {
             return 1;
         }
 
-        uint result = 0;
+        // Before any declared transition, JPEG XL exposes the one-eighth-resolution DC image.
+        uint result = 8;
 
         for (int i = 0; i < this.numDownsample; i++)
         {
-            if (num > this.LastPass[i])
+            if (completedPassCount > this.LastPass[i])
             {
                 result = Math.Min(result, this.Downsample[i]);
             }
@@ -120,26 +137,24 @@ internal sealed class JxlPasses : IJxlFields
         return result;
     }
 
+    /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
-        if (visitor.U32(
+        // This distribution bounds the count to 1..11, which also bounds the fixed pass arrays.
+        if (!visitor.U32(
             JxlFieldExpressions.Value(1),
             JxlFieldExpressions.Value(2),
-            JxlFieldExpressions.Value(2),
-            JxlFieldExpressions.BitsOffset(1, 3),
-            0,
+            JxlFieldExpressions.Value(3),
+            JxlFieldExpressions.BitsOffset(3, 4),
+            1,
             ref this.numPasses))
-        {
-            return false;
-        }
-
-        if (this.numPasses > MaxPasses)
         {
             return false;
         }
 
         if (visitor.Conditional(this.numPasses != 1))
         {
+            // There are at most four transitions because their factors must strictly decrease through 8,4,2,1.
             if (!visitor.U32(
                 JxlFieldExpressions.Value(0),
                 JxlFieldExpressions.Value(1),
@@ -151,14 +166,9 @@ internal sealed class JxlPasses : IJxlFields
                 return false;
             }
 
-            if (this.numDownsample > 4)
-            {
-                return false;
-            }
-
             if (this.numDownsample > this.numPasses)
             {
-                throw new InvalidOperationException("Number of downsaples is greater than number of passes");
+                return false;
             }
 
             for (int i = 0; i < this.numPasses - 1; i++)
@@ -186,7 +196,7 @@ internal sealed class JxlPasses : IJxlFields
 
                 if (i > 0 && this.Downsample[i] >= this.Downsample[i - 1])
                 {
-                    throw new InvalidOperationException("Downsample sequence should decrease");
+                    return false;
                 }
             }
 
@@ -196,7 +206,7 @@ internal sealed class JxlPasses : IJxlFields
                     JxlFieldExpressions.Value(0),
                     JxlFieldExpressions.Value(1),
                     JxlFieldExpressions.Value(2),
-                    JxlFieldExpressions.Value(3),
+                    JxlFieldExpressions.Bits(3),
                     0,
                     ref this.LastPass[i]))
                 {
@@ -205,12 +215,12 @@ internal sealed class JxlPasses : IJxlFields
 
                 if (i > 0 && this.LastPass[i] <= this.LastPass[i - 1])
                 {
-                    throw new InvalidOperationException("Last pass sequence should increase");
+                    return false;
                 }
 
                 if (this.LastPass[i] >= this.numPasses)
                 {
-                    throw new InvalidOperationException("Last pass is greater than number of passes");
+                    return false;
                 }
             }
         }

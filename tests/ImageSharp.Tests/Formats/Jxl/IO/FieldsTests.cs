@@ -19,6 +19,76 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 public class FieldsTests
 {
     /// <summary>
+    /// Checks progressive pass counts, shifts and transition indices against fixed native field encodings.
+    /// </summary>
+    /// <param name="wire">The fixed least-significant-bit-first pass header.</param>
+    /// <param name="count">The number of progressive passes.</param>
+    /// <param name="transitions">The number of explicit resolution transitions.</param>
+    /// <param name="bitCount">The header length before byte padding.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x00 }, 1U, 0U, 2)]
+    [InlineData(new byte[] { 0x02 }, 3U, 0U, 8)]
+    [InlineData(new byte[] { 0x03, 0x00 }, 4U, 0U, 13)]
+    [InlineData(new byte[] { 0x1F, 0x00, 0x00, 0x00 }, 11U, 0U, 27)]
+    [InlineData(new byte[] { 0x55, 0x00 }, 2U, 1U, 10)]
+    [InlineData(new byte[] { 0x33, 0x00, 0xA0, 0x0B }, 8U, 1U, 28)]
+    public void PassesHeader_ReadAndWriteMatchesFixedWire(byte[] wire, uint count, uint transitions, int bitCount)
+    {
+        using MemoryStream input = new(wire, false);
+        JxlBitReader reader = new(input);
+        JxlPasses passes = new();
+
+        Assert.True(JxlBundle.Read(reader, passes));
+        Assert.Equal(count, passes.NumberOfPasses);
+        Assert.Equal(transitions, passes.NumberOfDownsamples);
+        Assert.Equal(0U, passes.Shift[(int)count - 1]);
+        Assert.Equal(bitCount, reader.TotalBitsConsumed);
+
+        using MemoryStream output = new();
+        JxlBitWriter writer = new(output);
+
+        Assert.True(JxlBundle.Write(passes, writer, JxlLayerType.Header, null));
+        Assert.Equal(bitCount, writer.BitsWritten);
+
+        writer.ZeroPadToByte();
+
+        Assert.Equal(wire, output.ToArray());
+    }
+
+    /// <summary>
+    /// Checks that a declared transition takes effect only after its last pass completes.
+    /// </summary>
+    [Fact]
+    public void CompletedPasses_SelectDeclaredResolutionTargets()
+    {
+        // Eight passes declare factor two after pass index five. Before that, the implicit DC target is factor eight.
+        using MemoryStream input = new([0x33, 0x00, 0xA0, 0x0B]);
+        JxlBitReader reader = new(input);
+        JxlPasses passes = new();
+
+        Assert.True(JxlBundle.Read(reader, passes));
+        Assert.Equal(5U, passes.LastPass[0]);
+        Assert.Equal(2U, passes.Downsample[0]);
+        Assert.Equal(8U, passes.GetDownsamplingTargetForCompletedPasses(0));
+        Assert.Equal(8U, passes.GetDownsamplingTargetForCompletedPasses(5));
+        Assert.Equal(2U, passes.GetDownsamplingTargetForCompletedPasses(6));
+        Assert.Equal(1U, passes.GetDownsamplingTargetForCompletedPasses(8));
+    }
+
+    /// <summary>
+    /// Checks the cross-field limit on progressive resolution transitions.
+    /// </summary>
+    [Fact]
+    public void ReadPassesHeader_RejectsMoreTransitionsThanPasses()
+    {
+        // The first two fields declare two passes and three transitions. No shift or transition payload follows.
+        using MemoryStream input = new([0x0D]);
+        JxlBitReader reader = new(input);
+
+        Assert.False(JxlBundle.Read(reader, new JxlPasses()));
+    }
+
+    /// <summary>
     /// Checks image dimensions against the size-header fields in libjxl headers.cc, including every built-in ratio.
     /// </summary>
     /// <param name="wire">The fixed, least-significant-bit-first header bytes.</param>

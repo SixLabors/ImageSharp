@@ -1,36 +1,78 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
-internal sealed class JxlAnsHybridUIntConfiguration : IJxlFields
+/// <summary>
+/// Specifies how an unsigned integer is divided between an entropy token and its remaining bit payload.
+/// </summary>
+/// <remarks>
+/// The entropy reader prepares every configuration before processing tokens. Configuration values remain fixed for that entropy stream.
+/// This value stores the four native UInt32 fields together, without a separate object for each histogram or token calculation.
+/// </remarks>
+internal readonly struct JxlAnsHybridUIntConfiguration
 {
-    public JxlAnsHybridUIntConfiguration(uint splitExponent = 4, uint msbInToken = 2, uint lsbInToken = 0)
+    /// <summary>
+    /// Initializes the default split exponent of four, with two high token bits and no low token bits.
+    /// </summary>
+    public JxlAnsHybridUIntConfiguration()
+        : this(4, 2, 0)
     {
-        this.SplitExponent = splitExponent;
-        this.SplitToken = 1u << (int)splitExponent;
-        this.MsbInToken = msbInToken;
-        this.LsbInToken = lsbInToken;
-
-        if (splitExponent < msbInToken + lsbInToken)
-        {
-            throw new InvalidOperationException("Split exponent should be < msbInToken + lsbInToken");
-        }
     }
 
-    public uint SplitExponent { get; set; }
+    /// <summary>
+    /// Initializes the token split and its derived direct-token threshold.
+    /// </summary>
+    /// <param name="splitExponent">The base-two exponent of the direct-token threshold.</param>
+    /// <param name="msbInToken">The number of high value bits stored in the token.</param>
+    /// <param name="lsbInToken">The number of low value bits stored in the token.</param>
+    public JxlAnsHybridUIntConfiguration(uint splitExponent, uint msbInToken, uint lsbInToken)
+    {
+        if (splitExponent < msbInToken + lsbInToken)
+        {
+            throw new InvalidOperationException("Split exponent must be at least the sum of the high and low token bit counts.");
+        }
 
-    public uint SplitToken { get; set; }
+        this.SplitExponent = splitExponent;
+        this.SplitToken = 1U << (int)splitExponent;
+        this.MsbInToken = msbInToken;
+        this.LsbInToken = lsbInToken;
+    }
 
-    public uint MsbInToken { get; set; } // Most significant bit
+    /// <summary>
+    /// Gets the base-two exponent of the direct-token threshold.
+    /// </summary>
+    public uint SplitExponent { get; }
 
-    public uint LsbInToken { get; set; } // Least significant bit
+    /// <summary>
+    /// Gets the direct-token threshold. Smaller input values are represented directly by their token.
+    /// </summary>
+    public uint SplitToken { get; }
 
+    /// <summary>
+    /// Gets the number of high value bits stored in a nondirect token.
+    /// </summary>
+    public uint MsbInToken { get; }
+
+    /// <summary>
+    /// Gets the number of low value bits stored in a nondirect token.
+    /// </summary>
+    public uint LsbInToken { get; }
+
+    /// <summary>
+    /// Gets the mask for the low value bits stored in the token.
+    /// </summary>
     public uint LsbMask => (1u << (int)this.LsbInToken) - 1;
 
+    /// <summary>
+    /// Divides an unsigned value into its entropy token and remaining bit payload.
+    /// </summary>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="token">The symbol to encode through the selected entropy table.</param>
+    /// <param name="bitCount">The number of payload bits to write after the token.</param>
+    /// <param name="bits">The payload bits in least-significant-bit-first order.</param>
     public void Encode(uint value, out uint token, out uint bitCount, out uint bits)
     {
         if (value < this.SplitToken)
@@ -46,8 +88,8 @@ internal sealed class JxlAnsHybridUIntConfiguration : IJxlFields
 
             unchecked
             {
-                // The following expression is quite complex.
-                // See https://github.com/libjxl/libjxl/blob/main/lib/jxl/dec_ans.h#L83C16-L86C47.
+                // Values below SplitToken are direct. Larger values remove their leading one, then place the exponent
+                // and selected high/low value bits in the token. Only the intervening bits remain in the payload.
                 token = this.SplitToken +
                 (uint)(((n - this.SplitExponent) << (int)(this.MsbInToken + this.LsbInToken)) +
                         ((m >> (int)(n - this.MsbInToken)) << (int)this.LsbInToken) +
@@ -58,6 +100,4 @@ internal sealed class JxlAnsHybridUIntConfiguration : IJxlFields
             }
         }
     }
-
-    public bool Visit(JxlVisitor visitor) => throw new NotImplementedException();
 }

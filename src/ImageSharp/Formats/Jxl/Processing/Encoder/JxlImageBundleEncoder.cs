@@ -121,32 +121,52 @@ internal class JxlImageBundleEncoder
         return false;
     }
 
-    // Copies ib:rect, converts, and copies into out.
+    /// <summary>
+    /// Copies a region to planar storage using the requested color encoding.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns conversion storage.</param>
+    /// <param name="metadata">The image metadata, including target intensity.</param>
+    /// <param name="imageBundle">The source image planes and color encoding.</param>
+    /// <param name="rectangle">The source region in pixels.</param>
+    /// <param name="desiredEncoding">The required output color encoding.</param>
+    /// <param name="cms">The color transform provider.</param>
+    /// <param name="output">The destination color planes.</param>
+    /// <returns>Whether the conversion succeeded.</returns>
     public static bool CopyToT(
         Configuration configuration,
         JxlImageMetadata metadata,
-        JxlImageBundle ib,
+        JxlImageBundle imageBundle,
         Rectangle rectangle,
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms,
         JxlImage3<float> output)
         => TryApplyColorTransform(
             configuration,
-            ib.CurrentColorEncoding,
+            imageBundle.CurrentColorEncoding,
             metadata.IntensityTarget,
-            ib.Color!,
-            ib.Black!,
+            imageBundle.Color!,
+            imageBundle.Black!,
             rectangle,
             desiredEncoding,
             cms,
             output);
 
+    /// <summary>
+    /// Selects the input bundle or converts it to the requested color encoding.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns conversion storage.</param>
+    /// <param name="input">The source bundle.</param>
+    /// <param name="desiredEncoding">The required output color encoding.</param>
+    /// <param name="cms">The color transform provider.</param>
+    /// <param name="convertedImageStorage">A distinct caller-owned bundle that receives converted samples when needed.</param>
+    /// <param name="output">The borrowed input or converted bundle. Its existing owner keeps it alive.</param>
+    /// <returns>Whether the required output encoding is available.</returns>
     public static bool TransformIfNeeded(
         Configuration configuration,
         JxlImageBundle input,
         JxlColorEncoding desiredEncoding,
         JxlCmsInterface cms,
-        JxlImageBundle store,
+        JxlImageBundle convertedImageStorage,
         ref JxlImageBundle output)
     {
         if (input.CurrentColorEncoding.IsSameColorEncoding(desiredEncoding) && !input.ContainsBlack)
@@ -155,47 +175,60 @@ internal class JxlImageBundleEncoder
             return true;
         }
 
-        using JxlImage3<float> color = new(configuration, input.Color!.XSize, input.Color.YSize);
+        JxlImage3<float>? color = new(configuration, input.Color!.XSize, input.Color.YSize);
+        List<JxlPlane<float>>? extraChannels = null;
 
-        if (!JxlImageOperations.CopyImage(input.Color!, color))
+        try
         {
-            return false;
-        }
+            JxlImageOperations.ForceCopyImage(input.Color!, color);
 
-        if (!store.SetFromImage(color, input.CurrentColorEncoding))
-        {
-            return false;
-        }
-
-        if (input.ContainsExtraChannels())
-        {
-            List<JxlPlane<float>> extraChannels = [];
-
-            foreach (JxlPlane<float> extraChannel in input.EnumerateExtraChannels())
+            // The destination owns its previous planes. Clear its old channels before replacing a differently sized frame.
+            // The input remains borrowed throughout this operation, including when the output selects it without conversion.
+            convertedImageStorage.ClearExtraChannels();
+            if (!convertedImageStorage.SetFromImage(color, input.CurrentColorEncoding))
             {
-                JxlPlane<float> ec = new(configuration, extraChannel.XSize, extraChannel.YSize);
+                return false;
+            }
 
-                if (!JxlImageOperations.CopyImage(extraChannel, ec))
+            // SetFromImage took ownership. Do not dispose its image through the local cleanup path.
+            color = null;
+            if (input.ContainsExtraChannels())
+            {
+                // Reserve every list slot before allocating its plane. Ownership cannot be stranded by a later list-growth failure.
+                extraChannels = new(input.ExtraChannelCount);
+                foreach (JxlPlane<float> extraChannel in input.EnumerateExtraChannels())
+                {
+                    JxlPlane<float> copy = new(configuration, extraChannel.XSize, extraChannel.YSize);
+                    extraChannels.Add(copy);
+                    JxlImageOperations.ForceCopyImage(extraChannel, copy);
+                }
+
+                if (!convertedImageStorage.TrySetExtraChannels(extraChannels))
                 {
                     return false;
                 }
 
-                extraChannels.Add(ec);
-                extraChannel.Dispose();
+                extraChannels = null;
             }
 
-            if (!store.TrySetExtraChannels(extraChannels))
+            if (!convertedImageStorage.TransformTo(configuration, desiredEncoding, cms))
             {
                 return false;
             }
-        }
 
-        if (!store.TransformTo(configuration, desiredEncoding, cms))
+            output = convertedImageStorage;
+            return true;
+        }
+        finally
         {
-            return false;
+            color?.Dispose();
+            if (extraChannels is not null)
+            {
+                foreach (JxlPlane<float> copy in extraChannels)
+                {
+                    copy.Dispose();
+                }
+            }
         }
-
-        output = store;
-        return true;
     }
 }

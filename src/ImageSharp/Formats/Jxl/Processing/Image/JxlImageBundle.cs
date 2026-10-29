@@ -13,7 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 /// <summary>
 /// Stores frame sample planes, the original image metadata, and the current sample encoding.
 /// </summary>
-internal sealed class JxlImageBundle
+/// <remarks>
+/// The bundle owns assigned color and extra-channel planes. Metadata and row views are borrowed.
+/// Successful setters transfer plane ownership; failed setters leave ownership with the caller.
+/// </remarks>
+internal sealed class JxlImageBundle : IDisposable
 {
     /// <summary>
     /// Image data for additional channels.
@@ -138,9 +142,14 @@ internal sealed class JxlImageBundle
     public JxlImage3<float>? Color { get; private set; }
 
     /// <summary>
+    /// Gets the number of owned extra-channel planes.
+    /// </summary>
+    public int ExtraChannelCount => this.extraChannels.Count;
+
+    /// <summary>
     /// Gets a value indicating whether the color data is present and usable.
     /// </summary>
-    public bool HasColor => this.Color?.XSize != 0;
+    public bool HasColor => this.Color is not null && this.Color.XSize != 0;
 
     /// <summary>
     /// Gets the width.
@@ -154,12 +163,12 @@ internal sealed class JxlImageBundle
                 return this.JpegData!.Width;
             }
 
-            if (this.Color?.XSize != 0)
+            if (this.HasColor)
             {
                 return this.Color!.XSize;
             }
 
-            return this.extraChannels?.Count > 0 ? 0 : this.extraChannels![0].XSize;
+            return this.extraChannels.Count == 0 ? 0 : this.extraChannels[0].XSize;
         }
     }
 
@@ -175,12 +184,12 @@ internal sealed class JxlImageBundle
                 return this.JpegData!.Height;
             }
 
-            if (this.Color?.YSize != 0)
+            if (this.HasColor)
             {
                 return this.Color!.YSize;
             }
 
-            return this.extraChannels?.Count > 0 ? 0 : this.extraChannels![0].YSize;
+            return this.extraChannels.Count == 0 ? 0 : this.extraChannels[0].YSize;
         }
     }
 
@@ -275,11 +284,10 @@ internal sealed class JxlImageBundle
     public void OverrideProfile(JxlColorEncoding encoding) => this.CurrentColorEncoding = encoding;
 
     /// <summary>
-    /// If the color data is present, assigns it to <paramref name="color"/> and returns true,
-    /// otherwise returns false and assigns null.
+    /// Borrows the color image without transferring its ownership.
     /// </summary>
-    /// <param name="color">Output color data.</param>
-    /// <returns>True if color isn't null.</returns>
+    /// <param name="color">The borrowed color image, or null when none is present.</param>
+    /// <returns>Whether the bundle contains a color image.</returns>
     public bool TryGetColor(out JxlImage3<float>? color)
     {
         color = null;
@@ -292,14 +300,26 @@ internal sealed class JxlImageBundle
     }
 
     /// <summary>
-    /// Removes the color data, replacing it with a new Image3F with 0 as width and height.
+    /// Releases the owned color planes and removes the color image.
     /// </summary>
-    public void RemoveColor() => this.Color = new JxlImage3<float>();
+    public void RemoveColor()
+    {
+        this.Color?.Dispose();
+        this.Color = null;
+    }
 
     /// <summary>
-    /// Removes all extra channels, if any.
+    /// Releases and removes every owned extra-channel plane.
     /// </summary>
-    public void ClearExtraChannels() => this.extraChannels.Clear();
+    public void ClearExtraChannels()
+    {
+        foreach (JxlPlane<float> plane in this.extraChannels)
+        {
+            plane.Dispose();
+        }
+
+        this.extraChannels.Clear();
+    }
 
     /// <summary>
     /// Returns true if there is at least 1 extra channel.
@@ -308,47 +328,65 @@ internal sealed class JxlImageBundle
     public bool ContainsExtraChannels() => this.extraChannels.Count > 0;
 
     /// <summary>
-    /// Returns an enumerable for extra channels.
+    /// Borrows the owned extra-channel planes in metadata order.
     /// </summary>
-    /// <returns>Extra channels enumerable.</returns>
+    /// <returns>The borrowed planes. The caller must not dispose them.</returns>
     public IEnumerable<JxlPlane<float>> EnumerateExtraChannels() => this.extraChannels;
 
     /// <summary>
-    /// Adds a specified extra channel.
+    /// Takes ownership of an extra-channel plane and appends it in metadata order.
     /// </summary>
-    /// <param name="channel">The extra channel to be added to the image bundle.</param>
-    public void AddExtraChannel(JxlPlane<float> channel) => this.extraChannels.Add(channel);
+    /// <param name="channel">The caller-owned plane, which the caller must not dispose after this call.</param>
+    public void AddExtraChannel(JxlPlane<float> channel)
+    {
+        try
+        {
+            this.extraChannels.Add(channel);
+        }
+        catch
+        {
+            // This unconditional transfer also covers list-allocation failure. The caller no longer owns this plane after handing it over.
+            channel.Dispose();
+            throw;
+        }
+    }
 
+    /// <summary>
+    /// Borrows one owned extra-channel plane.
+    /// </summary>
+    /// <param name="i">The metadata-ordered channel index.</param>
+    /// <returns>The borrowed plane.</returns>
     public JxlPlane<float> GetExtraChannel(int i) => this.extraChannels[i];
 
     /// <summary>
-    /// Sets the extra channels.
+    /// Replaces the extra channels and takes ownership when their dimensions are valid.
     /// </summary>
-    /// <param name="extraChannels">The extra channels.</param>
-    /// <returns>
-    /// True if each plane had width and height greater than 0 and sizes are correct
-    /// after changing the extra channels; false otherwise.
-    /// </returns>
+    /// <param name="extraChannels">The caller-owned planes in metadata order. On success, the caller must not modify the list or dispose its planes.</param>
+    /// <returns>Whether ownership transferred. On failure, this bundle and the supplied planes remain unchanged.</returns>
     public bool TrySetExtraChannels(List<JxlPlane<float>> extraChannels)
     {
+        int width = this.HasColor || this.IsJpeg ? this.XSize : extraChannels.Count == 0 ? 0 : extraChannels[0].XSize;
+        int height = this.HasColor || this.IsJpeg ? this.YSize : extraChannels.Count == 0 ? 0 : extraChannels[0].YSize;
+
         foreach (JxlPlane<float> plane in extraChannels)
         {
-            if (plane.XSize == 0 || plane.YSize == 0)
+            if (plane.XSize == 0 || plane.YSize == 0 || plane.XSize != width || plane.YSize != height)
             {
                 return false;
             }
         }
 
+        // Validate before releasing the previous channels. Ownership transfers only after every supplied plane has passed.
+        this.ClearExtraChannels();
         this.extraChannels = extraChannels;
-
-        return this.VerifySizes();
+        return true;
     }
 
     /// <summary>
     /// Attempts to set the alpha channel.
     /// </summary>
-    /// <param name="alpha">The alpha channel to set.</param>
-    /// <returns>True if it was set successfully; false otherwise.</returns>
+    /// <param name="alpha">The caller-owned alpha plane.</param>
+    /// <returns>Whether ownership transferred. On success, the caller must not dispose the plane.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the corresponding extra channel has incorrect info.</exception>
     public bool TrySetAlpha(JxlPlane<float> alpha)
     {
@@ -364,6 +402,11 @@ internal sealed class JxlImageBundle
             return false;
         }
 
+        if ((this.HasColor || this.ContainsExtraChannels() || this.IsJpeg) && (alpha.XSize != this.XSize || alpha.YSize != this.YSize))
+        {
+            return false;
+        }
+
         int eciIndex = this.Metadata.ExtraChannels.IndexOf(eci);
 
         if (eciIndex != this.extraChannels.Count)
@@ -373,7 +416,7 @@ internal sealed class JxlImageBundle
 
         this.extraChannels.Add(alpha);
 
-        return this.VerifySizes();
+        return true;
     }
 
     /// <summary>
@@ -419,11 +462,11 @@ internal sealed class JxlImageBundle
     }
 
     /// <summary>
-    /// Updates the bundle from the specified image.
+    /// Replaces the color image and takes ownership when its encoding and dimensions are valid.
     /// </summary>
-    /// <param name="color">Color data.</param>
+    /// <param name="color">The caller-owned color image. On success, the caller must not dispose it or assign it to another bundle.</param>
     /// <param name="current">Current color encoding.</param>
-    /// <returns>True if setting the image succeeded; otherwise false.</returns>
+    /// <returns>Whether ownership transferred. On failure, this bundle and the supplied image remain unchanged.</returns>
     public bool SetFromImage(JxlImage3<float> color, JxlColorEncoding current)
     {
         if (color.XSize == 0 || color.YSize == 0)
@@ -437,10 +480,20 @@ internal sealed class JxlImageBundle
             return false;
         }
 
+        foreach (JxlPlane<float> plane in this.extraChannels)
+        {
+            if (plane.XSize != color.XSize || plane.YSize != color.YSize)
+            {
+                return false;
+            }
+        }
+
+        // Every production caller supplies newly owned storage. Existing row views remain borrows and cannot become a second image owner.
+        this.RemoveColor();
         this.Color = color;
         this.CurrentColorEncoding = current;
 
-        return this.VerifySizes();
+        return true;
     }
 
     /// <summary>
@@ -492,29 +545,37 @@ internal sealed class JxlImageBundle
     public JxlImageBundle Copy(Configuration configuration)
     {
         JxlImageBundle copy = new(this.Metadata);
-
-        if (this.Color is not null)
+        try
         {
-            copy.Color = new JxlImage3<float>(configuration, this.Color.XSize, this.Color.YSize);
-        }
-
-        copy.CurrentColorEncoding = this.CurrentColorEncoding;
-        copy.JpegData = this.JpegData;
-        copy.ColorTransform = this.ColorTransform;
-        copy.ChromaSubsampling = this.ChromaSubsampling;
-
-        foreach (JxlPlane<float> plane in this.extraChannels)
-        {
-            JxlPlane<float> ec = new(configuration, plane.XSize, plane.YSize);
-            if (!JxlImageOperations.CopyImage(plane, ec))
+            // Reserve list slots before allocating planes, so adding an owned plane cannot fail while growing the list.
+            copy.extraChannels.EnsureCapacity(this.extraChannels.Count);
+            if (this.Color is not null)
             {
-                throw new InvalidOperationException("Cannot copy extra channel");
+                copy.Color = new JxlImage3<float>(configuration, this.Color.XSize, this.Color.YSize);
+                JxlImageOperations.ForceCopyImage(this.Color, copy.Color);
             }
 
-            copy.extraChannels.Add(ec);
-        }
+            // Metadata and JPEG coefficient data remain shared managed objects. Only the sample planes transfer or copy ownership.
+            copy.CurrentColorEncoding = this.CurrentColorEncoding;
+            copy.JpegData = this.JpegData;
+            copy.ColorTransform = this.ColorTransform;
+            copy.ChromaSubsampling = this.ChromaSubsampling;
 
-        return copy;
+            foreach (JxlPlane<float> plane in this.extraChannels)
+            {
+                JxlPlane<float> ec = new(configuration, plane.XSize, plane.YSize);
+                copy.extraChannels.Add(ec);
+                JxlImageOperations.ForceCopyImage(plane, ec);
+            }
+
+            return copy;
+        }
+        catch
+        {
+            // The partial copy already owns every assigned plane. Disposing it leaves all source planes untouched.
+            copy.Dispose();
+            throw;
+        }
     }
 
     public bool CopyTo(
@@ -544,5 +605,14 @@ internal sealed class JxlImageBundle
 
         this.CurrentColorEncoding = desiredEncoding;
         return true;
+    }
+
+    /// <summary>
+    /// Releases owned sample planes without disposing shared metadata or borrowed row views.
+    /// </summary>
+    public void Dispose()
+    {
+        this.RemoveColor();
+        this.ClearExtraChannels();
     }
 }

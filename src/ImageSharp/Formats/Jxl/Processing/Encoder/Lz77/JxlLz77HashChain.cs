@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Ans;
 using SixLabors.ImageSharp.Memory;
 
@@ -97,12 +97,12 @@ internal sealed class JxlLz77HashChain
         {
             // Count down, so if due to small distance multiplier multiple distances
             // map to the same code, the smallest code will be used in the end.
-            for (int i = JxlAnsReader.NumSpecialDistances - 1; i >= 0; --i)
+            for (int i = Lz77DistanceCodes.Count - 1; i >= 0; --i)
             {
-                this.specialDistTable[JxlAnsReader.SpecialDistance(i, distanceMultiplier)] = i;
+                this.specialDistTable[Lz77DistanceCodes.GetDistance(i, distanceMultiplier)] = i;
             }
 
-            this.numSpecialDistances = JxlAnsReader.NumSpecialDistances;
+            this.numSpecialDistances = Lz77DistanceCodes.Count;
         }
     }
 
@@ -257,11 +257,9 @@ internal sealed class JxlLz77HashChain
                     j += r;
                 }
 
-                while (i < end && data[i] == data[j])
-                {
-                    i++;
-                    j++;
-                }
+                // Continue after the zero-run shortcut. Both sequences stop at the current candidate's limit;
+                // the earlier history position has at least the same available values.
+                i += MemoryExtensions.CommonPrefixLength<uint>(data.Slice(i, end - i), data.Slice(j, end - i));
 
                 len = (uint)(i - pos);
 

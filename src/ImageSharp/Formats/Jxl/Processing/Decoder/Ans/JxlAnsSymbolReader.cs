@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Jxl.IO;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
@@ -30,7 +31,7 @@ internal sealed class JxlAnsSymbolReader : IDisposable
     private readonly int numSpecialDistances;
     private readonly JxlAnsHybridUIntConfiguration lz77LengthUInt = new();
     private readonly int[]? lz77Window;
-    private readonly int[] specialDistances = new int[JxlAnsReader.NumSpecialDistances];
+    private readonly int[] specialDistances = new int[Lz77DistanceCodes.Count];
 
     private JxlAnsSymbolReader(JxlAnsCode code, JxlBitReader br, int distanceMultiplier, int[]? lz77WindowStorage)
     {
@@ -61,11 +62,11 @@ internal sealed class JxlAnsSymbolReader : IDisposable
         this.lz77LengthUInt = code.Lz77.LengthUintConfig;
         this.lz77Threshold = (int)code.Lz77.MinimumSymbol;
         this.lz77MinLength = (int)code.Lz77.MinimumLength;
-        this.numSpecialDistances = distanceMultiplier == 0 ? 0 : JxlAnsReader.NumSpecialDistances;
+        this.numSpecialDistances = distanceMultiplier == 0 ? 0 : Lz77DistanceCodes.Count;
 
         for (int i = 0; i < this.numSpecialDistances; i++)
         {
-            this.specialDistances[i] = JxlAnsReader.SpecialDistance(i, distanceMultiplier);
+            this.specialDistances[i] = Lz77DistanceCodes.GetDistance(i, distanceMultiplier);
         }
     }
 

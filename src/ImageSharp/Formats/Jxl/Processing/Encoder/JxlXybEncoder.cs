@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -10,7 +9,6 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
@@ -676,86 +674,5 @@ internal static class JxlXybEncoder
         // Read the actual transformed owner directly. When linear output is retained, no full-image copy back to image is needed.
         RgbToXyb(coefficients, linear ?? image, image, null, default(TensorPrimitives_.IdentityOperator));
         return true;
-    }
-
-    public static void RgbToYcbcr(
-        Configuration configuration,
-        JxlPlane<float> rPlane,
-        JxlPlane<float> gPlane,
-        JxlPlane<float> bPlane,
-        JxlPlane<float> yPlane,
-        JxlPlane<float> cbPlane,
-        JxlPlane<float> crPlane)
-    {
-        int xSize = rPlane.XSize;
-        int ySize = rPlane.YSize;
-
-        if (xSize == 0 || ySize == 0)
-        {
-            return;
-        }
-
-        Vector<float> k128 = new(128.0f / 255);
-        Vector<float> kR = new(0.299f);
-        Vector<float> kG = new(0.587f);
-        Vector<float> kB = new(0.114f);
-        Vector<float> kAmpR = new(0.701f);
-        Vector<float> kAmpB = new(0.886f);
-
-        Vector<float> kDiffR = kAmpR + kR;
-        Vector<float> kDiffB = kAmpB + kB;
-
-        Vector<float> kNormR = Vector<float>.One / (kAmpR + kG + kB);
-        Vector<float> kNormB = Vector<float>.One / (kR + kG + kAmpB);
-
-        int step = Vector<float>.Count;
-
-        int groupArea = JxlFrameDimensions.GroupDimensions * JxlFrameDimensions.GroupDimensions;
-        int linesPerGroup = JxlMath.DivCeil(groupArea, xSize);
-        int numStripes = JxlMath.DivCeil(ySize, linesPerGroup);
-
-        void Transform(int index)
-        {
-            int y0 = index * linesPerGroup;
-            int y1 = Math.Min(y0 + linesPerGroup, ySize);
-
-            for (int y = y0; y < y1; y++)
-            {
-                ReadOnlySpan<float> rRow = rPlane.GetRow(y);
-                ReadOnlySpan<float> gRow = gPlane.GetRow(y);
-                ReadOnlySpan<float> bRow = bPlane.GetRow(y);
-
-                Span<float> yRow = yPlane.GetRow(y);
-                Span<float> cbRow = cbPlane.GetRow(y);
-                Span<float> crRow = crPlane.GetRow(y);
-
-                for (int x = 0; x < xSize; x += step)
-                {
-                    Vector<float> r = new(rRow[x..]);
-                    Vector<float> g = new(gRow[x..]);
-                    Vector<float> b = new(bRow[x..]);
-
-                    Vector<float> rBase = r * kR;
-                    Vector<float> rDiff = r * kDiffR;
-                    Vector<float> gBase = g * kG;
-                    Vector<float> bBase = b * kB;
-                    Vector<float> bDiff = b * kDiffB;
-
-                    Vector<float> yBase = rBase + gBase + bBase;
-                    Vector<float> yVec = yBase - k128;
-                    Vector<float> cbVec = (bDiff - yBase) * kNormB;
-                    Vector<float> crVec = (rDiff - yBase) * kNormR;
-
-                    yVec.CopyTo(yRow[x..]);
-                    cbVec.CopyTo(cbRow[x..]);
-                    crVec.CopyTo(crRow[x..]);
-                }
-            }
-        }
-
-        for (int i = 0; i < numStripes; i++)
-        {
-            Transform(i);
-        }
     }
 }

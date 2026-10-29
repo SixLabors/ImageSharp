@@ -30,10 +30,20 @@ internal sealed class JxlPatchDictionary
 
     public void SetShared(JxlReferenceFrame[] referenceFrames) => this.referenceFrames = referenceFrames;
 
+    /// <summary>
+    /// Clears the decoded dictionary and its row index before it is reused for another frame.
+    /// </summary>
     public void Clear()
     {
+        // Remove frame-specific entries while retaining list capacity for the next frame.
         this.positions.Clear();
-        this.ComputePatchTree();
+        this.referencePositions.Clear();
+        this.blendings.Clear();
+        this.blendingsStride = 0;
+        this.patchTree.Clear();
+        this.numPatches.Clear();
+        this.sortedPatchesY0.Clear();
+        this.sortedPatchesY1.Clear();
     }
 
     public int GetReferences()
@@ -65,8 +75,10 @@ internal sealed class JxlPatchDictionary
         ulong numExtraChannels,
         ref bool usesExtraChannels)
     {
-        this.positions.Clear();
-        this.blendingsStride = (int)(numExtraChannels + 1);
+        this.Clear();
+
+        // The image metadata header bounds extra channels to 4096. Each patch adds one color blending entry.
+        this.blendingsStride = (int)numExtraChannels + 1;
 
         List<byte> contextMap = [];
         JxlAnsCode code = new();
@@ -80,12 +92,22 @@ internal sealed class JxlPatchDictionary
         ReadOnlySpan<byte> contexts = CollectionsMarshal.AsSpan(contextMap);
         Span<int> window = decoder.Lz77Window;
 
-        ulong numRefPatch = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.NumRefPatch, br, contexts, window);
+        uint numRefPatch = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.NumRefPatch, br, contexts, window);
 
         ulong numPixels = xsize * ysize;
         ulong maxRefPatches = 1024 + (numPixels / 4);
         ulong maxPatches = maxRefPatches * 4;
         ulong maxBlendingInfos = maxPatches * 4;
+
+        // Retain the format's pixel-based quotas, but reject counts that cannot fit the managed lists.
+        // Bounding patch count by the blending stride also keeps every capacity multiplication within that limit.
+        maxRefPatches = Math.Min(maxRefPatches, (ulong)Array.MaxLength);
+        maxBlendingInfos = Math.Min(maxBlendingInfos, (ulong)Array.MaxLength);
+        maxPatches = Math.Min(maxPatches, maxBlendingInfos / (uint)this.blendingsStride);
+
+        // The patch tree stores rectangle ends as Int32 values. Both the frame and that storage must contain each complete patch.
+        ulong destinationWidth = Math.Min(xsize, (ulong)int.MaxValue);
+        ulong destinationHeight = Math.Min(ysize, (ulong)int.MaxValue);
 
         if (numRefPatch > maxRefPatches)
         {
@@ -95,120 +117,102 @@ internal sealed class JxlPatchDictionary
         ulong totalPatches = 0;
         ulong nextSize = 1;
 
-        for (ulong id = 0; id < numRefPatch; id++)
+        for (uint id = 0; id < numRefPatch; id++)
         {
-            JxlPatchReferencePosition refPos = new()
-            {
-                Ref = decoder.ReadHybridUInt((int)JxlPatchContext.ReferenceFrame, br, contexts, window)
-            };
-
-            if (refPos.Ref >= kMaxNumReferenceFrames || this.referenceFrames[(int)refPos.Ref].Frame.XSize == 0)
+            uint reference = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.ReferenceFrame, br, contexts, window);
+            if (reference >= JxlShared.MaximumNumberOfReferenceFrames || this.referenceFrames[(int)reference].Frame.XSize == 0)
             {
                 throw new InvalidOperationException("Invalid reference frame ID");
             }
 
-            if (!this.referenceFrames[refPos.Ref].ImageBundleIsInXyb)
+            if (!this.referenceFrames[(int)reference].ImageBundleIsInXyb)
             {
                 throw new InvalidOperationException("Patches cannot use frames saved post color transforms");
             }
 
-            JxlImageBundle ib = this.referenceFrames[refPos.Ref].Frame;
+            JxlImageBundle ib = this.referenceFrames[(int)reference].Frame;
+            ulong referenceX = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
+            ulong referenceY = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
 
-            refPos.X0 = decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
-            refPos.Y0 = decoder.ReadHybridUInt((int)JxlPatchContext.PatchReferencePosition, br, contexts, window);
-            refPos.XSize = decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
-            refPos.YSize = decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
+            // A size field stores size minus one. Widen before adding one, then validate the complete reference rectangle.
+            ulong width = (ulong)(uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
+            ulong height = (ulong)(uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchSize, br, contexts, window) + 1;
 
-            if (refPos.X0 + refPos.XSize > ib.XSize)
+            if (referenceX + width > (ulong)ib.XSize || referenceY + height > (ulong)ib.YSize)
             {
                 throw new InvalidOperationException("Invalid position specified in reference frame");
             }
 
-            if (refPos.Y0 + refPos.YSize > ib.YSize)
+            JxlPatchReferencePosition refPos = new()
             {
-                throw new InvalidOperationException("Invalid position specified in reference frame");
-            }
+                Ref = (int)reference,
+                X0 = (int)referenceX,
+                Y0 = (int)referenceY,
+                XSize = (int)width,
+                YSize = (int)height
+            };
 
-            ulong idCount = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchCount, br, contexts, window);
+            ulong idCount = (ulong)(uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchCount, br, contexts, window) + 1;
 
-            if (idCount > maxPatches)
+            // Check against the remaining quota before accumulating. The wire's UInt32 maximum plus one must not wrap.
+            if (idCount > maxPatches - totalPatches)
             {
                 throw new InvalidOperationException("Too many patches in dictionary");
             }
-
-            idCount++;
 
             totalPatches += idCount;
 
-            if (totalPatches > maxPatches)
-            {
-                throw new InvalidOperationException("Too many patches in dictionary");
-            }
-
             if (nextSize < totalPatches)
             {
-                nextSize *= 2;
-                nextSize = Math.Min(nextSize, maxPatches);
+                nextSize = Math.Min(Math.Max(totalPatches, nextSize * 2), maxPatches);
             }
 
-            if (nextSize * (ulong)this.blendingsStride > maxBlendingInfos)
-            {
-                throw new InvalidOperationException("Too many patches in dictionary");
-            }
-
-            _ = this.blendings.EnsureCapacity((int)nextSize);
-            _ = this.blendings.EnsureCapacity((int)(nextSize * (ulong)this.blendingsStride));
+            _ = this.positions.EnsureCapacity((int)nextSize);
+            _ = this.blendings.EnsureCapacity((int)(nextSize * (uint)this.blendingsStride));
 
             bool chooseAlpha = numExtraChannels > 1;
 
             for (ulong i = 0; i < idCount; i++)
             {
-                JxlPatchPosition pos = new()
-                {
-                    ReferencePositionIndex = this.referencePositions.Count
-                };
+                long x;
+                long y;
 
                 if (i == 0)
                 {
-                    pos.X = decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
-                    pos.Y = decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
+                    x = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
+                    y = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchPosition, br, contexts, window);
                 }
                 else
                 {
+                    // Delta codes cover the complete signed Int32 range. Add in Int64 so neither direction wraps before validation.
                     long deltaX = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchOffset, br, contexts, window));
-
-                    if (deltaX < 0 && (int)(-deltaX) > this.positions[^1].X)
-                    {
-                        throw new InvalidOperationException($"Invalid patch: negative x coordinate ({this.positions[^1].X}, delta {deltaX})");
-                    }
-
-                    pos.X = (int)(this.positions[^1].X + deltaX);
-
+                    x = this.positions[^1].X + deltaX;
                     long deltaY = JxlPackSigned.UnpackSigned((uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchOffset, br, contexts, window));
-
-                    if (deltaY < 0 && (int)(-deltaY) > this.positions[^1].Y)
-                    {
-                        throw new InvalidOperationException($"Invalid patch: negative y coordinate ({this.positions[^1].Y}, delta {deltaY})");
-                    }
-
-                    pos.Y = (int)(this.positions[^1].Y + deltaY);
+                    y = this.positions[^1].Y + deltaY;
                 }
 
-                if (pos.X + refPos.XSize > (int)xsize)
+                if (x < 0 || (ulong)x + width > destinationWidth)
                 {
-                    throw new InvalidOperationException($"Invalid patch x: {pos.X} + {refPos.XSize} > {xsize}");
+                    throw new InvalidOperationException($"Invalid patch x: {x} + {width} > {xsize}");
                 }
 
-                if (pos.Y + refPos.YSize > (int)ysize)
+                if (y < 0 || (ulong)y + height > destinationHeight)
                 {
-                    throw new InvalidOperationException($"Invalid patch y: {pos.Y} + {refPos.YSize} > {ysize}");
+                    throw new InvalidOperationException($"Invalid patch y: {y} + {height} > {ysize}");
                 }
+
+                JxlPatchPosition pos = new()
+                {
+                    X = (int)x,
+                    Y = (int)y,
+                    ReferencePositionIndex = this.referencePositions.Count
+                };
 
                 for (int j = 0; j < this.blendingsStride; j++)
                 {
                     uint blendMode = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchBlendMode, br, contexts, window);
 
-                    if ((int)blendMode >= (int)JxlPatchContext.PatchBlendMode)
+                    if (blendMode >= NumPatchBlendModes)
                     {
                         throw new InvalidOperationException($"Invalid patch blend mode: {blendMode}");
                     }
@@ -230,12 +234,14 @@ internal sealed class JxlPatchDictionary
 
                     if (UsesAlpha(info.Mode) && chooseAlpha)
                     {
-                        info.AlphaChannel = decoder.ReadHybridUInt((int)JxlPatchContext.PatchAlphaChannel, br, contexts, window);
+                        uint alphaChannel = (uint)decoder.ReadHybridUInt((int)JxlPatchContext.PatchAlphaChannel, br, contexts, window);
 
-                        if (info.AlphaChannel >= (int)numExtraChannels)
+                        if (alphaChannel >= numExtraChannels)
                         {
-                            throw new InvalidOperationException($"Invalid alpha channel for blending: {info.AlphaChannel} out of {numExtraChannels}");
+                            throw new InvalidOperationException($"Invalid alpha channel for blending: {alphaChannel} out of {numExtraChannels}");
                         }
+
+                        info.AlphaChannel = (int)alphaChannel;
                     }
                     else
                     {
@@ -259,8 +265,6 @@ internal sealed class JxlPatchDictionary
 
             this.referencePositions.Add(refPos);
         }
-
-        this.positions.TrimExcess();
 
         if (!decoder.CheckAnsFinalState())
         {

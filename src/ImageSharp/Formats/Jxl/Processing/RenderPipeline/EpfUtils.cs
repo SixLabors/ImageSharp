@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
 /// <summary>
-/// Utilities for EPF stages.
+/// Utilities for Edge Preserving Filter stages.
 /// </summary>
 internal static class EpfUtils
 {

@@ -272,7 +272,7 @@ internal sealed class JxlHuffmanDecoder
 
         DebugGuard.MustBeLessThanOrEqualTo(alphabetSize, 256, nameof(alphabetSize));
 
-        Span<byte> codeLengths = stackalloc byte[256].Slice(0, alphabetSize);
+        Span<byte> codeLengths = (stackalloc byte[256])[..alphabetSize];
         codeLengths.Clear();    // Zero-initialized in reference software
 
         Span<byte> codeLengthCodeLengths = stackalloc byte[CodeLengthCodes];

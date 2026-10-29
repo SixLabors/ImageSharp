@@ -127,7 +127,7 @@ internal static class JxlNoiseDecoder
     }
 
     private static void PrepareNoiseInput(
-        JxlPassesDecoderState decState,
+        JxlPassesDecoderContext decState,
         JxlFrameDimensions frameDim,
         JxlFrameHeader frameHeader,
         int groupIndex,

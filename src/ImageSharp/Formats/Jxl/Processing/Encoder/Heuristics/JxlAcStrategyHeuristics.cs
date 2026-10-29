@@ -79,10 +79,7 @@ internal sealed class JxlAcStrategyHeuristics : IDisposable
     /// <summary>
     /// Releases owned scratch without disposing the borrowed source, masks or matrices.
     /// </summary>
-    public void Dispose()
-    {
-        this.memoryOwner?.Dispose();
-    }
+    public void Dispose() => this.memoryOwner?.Dispose();
 
     /// <summary>
     /// Binds source and mask rows and prepares the matrices needed by the configured strategy search.

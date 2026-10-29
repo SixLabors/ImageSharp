@@ -36,6 +36,12 @@ internal sealed class JxlImageBundle : IDisposable
     }
 
     /// <summary>
+    /// Gets a value indicating whether <see cref="XSize"/> or <see cref="YSize"/>
+    /// are 0.
+    /// </summary>
+    public bool XSizeOrYSizeIsZero => this.XSize == 0 || this.YSize == 0;
+
+    /// <summary>
     /// Gets or sets the optional name of the bundle.
     /// </summary>
     public string? Name { get; set; }

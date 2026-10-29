@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
@@ -235,7 +234,7 @@ internal static class JxlQuantizerWeightsEncoder
         });
     }
 
-    public static bool DequantMatricesSetCustomDc(Configuration configuration, JxlDequantMatrices matrices, InlineArray3<float> dc)
+    public static bool DequantMatricesSetCustomDc(JxlDequantMatrices matrices, InlineArray3<float> dc)
     {
         matrices.SetDcQuant(dc);
 
@@ -263,14 +262,14 @@ internal static class JxlQuantizerWeightsEncoder
         return true;
     }
 
-    public static bool DequantMatricesScaleDc(Configuration configuration, JxlDequantMatrices matrices, float scale)
+    public static bool DequantMatricesScaleDc(JxlDequantMatrices matrices, float scale)
     {
         InlineArray3<float> dc = default;
         dc[0] = matrices.GetInverseDcQuant(0) * (1.0f / scale);
         dc[1] = matrices.GetInverseDcQuant(1) * (1.0f / scale);
         dc[2] = matrices.GetInverseDcQuant(2) * (1.0f / scale);
 
-        return DequantMatricesSetCustomDc(configuration, matrices, dc);
+        return DequantMatricesSetCustomDc(matrices, dc);
     }
 
     public static bool DequantMatricesRoundtrip(Configuration configuration, JxlDequantMatrices matrices)

@@ -11,7 +11,8 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 
 /// <summary>
-/// Edge Preserving Filter (type 2) stage
+/// This render pipeline stage performs the Edge Preserving Filter,
+/// type 2.
 /// </summary>
 internal sealed class Epf2Stage : RenderPipelineStageBase
 {

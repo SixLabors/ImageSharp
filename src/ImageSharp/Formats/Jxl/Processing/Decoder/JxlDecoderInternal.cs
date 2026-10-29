@@ -241,7 +241,7 @@ internal sealed class JxlDecoderInternal : ImageDecoderCore, IDisposable
     /// <summary>
     /// State for passes decoder.
     /// </summary>
-    private JxlPassesDecoderState? passesState;
+    private JxlPassesDecoderContext? passesState;
 
     /// <summary>
     /// Owns shared frame controls and reference caches until this codestream is rewound or disposed.

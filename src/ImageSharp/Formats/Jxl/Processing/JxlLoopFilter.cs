@@ -291,7 +291,7 @@ internal sealed class JxlLoopFilter : IJxlFields
         }
     }
 
-    public bool ComputeSigma(Rectangle blockRect, JxlPassesDecoderState state)
+    public bool ComputeSigma(Rectangle blockRect, JxlPassesDecoderContext state)
     {
         if (this.EpfIterations <= 0)
         {

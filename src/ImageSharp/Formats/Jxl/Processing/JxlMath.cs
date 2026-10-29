@@ -74,25 +74,6 @@ internal static class JxlMath
     public static int RoundUpTo(int value, int align) => DivCeil(value, align) * align;
 
     /// <summary>
-    /// Ensures that <paramref name="value"/> rounded to the multiple of <paramref name="align"/>.
-    /// </summary>
-    /// <param name="value">The value to round.</param>
-    /// <param name="align">The allowed step size.</param>
-    /// <returns>
-    /// <paramref name="value"/>, transformed to ensure that it stays within the step size of <paramref name="align"/>.
-    /// </returns>
-    /// <remarks>
-    ///   <para>
-    ///     If value=4, align=6, the result is 6. If value=7 and align=3 the result is 9.
-    ///   </para>
-    ///   <para>
-    ///     This will not work correctly for negative values.
-    ///   </para>
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint RoundUpTo(uint value, uint align) => Numerics.DivideCeil(value, align) * align;
-
-    /// <summary>
     /// Performs subtraction &amp; returns a boolean indicating whether or not did the subtraction
     /// result in an overflow.
     /// </summary>
@@ -159,39 +140,6 @@ internal static class JxlMath
     }
 
     /// <summary>
-    /// A slow, but safe multiplication method which returns false on an overflow.
-    /// </summary>
-    /// <param name="a">The multiplier</param>
-    /// <param name="b">The multiplicand</param>
-    /// <param name="product">The resulting value (or 0 on error)</param>
-    /// <returns>
-    /// If the multiplication leads to an overflow returns false,
-    /// otherwise returns true and places the output in <paramref name="product"/>.
-    /// </returns>
-    /// <remarks>
-    /// This method is meant for unsigned multiplication only. Negative values
-    /// won't work properly.
-    /// </remarks>
-    public static bool SafeMultiply(uint a, uint b, out uint product)
-    {
-        product = 0;
-
-        if (a == 0 || b == 0)
-        {
-            return true;
-        }
-
-        if (b > (uint.MaxValue / a))
-        {
-            return false;
-        }
-
-        product = a * b;
-
-        return true;
-    }
-
-    /// <summary>
     /// Performs addition and returns a boolean indicating whether the addition led to
     /// an overflow.
     /// </summary>
@@ -210,34 +158,6 @@ internal static class JxlMath
         {
             sum = a + b;
             return sum >= a;
-        }
-    }
-
-    /// <summary>
-    /// Rounds the dimensions up to block dimensions.
-    /// </summary>
-    /// <param name="dim">The dimensions to round up to block dimensions.</param>
-    /// <returns>The rounded dimensions.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int RoundUpToBlockDimensions(int dim)
-    {
-        unchecked
-        {
-            return (dim + 7) & ~7;
-        }
-    }
-
-    /// <summary>
-    /// Rounds the dimensions up to block dimensions.
-    /// </summary>
-    /// <param name="dim">The dimensions to round up to block dimensions.</param>
-    /// <returns>The rounded dimensions.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint RoundUpToBlockDimensions(uint dim)
-    {
-        unchecked
-        {
-            return (dim + 7u) & ~7u;
         }
     }
 
@@ -268,26 +188,6 @@ internal static class JxlMath
             return (bits + 7u) & ~7u;
         }
     }
-
-    /// <summary>
-    /// Multiplies <paramref name="multiplier"/> by π.
-    /// </summary>
-    /// <param name="multiplier">The value to multiply.</param>
-    /// <returns>
-    ///   <c>multiplier * π</c>
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Pi(float multiplier) => multiplier * MathF.PI;
-
-    /// <summary>
-    /// Multiplies <paramref name="multiplier"/> by π.
-    /// </summary>
-    /// <param name="multiplier">The value to multiply.</param>
-    /// <returns>
-    ///   <c>multiplier * π</c>
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Pi(double multiplier) => multiplier * Math.PI;
 
     /// <summary>
     /// Returns the amount of zero bits before the highest 1 bit.

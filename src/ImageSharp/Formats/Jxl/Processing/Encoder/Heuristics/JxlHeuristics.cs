@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
@@ -1135,7 +1134,7 @@ internal static class JxlHeuristics
                     Span<int> contextHisto = histo.DangerousGetRowSpan(context);
 
                     int multiplierIndex = epfStepsLookupTable[val] + (3 * context);
-                    mul[multiplierIndex] = 1.0f / (1.0f + (c5 * MathUtils.Log1P(contextHisto[val] / totals[context]) / clampedButteraugli));
+                    mul[multiplierIndex] = 1.0f / (1.0f + (c5 * Numerics.Log1P(contextHisto[val] / totals[context]) / clampedButteraugli));
 
                     if (val == 0)
                     {

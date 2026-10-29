@@ -152,6 +152,31 @@ internal static class Numerics
     public static double Pow3(double x) => x * x * x;
 
     /// <summary>
+    /// Computes the natural logarithm of one plus a finite nonnegative value.
+    /// </summary>
+    /// <param name="value">The value to add to one.</param>
+    /// <returns>The natural logarithm of one plus <paramref name="value"/>.</returns>
+    public static double Log1P(double value)
+    {
+        // Adding one can discard low bits of value. Add their first-order contribution to the logarithm
+        // so a small positive value does not become zero when the sum rounds to one.
+        double sum = 1.0 + value;
+        return Math.Log(sum) + ((value - (sum - 1.0)) / sum);
+    }
+
+    /// <summary>
+    /// Computes the natural logarithm of one plus a finite nonnegative value.
+    /// </summary>
+    /// <param name="value">The value to add to one.</param>
+    /// <returns>The natural logarithm of one plus <paramref name="value"/>.</returns>
+    public static float Log1P(float value)
+    {
+        // Retain the same correction as the double overload in the caller's component precision.
+        float sum = 1.0f + value;
+        return MathF.Log(sum) + ((value - (sum - 1.0f)) / sum);
+    }
+
+    /// <summary>
     /// Implementation of 1D Gaussian G(x) function
     /// </summary>
     /// <param name="x">The x provided to G(x).</param>

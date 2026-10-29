@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Common.Helpers;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Lookahead;
 
 /// <summary>
@@ -959,10 +957,10 @@ internal sealed partial class Av1SecondPass
     /// <param name="frameStatistics">The statistics.</param>
     private void SetParameters(Av1FirstPassStatistics frameStatistics)
     {
-        this.macroblockAverageEnergy = MathUtils.Log1P(frameStatistics.IntraError);
+        this.macroblockAverageEnergy = Numerics.Log1P(frameStatistics.IntraError);
         if (this.totalStatistics.FrameAverageWaveletEnergy >= 0)
         {
-            this.frameAverageHaarEnergy = MathUtils.Log1P(frameStatistics.FrameAverageWaveletEnergy);
+            this.frameAverageHaarEnergy = Numerics.Log1P(frameStatistics.FrameAverageWaveletEnergy);
         }
 
         // A frame with at least 15 percent of intra skip blocks counts as animation or graphics.

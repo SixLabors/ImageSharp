@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -590,8 +589,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         statistics.LongTermCodedError /= macroblockCount;
         statistics.IntraError /= macroblockCount;
         statistics.FrameAverageWaveletEnergy /= macroblockCount;
-        statistics.LogCodedError = MathUtils.Log1P(statistics.CodedError);
-        statistics.LogIntraError = MathUtils.Log1P(statistics.IntraError);
+        statistics.LogCodedError = Numerics.Log1P(statistics.CodedError);
+        statistics.LogIntraError = Numerics.Log1P(statistics.IntraError);
         statistics.MotionVectorRow /= frameHeight;
         statistics.MotionVectorRowAbsolute /= frameHeight;
         statistics.MotionVectorColumn /= frameWidth;

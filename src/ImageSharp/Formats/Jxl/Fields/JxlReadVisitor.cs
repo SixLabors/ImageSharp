@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 /// Reads serialized JPEG XL fields and validates extension bit budgets.
 /// </summary>
 /// <param name="reader">The bit reader for the current bounded header.</param>
-internal sealed class JxlReadVisitor(JxlBitReader reader) : JxlVisitorBase
+internal sealed class JxlReadVisitor(JxlBitReader reader) : JxlVisitor
 {
     /// <summary>
     /// The total declared extension payload length in bits.

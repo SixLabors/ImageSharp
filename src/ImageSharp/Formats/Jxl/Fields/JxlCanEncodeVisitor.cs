@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 
-internal sealed class JxlCanEncodeVisitor : JxlVisitorBase
+internal sealed class JxlCanEncodeVisitor : JxlVisitor
 {
     private long encodedBits;
     private ulong extensions;

@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 internal static class JxlBundle
 {
     /// <summary>
+    /// Maximum extension count and nested extension-state depth. Both use one bit per entry in a UInt64.
+    /// </summary>
+    public const int MaxExtensions = 64;
+
+    /// <summary>
     /// Initializes the specified JXL fields.
     /// </summary>
     /// <param name="fields">The JXL fields.</param>

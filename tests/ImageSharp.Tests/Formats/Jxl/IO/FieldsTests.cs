@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
@@ -8,11 +9,69 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl.IO;
 
 public class FieldsTests
 {
+    /// <summary>
+    /// Checks byte and UInt32 enum fields against fixed LSB-first wire data.
+    /// </summary>
+    [Fact]
+    public void ReadEnums_PreservesTheirStorageWidths()
+    {
+        // Six bits encode primaries 9, followed by six bits for intent 3. Both use selector 2.
+        using MemoryStream input = new([0x9E, 0x01]);
+        JxlBitReader reader = new(input);
+        JxlReadVisitor visitor = new(reader);
+        JxlPrimaries primaries = JxlPrimaries.SRgb;
+        IccRenderingIntent intent = IccRenderingIntent.Perceptual;
+
+        Assert.True(visitor.Enum(JxlPrimaries.SRgb, ref primaries));
+        Assert.True(visitor.Enum(IccRenderingIntent.MediaRelativeColorimetric, ref intent));
+        Assert.Equal(JxlPrimaries.Bt2020, primaries);
+        Assert.Equal(IccRenderingIntent.AbsoluteColorimetric, intent);
+        Assert.Equal(12, reader.TotalBitsConsumed);
+    }
+
+    /// <summary>
+    /// Checks that an undefined enum value cannot replace the previous field value.
+    /// </summary>
+    [Fact]
+    public void ReadEnum_RejectsUndefinedValue()
+    {
+        // Selector 3 followed by six zero bits encodes value 18, which is not a primary code point.
+        using MemoryStream input = new([0x03]);
+        JxlReadVisitor visitor = new(new JxlBitReader(input));
+        JxlPrimaries primaries = JxlPrimaries.SRgb;
+
+        Assert.False(visitor.Enum(JxlPrimaries.SRgb, ref primaries));
+        Assert.Equal(JxlPrimaries.SRgb, primaries);
+    }
+
+    /// <summary>
+    /// Checks initialization, accumulated default comparisons, and explicit default restoration.
+    /// </summary>
+    [Fact]
+    public void BundleDefaults_RetainEarlierNonDefaultFields()
+    {
+        OldBundle bundle = new();
+
+        Assert.Equal(1U, bundle.OldSmall);
+        Assert.True(JxlBundle.AllDefault(bundle));
+
+        bundle.OldSmall = 2;
+
+        Assert.False(JxlBundle.AllDefault(bundle));
+        Assert.Equal(2U, bundle.OldSmall);
+
+        JxlBundle.SetDefault(bundle);
+
+        Assert.Equal(1U, bundle.OldSmall);
+        Assert.True(JxlBundle.AllDefault(bundle));
+    }
+
     /// <summary>
     /// Checks that probing an incomplete header reports failure without accepting default field status.
     /// </summary>

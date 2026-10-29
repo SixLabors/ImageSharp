@@ -4,10 +4,9 @@
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 /// <summary>
-/// This variant of <see cref="JxlVisitorBase"/> sets values
-/// to be the default value.
+/// Initializes a bundle's own fields. Nested bundles initialize their fields in their constructors.
 /// </summary>
-internal sealed class JxlInitVisitor : JxlVisitorBase
+internal sealed class JxlInitVisitor : JxlVisitor
 {
     public override bool Bits(int bits, uint defaultValue, ref uint value)
     {
@@ -15,7 +14,8 @@ internal sealed class JxlInitVisitor : JxlVisitorBase
         return true;
     }
 
-    public override bool U32(JxlU32Distribution d0, JxlU32Distribution d1, JxlU32Distribution d2, JxlU32Distribution d3, uint defaultValue, ref uint value)
+    /// <inheritdoc />
+    public override bool U32(JxlU32Enc enc, uint defaultValue, ref uint value)
     {
         value = defaultValue;
         return true;

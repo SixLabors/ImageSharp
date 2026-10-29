@@ -182,9 +182,9 @@ internal static partial class Av1ForwardTransformer
         Vector128<int> row3 = LoadFourSamples(ref residualBase, 3 * stride);
 
         HadamardRows4(ref row0, ref row1, ref row2, ref row3);
-        Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+        SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
         HadamardRows4(ref row0, ref row1, ref row2, ref row3);
-        Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+        SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
 
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         row0.StoreUnsafe(ref coefficientBase);
@@ -453,12 +453,12 @@ internal static partial class Av1ForwardTransformer
             // Each lane initially holds one column. The first stage transforms those columns in parallel. The transpose then makes each transformed column a
             // row, so the same lane-wise network can process the other axis.
             TransformLosslessStage(ref row0, ref row1, ref row2, ref row3);
-            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+            SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
             TransformLosslessStage(ref row0, ref row1, ref row2, ref row3);
 
             // The entropy pipeline stores transform positions in row-major order. The two reversible passes leave the two frequency axes exchanged. This
             // transpose restores row-major order before scan-order traversal.
-            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+            SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
 
             ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
             (row0 * 4).StoreUnsafe(ref coefficientBase);

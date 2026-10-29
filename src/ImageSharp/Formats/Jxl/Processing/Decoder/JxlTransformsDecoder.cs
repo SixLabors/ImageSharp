@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;

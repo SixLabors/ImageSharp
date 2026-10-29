@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Memory;
 
@@ -15,6 +14,9 @@ internal class UpsamplingStage : RenderPipelineStageBase
 {
     private const int ChunkSize = 1024;
 
+    /// <summary>
+    /// The upsampling kernels.
+    /// </summary>
     private readonly float[] kernel = new float[64 * 25]; // 1600 floats, 6400 bytes (6.25 KB)
 
     /// <summary>
@@ -42,6 +44,7 @@ internal class UpsamplingStage : RenderPipelineStageBase
         int n = 1 << shift;
         int h = n / 2;
 
+        // Initialize the upsampling kernels.
         for (int ky = 0; ky < h; ++ky)
         {
             for (int kx = 0; kx < h; ++kx)

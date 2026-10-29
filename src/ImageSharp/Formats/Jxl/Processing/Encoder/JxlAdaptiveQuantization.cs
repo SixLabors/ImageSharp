@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Comparator;

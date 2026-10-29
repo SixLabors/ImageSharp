@@ -8,7 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 /// </summary>
 internal sealed class JxlAuxiliaryOutput
 {
-    public JxlLayerTotals[] Layers { get; set; } = new JxlLayerTotals[JxlAuxiliaryOutputConstants.NumberOfImageLayers];
+    public const int NumberOfImageLayers = (int)JxlLayerType.ModularAcGroup + 1;
+
+    public JxlLayerTotals[] Layers { get; set; } = new JxlLayerTotals[NumberOfImageLayers];
 
     public long NumberOfBlocks { get; set; }
 
@@ -60,7 +62,7 @@ internal sealed class JxlAuxiliaryOutput
 
     public void Assimilate(JxlAuxiliaryOutput victim)
     {
-        for (int i = 0; i < JxlAuxiliaryOutputConstants.NumberOfImageLayers; i++)
+        for (int i = 0; i < NumberOfImageLayers; i++)
         {
             this.Layers[i].Assimilate(victim.Layers[i]);
         }

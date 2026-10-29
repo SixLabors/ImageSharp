@@ -165,12 +165,12 @@ internal static class JxlIccReader
     /// <returns>The context component assigned by the compressed ICC syntax.</returns>
     private static int GetByteKind(byte value, bool second)
     {
-        if (value is >= (byte)'a' and <= (byte)'z' or >= (byte)'A' and <= (byte)'Z')
+        if (value is (>= (byte)'a' and <= (byte)'z') or (>= (byte)'A' and <= (byte)'Z'))
         {
             return 0;
         }
 
-        if (value is >= (byte)'0' and <= (byte)'9' or (byte)'.' or (byte)',')
+        if (value is (>= (byte)'0' and <= (byte)'9') or (byte)'.' or (byte)',')
         {
             return 1;
         }

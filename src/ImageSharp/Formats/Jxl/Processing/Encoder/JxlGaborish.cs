@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;

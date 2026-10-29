@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
@@ -51,7 +53,7 @@ public class CoefficientOrderTests
         Random
     }
 
-    private static void RoundtripPermutation(Span<uint> permutation, Span<int> output, int len, out int size)
+    private static void RoundtripPermutation(Span<uint> permutation, Span<uint> output, int len, out int size)
     {
         using MemoryStream ms = new();
         JxlBitWriter writer = new(ms);
@@ -60,8 +62,114 @@ public class CoefficientOrderTests
         writer.ZeroPadToByte();
 
         ms.Position = 0;
-        JxlBitReader reader = new(ms);
 
-        //TODO
+        JxlBitReader reader = new(ms);
+        Assert.True(JxlCoefficientOrder.DecodePermutation(TestEnvironment.Configuration, 0, len, output, reader));
+
+        size = (int)ms.Length;
+    }
+
+    /// <summary>
+    /// Ensures that permutations can be decoded exactly as they
+    /// were encoded, losslessly.
+    /// </summary>
+    /// <param name="permutationKind">The kind of permutation.</param>
+    /// <param name="length">Number of permutations to round-trip.</param>
+    private static void TestPermutation(Permutation permutationKind, int length)
+    {
+        // The permutations can be very large, so use
+        // configuration.MemoryAllocator.Allocate. A stackalloc
+        // can lead to a stack overflow exception.
+        using IMemoryOwner<uint> permOwner = TestEnvironment.Configuration.MemoryAllocator.Allocate<uint>(length);
+        Span<uint> perm = permOwner.Memory.Span;
+        JxlSimdUtils.Iota(perm, 0u);
+
+        Rng rng = new(0);
+
+        switch (permutationKind)
+        {
+            case Permutation.FewSwaps:
+                for (int i = 0; i < Swaps; i++)
+                {
+                    int a = (int)rng.UniformU(0, (ulong)(length - 1));
+                    int b = (int)rng.UniformU(0, (ulong)(length - 1));
+                    RuntimeUtility.Swap(ref perm[a], ref perm[b]);
+                }
+
+                break;
+
+            case Permutation.FewSlides:
+                for (int i = 0; i < Swaps; i++)
+                {
+                    int a = (int)rng.UniformU(0, (ulong)(length - 1));
+                    int b = (int)rng.UniformU(0, (ulong)(length - 1));
+                    int from = Math.Min(a, b);
+                    int to = Math.Max(a, b);
+                    uint start = perm[from];
+
+                    for (int j = from; j < to; j++)
+                    {
+                        perm[j] = perm[j + 1];
+                    }
+
+                    perm[to] = start;
+                }
+
+                break;
+
+            case Permutation.Random:
+                rng.Shuffle(perm);
+                break;
+        }
+
+        using IMemoryOwner<uint> outOwner = TestEnvironment.Configuration.MemoryAllocator.Allocate<uint>(length);
+        Span<uint> output = outOwner.Memory.Span;
+
+        RoundtripPermutation(perm, output, length, out int size);
+
+        // We want to make sure the permutations are lossless.
+        for (int idx = 0; idx < length; idx++)
+        {
+            Assert.Equal(perm[idx], output[idx]);
+        }
+    }
+
+    /// <summary>
+    /// Tests a small number of permutations.
+    /// </summary>
+    [Fact]
+    public void TestSmall()
+    {
+        const int permutationCount = 256;
+        TestPermutation(Permutation.Identity, permutationCount);
+        TestPermutation(Permutation.FewSlides, permutationCount);
+        TestPermutation(Permutation.FewSwaps, permutationCount);
+        TestPermutation(Permutation.Random, permutationCount);
+    }
+
+    /// <summary>
+    /// Tests a medium number of permutations.
+    /// </summary>
+    [Fact]
+    public void TestMedium()
+    {
+        const int permutationCount = 1 << 12;
+        TestPermutation(Permutation.Identity, permutationCount);
+        TestPermutation(Permutation.FewSlides, permutationCount);
+        TestPermutation(Permutation.FewSwaps, permutationCount);
+        TestPermutation(Permutation.Random, permutationCount);
+    }
+
+    /// <summary>
+    /// Tests a large number of permutations.
+    /// </summary>
+    [Fact]
+    public void TestLarge()
+    {
+        const int permutationCount = 1 << 16;
+        TestPermutation(Permutation.Identity, permutationCount);
+        TestPermutation(Permutation.FewSlides, permutationCount);
+        TestPermutation(Permutation.FewSwaps, permutationCount);
+        TestPermutation(Permutation.Random, permutationCount);
     }
 }

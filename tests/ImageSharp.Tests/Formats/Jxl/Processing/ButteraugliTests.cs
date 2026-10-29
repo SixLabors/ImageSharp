@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using Microsoft.Diagnostics.Runtime.Interop;
 using SixLabors.ImageSharp.Formats.Jxl.Memory;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Butteraugli;

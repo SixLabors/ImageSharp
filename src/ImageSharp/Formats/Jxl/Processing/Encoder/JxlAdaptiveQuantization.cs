@@ -721,6 +721,15 @@ internal static class JxlAdaptiveQuantization
         }
     }
 
+    /// <summary>
+    /// Renders an encoder's prepared coefficients while borrowing its shared controls.
+    /// </summary>
+    /// <param name="configuration">The configuration that owns temporary decoded samples.</param>
+    /// <param name="frameHeader">The frame settings used to prepare the coefficients.</param>
+    /// <param name="opsin">The borrowed encoder input used for the frame extent.</param>
+    /// <param name="encState">The encoder that owns shared controls and coefficient images.</param>
+    /// <param name="cms">The color conversion provider used by the existing encoder pipeline.</param>
+    /// <returns>The decoded bundle, which the caller owns and must dispose.</returns>
     private static JxlImageBundle RoundtripImage(
         Configuration configuration,
         JxlFrameHeader frameHeader,
@@ -728,11 +737,6 @@ internal static class JxlAdaptiveQuantization
         JxlPassesEncoderState encState,
         JxlCmsInterface cms)
     {
-        JxlPassesDecoderState decState = new(frameHeader, configuration);
-
-        decState.OutputEncodingInfo.SetFromMetadata(encState.Shared.Metadata);
-        decState.Shared = encState.Shared;
-
         if (opsin.YSize % JxlFrameDimensions.BlockDimensions != 0)
         {
             throw new InvalidOperationException("The opsin height must be divisible by the block dimension.");
@@ -741,83 +745,77 @@ internal static class JxlAdaptiveQuantization
         int xSizeGroups = JxlMath.DivCeil(opsin.XSize, JxlFrameDimensions.GroupDimensions);
         int ySizeGroups = JxlMath.DivCeil(opsin.YSize, JxlFrameDimensions.GroupDimensions);
         int numGroups = xSizeGroups * ySizeGroups;
-
         int numSpecialFrames = encState.SpecialFrames.Count;
-        int numPasses = encState.ProgressiveSplitter.GetNumPasses();
-
         JxlModularFrameEncoder modularFrameEncoder = JxlModularFrameEncoder.Create(configuration, frameHeader, encState.CParams, false);
 
         InitializePassesEncoder(configuration, frameHeader, opsin, opsin.GetRectangle(), cms, encState, modularFrameEncoder, null);
 
-        decState.Initialize(frameHeader);
-        decState.InitializeForAc(configuration, numPasses);
+        // The encoder has prepared its controls. Borrow that exact state instead of allocating another frame's planes and replacing a pointer.
+        // Memory block loading supplies AC coefficients directly, so this path must not resize or overwrite decoded coefficient orders.
+        using JxlPassesDecoderState decState = new(encState.Shared);
+        decState.InitializeFrame(frameHeader);
 
-        JxlImageBundle decoded = new(configuration, encState.Shared.Metadata.M)
+        JxlImageBundle decoded = new(encState.Shared.CodecMetadata.ImageMetadata)
         {
             Origin = frameHeader.FrameOrigin
         };
 
-        JxlImage3<float> tmp = new(configuration, opsin.XSize, opsin.YSize);
-
-        if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
+        try
         {
-            throw new InvalidOperationException("Could not set image bundle");
-        }
-
-        JxlPassesDecoderState.PipelineOptions options = new()
-        {
-            UseSlowRenderPipeline = false,
-            Coalescing = false,
-            RenderSpotcolors = false,
-            RenderNoise = false
-        };
-
-        JxlImageMetadata metadata = decoded.Metadata;
-
-        decState.PreparePipeline(frameHeader, encState.Shared.Metadata.ImageMetadata, decoded, options);
-
-        using JxlGroupDecoderCache groupDecCache = new(configuration);
-
-        decState.RenderPipeline.PrepareForThreads(1, useGroupIds: false);
-
-        void ProcessGroup(int groupIndex)
-        {
-            if (frameHeader.LoopFilter!.EpfIterations > 0)
+            JxlImage3<float> tmp = new(configuration, opsin.XSize, opsin.YSize);
+            if (!decoded.SetFromImage(tmp, decState.OutputEncodingInfo.ColorEncoding))
             {
-                JxlLoopFilter.ComputeSigma(
-                    decState.Shared.FrameDimensions.BlockGroupRect(groupIndex),
-                    decState);
+                tmp.Dispose();
+                throw new InvalidOperationException("Could not set image bundle");
             }
 
-            RenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, 0);
-
-            JxlGroupDecoder.DecodeGroupForRoundtrip(
-                frameHeader,
-                encState.Coeffs,
-                groupIndex,
-                decState,
-                groupDecCache,
-                0,
-                input,
-                null,
-                null);
-
-            for (int c = 0; c < metadata.ExtraChannelCount; c++)
+            JxlPassesDecoderState.PipelineOptions options = new()
             {
-                (JxlPlane<float> plane, Rectangle rect) = input.GetBuffer(3 + c);
-                JxlImageOperations.FillPlane(0.0f, plane, rect);
+                UseSlowRenderPipeline = false,
+                Coalescing = false,
+                RenderSpotcolors = false,
+                RenderNoise = false
+            };
+
+            JxlImageMetadata metadata = decoded.Metadata;
+            decState.PreparePipeline(frameHeader, encState.Shared.CodecMetadata.ImageMetadata, decoded, options);
+
+            using JxlGroupDecoderCache groupDecCache = new(configuration);
+            decState.RenderPipeline.PrepareForThreads(1, false);
+
+            void ProcessGroup(int groupIndex)
+            {
+                if (frameHeader.LoopFilter!.EpfIterations > 0)
+                {
+                    JxlLoopFilter.ComputeSigma(decState.Shared.FrameDimensions.BlockGroupRect(groupIndex), decState);
+                }
+
+                RenderPipelineInput input = decState.RenderPipeline.GetInputBuffers(groupIndex, 0);
+                JxlGroupDecoder.DecodeGroupForRoundtrip(frameHeader, encState.Coeffs, groupIndex, decState, groupDecCache, 0, input, null, null);
+
+                for (int c = 0; c < metadata.ExtraChannelCount; c++)
+                {
+                    (JxlPlane<float> plane, Rectangle rect) = input.GetBuffer(3 + c);
+                    JxlImageOperations.FillPlane(0.0f, plane, rect);
+                }
+
+                input.Done();
             }
 
-            input.Done();
-        }
+            for (int i = 0; i < numGroups; i++)
+            {
+                ProcessGroup(i);
+            }
 
-        for (int i = 0; i < numGroups; i++)
+            encState.SpecialFrames.RemoveRange(numSpecialFrames, encState.SpecialFrames.Count - numSpecialFrames);
+            return decoded;
+        }
+        catch
         {
-            ProcessGroup(i);
+            // Success transfers this bundle to the caller. Failure releases only the locally decoded output, never the encoder's shared planes.
+            decoded.Dispose();
+            throw;
         }
-        encState.SpecialFrames.RemoveRange(numSpecialFrames, encState.SpecialFrames.Count - numSpecialFrames);
-
-        return decoded;
     }
 
     public static float InitialQuantDc(float butteraugliTarget)

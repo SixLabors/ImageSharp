@@ -110,8 +110,8 @@ internal sealed class JxlCflHeuristics : IDisposable
             rectangle,
             fast,
             acStrategy is null,
-            cmap.YToXMap!,
-            cmap.YToBMap!,
+            cmap.YToXMap,
+            cmap.YToBMap,
             this.dcValues,
             scratch);
     }

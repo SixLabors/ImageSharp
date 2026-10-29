@@ -13,21 +13,29 @@ internal class UpsamplingStage : RenderPipelineStageBase
     private const int ChunkSize = 1024;
 
     private readonly float[] kernel = new float[64 * 25]; // 1600 floats, 6400 bytes (6.25 KB)
-    private readonly int c;
+    private readonly int channelIndex;
     private readonly InlineArray3<List<Memory<byte>>> temp = default;
 
-    public UpsamplingStage(JxlCustomTransformData upsFactors, int c, int shift)
+    /// <summary>
+    /// Initializes a new instance of the UpsamplingStage class.
+    /// </summary>
+    /// <param name="configuration">The configuration used by the render stage.</param>
+    /// <param name="transformData">The custom upsampling filter weights.</param>
+    /// <param name="channelIndex">The channel processed by this stage.</param>
+    /// <param name="upsamplingShift">The base-two logarithm of the upsampling factor.</param>
+    public UpsamplingStage(Configuration configuration, JxlCustomTransformData transformData, int channelIndex, int upsamplingShift)
+        : base(configuration)
     {
-        this.c = c;
-        this.Settings = RenderPipelineStageConfiguration.CreateSymmetric(shift, 2);
+        this.channelIndex = channelIndex;
+        this.Settings = RenderPipelineStageConfiguration.CreateSymmetric(upsamplingShift, 2);
 
         Span<float> kernel = this.kernel;
 
-        Span<float> weights = shift == 1 ? upsFactors.Upsampling2Weights
-            : shift == 2 ? upsFactors.Upsampling4Weights
-            : upsFactors.Upsampling8Weights;
+        Span<float> weights = upsamplingShift == 1 ? transformData.Upsampling2Weights
+            : upsamplingShift == 2 ? transformData.Upsampling4Weights
+            : transformData.Upsampling8Weights;
 
-        int n = 1 << shift;
+        int n = 1 << upsamplingShift;
         int h = n / 2;
 
         for (int ky = 0; ky < h; ++ky)
@@ -62,7 +70,7 @@ internal class UpsamplingStage : RenderPipelineStageBase
     public override string Name => "Upsample";
 
     public override RenderPipelineChannelMode GetChannelMode(int channel) =>
-        channel == this.c
+        channel == this.channelIndex
             ? RenderPipelineChannelMode.InOut
             : RenderPipelineChannelMode.Ignored;
 }

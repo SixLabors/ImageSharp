@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
@@ -11,13 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 /// </summary>
 internal static class JxlToc
 {
-    private const int BitsPerByte = 8;
-
     private const int MaxTocEntries = 65536;
 
     public static readonly JxlU32Enc TocDistribution = new(
         JxlFieldExpressions.Bits(10),
-        JxlFieldExpressions.BitsOffset(14, 2024),
+        JxlFieldExpressions.BitsOffset(14, 1024),
         JxlFieldExpressions.BitsOffset(22, 17408),
         JxlFieldExpressions.BitsOffset(30, 4211712));
 
@@ -30,6 +29,13 @@ internal static class JxlToc
     public static int AcGroupIndex(int pass, int group, int numGroups, int numDcGroups)
         => 2 + numDcGroups + (pass * numGroups) + group;
 
+    /// <summary>
+    /// Gets the section count for a frame and rejects counts above the format decoder's allocation limit.
+    /// </summary>
+    /// <param name="numGroups">The number of transform or modular groups.</param>
+    /// <param name="numDcGroups">The number of DC groups.</param>
+    /// <param name="numPasses">The frame's progressive pass count.</param>
+    /// <returns>The section count.</returns>
     public static int NumberOfTocEntries(int numGroups, int numDcGroups, int numPasses)
     {
         if (numGroups == 1 && numPasses == 1)
@@ -37,69 +43,36 @@ internal static class JxlToc
             return 1;
         }
 
-        return AcGroupIndex(0, 0, numGroups, numDcGroups) + (numGroups * numPasses);
+        // Frame dimensions originate in untrusted headers. Widen before multiplication, not after an Int32 count has wrapped.
+        long count = 2L + numDcGroups + ((long)numGroups * numPasses);
+        if (count > MaxTocEntries)
+        {
+            throw new InvalidImageContentException("The JPEG XL frame has too many sections.");
+        }
+
+        return (int)count;
     }
 
-    public static bool ReadToc(
-        Configuration configuration,
-        int tocEntries,
-        JxlBitReader reader,
-        List<uint> sizes,
-        List<byte> permutation)
+    /// <summary>
+    /// Reads physical section sizes and an optional permutation of logical section identifiers.
+    /// </summary>
+    /// <param name="configuration">The configuration whose allocator owns permutation scratch and entropy history.</param>
+    /// <param name="tocEntries">The section count validated by <see cref="NumberOfTocEntries"/> from the parsed frame header.</param>
+    /// <param name="reader">The reader at the section table. Truncated fields raise <see cref="EndOfStreamException"/>.</param>
+    /// <param name="sizes">The decoded sizes, in physical stream order.</param>
+    /// <param name="permutation">The logical-to-physical permutation, or an empty list when the table uses natural order.</param>
+    /// <returns>Whether the section count and optional permutation are valid.</returns>
+    public static bool ReadToc(Configuration configuration, int tocEntries, JxlBitReader reader, List<uint> sizes, List<uint> permutation)
     {
-        if (tocEntries > MaxTocEntries)
-        {
-            return false; // too many TOC entries
-        }
+        CollectionsMarshal.SetCount(sizes, tocEntries);
+        permutation.Clear();
 
-        sizes.Clear();
-        sizes.Capacity = tocEntries;
-
-        for (int i = 0; i < tocEntries; i++)
-        {
-            sizes.Add(0);
-        }
-
-        if (reader.TotalBitsConsumed >= reader.TotalBytes * BitsPerByte)
-        {
-            return false; // not enough bytes
-        }
-
-        bool CheckBitBudget(int numEntries)
-        {
-            long minimalBitCost = numEntries * (2 + 10);
-            long bitBudget = reader.TotalBytes * BitsPerByte;
-            long expenses = reader.TotalBitsConsumed;
-
-            return expenses <= bitBudget &&
-                minimalBitCost <= bitBudget - expenses;
-        }
-
-        if (tocEntries <= 0)
-        {
-            return false;
-        }
-
+        // The shared bit reader rejects truncated fields. It needs no seekable input or copied byte-budget state here.
+        // Permutation indices are UInt32 values: a valid table can contain far more than 256 sections.
         if (reader.ReadBits32(1) == 1)
         {
-            if (!CheckBitBudget(tocEntries))
-            {
-                return false;
-            }
-
-            permutation.Clear();
-
-            for (int i = 0; i < tocEntries; i++)
-            {
-                permutation.Add(default);
-            }
-
-            if (!DecodePermutation(
-                    configuration,
-                    0,
-                    tocEntries,
-                    permutation,
-                    reader))
+            CollectionsMarshal.SetCount(permutation, tocEntries);
+            if (!JxlCoefficientOrder.DecodePermutation(configuration, 0, tocEntries, CollectionsMarshal.AsSpan(permutation), reader))
             {
                 return false;
             }
@@ -107,85 +80,13 @@ internal static class JxlToc
 
         reader.JumpToByteBoundary();
 
-        if (!CheckBitBudget(tocEntries))
-        {
-            return false;
-        }
-
+        Span<uint> sectionSizes = CollectionsMarshal.AsSpan(sizes);
         for (int i = 0; i < tocEntries; i++)
         {
-            sizes[i] = JxlU32Coder.Read(TocDistribution, reader);
+            sectionSizes[i] = JxlU32Coder.Read(TocDistribution, reader);
         }
 
         reader.JumpToByteBoundary();
-
-        return CheckBitBudget(0);
-    }
-
-    public static bool ReadGroupOffsets(
-        Configuration configuration,
-        int tocEntries,
-        JxlBitReader reader,
-        List<ulong> offsets,
-        List<uint> sizes,
-        out ulong totalSize)
-    {
-        totalSize = 0;
-
-        List<byte> permutation = [];
-
-        if (!ReadToc(
-                configuration,
-                tocEntries,
-                reader,
-                sizes,
-                permutation))
-        {
-            return false;
-        }
-
-        offsets.Clear();
-        offsets.Capacity = tocEntries;
-
-        for (int i = 0; i < tocEntries; i++)
-        {
-            offsets.Add(0);
-        }
-
-        ulong offset = 0;
-
-        for (int i = 0; i < tocEntries; i++)
-        {
-            ulong size = sizes[i];
-
-            if (offset + size < offset)
-            {
-                return false;
-            }
-
-            offsets[i] = offset;
-            offset += size;
-        }
-
-        totalSize = offset;
-
-        if (permutation.Count != 0)
-        {
-            List<ulong> permutedOffsets = new(tocEntries);
-            List<uint> permutedSizes = new(tocEntries);
-
-            foreach (byte index in permutation)
-            {
-                permutedOffsets.Add(offsets[index]);
-                permutedSizes.Add(sizes[index]);
-            }
-
-            offsets.Clear();
-            offsets.AddRange(permutedOffsets);
-
-            sizes.Clear();
-            sizes.AddRange(permutedSizes);
-        }
 
         return true;
     }

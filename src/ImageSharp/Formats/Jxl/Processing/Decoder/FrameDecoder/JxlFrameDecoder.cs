@@ -3,19 +3,20 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.IO;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
-using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Group;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.FrameDecoder;
 
-internal sealed class JxlFrameDecoder
+/// <summary>
+/// Owns one frame's section control and modular sample storage while borrowing the codestream's decoder workspace.
+/// </summary>
+internal sealed class JxlFrameDecoder : IDisposable
 {
     private JxlPassesDecoderState decoderState;
     private List<JxlTocEntry> toc = [];
-    private ulong sectionSizesSum;
+    private long sectionSizesSum;
     private JxlFrameHeader frameHeader;
     private JxlFrameDimensions frameDimensions;
     private JxlImageBundle decoded;
@@ -31,11 +32,84 @@ internal sealed class JxlFrameDecoder
     private long numSectionsDone;
     private bool isFinalized = true;
     private bool allocated;
-    private List<JxlGroupDecoderCache> groupDecoderCaches = [];
-    private bool useTaskId;
-    private bool useSlowRenderingPipeline;
     private JxlProgressiveDetail progressiveDetail = JxlProgressiveDetail.Frames;
     private List<int> passesToPause = [];
+
+    /// <summary>
+    /// Binds a parsed frame to its decoder workspace and reads its section table.
+    /// </summary>
+    /// <param name="decoderState">The borrowed workspace whose shared state outlives this controller.</param>
+    /// <param name="frameHeader">The header already read from this frame's bitstream.</param>
+    /// <param name="frameDimensions">The validated dimensions derived from that header.</param>
+    /// <param name="decoded">The caller-owned destination bundle.</param>
+    /// <param name="reader">The reader immediately after the frame header. It advances to the first section.</param>
+    public JxlFrameDecoder(
+        JxlPassesDecoderState decoderState,
+        JxlFrameHeader frameHeader,
+        JxlFrameDimensions frameDimensions,
+        JxlImageBundle decoded,
+        JxlBitReader reader)
+    {
+        this.decoderState = decoderState;
+        this.frameHeader = frameHeader;
+        this.frameDimensions = frameDimensions;
+        this.decoded = decoded;
+        this.modularFrameDecoder = new(decoderState.Shared.Configuration, frameDimensions);
+
+        int entries = JxlToc.NumberOfTocEntries(frameDimensions.NumGroups, frameDimensions.NumDcGroups, (int)frameHeader.Passes.NumberOfPasses);
+        List<uint> sizes = new(entries);
+        List<uint> permutation = [];
+        if (!JxlToc.ReadToc(decoderState.Shared.Configuration, entries, reader, sizes, permutation))
+        {
+            throw new InvalidImageContentException("The JPEG XL frame section table is invalid or incomplete.");
+        }
+
+        this.toc.EnsureCapacity(entries);
+        for (int i = 0; i < entries; i++)
+        {
+            // TOC sizes follow physical stream order. The permutation maps each logical section to its physical slot.
+            // The U32 distribution limits one size to less than Int32.MaxValue; at most 65,536 entries fit in Int64.
+            this.toc.Add(new JxlTocEntry { Size = (int)sizes[i], Id = i });
+            this.sectionSizesSum += sizes[i];
+        }
+
+        if (permutation.Count != 0)
+        {
+            for (int i = 0; i < entries; i++)
+            {
+                int physicalIndex = (int)permutation[i];
+                JxlTocEntry entry = this.toc[physicalIndex];
+                entry.Id = i;
+                this.toc[physicalIndex] = entry;
+            }
+        }
+
+        // A reused output bundle can still contain a previous frame with another extent. Only it owns those planes.
+        decoded.RemoveColor();
+        decoded.ClearExtraChannels();
+        decoded.Duration = frameHeader.AnimationFrame.Duration;
+
+        if (!frameHeader.IsPreviewFrame && (frameHeader.IsLast || decoded.Duration > 0)
+            && frameHeader.FrameType is JxlFrameType.RegularFrame or JxlFrameType.SkipProgressive)
+        {
+            decoderState.VisibleFrameIndex++;
+            decoderState.NonvisibleFrameIndex = 0;
+        }
+        else
+        {
+            decoderState.NonvisibleFrameIndex++;
+        }
+    }
+
+    /// <summary>
+    /// Gets section sizes and logical identifiers in their physical stream order.
+    /// </summary>
+    public IReadOnlyList<JxlTocEntry> Toc => this.toc;
+
+    /// <summary>
+    /// Gets the total byte count of the frame's sections, excluding its header and section table.
+    /// </summary>
+    public long SectionSizesSum => this.sectionSizesSum;
 
     /// <summary>
     /// Gets a value indicating whether there are any DC groups left to decode.
@@ -110,7 +184,7 @@ internal sealed class JxlFrameDecoder
                 return false;
             }
 
-            if (this.decodedPassesPerAcGroup.Any(nbp => nbp < this.frameHeader.Passes.NumPasses))
+            if (this.decodedPassesPerAcGroup.Any(nbp => nbp < this.frameHeader.Passes.NumberOfPasses))
             {
                 return false;
             }
@@ -135,122 +209,33 @@ internal sealed class JxlFrameDecoder
         return 0;
     }
 
-    private static int GetStride(int width, JxlPixelFormat format)
-    {
-        if (!JxlMath.SafeMultiply(BytesPerChannel(format.DataType), format.Channels, out int xStride))
-        {
-            throw new InvalidOperationException("Image too large");
-        }
-
-        if (!JxlMath.SafeMultiply(xStride, width, out int yStride))
-        {
-            throw new InvalidOperationException("Image too large");
-        }
-
-        if (!JxlMath.SafeRoundUpTo(yStride, format.Align, yStride))
-        {
-            throw new InvalidOperationException("Image too large");
-        }
-
-        return yStride;
-    }
-
     public static void DecodeGlobalDcInfo(Configuration configuration, JxlBitReader reader, bool isJpeg, JxlPassesDecoderState state)
     {
-        state.SharedStorage.Quantizer.Decode(reader);
+        state.Shared.Quantizer.Decode(reader);
 
-        if (!JxlEntropyCoder.DecodeBlockContextMap(configuration, reader, ref state.SharedStorage.BlockContextMap))
+        if (!JxlEntropyCoder.DecodeBlockContextMap(configuration, reader, ref state.Shared.BlockContextMap))
         {
             throw new InvalidOperationException("Could not decode block context map");
         }
 
-        if (!state.SharedStorage.ColorMap.DecodeDc(reader))
+        if (!state.Shared.ColorMap.DecodeDc(reader))
         {
             throw new InvalidOperationException("Could not decode DC color correlation map");
         }
 
         if (isJpeg)
         {
-            state.SharedStorage.Quantizer.ClearDcMultipliers();
+            state.Shared.Quantizer.ClearDcMultipliers();
         }
 
-        state.SharedStorage.AcStrategy.FillInvalid();
+        state.Shared.AcStrategy.FillInvalid();
     }
 
-    public static void DecodeFrame(JxlPassesDecoderState decoderState, Stream stream, ref JxlFrameHeader header, JxlImageBundle decoded, JxlCodecMetadata metadata, bool useSlowRenderingPipeline)
+    /// <summary>
+    /// Releases frame-owned modular channels without disposing borrowed decoder controls or the output bundle.
+    /// </summary>
+    public void Dispose()
     {
-        JxlFrameDecoder frameDecoder = new(decoderState, metadata, useSlowRenderingPipeline);
-        JxlBitReader reader = new(stream);
-
-        if (!frameDecoder.InitializeFrame(reader, decoded, isPreview: false))
-        {
-            throw new InvalidOperationException("Frame initialization failed");
-        }
-
-        if (!frameDecoder.InitializeFrameOutput())
-        {
-            throw new InvalidOperationException("Could not initialize frame output");
-        }
-
-        if (header is not null)
-        {
-            header = frameDecoder.frameHeader;
-        }
-
-        bool closeOk = true;
-        List<JxlBitReader> sectionReaders = [];
-        List<JxlBitReaderScopedCloser> sectionClosers = [];
-        List<JxlSectionInfo> sectionInfos = [];
-        List<JxlSectionStatus> sectionStatuses = [];
-
-        int index = 0;
-
-        foreach (JxlTocEntry toc in frameDecoder.toc)
-        {
-            JxlBitReader br = new(stream);
-            sectionInfos.Add(new JxlSectionInfo(br, toc.Id, index++));
-            sectionClosers.Add(new JxlBitReaderScopedCloser(reader, closeOk));
-            sectionReaders.Add(br);
-        }
-
-        frameDecoder.ProcessSections(sectionInfos, sectionStatuses);
-        for (int i = 0; i < sectionStatuses.Count; i++)
-        {
-            if (sectionStatuses[i] != JxlSectionStatus.Done)
-            {
-                throw new InvalidOperationException("Section incomplete");
-            }
-        }
-
-        if (!closeOk)
-        {
-            throw new InvalidDataException("Stream cannot be closed");
-        }
-
-        frameDecoder.FinalizeFrame();
-    }
-
-    private static int BytesPerChannel(JxlDataType dataType) =>
-        dataType == JxlDataType.Byte ? 1
-           : dataType == JxlDataType.Single
-              ? 4
-              : 2;
-
-    private int GetStorageLocation(int thread, int task) => this.useTaskId ? task : thread;
-
-    private void PrepareStorage(int numThreads, int numTasks)
-    {
-        int storageSize = Math.Min(numThreads, numTasks);
-        if (storageSize > this.groupDecoderCaches.Count)
-        {
-            this.groupDecoderCaches = [.. this.groupDecoderCaches.Take(storageSize)];
-        }
-
-        this.useTaskId = numThreads > numTasks;
-        bool useNoise = (this.frameHeader.Flags & (int)JxlFrameHeaderFlags.Noise) != 0;
-        bool useGroupIds = this.modularFrameDecoder.UsesFullImage && (this.frameHeader.Encoding == JxlFrameEncoding.VarDct || useNoise);
-
-        this.decoderState.RenderPipeline?.PrepareForThreads(storageSize, useGroupIds);
-        this.decoderState.Upsampler8x.PrepareForThreads(numThreads);
+        this.modularFrameDecoder.Dispose();
     }
 }

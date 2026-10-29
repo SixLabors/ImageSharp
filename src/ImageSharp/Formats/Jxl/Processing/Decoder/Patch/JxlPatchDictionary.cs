@@ -16,7 +16,10 @@ internal sealed class JxlPatchDictionary
 {
     private const byte NumPatchBlendModes = (byte)JxlPatchBlendMode.AlphaWeightedAddBelow + 1;
 
-    private JxlReferenceFrame[] referenceFrames = new JxlReferenceFrame[4];
+    /// <summary>
+    /// Borrows the codestream owner's reference slots. The owner binds them before decoding patches and retains their sample planes.
+    /// </summary>
+    private (JxlImageBundle Frame, bool ImageBundleIsInXyb)[] referenceFrames = [];
     private readonly List<JxlPatchPosition> positions = [];
     private readonly List<JxlPatchReferencePosition> referencePositions = [];
     private readonly List<JxlPatchBlending> blendings = [];
@@ -28,7 +31,11 @@ internal sealed class JxlPatchDictionary
 
     public bool HasAny => this.positions.Count > 0;
 
-    public void SetShared(JxlReferenceFrame[] referenceFrames) => this.referenceFrames = referenceFrames;
+    /// <summary>
+    /// Borrows the codestream's reference slots without copying slots or taking ownership of their sample planes.
+    /// </summary>
+    /// <param name="referenceFrames">The slots retained by the shared state for this codestream.</param>
+    public void SetShared((JxlImageBundle Frame, bool ImageBundleIsInXyb)[] referenceFrames) => this.referenceFrames = referenceFrames;
 
     /// <summary>
     /// Clears the decoded dictionary and its row index before it is reused for another frame.

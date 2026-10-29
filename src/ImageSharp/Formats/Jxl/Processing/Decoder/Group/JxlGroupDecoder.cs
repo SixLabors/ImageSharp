@@ -277,8 +277,8 @@ internal static class JxlGroupDecoder
 
             JxlAcStrategyRow acsRow = acStrategy.GetRow(blockRect, by);
 
-            ReadOnlySpan<sbyte> rowCMap0 = decState.Shared.ColorMap.YToXMap!.GetRow(ty);
-            ReadOnlySpan<sbyte> rowCMap2 = decState.Shared.ColorMap.YToBMap!.GetRow(ty);
+            ReadOnlySpan<sbyte> rowCMap0 = decState.Shared.ColorMap.YToXMap.GetRow(ty);
+            ReadOnlySpan<sbyte> rowCMap2 = decState.Shared.ColorMap.YToBMap.GetRow(ty);
 
             Span<float> idctRow0;
             Span<float> idctRow1;

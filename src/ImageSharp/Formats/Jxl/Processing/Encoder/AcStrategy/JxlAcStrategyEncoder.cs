@@ -916,9 +916,9 @@ internal static class JxlAcStrategyEncoder
         int ty = by / JxlChromaFromLuma.ColorTileDimensionInBlocks;
 
         InlineArray3<float> cmapFactors = default;
-        cmapFactors[0] = cmap.Base.YToXRatio(cmap.YToXMap!.GetRow(ty)[tx]);
+        cmapFactors[0] = cmap.Base.YToXRatio(cmap.YToXMap.GetRow(ty)[tx]);
         cmapFactors[1] = 0f;
-        cmapFactors[2] = cmap.Base.YToBRatio(cmap.YToBMap!.GetRow(ty)[tx]);
+        cmapFactors[2] = cmap.Base.YToBRatio(cmap.YToBMap.GetRow(ty)[tx]);
 
         if (cparams.SpeedTier > JxlSpeedTier.Hare)
         {

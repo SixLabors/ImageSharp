@@ -121,6 +121,114 @@ public class GaborishTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
+    /// <summary>
+    /// Checks all six five-by-five tap weights, full-image reflection and distinct rectangle origins at every SIMD capability.
+    /// </summary>
+    /// <param name="width">The requested output width, including short rows and SIMD tails.</param>
+    /// <param name="cropped">Whether the source rectangle has readable neighbors outside its requested range.</param>
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(3, false)]
+    [InlineData(17, false)]
+    [InlineData(33, false)]
+    [InlineData(17, true)]
+    public void Symmetric5_UsesDistinctTapWeightsAndFullImageBorders(int width, bool cropped)
+    {
+        static void RunTest(string serialized)
+        {
+            (int sampleWidth, bool useCrop) = FeatureTestRunner.Deserialize<(int, bool)>(serialized);
+            const float padding = -123F;
+            const int height = 3;
+            int inputWidth = useCrop ? sampleWidth + 6 : sampleWidth;
+            int inputHeight = useCrop ? 7 : height;
+            Rectangle inputRect = new(useCrop ? 3 : 0, useCrop ? 2 : 0, sampleWidth, height);
+            Rectangle outputRect = new(2, 1, sampleWidth, height);
+            using JxlPlane<float> input = new(TestEnvironment.Configuration, inputWidth, inputHeight);
+            using JxlPlane<float> output = new(TestEnvironment.Configuration, sampleWidth + 5, height + 3);
+            Span<float> inputSamples = input.GetRow(0);
+            Span<float> outputSamples = output.GetRow(0);
+            inputSamples.Fill(padding);
+            outputSamples.Fill(padding);
+
+            for (int y = 0; y < inputHeight; y++)
+            {
+                for (int x = 0; x < inputWidth; x++)
+                {
+                    inputSamples[(y * input.PixelsPerRow) + x] = ((13 * x) + (7 * y)) % 31 - 15;
+                }
+            }
+
+            // Six different dyadic weights distinguish the center, axial, diagonal, outer axial, L and corner taps.
+            // Every product and sum remains exactly representable for these small integer samples.
+            JxlWeightsSymmetric5 weights = new()
+            {
+                C = JxlWeightsSymmetric5.CreateVector4(0.5F),
+                R = JxlWeightsSymmetric5.CreateVector4(0.0625F),
+                R2 = JxlWeightsSymmetric5.CreateVector4(0.03125F),
+                D = JxlWeightsSymmetric5.CreateVector4(0.015625F),
+                L = JxlWeightsSymmetric5.CreateVector4(0.00390625F),
+                D2 = JxlWeightsSymmetric5.CreateVector4(0.0078125F)
+            };
+
+            Assert.True(JxlConvolve.Symmetric5(input, inputRect, ref weights, output, outputRect));
+            ReadOnlySpan<float> weightBySquaredDistance = [0.5F, 0.0625F, 0.015625F, 0F, 0.03125F, 0.00390625F, 0F, 0F, 0.0078125F];
+
+            for (int y = 0; y < output.YSize; y++)
+            {
+                for (int x = 0; x < output.PixelsPerRow; x++)
+                {
+                    float actual = outputSamples[(y * output.PixelsPerRow) + x];
+                    if (!outputRect.Contains(x, y))
+                    {
+                        Assert.Equal(padding, actual);
+                        continue;
+                    }
+
+                    float expected = 0;
+                    for (int dy = -2; dy <= 2; dy++)
+                    {
+                        int sourceY = inputRect.Y + y - outputRect.Y + dy;
+
+                        // The edge sample repeats. Repeated reflection also defines a one-sample image.
+                        while ((uint)sourceY >= (uint)inputHeight)
+                        {
+                            sourceY = sourceY < 0 ? -sourceY - 1 : (2 * inputHeight) - sourceY - 1;
+                        }
+
+                        for (int dx = -2; dx <= 2; dx++)
+                        {
+                            int sourceX = inputRect.X + x - outputRect.X + dx;
+                            while ((uint)sourceX >= (uint)inputWidth)
+                            {
+                                sourceX = sourceX < 0 ? -sourceX - 1 : (2 * inputWidth) - sourceX - 1;
+                            }
+
+                            float sample = ((13 * sourceX) + (7 * sourceY)) % 31 - 15;
+                            expected += sample * weightBySquaredDistance[(dx * dx) + (dy * dy)];
+                        }
+                    }
+
+                    Assert.Equal(expected, actual);
+                }
+            }
+
+            // The convolution borrows the source. It must preserve its samples and allocator padding.
+            for (int y = 0; y < inputHeight; y++)
+            {
+                for (int x = 0; x < input.PixelsPerRow; x++)
+                {
+                    float expected = x < inputWidth ? ((13 * x) + (7 * y)) % 31 - 15 : padding;
+                    Assert.Equal(expected, inputSamples[(y * input.PixelsPerRow) + x]);
+                }
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            (width, cropped),
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
     private static JxlWeightsSymmetric3 GaborishKernel(float weight1, float weight2)
     {
         const float weight0 = 1.0f;

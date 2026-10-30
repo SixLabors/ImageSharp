@@ -15,6 +15,8 @@ public class ColorConversionOptions
 {
     private Matrix4x4 adaptationMatrix;
     private YCbCrTransform yCbCrTransform;
+    private readonly XybTransform? sourceXybTransform;
+    private readonly XybTransform? targetXybTransform;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
@@ -49,6 +51,24 @@ public class ColorConversionOptions
     /// Gets the destination working space used for companding in conversions from/to XYZ color space.
     /// </summary>
     public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
+
+    /// <summary>
+    /// Gets the transform used to convert source XYB samples to RGB. The default is <see cref="KnownXybTransforms.Default"/>.
+    /// </summary>
+    public XybTransform SourceXybTransform
+    {
+        get => this.sourceXybTransform ?? KnownXybTransforms.Default;
+        init => this.sourceXybTransform = value;
+    }
+
+    /// <summary>
+    /// Gets the transform used to convert RGB to target XYB samples. The default is <see cref="KnownXybTransforms.Default"/>.
+    /// </summary>
+    public XybTransform TargetXybTransform
+    {
+        get => this.targetXybTransform ?? KnownXybTransforms.Default;
+        init => this.targetXybTransform = value;
+    }
 
     /// <summary>
     /// Gets the YCbCr matrix to used to perform conversions from/to RGB.

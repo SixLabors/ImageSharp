@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
@@ -1194,11 +1195,8 @@ internal static class JxlHeuristics
         // Temporary conversion data
         using JxlImage3<float> rgb = new(configuration, opsin.XSize, opsin.YSize);
 
-        JxlOpsinParameters opsinParameters = new();
-        opsinParameters.Initialize(JxlMath.DefaultIntensityTarget);
-
         // Convert Opsin XYB to linear
-        if (!JxlXybDecoder.OpsinToLinear(opsin, rgb.GetRectangle(), rgb, opsinParameters))
+        if (!JxlXybDecoder.OpsinToLinear(opsin, rgb.GetRectangle(), rgb, KnownXybTransforms.Default))
         {
             throw new InvalidOperationException("Failed to convert Opsin color-space to RGB");
         }

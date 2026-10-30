@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats.Jxl.Cms;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Noise;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.Noise;
@@ -34,7 +34,8 @@ internal static class JxlPhotonNoise
 
     public static JxlNoiseParameters SimulatePhotonNoise(int xSize, int ySize, float iso)
     {
-        float opsinAbsorbanceBiasCbrt = MathF.Cbrt(JxlOpsinConstants.OpsinAbsorbanceBias1);
+        float opsinAbsorbanceBias = -KnownXybTransforms.Default.Biases.Y;
+        float opsinAbsorbanceBiasCbrt = MathF.Cbrt(opsinAbsorbanceBias);
         float h18 = 10f / iso;
         float pixelAreaUm2 = SensorAreaUm2 / (xSize * ySize);
         float electronsPerPixel18 = EffectiveQuantumEfficiency * PhotonsPerLxSPerUm2 * h18 * pixelAreaUm2;
@@ -45,11 +46,11 @@ internal static class JxlPhotonNoise
         {
             float scaledIndex = i / (JxlNoiseParameters.NoisePoints - 2f);
             float y = 2 * scaledIndex;
-            float linear = MathF.Max(0f, Cube(y - opsinAbsorbanceBiasCbrt) + JxlOpsinConstants.OpsinAbsorbanceBias1);
+            float linear = MathF.Max(0f, Cube(y - opsinAbsorbanceBiasCbrt) + opsinAbsorbanceBias);
             float electronsPerPixel = electronsPerPixel18 * (linear / 0.18f);
             float noise = MathF.Sqrt(Square(InputReferredReadNoise) + electronsPerPixel + Square(PhotoResponseNonUniformity * electronsPerPixel));
             float linearNoise = noise * (0.18f / electronsPerPixel18);
-            float opsinDerivative = (1f / 3) / Square(MathF.Sqrt(linear - JxlOpsinConstants.OpsinAbsorbanceBias1));
+            float opsinDerivative = (1f / 3) / Square(MathF.Sqrt(linear - opsinAbsorbanceBias));
             float opsinNoise = linearNoise * opsinDerivative;
 
             lookup[i] = Math.Clamp(opsinNoise / (0.22f * MathF.Sqrt(2f) * 1.13f), 0f, JxlNoiseConstants.NoiseLutMax);

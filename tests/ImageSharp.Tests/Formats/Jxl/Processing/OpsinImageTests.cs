@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
@@ -11,8 +12,6 @@ using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
-using SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -38,14 +37,23 @@ public class OpsinImageTests
         linear.PlaneRow(0, 0)[0] = rgbR;
         linear.PlaneRow(1, 0)[0] = rgbG;
         linear.PlaneRow(2, 0)[0] = rgbB;
-        Assert.True(JxlXybEncoder.ToXyb(
-            TestEnvironment.Configuration,
-            JxlColorEncoding.LinearSRgb,
-            JxlShared.DefaultIntensityTarget,
-            null,
-            new JxlImage3<float>(),
-            JxlCmsInterface.CreateDefaultCms(),
-            null));
+        XybTransform transform = KnownXybTransforms.Default;
+        Matrix4x4 matrix = transform.ScaledForward;
+        JxlXybEncoder.RgbRowToXyb(
+            linear.PlaneRow(0, 0)[..1],
+            linear.PlaneRow(1, 0)[..1],
+            linear.PlaneRow(2, 0)[..1],
+            linear.PlaneRow(0, 0)[..1],
+            linear.PlaneRow(1, 0)[..1],
+            linear.PlaneRow(2, 0)[..1],
+            [],
+            [],
+            [],
+            in matrix,
+            transform.Biases,
+            transform.CubeRootBiases,
+            default(TensorPrimitives_.IdentityOperator));
+
         xybX = linear.PlaneRow(0, 0)[0];
         xybY = linear.PlaneRow(1, 0)[0];
         xybB = linear.PlaneRow(2, 0)[0];
@@ -70,15 +78,11 @@ public class OpsinImageTests
 
         using JxlImage3<float> linear = new(TestEnvironment.Configuration, 1, 1);
 
-        JxlOpsinParameters opsinParameters = new();
-        JxlOpsinInverseMatrix inverse = new();
-        opsinParameters.Initialize(inverse.InverseMatrix, inverse.OpsinBiases, 255F);
-
         Assert.True(JxlXybDecoder.OpsinToLinear(
             opsin,
             opsin.GetRectangle(),
             linear,
-            opsinParameters));
+            KnownXybTransforms.Default));
 
         rgbR = linear.PlaneRow(0, 0)[0];
         rgbG = linear.PlaneRow(1, 0)[0];
@@ -103,17 +107,15 @@ public class OpsinImageTests
     {
         const float tolerance = 1e-6f;
 
-        JxlMatrix3x3F matrix = JxlOpsinConstants.GetOpsinAbsorbanceInverseMatrix();
-
-        Assert.True(JxlMatrix3x3F.Invert(ref matrix));
+        Assert.True(Matrix4x4.Invert(KnownXybTransforms.Default.Inverse, out Matrix4x4 matrix));
 
         for (int j = 0; j < 3; j++)
         {
             for (int i = 0; i < 3; i++)
             {
                 Assert.Equal(
-                    matrix.DangerousGetReferenceTo(j, i),
-                    JxlOpsinConstants.OpsinAbsorbanceMatrix[j][i],
+                    matrix[j, i],
+                    KnownXybTransforms.Default.Forward[j, i],
                     tolerance);
             }
         }
@@ -167,7 +169,9 @@ public class OpsinImageTests
         }
     }
 
-    /// <summary>Checks bias subtraction, intensity scaling, rectangular origins and exact row guards at every SIMD capability.</summary>
+    /// <summary>
+    /// Checks bias subtraction, intensity scaling, rectangular origins and exact row guards at every SIMD capability.
+    /// </summary>
     [Fact]
     public void InverseOpsin_ReconstructsDyadicSamplesWithinRectangle()
     {
@@ -183,7 +187,7 @@ public class OpsinImageTests
             const float untouched = -777F;
             foreach (float intensity in intensities)
             {
-                JxlOpsinParameters parameters = CreateDyadicOpsinParameters(intensity);
+                XybTransform parameters = CreateDyadicOpsinTransform(intensity);
                 foreach (int width in widths)
                 {
                     using JxlImage3<float> source = new(TestEnvironment.Configuration, width + 19, 6);
@@ -241,73 +245,50 @@ public class OpsinImageTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
-    /// <summary>Checks in-place RGB and scaled-XYB stage output with zero halos, short rows and unchanged extra-channel storage.</summary>
+    /// <summary>
+    /// Checks in-place XYB reconstruction, short rows and unchanged padding and extra-channel storage.
+    /// </summary>
     [Fact]
-    public void XybStage_ConvertsLogicalRowsAndPreservesPadding()
+    public void XybConverter_ConvertsLogicalRowsAndPreservesPadding()
     {
         static void RunTest()
         {
             ReadOnlySpan<int> widths = [1, 3, 17, 33];
             ReadOnlySpan<float> xyb = [0F, 0F, 0F, 0.5F, 0.5F, 1F, -0.5F, 0.5F, -1F, 0.25F, 0.25F, -0.5F];
             ReadOnlySpan<float> rgb = [0F, 0F, 0F, 5.25F, -1.75F, 8.75F, 3.75F, 13.75F, -4.5F, 2.59375F, -1.40625F, -0.28125F];
-            const int origin = RenderPipelineStageBase.RenderPipelineXOffset;
+            const int origin = 2;
             const float untouched = -777F;
+            JxlColorConverter converter = JxlColorConverter.CreateXyb(CreateDyadicOpsinTransform(510F));
+
             foreach (int width in widths)
             {
-                for (int scaled = 0; scaled < 2; scaled++)
+                using JxlPlane<float> storage = new(TestEnvironment.Configuration, origin + width + 3, 4);
+                Span<float> samples = storage.GetRow(0);
+                samples.Fill(untouched);
+
+                for (int c = 0; c < 3; c++)
                 {
-                    int storageWidth = origin + width + 3;
-                    using JxlPlane<float> storage = new(TestEnvironment.Configuration, storageWidth, 4);
-                    Span<float> samples = storage.GetRow(0);
-                    samples.Fill(untouched);
-                    Memory<float>[] table = new Memory<float>[4];
-                    for (int c = 0; c < table.Length; c++)
+                    for (int x = 0; x < width; x++)
                     {
-                        table[c] = storage.GetRowMemory(c)[..storageWidth];
-                        if (c < 3)
-                        {
-                            for (int x = 0; x < width; x++)
-                            {
-                                samples[(c * storage.PixelsPerRow) + origin + x] = xyb[((x % 4) * 3) + c];
-                            }
-                        }
+                        samples[(c * storage.PixelsPerRow) + origin + x] = xyb[((x % 4) * 3) + c];
                     }
+                }
 
-                    // The row table borrows numeric storage. The stage reads no vertical or horizontal border samples and writes in place.
-                    using Buffer2D<Memory<float>> rows = new(MemoryGroup<Memory<float>>.Wrap(table.AsMemory()), 4, 1);
-                    JxlOutputEncodingInfo info = new()
+                // Each logical component row has a prefix and suffix. The fourth row is unrelated extra-channel storage.
+                Span<float> row0 = samples.Slice(origin, width);
+                Span<float> row1 = samples.Slice(storage.PixelsPerRow + origin, width);
+                Span<float> row2 = samples.Slice((2 * storage.PixelsPerRow) + origin, width);
+                converter.Convert(row0, row1, row2, row0, row1, row2);
+
+                for (int c = 0; c < 4; c++)
+                {
+                    ReadOnlySpan<float> actual = samples.Slice(c * storage.PixelsPerRow, storage.PixelsPerRow);
+
+                    for (int i = 0; i < actual.Length; i++)
                     {
-                        OpsinParameters = CreateDyadicOpsinParameters(510F),
-                        ColorEncoding = new() { ColorSpace = scaled == 0 ? JxlColorSpace.Rgb : JxlColorSpace.Xyb }
-                    };
-
-                    using XybStage stage = new(TestEnvironment.Configuration, info);
-                    stage.ProcessRow(rows, rows, 0, 0, width, 0, 0);
-                    for (int c = 0; c < 4; c++)
-                    {
-                        ReadOnlySpan<float> actual = samples.Slice(c * storage.PixelsPerRow, storage.PixelsPerRow);
-                        for (int i = 0; i < actual.Length; i++)
-                        {
-                            int x = i - origin;
-                            float expected = untouched;
-                            if (c < 3 && x >= 0 && x < width)
-                            {
-                                int sample = (x % 4) * 3;
-                                if (scaled == 0)
-                                {
-                                    expected = rgb[sample + c] * 0.5F;
-                                }
-                                else
-                                {
-                                    // Native scaled output uses (X+offset)*scale, Y*scale, and (B-Y+offset)*scale in this order.
-                                    expected = c == 0 ? (xyb[sample] + 0.015386134F) * 22.995788804F
-                                        : c == 1 ? xyb[sample + 1] * 1.183000077F
-                                        : ((xyb[sample + 2] - xyb[sample + 1]) + 0.27770459F) * 1.502141333F;
-                                }
-                            }
-
-                            Assert.Equal(expected, actual[i]);
-                        }
+                        int x = i - origin;
+                        float expected = c < 3 && x >= 0 && x < width ? rgb[((x % 4) * 3) + c] * 0.5F : untouched;
+                        Assert.Equal(expected, actual[i]);
                     }
                 }
             }
@@ -318,7 +299,9 @@ public class OpsinImageTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
-    /// <summary>Checks the actual forward row path, native matrix equations, shared input expansion and exact storage bounds.</summary>
+    /// <summary>
+    /// Checks the actual forward row path, native matrix equations, shared input expansion and exact storage bounds.
+    /// </summary>
     [Fact]
     public void ForwardOpsin_ConvertsRowsAndRetainsRequestedLinearSamples()
     {
@@ -346,8 +329,8 @@ public class OpsinImageTests
                 -0.25F, 0.125F, 0.5F
             ];
 
-            Span<float> coefficients = stackalloc float[12];
-            coefficients[9] = coefficients[10] = coefficients[11] = -MathF.Cbrt(bias);
+            Vector3 biases = new(-bias);
+            Vector3 cubeRootBiases = new(-MathF.Cbrt(bias));
             const float untouched = -777F;
             CompandingUtilities.BoundedOperator<SRgbCompanding.ExpandOperator> expand = new(new(1.055F, 0.055F, 0.04045F), PixelColorRange.Extended);
             foreach (int width in widths)
@@ -366,10 +349,12 @@ public class OpsinImageTests
                 foreach (float intensity in intensities)
                 {
                     // These are native input parameters, independent of the production coefficient preparation method.
-                    for (int i = 0; i < matrix.Length; i++)
-                    {
-                        coefficients[i] = matrix[i] * (intensity / 255F);
-                    }
+                    float scale = intensity / 255F;
+                    Matrix4x4 scaledForward = new(
+                        matrix[0] * scale, matrix[3] * scale, matrix[6] * scale, 0F,
+                        matrix[1] * scale, matrix[4] * scale, matrix[7] * scale, 0F,
+                        matrix[2] * scale, matrix[5] * scale, matrix[8] * scale, 0F,
+                        0F, 0F, 0F, 1F);
 
                     for (int mode = 0; mode < 4; mode++)
                     {
@@ -394,7 +379,20 @@ public class OpsinImageTests
                         Span<float> retained2 = retainLinear ? linear2.Slice(4, width) : [];
                         if (encoded)
                         {
-                            JxlXybEncoder.RgbRowToXyb(row0, row1, row2, row0, row1, row2, retained0, retained1, retained2, coefficients, expand);
+                            JxlXybEncoder.RgbRowToXyb(
+                                row0,
+                                row1,
+                                row2,
+                                row0,
+                                row1,
+                                row2,
+                                retained0,
+                                retained1,
+                                retained2,
+                                in scaledForward,
+                                biases,
+                                cubeRootBiases,
+                                expand);
                         }
                         else
                         {
@@ -408,7 +406,9 @@ public class OpsinImageTests
                                 retained0,
                                 retained1,
                                 retained2,
-                                coefficients,
+                                in scaledForward,
+                                biases,
+                                cubeRootBiases,
                                 default(TensorPrimitives_.IdentityOperator));
                         }
 
@@ -491,30 +491,33 @@ public class OpsinImageTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
-    /// <summary>Prepares a nonsymmetric dyadic inverse matrix and exact cube-root biases for independent numerical checks.</summary>
+    /// <summary>
+    /// Prepares a nonsymmetric dyadic inverse matrix and exact cube-root biases for independent numerical checks.
+    /// </summary>
     /// <param name="intensityTarget">The relative-output intensity target: 255 or 510 nits.</param>
     /// <returns>The prepared inverse transform.</returns>
-    private static JxlOpsinParameters CreateDyadicOpsinParameters(float intensityTarget)
+    private static XybTransform CreateDyadicOpsinTransform(float intensityTarget)
     {
         JxlMatrix3x3F matrix = default;
         ReadOnlySpan<float> coefficients = [1F, 0.5F, -0.25F, -0.5F, 2F, 0.25F, 0.25F, -0.5F, 1F];
         coefficients.CopyTo(matrix.AsSpan());
         InlineArray3<float> biases = default;
         biases[0] = biases[1] = biases[2] = -1F;
-        JxlOpsinParameters parameters = new();
-        parameters.Initialize(in matrix, biases, intensityTarget);
-        return parameters;
+        JxlOpsinInverseMatrix header = new() { InverseMatrix = matrix, OpsinBiases = biases };
+        return header.CreateTransform(intensityTarget);
     }
 
-    /// <summary>Checks centered chroma, luma bias, HDR values and exact in-place YCbCr row bounds at every SIMD width.</summary>
+    /// <summary>
+    /// Checks centered chroma, luma bias, HDR values and exact in-place YCbCr row bounds at every SIMD width.
+    /// </summary>
     [Fact]
-    public void YCbCrStage_ConvertsCenteredChromaAndPreservesHdrAndPadding()
+    public void YCbCrConverter_ConvertsCenteredChromaAndPreservesHdrAndPadding()
     {
         static void RunTest()
         {
             ReadOnlySpan<int> widths = [1, 3, 17, 33];
             ReadOnlySpan<float> chroma = [0F, 0F, 0.25F, 0F, 0F, 0.5F, 0.25F, 0.5F, -0.25F, -0.5F, 32768F, 0F, 0F, -32768F, 32768F, 32768F];
-            const int origin = RenderPipelineStageBase.RenderPipelineXOffset;
+            const int origin = 2;
             const float untouched = -777F;
             const float storedY = -128F / 255F;
             const float greenCb = (float)(0.114 * 1.772 / 0.587);
@@ -526,24 +529,21 @@ public class OpsinImageTests
                 using JxlPlane<float> storage = new(TestEnvironment.Configuration, storageWidth, 4);
                 Span<float> samples = storage.GetRow(0);
                 samples.Fill(untouched);
-                Memory<float>[] table = new Memory<float>[4];
-                for (int c = 0; c < table.Length; c++)
+                for (int c = 0; c < 3; c++)
                 {
-                    table[c] = storage.GetRowMemory(c)[..storageWidth];
-                    if (c < 3)
+                    for (int x = 0; x < width; x++)
                     {
-                        for (int x = 0; x < width; x++)
-                        {
-                            int sample = (x % 8) * 2;
-                            samples[(c * storage.PixelsPerRow) + origin + x] = c == 0 ? chroma[sample] : c == 1 ? storedY : chroma[sample + 1];
-                        }
+                        int sample = (x % 8) * 2;
+                        samples[(c * storage.PixelsPerRow) + origin + x] = c == 0 ? chroma[sample] : c == 1 ? storedY : chroma[sample + 1];
                     }
                 }
 
-                // The row table borrows the numeric allocation. JPEG XL stores Cb, biased Y and Cr in that order.
-                using Buffer2D<Memory<float>> rows = new(MemoryGroup<Memory<float>>.Wrap(table.AsMemory()), 4, 1);
-                using YCbCrStage stage = new(TestEnvironment.Configuration);
-                stage.ProcessRow(rows, rows, 0, 0, width, 0, 0);
+                // JPEG XL stores centered Cb, biased Y and centered Cr. Only the three logical rows can change.
+                Span<float> row0 = samples.Slice(origin, width);
+                Span<float> row1 = samples.Slice(storage.PixelsPerRow + origin, width);
+                Span<float> row2 = samples.Slice((2 * storage.PixelsPerRow) + origin, width);
+                JxlColorConverter converter = JxlColorConverter.CreateYCbCr();
+                converter.Convert(row0, row1, row2, row0, row1, row2);
 
                 for (int c = 0; c < 4; c++)
                 {

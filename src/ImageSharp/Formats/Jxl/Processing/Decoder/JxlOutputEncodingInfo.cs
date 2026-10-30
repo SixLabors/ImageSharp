@@ -32,8 +32,6 @@ internal sealed class JxlOutputEncodingInfo
 
     public bool ColorEncodingIsOriginal { get; set; }
 
-    public JxlOpsinParameters OpsinParameters { get; set; } = new();
-
     public bool AllDefaultOpsin { get; set; }
 
     public float InverseGamma { get; set; }
@@ -46,7 +44,9 @@ internal sealed class JxlOutputEncodingInfo
 
     public JxlCmsInterface Cms { get; set; }
 
-    /// <summary>Loads the original encoding metadata and prepares its inverse opsin coefficients.</summary>
+    /// <summary>
+    /// Loads the original encoding metadata for output selection.
+    /// </summary>
     /// <param name="metadata">The parsed image and transform headers.</param>
     public void SetFromMetadata(JxlCodecMetadata metadata)
     {
@@ -62,11 +62,6 @@ internal sealed class JxlOutputEncodingInfo
         this.OriginalInverseMatrix = inverseMatrix.InverseMatrix;
         this.DefaultTransform = inverseMatrix.AllDefault;
         this.XybEncoded = imageMetadata.XybEncoded;
-
-        JxlOpsinParameters parameters = this.OpsinParameters;
-
-        parameters.Initialize(this.OriginalInverseMatrix, inverseMatrix.OpsinBiases, this.OriginalIntensityTarget);
-        parameters.QuantBiases = inverseMatrix.QuantBiases;
 
         bool origOK = JxlXybDecoder.CanOutputToColorEncoding(imageMetadata.ColorEncoding);
         bool origGrey = this.OriginalColorEncoding.IsGray;

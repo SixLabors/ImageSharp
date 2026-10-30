@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.Cms;
+using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
@@ -24,7 +25,7 @@ internal sealed class JxlOpsinInverseMatrix : IJxlFields
     public JxlOpsinInverseMatrix() => JxlBundle.Init(this);
 
     /// <summary>
-    /// Gets or sets the three negative opsin absorbance biases, in channel order.
+    /// Gets or sets the three signed opsin absorbance biases, in channel order.
     /// </summary>
     public InlineArray3<float> OpsinBiases
     {
@@ -59,6 +60,23 @@ internal sealed class JxlOpsinInverseMatrix : IJxlFields
         set => this.inverseMatrix = value;
     }
 
+    /// <summary>
+    /// Creates the inverse color transform from the parsed matrix, biases and original reference intensity.
+    /// </summary>
+    /// <param name="intensityTarget">The positive reference intensity established by the image header, in nits.</param>
+    /// <returns>The shared transform with the wire matrix transposed to Vector3.Transform order.</returns>
+    public XybTransform CreateTransform(float intensityTarget)
+    {
+        ReadOnlySpan<float> values = this.inverseMatrix.AsReadOnlySpan();
+        Matrix4x4 matrix = new(
+            values[0], values[3], values[6], 0F,
+            values[1], values[4], values[7], 0F,
+            values[2], values[5], values[8], 0F,
+            0F, 0F, 0F, 1F);
+
+        return new(matrix, new Vector3(this.opsinBiases[0], this.opsinBiases[1], this.opsinBiases[2]), intensityTarget);
+    }
+
     /// <inheritdoc />
     public bool Visit(JxlVisitor visitor)
     {
@@ -69,12 +87,12 @@ internal sealed class JxlOpsinInverseMatrix : IJxlFields
         }
 
         // The default matrix is frozen by the format. Recomputing an inverse can produce different rounded coefficients.
-        ReadOnlySpan<float> defaultInverse = JxlOpsinConstants.DefaultInverseOpsinAbsorbanceMatrix;
+        Matrix4x4 defaultInverse = KnownXybTransforms.Default.Inverse;
         Span<float> inverse = this.inverseMatrix.AsSpan();
 
         for (int i = 0; i < inverse.Length; i++)
         {
-            if (!visitor.F16(defaultInverse[i], ref inverse[i]))
+            if (!visitor.F16(defaultInverse[i % 3, i / 3], ref inverse[i]))
             {
                 return false;
             }
@@ -82,7 +100,7 @@ internal sealed class JxlOpsinInverseMatrix : IJxlFields
 
         for (int i = 0; i < 3; i++)
         {
-            if (!visitor.F16(-JxlOpsinConstants.OpsinAbsorbanceBias[i], ref this.opsinBiases[i]))
+            if (!visitor.F16(KnownXybTransforms.Default.Biases[i], ref this.opsinBiases[i]))
             {
                 return false;
             }

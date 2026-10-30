@@ -6,10 +6,11 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 /// <summary>
 /// Reconstructs embedded ICC bytes from JPEG XL's entropy-coded prediction commands.

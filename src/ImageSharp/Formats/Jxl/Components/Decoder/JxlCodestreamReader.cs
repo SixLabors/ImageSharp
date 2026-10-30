@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 /// <summary>
 /// Reads JPEG XL codestream bytes across bounded container fragments without joining their payloads in memory.

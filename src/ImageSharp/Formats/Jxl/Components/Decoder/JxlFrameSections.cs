@@ -3,9 +3,10 @@
 
 using System.Buffers;
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 /// <summary>
 /// Owns one frame's section sizes and optional logical-to-physical section order.

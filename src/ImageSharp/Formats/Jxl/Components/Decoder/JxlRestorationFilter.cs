@@ -3,7 +3,7 @@
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 /// <summary>
 /// Retains the frame's Gaborish and edge-preserving filter parameters without applying either filter during identification.

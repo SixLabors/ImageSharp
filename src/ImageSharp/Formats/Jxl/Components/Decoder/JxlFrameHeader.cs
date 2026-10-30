@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 /// <summary>
 /// Reads frame geometry, coding controls, blending and display timing shared by identification and reconstruction.
@@ -12,6 +12,11 @@ internal sealed class JxlFrameHeader
     /// The flag selecting a saved low-frequency frame instead of independently coded low-frequency data.
     /// </summary>
     public const ulong UseLowFrequencyFrame = 0x20;
+
+    /// <summary>
+    /// The flag disabling adaptive DC smoothing for VarDCT. It does not change modular samples.
+    /// </summary>
+    public const ulong SkipAdaptiveDcSmoothing = 0x80;
 
     private InlineArray4<byte> jpegSampling;
     private InlineArray16<byte> passShifts;

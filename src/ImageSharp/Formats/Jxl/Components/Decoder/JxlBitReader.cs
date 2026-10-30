@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 /// <summary>
 /// Reads least-significant-bit-first JPEG XL header fields from a bounded codestream.
@@ -24,6 +24,11 @@ internal struct JxlBitReader
     private int availableBits;
 
     /// <summary>
+    /// The exclusive logical bit position of the current section. The maximum value disables the additional section bound.
+    /// </summary>
+    private long sectionEnd;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlBitReader"/> struct.
     /// </summary>
     /// <param name="source">The logical codestream, positioned at the first field to read.</param>
@@ -32,6 +37,7 @@ internal struct JxlBitReader
         this.source = source;
         this.buffer = 0;
         this.availableBits = 0;
+        this.sectionEnd = long.MaxValue;
     }
 
     /// <summary>
@@ -45,12 +51,41 @@ internal struct JxlBitReader
     public readonly long BytePosition => this.source.Position - ((this.availableBits + 7) / 8);
 
     /// <summary>
+    /// Bounds subsequent reads to one byte-aligned frame section without copying its payload.
+    /// </summary>
+    /// <param name="byteLength">The section length from the frame's validated section table.</param>
+    public void BeginSection(uint byteLength)
+    {
+        // The section table ends on a byte boundary. Header lookahead can already contain payload
+        // or following-section bytes, so retain the reservoir and bound logical consumption instead.
+        this.sectionEnd = this.Position + ((long)byteLength * 8);
+    }
+
+    /// <summary>
+    /// Skips the unused part of the current section and restores unrestricted codestream reads.
+    /// </summary>
+    /// <remarks>The caller must first select a section with <see cref="BeginSection"/>.</remarks>
+    /// <exception cref="InvalidImageContentException">The declared section extends past the available codestream.</exception>
+    public void EndSection()
+    {
+        // Native section readers permit unused bytes and do not validate their padding values.
+        // Skip only the declared remainder. Cached bytes after that boundary remain available to the next section.
+        this.SkipBits((ulong)(this.sectionEnd - this.Position));
+        this.sectionEnd = long.MaxValue;
+    }
+
+    /// <summary>
     /// Rejects a bit count that cannot fit in the remaining input, including prefetched bits.
     /// Container headers can make this upper bound larger than the actual remaining codestream.
     /// </summary>
     /// <param name="count">The minimum bit count required by the consuming syntax.</param>
     public readonly void CheckBitBudget(ulong count)
     {
+        if (count > (ulong)(this.sectionEnd - this.Position))
+        {
+            throw new InvalidImageContentException("The JPEG XL field cannot fit in the remaining section.");
+        }
+
         // Count cached bits first, including an incomplete byte. Round only the uncached part up to whole bytes.
         // Divide before rounding so neither an arbitrary file length nor a declared bit count is multiplied by eight.
         ulong uncached = count - Math.Min(count, (ulong)this.availableBits);
@@ -88,9 +123,10 @@ internal struct JxlBitReader
             this.Refill(count);
         }
 
-        // The parser supplies widths in [0,32]. A 64-bit mask keeps both endpoint widths valid: a 32-bit shift
-        // would wrap at 32 and return an empty mask. Cached bytes remain above the consumed low bits.
-        return (uint)(this.buffer & ((1UL << count) - 1));
+        // A lookup can inspect zero padding but must not inspect prefetched bits from the following section.
+        // Mask only the requested bits inside the bound. A 64-bit mask also preserves the zero- and 32-bit cases.
+        int readable = (int)Math.Min(count, this.sectionEnd - this.Position);
+        return (uint)(this.buffer & ((1UL << readable) - 1));
     }
 
     /// <summary>
@@ -100,9 +136,9 @@ internal struct JxlBitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ConsumeBits(int count)
     {
-        if (count > this.availableBits)
+        if (count > this.availableBits || count > this.sectionEnd - this.Position)
         {
-            throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
+            throw new InvalidImageContentException("The JPEG XL field exceeds its section or codestream boundary.");
         }
 
         this.buffer >>= count;
@@ -215,6 +251,10 @@ internal struct JxlBitReader
     /// <param name="destination">The span receiving the encoded byte fields.</param>
     public void ReadBytes(Span<byte> destination)
     {
+        // The aligned copy below bypasses ReadBits. Prove that its complete byte field stays inside
+        // the current section before either draining lookahead or reading directly from the codestream.
+        this.CheckBitBudget((ulong)destination.Length * 8);
+
         if ((this.availableBits & 7) != 0)
         {
             // Names and other byte-valued fields can begin between physical bytes. Their bits must pass through
@@ -253,6 +293,11 @@ internal struct JxlBitReader
     /// <param name="count">The bit count declared by the header.</param>
     public void SkipBits(ulong count)
     {
+        if (count > (ulong)(this.sectionEnd - this.Position))
+        {
+            throw new InvalidImageContentException("The JPEG XL field exceeds its section boundary.");
+        }
+
         int cached = (int)Math.Min(count, (ulong)this.availableBits);
         this.buffer = cached == 64 ? 0 : this.buffer >> cached;
         this.availableBits -= cached;
@@ -275,16 +320,21 @@ internal struct JxlBitReader
     /// Skips a nonnegative byte count from a byte-aligned payload without converting the count to bits.
     /// </summary>
     /// <param name="count">The payload length declared by the consuming syntax.</param>
-    /// <returns>Whether the complete payload was available. Container errors still throw.</returns>
+    /// <returns>Whether the complete payload was available within the current section and codestream. Container errors still throw.</returns>
     public bool TrySkipBytes(long count)
     {
+        // Match a short codestream's behavior at a section boundary: consume the available range and
+        // report false. The caller can recover without advancing into the following section's payload.
+        long boundedCount = Math.Min(count, (this.sectionEnd - this.Position) / 8);
+
         // Table payloads begin at a byte boundary, but lookahead can retain whole bytes from that payload.
         // Drain those bytes before seeking the source. A 64-bit shift needs an explicit zero result because shifts wrap at 64.
-        int cached = (int)Math.Min(count, this.availableBits / 8);
+        int cached = (int)Math.Min(boundedCount, this.availableBits / 8);
         int bits = cached * 8;
         this.buffer = bits == 64 ? 0 : this.buffer >> bits;
         this.availableBits -= bits;
-        return this.source.TrySkip(count - cached);
+        bool complete = this.source.TrySkip(boundedCount - cached);
+        return complete && boundedCount == count;
     }
 
     /// <summary>
@@ -398,9 +448,17 @@ internal struct JxlBitReader
     {
         while (this.availableBits < count)
         {
+            // The physical source can be ahead of this section because earlier lookahead retained its bytes.
+            // Do not read or open another fragment once the section's last physical byte has been prefetched.
+            long remainingBytes = (this.sectionEnd / 8) - this.source.Position;
+            if (remainingBytes <= 0)
+            {
+                break;
+            }
+
             InlineArray8<byte> storage = default;
             Span<byte> bytes = storage;
-            int capacity = (64 - this.availableBits) / 8;
+            int capacity = (int)Math.Min((64 - this.availableBits) / 8, remainingBytes);
             int read = this.source.Read(bytes[..capacity]);
             if (read == 0)
             {

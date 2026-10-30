@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;

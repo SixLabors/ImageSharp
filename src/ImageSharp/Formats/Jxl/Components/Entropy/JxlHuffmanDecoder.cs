@@ -3,8 +3,9 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Compression;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 
 /// <summary>
 /// Reads JPEG XL prefix-code descriptions into the shared canonical Huffman table layout.

@@ -5,9 +5,10 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Compression;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 
 /// <summary>
 /// Owns JPEG XL entropy tables. Readers borrow their spans for one entropy-coded section.
@@ -394,6 +395,18 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="decodedCount">The number of preceding values, including values already copied.</param>
         /// <returns>The next literal or copied value. Nonempty history receives the returned value.</returns>
         public uint ReadUInt32(ref JxlBitReader reader, int context, scoped Span<uint> history, uint decodedCount)
+            => this.ReadUInt32(ref reader, context, history, decodedCount, 0);
+
+        /// <summary>
+        /// Reads a value with linear history or modular image distances expressed relative to a row width.
+        /// </summary>
+        /// <param name="reader">The bounded bit reader.</param>
+        /// <param name="context">The context selected by the consuming syntax.</param>
+        /// <param name="history">The caller-owned power-of-two residual history, or an empty span without LZ77.</param>
+        /// <param name="decodedCount">The number of preceding residual values in this stream.</param>
+        /// <param name="distanceMultiplier">Zero for linear distances, or the maximum encoded channel width for modular samples.</param>
+        /// <returns>The decoded residual before prediction. Nonempty history receives the returned value.</returns>
+        public uint ReadUInt32(ref JxlBitReader reader, int context, scoped Span<uint> history, uint decodedCount, int distanceMultiplier)
         {
             // The consumer bounds the total value count and supplies a power-of-two ring only for LZ77.
             // Mask logical positions into that ring; history remains caller-owned and is reused through the section.
@@ -415,7 +428,15 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
                     // Copies can overlap their own output. A fixed backward distance and a circular write position
                     // reproduce that sequence one value at a time, including after the window wraps.
-                    this.copyDistance = (int)Math.Min(Math.Min((ulong)value + 1, MaximumLz77Distance), decodedCount);
+                    // Image streams map the first 120 symbols to two-dimensional offsets. ICC and tree
+                    // streams use plain distances. All variants cap distance to the window and available history.
+                    ulong distance = distanceMultiplier == 0
+                        ? (ulong)value + 1
+                        : value < Lz77DistanceCodes.Count
+                            ? (uint)Lz77DistanceCodes.GetDistance((int)value, distanceMultiplier)
+                            : (ulong)value - Lz77DistanceCodes.Count + 1;
+
+                    this.copyDistance = (int)Math.Min(Math.Min(distance, MaximumLz77Distance), decodedCount);
                     this.remainingCopy = copyCount - 1;
                     value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
                 }

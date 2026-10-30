@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
+
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 
 /// <summary>
 /// Reads JPEG XL ANS distributions and builds compact alias buckets.

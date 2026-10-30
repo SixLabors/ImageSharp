@@ -1469,6 +1469,119 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
+    /// Converts signed integer planes to floats, normalizes each component by its maximum and interleaves XYZW groups.
+    /// An empty fourth plane supplies one without normalization.
+    /// </summary>
+    /// <param name="xLane">The X components. Their count determines the number of output vectors.</param>
+    /// <param name="yLane">The Y components, with the same length as the X plane.</param>
+    /// <param name="zLane">The Z components, with the same length as the X plane.</param>
+    /// <param name="wLane">The W components, with the same length as the X plane, or an empty span to supply one.</param>
+    /// <param name="packed">The destination ordered as consecutive XYZW values, with capacity for every input sample.</param>
+    /// <param name="maxValue">The component maxima used for normalization. An absent fourth plane ignores W.</param>
+    public static void PackedNormalizeInterleave4(
+        ReadOnlySpan<int> xLane,
+        ReadOnlySpan<int> yLane,
+        ReadOnlySpan<int> zLane,
+        ReadOnlySpan<int> wLane,
+        Span<float> packed,
+        Vector4 maxValue)
+    {
+        DebugGuard.IsTrue(packed.Length % 4 == 0, nameof(packed), "Packed length must be divisible by four.");
+        Span<Vector4> destination = MemoryMarshal.Cast<float, Vector4>(packed);
+        Vector4 scale = Vector4.One / maxValue;
+
+        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Components must be of same size!");
+        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Components must be of same size!");
+        DebugGuard.IsTrue(wLane.IsEmpty || wLane.Length == xLane.Length, nameof(wLane), "Components must be of same size!");
+        DebugGuard.MustBeLessThanOrEqualTo(xLane.Length, packed.Length / 4, nameof(packed));
+
+        ref int c0 = ref MemoryMarshal.GetReference(xLane);
+        ref int c1 = ref MemoryMarshal.GetReference(yLane);
+        ref int c2 = ref MemoryMarshal.GetReference(zLane);
+        ref int c3 = ref MemoryMarshal.GetReference(wLane);
+        ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+        int i = 0;
+
+        // Each register holds consecutive samples from one plane. Convert signed integers before multiplying,
+        // then use the shared transpose to write [X,Y,Z,W] vectors directly. Unaligned loads need no padded rows.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = xLane.Length.Vector512Count<int>();
+            Vector512<float> scaleX = Vector512.Create(scale.X);
+            Vector512<float> scaleY = Vector512.Create(scale.Y);
+            Vector512<float> scaleZ = Vector512.Create(scale.Z);
+            Vector512<float> scaleW = Vector512.Create(scale.W);
+
+            for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
+            {
+                Vector512<float> x = Vector512.ConvertToSingle(Vector512.LoadUnsafe(ref c0, (uint)i)) * scaleX;
+                Vector512<float> y = Vector512.ConvertToSingle(Vector512.LoadUnsafe(ref c1, (uint)i)) * scaleY;
+                Vector512<float> z = Vector512.ConvertToSingle(Vector512.LoadUnsafe(ref c2, (uint)i)) * scaleZ;
+                Vector512<float> w = wLane.IsEmpty
+                    ? Vector512.Create(1F)
+                    : Vector512.ConvertToSingle(Vector512.LoadUnsafe(ref c3, (uint)i)) * scaleW;
+
+                Interleave4(x, y, z, w, ref Unsafe.Add(ref output, (nuint)i * 4));
+            }
+        }
+
+        // Narrower widths consume only the remaining complete blocks. Each lane still represents one sample,
+        // so the same conversion and scale order applies without another pass over previously written vectors.
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (xLane.Length - i).Vector256Count<int>();
+            Vector256<float> scaleX = Vector256.Create(scale.X);
+            Vector256<float> scaleY = Vector256.Create(scale.Y);
+            Vector256<float> scaleZ = Vector256.Create(scale.Z);
+            Vector256<float> scaleW = Vector256.Create(scale.W);
+
+            for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
+            {
+                Vector256<float> x = Vector256.ConvertToSingle(Vector256.LoadUnsafe(ref c0, (uint)i)) * scaleX;
+                Vector256<float> y = Vector256.ConvertToSingle(Vector256.LoadUnsafe(ref c1, (uint)i)) * scaleY;
+                Vector256<float> z = Vector256.ConvertToSingle(Vector256.LoadUnsafe(ref c2, (uint)i)) * scaleZ;
+                Vector256<float> w = wLane.IsEmpty
+                    ? Vector256.Create(1F)
+                    : Vector256.ConvertToSingle(Vector256.LoadUnsafe(ref c3, (uint)i)) * scaleW;
+
+                Interleave4(x, y, z, w, ref Unsafe.Add(ref output, (nuint)i * 4));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (xLane.Length - i).Vector128Count<int>();
+            Vector128<float> scaleX = Vector128.Create(scale.X);
+            Vector128<float> scaleY = Vector128.Create(scale.Y);
+            Vector128<float> scaleZ = Vector128.Create(scale.Z);
+            Vector128<float> scaleW = Vector128.Create(scale.W);
+
+            for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
+            {
+                Vector128<float> x = Vector128.ConvertToSingle(Vector128.LoadUnsafe(ref c0, (uint)i)) * scaleX;
+                Vector128<float> y = Vector128.ConvertToSingle(Vector128.LoadUnsafe(ref c1, (uint)i)) * scaleY;
+                Vector128<float> z = Vector128.ConvertToSingle(Vector128.LoadUnsafe(ref c2, (uint)i)) * scaleZ;
+                Vector128<float> w = wLane.IsEmpty
+                    ? Vector128.Create(1F)
+                    : Vector128.ConvertToSingle(Vector128.LoadUnsafe(ref c3, (uint)i)) * scaleW;
+
+                Interleave4(x, y, z, w, ref Unsafe.Add(ref output, (nuint)i * 4));
+            }
+        }
+
+        // Short tails and machines without hardware intrinsics use the same float conversion followed by multiplication.
+        // An absent W plane always supplies exactly one, including when maxValue.W is zero, negative or nonfinite.
+        for (; i < xLane.Length; i++)
+        {
+            destination[i] = new Vector4(
+                xLane[i] * scale.X,
+                yLane[i] * scale.Y,
+                zLane[i] * scale.Z,
+                wLane.IsEmpty ? 1F : wLane[i] * scale.W);
+        }
+    }
+
+    /// <summary>
     /// Normalizes four planar component lanes and interleaves them into packed XYZW values.
     /// </summary>
     /// <param name="xLane">The planar X components.</param>

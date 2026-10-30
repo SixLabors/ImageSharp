@@ -1,16 +1,129 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 
 [Trait("Format", "Jxl")]
+[ValidateDisposedMemoryAllocations]
 public class JxlFormatTests
 {
+    /// <summary>
+    /// Verifies every reversible color operation, including signed rounding and overflow, at each SIMD width and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void InverseModularColorTransformMatchesNativeArithmetic()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateInverseModularColorTransform,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies the first complete modular path through format discovery, explicit decoding and automatic pixel selection.
+    /// </summary>
+    /// <param name="file">The unchanged native lossless fixture.</param>
+    /// <param name="hasAlpha">Whether its independently decoded alpha samples are 128 rather than implicit opacity.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.LosslessRgb3x3, false)]
+    [InlineData(TestImages.Jxl.LosslessRgba3x3, true)]
+    public void DecodeLosslessMatchesNativePixels(string file, bool hasAlpha)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration);
+        byte[] data = TestFile.Create(file).Bytes;
+        using MemoryStream discoveredInput = new(data, false);
+        using MemoryStream explicitInput = new(data, false);
+        using MemoryStream automaticInput = new(data, false);
+        using Image<Rgba32> discovered = Image.Load<Rgba32>(options, discoveredInput);
+        using Image<Rgba32> explicitImage = JxlDecoder.Instance.Decode<Rgba32>(options, explicitInput);
+        using Image automatic = Image.Load(options, automaticInput);
+
+        // The native decoder returns the original gamma-encoded samples: 0, 64, 128 and 255.
+        // The file declares compression gamma 0.45455. Convert x to linear with x^(1/0.45455), then apply the sRGB curve.
+        // In eight-bit sRGB, those samples become 0, 62, 129 and 255. Alpha retains its independent value of 128.
+        ReadOnlySpan<Rgb24> expected =
+        [
+            new(255, 0, 0), new(0, 255, 0), new(0, 0, 255),
+            new(129, 62, 62), new(62, 129, 62), new(62, 62, 129),
+            new(255, 255, 255), new(129, 129, 129), new(0, 0, 0)
+        ];
+
+        Assert.Equal(new Size(3, 3), discovered.Size);
+        Assert.Equal(1, discovered.Frames.Count);
+        Assert.Equal(JxlColorType.Rgb, discovered.Metadata.GetFormatMetadata(JxlFormat.Instance).ColorType);
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Rgb24 color = expected[i];
+            Rgba32 pixel = new(color.R, color.G, color.B, hasAlpha ? (byte)128 : byte.MaxValue);
+
+            Assert.Equal(pixel, discovered[i % 3, i / 3]);
+            Assert.Equal(pixel, explicitImage[i % 3, i / 3]);
+        }
+
+        if (hasAlpha)
+        {
+            Assert.IsType<Image<Rgba32>>(automatic);
+        }
+        else
+        {
+            Assert.IsType<Image<Rgb24>>(automatic);
+        }
+
+        Assert.True(discoveredInput.CanRead);
+        Assert.True(explicitInput.CanRead);
+        Assert.True(automaticInput.CanRead);
+    }
+
+    /// <summary>
+    /// Verifies that a short modular payload returns all temporary allocations and leaves the caller's stream open.
+    /// </summary>
+    [Fact]
+    public void DecodeRejectsTruncatedLosslessPayload()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
+        DecoderOptions options = new(configuration);
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LosslessRgb3x3Truncated).Bytes, false);
+
+        // This stored fixture omits the original file's final payload byte. The native decoder also rejects it as truncated.
+        // Allocation logging checks cleanup immediately, without relying on finalizers to release failed reconstruction buffers.
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+        });
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.True(stream.CanRead);
+    }
+
+    /// <summary>
+    /// Verifies cancellation through the public asynchronous decoder without transferring stream ownership.
+    /// </summary>
+    [Fact]
+    public async Task DecodeLosslessHonorsCancellation()
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration);
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LosslessRgb3x3).Bytes, false);
+        using CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            using Image<Rgba32> image = await JxlDecoder.Instance.DecodeAsync<Rgba32>(options, stream, cancellation.Token);
+        });
+
+        Assert.True(stream.CanRead);
+    }
+
     /// <summary>
     /// Verifies displayed animation timing and MaxFrames against the native reference inspector.
     /// </summary>
@@ -427,4 +540,86 @@ public class JxlFormatTests
     [Fact]
     public void DecoderOptionsRejectNullGeneralOptions()
         => Assert.Throws<ArgumentNullException>(() => new JxlDecoderOptions(null));
+
+    /// <summary>
+    /// Checks native reversible color equations against fixed integer results with complete vector blocks and a scalar tail.
+    /// </summary>
+    private static void ValidateInverseModularColorTransform()
+    {
+        ReadOnlySpan<int> firstValues = [-7, int.MaxValue, int.MinValue, 9, 0, -1, 42];
+        ReadOnlySpan<int> secondValues = [10, 2, -3, -5, int.MinValue, -1, 17];
+        ReadOnlySpan<int> thirdValues = [2, 2, -1, -7, int.MaxValue, -1, -103];
+
+        // libjxl InvRCTRow defines wrapping 32-bit sums and signed right shifts, including before the average in operations four and five.
+        // Operation five uses the restored third channel in that average. Operation six reverses YCoCg in two successive half-shift steps.
+        // Each operation below lists seven first-channel results, seven second-channel results, then seven third-channel results.
+        ReadOnlySpan<int> expected =
+        [
+            // No arithmetic.
+            -7, int.MaxValue, int.MinValue, 9, 0, -1, 42,
+            10, 2, -3, -5, int.MinValue, -1, 17,
+            2, 2, -1, -7, int.MaxValue, -1, -103,
+
+            // Add the first channel to the third.
+            -7, int.MaxValue, int.MinValue, 9, 0, -1, 42,
+            10, 2, -3, -5, int.MinValue, -1, 17,
+            -5, -2147483647, int.MaxValue, 2, int.MaxValue, -2, -61,
+
+            // Add the first channel to the second.
+            -7, int.MaxValue, int.MinValue, 9, 0, -1, 42,
+            3, -2147483647, 2147483645, 4, int.MinValue, -2, 59,
+            2, 2, -1, -7, int.MaxValue, -1, -103,
+
+            // Add the first channel to both other channels.
+            -7, int.MaxValue, int.MinValue, 9, 0, -1, 42,
+            3, -2147483647, 2147483645, 4, int.MinValue, -2, 59,
+            -5, -2147483647, int.MaxValue, 2, int.MaxValue, -2, -61,
+
+            // Add the signed average of the first and third channels to the second.
+            -7, int.MaxValue, int.MinValue, 9, 0, -1, 42,
+            7, -1073741822, 1073741820, -4, -1073741825, -2, -14,
+            2, 2, -1, -7, int.MaxValue, -1, -103,
+
+            // Restore the third channel, then use it in the signed average added to the second.
+            -7, int.MaxValue, int.MinValue, 9, 0, -1, 42,
+            4, 2, -4, 0, -1073741825, -3, 7,
+            -5, -2147483647, int.MaxValue, 2, int.MaxValue, -2, -61,
+
+            // Reverse YCoCg, with first = Y, second = Co and third = Cg.
+            -3, int.MaxValue, int.MinValue, 11, -2147483647, 0, 103,
+            -6, int.MinValue, int.MinValue, 6, 1073741824, -1, -9,
+            -13, 2147483645, -2147483645, 16, 1, 1, 86
+        ];
+
+        // Thirty-one columns contain complete 512-, 256- and 128-bit blocks, followed by three scalar columns.
+        // A seven-value period puts different samples at each block boundary instead of repeating vector-sized groups.
+        int length = (2 * Vector512<int>.Count) - 1;
+        int[] first = new int[length];
+        int[] second = new int[length];
+        int[] third = new int[length];
+        int sampleCount = firstValues.Length;
+
+        for (int operation = 0; operation <= 6; operation++)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                int sample = i % sampleCount;
+                first[i] = firstValues[sample];
+                second[i] = secondValues[sample];
+                third[i] = thirdValues[sample];
+            }
+
+            JxlModularColorTransform.Apply(operation, first, second, third);
+
+            int offset = operation * 3 * sampleCount;
+            for (int i = 0; i < length; i++)
+            {
+                int sample = i % sampleCount;
+
+                Assert.Equal(expected[offset + sample], first[i]);
+                Assert.Equal(expected[offset + sampleCount + sample], second[i]);
+                Assert.Equal(expected[offset + (2 * sampleCount) + sample], third[i]);
+            }
+        }
+    }
 }

@@ -1699,6 +1699,12 @@ public static class TestImages
     /// </summary>
     public static class Jxl
     {
+        // Unmodified jxl-rs conformance inputs. Native decoding gives the same nine RGB colors;
+        // the alpha variant stores 128 for every opacity sample.
+        public const string LosslessRgb3x3 = "Jxl/3x3_srgb_lossless.jxl";
+        public const string LosslessRgba3x3 = "Jxl/3x3a_srgb_lossless.jxl";
+        public const string LosslessRgb3x3Truncated = "Jxl/3x3_srgb_lossless_truncated.jxl";
+
         // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
         // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
         public const string Splines = "Jxl/splines.jxl";

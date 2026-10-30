@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
@@ -10,6 +11,75 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [Trait("Format", "Jxl")]
 public class JxlFormatTests
 {
+    /// <summary>
+    /// Verifies that an incomplete optional Brotli payload follows the shared ancillary error policy.
+    /// </summary>
+    /// <param name="handling">The selected segment error policy.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void IdentifyAppliesAncillaryPolicyToCompressedExif(SegmentIntegrityHandling handling)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.ExifBrotliTruncated).Bytes, false);
+
+        // The stored input removes the last compressed byte and updates the outer box length.
+        // Its container and image header remain intact; only the optional EXIF compression is incomplete.
+        if (handling == SegmentIntegrityHandling.Strict)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+        }
+        else
+        {
+            ImageInfo info = Image.Identify(options, stream);
+
+            Assert.Null(info.Metadata.ExifProfile);
+            Assert.Same(JxlFormat.Instance, info.Metadata.DecodedImageFormat);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that codestream level control remains mandatory when optional metadata is skipped.
+    /// </summary>
+    /// <param name="file">The stored container with a malformed level box.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.SquareInvalidLevel)]
+    [InlineData(TestImages.Jxl.SquareDuplicateLevel)]
+    [InlineData(TestImages.Jxl.SquareLateLevel)]
+    public void IdentifyRejectsInvalidContainerLevel(string file)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SkipMetadata = true };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+    }
+
+    /// <summary>
+    /// Verifies plain and Brotli-compressed EXIF from native fixtures, including trailing and open-ended boxes.
+    /// </summary>
+    /// <param name="file">The stored auxiliary-box fixture.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.Exif)]
+    [InlineData(TestImages.Jxl.ExifBrotli)]
+    [InlineData(TestImages.Jxl.ExifBrotliTrailingFinite)]
+    [InlineData(TestImages.Jxl.ExifBrotliTrailingInfinite)]
+    public void IdentifyReadsReferenceExif(string file)
+    {
+        // One-byte I/O buffers force partial compressed input and output. The expected software name
+        // comes from the original uncompressed EXIF fixture, not from our Brotli or EXIF writer.
+        Configuration configuration = new(new JxlConfigurationModule()) { StreamProcessingBufferSize = 1 };
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        ImageInfo info = Image.Identify(options, stream);
+
+        Assert.NotNull(info.Metadata.ExifProfile);
+        Assert.True(info.Metadata.ExifProfile.TryGetValue(ExifTag.Software, out IExifValue<string> software));
+        Assert.Equal("Pixelmator Pro 3.6.16", software.Value);
+    }
+
     /// <summary>
     /// Verifies format registration and public identification using stored raw and container inputs.
     /// </summary>
@@ -20,6 +90,7 @@ public class JxlFormatTests
     [Theory]
     [InlineData(TestImages.Jxl.Square, 8, 8, 8)]
     [InlineData(TestImages.Jxl.SquareExtendedSizeContainer, 8, 8, 8)]
+    [InlineData(TestImages.Jxl.SquareLevel5, 8, 8, 8)]
     [InlineData(TestImages.Jxl.SplinesFragmentedV1, 2048, 2048, 8)]
     [InlineData(TestImages.Jxl.LosslessFloat, 500, 500, 32)]
     public void IdentifyUsesRegisteredDecoder(string file, int width, int height, int precision)

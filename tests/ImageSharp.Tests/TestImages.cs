@@ -1704,6 +1704,10 @@ public static class TestImages
         public const string Splines = "Jxl/splines.jxl";
         public const string Square = "Jxl/square.jxl";
         public const string SquareExtendedSizeContainer = "Jxl/square-extended-size-container.jxl";
+        public const string SquareLevel5 = "Jxl/square-level5.jxl";
+        public const string SquareInvalidLevel = "Jxl/square-invalid-level.jxl";
+        public const string SquareDuplicateLevel = "Jxl/square-duplicate-level.jxl";
+        public const string SquareLateLevel = "Jxl/square-late-level.jxl";
         public const string SplinesFragmentedV0 = "Jxl/splines-fragmented-v0.jxl";
         public const string SplinesFragmentedV1 = "Jxl/splines-fragmented-v1.jxl";
         public const string SplinesSizeZero = "Jxl/splines-size-zero.jxl";
@@ -1725,6 +1729,13 @@ public static class TestImages
         public const string TruncatedIcc = "Jxl/with_icc_truncated.jxl";
         public const string LosslessFloat = "Jxl/lossless_pfm.jxl";
         public const string CmykLayers = "Jxl/cmyk_layers.jxl";
+
+        // Original auxiliary-box fixtures come from the same jxl-rs revision under jxl/tests/testdata.
+        public const string Exif = "Jxl/exif.jxl";
+        public const string ExifBrotli = "Jxl/exif_brob.jxl";
+        public const string ExifBrotliTrailingFinite = "Jxl/exif_brob_trailing_finite.jxl";
+        public const string ExifBrotliTrailingInfinite = "Jxl/exif_brob_trailing_infinite.jxl";
+        public const string ExifBrotliTruncated = "Jxl/exif_brob_truncated.jxl";
     }
 
     public static class Exr

@@ -16,7 +16,7 @@ internal static class Lz77DistanceCodes
     public const int Count = 120;
 
     /// <summary>
-    /// Packed row and column offsets in wire order. Static byte data requires no managed table allocation.
+    /// Gets packed row and column offsets in wire order. Static byte data requires no managed table allocation.
     /// </summary>
     private static ReadOnlySpan<byte> Offsets =>
     [

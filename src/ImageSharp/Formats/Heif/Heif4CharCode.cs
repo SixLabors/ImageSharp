@@ -324,6 +324,11 @@ public enum Heif4CharCode : uint
     Mif1 = 0x6D696631U,
 
     /// <summary>
+    /// MIAF structural brand.
+    /// </summary>
+    Miaf = 0x6D696166U,
+
+    /// <summary>
     /// AVIF brand.
     /// </summary>
     Avif = 0x61766966U,

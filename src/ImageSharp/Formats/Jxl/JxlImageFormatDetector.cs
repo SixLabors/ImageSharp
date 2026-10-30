@@ -6,44 +6,20 @@ using System.Diagnostics.CodeAnalysis;
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
 /// <summary>
-/// Checks if the first few bytes of a file represent
-/// JPEG XL.
+/// Detects raw JPEG XL codestreams and JPEG XL containers.
 /// </summary>
 public sealed class JxlImageFormatDetector : IImageFormatDetector
 {
-    /// <summary>
-    /// Gets file signature bytes which represent a container-based
-    /// JPEG XL file.
-    /// </summary>
-    private static ReadOnlySpan<byte> ContainerStart =>
-    [
-        0x00, 0x00, 0x00, 0x0C,
-        0x4A, 0x58, 0x4C, 0x20,
-        0x0D, 0x0A, 0x87, 0x0A,
-    ];
-
     /// <inheritdoc/>
     public int HeaderSize => 12;
 
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        if (header.StartsWith([(byte)0xFF, (byte)0x0A]))
-        {
-            // Just codestream.
-            format = new JxlFormat();
-            return true;
-        }
-        else if (header.SequenceEqual(ContainerStart))
-        {
-            // Container format.
-            format = new JxlFormat();
-            return true;
-        }
-        else
-        {
-            format = null;
-            return false;
-        }
+        // The raw signature needs only two bytes. Container detection needs the entire signature box.
+        // StartsWith also accepts the larger header spans supplied by a manager that has other detectors.
+        bool matches = header.StartsWith(JxlConstants.CodestreamSignature) || header.StartsWith(JxlConstants.ContainerSignature);
+        format = matches ? JxlFormat.Instance : null;
+        return matches;
     }
 }

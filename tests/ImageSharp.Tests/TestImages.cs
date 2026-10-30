@@ -1694,6 +1694,39 @@ public static class TestImages
         public const string Help = "Ani/Help.ani";
     }
 
+    /// <summary>
+    /// JPEG XL inputs and stored container-boundary cases.
+    /// </summary>
+    public static class Jxl
+    {
+        // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
+        // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
+        public const string Splines = "Jxl/splines.jxl";
+        public const string Square = "Jxl/square.jxl";
+        public const string SquareExtendedSizeContainer = "Jxl/square-extended-size-container.jxl";
+        public const string SplinesFragmentedV0 = "Jxl/splines-fragmented-v0.jxl";
+        public const string SplinesFragmentedV1 = "Jxl/splines-fragmented-v1.jxl";
+        public const string SplinesSizeZero = "Jxl/splines-size-zero.jxl";
+        public const string SplinesDuplicateFragment = "Jxl/splines-duplicate-fragment.jxl";
+        public const string SplinesMissingFinalFlag = "Jxl/splines-missing-final-flag.jxl";
+        public const string SplinesOversizedBox = "Jxl/splines-oversized-box.jxl";
+        public const string ExifXmp = "Jxl/1x1_exif_xmp.jxl";
+        public const string ExifXmpAfterCodestream = "Jxl/1x1_exif_xmp_after_codestream.jxl";
+        public const string CroppedTrafficLight = "Jxl/cropped_traffic_light.jxl";
+        public const string WidthExceedsInt32 = "Jxl/width-exceeds-int32.jxl";
+
+        // Additional original fixtures come from jxl-rs jxl/resources/test at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
+        public const string WithIcc = "Jxl/with_icc.jxl";
+        public const string LossyWithIcc = "Jxl/lossy_with_icc.jxl";
+        public const string GrayscalePatchesWithIcc = "Jxl/small_grayscale_patches_modular_with_icc.jxl";
+        public const string WithPreview = "Jxl/with_preview.jxl";
+        public const string Orientation6 = "Jxl/orientation6_rotate_90_cw.jxl";
+        public const string SpotColor = "Jxl/spot.jxl";
+        public const string TruncatedIcc = "Jxl/with_icc_truncated.jxl";
+        public const string LosslessFloat = "Jxl/lossless_pfm.jxl";
+        public const string CmykLayers = "Jxl/cmyk_layers.jxl";
+    }
+
     public static class Exr
     {
         public const string Benchmark = "Exr/Calliphora_benchmark.exr";

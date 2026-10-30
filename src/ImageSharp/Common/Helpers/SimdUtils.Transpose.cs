@@ -23,8 +23,10 @@ internal static partial class SimdUtils
     /// <param name="rows">The number of source rows and destination columns.</param>
     /// <param name="columns">The number of source columns and destination rows.</param>
     public static void Transpose(ReadOnlySpan<float> source, int sourceStride, Span<float> destination, int destinationStride, int rows, int columns)
+    {
         // The integer operation only moves 32-bit words. It preserves NaN payloads, signed zero and every other floating-point bit.
-        => Transpose(MemoryMarshal.Cast<float, int>(source), sourceStride, MemoryMarshal.Cast<float, int>(destination), destinationStride, rows, columns);
+        Transpose(MemoryMarshal.Cast<float, int>(source), sourceStride, MemoryMarshal.Cast<float, int>(destination), destinationStride, rows, columns);
+    }
 
     /// <summary>
     /// Transposes a logical integer rectangle with independent source and destination strides.

@@ -35,14 +35,18 @@ internal static class SpanExtensions
                 int comparison = span[current].CompareTo(pivot);
                 if (comparison < 0)
                 {
-                    (span[lower], span[current]) = (span[current], span[lower]);
+                    T previous = span[lower];
+                    span[lower] = span[current];
+                    span[current] = previous;
                     lower++;
                     current++;
                 }
                 else if (comparison > 0)
                 {
                     // The sample moved from the upper end has not been classified. Examine it before advancing current.
-                    (span[current], span[upper]) = (span[upper], span[current]);
+                    T previous = span[current];
+                    span[current] = span[upper];
+                    span[upper] = previous;
                     upper--;
                 }
                 else

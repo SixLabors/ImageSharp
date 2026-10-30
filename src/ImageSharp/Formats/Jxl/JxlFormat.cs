@@ -4,19 +4,37 @@
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
 /// <summary>
-/// JPEG XL format
+/// Represents the JPEG XL image format.
 /// </summary>
-public sealed class JxlFormat : IImageFormat
+public sealed class JxlFormat : IImageFormat<JxlMetadata, JxlFrameMetadata>
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlFormat"/> class.
+    /// </summary>
+    private JxlFormat()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static JxlFormat Instance { get; } = new();
+
+    /// <inheritdoc/>
     public string Name => "JPEG XL";
 
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public string DefaultMimeType => "image/jxl";
 
-    /// <inheritdoc />
-    IEnumerable<string> IImageFormat.MimeTypes => new[] { "image/jxl" };
+    /// <inheritdoc/>
+    public IEnumerable<string> MimeTypes => JxlConstants.MimeTypes;
 
-    /// <inheritdoc />
-    IEnumerable<string> IImageFormat.FileExtensions => new[] { "jxl" };
+    /// <inheritdoc/>
+    public IEnumerable<string> FileExtensions => JxlConstants.FileExtensions;
+
+    /// <inheritdoc/>
+    public JxlMetadata CreateDefaultFormatMetadata() => new();
+
+    /// <inheritdoc/>
+    public JxlFrameMetadata CreateDefaultFormatFrameMetadata() => new();
 }

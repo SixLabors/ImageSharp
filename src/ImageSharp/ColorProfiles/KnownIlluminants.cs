@@ -16,6 +16,21 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public static class KnownIlluminants
 {
     /// <summary>
+    /// Gets the D65 chromaticity coordinates used by sRGB and ITU-R BT.2020.
+    /// </summary>
+    public static CieXyChromaticityCoordinates D65Chromaticity { get; } = new(0.3127F, 0.3290F);
+
+    /// <summary>
+    /// Gets the equal-energy chromaticity coordinates.
+    /// </summary>
+    public static CieXyChromaticityCoordinates EChromaticity { get; } = new(1F / 3F, 1F / 3F);
+
+    /// <summary>
+    /// Gets the DCI-P3 reference white chromaticity coordinates.
+    /// </summary>
+    public static CieXyChromaticityCoordinates DciP3Chromaticity { get; } = new(0.314F, 0.351F);
+
+    /// <summary>
     /// Gets the Incandescent / Tungsten illuminant.
     /// </summary>
     public static CieXyz A { get; } = new(1.09850F, 1F, 0.35585F);

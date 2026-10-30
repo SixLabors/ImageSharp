@@ -52,24 +52,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Formats\Jxl\Processing\Butteraugli\Butteraugli.Malta.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Butteraugli.Malta.Generated.tt</DependentUpon>
-    </Compile>
-    <None Update="Formats\Jxl\Processing\Butteraugli\Butteraugli.Malta.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Butteraugli.Malta.Generated.cs</LastGenOutput>
-    </None>
-    <Compile Update="Formats\Jxl\Processing\Dct\JxlDct.Kernels.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>JxlDct.Kernels.Generated.tt</DependentUpon>
-    </Compile>
-    <None Update="Formats\Jxl\Processing\Dct\JxlDct.Kernels.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>JxlDct.Kernels.Generated.cs</LastGenOutput>
-    </None>
+    <!-- Keep the rejected JXL port as reference material outside the compiled codec implementation. -->
+    <Compile Remove="Formats\Jxl.Legacy\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Formats\Heif\Heif4CharCode.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

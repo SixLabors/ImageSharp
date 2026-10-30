@@ -6,11 +6,19 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
-/// Defines the absorbance matrices, signed biases and reference intensity used by an XYB color transform.
+/// Defines the matrices, signed biases and intensity scale for the JPEG XL XYB color transform.
 /// </summary>
 /// <remarks>
+/// <para>
+/// The transform is defined by ISO/IEC 18181-1, the JPEG XL core coding system.
+/// JPEG XL permits custom inverse coefficients and biases in the image header.
+/// <see cref="KnownXybTransforms.Default"/> provides the standard coefficients at an intensity target of 255 nits.
+/// See the <see href="https://jpeg.org/jpegxl/workplan.html">JPEG XL specifications</see>.
+/// </para>
+/// <para>
 /// Only the upper-left three by three coefficients of each supplied matrix are used.
 /// Translation and the fourth component do not form part of the absorbance transform.
+/// </para>
 /// </remarks>
 public sealed class XybTransform
 {

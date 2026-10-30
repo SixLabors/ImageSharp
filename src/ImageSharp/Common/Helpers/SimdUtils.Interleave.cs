@@ -13,6 +13,78 @@ namespace SixLabors.ImageSharp;
 internal static partial class SimdUtils
 {
     /// <summary>
+    /// Interleaves sixteen byte pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of every pair.</param>
+    /// <param name="right">The second value of every pair.</param>
+    /// <param name="destination">The first of 32 destination bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector128<byte> left, Vector128<byte> right, ref byte destination)
+    {
+        // Each unpack covers the whole register. Low and high halves produce pairs 0..7 and 8..15.
+        Vector128_.UnpackLow(left, right).StoreUnsafe(ref destination);
+        Vector128_.UnpackHigh(left, right).StoreUnsafe(ref destination, 16U);
+    }
+
+    /// <summary>
+    /// Interleaves 32 byte pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of every pair.</param>
+    /// <param name="right">The second value of every pair.</param>
+    /// <param name="destination">The first of 64 destination bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector256<byte> left, Vector256<byte> right, ref byte destination)
+    {
+        // Unpack operates within 128-bit lanes. Reorder the eight-byte groups first so its low result
+        // contains pairs 0..15 and its high result contains pairs 16..31, in complete memory order.
+        left = Vector256_.Permute4x64(left.AsInt64(), 0b_11_01_10_00).AsByte();
+        right = Vector256_.Permute4x64(right.AsInt64(), 0b_11_01_10_00).AsByte();
+        Vector256_.UnpackLow(left, right).StoreUnsafe(ref destination);
+        Vector256_.UnpackHigh(left, right).StoreUnsafe(ref destination, 32U);
+    }
+
+    /// <summary>
+    /// Interleaves 64 byte pairs without changing their stored bits.
+    /// </summary>
+    /// <param name="left">The first value of every pair.</param>
+    /// <param name="right">The second value of every pair.</param>
+    /// <param name="destination">The first of 128 destination bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave2(Vector512<byte> left, Vector512<byte> right, ref byte destination)
+    {
+        // Put consecutive eight-byte groups in the low half of each 128-bit lane before unpacking.
+        // The two results then contain the first 32 pairs and the last 32 pairs without a second output shuffle.
+        Vector512<long> order = Vector512.Create(0L, 4L, 1L, 5L, 2L, 6L, 3L, 7L);
+        left = Vector512.ShuffleNative(left.AsInt64(), order).AsByte();
+        right = Vector512.ShuffleNative(right.AsInt64(), order).AsByte();
+        Vector512_.UnpackLow(left, right).StoreUnsafe(ref destination);
+        Vector512_.UnpackHigh(left, right).StoreUnsafe(ref destination, 64U);
+    }
+
+    /// <summary>
+    /// Interleaves sixteen values from four byte planes into consecutive quadruples.
+    /// </summary>
+    /// <param name="x">The first component plane.</param>
+    /// <param name="y">The second component plane.</param>
+    /// <param name="z">The third component plane.</param>
+    /// <param name="w">The fourth component plane.</param>
+    /// <param name="destination">The first of 64 destination bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave4(Vector128<byte> x, Vector128<byte> y, Vector128<byte> z, Vector128<byte> w, ref byte destination)
+    {
+        // Join bytes into XY and ZW pairs, then join those word pairs into complete quadruples.
+        // Each store writes four consecutive quadruples; no aligned input or output address is required.
+        Vector128<short> xyLow = Vector128_.UnpackLow(x, y).AsInt16();
+        Vector128<short> xyHigh = Vector128_.UnpackHigh(x, y).AsInt16();
+        Vector128<short> zwLow = Vector128_.UnpackLow(z, w).AsInt16();
+        Vector128<short> zwHigh = Vector128_.UnpackHigh(z, w).AsInt16();
+        Vector128_.UnpackLow(xyLow, zwLow).AsByte().StoreUnsafe(ref destination);
+        Vector128_.UnpackHigh(xyLow, zwLow).AsByte().StoreUnsafe(ref destination, 16U);
+        Vector128_.UnpackLow(xyHigh, zwHigh).AsByte().StoreUnsafe(ref destination, 32U);
+        Vector128_.UnpackHigh(xyHigh, zwHigh).AsByte().StoreUnsafe(ref destination, 48U);
+    }
+
+    /// <summary>
     /// Separates four consecutive integer pairs without changing their stored bits.
     /// </summary>
     /// <param name="lower">The first two pairs.</param>
@@ -990,6 +1062,157 @@ internal static partial class SimdUtils
         row1.StoreUnsafe(ref destination, 16U);
         row2.StoreUnsafe(ref destination, 32U);
         row3.StoreUnsafe(ref destination, 48U);
+    }
+
+    /// <summary>
+    /// Interleaves 4 values from eight component registers into consecutive eight-component groups.
+    /// </summary>
+    /// <param name="component0">The component at position 0 in each output group.</param>
+    /// <param name="component1">The component at position 1 in each output group.</param>
+    /// <param name="component2">The component at position 2 in each output group.</param>
+    /// <param name="component3">The component at position 3 in each output group.</param>
+    /// <param name="component4">The component at position 4 in each output group.</param>
+    /// <param name="component5">The component at position 5 in each output group.</param>
+    /// <param name="component6">The component at position 6 in each output group.</param>
+    /// <param name="component7">The component at position 7 in each output group.</param>
+    /// <param name="destination">The first of 32 destination float words.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave8(
+        Vector128<float> component0,
+        Vector128<float> component1,
+        Vector128<float> component2,
+        Vector128<float> component3,
+        Vector128<float> component4,
+        Vector128<float> component5,
+        Vector128<float> component6,
+        Vector128<float> component7,
+        ref float destination)
+    {
+        // Two four-by-four transposes produce the first and second halves of each eight-component group.
+        // Alternate their four-word stores so every group is complete before the next group begins.
+        Transpose4(
+            component0,
+            component1,
+            component2,
+            component3,
+            out Vector128<float> lower0,
+            out Vector128<float> lower1,
+            out Vector128<float> lower2,
+            out Vector128<float> lower3);
+
+        Transpose4(
+            component4,
+            component5,
+            component6,
+            component7,
+            out Vector128<float> upper0,
+            out Vector128<float> upper1,
+            out Vector128<float> upper2,
+            out Vector128<float> upper3);
+
+        lower0.StoreUnsafe(ref destination, 0U);
+        upper0.StoreUnsafe(ref destination, 4U);
+        lower1.StoreUnsafe(ref destination, 8U);
+        upper1.StoreUnsafe(ref destination, 12U);
+        lower2.StoreUnsafe(ref destination, 16U);
+        upper2.StoreUnsafe(ref destination, 20U);
+        lower3.StoreUnsafe(ref destination, 24U);
+        upper3.StoreUnsafe(ref destination, 28U);
+    }
+
+    /// <summary>
+    /// Interleaves 8 values from eight component registers into consecutive eight-component groups.
+    /// </summary>
+    /// <param name="component0">The component at position 0 in each output group.</param>
+    /// <param name="component1">The component at position 1 in each output group.</param>
+    /// <param name="component2">The component at position 2 in each output group.</param>
+    /// <param name="component3">The component at position 3 in each output group.</param>
+    /// <param name="component4">The component at position 4 in each output group.</param>
+    /// <param name="component5">The component at position 5 in each output group.</param>
+    /// <param name="component6">The component at position 6 in each output group.</param>
+    /// <param name="component7">The component at position 7 in each output group.</param>
+    /// <param name="destination">The first of 64 destination float words.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave8(
+        Vector256<float> component0,
+        Vector256<float> component1,
+        Vector256<float> component2,
+        Vector256<float> component3,
+        Vector256<float> component4,
+        Vector256<float> component5,
+        Vector256<float> component6,
+        Vector256<float> component7,
+        ref float destination)
+    {
+        // Eight component registers are an eight-by-eight word matrix. Its transpose is the required complete-group layout.
+        Vector256<int> row0 = component0.AsInt32();
+        Vector256<int> row1 = component1.AsInt32();
+        Vector256<int> row2 = component2.AsInt32();
+        Vector256<int> row3 = component3.AsInt32();
+        Vector256<int> row4 = component4.AsInt32();
+        Vector256<int> row5 = component5.AsInt32();
+        Vector256<int> row6 = component6.AsInt32();
+        Vector256<int> row7 = component7.AsInt32();
+
+        Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
+        ref int output = ref Unsafe.As<float, int>(ref destination);
+        row0.StoreUnsafe(ref output, 0U);
+        row1.StoreUnsafe(ref output, 8U);
+        row2.StoreUnsafe(ref output, 16U);
+        row3.StoreUnsafe(ref output, 24U);
+        row4.StoreUnsafe(ref output, 32U);
+        row5.StoreUnsafe(ref output, 40U);
+        row6.StoreUnsafe(ref output, 48U);
+        row7.StoreUnsafe(ref output, 56U);
+    }
+
+    /// <summary>
+    /// Interleaves 16 values from eight component registers into consecutive eight-component groups.
+    /// </summary>
+    /// <param name="component0">The component at position 0 in each output group.</param>
+    /// <param name="component1">The component at position 1 in each output group.</param>
+    /// <param name="component2">The component at position 2 in each output group.</param>
+    /// <param name="component3">The component at position 3 in each output group.</param>
+    /// <param name="component4">The component at position 4 in each output group.</param>
+    /// <param name="component5">The component at position 5 in each output group.</param>
+    /// <param name="component6">The component at position 6 in each output group.</param>
+    /// <param name="component7">The component at position 7 in each output group.</param>
+    /// <param name="destination">The first of 128 destination float words.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave8(
+        Vector512<float> component0,
+        Vector512<float> component1,
+        Vector512<float> component2,
+        Vector512<float> component3,
+        Vector512<float> component4,
+        Vector512<float> component5,
+        Vector512<float> component6,
+        Vector512<float> component7,
+        ref float destination)
+    {
+        // Each eight-lane half contains eight complete output groups. Reuse the shared full-register eight-by-eight
+        // transpose for both halves; the second output starts after all sixty-four words from the lower halves.
+        Interleave8(
+            component0.GetLower(),
+            component1.GetLower(),
+            component2.GetLower(),
+            component3.GetLower(),
+            component4.GetLower(),
+            component5.GetLower(),
+            component6.GetLower(),
+            component7.GetLower(),
+            ref destination);
+
+        Interleave8(
+            component0.GetUpper(),
+            component1.GetUpper(),
+            component2.GetUpper(),
+            component3.GetUpper(),
+            component4.GetUpper(),
+            component5.GetUpper(),
+            component6.GetUpper(),
+            component7.GetUpper(),
+            ref Unsafe.Add(ref destination, 64));
     }
 
     /// <summary>

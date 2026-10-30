@@ -1,0 +1,102 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.IO;
+
+namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
+
+[Trait("Format", "Jxl")]
+public class JxlBitReaderTests
+{
+    /// <summary>
+    /// Verifies bit order, zero-width fields, complete 32-bit reads and a reservoir refill across container fragments.
+    /// </summary>
+    /// <param name="file">The stored raw or fragmented codestream.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.Splines)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV0)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV1)]
+    public void ReadBitsRetainsFieldOrderAcrossRefills(string file)
+    {
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlCodestreamReader codestream = new(buffered);
+        JxlBitReader reader = new(codestream);
+
+        // These literal values describe the first twelve stored bytes of libjxl's splines codestream.
+        // They are independent of the container reader and include the transition to a second 64-bit reservoir.
+        Assert.Equal(0U, reader.ReadBits(0));
+        Assert.Equal(0, codestream.Position);
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
+        Assert.Equal(0x90013FFAU, reader.ReadBits(32));
+        Assert.Equal(0xD8U, reader.ReadBits(8));
+        Assert.Equal(0x63U, reader.ReadBits(8));
+        Assert.Equal(0x00E00010U, reader.ReadBits(32));
+        Assert.Equal(96, reader.Position);
+    }
+
+    /// <summary>
+    /// Verifies size headers against the native source dimensions and the Rust reference inspector.
+    /// </summary>
+    /// <param name="file">The stored raw or fragmented codestream.</param>
+    /// <param name="width">The independently verified image width.</param>
+    /// <param name="height">The independently verified image height.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.Splines, 2048, 2048)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV0, 2048, 2048)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV1, 2048, 2048)]
+    [InlineData(TestImages.Jxl.SquareExtendedSizeContainer, 8, 8)]
+    [InlineData(TestImages.Jxl.ExifXmp, 1, 1)]
+    [InlineData(TestImages.Jxl.CroppedTrafficLight, 50, 80)]
+    public void ReadSizeMatchesReferenceDimensions(string file, int width, int height)
+    {
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlCodestreamReader codestream = new(buffered);
+        JxlBitReader reader = new(codestream);
+
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
+
+        Assert.Equal(new Size(width, height), reader.ReadSize());
+    }
+
+    /// <summary>
+    /// Verifies that aspect-ratio multiplication cannot wrap a large width into a signed image dimension.
+    /// </summary>
+    [Fact]
+    public void ReadSizeRejectsWidthOutsideImageDimensionRange()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.WidthExceedsInt32).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
+
+        // The stored header declares height 2^30 and ratio 2:1. Its derived width is 2^31, beyond Size's int range.
+        InvalidImageContentException error = Assert.Throws<InvalidImageContentException>(() => reader.ReadSize());
+
+        Assert.Contains("width", error.Message);
+    }
+
+    /// <summary>
+    /// Verifies that unwritten reservoir bytes cannot become valid bits at the end of a codestream.
+    /// </summary>
+    [Fact]
+    public void ReadBitsRejectsOverread()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+
+        // The stored codestream contains 81 bytes. Consume every actual bit, including the final short refill.
+        for (int i = 0; i < 20; i++)
+        {
+            reader.ReadBits(32);
+        }
+
+        reader.ReadBits(8);
+
+        Assert.Equal(648, reader.Position);
+        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(1));
+    }
+}

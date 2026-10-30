@@ -15,6 +15,78 @@ namespace SixLabors.ImageSharp.Tests.Common;
 public partial class SimdUtilsTests
 {
     /// <summary>
+    /// Verifies byte-pair ordering at each register width and the four-plane 128-bit packing operation.
+    /// </summary>
+    [Fact]
+    public void ByteInterleavingPreservesComponents()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateByteInterleaving,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks every output byte and guard byte against the interleave definition, using unaligned input and output.
+    /// </summary>
+    private static void ValidateByteInterleaving()
+    {
+        byte[] left = new byte[65];
+        byte[] right = new byte[65];
+        for (int i = 0; i < 64; i++)
+        {
+            left[i + 1] = (byte)i;
+            right[i + 1] = (byte)(255 - i);
+        }
+
+        foreach (int count in new[] { 16, 32, 64 })
+        {
+            byte[] expected = new byte[(count * 2) + 2];
+            byte[] actual = new byte[expected.Length];
+            expected[0] = actual[0] = 123;
+            expected[^1] = actual[^1] = 231;
+            for (int i = 0; i < count; i++)
+            {
+                expected[1 + (2 * i)] = left[i + 1];
+                expected[2 + (2 * i)] = right[i + 1];
+            }
+
+            if (count == 64)
+            {
+                SimdUtils.Interleave2(Vector512.LoadUnsafe(ref left[1]), Vector512.LoadUnsafe(ref right[1]), ref actual[1]);
+            }
+            else if (count == 32)
+            {
+                SimdUtils.Interleave2(Vector256.LoadUnsafe(ref left[1]), Vector256.LoadUnsafe(ref right[1]), ref actual[1]);
+            }
+            else
+            {
+                SimdUtils.Interleave2(Vector128.LoadUnsafe(ref left[1]), Vector128.LoadUnsafe(ref right[1]), ref actual[1]);
+            }
+
+            Assert.Equal(expected, actual);
+        }
+
+        byte[] quadruples = new byte[66];
+        quadruples[0] = 123;
+        quadruples[^1] = 231;
+        SimdUtils.Interleave4(
+            Vector128.LoadUnsafe(ref left[1]),
+            Vector128.LoadUnsafe(ref right[1]),
+            Vector128.Create((byte)77),
+            Vector128.Create((byte)88),
+            ref quadruples[1]);
+
+        for (int i = 0; i < 16; i++)
+        {
+            Assert.Equal(left[i + 1], quadruples[1 + (4 * i)]);
+            Assert.Equal(right[i + 1], quadruples[2 + (4 * i)]);
+            Assert.Equal(77, quadruples[3 + (4 * i)]);
+            Assert.Equal(88, quadruples[4 + (4 * i)]);
+        }
+
+        Assert.Equal(123, quadruples[0]);
+        Assert.Equal(231, quadruples[^1]);
+    }
+
+    /// <summary>
     /// Checks every separated lane against independently packed integer pairs, including complete-register lane boundaries.
     /// </summary>
     [Fact]
@@ -88,6 +160,112 @@ public partial class SimdUtilsTests
     }
 
     /// <summary>
+    /// Checks eight-component group order, exact floating-point bits and destination guards for every fixed SIMD width.
+    /// </summary>
+    [Fact]
+    public void Interleave8_PreservesGroupOrderAndDestinationGuards()
+    {
+        static void RunTest()
+        {
+            const int planeLength = 16;
+            const int componentCount = 8;
+            const int untouched = 123;
+            int[] components = new int[planeLength * componentCount];
+
+            for (int component = 0; component < componentCount; component++)
+            {
+                for (int lane = 0; lane < planeLength; lane++)
+                {
+                    components[(component * planeLength) + lane] = 0x3F000000 + (component << 16) + lane;
+                }
+            }
+
+            // Interleaving moves words only. Include signed zero, infinities, distinct NaN payloads and a subnormal.
+            ReadOnlySpan<int> special =
+            [
+                unchecked((int)0x80000000),
+                0x7F800000,
+                unchecked((int)0xFF800000),
+                0x7FC01234,
+                0x7F800123,
+                unchecked((int)0xFFC05678),
+                0,
+                1
+            ];
+
+            for (int component = 0; component < componentCount; component++)
+            {
+                components[component * planeLength] = special[component];
+            }
+
+            ref int first = ref MemoryMarshal.GetArrayDataReference(components);
+
+            foreach (int count in new[] { Vector128<float>.Count, Vector256<float>.Count, Vector512<float>.Count })
+            {
+                int[] output = new int[(componentCount * count) + 2];
+                output.AsSpan().Fill(untouched);
+                ref float destination = ref MemoryMarshal.Cast<int, float>(output.AsSpan())[1];
+
+                // Explicit calls also check the portable implementation of each fixed width when acceleration is disabled.
+                if (count == Vector512<float>.Count)
+                {
+                    SimdUtils.Interleave8(
+                        Vector512.LoadUnsafe(ref first, 0U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 16U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 32U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 48U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 64U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 80U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 96U).AsSingle(),
+                        Vector512.LoadUnsafe(ref first, 112U).AsSingle(),
+                        ref destination);
+                }
+                else if (count == Vector256<float>.Count)
+                {
+                    SimdUtils.Interleave8(
+                        Vector256.LoadUnsafe(ref first, 0U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 16U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 32U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 48U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 64U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 80U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 96U).AsSingle(),
+                        Vector256.LoadUnsafe(ref first, 112U).AsSingle(),
+                        ref destination);
+                }
+                else
+                {
+                    SimdUtils.Interleave8(
+                        Vector128.LoadUnsafe(ref first, 0U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 16U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 32U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 48U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 64U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 80U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 96U).AsSingle(),
+                        Vector128.LoadUnsafe(ref first, 112U).AsSingle(),
+                        ref destination);
+                }
+
+                for (int lane = 0; lane < count; lane++)
+                {
+                    for (int component = 0; component < componentCount; component++)
+                    {
+                        Assert.Equal(components[(component * planeLength) + lane], output[1 + (lane * componentCount) + component]);
+                    }
+                }
+
+                Assert.Equal(untouched, output[0]);
+                Assert.Equal(untouched, output[^1]);
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
     /// Checks two-stream alternation, complete-register boundaries and exact floating-point bits with each hardware configuration.
     /// </summary>
     [Fact]
@@ -121,7 +299,7 @@ public partial class SimdUtilsTests
             int[] integers = new int[(2 * count) + 2];
             float[] floats = new float[integers.Length];
             integers.AsSpan().Fill(123);
-            MemoryMarshal.Cast<float, int>(floats).Fill(123);
+            MemoryMarshal.Cast<float, int>(floats.AsSpan()).Fill(123);
             ref int intDestination = ref integers[1];
             ref float floatDestination = ref floats[1];
 
@@ -164,7 +342,7 @@ public partial class SimdUtilsTests
         }
 
         float[] runtime = new float[(2 * Vector<float>.Count) + 2];
-        MemoryMarshal.Cast<float, int>(runtime).Fill(123);
+        MemoryMarshal.Cast<float, int>(runtime.AsSpan()).Fill(123);
         Vector<float> runtimeLeft = Vector.AsVectorSingle(new Vector<int>(left));
         Vector<float> runtimeRight = Vector.AsVectorSingle(new Vector<int>(right));
         SimdUtils.Interleave2(runtimeLeft, runtimeRight, ref runtime[1]);

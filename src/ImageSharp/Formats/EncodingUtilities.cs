@@ -182,6 +182,7 @@ internal static class EncodingUtilities
     private readonly struct ClearTransparentComponentOperator : TensorPrimitives_.IBinaryOperator
     {
         // Each lane pairs one alpha value with one component. Selection clears even NaN components and preserves all unselected bits.
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Invoke(float first, float second) => first == 0F ? 0F : second;

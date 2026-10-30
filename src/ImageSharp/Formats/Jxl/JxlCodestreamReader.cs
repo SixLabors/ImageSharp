@@ -1,0 +1,503 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Buffers;
+using System.Buffers.Binary;
+using System.IO.Compression;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+
+namespace SixLabors.ImageSharp.Formats.Jxl;
+
+/// <summary>
+/// Reads JPEG XL codestream bytes across bounded container fragments without joining their payloads in memory.
+/// </summary>
+internal sealed class JxlCodestreamReader
+{
+    /// <summary>
+    /// The high bit that identifies the final partial codestream box.
+    /// </summary>
+    private const uint LastFragment = 0x80000000U;
+
+    /// <summary>
+    /// The mask that removes the final-fragment flag from a sequence number.
+    /// </summary>
+    private const uint FragmentIndexMask = LastFragment - 1;
+
+    private readonly BufferedReadStream stream;
+    private readonly List<(uint Type, long Offset, long Length)> boxes = [];
+
+    // Only version-one files can need this index. Entries retain file ranges, not copied codestream payloads.
+    private Dictionary<uint, (long Offset, long Length, bool IsLast)>? pendingFragments;
+
+    private readonly uint version;
+    private readonly bool isContainer;
+    private long nextBoxPosition;
+    private long fragmentRemaining;
+    private uint nextFragmentIndex;
+    private bool lastFragment;
+    private bool hasCodestream;
+    private bool hasLevel;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlCodestreamReader"/> class and reads the file signature and type.
+    /// </summary>
+    /// <param name="stream">The buffered, seekable input owned by the decoder core.</param>
+    public JxlCodestreamReader(BufferedReadStream stream)
+    {
+        this.stream = stream;
+        long start = stream.Position;
+        this.MaximumLength = stream.Length - start;
+        InlineArray16<byte> storage = default;
+        Span<byte> header = storage;
+        IsoBoxReader.ReadExactly(stream, header[..2], "The JPEG XL signature is incomplete.");
+
+        if (header[..2].SequenceEqual(JxlConstants.CodestreamSignature))
+        {
+            this.fragmentRemaining = stream.Length - start;
+            this.lastFragment = true;
+            this.hasCodestream = true;
+            stream.Position = start;
+            return;
+        }
+
+        IsoBoxReader.ReadExactly(stream, header[2..12], "The JPEG XL container signature is incomplete.");
+        if (!header[..12].SequenceEqual(JxlConstants.ContainerSignature))
+        {
+            throw new InvalidImageContentException("The input does not contain a JPEG XL signature.");
+        }
+
+        this.isContainer = true;
+        long length = IsoBoxReader.ReadHeader(stream, stream.Length, header, out uint type, true);
+        if (type != JxlConstants.FileTypeBox || length < 12)
+        {
+            throw new InvalidImageContentException("The JPEG XL signature must be followed by a complete file type box.");
+        }
+
+        this.nextBoxPosition = stream.Position + length;
+        IsoBoxReader.ReadExactly(stream, header[..8], "The JPEG XL file type is incomplete.");
+        uint brand = BinaryPrimitives.ReadUInt32BigEndian(header);
+        this.version = BinaryPrimitives.ReadUInt32BigEndian(header[4..]);
+        if (brand != JxlConstants.MajorBrand || this.version > 1)
+        {
+            throw new InvalidImageContentException("The JPEG XL container brand or version is not supported.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the logical byte position in the codestream.
+    /// </summary>
+    public long Position { get; private set; }
+
+    /// <summary>
+    /// Gets an upper bound on logical codestream bytes, excluding bytes before this image's signature.
+    /// Container headers and metadata can make the actual codestream shorter.
+    /// </summary>
+    public long MaximumLength { get; }
+
+    /// <summary>
+    /// Gets the non-codestream boxes encountered so far. Their ranges remain bounded by the physical input.
+    /// </summary>
+    public IReadOnlyList<(uint Type, long Offset, long Length)> Boxes => this.boxes;
+
+    /// <summary>
+    /// Reads from the current fragment, opening the next fragment when needed.
+    /// </summary>
+    /// <param name="destination">The span that receives the codestream bytes.</param>
+    /// <returns>The bytes read, or zero at the logical end. A read can stop at a fragment boundary.</returns>
+    public int Read(Span<byte> destination)
+    {
+        // Return after reading one physical range. A malformed later box must not discard bytes already delivered
+        // from this fragment. The core can then apply its image-data recovery policy after decoding available data.
+        while (this.fragmentRemaining == 0 && !this.lastFragment)
+        {
+            this.OpenNextFragment();
+        }
+
+        int count = (int)Math.Min(this.fragmentRemaining, destination.Length);
+        IsoBoxReader.ReadExactly(this.stream, destination[..count], "The JPEG XL codestream is truncated.");
+        this.fragmentRemaining -= count;
+        this.Position += count;
+        return count;
+    }
+
+    /// <summary>
+    /// Skips logical codestream bytes without copying their payloads into a temporary buffer.
+    /// </summary>
+    /// <param name="count">The nonnegative byte count supplied by the header parser.</param>
+    public void Skip(long count)
+    {
+        while (count != 0)
+        {
+            while (this.fragmentRemaining == 0 && !this.lastFragment)
+            {
+                this.OpenNextFragment();
+            }
+
+            long step = Math.Min(count, this.fragmentRemaining);
+            if (step == 0)
+            {
+                throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
+            }
+
+            this.stream.Seek(step, SeekOrigin.Current);
+            this.fragmentRemaining -= step;
+            this.Position += step;
+            count -= step;
+        }
+    }
+
+    /// <summary>
+    /// Finishes container traversal after frame decoding and retains metadata boxes following the codestream.
+    /// </summary>
+    /// <remarks>
+    /// This skips remaining codestream bytes without decoding them, including frames omitted by MaxFrames.
+    /// The core applies the configured integrity policy when it calls this method after image reconstruction.
+    /// </remarks>
+    public void Complete()
+    {
+        if (!this.isContainer)
+        {
+            return;
+        }
+
+        // Fragment boundaries belong to the container. Skip bytes by file position; do not materialize unrequested frames.
+        while (!this.lastFragment)
+        {
+            this.Position += this.fragmentRemaining;
+            this.fragmentRemaining = 0;
+            this.OpenNextFragment();
+        }
+
+        this.Position += this.fragmentRemaining;
+        this.fragmentRemaining = 0;
+        if (this.pendingFragments is not null && this.pendingFragments.Count != 0)
+        {
+            throw new InvalidImageContentException("The JPEG XL container contains fragments after its final fragment.");
+        }
+
+        // Buffered reads can stop inside the last payload. Resume at the next physical box, even when
+        // no boxes follow it. Version-one fragments can also finish in an earlier physical payload.
+        this.stream.Position = this.nextBoxPosition;
+
+        InlineArray16<byte> storage = default;
+        Span<byte> header = storage;
+        while (this.nextBoxPosition < this.stream.Length)
+        {
+            this.stream.Position = this.nextBoxPosition;
+            long length = IsoBoxReader.ReadHeader(this.stream, this.stream.Length, header, out uint type, true);
+            long offset = this.stream.Position;
+            if (type == JxlConstants.SignatureBox)
+            {
+                // A concatenated container belongs to the next image. Leave its signature available to its decoder.
+                this.stream.Position = this.nextBoxPosition;
+                break;
+            }
+
+            if (type is JxlConstants.FileTypeBox or JxlConstants.CompleteCodestreamBox or JxlConstants.PartialCodestreamBox)
+            {
+                throw new InvalidImageContentException("The JPEG XL container contains another codestream after its final fragment.");
+            }
+
+            this.RetainMetadataBox(type, offset, length);
+            this.nextBoxPosition = offset + length;
+            this.stream.Position = this.nextBoxPosition;
+        }
+    }
+
+    /// <summary>
+    /// Applies one retained EXIF or XML box through the shared profile APIs and restores the physical stream position.
+    /// </summary>
+    /// <param name="box">The bounded range retained during container traversal.</param>
+    /// <param name="metadata">The image metadata receiving the profile.</param>
+    /// <param name="configuration">The decoder's allocator and stream-buffer settings.</param>
+    /// <param name="cancellationToken">The operation's cancellation token.</param>
+    public void ApplyMetadataBox(
+        (uint Type, long Offset, long Length) box,
+        ImageMetadata metadata,
+        Configuration configuration,
+        CancellationToken cancellationToken)
+    {
+        if (box.Type is not (JxlConstants.ExifBox or JxlConstants.XmlBox or JxlConstants.CompressedMetadataBox))
+        {
+            return;
+        }
+
+        long position = this.stream.Position;
+        try
+        {
+            this.stream.Position = box.Offset;
+            uint type = box.Type;
+            long length = box.Length;
+            if (type == JxlConstants.CompressedMetadataBox)
+            {
+                InlineArray4<byte> typeStorage = default;
+                Span<byte> typeBytes = typeStorage;
+                IsoBoxReader.ReadExactly(this.stream, typeBytes, "The JPEG XL compressed metadata type is incomplete.");
+                type = BinaryPrimitives.ReadUInt32BigEndian(typeBytes);
+                if (type is not (JxlConstants.ExifBox or JxlConstants.XmlBox))
+                {
+                    return;
+                }
+
+                // Brotli does not declare an output size. The existing chunked stream keeps growing storage
+                // under the configured allocator until the final profile's exact array size is known.
+                using ChunkedMemoryStream decoded = new(configuration.MemoryAllocator);
+                using IMemoryOwner<byte> scratch = configuration.MemoryAllocator.Allocate<byte>(2 * configuration.StreamProcessingBufferSize);
+                Span<byte> buffers = scratch.Memory.Span;
+                int chunkSize = buffers.Length / 2;
+                Span<byte> input = buffers[..chunkSize];
+                Span<byte> output = buffers[chunkSize..];
+                BrotliDecoder decoder = default;
+                try
+                {
+                    int available = 0;
+                    int offset = 0;
+                    long remaining = length - sizeof(uint);
+                    while (true)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (offset == available && remaining != 0)
+                        {
+                            available = (int)Math.Min(remaining, input.Length);
+                            IsoBoxReader.ReadExactly(this.stream, input[..available], "The JPEG XL compressed metadata is truncated.");
+                            offset = 0;
+                            remaining -= available;
+                        }
+
+                        OperationStatus status = decoder.Decompress(input[offset..available], output, out int consumed, out int written);
+                        offset += consumed;
+                        if (written > Array.MaxLength - decoded.Length)
+                        {
+                            throw new InvalidImageContentException("The JPEG XL metadata exceeds the supported profile size.");
+                        }
+
+                        decoded.Write(output[..written]);
+                        if (status == OperationStatus.Done)
+                        {
+                            if (remaining != 0 || offset != available)
+                            {
+                                throw new InvalidImageContentException("The JPEG XL compressed metadata contains trailing bytes.");
+                            }
+
+                            break;
+                        }
+
+                        if (status == OperationStatus.InvalidData || (status == OperationStatus.NeedMoreData && remaining == 0))
+                        {
+                            throw new InvalidImageContentException("The JPEG XL compressed metadata is invalid or incomplete.");
+                        }
+                    }
+                }
+                finally
+                {
+                    decoder.Dispose();
+                }
+
+                decoded.Position = 0;
+                ApplyProfile(decoded, decoded.Length, type, metadata);
+            }
+            else
+            {
+                ApplyProfile(this.stream, length, type, metadata);
+            }
+        }
+        finally
+        {
+            // The bit reader can still hold prefetched codestream bits. Reading a metadata range must not
+            // change where its next physical refill starts, or the next fragment/frame would read the wrong bytes.
+            this.stream.Position = position;
+        }
+    }
+
+    /// <summary>
+    /// Reads one bounded profile payload. Each shared profile retains its own final byte array.
+    /// </summary>
+    /// <param name="stream">The raw box or decompressed metadata stream.</param>
+    /// <param name="length">The exact payload byte count.</param>
+    /// <param name="type">The EXIF or XML box type.</param>
+    /// <param name="metadata">The image metadata receiving the profile.</param>
+    private static void ApplyProfile(Stream stream, long length, uint type, ImageMetadata metadata)
+    {
+        if (type == JxlConstants.ExifBox)
+        {
+            if (length < sizeof(uint))
+            {
+                throw new InvalidImageContentException("The JPEG XL EXIF offset field is incomplete.");
+            }
+
+            InlineArray4<byte> storage = default;
+            Span<byte> offsetBytes = storage;
+            IsoBoxReader.ReadExactly(stream, offsetBytes, "The JPEG XL EXIF offset field is incomplete.");
+            uint offset = BinaryPrimitives.ReadUInt32BigEndian(offsetBytes);
+            length -= sizeof(uint);
+            if (length < 8 || offset > (ulong)(length - 8))
+            {
+                throw new InvalidImageContentException("The JPEG XL EXIF TIFF-header offset exceeds its payload.");
+            }
+
+            stream.Seek(offset, SeekOrigin.Current);
+            length -= offset;
+        }
+
+        if (length > Array.MaxLength)
+        {
+            throw new InvalidImageContentException("The JPEG XL metadata exceeds the supported profile size.");
+        }
+
+        byte[] data = new byte[(int)length];
+        IsoBoxReader.ReadExactly(stream, data, "The JPEG XL metadata payload is incomplete.");
+        if (type == JxlConstants.ExifBox)
+        {
+            // EXIF parsing is lazy. Validate its entries before publishing the profile so malformed
+            // optional data fails inside the core's ancillary policy, rather than during a later orientation update.
+            ExifProfile profile = new(data);
+            _ = profile.Values;
+            metadata.ExifProfile = profile;
+        }
+        else
+        {
+            metadata.XmpProfile = new XmpProfile(data);
+        }
+    }
+
+    /// <summary>
+    /// Opens the next logical fragment and retains intervening metadata box ranges.
+    /// </summary>
+    private void OpenNextFragment()
+    {
+        // A version-one fragment found earlier can now become the next logical fragment. Removing its index entry
+        // releases only metadata; the payload has remained in the caller's stream throughout.
+        if (this.pendingFragments is not null && this.pendingFragments.Remove(this.nextFragmentIndex, out (long Offset, long Length, bool IsLast) pending))
+        {
+            this.stream.Position = pending.Offset;
+            this.fragmentRemaining = pending.Length;
+            this.lastFragment = pending.IsLast;
+            this.nextFragmentIndex++;
+            return;
+        }
+
+        InlineArray16<byte> storage = default;
+        Span<byte> header = storage;
+        while (this.nextBoxPosition < this.stream.Length)
+        {
+            // BufferedReadStream also monitors cancellation on seeks. Box traversal performs no sample-level checks.
+            this.stream.Position = this.nextBoxPosition;
+            long length = IsoBoxReader.ReadHeader(this.stream, this.stream.Length, header, out uint type, true);
+            long offset = this.stream.Position;
+            this.nextBoxPosition = offset + length;
+
+            if (type == JxlConstants.CompleteCodestreamBox)
+            {
+                if (this.hasCodestream || this.pendingFragments is not null)
+                {
+                    throw new InvalidImageContentException("A complete JPEG XL codestream cannot be combined with other codestream boxes.");
+                }
+
+                this.hasCodestream = true;
+                this.lastFragment = true;
+                this.fragmentRemaining = length;
+                return;
+            }
+
+            if (type == JxlConstants.PartialCodestreamBox)
+            {
+                if (length < sizeof(uint))
+                {
+                    throw new InvalidImageContentException("The JPEG XL fragment sequence number is incomplete.");
+                }
+
+                IsoBoxReader.ReadExactly(this.stream, header[..sizeof(uint)], "The JPEG XL fragment sequence number is incomplete.");
+                uint sequence = BinaryPrimitives.ReadUInt32BigEndian(header);
+                uint index = sequence & FragmentIndexMask;
+                bool last = (sequence & LastFragment) != 0;
+                offset += sizeof(uint);
+                length -= sizeof(uint);
+                if (index < this.nextFragmentIndex || (this.version == 0 && index != this.nextFragmentIndex))
+                {
+                    throw new InvalidImageContentException("The JPEG XL fragment sequence is duplicated or out of order.");
+                }
+
+                if (index == this.nextFragmentIndex)
+                {
+                    this.hasCodestream = true;
+                    this.nextFragmentIndex++;
+                    this.lastFragment = last;
+                    this.fragmentRemaining = length;
+                    return;
+                }
+
+                // Version one permits out-of-order fragments. Keep just their validated file ranges; finding a
+                // missing earlier fragment requires seeking through box headers, not copying or decoding payloads.
+                this.pendingFragments ??= [];
+                if (!this.pendingFragments.TryAdd(index, (offset, length, last)))
+                {
+                    throw new InvalidImageContentException("The JPEG XL fragment sequence contains a duplicate index.");
+                }
+            }
+            else if (type is JxlConstants.FileTypeBox or JxlConstants.SignatureBox)
+            {
+                throw new InvalidImageContentException("A JPEG XL codestream cannot contain another file header.");
+            }
+            else
+            {
+                this.RetainMetadataBox(type, offset, length);
+            }
+        }
+
+        throw new InvalidImageContentException("The JPEG XL codestream is missing a fragment or its final-fragment flag.");
+    }
+
+    /// <summary>
+    /// Retains supported metadata ranges while skipping padding and unknown box types without allocations.
+    /// </summary>
+    /// <param name="type">The box type.</param>
+    /// <param name="offset">The bounded payload position.</param>
+    /// <param name="length">The bounded payload length.</param>
+    private void RetainMetadataBox(uint type, long offset, long length)
+    {
+        if (type == JxlConstants.LevelBox)
+        {
+            // The level is container control data, not an optional profile. It must occur once before
+            // any codestream box and contain exactly one supported level byte, even with SkipMetadata.
+            if (this.hasLevel || this.hasCodestream || this.pendingFragments is not null || length != 1)
+            {
+                throw new InvalidImageContentException("The JPEG XL level box is duplicated, misplaced or has an invalid length.");
+            }
+
+            if (this.stream.ReadByte() is not (5 or 10))
+            {
+                throw new InvalidImageContentException("The JPEG XL container level is not supported.");
+            }
+
+            this.hasLevel = true;
+        }
+        else if (type == JxlConstants.CompressedMetadataBox)
+        {
+            if (length < sizeof(uint))
+            {
+                throw new InvalidImageContentException("The JPEG XL compressed metadata type is incomplete.");
+            }
+
+            InlineArray4<byte> storage = default;
+            Span<byte> bytes = storage;
+            IsoBoxReader.ReadExactly(this.stream, bytes, "The JPEG XL compressed metadata type is incomplete.");
+            uint wrappedType = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+            if (wrappedType is JxlConstants.CompressedMetadataBox or JxlConstants.JpegReconstructionBox || (wrappedType >> 8) == 0x6A786C)
+            {
+                // Compressed boxes cannot contain another compressed box or codestream control data.
+                // Validate container structure even when optional metadata payloads will be skipped.
+                throw new InvalidImageContentException("The JPEG XL compressed metadata wraps a forbidden box type.");
+            }
+        }
+
+        if (type is JxlConstants.ExifBox or JxlConstants.XmlBox or JxlConstants.CompressedMetadataBox
+            or JxlConstants.JpegReconstructionBox or JxlConstants.LevelBox)
+        {
+            this.boxes.Add((type, offset, length));
+        }
+    }
+}

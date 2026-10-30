@@ -1705,6 +1705,13 @@ public static class TestImages
         public const string LosslessRgba3x3 = "Jxl/3x3a_srgb_lossless.jxl";
         public const string LosslessRgb3x3Truncated = "Jxl/3x3_srgb_lossless_truncated.jxl";
 
+        // Unmodified modular inputs from the reference corpora cover transforms, alpha and sixteen-bit precision.
+        public const string SqueezeEdge = "Jxl/squeeze_edge.jxl";
+        public const string GrayAlphaLossless = "Jxl/gray_alpha_lossless.jxl";
+        public const string DeltaPalette = "Jxl/delta_palette.jxl";
+        public const string Rgb16 = "Jxl/image_integration_rgb16.jxl";
+        public const string EmptyPalette = "Jxl/issue648_palette0.jxl";
+
         // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
         // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
         public const string Splines = "Jxl/splines.jxl";

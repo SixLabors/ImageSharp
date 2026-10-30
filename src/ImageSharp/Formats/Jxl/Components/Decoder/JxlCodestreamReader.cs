@@ -29,14 +29,23 @@ internal sealed class JxlCodestreamReader
 
     private readonly BufferedReadStream stream;
     private readonly List<(uint Type, long Offset, long Length)> boxes = [];
+    private readonly long codestreamOrigin;
+
+    // Container ranges are indexed in logical order as fragment sequencing discovers them.
+    // Seeking reuses these validated ranges without revisiting box headers or retaining payload bytes.
+    private List<(long LogicalOffset, long PhysicalOffset, long Length)>? fragments;
+    private int fragmentIndex = -1;
+    private long fragmentRemaining;
 
     // Only version-one files can need this index. Entries retain file ranges, not copied codestream payloads.
     private Dictionary<uint, (long Offset, long Length, bool IsLast)>? pendingFragments;
 
     private readonly uint version;
     private readonly bool isContainer;
+
+    // Box position, sequence index and final-fragment flag describe discovery, which only moves forward.
+    // The current payload can move backward through cached ranges without changing those values.
     private long nextBoxPosition;
-    private long fragmentRemaining;
     private uint nextFragmentIndex;
     private bool lastFragment;
     private bool hasCodestream;
@@ -50,6 +59,7 @@ internal sealed class JxlCodestreamReader
     {
         this.stream = stream;
         long start = stream.Position;
+        this.codestreamOrigin = start;
         this.MaximumLength = stream.Length - start;
 
         // Inspect the same leading bytes for both file forms. A raw codestream must be rewound so
@@ -110,6 +120,65 @@ internal sealed class JxlCodestreamReader
     public IReadOnlyList<(uint Type, long Offset, long Length)> Boxes => this.boxes;
 
     /// <summary>
+    /// Positions the logical codestream at a byte offset without copying fragment payloads.
+    /// </summary>
+    /// <param name="position">The nonnegative offset from the codestream signature.</param>
+    /// <exception cref="InvalidImageContentException">The offset exceeds the available codestream or crosses an invalid container boundary.</exception>
+    public void Seek(long position)
+    {
+        // TOC offsets come from untrusted lengths. The physical file supplies a conservative first bound;
+        // fragment traversal below also validates the actual logical end and every required container box.
+        if ((ulong)position > (ulong)this.MaximumLength)
+        {
+            throw new InvalidImageContentException("The JPEG XL seek exceeds its codestream boundary.");
+        }
+
+        if (!this.isContainer)
+        {
+            this.stream.Position = this.codestreamOrigin + position;
+            this.Position = position;
+            this.fragmentRemaining = this.MaximumLength - position;
+            return;
+        }
+
+        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments ?? this.OpenNextFragment();
+        (long LogicalOffset, long PhysicalOffset, long Length) last = ranges[^1];
+        long frontier = last.LogicalOffset + last.Length;
+        if (position > frontier)
+        {
+            // Discovery state belongs to the furthest opened fragment. Resume there rather than
+            // reparsing boxes after a backward seek, which would duplicate metadata and sequence indices.
+            this.SelectFragment(ranges, ranges.Count - 1, frontier);
+            if (!this.TrySkip(position - frontier))
+            {
+                throw new InvalidImageContentException("The JPEG XL seek exceeds its codestream boundary.");
+            }
+
+            return;
+        }
+
+        // Find the first range whose exclusive end follows the requested byte. Empty fragments have
+        // no bytes to select. The logical frontier instead uses the last range's exhausted position.
+        int lower = 0;
+        int upper = ranges.Count;
+        while (lower < upper)
+        {
+            int middle = lower + ((upper - lower) / 2);
+            (long LogicalOffset, long PhysicalOffset, long Length) range = ranges[middle];
+            if (range.LogicalOffset + range.Length <= position)
+            {
+                lower = middle + 1;
+            }
+            else
+            {
+                upper = middle;
+            }
+        }
+
+        this.SelectFragment(ranges, Math.Min(lower, ranges.Count - 1), position);
+    }
+
+    /// <summary>
     /// Reads from the current fragment, opening the next fragment when needed.
     /// </summary>
     /// <param name="destination">The span that receives the codestream bytes.</param>
@@ -118,9 +187,8 @@ internal sealed class JxlCodestreamReader
     {
         // Return after reading one physical range. A malformed later box must not discard bytes already delivered
         // from this fragment. The core can then apply its image-data recovery policy after decoding available data.
-        while (this.fragmentRemaining == 0 && !this.lastFragment)
+        while (this.fragmentRemaining == 0 && this.MoveToNextFragment())
         {
-            this.OpenNextFragment();
         }
 
         int count = (int)Math.Min(this.fragmentRemaining, destination.Length);
@@ -140,9 +208,8 @@ internal sealed class JxlCodestreamReader
     {
         while (count != 0)
         {
-            while (this.fragmentRemaining == 0 && !this.lastFragment)
+            while (this.fragmentRemaining == 0 && this.MoveToNextFragment())
             {
-                this.OpenNextFragment();
             }
 
             long step = Math.Min(count, this.fragmentRemaining);
@@ -174,6 +241,14 @@ internal sealed class JxlCodestreamReader
         if (!this.isContainer)
         {
             return;
+        }
+
+        if (this.fragments is not null)
+        {
+            // Random section reads can leave the current position behind the discovery frontier.
+            // Resume from the last validated range; box and sequence state already describe that point.
+            (long LogicalOffset, long PhysicalOffset, long Length) last = this.fragments[^1];
+            this.SelectFragment(this.fragments, this.fragments.Count - 1, last.LogicalOffset + last.Length);
         }
 
         // Fragment boundaries belong to the container. Skip bytes by file position; do not materialize unrequested frames.
@@ -400,9 +475,10 @@ internal sealed class JxlCodestreamReader
     }
 
     /// <summary>
-    /// Opens the next logical fragment and retains intervening metadata box ranges.
+    /// Opens the next undiscovered logical fragment and retains intervening metadata box ranges.
     /// </summary>
-    private void OpenNextFragment()
+    /// <returns>The discovered fragment ranges, including the newly opened fragment.</returns>
+    private List<(long LogicalOffset, long PhysicalOffset, long Length)> OpenNextFragment()
     {
         // A version-one fragment found earlier can now become the next logical fragment. Removing its index entry
         // releases only metadata; the payload has remained in the caller's stream throughout.
@@ -412,7 +488,7 @@ internal sealed class JxlCodestreamReader
             this.fragmentRemaining = pending.Length;
             this.lastFragment = pending.IsLast;
             this.nextFragmentIndex++;
-            return;
+            return this.RetainFragment(pending.Offset, pending.Length);
         }
 
         InlineArray16<byte> storage = default;
@@ -435,7 +511,7 @@ internal sealed class JxlCodestreamReader
                 this.hasCodestream = true;
                 this.lastFragment = true;
                 this.fragmentRemaining = length;
-                return;
+                return this.RetainFragment(offset, length);
             }
 
             if (type == JxlConstants.PartialCodestreamBox)
@@ -462,7 +538,7 @@ internal sealed class JxlCodestreamReader
                     this.nextFragmentIndex++;
                     this.lastFragment = last;
                     this.fragmentRemaining = length;
-                    return;
+                    return this.RetainFragment(offset, length);
                 }
 
                 // Version one permits out-of-order fragments. Keep just their validated file ranges; finding a
@@ -484,6 +560,58 @@ internal sealed class JxlCodestreamReader
         }
 
         throw new InvalidImageContentException("The JPEG XL codestream is missing a fragment or its final-fragment flag.");
+    }
+
+    /// <summary>
+    /// Advances through cached ranges before discovering another container fragment.
+    /// </summary>
+    /// <returns>Whether another logical fragment is available.</returns>
+    private bool MoveToNextFragment()
+    {
+        if (this.fragments is not null && this.fragmentIndex + 1 < this.fragments.Count)
+        {
+            int next = this.fragmentIndex + 1;
+            this.SelectFragment(this.fragments, next, this.fragments[next].LogicalOffset);
+            return true;
+        }
+
+        if (this.lastFragment)
+        {
+            return false;
+        }
+
+        this.OpenNextFragment();
+        return true;
+    }
+
+    /// <summary>
+    /// Records a newly discovered payload at the logical frontier and makes it the current fragment.
+    /// </summary>
+    /// <param name="offset">The validated physical payload start.</param>
+    /// <param name="length">The validated payload length, excluding its sequence number.</param>
+    /// <returns>The retained range list, which is created only for a container.</returns>
+    private List<(long LogicalOffset, long PhysicalOffset, long Length)> RetainFragment(long offset, long length)
+    {
+        List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments ??= [];
+        this.fragmentIndex = ranges.Count;
+        ranges.Add((this.Position, offset, length));
+        return ranges;
+    }
+
+    /// <summary>
+    /// Restores one cached payload position without changing fragment discovery or metadata state.
+    /// </summary>
+    /// <param name="ranges">The validated ranges in logical codestream order.</param>
+    /// <param name="index">The selected range index.</param>
+    /// <param name="position">The logical position within the range, including its exclusive end.</param>
+    private void SelectFragment(List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges, int index, long position)
+    {
+        (long LogicalOffset, long PhysicalOffset, long Length) range = ranges[index];
+        long consumed = position - range.LogicalOffset;
+        this.stream.Position = range.PhysicalOffset + consumed;
+        this.fragmentRemaining = range.Length - consumed;
+        this.fragmentIndex = index;
+        this.Position = position;
     }
 
     /// <summary>

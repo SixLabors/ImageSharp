@@ -116,6 +116,11 @@ internal sealed class JxlFrameHeader
     public byte GroupSizeShift { get; private set; } = 1;
 
     /// <summary>
+    /// Gets the coding group dimension in pixels before color upsampling.
+    /// </summary>
+    public int GroupSize => 128 << this.GroupSizeShift;
+
+    /// <summary>
     /// Gets the XYB X-component quantization-matrix scale.
     /// </summary>
     public byte XQuantizationScale { get; private set; } = 3;
@@ -245,7 +250,7 @@ internal sealed class JxlFrameHeader
             // A coding group spans 128 << shift pixels. An LF group spans eight coding groups per dimension.
             // Chroma padding cannot cross these power-of-two group boundaries, so unpadded coding sizes suffice here.
             Size size = this.CodingSize;
-            uint groupSize = 128U << this.GroupSizeShift;
+            uint groupSize = (uint)this.GroupSize;
             ulong groups = (((uint)size.Width + groupSize - 1) / groupSize) * (ulong)(((uint)size.Height + groupSize - 1) / groupSize);
             uint dcGroupSize = groupSize * 8;
             ulong dcGroups = (((uint)size.Width + dcGroupSize - 1) / dcGroupSize) * (ulong)(((uint)size.Height + dcGroupSize - 1) / dcGroupSize);

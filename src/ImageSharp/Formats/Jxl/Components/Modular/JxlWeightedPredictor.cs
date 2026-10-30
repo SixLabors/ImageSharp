@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 
@@ -146,16 +147,24 @@ internal struct JxlWeightedPredictor
     /// </summary>
     /// <param name="width">The validated modular channel width.</param>
     /// <returns>The complete reusable scratch length.</returns>
-    /// <remarks>
-    /// The current decoder supplies one coding group. Its two-bit group-size shift bounds width to 128 shifted by three, or 1024.
-    /// The largest scratch therefore contains 10260 integers, so these size calculations fit in a signed integer.
-    /// </remarks>
-    public static int GetStorageLength(int width) => (width + RowMargin) * StoredRows * (PredictorCount + 1);
+    /// <exception cref="InvalidMemoryOperationException">The complete row layout exceeds the supported span length.</exception>
+    public static int GetStorageLength(int width)
+    {
+        // Palette tables and reconstructed channels can be wider than coding groups.
+        // Widen before sizing all five two-row planes; their shared span and indices must fit in an int.
+        long length = ((long)width + RowMargin) * StoredRows * (PredictorCount + 1);
+        if (length > int.MaxValue)
+        {
+            throw new InvalidMemoryOperationException("The JPEG XL weighted prediction rows exceed the supported buffer length.");
+        }
+
+        return (int)length;
+    }
 
     /// <summary>
     /// Clears preceding-channel errors and prepares the row layout for the next channel.
     /// </summary>
-    /// <param name="errors">The decoder-owned scratch of <see cref="GetStorageLength"/> values.</param>
+    /// <param name="errors">The decoder-owned scratch with at least <see cref="GetStorageLength"/> values for this width.</param>
     /// <param name="width">The channel width.</param>
     public void Reset(Span<int> errors, int width)
     {
@@ -163,7 +172,9 @@ internal struct JxlWeightedPredictor
         // in the same integer words. Every plane has two alternating rows and two trailing margin entries.
         this.rowStride = width + RowMargin;
         this.planeLength = this.rowStride * StoredRows;
-        errors.Clear();
+
+        // The shared scratch can belong to a wider channel. Only these five two-row planes take part in the current prediction.
+        errors[..(this.planeLength * (PredictorCount + 1))].Clear();
     }
 
     /// <summary>

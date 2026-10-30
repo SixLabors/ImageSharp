@@ -11,6 +11,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlCodestreamReaderTests
 {
     /// <summary>
+    /// Verifies backward and forward section reads against the original stored codestream bytes.
+    /// </summary>
+    /// <param name="file">The raw or fragmented input.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.Splines)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV0)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV1)]
+    public void SeekPreservesCodestreamAcrossFragmentBoundaries(string file)
+    {
+        byte[] expected = TestFile.Create(TestImages.Jxl.Splines).Bytes;
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlCodestreamReader reader = new(buffered);
+        InlineArray16<byte> storage = default;
+        Span<byte> actual = storage;
+        ReadOnlySpan<int> positions = [0, expected.Length / 2, 5, expected.Length - actual.Length, 0, 17];
+
+        // This order crosses both discovered and undiscovered ranges, then returns to cached ranges.
+        // The version-one fixture stores fragments out of logical order; bytes still match the unchanged raw file.
+        foreach (int position in positions)
+        {
+            reader.Seek(position);
+            int count = Math.Min(actual.Length, expected.Length - position);
+            int consumed = 0;
+            while (consumed < count)
+            {
+                int read = reader.Read(actual[consumed..count]);
+                Assert.InRange(read, 1, count - consumed);
+                consumed += read;
+            }
+
+            Assert.Equal(expected.AsSpan(position, count), actual[..count]);
+            Assert.Equal(position + count, reader.Position);
+        }
+
+        reader.Complete();
+        Assert.Empty(reader.Boxes);
+        Assert.True(stream.CanRead);
+    }
+
+    /// <summary>
     /// Verifies that completing a partially read container leaves the stream after its final physical box.
     /// </summary>
     /// <param name="file">The stored container input.</param>
@@ -120,6 +161,12 @@ public class JxlCodestreamReaderTests
         Assert.Equal(16, reader.Read(prefix));
         Assert.Equal((byte)0xFF, prefix[0]);
         Assert.Equal((byte)0x0A, prefix[1]);
+
+        // A backward section read must not cause metadata boxes to be discovered twice during completion.
+        reader.Seek(80);
+        Assert.InRange(reader.Read(prefix), 1, prefix.Length);
+        reader.Seek(0);
+        Assert.Equal(16, reader.Read(prefix));
 
         reader.Complete();
 

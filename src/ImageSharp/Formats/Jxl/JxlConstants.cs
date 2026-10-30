@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 internal static class JxlConstants
 {
     /// <summary>
+    /// The seventeen quantization-table stream IDs reserved before modular AC groups, including in modular-only frames.
+    /// </summary>
+    public const int QuantizationTableCount = 17;
+
+    /// <summary>
     /// The maximum encoded byte length of a frame or extra-channel name: 48 plus a 10-bit unsigned value.
     /// </summary>
     public const int MaximumNameByteLength = 1071;

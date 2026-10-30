@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
+using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -17,12 +19,82 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlFormatTests
 {
     /// <summary>
+    /// Verifies complete modular pixel output against independently decoded native pixels.
+    /// </summary>
+    /// <param name="file">The unchanged reference fixture.</param>
+    /// <param name="width">The native output width.</param>
+    /// <param name="height">The native output height.</param>
+    /// <param name="pixelHash">The SHA-256 of row-major unassociated RGBA bytes from the reference decoder.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.SqueezeEdge, 513, 513, "153CEA5DAAE29DE298D4D1E9DCEF6B1854622D4A32049882E1A966CA2F8E5031")]
+    [InlineData(TestImages.Jxl.GrayAlphaLossless, 64, 64, "B53CECBA04562FB5728FDBE175AF374BB9EB44B47A0F936B3C35E3D4A547E000")]
+    [InlineData(TestImages.Jxl.DeltaPalette, 555, 751, "CD2DAB268DFAF19A5285277BCE16A71E73DB337BDA82DD47A1354F4FEC80EABF")]
+    [InlineData(TestImages.Jxl.EmptyPalette, 1623, 1080, "50E5FC336905C9E32842A94F52DB68815446A0B12C45C03988C3133870181283")]
+    public void DecodeModularMatchesNativePixels(string file, int width, int height, string pixelHash)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration);
+        using MemoryStream input = new(TestFile.Create(file).Bytes, false);
+        ImageInfo info = Image.Identify(options, input);
+        Assert.Equal(new Size(width, height), info.Size);
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateModularPixels,
+            file,
+            pixelHash,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Verifies that sixteen-bit samples reach both integer and floating-point destinations without byte rounding.
+    /// </summary>
+    [Fact]
+    public void Decode16BitPreservesSamplePrecision()
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration);
+        byte[] data = TestFile.Create(TestImages.Jxl.Rgb16).Bytes;
+        using MemoryStream integerInput = new(data, false);
+        using MemoryStream vectorInput = new(data, false);
+        using MemoryStream automaticInput = new(data, false);
+        using Image<Rgb48> integer = Image.Load<Rgb48>(options, integerInput);
+        using Image<RgbaVector> vectors = Image.Load<RgbaVector>(options, vectorInput);
+        using Image automatic = Image.Load(options, automaticInput);
+
+        // The reference's image-integration test specifies these two RGB16 pixels literally.
+        // Red = 32768 must remain halfway through the sixteen-bit range; a byte intermediate would change that value.
+        Assert.Equal(new Rgb48(ushort.MaxValue, 0, 0), integer[0, 0]);
+        Assert.Equal(new Rgb48(32768, ushort.MaxValue, 0), integer[1, 0]);
+        Assert.Equal(new RgbaVector(1F, 0F, 0F, 1F), vectors[0, 0]);
+        Assert.Equal(new RgbaVector(32768F / ushort.MaxValue, 1F, 0F, 1F), vectors[1, 0]);
+        Assert.IsType<Image<Rgb48>>(automatic);
+    }
+
+    /// <summary>
     /// Verifies every reversible color operation, including signed rounding and overflow, at each SIMD width and scalar fallback.
     /// </summary>
     [Fact]
     public void InverseModularColorTransformMatchesNativeArithmetic()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateInverseModularColorTransform,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies native cross-channel properties at row edges and interior blocks for every SIMD width and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void ModularCrossChannelPropertiesMatchNativeArithmetic()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateModularCrossChannelProperties,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies squeeze reconstruction, signed division and odd edges at each SIMD width and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void InverseModularSqueezeMatchesNativeArithmetic()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateInverseModularSqueeze,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
@@ -542,6 +614,25 @@ public class JxlFormatTests
         => Assert.Throws<ArgumentNullException>(() => new JxlDecoderOptions(null));
 
     /// <summary>
+    /// Checks every decoded pixel in one hardware configuration against independently decoded native pixels.
+    /// </summary>
+    /// <param name="file">The stored reference fixture.</param>
+    /// <param name="pixelHash">The expected SHA-256 of complete unassociated RGBA output.</param>
+    private static void ValidateModularPixels(string file, string pixelHash)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration);
+        using MemoryStream input = new(TestFile.Create(file).Bytes, false);
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, input);
+        byte[] pixels = new byte[image.Width * image.Height * 4];
+        image.CopyPixelDataTo(pixels);
+
+        // Each input declares the sRGB transfer curve. The reference output therefore needs no color-profile conversion.
+        // Libjxl and jxl-rs produce the same hash. It covers every channel of every pixel, including RGB beneath transparent alpha.
+        Assert.Equal(pixelHash, Convert.ToHexString(SHA256.HashData(pixels)));
+    }
+
+    /// <summary>
     /// Checks native reversible color equations against fixed integer results with complete vector blocks and a scalar tail.
     /// </summary>
     private static void ValidateInverseModularColorTransform()
@@ -619,6 +710,177 @@ public class JxlFormatTests
                 Assert.Equal(expected[offset + sample], first[i]);
                 Assert.Equal(expected[offset + sampleCount + sample], second[i]);
                 Assert.Equal(expected[offset + (2 * sampleCount) + sample], third[i]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks fixed native squeeze equations with complete transposed batches and every smaller remainder.
+    /// </summary>
+    private static void ValidateInverseModularSqueeze()
+    {
+        ReadOnlySpan<int> averages = [-17, -9, -2, 4, 9, 21, 18, 7, -3, -14, -14, 5, 19, 13, 0, -8, 3, 18, 27, 9, -15, -21, -8, 0, 17, 29, 12, -4, -9, 6, 14];
+        ReadOnlySpan<int> residuals = [-3, 1, -1, 4, 0, 3, -5, 7, -9, 1, 0, 4, -3, 2, -7, 3, 1, -5, 9, -3, 5, -1, 7, 0, -3, 5, -7, 1, 3, -5, -3];
+
+        // Fixed results use libjxl's SmoothTendency equation: (4 * previous - 3 * next - average +/- 6) / 12,
+        // followed by its two parity limits, then first = average + difference / 2 and second = first - difference.
+        // Division truncates toward zero. The first pair has previous = average but a nonzero tendency of -1;
+        // negative odd differences and flat neighboring averages distinguish this from a sign-bit-only trend test.
+        ReadOnlySpan<int> expected =
+        [
+            -19, -15, -10, -7, -4, 0, 4, 3, 7, 12, 22, 19, 17, 19, 14, 0, -5, 0, -14, -15, -15, -12, 3, 8, 18, 21, 17, 9, -1, 1, -7, -10,
+            0, 7, 13, 24, 31, 22, 12, 5, -9, -22, -23, -19, -8, -9, -3, 4, 12, 22, 31, 26, 13, 11, -1, -8, -8, -11, 0, 13, 13, 16
+        ];
+
+        ValidateSqueezeLayout(averages, residuals, expected, true, false, true);
+        ValidateSqueezeLayout(averages, residuals, expected, true, true, true);
+        ValidateSqueezeLayout(averages, residuals, expected, false, false, true);
+        ValidateSqueezeLayout(averages, residuals, expected, false, true, true);
+
+        ReadOnlySpan<int> extremes =
+        [
+            int.MinValue, int.MaxValue, 0, int.MaxValue, int.MinValue, -1, 1,
+            int.MinValue, int.MaxValue, 0, int.MaxValue, int.MinValue, -1, 1,
+            int.MinValue, int.MaxValue, 0, int.MaxValue, int.MinValue, -1, 1,
+            int.MinValue, int.MaxValue, 0, int.MaxValue, int.MinValue, -1, 1,
+            int.MinValue, int.MaxValue, 0
+        ];
+
+        // The native scalar equation uses wide signed intermediates, then stores signed 32-bit samples.
+        // These fixed values detect premature subtraction, absolute-value or difference overflow in SIMD lanes.
+        ReadOnlySpan<int> extremeExpected =
+        [
+            2147483646, -2147483646, 2147483647, 2147483646, 0, 1, -2147483647, 2147483645, int.MinValue, int.MinValue, -1, 0, -1, 4,
+            -2147483645, 2147483644, 2147483643, -2147483644, -626349396, 626349396, int.MaxValue, int.MaxValue, -2147483646, 2147483646, -2, 1, 2, -1,
+            2147483645, -2147483644, int.MinValue, 2147483645, 0, -1, 2147483645, -2147483646, -2147483644, 2147483643, -2, 1, 4, -2,
+            int.MinValue, -2147483647, -2147483646, 2147483643, 0, 0, 2147483646, -2147483647, -2147483646, 2147483645, -4, 3, 4, -2,
+            -2147483647, 2147483646, 2147483645, -2147483646, -1, 2
+        ];
+
+        ValidateSqueezeLayout(extremes, residuals, extremeExpected, true, true, false);
+        ValidateSqueezeLayout(extremes, residuals, extremeExpected, false, true, false);
+
+        // Squeezing a one-sample dimension produces a valid empty residual plane. Reconstruction copies the sole average.
+        ValidateSqueezeLayout([7], [], [], true, true, true);
+        ValidateSqueezeLayout([7], [], [], false, true, true);
+    }
+
+    /// <summary>
+    /// Places an independently specified sequence in either orientation and verifies every output sample.
+    /// </summary>
+    /// <param name="averageValues">The average sequence. An odd edge repeats its last value.</param>
+    /// <param name="residualValues">The residual sequence.</param>
+    /// <param name="expected">The fixed reconstructed pairs.</param>
+    /// <param name="horizontal">Whether the sequence runs across columns instead of rows.</param>
+    /// <param name="oddEdge">Whether one unpaired average follows the reconstructed pairs.</param>
+    /// <param name="varyRows">Whether independent sequences receive distinct finite offsets.</param>
+    private static void ValidateSqueezeLayout(
+        ReadOnlySpan<int> averageValues, ReadOnlySpan<int> residualValues, ReadOnlySpan<int> expected, bool horizontal, bool oddEdge, bool varyRows)
+    {
+        // Thirty-one independent sequences exercise horizontal row batches of 16, 8 and 4, then three scalar rows.
+        // Transposing this setup exercises vertical SIMD blocks of the same widths and a three-column scalar tail.
+        const int independentCount = 31;
+        int pairCount = residualValues.Length;
+        int averageCount = pairCount + (oddEdge ? 1 : 0);
+        int outputCount = expected.Length + (oddEdge ? 1 : 0);
+        Size averageSize = horizontal ? new(averageCount, independentCount) : new(independentCount, averageCount);
+        Size residualSize = horizontal ? new(pairCount, independentCount) : new(independentCount, pairCount);
+        Size outputSize = horizontal ? new(outputCount, independentCount) : new(independentCount, outputCount);
+        using Buffer2D<int> averages = MemoryAllocator.Default.Allocate2D<int>(averageSize);
+        using Buffer2D<int>? residuals = pairCount == 0 ? null : MemoryAllocator.Default.Allocate2D<int>(residualSize);
+        using Buffer2D<int> output = MemoryAllocator.Default.Allocate2D<int>(outputSize);
+        Buffer2DRegion<int> residualRegion = residuals is null ? default : residuals.GetRegion();
+
+        for (int sequence = 0; sequence < independentCount; sequence++)
+        {
+            int offset = varyRows ? sequence * 37 : 0;
+
+            for (int i = 0; i < averageCount; i++)
+            {
+                int value = averageValues[Math.Min(i, averageValues.Length - 1)] + offset;
+                averages[horizontal ? i : sequence, horizontal ? sequence : i] = value;
+            }
+
+            for (int i = 0; i < pairCount; i++)
+            {
+                residualRegion[horizontal ? i : sequence, horizontal ? sequence : i] = residualValues[i];
+            }
+        }
+
+        JxlModularSqueeze.Apply(averages.GetRegion(), residualRegion, output.GetRegion(), horizontal, CancellationToken.None);
+
+        for (int sequence = 0; sequence < independentCount; sequence++)
+        {
+            int offset = varyRows ? sequence * 37 : 0;
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i] + offset, output[horizontal ? i : sequence, horizontal ? sequence : i]);
+            }
+
+            if (oddEdge)
+            {
+                Assert.Equal(averageValues[^1] + offset, output[horizontal ? outputCount - 1 : sequence, horizontal ? sequence : outputCount - 1]);
+            }
+        }
+    }
+    /// <summary>
+    /// Checks fixed native cross-channel properties, including signed storage of wide residuals and absolute values.
+    /// </summary>
+    private static void ValidateModularCrossChannelProperties()
+    {
+        ReadOnlySpan<int> rowValues = [int.MinValue, int.MaxValue, -7, 0, 19, -31, int.MaxValue];
+        ReadOnlySpan<int> topValues = [int.MaxValue, int.MinValue, -2, int.MinValue, 23, 17, -int.MaxValue];
+        ReadOnlySpan<int> absoluteValues = [int.MinValue, int.MaxValue, 7, 0, 19, 31, int.MaxValue];
+
+        // Native PrecomputeReferences uses gradient = left + top - topLeft, bounded between left and top.
+        // The first row uses top = topLeft = left, so its prediction is left. These fixed results include
+        // signed 32-bit property storage. For example, abs(MinValue - MaxValue) stores -1.
+        ReadOnlySpan<int> firstAbsoluteResiduals = [-1, -1, -2147483642, 7, 19, 50, -2147483618];
+        ReadOnlySpan<int> firstResiduals = [1, -1, 2147483642, 7, 19, -50, -2147483618];
+        ReadOnlySpan<int> followingAbsoluteResiduals = [-1, -1, -2147483642, int.MinValue, 4, 48, -2];
+        ReadOnlySpan<int> followingResiduals = [1, -1, 2147483642, int.MinValue, -4, -48, -2];
+        int[] row = new int[64];
+        int[] top = new int[64];
+        int[] actualAbsoluteValues = new int[31];
+        int[] actualValues = new int[31];
+        int[] actualAbsoluteResiduals = new int[31];
+        int[] actualResiduals = new int[31];
+
+        for (int x = 0; x < row.Length; x++)
+        {
+            row[x] = rowValues[x % rowValues.Length];
+            top[x] = topValues[x % topValues.Length];
+        }
+
+        // Start zero verifies the native left-edge rule. Starts one and 33 must borrow the real preceding sample,
+        // not treat a new block as an image edge. Thirty-one outputs cover 16-, 8-, 4-lane blocks and scalar tails.
+        ReadOnlySpan<int> starts = [0, 1, 33];
+        for (int rowIndex = 0; rowIndex < 2; rowIndex++)
+        {
+            bool hasTop = rowIndex != 0;
+            ReadOnlySpan<int> expectedAbsoluteResiduals = hasTop ? followingAbsoluteResiduals : firstAbsoluteResiduals;
+            ReadOnlySpan<int> expectedResiduals = hasTop ? followingResiduals : firstResiduals;
+
+            foreach (int start in starts)
+            {
+                JxlModularPredictor.PrepareReferences(
+                    row, hasTop ? top : [], start, hasTop, actualAbsoluteValues, actualValues, actualAbsoluteResiduals, actualResiduals);
+
+                for (int i = 0; i < actualValues.Length; i++)
+                {
+                    int x = start + i;
+                    int sample = x % rowValues.Length;
+                    int expectedAbsoluteResidual = x == 0 ? hasTop ? -1 : int.MinValue : expectedAbsoluteResiduals[sample];
+                    int expectedResidual = x == 0 ? hasTop ? 1 : int.MinValue : expectedResiduals[sample];
+
+                    // At column three, the following-row gradient is below Int32.MinValue before bounding.
+                    // Exact expectations therefore detect overflow before clamping, not just scalar/SIMD agreement.
+                    Assert.Equal(absoluteValues[sample], actualAbsoluteValues[i]);
+                    Assert.Equal(rowValues[sample], actualValues[i]);
+                    Assert.Equal(expectedAbsoluteResidual, actualAbsoluteResiduals[i]);
+                    Assert.Equal(expectedResidual, actualResiduals[i]);
+                }
             }
         }
     }

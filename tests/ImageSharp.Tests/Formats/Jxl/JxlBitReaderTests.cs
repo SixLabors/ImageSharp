@@ -35,6 +35,14 @@ public class JxlBitReaderTests
         Assert.Equal(0x63U, reader.ReadBits(8));
         Assert.Equal(0x00E00010U, reader.ReadBits(32));
         Assert.Equal(96, reader.Position);
+
+        // Start a one-byte section and prefetch its bits, then move back to the signature.
+        // Reading sixteen bits proves that seeking discards both the cached bits and the previous eight-bit section bound.
+        reader.SeekBytePosition(0);
+        reader.BeginSection(1);
+        Assert.Equal(1U, reader.ReadBits(1));
+        reader.SeekBytePosition(0);
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
     }
 
     /// <summary>

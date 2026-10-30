@@ -129,12 +129,12 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         }
 
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
-        if (!frame.Modular || frame.SectionCount != 1 || !frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular
+        if (!frame.Modular || !frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular
             || frame.HasCrop || frame.Size != header.Size || frame.Upsampling != 1 || (frame.Flags & ~JxlFrameHeader.SkipAdaptiveDcSmoothing) != 0
             || frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)
         {
             throw new NotSupportedException(
-                "JPEG XL decoding currently requires a final full-canvas modular frame with one coding group, no upsampling and no filters or image features.");
+                "JPEG XL decoding currently requires a final full-canvas modular frame without upsampling, filters or image features.");
         }
 
         // Native compact RGB must already use sRGB primaries and D65. A compact gamma changes only
@@ -171,9 +171,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         }
 
         using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
-        reader.BeginSection(sections.Sizes.Span[0]);
-        using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, cancellationToken);
-        reader.EndSection();
+        using JxlModularDecoder modular = this.DecodeModularFrame(ref reader, header, frame, sections, cancellationToken);
 
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
@@ -245,6 +243,163 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             image.Dispose();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Reconstructs global channels and sequential modular groups before reversing the global transforms.
+    /// </summary>
+    /// <param name="reader">The reader at the frame's first section payload.</param>
+    /// <param name="header">The native channel declarations.</param>
+    /// <param name="frame">The coding dimensions and pass descriptions.</param>
+    /// <param name="sections">The retained physical section sizes and logical ordering.</param>
+    /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
+    /// <returns>The owner of the completed native channel planes.</returns>
+    private JxlModularDecoder DecodeModularFrame(
+        ref JxlBitReader reader, JxlHeader header, JxlFrameHeader frame, JxlFrameSections sections, CancellationToken cancellationToken)
+    {
+        ReadOnlySpan<uint> sizes = sections.Sizes.Span;
+        ReadOnlySpan<uint> order = sections.Order.Span;
+        bool combined = sizes.Length == 1;
+        using IMemoryOwner<long>? offsetsOwner = combined ? null : this.Options.Configuration.MemoryAllocator.Allocate<long>(sizes.Length);
+        Span<long> offsets = offsetsOwner is null ? [] : offsetsOwner.Memory.Span;
+        long position = sections.PayloadOffset;
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            offsets[i] = position;
+            position += sizes[i];
+        }
+
+        // Logical dependencies determine processing order. The table can put those sections in another physical order.
+        // Cache prefix sums once so a permuted frame needs neither repeated table scans nor copied payloads.
+        if (combined)
+        {
+            reader.BeginSection(sizes[0]);
+        }
+        else
+        {
+            SelectSection(ref reader, sizes, order, offsets, 0);
+        }
+
+        JxlModularDecoder modular = JxlModularDecoder.Read(
+            ref reader, header, frame, this.Options.Configuration.MemoryAllocator, cancellationToken);
+
+        try
+        {
+            if (!combined)
+            {
+                reader.EndSection();
+            }
+
+            Size size = frame.CodingSize;
+            int groupSize = frame.GroupSize;
+            int dcGroupSize = groupSize * 8;
+            int groupColumns = (int)(((uint)size.Width + (uint)groupSize - 1) / (uint)groupSize);
+            int groupRows = (int)(((uint)size.Height + (uint)groupSize - 1) / (uint)groupSize);
+            int dcGroupColumns = (int)(((uint)size.Width + (uint)dcGroupSize - 1) / (uint)dcGroupSize);
+            int dcGroupRows = (int)(((uint)size.Height + (uint)dcGroupSize - 1) / (uint)dcGroupSize);
+
+            // The section-table parser already bounds both group products through the complete section count.
+            int groupCount = groupColumns * groupRows;
+            int dcGroupCount = dcGroupColumns * dcGroupRows;
+
+            // DC groups carry channels whose smaller dimension shift is at least three.
+            // Keep full grid rectangles until the modular owner shifts and clips each individual channel.
+            for (int group = 0; group < dcGroupCount; group++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!combined)
+                {
+                    SelectSection(ref reader, sizes, order, offsets, 1 + group);
+                }
+
+                Rectangle rectangle = new((group % dcGroupColumns) * dcGroupSize, (group / dcGroupColumns) * dcGroupSize, dcGroupSize, dcGroupSize);
+                modular.ReadGroup(ref reader, rectangle, 3, 1000, 1 + dcGroupCount + group, cancellationToken);
+                if (!combined)
+                {
+                    reader.EndSection();
+                }
+            }
+
+            // AC-global contains no fields in a modular-only frame. Its physical range still has to remain bounded.
+            if (!combined)
+            {
+                SelectSection(ref reader, sizes, order, offsets, 1 + dcGroupCount);
+                reader.EndSection();
+            }
+
+            int maximumShift = 2;
+            int minimumShift = 3;
+            ReadOnlySpan<byte> downsampling = frame.Downsampling;
+            ReadOnlySpan<byte> lastPass = frame.LastDownsamplingPass;
+            for (int pass = 0; pass < frame.PassCount; pass++)
+            {
+                for (int i = 0; i < downsampling.Length; i++)
+                {
+                    if (lastPass[i] == pass)
+                    {
+                        minimumShift = BitOperations.Log2(downsampling[i]);
+                    }
+                }
+
+                if (pass == frame.PassCount - 1)
+                {
+                    minimumShift = 0;
+                }
+
+                for (int group = 0; group < groupCount; group++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!combined)
+                    {
+                        SelectSection(ref reader, sizes, order, offsets, 2 + dcGroupCount + (pass * groupCount) + group);
+                    }
+
+                    // Tree property one includes reserved DC, AC-metadata and quantization-table stream IDs.
+                    // These IDs identify entropy contexts; they are different from physical section numbers.
+                    int streamId = 1 + (3 * dcGroupCount) + JxlConstants.QuantizationTableCount + (pass * groupCount) + group;
+                    Rectangle rectangle = new((group % groupColumns) * groupSize, (group / groupColumns) * groupSize, groupSize, groupSize);
+                    modular.ReadGroup(ref reader, rectangle, minimumShift, maximumShift, streamId, cancellationToken);
+                    if (!combined)
+                    {
+                        reader.EndSection();
+                    }
+                }
+
+                maximumShift = minimumShift - 1;
+            }
+
+            if (combined)
+            {
+                reader.EndSection();
+            }
+
+            modular.Complete(cancellationToken);
+
+            // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
+            reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);
+            return modular;
+        }
+        catch
+        {
+            modular.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Selects one bounded payload from a logical section index without copying its bytes.
+    /// </summary>
+    /// <param name="reader">The frame bit reader.</param>
+    /// <param name="sizes">The physical payload lengths.</param>
+    /// <param name="order">The logical-to-physical permutation, or empty for identity order.</param>
+    /// <param name="offsets">The precomputed physical payload starts in logical codestream byte units.</param>
+    /// <param name="logicalIndex">The section required by the current decoding stage.</param>
+    private static void SelectSection(
+        ref JxlBitReader reader, ReadOnlySpan<uint> sizes, ReadOnlySpan<uint> order, ReadOnlySpan<long> offsets, int logicalIndex)
+    {
+        int physicalIndex = order.IsEmpty ? logicalIndex : (int)order[logicalIndex];
+        reader.SeekBytePosition(offsets[physicalIndex]);
+        reader.BeginSection(sizes[physicalIndex]);
     }
 
     /// <summary>

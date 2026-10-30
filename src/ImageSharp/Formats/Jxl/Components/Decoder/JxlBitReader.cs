@@ -51,6 +51,20 @@ internal struct JxlBitReader
     public readonly long BytePosition => this.source.Position - ((this.availableBits + 7) / 8);
 
     /// <summary>
+    /// Positions the codestream at a byte offset and discards lookahead and the preceding section bound.
+    /// </summary>
+    /// <param name="position">The logical byte offset selected from the frame's validated section table.</param>
+    public void SeekBytePosition(long position)
+    {
+        // A section can move backward or across container fragments. Its new bytes must come from
+        // the source's selected range, not bits prefetched at the preceding section's physical position.
+        this.source.Seek(position);
+        this.buffer = 0;
+        this.availableBits = 0;
+        this.sectionEnd = long.MaxValue;
+    }
+
+    /// <summary>
     /// Bounds subsequent reads to one byte-aligned frame section without copying its payload.
     /// </summary>
     /// <param name="byteLength">The section length from the frame's validated section table.</param>

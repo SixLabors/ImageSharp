@@ -6,7 +6,7 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
-/// Provides the default JPEG XL XYB color transform defined by ISO/IEC 18181-1.
+/// Provides the XYB color transform defined by ISO/IEC 18181-1.
 /// </summary>
 /// <remarks>
 /// The standard coefficients are fixed. A JPEG XL image header can supply custom inverse coefficients and biases.
@@ -16,22 +16,20 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public static class KnownXybTransforms
 {
     /// <summary>
-    /// Gets the standard JPEG XL absorbance transform with a reference intensity of 255 nits.
+    /// Gets the ISO/IEC 18181-1 XYB absorbance transform with an intensity target of 255 nits.
     /// </summary>
-    public static XybTransform Default { get; } = new(
-
-        // The reference coefficients are row-major. Store their transpose for Vector3.Transform's row-vector convention.
+    public static XybTransform Iso18181 { get; } = new(
         new Matrix4x4(
             0.30F,
-            0.23F,
-            0.24342268924547819F,
-            0F,
             1F - 0.078F - 0.30F,
-            1F - 0.078F - 0.23F,
-            0.20476744424496821F,
+            0.078F,
             0F,
+            0.23F,
+            1F - 0.078F - 0.23F,
             0.078F,
-            0.078F,
+            0F,
+            0.24342268924547819F,
+            0.20476744424496821F,
             1F - 0.24342268924547819F - 0.20476744424496821F,
             0F,
             0F,
@@ -40,15 +38,15 @@ public static class KnownXybTransforms
             1F),
         new Matrix4x4(
             11.031566901960783F,
-            -3.254147380392157F,
-            -3.6588512862745097F,
-            0F,
             -9.866943921568629F,
-            4.418770392156863F,
-            2.7129230470588235F,
+            -0.16462299647058826F,
             0F,
+            -3.254147380392157F,
+            4.418770392156863F,
             -0.16462299647058826F,
-            -0.16462299647058826F,
+            0F,
+            -3.6588512862745097F,
+            2.7129230470588235F,
             1.9459282392156863F,
             0F,
             0F,

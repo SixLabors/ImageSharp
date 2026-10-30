@@ -35,7 +35,7 @@ internal sealed class JxlHeader
     /// <summary>
     /// Gets the absorbance transform used for XYB reconstruction.
     /// </summary>
-    public XybTransform XybTransform { get; private set; } = KnownXybTransforms.Default;
+    public XybTransform XybTransform { get; private set; } = KnownXybTransforms.Iso18181;
 
     /// <summary>
     /// Gets the three quantization biases and the bias numerator used for small coefficients.
@@ -141,7 +141,7 @@ internal sealed class JxlHeader
     /// <summary>
     /// Gets the reference intensity in nits used by image reconstruction.
     /// </summary>
-    public float IntensityTarget { get; private set; } = XybTransform.ReferenceIntensity;
+    public float IntensityTarget { get; private set; } = KnownXybTransforms.Iso18181.IntensityTarget;
 
     /// <summary>
     /// Gets the image's declared minimum luminance in nits.
@@ -202,6 +202,8 @@ internal sealed class JxlHeader
         bool extraFields = reader.ReadBoolean();
         if (extraFields)
         {
+            // This group precedes the sample layout. Its presence controls orientation, display sizing,
+            // preview, animation and the later tone-mapping group; absent fields retain the format defaults.
             header.Orientation = (ushort)(reader.ReadBits(3) + 1);
             header.IntrinsicSize = reader.ReadBoolean() ? reader.ReadSize() : null;
             header.PreviewSize = reader.ReadBoolean() ? ReadPreviewSize(ref reader) : null;
@@ -217,17 +219,24 @@ internal sealed class JxlHeader
 
         header.Metadata.BitDepth = ReadBitDepth(ref reader);
         header.Modular16BitBufferSufficient = reader.ReadBoolean();
+
+        // Extra channels have independent precision and resolution. Read their descriptions before
+        // the color encoding so the same immutable metadata is available to every later frame.
         uint extraChannelCount = reader.ReadU32((0, 0), (0, 1), (4, 2), (12, 1));
         for (uint i = 0; i < extraChannelCount; i++)
         {
             header.Metadata.ExtraChannels.Add(ReadExtraChannel(ref reader));
         }
 
+        // The coding transform and declared profile are separate fields. In an XYB image, the profile
+        // describes the suggested output space; it does not describe the native XYB component values.
         header.UsesXybTransform = reader.ReadBoolean();
         header.ReadColorEncoding(ref reader);
         header.Metadata.ColorType = header.UsesXybTransform ? JxlColorType.Xyb : header.ProfileColorType;
         if (extraFields && !reader.ReadBoolean())
         {
+            // Luminance fields use nits. LinearBelow is relative to the maximum display only when its flag is set,
+            // so the upper bound of one applies only in that mode. ReadHalf already rejects nonfinite syntax.
             header.IntensityTarget = reader.ReadHalf();
             header.MinimumLuminance = reader.ReadHalf();
             header.RelativeToMaximumDisplay = reader.ReadBoolean();
@@ -250,6 +259,8 @@ internal sealed class JxlHeader
     /// <returns>The validated sample layout.</returns>
     private static JxlBitDepth ReadBitDepth(ref JxlBitReader reader)
     {
+        // Floating layouts include one sign bit. The remaining bits divide into the explicit exponent
+        // and mantissa fields; integer layouts have no exponent. Validate before narrowing to metadata bytes.
         bool floating = reader.ReadBoolean();
         uint bits = floating ? reader.ReadU32((0, 32), (0, 16), (0, 24), (6, 1)) : reader.ReadU32((0, 8), (0, 10), (0, 12), (6, 1));
         uint exponent = floating ? reader.ReadBits(4) + 1 : 0;
@@ -284,6 +295,9 @@ internal sealed class JxlHeader
         }
 
         string name = reader.ReadName();
+
+        // Only alpha channels encode association. Spot colors and CFA channels each have their own
+        // following fields, so reading an absent field would shift the remainder of the image header.
         PixelAlphaRepresentation alpha = type == JxlExtraChannelType.Alpha
             ? reader.ReadBoolean() ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated
             : PixelAlphaRepresentation.None;
@@ -342,6 +356,8 @@ internal sealed class JxlHeader
         this.ProfileColorType = (JxlColorType)reader.ReadEnum(0xF);
         if (this.HasIccProfile)
         {
+            // The component declaration remains present, but the ICC bytes replace all compact profile fields.
+            // Their entropy-coded payload follows the custom transform group, rather than this declaration.
             return;
         }
 
@@ -374,6 +390,8 @@ internal sealed class JxlHeader
         }
         else if (reader.ReadBoolean())
         {
+            // Gamma is an integer number of ten-millionths. Keep that exact ratio here instead of
+            // rounding it through float before a transfer-function implementation consumes it.
             uint gamma = reader.ReadBits(24);
             const uint gammaScale = 10_000_000;
             const uint maximumExpansionExponent = 8192;
@@ -427,8 +445,8 @@ internal sealed class JxlHeader
         {
             if (this.UsesXybTransform && !reader.ReadBoolean())
             {
-                // The file stores a row-major three-by-three matrix. Vector3.Transform uses row vectors,
-                // so transpose those coefficients when completing its four-by-four matrix.
+                // Retain the file's row-major coefficients. ColorConversionOptions prepares the
+                // row-vector matrix layout when the codec selects this transform for public conversion.
                 float m00 = reader.ReadHalf();
                 float m01 = reader.ReadHalf();
                 float m02 = reader.ReadHalf();
@@ -438,19 +456,22 @@ internal sealed class JxlHeader
                 float m20 = reader.ReadHalf();
                 float m21 = reader.ReadHalf();
                 float m22 = reader.ReadHalf();
-                inverse = new Matrix4x4(m00, m10, m20, 0, m01, m11, m21, 0, m02, m12, m22, 0, 0, 0, 0, 1);
+                inverse = new Matrix4x4(m00, m01, m02, 0, m10, m11, m12, 0, m20, m21, m22, 0, 0, 0, 0, 1);
                 biases = new Vector3(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf());
                 this.QuantizationBias = new Vector4(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf());
                 customOpsin = true;
             }
 
             uint mask = reader.ReadBits(3);
+
+            // Each bit independently replaces one upsampling kernel. Missing kernels keep empty storage,
+            // which selects the standard coefficients without allocating arrays for the common defaults.
             this.Upsampling2Weights = (mask & 1) != 0 ? ReadWeights(ref reader, 15) : default;
             this.Upsampling4Weights = (mask & 2) != 0 ? ReadWeights(ref reader, 55) : default;
             this.Upsampling8Weights = (mask & 4) != 0 ? ReadWeights(ref reader, 210) : default;
         }
 
-        if (customOpsin || this.IntensityTarget != XybTransform.ReferenceIntensity)
+        if (customOpsin || this.IntensityTarget != KnownXybTransforms.Iso18181.IntensityTarget)
         {
             this.XybTransform = new XybTransform(inverse, biases, this.IntensityTarget);
         }

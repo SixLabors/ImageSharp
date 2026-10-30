@@ -12,103 +12,127 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// <para>
 /// The transform is defined by ISO/IEC 18181-1, the JPEG XL core coding system.
 /// JPEG XL permits custom inverse coefficients and biases in the image header.
-/// <see cref="KnownXybTransforms.Default"/> provides the standard coefficients at an intensity target of 255 nits.
+/// <see cref="KnownXybTransforms.Iso18181"/> provides the standard coefficients at an intensity target of 255 nits.
 /// See the <see href="https://jpeg.org/jpegxl/workplan.html">JPEG XL specifications</see>.
 /// </para>
 /// <para>
-/// Only the upper-left three by three coefficients of each supplied matrix are used.
+/// Matrices use row-major coefficient order. Only their upper-left three by three coefficients are used.
 /// Translation and the fourth component do not form part of the absorbance transform.
 /// </para>
+/// <para>
+/// The matrices must match the RGB working space used to convert the XYB samples.
+/// For conversion from XYB, select that space with <see cref="ColorConversionOptions.SourceRgbWorkingSpace"/>.
+/// For conversion to XYB, select it with <see cref="ColorConversionOptions.TargetRgbWorkingSpace"/>.
+/// The ISO/IEC 18181-1 coefficients require sRGB primaries and the D65 white point.
+/// </para>
 /// </remarks>
-public sealed class XybTransform
+public readonly struct XybTransform
 {
     /// <summary>
-    /// The reference intensity, in nits, at which the unscaled absorbance matrices operate.
+    /// The intensity, in nits, at which the standard absorbance coefficients have unit scale.
     /// </summary>
     internal const float ReferenceIntensity = 255F;
 
     /// <summary>
-    /// The supplied forward matrix, when one is available. Decoder metadata needs only the inverse matrix.
+    /// The supplied or calculated forward matrix. A singular inverse remains usable for decoding.
     /// </summary>
     private readonly Matrix4x4? forward;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="XybTransform"/> class from an inverse absorbance matrix.
+    /// Initializes a new instance of the <see cref="XybTransform"/> struct from an inverse absorbance matrix.
     /// </summary>
-    /// <param name="inverse">
-    /// The unscaled absorbance-to-linear-RGB coefficients, in <see cref="Vector3.Transform(Vector3, Matrix4x4)"/> order.
-    /// Only the upper-left three by three coefficients are used.
-    /// </param>
+    /// <param name="inverse">The unscaled absorbance-to-linear-RGB matrix, in row-major coefficient order.</param>
     /// <param name="biases">The signed biases added after cubing during inverse conversion.</param>
-    /// <param name="intensityTarget">The positive finite reference intensity, in nits.</param>
-    /// <exception cref="ArgumentOutOfRangeException">The reference intensity is not positive and finite.</exception>
+    /// <param name="intensityTarget">The positive finite intensity target, in nits.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The intensity target is not positive and finite.</exception>
     public XybTransform(Matrix4x4 inverse, Vector3 biases, float intensityTarget)
+        : this(null, inverse, biases, intensityTarget)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="XybTransform"/> struct with both absorbance matrices.
+    /// </summary>
+    /// <param name="forward">The unscaled linear-RGB-to-absorbance matrix, in row-major coefficient order.</param>
+    /// <param name="inverse">The unscaled absorbance-to-linear-RGB matrix, in the same coefficient order.</param>
+    /// <param name="biases">The signed biases added after cubing during inverse conversion.</param>
+    /// <param name="intensityTarget">The positive finite intensity target, in nits.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The intensity target is not positive and finite.</exception>
+    public XybTransform(Matrix4x4 forward, Matrix4x4 inverse, Vector3 biases, float intensityTarget)
+        : this((Matrix4x4?)forward, inverse, biases, intensityTarget)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="XybTransform"/> struct with validated coefficients.
+    /// </summary>
+    /// <param name="forward">The supplied forward coefficients, or null to derive them from the inverse.</param>
+    /// <param name="inverse">The inverse coefficients in row-major order.</param>
+    /// <param name="biases">The signed inverse biases.</param>
+    /// <param name="intensityTarget">The positive finite intensity target, in nits.</param>
+    private XybTransform(Matrix4x4? forward, Matrix4x4 inverse, Vector3 biases, float intensityTarget)
     {
         if (!(intensityTarget > 0F && float.IsFinite(intensityTarget)))
         {
-            throw new ArgumentOutOfRangeException(nameof(intensityTarget), "The reference intensity must be positive and finite.");
+            throw new ArgumentOutOfRangeException(nameof(intensityTarget), "The intensity target must be positive and finite.");
         }
 
-        // Absorbance has three components and no translation. Complete the unused fourth dimension with an identity axis,
-        // so a valid three by three matrix remains invertible even when the caller supplied zero for M44.
+        // XYB has three components and no translation. Complete the unused axis with an identity
+        // so a valid three by three matrix remains invertible even when the supplied M44 is zero.
         inverse.M14 = inverse.M24 = inverse.M34 = 0F;
         inverse.M41 = inverse.M42 = inverse.M43 = 0F;
         inverse.M44 = 1F;
-        this.forward = null;
         this.Inverse = inverse;
+
+        if (forward.HasValue)
+        {
+            // Keep supplied encoder coefficients. Rounded decoder coefficients need not invert back
+            // to those exact values, so calculating another inverse would lose their precision.
+            Matrix4x4 supplied = forward.Value;
+            supplied.M14 = supplied.M24 = supplied.M34 = 0F;
+            supplied.M41 = supplied.M42 = supplied.M43 = 0F;
+            supplied.M44 = 1F;
+            this.forward = supplied;
+        }
+        else
+        {
+            // Custom JPEG XL headers supply only the inverse. Derive the forward once, not per row.
+            // A singular inverse can still decode; only an attempted forward conversion must fail.
+            this.forward = Matrix4x4.Invert(inverse, out Matrix4x4 calculated) ? calculated : null;
+        }
+
         this.Biases = biases;
         this.IntensityTarget = intensityTarget;
         this.CubeRootBiases = new(MathF.Cbrt(biases.X), MathF.Cbrt(biases.Y), MathF.Cbrt(biases.Z));
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="XybTransform"/> class with both absorbance matrices.
+    /// Initializes a new instance of the <see cref="XybTransform"/> struct with prepared conversion coefficients.
     /// </summary>
-    /// <param name="forward">
-    /// The unscaled linear-RGB-to-absorbance coefficients, in <see cref="Vector3.Transform(Vector3, Matrix4x4)"/> order.
-    /// Only the upper-left three by three coefficients are used.
-    /// </param>
-    /// <param name="inverse">The unscaled absorbance-to-linear-RGB coefficients in the same three by three matrix convention.</param>
-    /// <param name="biases">The signed biases added after cubing during inverse conversion.</param>
-    /// <param name="intensityTarget">The positive finite reference intensity, in nits.</param>
-    /// <exception cref="ArgumentOutOfRangeException">The reference intensity is not positive and finite.</exception>
-    public XybTransform(Matrix4x4 forward, Matrix4x4 inverse, Vector3 biases, float intensityTarget)
-        : this(inverse, biases, intensityTarget)
+    /// <param name="source">The immutable public transform.</param>
+    private XybTransform(XybTransform source)
     {
-        // Frozen encoder coefficients need not equal a numerical inverse of rounded decoder coefficients.
-        // Give the supplied forward coefficients the same translation-free matrix layout as the inverse coefficients.
-        forward.M14 = forward.M24 = forward.M34 = 0F;
-        forward.M41 = forward.M42 = forward.M43 = 0F;
-        forward.M44 = 1F;
-        this.forward = forward;
+        // Vector3.Transform and the shared SIMD matrix operation use row vectors. Transpose the
+        // public row-major coefficients once. Scale relative RGB so one represents IntensityTarget nits.
+        this.Inverse = Matrix4x4.Transpose(source.Inverse) * (ReferenceIntensity / source.IntensityTarget);
+        this.forward = source.forward.HasValue
+            ? Matrix4x4.Transpose(source.forward.Value) * (source.IntensityTarget / ReferenceIntensity)
+            : null;
+
+        this.Biases = source.Biases;
+        this.IntensityTarget = source.IntensityTarget;
+        this.CubeRootBiases = source.CubeRootBiases;
     }
 
     /// <summary>
-    /// Gets the unscaled linear-RGB-to-absorbance matrix.
+    /// Gets the unscaled linear-RGB-to-absorbance matrix in row-major coefficient order.
     /// </summary>
-    /// <exception cref="InvalidOperationException">No forward matrix was supplied and the inverse matrix is singular.</exception>
+    /// <exception cref="InvalidOperationException">The inverse matrix is singular and no forward matrix was supplied.</exception>
     public Matrix4x4 Forward
-    {
-        get
-        {
-            if (this.forward.HasValue)
-            {
-                return this.forward.Value;
-            }
-
-            // An inverse-only source remains valid for decoding, even if its matrix is singular.
-            // Only an operation that requests forward conversion needs a mathematical inverse.
-            if (!Matrix4x4.Invert(this.Inverse, out Matrix4x4 result))
-            {
-                throw new InvalidOperationException("The inverse XYB matrix is singular and has no forward transform.");
-            }
-
-            return result;
-        }
-    }
+        => this.forward ?? throw new InvalidOperationException("The inverse XYB matrix is singular and has no forward transform.");
 
     /// <summary>
-    /// Gets the unscaled absorbance-to-linear-RGB matrix.
+    /// Gets the unscaled absorbance-to-linear-RGB matrix in row-major coefficient order.
     /// </summary>
     public Matrix4x4 Inverse { get; }
 
@@ -118,7 +142,7 @@ public sealed class XybTransform
     public Vector3 Biases { get; }
 
     /// <summary>
-    /// Gets the reference intensity, in nits.
+    /// Gets the intensity represented by unit linear RGB, in nits.
     /// </summary>
     public float IntensityTarget { get; }
 
@@ -128,12 +152,8 @@ public sealed class XybTransform
     internal Vector3 CubeRootBiases { get; }
 
     /// <summary>
-    /// Gets the inverse matrix scaled to relative RGB, where one equals the reference intensity.
+    /// Prepares both conversion directions in the matrix layout and intensity scale used by shared arithmetic.
     /// </summary>
-    internal Matrix4x4 ScaledInverse => this.Inverse * (ReferenceIntensity / this.IntensityTarget);
-
-    /// <summary>
-    /// Gets the forward matrix scaled from relative RGB to the absolute XYB absorbance domain.
-    /// </summary>
-    internal Matrix4x4 ScaledForward => this.Forward * (this.IntensityTarget / ReferenceIntensity);
+    /// <returns>The prepared immutable transform.</returns>
+    internal XybTransform Transpose() => new(this);
 }

@@ -21,6 +21,11 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// See the <see href="https://jpeg.org/jpegxl/workplan.html">JPEG XL specifications</see> and
 /// <see href="https://arxiv.org/html/2506.05987v1">JPEG XL design paper</see>, sections 1.1.12 and 4.2.1.
 /// </para>
+/// <para>
+/// Select matching matrices and RGB working-space primaries with <see cref="ColorConversionOptions"/>.
+/// The ISO/IEC 18181-1 transform requires sRGB primaries and D65 for the source working space when converting from XYB,
+/// or for the target working space when converting to XYB. The other working space can use different primaries.
+/// </para>
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Xyb : IColorProfile<Xyb, Rgb>
@@ -179,8 +184,8 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
     /// <inheritdoc/>
     public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
     {
-        XybTransform transform = options.XybTransform;
-        Matrix4x4 matrix = transform.ScaledInverse;
+        XybTransform transform = options.TransposedXybTransform;
+        Matrix4x4 matrix = transform.Inverse;
         ConvertToRgb(this.X, this.Y, this.B, in matrix, transform.Biases, transform.CubeRootBiases, out float r, out float g, out float b);
 
         // The RGB connection space uses the selected working space's transfer function, not raw linear samples.
@@ -190,8 +195,8 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
     /// <inheritdoc/>
     public static Xyb FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        XybTransform transform = options.XybTransform;
-        Matrix4x4 matrix = transform.ScaledForward;
+        XybTransform transform = options.TransposedXybTransform;
+        Matrix4x4 matrix = transform.Forward;
         Vector4 linear = options.TargetRgbWorkingSpace.Expand(source.ToScaledVector4());
         ConvertFromRgb(linear.X, linear.Y, linear.Z, in matrix, transform.Biases, transform.CubeRootBiases, out float x, out float y, out float b);
 
@@ -203,8 +208,8 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        XybTransform transform = options.XybTransform;
-        Matrix4x4 matrix = transform.ScaledInverse;
+        XybTransform transform = options.TransposedXybTransform;
+        Matrix4x4 matrix = transform.Inverse;
         Vector3 biases = transform.Biases;
         Vector3 cubeRootBiases = transform.CubeRootBiases;
         InlineArray16<Vector4> storage = default;
@@ -276,8 +281,8 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        XybTransform transform = options.XybTransform;
-        Matrix4x4 matrix = transform.ScaledForward;
+        XybTransform transform = options.TransposedXybTransform;
+        Matrix4x4 matrix = transform.Forward;
         Vector3 biases = transform.Biases;
         Vector3 cubeRootBiases = transform.CubeRootBiases;
         InlineArray16<Vector4> storage = default;

@@ -97,15 +97,25 @@ internal sealed class JxlFrameSections : IDisposable
 
     /// <summary>
     /// Validates a frame's section table and skips its payloads without retaining sizes or constructing a permutation.
+    /// Only a short final image payload can follow the image-data recovery policy.
     /// </summary>
     /// <param name="reader">The bit reader positioned after the frame header.</param>
     /// <param name="allocator">The decoder's allocator for entropy tables and optional LZ77 history.</param>
     /// <param name="sectionCount">The positive entry count computed from the validated frame header.</param>
+    /// <param name="handling">The policy for an incomplete final payload. Table and container errors remain fatal.</param>
     /// <param name="cancellationToken">The token used to cancel table processing.</param>
-    public static void Skip(ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, CancellationToken cancellationToken)
+    /// <returns>Whether all payload bytes were skipped. False is possible only with IgnoreImageData.</returns>
+    public static bool Skip(
+        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, SegmentIntegrityHandling handling, CancellationToken cancellationToken)
     {
         long length = ReadTable(ref reader, allocator, sectionCount, [], cancellationToken).Length;
-        reader.SkipBytes(length);
+        bool complete = reader.TrySkipBytes(length);
+        if (!complete && handling != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            throw new InvalidImageContentException("The JPEG XL section payload is truncated.");
+        }
+
+        return complete;
     }
 
     /// <inheritdoc/>
@@ -155,8 +165,9 @@ internal sealed class JxlFrameSections : IDisposable
             }
 
             reader.AlignToByte();
-            reader.CheckByteBudget(total);
 
+            // A complete table remains usable when image payload bytes are missing. The payload owner
+            // decides whether recovery is allowed; syntax, permutation and padding errors above always remain fatal.
             return (order, total);
         }
         catch

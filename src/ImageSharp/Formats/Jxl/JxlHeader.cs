@@ -28,7 +28,7 @@ internal sealed class JxlHeader
     }
 
     /// <summary>
-    /// Gets the decoded embedded ICC profile, or null when the header uses a compact color description.
+    /// Gets the decoded embedded ICC profile, or null when it is absent or its recoverable prediction error was ignored.
     /// </summary>
     public IccProfile? IccProfile { get; private set; }
 
@@ -163,14 +163,17 @@ internal sealed class JxlHeader
     /// </summary>
     /// <param name="reader">The codestream bit reader, passed by reference to retain prefetched bits.</param>
     /// <param name="allocator">The decoder's allocator for entropy tables and ICC scratch storage.</param>
+    /// <param name="handling">The policy for recoverable label and suggested output-profile errors.</param>
     /// <returns>The parsed header.</returns>
-    public static JxlHeader Read(ref JxlBitReader reader, MemoryAllocator allocator)
+    public static JxlHeader Read(ref JxlBitReader reader, MemoryAllocator allocator, SegmentIntegrityHandling handling)
     {
-        JxlHeader header = ReadMetadata(ref reader);
+        JxlHeader header = ReadMetadata(ref reader, handling);
         header.ReadTransforms(ref reader);
         if (header.HasIccProfile)
         {
-            header.IccProfile = JxlIccReader.Read(ref reader, allocator);
+            // XYB reconstruction has its own matrix and intensity fields. Its ICC profile describes
+            // suggested output colors. Native-component images need the ICC profile to interpret their samples.
+            header.IccProfile = JxlIccReader.Read(ref reader, allocator, header.UsesXybTransform ? handling : SegmentIntegrityHandling.Strict);
         }
 
         // Frame syntax starts on the next byte. The padding belongs to this header and must be zero,
@@ -183,8 +186,9 @@ internal sealed class JxlHeader
     /// Reads image-wide metadata before the custom transforms and entropy-coded profile.
     /// </summary>
     /// <param name="reader">The codestream bit reader.</param>
+    /// <param name="handling">The policy for invalid optional extra-channel labels.</param>
     /// <returns>The header with its image metadata populated.</returns>
-    private static JxlHeader ReadMetadata(ref JxlBitReader reader)
+    private static JxlHeader ReadMetadata(ref JxlBitReader reader, SegmentIntegrityHandling handling)
     {
         if (reader.ReadBits(16) != 0x0AFF)
         {
@@ -225,7 +229,7 @@ internal sealed class JxlHeader
         uint extraChannelCount = reader.ReadU32((0, 0), (0, 1), (4, 2), (12, 1));
         for (uint i = 0; i < extraChannelCount; i++)
         {
-            header.Metadata.ExtraChannels.Add(ReadExtraChannel(ref reader));
+            header.Metadata.ExtraChannels.Add(ReadExtraChannel(ref reader, handling));
         }
 
         // The coding transform and declared profile are separate fields. In an XYB image, the profile
@@ -277,8 +281,9 @@ internal sealed class JxlHeader
     /// Reads one extra channel in encoded order, including its type-specific fields.
     /// </summary>
     /// <param name="reader">The codestream bit reader.</param>
+    /// <param name="handling">The policy for an invalid optional channel label.</param>
     /// <returns>The immutable channel description.</returns>
-    private static JxlExtraChannelMetadata ReadExtraChannel(ref JxlBitReader reader)
+    private static JxlExtraChannelMetadata ReadExtraChannel(ref JxlBitReader reader, SegmentIntegrityHandling handling)
     {
         if (reader.ReadBoolean())
         {
@@ -294,7 +299,7 @@ internal sealed class JxlHeader
             throw new InvalidImageContentException("The JPEG XL extra-channel dimension shift exceeds three.");
         }
 
-        string name = reader.ReadName();
+        string name = reader.ReadName(handling);
 
         // Only alpha channels encode association. Spot colors and CFA channels each have their own
         // following fields, so reading an absent field would shift the remainder of the image header.
@@ -302,6 +307,8 @@ internal sealed class JxlHeader
             ? reader.ReadBoolean() ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.Unassociated
             : PixelAlphaRepresentation.None;
 
+        // Spot mixtures affect reconstructed colors. Their F16 fields must be finite even when optional
+        // labels can be ignored: no replacement mixture is defined, and removing a channel would change channel indices.
         Vector4 spotColor = type == JxlExtraChannelType.SpotColor
             ? new Vector4(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf())
             : default;

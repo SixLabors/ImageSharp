@@ -63,20 +63,28 @@ public class JxlFormatTests
     }
 
     /// <summary>
-    /// Verifies that an incomplete optional Brotli payload follows the shared ancillary error policy.
+    /// Verifies that invalid bounded Brotli wrappers and payloads follow the shared ancillary error policy.
     /// </summary>
+    /// <param name="file">The stored input with invalid optional metadata.</param>
     /// <param name="handling">The selected segment error policy.</param>
     [Theory]
-    [InlineData(SegmentIntegrityHandling.Strict)]
-    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
-    public void IdentifyAppliesAncillaryPolicyToCompressedExif(SegmentIntegrityHandling handling)
+    [InlineData(TestImages.Jxl.ExifBrotliTruncated, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.ExifBrotliTruncated, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.ExifBrotliTruncated, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Jxl.ExifBrotliShortType, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.ExifBrotliShortType, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.ExifBrotliShortType, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Jxl.ExifBrotliForbiddenType, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.ExifBrotliForbiddenType, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.ExifBrotliForbiddenType, SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyAppliesAncillaryPolicyToCompressedExif(string file, SegmentIntegrityHandling handling)
     {
         Configuration configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
-        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.ExifBrotliTruncated).Bytes, false);
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
 
-        // The stored input removes the last compressed byte and updates the outer box length.
-        // Its container and image header remain intact; only the optional EXIF compression is incomplete.
+        // Each damaged payload has a valid outer box range. Ignoring it must retain the following image,
+        // without consuming a type byte from the next box or accepting the malformed EXIF profile.
         if (handling == SegmentIntegrityHandling.Strict)
         {
             Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
@@ -85,27 +93,179 @@ public class JxlFormatTests
         {
             ImageInfo info = Image.Identify(options, stream);
 
+            Assert.Equal(new Size(256, 128), info.Size);
             Assert.Null(info.Metadata.ExifProfile);
             Assert.Same(JxlFormat.Instance, info.Metadata.DecodedImageFormat);
         }
     }
 
     /// <summary>
+    /// Verifies that skipped optional boxes do not validate their payloads, even with strict integrity handling.
+    /// </summary>
+    /// <param name="file">The stored input with an invalid bounded wrapper.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.ExifBrotliShortType)]
+    [InlineData(TestImages.Jxl.ExifBrotliForbiddenType)]
+    public void IdentifySkipsInvalidOptionalBoxes(string file)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SkipMetadata = true, SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        ImageInfo info = Image.Identify(options, stream);
+
+        Assert.Equal(new Size(256, 128), info.Size);
+        Assert.Null(info.Metadata.ExifProfile);
+    }
+
+    /// <summary>
+    /// Verifies that invalid optional names do not prevent parsing the fields and image sections that follow them.
+    /// </summary>
+    /// <param name="file">The stored input with one invalid UTF-8 label.</param>
+    /// <param name="handling">The selected segment error policy.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.InvalidFrameName, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.InvalidFrameName, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.InvalidFrameName, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Jxl.InvalidExtraChannelName, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.InvalidExtraChannelName, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.InvalidExtraChannelName, SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyAppliesAncillaryPolicyToNames(string file, SegmentIntegrityHandling handling)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        if (handling == SegmentIntegrityHandling.Strict)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+        }
+        else
+        {
+            ImageInfo info = Image.Identify(options, stream);
+
+            Assert.Equal(1, info.FrameCount);
+            if (file == TestImages.Jxl.InvalidExtraChannelName)
+            {
+                // The next valid label and the spot mixture must survive recovery of the preceding invalid label.
+                JxlMetadata metadata = info.Metadata.GetFormatMetadata(JxlFormat.Instance);
+
+                Assert.Equal(new Size(600, 400), info.Size);
+                Assert.Equal(3, metadata.ExtraChannels.Count);
+                Assert.Empty(metadata.ExtraChannels[1].Name);
+                Assert.Equal("A", metadata.ExtraChannels[2].Name);
+                Assert.Equal(JxlExtraChannelType.SpotColor, metadata.ExtraChannels[2].Type);
+                Assert.NotNull(info.Metadata.IccProfile);
+            }
+            else
+            {
+                Assert.Equal(new Size(8, 8), info.Size);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a complete but invalid ICC prediction can be omitted only when XYB supplies the native color transform.
+    /// </summary>
+    /// <param name="file">The stored input with a complete entropy stream and invalid prediction preamble.</param>
+    /// <param name="handling">The selected segment error policy.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.XybInvalidIccPrediction, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.XybInvalidIccPrediction, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.XybInvalidIccPrediction, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Jxl.RgbInvalidIccPrediction, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.RgbInvalidIccPrediction, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.RgbInvalidIccPrediction, SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyRequiresNativeComponentIcc(string file, SegmentIntegrityHandling handling)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        if (handling == SegmentIntegrityHandling.Strict || file == TestImages.Jxl.RgbInvalidIccPrediction)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+        }
+        else
+        {
+            ImageInfo info = Image.Identify(options, stream);
+
+            Assert.Equal(new Size(8, 8), info.Size);
+            Assert.Equal(1, info.FrameCount);
+            Assert.Equal(JxlColorType.Xyb, info.Metadata.GetFormatMetadata(JxlFormat.Instance).ColorType);
+            Assert.Null(info.Metadata.IccProfile);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that missing name bytes and incomplete ICC entropy remain fatal in every integrity mode.
+    /// </summary>
+    /// <param name="file">The stored truncated field input.</param>
+    /// <param name="handling">The selected segment error policy.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.TruncatedFrameName, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.TruncatedFrameName, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.TruncatedFrameName, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(TestImages.Jxl.XybTruncatedIcc, SegmentIntegrityHandling.Strict)]
+    [InlineData(TestImages.Jxl.XybTruncatedIcc, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(TestImages.Jxl.XybTruncatedIcc, SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyRejectsTruncatedHeaderFields(string file, SegmentIntegrityHandling handling)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+
+        // Select the decoder explicitly so even an input shorter than the format-detection header reaches its field parser.
+        Assert.Throws<InvalidImageContentException>(() => JxlDecoder.Instance.Identify(options, stream));
+    }
+
+    /// <summary>
     /// Verifies that codestream structure remains mandatory when optional metadata is skipped.
     /// </summary>
-    /// <param name="file">The stored input with invalid level control or an incomplete section payload.</param>
+    /// <param name="file">The stored input with invalid level or fragment control.</param>
     [Theory]
     [InlineData(TestImages.Jxl.SquareInvalidLevel)]
     [InlineData(TestImages.Jxl.SquareDuplicateLevel)]
     [InlineData(TestImages.Jxl.SquareLateLevel)]
-    [InlineData(TestImages.Jxl.TruncatedSections)]
+    [InlineData(TestImages.Jxl.SplinesDuplicateFragment)]
+    [InlineData(TestImages.Jxl.SplinesMissingFinalFlag)]
     public void IdentifyRejectsMalformedStructure(string file)
     {
         Configuration configuration = new(new JxlConfigurationModule());
-        DecoderOptions options = new(configuration) { SkipMetadata = true };
+        DecoderOptions options = new(configuration) { SkipMetadata = true, SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
 
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+    }
+
+    /// <summary>
+    /// Verifies that a complete table and frame header survive a short pixel payload only under the image-data recovery policy.
+    /// </summary>
+    /// <param name="handling">The selected segment error policy.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyRetainsFrameMetadataForTruncatedPayload(SegmentIntegrityHandling handling)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.TruncatedSections).Bytes, false);
+
+        if (handling != SegmentIntegrityHandling.IgnoreImageData)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+        }
+        else
+        {
+            // The original conformance header reports 2143 by 1050 pixels with 16-bit samples.
+            // This stored variant removes only the final payload byte; its frame header and all 49 sizes remain intact.
+            ImageInfo info = Image.Identify(options, stream);
+
+            Assert.Equal(new Size(2143, 1050), info.Size);
+            Assert.Equal(1, info.FrameCount);
+            Assert.Equal(new JxlBitDepth(16, 0), info.Metadata.GetFormatMetadata(JxlFormat.Instance).BitDepth);
+        }
     }
 
     /// <summary>

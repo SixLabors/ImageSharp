@@ -263,8 +263,9 @@ internal sealed class JxlFrameHeader
     /// <param name="reader">The bit reader at the frame boundary.</param>
     /// <param name="image">The image-wide header.</param>
     /// <param name="preview">Whether this is the optional preview frame.</param>
+    /// <param name="handling">The policy for an invalid optional frame label.</param>
     /// <returns>The frame's retained parsing and reconstruction state.</returns>
-    public static JxlFrameHeader Read(ref JxlBitReader reader, JxlHeader image, bool preview)
+    public static JxlFrameHeader Read(ref JxlBitReader reader, JxlHeader image, bool preview, SegmentIntegrityHandling handling)
     {
         JxlFrameHeader frame = new(image, preview);
         if (reader.ReadBoolean())
@@ -425,7 +426,7 @@ internal sealed class JxlFrameHeader
             }
         }
 
-        frame.Name = reader.ReadName();
+        frame.Name = reader.ReadName(handling);
         frame.RestorationFilter = JxlRestorationFilter.Read(ref reader, frame.Modular);
 
         // Extensions belong to the frame header. The section table begins at the next bit;

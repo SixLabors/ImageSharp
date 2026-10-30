@@ -1721,6 +1721,22 @@ public static class TestImages
         // This stored variant changes only the timebase and first frame's duration. The coded pixels are unchanged.
         public const string CroppedTrafficLightLongDuration = "Jxl/cropped_traffic_light_long_duration.jxl";
 
+        // Stored policy regressions retain the original pixel payloads. The named-frame variant comes from
+        // jxl-rs named_frame_test.jxl. The spot variant changes only two labels, retaining the following color fields.
+        public const string InvalidFrameName = "Jxl/invalid_frame_name.jxl";
+        public const string InvalidExtraChannelName = "Jxl/spot_invalid_channel_name.jxl";
+        public const string TruncatedFrameName = "Jxl/truncated_frame_name.jxl";
+
+        // These variants damage only the brob wrapper's inner type. The outer box ranges remain valid.
+        public const string ExifBrotliShortType = "Jxl/exif_brob_short_type.jxl";
+        public const string ExifBrotliForbiddenType = "Jxl/exif_brob_forbidden_type.jxl";
+
+        // Native square (XYB) and splines (RGB) payloads follow explicit ICC declarations. A complete one-symbol prefix stream
+        // predicts [1,1,1]: output length one, command length one, and no header data. The truncated variant lacks its entropy table.
+        public const string XybInvalidIccPrediction = "Jxl/xyb_invalid_icc_prediction.jxl";
+        public const string RgbInvalidIccPrediction = "Jxl/rgb_invalid_icc_prediction.jxl";
+        public const string XybTruncatedIcc = "Jxl/xyb_truncated_icc.jxl";
+
         public const string WidthExceedsInt32 = "Jxl/width-exceeds-int32.jxl";
 
         // Additional original fixtures come from jxl-rs jxl/resources/test at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.

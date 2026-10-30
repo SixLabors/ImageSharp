@@ -62,22 +62,6 @@ internal struct JxlBitReader
     }
 
     /// <summary>
-    /// Rejects a byte count that cannot fit in the remaining input, including complete prefetched bytes.
-    /// Container headers can make this upper bound larger than the actual remaining codestream.
-    /// </summary>
-    /// <param name="count">The nonnegative payload byte count declared by the consuming syntax.</param>
-    public readonly void CheckByteBudget(long count)
-    {
-        // Complete cached bytes contribute directly. Any remaining fraction stays available, but cannot supply another whole byte.
-        // Subtract before comparing so large byte counts never need a potentially overflowing conversion to bits.
-        long uncached = count - Math.Min(count, this.availableBits / 8);
-        if (uncached > this.source.MaximumLength - this.source.Position)
-        {
-            throw new InvalidImageContentException("The JPEG XL payload cannot fit in the remaining codestream.");
-        }
-    }
-
-    /// <summary>
     /// Reads an unsigned field of zero to 32 bits. The first encoded bit becomes the least significant result bit.
     /// </summary>
     /// <param name="count">The field width selected by the codec syntax.</param>
@@ -278,16 +262,21 @@ internal struct JxlBitReader
         {
             // Once the reservoir is empty, the physical input is byte-aligned. Seek whole bytes instead of
             // issuing one buffered read for every machine word of an unknown extension.
-            this.source.Skip((long)(count >> 3));
+            if (!this.source.TrySkip((long)(count >> 3)))
+            {
+                throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
+            }
+
             this.ReadBits((int)(count & 7));
         }
     }
 
     /// <summary>
-    /// Skips a nonnegative byte count from a byte-aligned field without converting the count to bits.
+    /// Skips a nonnegative byte count from a byte-aligned payload without converting the count to bits.
     /// </summary>
     /// <param name="count">The payload length declared by the consuming syntax.</param>
-    public void SkipBytes(long count)
+    /// <returns>Whether the complete payload was available. Container errors still throw.</returns>
+    public bool TrySkipBytes(long count)
     {
         // Table payloads begin at a byte boundary, but lookahead can retain whole bytes from that payload.
         // Drain those bytes before seeking the source. A 64-bit shift needs an explicit zero result because shifts wrap at 64.
@@ -295,7 +284,7 @@ internal struct JxlBitReader
         int bits = cached * 8;
         this.buffer = bits == 64 ? 0 : this.buffer >> bits;
         this.availableBits -= bits;
-        this.source.Skip(count - cached);
+        return this.source.TrySkip(count - cached);
     }
 
     /// <summary>
@@ -312,8 +301,9 @@ internal struct JxlBitReader
     /// <summary>
     /// Reads a bounded UTF-8 frame or extra-channel name.
     /// </summary>
-    /// <returns>The decoded label, or an empty string when the field is empty.</returns>
-    public string ReadName()
+    /// <param name="handling">The policy for an invalid optional label. Missing field bytes always remain fatal.</param>
+    /// <returns>The decoded label, or an empty string for an empty or ignored invalid field.</returns>
+    public string ReadName(SegmentIntegrityHandling handling)
     {
         int length = (int)this.ReadU32((0, 0), (4, 0), (5, 16), (10, 48));
         Span<byte> storage = stackalloc byte[JxlConstants.MaximumNameByteLength];
@@ -325,7 +315,14 @@ internal struct JxlBitReader
         }
         catch (DecoderFallbackException exception)
         {
-            throw new InvalidImageContentException("The JPEG XL name is not valid UTF-8.", exception);
+            if (handling == SegmentIntegrityHandling.Strict)
+            {
+                throw new InvalidImageContentException("The JPEG XL name is not valid UTF-8.", exception);
+            }
+
+            // The complete byte field has already been consumed. Its text cannot affect reconstruction,
+            // so both non-strict policies can omit the label without losing the next field's bit position.
+            return string.Empty;
         }
     }
 

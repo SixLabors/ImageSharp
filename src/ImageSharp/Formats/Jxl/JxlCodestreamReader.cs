@@ -132,9 +132,11 @@ internal sealed class JxlCodestreamReader
 
     /// <summary>
     /// Skips logical codestream bytes without copying their payloads into a temporary buffer.
+    /// Missing fragments and invalid container boxes remain fatal.
     /// </summary>
     /// <param name="count">The nonnegative byte count supplied by the header parser.</param>
-    public void Skip(long count)
+    /// <returns>Whether the complete range was skipped. False leaves the reader at the final logical codestream end.</returns>
+    public bool TrySkip(long count)
     {
         while (count != 0)
         {
@@ -146,7 +148,9 @@ internal sealed class JxlCodestreamReader
             long step = Math.Min(count, this.fragmentRemaining);
             if (step == 0)
             {
-                throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
+                // Only a known final fragment can reach this result. Opening a missing or malformed
+                // fragment throws above; callers must not treat those container errors as a short image payload.
+                return false;
             }
 
             this.stream.Seek(step, SeekOrigin.Current);
@@ -154,6 +158,8 @@ internal sealed class JxlCodestreamReader
             this.Position += step;
             count -= step;
         }
+
+        return true;
     }
 
     /// <summary>
@@ -161,7 +167,7 @@ internal sealed class JxlCodestreamReader
     /// </summary>
     /// <remarks>
     /// This skips remaining codestream bytes without decoding them, including frames omitted by MaxFrames.
-    /// The core applies the configured integrity policy when it calls this method after image reconstruction.
+    /// Box bounds and fragment sequencing remain mandatory after recovery of a short image payload.
     /// </remarks>
     public void Complete()
     {
@@ -242,10 +248,22 @@ internal sealed class JxlCodestreamReader
             long length = box.Length;
             if (type == JxlConstants.CompressedMetadataBox)
             {
+                // The outer box is bounded during traversal. Its inner type belongs to this optional payload,
+                // so validate it under the core's ancillary policy without reading into the following box.
+                if (length < sizeof(uint))
+                {
+                    throw new InvalidImageContentException("The JPEG XL compressed metadata type is incomplete.");
+                }
+
                 InlineArray4<byte> typeStorage = default;
                 Span<byte> typeBytes = typeStorage;
                 IsoBoxReader.ReadExactly(this.stream, typeBytes, "The JPEG XL compressed metadata type is incomplete.");
                 type = BinaryPrimitives.ReadUInt32BigEndian(typeBytes);
+                if (type is JxlConstants.CompressedMetadataBox or JxlConstants.JpegReconstructionBox || (type >> 8) == 0x6A786C)
+                {
+                    throw new InvalidImageContentException("The JPEG XL compressed metadata wraps a forbidden box type.");
+                }
+
                 if (type is not (JxlConstants.ExifBox or JxlConstants.XmlBox))
                 {
                     return;
@@ -254,9 +272,12 @@ internal sealed class JxlCodestreamReader
                 // Brotli does not declare an output size. The existing chunked stream keeps growing storage
                 // under the configured allocator until the final profile's exact array size is known.
                 using ChunkedMemoryStream decoded = new(configuration.MemoryAllocator);
-                using IMemoryOwner<byte> scratch = configuration.MemoryAllocator.Allocate<byte>(2 * configuration.StreamProcessingBufferSize);
+
+                // Input and output share one allocation. Limit each half before doubling so any positive
+                // configured buffer size remains representable as a single span's signed 32-bit length.
+                int chunkSize = Math.Min(configuration.StreamProcessingBufferSize, int.MaxValue / 2);
+                using IMemoryOwner<byte> scratch = configuration.MemoryAllocator.Allocate<byte>(2 * chunkSize);
                 Span<byte> buffers = scratch.Memory.Span;
-                int chunkSize = buffers.Length / 2;
                 Span<byte> input = buffers[..chunkSize];
                 Span<byte> output = buffers[chunkSize..];
                 BrotliDecoder decoder = default;
@@ -488,24 +509,6 @@ internal sealed class JxlCodestreamReader
             }
 
             this.hasLevel = true;
-        }
-        else if (type == JxlConstants.CompressedMetadataBox)
-        {
-            if (length < sizeof(uint))
-            {
-                throw new InvalidImageContentException("The JPEG XL compressed metadata type is incomplete.");
-            }
-
-            InlineArray4<byte> storage = default;
-            Span<byte> bytes = storage;
-            IsoBoxReader.ReadExactly(this.stream, bytes, "The JPEG XL compressed metadata type is incomplete.");
-            uint wrappedType = BinaryPrimitives.ReadUInt32BigEndian(bytes);
-            if (wrappedType is JxlConstants.CompressedMetadataBox or JxlConstants.JpegReconstructionBox || (wrappedType >> 8) == 0x6A786C)
-            {
-                // Compressed boxes cannot contain another compressed box or codestream control data.
-                // Validate container structure even when optional metadata payloads will be skipped.
-                throw new InvalidImageContentException("The JPEG XL compressed metadata wraps a forbidden box type.");
-            }
         }
 
         if (type is JxlConstants.ExifBox or JxlConstants.XmlBox or JxlConstants.CompressedMetadataBox

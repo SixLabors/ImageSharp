@@ -36,8 +36,9 @@ internal static class JxlIccReader
     /// </summary>
     /// <param name="reader">The bit reader positioned at the compressed profile length.</param>
     /// <param name="allocator">The decoder's scratch allocator.</param>
-    /// <returns>The shared profile owning the exact reconstructed bytes.</returns>
-    public static IccProfile Read(ref JxlBitReader reader, MemoryAllocator allocator)
+    /// <param name="handling">The policy for prediction errors after the complete entropy stream has been validated.</param>
+    /// <returns>The shared profile owning the reconstructed bytes, or null when an optional prediction error is ignored.</returns>
+    public static IccProfile? Read(ref JxlBitReader reader, MemoryAllocator allocator, SegmentIntegrityHandling handling)
     {
         ulong size = reader.ReadU64();
         if (size > IccProfile.MaxProfileSize + MaximumPredictionOverhead || size < 2)
@@ -47,31 +48,12 @@ internal static class JxlIccReader
 
         using JxlEntropyDecoder codes = JxlEntropyDecoder.Read(ref reader, allocator, ContextCount, true);
         JxlEntropyDecoder.Reader symbols = codes.CreateReader(ref reader);
-        InlineArray32<byte> prefixStorage = default;
-        Span<byte> prefix = prefixStorage;
-        int prefixSize = Math.Min((int)size, 20);
 
-        for (int i = 0; i < prefixSize; i++)
-        {
-            prefix[i] = symbols.ReadByte(ref reader, 0, prefix[..i]);
-        }
-
-        // Two base-128 integers require at most twenty bytes. Validate the decoded allocation sizes
-        // before renting the complete prediction stream or allocating the final profile.
-        ReadOnlySpan<byte> preamble = prefix[..prefixSize];
-        ulong outputLength = ReadVarUInt(ref preamble);
-        ulong commandLength = ReadVarUInt(ref preamble);
-        int preambleSize = prefixSize - preamble.Length;
-        if (outputLength < HeaderSize || outputLength >= IccProfile.MaxProfileSize || commandLength > size - (uint)preambleSize
-            || outputLength + MaximumPredictionOverhead < size)
-        {
-            throw new InvalidImageContentException("The JPEG XL ICC prediction preamble is invalid.");
-        }
-
+        // The declared prediction length is bounded above before renting. Retain the bytes as LZ77 history
+        // until entropy decoding finishes. A malformed prediction preamble must not abandon that stream halfway through.
         using IMemoryOwner<byte> storage = allocator.Allocate<byte>((int)size);
         Span<byte> encoded = storage.Memory.Span;
-        prefix[..prefixSize].CopyTo(encoded);
-        for (int i = prefixSize; i < encoded.Length; i++)
+        for (int i = 0; i < encoded.Length; i++)
         {
             // The first 129 bytes use context zero. Later contexts classify the two preceding bytes;
             // the stored output also supplies LZ77 history, without an additional one-megavalue buffer.
@@ -80,7 +62,29 @@ internal static class JxlIccReader
         }
 
         symbols.CheckFinalState();
-        return new IccProfile(Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize));
+
+        try
+        {
+            // Only now is the next header field reachable independently of the predicted ICC contents.
+            // Validate sizes before allocating the final profile. Entropy errors above remain fatal in every mode.
+            ReadOnlySpan<byte> preamble = encoded;
+            ulong outputLength = ReadVarUInt(ref preamble);
+            ulong commandLength = ReadVarUInt(ref preamble);
+            int preambleSize = encoded.Length - preamble.Length;
+            if (outputLength < HeaderSize || outputLength >= IccProfile.MaxProfileSize || commandLength > size - (uint)preambleSize
+                || outputLength + MaximumPredictionOverhead < size)
+            {
+                throw new InvalidImageContentException("The JPEG XL ICC prediction preamble is invalid.");
+            }
+
+            return new IccProfile(Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize));
+        }
+        catch (InvalidImageContentException) when (handling != SegmentIntegrityHandling.Strict)
+        {
+            // The header permits this policy only for XYB's suggested output profile. Required native
+            // component profiles use Strict, even when other ancillary metadata errors can be ignored.
+            return null;
+        }
     }
 
     /// <summary>

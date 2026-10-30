@@ -106,14 +106,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 {
                     // Seconds = native ticks * rate denominator / rate numerator. The encoded
                     // denominator is at most 1024, so widening the uint tick count to long is sufficient.
-                    LongRational delay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
-                    if (delay.Numerator > uint.MaxValue)
-                    {
-                        // Rational metadata stores uint components. Do not wrap or silently shorten a valid native delay.
-                        throw new NotSupportedException("The JPEG XL frame duration exceeds the supported metadata precision.");
-                    }
-
-                    frameMetadata.FrameDelay = new Rational((uint)delay.Numerator, (uint)delay.Denominator, false);
+                    // Retain the 64-bit fraction in public metadata. Its reduced numerator need not fit in a uint.
+                    frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
                 }
 
                 ImageFrameMetadata metadata = new();

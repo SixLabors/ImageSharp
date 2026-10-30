@@ -1717,6 +1717,10 @@ public static class TestImages
         public const string ExifXmp = "Jxl/1x1_exif_xmp.jxl";
         public const string ExifXmpAfterCodestream = "Jxl/1x1_exif_xmp_after_codestream.jxl";
         public const string CroppedTrafficLight = "Jxl/cropped_traffic_light.jxl";
+
+        // This stored variant changes only the timebase and first frame's duration. The coded pixels are unchanged.
+        public const string CroppedTrafficLightLongDuration = "Jxl/cropped_traffic_light_long_duration.jxl";
+
         public const string WidthExceedsInt32 = "Jxl/width-exceeds-int32.jxl";
 
         // Additional original fixtures come from jxl-rs jxl/resources/test at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.

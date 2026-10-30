@@ -14,21 +14,26 @@ public class JxlFormatTests
     /// <summary>
     /// Verifies displayed animation timing and MaxFrames against the native reference inspector.
     /// </summary>
+    /// <param name="file">The stored animation input.</param>
     /// <param name="maxFrames">The displayed frame limit.</param>
+    /// <param name="firstSeconds">The first frame's duration reported by the native inspector, in seconds.</param>
+    /// <param name="shortSeconds">The shorter later frame's duration, in seconds.</param>
     [Theory]
-    [InlineData(1)]
-    [InlineData(4)]
-    public void IdentifyReportsDisplayedAnimationFrames(int maxFrames)
+    [InlineData(TestImages.Jxl.CroppedTrafficLight, 1, 3L, 1L)]
+    [InlineData(TestImages.Jxl.CroppedTrafficLight, 4, 3L, 1L)]
+    [InlineData(TestImages.Jxl.CroppedTrafficLightLongDuration, 4, 4398046510080L, 102400L)]
+    public void IdentifyReportsDisplayedAnimationFrames(string file, int maxFrames, long firstSeconds, long shortSeconds)
     {
         Configuration configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(configuration) { MaxFrames = (uint)maxFrames };
-        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.CroppedTrafficLight).Bytes, false);
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
 
         ImageInfo info = Image.Identify(options, stream);
 
-        // jxlinspect reports four displayed frames at 3000, 1000, 3000 and 1000 milliseconds.
+        // jxlinspect reports the exact durations for both files. The long variant uses the maximum native
+        // tick count and a 1/1024 tick rate, which exceeds both uint seconds and TimeSpan's duration range.
         // Cropped intermediate content must not change the canvas size or add displayed frames.
-        ReadOnlySpan<uint> seconds = [3, 1, 3, 1];
+        ReadOnlySpan<long> seconds = [firstSeconds, shortSeconds, 3 * shortSeconds, shortSeconds];
 
         Assert.Equal(new Size(50, 80), info.Size);
         Assert.Equal(maxFrames, info.FrameCount);
@@ -38,7 +43,7 @@ public class JxlFormatTests
         {
             JxlFrameMetadata frame = info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance);
 
-            Assert.Equal(new Rational(seconds[i]), frame.FrameDelay);
+            Assert.Equal(new LongRational(seconds[i], 1), frame.FrameDelay);
         }
     }
 

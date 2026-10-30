@@ -271,24 +271,39 @@ public class JxlMetadataTests
     }
 
     /// <summary>
-    /// Verifies displayed-frame timing and replacement behavior through the shared frame metadata API.
+    /// Verifies exact JPEG XL timing, bounded shared durations and replacement behavior through the frame metadata API.
     /// </summary>
-    [Fact]
-    public void FrameMetadataRetainsDisplayDelayWithoutRepeatingNativeBlending()
+    /// <param name="numerator">The exact duration numerator.</param>
+    /// <param name="denominator">The exact duration denominator.</param>
+    /// <param name="ticks">The expected bounded duration in TimeSpan ticks.</param>
+    [Theory]
+    [InlineData(1L, 25L, 400000L)]
+    [InlineData(5004998999L, 1000000000L, 50049989L)]
+    [InlineData(long.MaxValue, long.MaxValue, 10000000L)]
+    [InlineData(4398046510080L, 1L, long.MaxValue)]
+    [InlineData(-1L, 1L, 0L)]
+    [InlineData(0L, 0L, 0L)]
+    [InlineData(1L, 0L, long.MaxValue)]
+    [InlineData(-1L, 0L, 0L)]
+    public void FrameMetadataRetainsDisplayDelayWithoutRepeatingNativeBlending(long numerator, long denominator, long ticks)
     {
         ImageFrameMetadata frameMetadata = new();
         JxlFrameMetadata source = frameMetadata.GetFormatMetadata(JxlFormat.Instance);
-        source.FrameDelay = new Rational(1, 25);
+        source.FrameDelay = new LongRational(numerator, denominator);
 
         JxlFrameMetadata clone = frameMetadata.DeepClone().GetFormatMetadata(JxlFormat.Instance);
         FormatConnectingFrameMetadata connecting = clone.ToFormatConnectingFrameMetadata();
         JxlFrameMetadata restored = JxlFrameMetadata.FromFormatConnectingFrameMetadata(connecting);
 
         Assert.NotSame(source, clone);
-        Assert.Equal(new Rational(1, 25), clone.FrameDelay);
-        Assert.Equal(TimeSpan.FromTicks(400000), connecting.Duration);
+        Assert.Equal(new LongRational(numerator, denominator), clone.FrameDelay);
+        Assert.Equal(TimeSpan.FromTicks(ticks), connecting.Duration);
         Assert.Equal(FrameBlendMode.Source, connecting.BlendMode);
         Assert.Equal(FrameDisposalMode.DoNotDispose, connecting.DisposalMode);
-        Assert.Equal(new Rational(1, 25), restored.FrameDelay);
+
+        // Only the shared duration loses fractional ticks or values beyond TimeSpan's range.
+        // Cloning and conversion must leave the original JPEG XL fraction unchanged.
+        Assert.Equal(new LongRational(ticks, TimeSpan.TicksPerSecond).Simplify(), restored.FrameDelay);
+        Assert.Equal(new LongRational(numerator, denominator), source.FrameDelay);
     }
 }

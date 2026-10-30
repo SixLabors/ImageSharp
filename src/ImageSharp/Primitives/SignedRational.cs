@@ -10,6 +10,8 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 /// <remarks>
 /// This is a very simplified implementation of a rational number designed for use with metadata only.
+/// Floating-point conversion clamps finite values to the signed 32-bit numerator range.
+/// Finite results have a positive denominator within the signed 32-bit range.
 /// </remarks>
 public readonly struct SignedRational : IEquatable<SignedRational>
 {
@@ -67,10 +69,13 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// Initializes a new instance of the <see cref="SignedRational"/> struct.
     /// </summary>
     /// <param name="value">The <see cref="double"/> to create the instance from.</param>
-    /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
+    /// <param name="bestPrecision">
+    /// Whether to retain floating-point precision where the component limits permit it.
+    /// Otherwise, the conversion accepts an absolute error of 0.000001.
+    /// </param>
     public SignedRational(double value, bool bestPrecision)
     {
-        LongRational rational = LongRational.FromDouble(value, bestPrecision);
+        LongRational rational = LongRational.FromDouble(value, bestPrecision, value < 0 ? (ulong)int.MaxValue + 1 : int.MaxValue, int.MaxValue);
 
         this.Numerator = (int)rational.Numerator;
         this.Denominator = (int)rational.Denominator;
@@ -124,7 +129,10 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// Converts the specified <see cref="double"/> to an instance of this type.
     /// </summary>
     /// <param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-    /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
+    /// <param name="bestPrecision">
+    /// Whether to retain floating-point precision where the component limits permit it.
+    /// Otherwise, the conversion accepts an absolute error of 0.000001.
+    /// </param>
     /// <returns>
     /// The <see cref="SignedRational"/>.
     /// </returns>

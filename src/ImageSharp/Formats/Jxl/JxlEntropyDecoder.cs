@@ -24,9 +24,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
     public const int MaximumLz77Distance = 1 << 20;
 
     private const uint FinalAnsState = 0x130000;
-    private readonly byte[] contextMap;
-    private readonly HybridUint[] integers;
-    private readonly int[] tableOffsets;
+    private readonly IMemoryOwner<byte> contextMap;
+    private readonly IMemoryOwner<Cluster> clusters;
     private readonly IMemoryOwner<HuffmanCode>? prefixCodes;
     private readonly IMemoryOwner<JxlAnsDecoder.Bucket>? ansBuckets;
     private readonly int alphabetBits;
@@ -38,8 +37,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// Initializes a new instance of the <see cref="JxlEntropyDecoder"/> class with its completed tables.
     /// </summary>
     /// <param name="contextMap">The validated context-to-cluster map.</param>
-    /// <param name="integers">The hybrid integer configuration for each cluster.</param>
-    /// <param name="tableOffsets">The prefix-table offsets, or an empty array for ANS.</param>
+    /// <param name="clusters">The owned integer configurations and table offsets, one per cluster.</param>
     /// <param name="prefixCodes">The owned prefix tables, or null for ANS.</param>
     /// <param name="ansBuckets">The owned ANS tables, or null for prefix coding.</param>
     /// <param name="alphabetBits">The ANS alphabet width, or 15 for prefix coding.</param>
@@ -47,9 +45,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// <param name="minimumCopyLength">The minimum copy length.</param>
     /// <param name="copyLength">The copy-length configuration, unused without LZ77.</param>
     private JxlEntropyDecoder(
-        byte[] contextMap,
-        HybridUint[] integers,
-        int[] tableOffsets,
+        IMemoryOwner<byte> contextMap,
+        IMemoryOwner<Cluster> clusters,
         IMemoryOwner<HuffmanCode>? prefixCodes,
         IMemoryOwner<JxlAnsDecoder.Bucket>? ansBuckets,
         int alphabetBits,
@@ -58,8 +55,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         HybridUint copyLength)
     {
         this.contextMap = contextMap;
-        this.integers = integers;
-        this.tableOffsets = tableOffsets;
+        this.clusters = clusters;
         this.prefixCodes = prefixCodes;
         this.ansBuckets = ansBuckets;
         this.alphabetBits = alphabetBits;
@@ -74,7 +70,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     public bool UsesLz77 => this.minimumCopySymbol != uint.MaxValue;
 
     /// <summary>
-    /// Reads entropy descriptions. All large table storage uses the configured allocator.
+    /// Reads entropy descriptions. Retained lookup data and table scratch use the configured allocator.
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
     /// <param name="allocator">The decoder's allocator.</param>
@@ -102,110 +98,132 @@ internal sealed class JxlEntropyDecoder : IDisposable
             contextCount++;
         }
 
-        byte[] map = new byte[contextCount];
-        if (contextCount > 1)
-        {
-            ReadContextMap(ref reader, allocator, map);
-        }
-
-        int clusterCount = 1;
-        foreach (byte cluster in map)
-        {
-            // Cluster 255 represents a 256th table. Keep this count wider than the byte-valued map.
-            clusterCount = Math.Max(clusterCount, cluster + 1);
-        }
-
-        bool prefix = reader.ReadBoolean();
-        int alphabetBits = prefix ? HuffmanTableBuilder.MaximumCodeLength : (int)reader.ReadBits(2) + 5;
-        HybridUint[] integers = new HybridUint[clusterCount];
-
-        for (int i = 0; i < integers.Length; i++)
-        {
-            integers[i] = HybridUint.Read(ref reader, alphabetBits);
-        }
-
-        if (!prefix)
-        {
-            // All clusters share one allocator-owned table buffer. Each cluster occupies 2^alphabetBits
-            // consecutive buckets; the section reader can index that range without retrieving Memory.Span per symbol.
-            IMemoryOwner<JxlAnsDecoder.Bucket> buckets = allocator.Allocate<JxlAnsDecoder.Bucket>(clusterCount << alphabetBits);
-            try
-            {
-                Span<JxlAnsDecoder.Bucket> storage = buckets.Memory.Span;
-                for (int i = 0; i < clusterCount; i++)
-                {
-                    JxlAnsDecoder.ReadDistribution(ref reader, storage.Slice(i << alphabetBits, 1 << alphabetBits));
-                }
-
-                return new JxlEntropyDecoder(map, integers, [], null, buckets, alphabetBits, minimumSymbol, minimumLength, length);
-            }
-            catch
-            {
-                // Ownership transfers only when the completed decoder is returned. A malformed distribution
-                // must return the buffer here because no decoder instance exists to dispose it.
-                buckets.Dispose();
-                throw;
-            }
-        }
-
-        // Alphabet sizes precede all prefix descriptions. Retain the code lengths until each table is measured,
-        // then allocate one exact-sized table buffer. The scratch buffers are returned before symbol decoding.
-        int[] alphabetOffsets = new int[clusterCount + 1];
-        int largestAlphabet = 0;
-
-        for (int i = 0; i < clusterCount; i++)
-        {
-            int alphabetSize = 1;
-            if (reader.ReadBoolean())
-            {
-                int bits = (int)reader.ReadBits(4);
-                alphabetSize += (1 << bits) + (int)reader.ReadBits(bits);
-            }
-
-            if (alphabetSize > 1 << HuffmanTableBuilder.MaximumCodeLength)
-            {
-                throw new InvalidImageContentException("The JPEG XL prefix alphabet is too large.");
-            }
-
-            largestAlphabet = Math.Max(largestAlphabet, alphabetSize);
-            alphabetOffsets[i + 1] = alphabetOffsets[i] + alphabetSize;
-        }
-
-        using IMemoryOwner<int> codeLengths = allocator.Allocate<int>(alphabetOffsets[^1]);
-        using IMemoryOwner<int> sorted = allocator.Allocate<int>(largestAlphabet);
-        Span<int> lengths = codeLengths.Memory.Span;
-        Span<int> workspace = sorted.Memory.Span;
-        int[] tableOffsets = new int[clusterCount + 1];
-
-        for (int i = 0; i < clusterCount; i++)
-        {
-            Span<int> current = lengths[alphabetOffsets[i]..alphabetOffsets[i + 1]];
-            JxlHuffmanDecoder.ReadCodeLengths(ref reader, current);
-            int count = HuffmanTableBuilder.Build([], 8, current, workspace);
-            if (count == 0)
-            {
-                throw new InvalidImageContentException("The JPEG XL prefix table is invalid.");
-            }
-
-            tableOffsets[i + 1] = tableOffsets[i] + count;
-        }
-
-        IMemoryOwner<HuffmanCode> codes = allocator.Allocate<HuffmanCode>(tableOffsets[^1]);
+        IMemoryOwner<byte> mapOwner = allocator.Allocate<byte>(contextCount);
+        IMemoryOwner<Cluster>? clusterOwner = null;
+        IMemoryOwner<HuffmanCode>? prefixOwner = null;
+        IMemoryOwner<JxlAnsDecoder.Bucket>? ansOwner = null;
         try
         {
-            Span<HuffmanCode> storage = codes.Memory.Span;
-            for (int i = 0; i < clusterCount; i++)
+            Span<byte> map = mapOwner.Memory.Span;
+            if (contextCount > 1)
             {
-                HuffmanTableBuilder.Build(storage[tableOffsets[i]..tableOffsets[i + 1]], 8, lengths[alphabetOffsets[i]..alphabetOffsets[i + 1]], workspace);
+                ReadContextMap(ref reader, allocator, map);
+            }
+            else
+            {
+                // A one-context stream omits its map. Allocator memory is not zero-initialized,
+                // so write the implicit cluster zero before any reader can borrow this span.
+                map[0] = 0;
             }
 
-            return new JxlEntropyDecoder(map, integers, tableOffsets, codes, null, alphabetBits, minimumSymbol, minimumLength, length);
+            int clusterCount = 1;
+            foreach (byte cluster in map)
+            {
+                // Cluster 255 represents a 256th table. Keep this count wider than the byte-valued map.
+                clusterCount = Math.Max(clusterCount, cluster + 1);
+            }
+
+            bool prefix = reader.ReadBoolean();
+            int alphabetBits = prefix ? HuffmanTableBuilder.MaximumCodeLength : (int)reader.ReadBits(2) + 5;
+            clusterOwner = allocator.Allocate<Cluster>(clusterCount);
+            Span<Cluster> clusters = clusterOwner.Memory.Span;
+
+            // Each cluster's integer configuration and lookup offset have the same lifetime.
+            // Store them together in one allocator buffer. ANS has fixed-size tables.
+            for (int i = 0; i < clusterCount; i++)
+            {
+                clusters[i] = new Cluster(HybridUint.Read(ref reader, alphabetBits), prefix ? 0 : i << alphabetBits);
+            }
+
+            if (!prefix)
+            {
+                // All clusters share one table buffer. Cache its span before filling the fixed-size ranges.
+                ansOwner = allocator.Allocate<JxlAnsDecoder.Bucket>(clusterCount << alphabetBits);
+                Span<JxlAnsDecoder.Bucket> buckets = ansOwner.Memory.Span;
+                for (int i = 0; i < clusterCount; i++)
+                {
+                    JxlAnsDecoder.ReadDistribution(ref reader, buckets.Slice(clusters[i].TableOffset, 1 << alphabetBits));
+                }
+
+                return new JxlEntropyDecoder(mapOwner, clusterOwner, null, ansOwner, alphabetBits, minimumSymbol, minimumLength, length);
+            }
+
+            // Cluster numbers are bytes, so at most 256 alphabet sizes are needed. This bounded
+            // stack buffer exists only during table construction; the decoder retains no scratch offsets.
+            InlineArray256<int> alphabetStorage = default;
+            Span<int> alphabetSizes = alphabetStorage[..clusterCount];
+            int largestAlphabet = 0;
+            int totalAlphabetSize = 0;
+
+            for (int i = 0; i < clusterCount; i++)
+            {
+                int alphabetSize = 1;
+                if (reader.ReadBoolean())
+                {
+                    int bits = (int)reader.ReadBits(4);
+                    alphabetSize += (1 << bits) + (int)reader.ReadBits(bits);
+                }
+
+                if (alphabetSize > 1 << HuffmanTableBuilder.MaximumCodeLength)
+                {
+                    throw new InvalidImageContentException("The JPEG XL prefix alphabet is too large.");
+                }
+
+                largestAlphabet = Math.Max(largestAlphabet, alphabetSize);
+                alphabetSizes[i] = alphabetSize;
+                totalAlphabetSize += alphabetSize;
+            }
+
+            // Alphabet sizes precede their code lengths. Retain those lengths until all tables have
+            // been validated and measured, then rent one exact-sized final table. Scratch returns on exit.
+            using IMemoryOwner<int> codeLengths = allocator.Allocate<int>(totalAlphabetSize);
+            using IMemoryOwner<int> sorted = allocator.Allocate<int>(largestAlphabet);
+            Span<int> lengths = codeLengths.Memory.Span;
+            Span<int> workspace = sorted.Memory.Span;
+            int alphabetOffset = 0;
+            int tableSize = 0;
+
+            for (int i = 0; i < clusterCount; i++)
+            {
+                Span<int> current = lengths.Slice(alphabetOffset, alphabetSizes[i]);
+                JxlHuffmanDecoder.ReadCodeLengths(ref reader, current);
+                int count = HuffmanTableBuilder.Build([], 8, current, workspace);
+                if (count == 0)
+                {
+                    throw new InvalidImageContentException("The JPEG XL prefix table is invalid.");
+                }
+
+                clusters[i] = new Cluster(clusters[i].Integer, tableSize);
+                alphabetOffset += current.Length;
+                tableSize += count;
+            }
+
+            prefixOwner = allocator.Allocate<HuffmanCode>(tableSize);
+            Span<HuffmanCode> storage = prefixOwner.Memory.Span;
+            alphabetOffset = 0;
+
+            for (int i = 0; i < clusterCount; i++)
+            {
+                int tableEnd = i + 1 < clusterCount ? clusters[i + 1].TableOffset : storage.Length;
+                Span<HuffmanCode> table = storage[clusters[i].TableOffset..tableEnd];
+                ReadOnlySpan<int> current = lengths.Slice(alphabetOffset, alphabetSizes[i]);
+
+                // Measurement already validated these unchanged code lengths and fixed each table's size.
+                // Building fills that exact range; its returned entry count repeats the measured value.
+                _ = HuffmanTableBuilder.Build(table, 8, current, workspace);
+                alphabetOffset += current.Length;
+            }
+
+            return new JxlEntropyDecoder(mapOwner, clusterOwner, prefixOwner, null, alphabetBits, minimumSymbol, minimumLength, length);
         }
         catch
         {
-            // The code-length and sorting owners leave scope automatically. This final table has not
-            // transferred to a decoder on failure, so it must be returned separately.
-            codes.Dispose();
+            // Ownership transfers only when the completed decoder is returned. Release every retained
+            // buffer acquired before a parsing or allocation failure; using declarations own the scratch.
+            prefixOwner?.Dispose();
+            ansOwner?.Dispose();
+            clusterOwner?.Dispose();
+            mapOwner.Dispose();
             throw;
         }
     }
@@ -222,6 +240,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
     {
         this.prefixCodes?.Dispose();
         this.ansBuckets?.Dispose();
+        this.clusters.Dispose();
+        this.contextMap.Dispose();
     }
 
     /// <summary>
@@ -296,6 +316,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
     public ref struct Reader
     {
         private readonly JxlEntropyDecoder code;
+        private readonly ReadOnlySpan<byte> contextMap;
+        private readonly ReadOnlySpan<Cluster> clusters;
         private readonly ReadOnlySpan<HuffmanCode> prefix;
         private readonly ReadOnlySpan<JxlAnsDecoder.Bucket> buckets;
         private uint state;
@@ -312,6 +334,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
             // Cache borrowed spans once. The owner outlives this stack-only reader and returns its storage
             // only after decoding finishes; no per-symbol rent or Memory.Span access is required.
             this.code = code;
+            this.contextMap = code.contextMap.Memory.Span;
+            this.clusters = code.clusters.Memory.Span;
             this.prefix = code.prefixCodes is null ? [] : code.prefixCodes.Memory.Span;
             this.buckets = code.ansBuckets is null ? [] : code.ansBuckets.Memory.Span;
             this.state = this.buckets.IsEmpty ? FinalAnsState : reader.ReadBits(32);
@@ -414,12 +438,12 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <returns>The literal or distance symbol. Image consumers apply their own two-dimensional distance mapping.</returns>
         public uint ReadToken(ref JxlBitReader reader, int context, out uint copyCount)
         {
-            int cluster = this.code.contextMap[context];
-            uint token = this.ReadCode(ref reader, cluster);
+            ref readonly Cluster cluster = ref this.clusters[this.contextMap[context]];
+            uint token = this.ReadCode(ref reader, in cluster);
             if (token < this.code.minimumCopySymbol)
             {
                 copyCount = 0;
-                return this.code.integers[cluster].Expand(ref reader, token);
+                return cluster.Integer.Expand(ref reader, token);
             }
 
             uint length = this.code.copyLength.Expand(ref reader, token - this.code.minimumCopySymbol);
@@ -431,9 +455,9 @@ internal sealed class JxlEntropyDecoder : IDisposable
             copyCount = length + this.code.minimumCopyLength;
 
             // Copy distance always uses the extra final context, not the context that selected the copy token.
-            int distanceCluster = this.code.contextMap[^1];
-            uint distance = this.ReadCode(ref reader, distanceCluster);
-            return this.code.integers[distanceCluster].Expand(ref reader, distance);
+            ref readonly Cluster distanceCluster = ref this.clusters[this.contextMap[^1]];
+            uint distance = this.ReadCode(ref reader, in distanceCluster);
+            return distanceCluster.Integer.Expand(ref reader, distance);
         }
 
         /// <summary>
@@ -451,16 +475,16 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// Decodes one prefix or ANS symbol from the cached table spans.
         /// </summary>
         /// <param name="reader">The bounded bit reader.</param>
-        /// <param name="cluster">The validated cluster index.</param>
+        /// <param name="cluster">The configuration and table offset selected by the validated context map.</param>
         /// <returns>The unexpanded symbol.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint ReadCode(ref JxlBitReader reader, int cluster)
+        private uint ReadCode(ref JxlBitReader reader, in Cluster cluster)
         {
             if (!this.prefix.IsEmpty)
             {
                 // The first eight bits select the cluster's root entry. A longer entry points into a
                 // second-level table relative to that root position; only then consume the root bits separately.
-                int position = this.code.tableOffsets[cluster] + (int)reader.PeekBits(8);
+                int position = cluster.TableOffset + (int)reader.PeekBits(8);
                 HuffmanCode entry = this.prefix[position];
                 if (entry.BitsUsed > 8)
                 {
@@ -479,7 +503,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
             uint index = this.state & (JxlAnsDecoder.ProbabilityTotal - 1);
             int bucketIndex = (int)(index >> bucketBits);
             uint positionInBucket = index & ((1U << bucketBits) - 1);
-            JxlAnsDecoder.Bucket bucket = this.buckets[(cluster << this.code.alphabetBits) + bucketIndex];
+            JxlAnsDecoder.Bucket bucket = this.buckets[cluster.TableOffset + bucketIndex];
             bool alias = positionInBucket >= bucket.Cutoff;
             uint frequency = alias ? (uint)(bucket.Frequency ^ bucket.AliasFrequencyXor) : bucket.Frequency;
             uint offset = positionInBucket + (alias ? bucket.AliasOffset : 0U);
@@ -494,6 +518,33 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
             return alias ? bucket.AliasSymbol : (uint)bucketIndex;
         }
+    }
+
+    /// <summary>
+    /// Stores one entropy table's integer configuration and offset in the shared lookup buffer.
+    /// </summary>
+    private readonly struct Cluster
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Cluster"/> struct.
+        /// </summary>
+        /// <param name="integer">The integer configuration for this cluster's symbols.</param>
+        /// <param name="tableOffset">The first entry of its Huffman or ANS table.</param>
+        public Cluster(HybridUint integer, int tableOffset)
+        {
+            this.Integer = integer;
+            this.TableOffset = tableOffset;
+        }
+
+        /// <summary>
+        /// Gets the integer configuration for this cluster's symbols.
+        /// </summary>
+        public HybridUint Integer { get; }
+
+        /// <summary>
+        /// Gets the first entry of this cluster's table in the shared lookup buffer.
+        /// </summary>
+        public int TableOffset { get; }
     }
 
     /// <summary>

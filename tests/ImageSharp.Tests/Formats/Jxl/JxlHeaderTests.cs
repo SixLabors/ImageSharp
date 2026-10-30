@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
@@ -186,10 +187,14 @@ public class JxlHeaderTests
     [InlineData(TestImages.Jxl.LossyWithIcc, 584, "72860842AB20BDD42AB229C72DB0906CF66FC87EF8CEAD828042A4083A029B2E", IccColorSpaceType.Rgb)]
     public void ReadIccMatchesReferenceBytes(string file, int length, string hash, IccColorSpaceType colorSpace)
     {
+        // Entropy tables borrow allocator storage, which can contain nonzero data from an earlier use.
+        // A dirty allocator verifies that implicit single-context maps and lookup entries are initialized.
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = new TestMemoryAllocator();
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
-        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        using BufferedReadStream buffered = new(configuration, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator);
+        JxlHeader header = JxlHeader.Read(ref reader, configuration.MemoryAllocator);
 
         // jxl_cli --original-icc-out extracts the embedded bytes before color conversion.
         // These hashes cover the full profile, including its header, directory, curves and text tags.

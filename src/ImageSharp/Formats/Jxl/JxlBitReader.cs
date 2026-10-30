@@ -40,6 +40,44 @@ internal struct JxlBitReader
     public readonly long Position => (this.source.Position * 8) - this.availableBits;
 
     /// <summary>
+    /// Gets the number of complete logical codestream bytes consumed, excluding prefetched bits.
+    /// </summary>
+    public readonly long BytePosition => this.source.Position - ((this.availableBits + 7) / 8);
+
+    /// <summary>
+    /// Rejects a bit count that cannot fit in the remaining input, including prefetched bits.
+    /// Container headers can make this upper bound larger than the actual remaining codestream.
+    /// </summary>
+    /// <param name="count">The minimum bit count required by the consuming syntax.</param>
+    public readonly void CheckBitBudget(ulong count)
+    {
+        // Count cached bits first, including an incomplete byte. Round only the uncached part up to whole bytes.
+        // Divide before rounding so neither an arbitrary file length nor a declared bit count is multiplied by eight.
+        ulong uncached = count - Math.Min(count, (ulong)this.availableBits);
+        ulong requiredBytes = (uncached >> 3) + ((uncached & 7) != 0 ? 1UL : 0UL);
+        if (requiredBytes > (ulong)(this.source.MaximumLength - this.source.Position))
+        {
+            throw new InvalidImageContentException("The JPEG XL field cannot fit in the remaining codestream.");
+        }
+    }
+
+    /// <summary>
+    /// Rejects a byte count that cannot fit in the remaining input, including complete prefetched bytes.
+    /// Container headers can make this upper bound larger than the actual remaining codestream.
+    /// </summary>
+    /// <param name="count">The nonnegative payload byte count declared by the consuming syntax.</param>
+    public readonly void CheckByteBudget(long count)
+    {
+        // Complete cached bytes contribute directly. Any remaining fraction stays available, but cannot supply another whole byte.
+        // Subtract before comparing so large byte counts never need a potentially overflowing conversion to bits.
+        long uncached = count - Math.Min(count, this.availableBits / 8);
+        if (uncached > this.source.MaximumLength - this.source.Position)
+        {
+            throw new InvalidImageContentException("The JPEG XL payload cannot fit in the remaining codestream.");
+        }
+    }
+
+    /// <summary>
     /// Reads an unsigned field of zero to 32 bits. The first encoded bit becomes the least significant result bit.
     /// </summary>
     /// <param name="count">The field width selected by the codec syntax.</param>
@@ -243,6 +281,21 @@ internal struct JxlBitReader
             this.source.Skip((long)(count >> 3));
             this.ReadBits((int)(count & 7));
         }
+    }
+
+    /// <summary>
+    /// Skips a nonnegative byte count from a byte-aligned field without converting the count to bits.
+    /// </summary>
+    /// <param name="count">The payload length declared by the consuming syntax.</param>
+    public void SkipBytes(long count)
+    {
+        // Table payloads begin at a byte boundary, but lookahead can retain whole bytes from that payload.
+        // Drain those bytes before seeking the source. A 64-bit shift needs an explicit zero result because shifts wrap at 64.
+        int cached = (int)Math.Min(count, this.availableBits / 8);
+        int bits = cached * 8;
+        this.buffer = bits == 64 ? 0 : this.buffer >> bits;
+        this.availableBits -= bits;
+        this.source.Skip(count - cached);
     }
 
     /// <summary>

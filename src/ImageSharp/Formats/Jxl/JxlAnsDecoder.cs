@@ -28,6 +28,9 @@ internal static class JxlAnsDecoder
         Span<int> frequencies = stackalloc int[256];
         frequencies = frequencies[..buckets.Length];
         frequencies.Clear();
+
+        // The first two flags select a one/two-symbol distribution, a flat alphabet, or the general form.
+        // Every form produces exactly 4096 units of probability before the shared alias construction below.
         if (reader.ReadBoolean())
         {
             bool twoSymbols = reader.ReadBoolean();
@@ -52,6 +55,9 @@ internal static class JxlAnsDecoder
 
             int quotient = ProbabilityTotal / alphabetSize;
             int remainder = ProbabilityTotal % alphabetSize;
+
+            // Division leaves a remainder when the alphabet size does not divide 4096. The first symbols
+            // receive one extra unit, preserving the exact normalized total in the format's specified order.
             frequencies[..remainder].Fill(quotient + 1);
             frequencies[remainder..alphabetSize].Fill(quotient);
         }
@@ -64,6 +70,8 @@ internal static class JxlAnsDecoder
         int singleSymbol = frequencies.IndexOf(ProbabilityTotal);
         if (singleSymbol >= 0)
         {
+            // All states select the same symbol. Preserve the state's low-bit position through AliasOffset
+            // so the ANS update still uses the full probability interval, without a special symbol-reading branch.
             for (int i = 0; i < buckets.Length; i++)
             {
                 buckets[i] = new Bucket
@@ -85,6 +93,9 @@ internal static class JxlAnsDecoder
         Span<int> overfull = stackalloc int[256];
         int underCount = 0;
         int overCount = 0;
+
+        // A bucket initially owns its symbol's frequency. Keep only underfull and overfull bucket indices
+        // on bounded stack workspaces; no table scratch survives distribution construction.
         for (int i = 0; i < buckets.Length; i++)
         {
             cutoff[i] = frequencies[i];
@@ -119,6 +130,8 @@ internal static class JxlAnsDecoder
             }
         }
 
+        // Encode each split once. XOR stores the alternate frequency relative to the current frequency;
+        // the offset maps an aliased position into that symbol's cumulative probability interval.
         for (int i = 0; i < buckets.Length; i++)
         {
             // A full bucket maps every position to itself. Encoding it as an unconditional alias
@@ -209,6 +222,9 @@ internal static class JxlAnsDecoder
 
         int total = 0;
         int previous = 0;
+
+        // One frequency is omitted from the stream. Decode all other positive frequencies and repeated
+        // runs, then recover that omitted value from the normalized total without rounding a probability.
         for (int i = 0; i < alphabetSize; i++)
         {
             if (repeats[i] != 0)
@@ -228,6 +244,8 @@ internal static class JxlAnsDecoder
                 int frequency = code;
                 if (code > 1)
                 {
+                    // The code supplies the magnitude; shift controls how many lower frequency bits follow.
+                    // Precision is bounded by that magnitude, so every frequency remains a positive integer.
                     int exponent = code - 1;
                     int precision = Math.Clamp(shift - ((ProbabilityBits - exponent) >> 1), 0, exponent);
                     frequency = (1 << exponent) + ((int)reader.ReadBits(precision) << (exponent - precision));

@@ -12,6 +12,52 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlFormatTests
 {
     /// <summary>
+    /// Verifies displayed animation timing and MaxFrames against the native reference inspector.
+    /// </summary>
+    /// <param name="maxFrames">The displayed frame limit.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void IdentifyReportsDisplayedAnimationFrames(int maxFrames)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { MaxFrames = (uint)maxFrames };
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.CroppedTrafficLight).Bytes, false);
+
+        ImageInfo info = Image.Identify(options, stream);
+
+        // jxlinspect reports four displayed frames at 3000, 1000, 3000 and 1000 milliseconds.
+        // Cropped intermediate content must not change the canvas size or add displayed frames.
+        ReadOnlySpan<uint> seconds = [3, 1, 3, 1];
+
+        Assert.Equal(new Size(50, 80), info.Size);
+        Assert.Equal(maxFrames, info.FrameCount);
+        Assert.Equal(0U, info.Metadata.GetFormatMetadata(JxlFormat.Instance).RepeatCount);
+
+        for (int i = 0; i < maxFrames; i++)
+        {
+            JxlFrameMetadata frame = info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance);
+
+            Assert.Equal(new Rational(seconds[i]), frame.FrameDelay);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the optional preview is traversed without being counted as a displayed image.
+    /// </summary>
+    [Fact]
+    public void IdentifyDoesNotCountPreviewAsDisplayedFrame()
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.WithPreview).Bytes, false);
+
+        ImageInfo info = Image.Identify(new DecoderOptions(configuration), stream);
+
+        Assert.Equal(new Size(64, 64), info.Size);
+        Assert.Equal(1, info.FrameCount);
+    }
+
+    /// <summary>
     /// Verifies that an incomplete optional Brotli payload follows the shared ancillary error policy.
     /// </summary>
     /// <param name="handling">The selected segment error policy.</param>
@@ -40,14 +86,15 @@ public class JxlFormatTests
     }
 
     /// <summary>
-    /// Verifies that codestream level control remains mandatory when optional metadata is skipped.
+    /// Verifies that codestream structure remains mandatory when optional metadata is skipped.
     /// </summary>
-    /// <param name="file">The stored container with a malformed level box.</param>
+    /// <param name="file">The stored input with invalid level control or an incomplete section payload.</param>
     [Theory]
     [InlineData(TestImages.Jxl.SquareInvalidLevel)]
     [InlineData(TestImages.Jxl.SquareDuplicateLevel)]
     [InlineData(TestImages.Jxl.SquareLateLevel)]
-    public void IdentifyRejectsInvalidContainerLevel(string file)
+    [InlineData(TestImages.Jxl.TruncatedSections)]
+    public void IdentifyRejectsMalformedStructure(string file)
     {
         Configuration configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(configuration) { SkipMetadata = true };
@@ -93,6 +140,7 @@ public class JxlFormatTests
     [InlineData(TestImages.Jxl.SquareLevel5, 8, 8, 8)]
     [InlineData(TestImages.Jxl.SplinesFragmentedV1, 2048, 2048, 8)]
     [InlineData(TestImages.Jxl.LosslessFloat, 500, 500, 32)]
+    [InlineData(TestImages.Jxl.PermutedSections, 2143, 1050, 16)]
     public void IdentifyUsesRegisteredDecoder(string file, int width, int height, int precision)
     {
         Configuration configuration = new(new JxlConfigurationModule());

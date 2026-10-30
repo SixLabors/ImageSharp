@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -36,6 +37,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
 
+        List<ImageFrameMetadata> frames = this.IdentifyFrames(ref reader, header, cancellationToken);
+
         // EXIF and XMP can follow the codestream. Skip pixel payloads while retaining those bounded box ranges.
         // Container structure remains mandatory even when optional profile errors can be ignored.
         codestream.Complete();
@@ -56,14 +59,70 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             }
         }
 
-        return new ImageInfo(header.Size, metadata);
+        return new ImageInfo(header.Size, metadata, frames);
     }
 
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        // R3 adds pixel reconstruction behind this entry point. Never return an empty image as decoded content.
+        // Pixel reconstruction belongs to this core. Never return an empty image as decoded content.
         cancellationToken.ThrowIfCancellationRequested();
         throw new NotSupportedException("JPEG XL pixel decoding is not yet supported.");
+    }
+
+    /// <summary>
+    /// Reads displayed-frame metadata while validating and skipping the coded section payloads.
+    /// </summary>
+    /// <param name="reader">The bit reader positioned after the image header.</param>
+    /// <param name="header">The image-wide coding and animation fields.</param>
+    /// <param name="cancellationToken">The token used to cancel frame and section traversal.</param>
+    /// <returns>The displayed frames, excluding previews and intermediate reference frames.</returns>
+    private List<ImageFrameMetadata> IdentifyFrames(ref JxlBitReader reader, JxlHeader header, CancellationToken cancellationToken)
+    {
+        MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
+        List<ImageFrameMetadata> frames = [];
+
+        // A preview has its own header and section table. It precedes the main frames but does not
+        // contribute to their displayed count or consume the caller's MaxFrames allowance.
+        if (header.PreviewSize.HasValue)
+        {
+            JxlFrameHeader preview = JxlFrameHeader.Read(ref reader, header, true);
+            JxlFrameSections.Skip(ref reader, allocator, preview.SectionCount, cancellationToken);
+        }
+
+        JxlFrameHeader frame;
+        do
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            frame = JxlFrameHeader.Read(ref reader, header, false);
+            JxlFrameSections.Skip(ref reader, allocator, frame.SectionCount, cancellationToken);
+
+            // Zero-duration intermediate frames and reference-only frames still occupy sections.
+            // Parse them to reach the next frame, but report only frames that produce displayed output.
+            if (frame.IsDisplayed)
+            {
+                JxlFrameMetadata frameMetadata = new();
+                if (header.TicksPerSecond is Rational rate)
+                {
+                    // Seconds = native ticks * rate denominator / rate numerator. The encoded
+                    // denominator is at most 1024, so widening the uint tick count to long is sufficient.
+                    LongRational delay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
+                    if (delay.Numerator > uint.MaxValue)
+                    {
+                        // Rational metadata stores uint components. Do not wrap or silently shorten a valid native delay.
+                        throw new NotSupportedException("The JPEG XL frame duration exceeds the supported metadata precision.");
+                    }
+
+                    frameMetadata.FrameDelay = new Rational((uint)delay.Numerator, (uint)delay.Denominator, false);
+                }
+
+                ImageFrameMetadata metadata = new();
+                metadata.SetFormatMetadata(JxlFormat.Instance, frameMetadata);
+                frames.Add(metadata);
+            }
+        }
+        while (!frame.IsLast && (uint)frames.Count < this.Options.MaxFrames);
+
+        return frames;
     }
 }

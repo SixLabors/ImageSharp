@@ -21,6 +21,7 @@ internal static class JxlHuffmanDecoder
         lengths.Clear();
         if (lengths.Length == 1)
         {
+            // A one-symbol alphabet needs no encoded tree. The shared builder represents it with zero-bit lookups.
             lengths[0] = 1;
             return;
         }
@@ -28,6 +29,8 @@ internal static class JxlHuffmanDecoder
         int selector = (int)reader.ReadBits(2);
         if (selector == 1)
         {
+            // The simple form names at most four symbols. The alphabet bounds the fixed width used
+            // for each symbol index; the encoded ordering determines which symbols receive the shortest codes.
             int count = (int)reader.ReadBits(2) + 1;
             Span<int> symbols = stackalloc int[4];
             int width = 32 - BitOperations.LeadingZeroCount((uint)lengths.Length - 1);
@@ -58,6 +61,8 @@ internal static class JxlHuffmanDecoder
             return;
         }
 
+        // The complex form first describes a code for the code lengths themselves. The selector skips
+        // initial entries in this fixed order; four-bit lookahead can identify codes shorter than four bits.
         ReadOnlySpan<byte> order = [1, 2, 3, 4, 0, 5, 17, 6, 16, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         ReadOnlySpan<byte> bitCounts = [2, 2, 2, 3, 2, 2, 2, 4, 2, 2, 2, 3, 2, 2, 2, 4];
         ReadOnlySpan<byte> values = [0, 4, 3, 2, 0, 4, 3, 1, 0, 4, 3, 2, 0, 4, 3, 5];
@@ -65,6 +70,9 @@ internal static class JxlHuffmanDecoder
         lengthCode.Clear();
         int space = 32;
         int nonzero = 0;
+
+        // Measure available prefix space in units of 1/32. A nonzero length consumes 32 >> length units.
+        // A complete tree exhausts that space; a one-symbol code is the format's explicit exception.
         for (int i = selector; i < order.Length && space > 0; i++)
         {
             int index = (int)reader.PeekBits(4);
@@ -95,6 +103,9 @@ internal static class JxlHuffmanDecoder
         int repeat = 0;
         int repeatLength = 0;
         space = 1 << HuffmanTableBuilder.MaximumCodeLength;
+
+        // Decode the final alphabet with the small length-code table. Unwritten lengths remain zero,
+        // so the stream can finish once the complete prefix space has been assigned.
         while (position < lengths.Length && space > 0)
         {
             HuffmanCode entry = table[(int)reader.PeekBits(5)];

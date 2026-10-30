@@ -51,6 +51,9 @@ internal sealed class JxlCodestreamReader
         this.stream = stream;
         long start = stream.Position;
         this.MaximumLength = stream.Length - start;
+
+        // Inspect the same leading bytes for both file forms. A raw codestream must be rewound so
+        // the bit reader, rather than this container reader, consumes and validates its complete image header.
         InlineArray16<byte> storage = default;
         Span<byte> header = storage;
         IsoBoxReader.ReadExactly(stream, header[..2], "The JPEG XL signature is incomplete.");
@@ -79,6 +82,9 @@ internal sealed class JxlCodestreamReader
 
         this.nextBoxPosition = stream.Position + length;
         IsoBoxReader.ReadExactly(stream, header[..8], "The JPEG XL file type is incomplete.");
+
+        // Version zero requires physical fragment order. Version one can reorder fragment indices;
+        // both retain the same logical codestream and need no second full-image input buffer.
         uint brand = BinaryPrimitives.ReadUInt32BigEndian(header);
         this.version = BinaryPrimitives.ReadUInt32BigEndian(header[4..]);
         if (brand != JxlConstants.MajorBrand || this.version > 1)
@@ -229,6 +235,8 @@ internal sealed class JxlCodestreamReader
         long position = this.stream.Position;
         try
         {
+            // Box ranges are borrowed from the input. Read only the requested range and restore the caller's
+            // position in finally, even if a shared profile parser rejects this optional metadata.
             this.stream.Position = box.Offset;
             uint type = box.Type;
             long length = box.Length;
@@ -278,6 +286,8 @@ internal sealed class JxlCodestreamReader
                         decoded.Write(output[..written]);
                         if (status == OperationStatus.Done)
                         {
+                            // A completed Brotli stream must consume exactly this box's compressed payload.
+                            // Extra compressed bytes cannot be interpreted as another profile or codestream.
                             if (remaining != 0 || offset != available)
                             {
                                 throw new InvalidImageContentException("The JPEG XL compressed metadata contains trailing bytes.");
@@ -339,6 +349,8 @@ internal sealed class JxlCodestreamReader
                 throw new InvalidImageContentException("The JPEG XL EXIF TIFF-header offset exceeds its payload.");
             }
 
+            // The offset counts from the byte following its own field. Keep the TIFF header and all
+            // remaining TIFF data together for ExifProfile; the outer offset is not part of that profile.
             stream.Seek(offset, SeekOrigin.Current);
             length -= offset;
         }
@@ -348,6 +360,8 @@ internal sealed class JxlCodestreamReader
             throw new InvalidImageContentException("The JPEG XL metadata exceeds the supported profile size.");
         }
 
+        // ExifProfile and XmpProfile retain this final array. They cannot borrow either the input stream
+        // or the allocator-owned Brotli output, which is disposed when metadata application finishes.
         byte[] data = new byte[(int)length];
         IsoBoxReader.ReadExactly(stream, data, "The JPEG XL metadata payload is incomplete.");
         if (type == JxlConstants.ExifBox)

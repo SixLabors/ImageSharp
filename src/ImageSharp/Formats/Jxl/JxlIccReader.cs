@@ -50,6 +50,7 @@ internal static class JxlIccReader
         InlineArray32<byte> prefixStorage = default;
         Span<byte> prefix = prefixStorage;
         int prefixSize = Math.Min((int)size, 20);
+
         for (int i = 0; i < prefixSize; i++)
         {
             prefix[i] = symbols.ReadByte(ref reader, 0, prefix[..i]);
@@ -97,6 +98,9 @@ internal static class JxlIccReader
         byte[] result = new byte[outputLength];
         Span<byte> output = result;
         ReadOnlySpan<byte> headerData = Take(ref data, HeaderSize);
+
+        // Predict common ICC header bytes in file order. Some predictions depend on earlier reconstructed
+        // bytes, such as the platform signature. Residual addition is modulo 256 for each byte independently.
         for (int i = 0; i < HeaderSize; i++)
         {
             byte prediction = i switch
@@ -144,6 +148,8 @@ internal static class JxlIccReader
             byte command = Take(ref commands, 1)[0];
             if (command is >= 1 and <= 4)
             {
+                // Insert and shuffle commands have no predictor. Predict commands additionally encode
+                // integer width, finite-difference order and optional byte stride in their flags.
                 int width = command == 2 ? 2 : command == 3 ? 4 : 1;
                 int order = -1;
                 int stride = width;
@@ -169,6 +175,9 @@ internal static class JxlIccReader
 
                 Span<byte> destination = output.Slice(written, (int)count);
                 ReadOnlySpan<byte> residuals = Take(ref data, (int)count);
+
+                // Restore residual byte order directly in the final profile array. Prediction then reads
+                // earlier reconstructed samples from that same array; no intermediate shuffle buffer is needed.
                 Unshuffle(residuals, destination, width);
                 if (order >= 0)
                 {
@@ -221,6 +230,7 @@ internal static class JxlIccReader
         ulong count = ReadVarUInt(ref commands);
         if (count == 0)
         {
+            // Zero omits directory prediction. Later insert commands then reconstruct those bytes literally.
             return;
         }
 
@@ -232,6 +242,9 @@ internal static class JxlIccReader
 
         BinaryPrimitives.WriteUInt32BigEndian(output[written..], (uint)count);
         written += 4;
+
+        // The prediction dictionary starts its previous-offset state at 128 + 12 * tagCount.
+        // This is its specified predictor base, not a claim that the actual ICC directory ends at that byte.
         ulong previousOffset = HeaderSize + (count * 12);
         ulong previousSize = 0;
         ReadOnlySpan<uint> tags =
@@ -282,6 +295,8 @@ internal static class JxlIccReader
             written += 12;
             if (entries == 3)
             {
+                // The compact TRC command shares one payload among R/G/B tags. The XYZ command instead
+                // describes three consecutive equally sized payloads. Both expand into ordinary ICC entries.
                 uint green = code == 2 ? (uint)IccProfileTag.GreenTrc : (uint)IccProfileTag.GreenMatrixColumn;
                 uint blue = code == 2 ? (uint)IccProfileTag.BlueTrc : (uint)IccProfileTag.BlueMatrixColumn;
                 WriteTag(output.Slice(written, 12), green, (uint)(offset + (code == 3 ? size : 0)), (uint)size);
@@ -327,6 +342,10 @@ internal static class JxlIccReader
         int column = 0;
         ref byte first = ref MemoryMarshal.GetReference(source);
         ref byte output = ref MemoryMarshal.GetReference(destination);
+
+        // Residual bytes arrive as width planes with a height-byte stride; final planes can be short or absent.
+        // A SIMD block reads the same columns from every plane, then interleaves two or four bytes per output sample.
+        // Unaligned loads are valid. CompleteColumns prevents every width from reading past a short final plane.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; column <= completeColumns - Vector512<byte>.Count; column += Vector512<byte>.Count)
@@ -410,6 +429,8 @@ internal static class JxlIccReader
     /// <param name="order">Zero for the preceding value, one for linear prediction, or two for quadratic prediction.</param>
     private static void ApplyPrediction(Span<byte> output, int start, int count, int width, int stride, int order)
     {
+        // Width and stride are fixed for this command. Their parser check reserves at least four prior
+        // strides, so all three history reads below remain valid even for a partial final integer.
         for (int i = 0; i < count; i += width)
         {
             int position = start + i;

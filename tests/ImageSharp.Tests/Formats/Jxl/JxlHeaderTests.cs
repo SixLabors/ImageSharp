@@ -16,6 +16,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlHeaderTests
 {
     /// <summary>
+    /// Verifies retained section sizes and their logical order against the native decoder's conformance test.
+    /// </summary>
+    [Fact]
+    public void ReadSectionPermutationMatchesReference()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.PermutedSections).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false);
+        using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+
+        // jxl-rs headers/frame_header.rs records these values in test_has_permutation for this unchanged file.
+        // Forty-nine sections exercise a non-power-of-two rank tree, including selections at its final entries.
+        ReadOnlySpan<uint> sizes =
+        [
+            155, 992, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 5, 5, 5, 5, 5, 5, 5, 5, 697, 5, 5, 5, 5, 5, 60
+        ];
+
+        ReadOnlySpan<uint> order =
+        [
+            0, 1, 42, 48, 2, 3, 4, 5, 6, 7, 8, 9, 43, 10, 11, 12, 13, 14, 15, 16, 17,
+            44, 18, 19, 20, 21, 22, 23, 24, 25, 45, 26, 27, 28, 29, 30, 31, 32, 33, 46, 34,
+            35, 36, 37, 38, 39, 40, 41, 47
+        ];
+
+        Assert.Equal(sizes, sections.Sizes.Span);
+        Assert.Equal(order, sections.Order.Span);
+        Assert.Equal(reader.BytePosition, sections.PayloadOffset);
+        Assert.Equal(2193, sections.TotalLength);
+    }
+
+    /// <summary>
     /// Verifies CMYK and alpha metadata together with the complete embedded lookup-table profile at each SIMD width.
     /// </summary>
     [Fact]

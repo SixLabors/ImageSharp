@@ -1724,6 +1724,11 @@ public static class TestImages
         public const string LossyWithIcc = "Jxl/lossy_with_icc.jxl";
         public const string GrayscalePatchesWithIcc = "Jxl/small_grayscale_patches_modular_with_icc.jxl";
         public const string WithPreview = "Jxl/with_preview.jxl";
+        public const string PermutedSections = "Jxl/has_permutation.jxl";
+
+        // This stored variant omits the final section byte. The native decoder rejects it as truncated.
+        public const string TruncatedSections = "Jxl/has_permutation_truncated.jxl";
+
         public const string Orientation6 = "Jxl/orientation6_rotate_90_cw.jxl";
         public const string SpotColor = "Jxl/spot.jxl";
         public const string TruncatedIcc = "Jxl/with_icc_truncated.jxl";

@@ -1,0 +1,128 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+#pragma warning disable SA1401 // Fields should be private
+
+using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
+using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.AcStrategy;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Patch;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
+
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
+
+/// <summary>
+/// Contains internal state for decoding and encoding of passes
+/// in a progressive image. This class contains shared state used
+/// both by the passes decoder and encoder.
+/// </summary>
+internal class JxlPassesCommonContext
+{
+    // Make this a field so we can get a ref to it
+    public JxlBlockContextMap BlockContextMap;
+
+    public JxlCodecMetadata CodecMetadata { get; set; } = new();
+
+    public JxlFrameDimensions FrameDimensions { get; set; }
+
+    public JxlAcStrategyImage AcStrategy { get; set; }
+
+    /// <summary>
+    /// Gets the common context's matrix owner. Its quantizer and encoder views borrow this same instance.
+    /// </summary>
+    public JxlDequantMatrices Matrices { get; } = new();
+
+    public JxlQuantizer Quantizer { get; set; }
+
+    public JxlPlane<int> RawQuantField { get; set; }
+
+    public JxlPlane<byte> EpfSharpness { get; set; }
+
+    public JxlColorCorrelationMap ColorMap { get; set; }
+
+    public JxlImageFeatures ImageFeatures { get; set; } = new();
+
+    public int CoeffOrderSize { get; set; }
+
+    public List<byte> CoeffOrders { get; set; } = [];
+
+    public JxlPlane<byte> QuantDc { get; set; }
+
+    public JxlImage3<float> DcStorage { get; set; }
+
+    public JxlImage3<float> Dc { get; set; }
+
+    public JxlImage3<float>[] DcFrames { get; set; } = new JxlImage3<float>[4];
+
+    public JxlReferenceFrame[] ReferenceFrames { get; set; } = new JxlReferenceFrame[4];
+
+    public int NumHistograms { get; set; }
+
+    public JxlPassesCommonContext(Configuration configuration, JxlFrameHeader frameHeader, bool encoder)
+    {
+        if (frameHeader.Metadata is null)
+        {
+            throw new InvalidOperationException("The frame header metadata is missing");
+        }
+
+        this.CodecMetadata = frameHeader.Metadata;
+        this.FrameDimensions = frameHeader.FrameDimensions;
+        this.ImageFeatures.PatchDictionary.SetShared(this.ImageFeatures.ReferenceFrames);
+
+        JxlFrameDimensions dimensions = frameHeader.FrameDimensions;
+
+        this.AcStrategy = JxlAcStrategyImage.Create(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.RawQuantField = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.EpfSharpness = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+        this.ColorMap = JxlColorCorrelationMap.Create(configuration, dimensions.XSize, dimensions.YSize);
+
+        this.CoeffOrderSize = JxlCoefficientOrder.CoefficientOrderMaxSize;
+
+        if (encoder &&
+            this.CoeffOrders.Count < (frameHeader.Passes.NumberOfPasses & JxlCoefficientOrder.CoefficientOrderMaxSize) &&
+            frameHeader.Encoding == JxlFrameEncoding.VarDct)
+        {
+            // we add the padding to CoeffOrders so its length is equal to the variable upperBound
+            int upperBound = (int)(frameHeader.Passes.NumberOfPasses & JxlCoefficientOrder.CoefficientOrderMaxSize);
+            int length = this.CoeffOrders.Count;
+            int delta = upperBound - length;
+
+            for (int i = 0; i < delta; i++)
+            {
+                this.CoeffOrders.Add(0); // default constant
+            }
+        }
+
+        this.QuantDc = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+
+        bool useDcFrame = (frameHeader.Flags & (ulong)JxlFrameHeaderFlags.Dc) != 0;
+        if (!encoder && useDcFrame)
+        {
+            if (frameHeader.DcLevel == 4)
+            {
+                throw new InvalidOperationException("DC level for DC frames cannot be equal to 4");
+            }
+
+            this.DcStorage = new();
+            this.Dc = this.DcFrames[(int)frameHeader.DcLevel];
+
+            if (this.Dc.XSize == 0)
+            {
+                throw new InvalidOperationException("DC frame was specified for DC Level = " + frameHeader.DcLevel + ", but frame wasn't decoded with level " + frameHeader.DcLevel + 1);
+            }
+
+            this.QuantDc.Clear();
+        }
+        else
+        {
+            this.DcStorage = new(configuration, dimensions.XSizeBlocks, dimensions.YSizeBlocks);
+            this.Dc = this.DcStorage;
+        }
+
+        this.Quantizer = new(this.Matrices);
+    }
+}

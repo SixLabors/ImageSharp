@@ -1712,6 +1712,11 @@ public static class TestImages
         public const string Rgb16 = "Jxl/image_integration_rgb16.jxl";
         public const string EmptyPalette = "Jxl/issue648_palette0.jxl";
 
+        // Fixed entropy sections verified by libjxl and jxl-rs. Each follows the raw signature, without an image header.
+        public const string TerminalLzCopy = "Jxl/terminal-lz-copy.jxl";
+        public const string TerminalLzCopyAns = "Jxl/terminal-lz-copy-ans.jxl";
+        public const string TerminalLzCopyInvalidAns = "Jxl/terminal-lz-copy-ans-invalid-state.jxl";
+
         // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
         // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
         public const string Splines = "Jxl/splines.jxl";

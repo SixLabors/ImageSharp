@@ -482,11 +482,13 @@ internal sealed class JxlEntropyDecoder : IDisposable
         }
 
         /// <summary>
-        /// Validates the final ANS state and rejects copies that extend past the declared value count.
+        /// Validates the final ANS state after the consumer has read its required values.
         /// </summary>
         public readonly void CheckFinalState()
         {
-            if (this.state != FinalAnsState || this.remainingCopy != 0)
+            // A consumer can stop within the final LZ77 copy. Its unused values require no more entropy symbols.
+            // Both reference decoders validate the ANS state without requiring that copy to finish.
+            if (this.state != FinalAnsState)
             {
                 throw new InvalidImageContentException("The JPEG XL entropy section has an invalid final state.");
             }

@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -18,6 +19,82 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public class JxlHeaderTests
 {
+    /// <summary>
+    /// Verifies that stopping within a final copy is valid for byte and integer entropy consumers.
+    /// </summary>
+    /// <param name="file">The stored prefix or ANS entropy section.</param>
+    /// <param name="byteValues">Whether to use the byte consumer instead of the circular integer history.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.TerminalLzCopy, true)]
+    [InlineData(TestImages.Jxl.TerminalLzCopy, false)]
+    [InlineData(TestImages.Jxl.TerminalLzCopyAns, true)]
+    [InlineData(TestImages.Jxl.TerminalLzCopyAns, false)]
+    public void EntropyFinalStateAcceptsIncompleteCopy(string file, bool byteValues)
+    {
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
+        using JxlEntropyDecoder entropy = JxlEntropyDecoder.Read(ref reader, Configuration.Default.MemoryAllocator, 2, true);
+        JxlEntropyDecoder.Reader symbols = new(entropy, ref reader);
+
+        // Context zero emits literal 7. Context one emits a length-three copy at distance one.
+        // Both references return [7, 7] and accept the final state with two copied values still unused.
+        uint first;
+        uint second;
+        if (byteValues)
+        {
+            InlineArray4<byte> storage = default;
+            Span<byte> history = storage;
+            history[0] = symbols.ReadByte(ref reader, 0, []);
+            first = history[0];
+            second = symbols.ReadByte(ref reader, 1, history[..1]);
+        }
+        else
+        {
+            InlineArray4<uint> storage = default;
+            Span<uint> history = storage;
+            first = symbols.ReadUInt32(ref reader, 0, history, 0);
+            second = symbols.ReadUInt32(ref reader, 1, history, 1);
+        }
+
+        Assert.Equal(7U, first);
+        Assert.Equal(7U, second);
+        symbols.CheckFinalState();
+    }
+
+    /// <summary>
+    /// Verifies that allowing unused copied values does not allow an invalid ANS checksum.
+    /// </summary>
+    [Fact]
+    public void EntropyFinalStateRejectsInvalidAnsWithIncompleteCopy()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.TerminalLzCopyInvalidAns).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
+        using JxlEntropyDecoder entropy = JxlEntropyDecoder.Read(ref reader, Configuration.Default.MemoryAllocator, 2, true);
+        JxlEntropyDecoder.Reader symbols = new(entropy, ref reader);
+        InlineArray4<uint> storage = default;
+        Span<uint> history = storage;
+
+        // Only the initial ANS state differs from the valid fixture: 0x130001 instead of 0x130000.
+        // Both references still decode [7, 7], then reject the final entropy state.
+        Assert.Equal(7U, symbols.ReadUInt32(ref reader, 0, history, 0));
+        Assert.Equal(7U, symbols.ReadUInt32(ref reader, 1, history, 1));
+        bool rejected = false;
+        try
+        {
+            symbols.CheckFinalState();
+        }
+        catch (InvalidImageContentException)
+        {
+            rejected = true;
+        }
+
+        Assert.True(rejected);
+    }
+
     /// <summary>
     /// Verifies retained section sizes and their logical order against the native decoder's conformance test.
     /// </summary>

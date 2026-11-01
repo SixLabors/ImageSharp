@@ -36,7 +36,8 @@ internal sealed class JxlModularDecoder : IDisposable
     private readonly MemoryAllocator allocator;
     private readonly JxlModularWorkspace workspace;
     private readonly List<JxlModularChannel> channels;
-    private readonly JxlModularChannel[] originalShapes;
+    private readonly JxlModularChannelLayout[] originalLayouts;
+    private readonly List<JxlModularChannelLayout> layouts = [];
     private readonly int groupSize;
     private readonly int bitDepth;
     private readonly int originalChannelCount;
@@ -49,7 +50,7 @@ internal sealed class JxlModularDecoder : IDisposable
     private int globalPrefixCount;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlModularDecoder"/> class with unallocated original channel shapes.
+    /// Initializes a new instance of the <see cref="JxlModularDecoder"/> class with original channel layouts and no sample allocations.
     /// </summary>
     /// <param name="image">The image-wide sample and extra-channel declarations.</param>
     /// <param name="frame">The frame geometry and sampling layout.</param>
@@ -80,7 +81,7 @@ internal sealed class JxlModularDecoder : IDisposable
             int horizontal = horizontalShifts[c];
             int vertical = verticalShifts[c];
             Size channelSize = new(((size.Width - 1) >> horizontal) + 1, ((size.Height - 1) >> vertical) + 1);
-            this.channels.Add(new JxlModularChannel(channelSize, horizontal, vertical));
+            this.layouts.Add(new JxlModularChannelLayout(channelSize, horizontal, vertical));
         }
 
         for (int c = 0; c < image.Metadata.ExtraChannels.Count; c++)
@@ -89,11 +90,13 @@ internal sealed class JxlModularDecoder : IDisposable
             // Express its reduction relative to the color coding size; successive ceilings equal one combined ceiling.
             int shift = BitOperations.Log2(frame.ExtraChannelUpsampling[c]) - BitOperations.Log2(frame.Upsampling);
             Size channelSize = new(((size.Width - 1) >> shift) + 1, ((size.Height - 1) >> shift) + 1);
-            this.channels.Add(new JxlModularChannel(channelSize, shift, shift));
+            this.layouts.Add(new JxlModularChannelLayout(channelSize, shift, shift));
         }
 
-        // These copies contain shapes only. No sample buffer exists until the complete global transform list has been parsed.
-        this.originalShapes = this.channels.ToArray();
+        // Retain the original layouts independently of samples. Reuse the layout list for each stream's complete
+        // transform parse; no owned or borrowed sample descriptor needs an unallocated state.
+        this.originalLayouts = this.layouts.ToArray();
+        this.layouts.Clear();
     }
 
     /// <summary>
@@ -126,13 +129,13 @@ internal sealed class JxlModularDecoder : IDisposable
 
             // A VarDCT frame without extra channels can still define the shared tree above. It has no global
             // modular channels, so no modular header or sample stream follows that tree.
-            if (result.channels.Count != 0)
+            if (result.originalLayouts.Length != 0)
             {
                 result.ReadStream(
                     ref reader, result.channels, result.globalTransforms, result.groupSize, 0, true, out result.globalPredictor, cancellationToken);
             }
 
-            result.globalPrefixCount = GetEligiblePrefix(result.channels, result.groupSize);
+            result.globalPrefixCount = GetEligiblePrefix(result.layouts, result.groupSize);
             return result;
         }
         catch
@@ -235,7 +238,16 @@ internal sealed class JxlModularDecoder : IDisposable
             this.ReadStream(ref reader, local, transforms, int.MaxValue, streamId, false, out JxlWeightedPredictor predictor, cancellationToken);
 
             this.UndoTransforms(local, transforms, predictor, cancellationToken);
-            ValidateShapes(local, CollectionsMarshal.AsSpan(targets));
+
+            // Parsing no longer needs the encoded layouts. Reuse that list to validate the restored channels
+            // against their retained borrowed targets without creating a per-group layout array.
+            this.layouts.Clear();
+            foreach (JxlModularChannel target in targets)
+            {
+                this.layouts.Add(target.Layout);
+            }
+
+            ValidateShapes(local, CollectionsMarshal.AsSpan(this.layouts));
             if (transforms.Count != 0)
             {
                 // Only transformed groups need separate encoded storage. Ordinary groups already decoded directly into borrowed frame regions.
@@ -264,7 +276,7 @@ internal sealed class JxlModularDecoder : IDisposable
     public void Complete(CancellationToken cancellationToken)
     {
         this.UndoTransforms(this.channels, this.globalTransforms, this.globalPredictor, cancellationToken);
-        ValidateShapes(this.channels, this.originalShapes);
+        ValidateShapes(this.channels, this.originalLayouts);
         this.globalTransforms.Clear();
     }
 
@@ -281,11 +293,11 @@ internal sealed class JxlModularDecoder : IDisposable
     /// Parses one modular header, applies its shape transforms and decodes its eligible prefix through the shared sample path.
     /// </summary>
     /// <param name="reader">The bounded stream reader.</param>
-    /// <param name="channels">The current stream's owned or borrowed channel descriptors.</param>
+    /// <param name="channels">The ready borrowed targets, or the initially empty global sample list.</param>
     /// <param name="transforms">The retained transform list reused for this stream.</param>
     /// <param name="maximumSize">The largest normal channel dimension decoded here; metadata always belongs to the prefix.</param>
     /// <param name="streamId">The property-one modular stream identifier.</param>
-    /// <param name="allocateAll">Whether this is the initially unallocated global channel list.</param>
+    /// <param name="allocateAll">Whether original frame layouts supply this initially empty global sample list.</param>
     /// <param name="weightedPredictor">The header's predictor coefficients retained for inverse palette operations.</param>
     /// <param name="cancellationToken">The operation's cancellation token.</param>
     private void ReadStream(
@@ -298,28 +310,42 @@ internal sealed class JxlModularDecoder : IDisposable
         out JxlWeightedPredictor weightedPredictor,
         CancellationToken cancellationToken)
     {
+        List<JxlModularChannelLayout> layouts = this.layouts;
+        layouts.Clear();
+        if (allocateAll)
+        {
+            layouts.AddRange(this.originalLayouts);
+        }
+        else
+        {
+            foreach (JxlModularChannel channel in channels)
+            {
+                layouts.Add(channel.Layout);
+            }
+        }
+
         bool useGlobalTree = reader.ReadBoolean();
         weightedPredictor = JxlWeightedPredictor.Read(ref reader);
-        ReadTransforms(ref reader, channels, transforms, cancellationToken);
+        ReadTransforms(ref reader, layouts, transforms, cancellationToken);
 
         if (allocateAll)
         {
-            ValidateGroupDimensions(channels, this.groupSize);
+            ValidateGroupDimensions(layouts, this.groupSize);
         }
 
         if (allocateAll || transforms.Count != 0)
         {
-            // Shape parsing happens before samples are allocated. Local transforms detach borrowed descriptors,
-            // so inverse arithmetic cannot overwrite a different output region before export is complete.
-            Span<JxlModularChannel> descriptors = CollectionsMarshal.AsSpan(channels);
-            for (int c = 0; c < descriptors.Length; c++)
+            // Parsing changes layouts only. Borrowed targets retain their ready regions until every encoded shape
+            // has passed validation. Reserve descriptor capacity before renting samples so Add cannot strand an owner.
+            channels.EnsureCapacity(layouts.Count);
+            channels.Clear();
+            foreach (JxlModularChannelLayout layout in layouts)
             {
-                JxlModularChannel shape = descriptors[c];
-                descriptors[c] = JxlModularChannel.Allocate(this.allocator, shape.Size, shape.HorizontalShift, shape.VerticalShift);
+                channels.Add(JxlModularChannel.Allocate(this.allocator, layout));
             }
         }
 
-        int count = GetEligiblePrefix(channels, maximumSize);
+        int count = GetEligiblePrefix(layouts, maximumSize);
         long samples = GetSampleCount(channels, count, out _);
         if (samples == 0)
         {
@@ -343,7 +369,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="transforms">The reusable list receiving RCT, palette and flattened squeeze records in wire order.</param>
     /// <param name="cancellationToken">The token checked between transform records.</param>
     private static void ReadTransforms(
-        ref JxlBitReader reader, List<JxlModularChannel> channels, List<Transform> transforms, CancellationToken cancellationToken)
+        ref JxlBitReader reader, List<JxlModularChannelLayout> channels, List<Transform> transforms, CancellationToken cancellationToken)
     {
         int count = (int)reader.ReadU32((0, 0), (0, 1), (4, 2), (8, 18));
         transforms.Clear();
@@ -391,7 +417,7 @@ internal sealed class JxlModularDecoder : IDisposable
                 // One index channel replaces the selected channels. Palette values form a new leading metadata plane.
                 // A zero width is legal and must survive later shape validation even though no sample buffer exists.
                 channels.RemoveRange(begin + 1, number - 1);
-                channels.Insert(0, new JxlModularChannel(new Size(colors + deltas, number), -1, -1));
+                channels.Insert(0, new JxlModularChannelLayout(new Size(colors + deltas, number), -1, -1));
                 transforms.Add(new Transform(type, begin, number, 0, deltas, predictor, false, false));
             }
             else if (type == SqueezeTransform)
@@ -426,7 +452,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="channels">The current logical channel list.</param>
     /// <param name="transforms">The flattened reverse-transform records.</param>
     /// <param name="metadataCount">The current leading metadata channel count.</param>
-    private static void AddDefaultSqueezes(List<JxlModularChannel> channels, List<Transform> transforms, ref int metadataCount)
+    private static void AddDefaultSqueezes(List<JxlModularChannelLayout> channels, List<Transform> transforms, ref int metadataCount)
     {
         int normalCount = channels.Count - metadataCount;
         int width = channels[metadataCount].Width;
@@ -472,7 +498,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="inPlace">Whether residuals follow the selected channels instead of the complete channel list.</param>
     /// <param name="metadataCount">The leading metadata count updated by an in-place metadata squeeze.</param>
     private static void AddSqueeze(
-        List<JxlModularChannel> channels,
+        List<JxlModularChannelLayout> channels,
         List<Transform> transforms,
         int begin,
         int number,
@@ -495,7 +521,7 @@ internal sealed class JxlModularDecoder : IDisposable
         int residualStart = inPlace ? begin + number : channels.Count;
         for (int c = 0; c < number; c++)
         {
-            JxlModularChannel channel = channels[begin + c];
+            JxlModularChannelLayout channel = channels[begin + c];
             if (channel.IsEmpty || channel.HorizontalShift > 30 || channel.VerticalShift > 30)
             {
                 throw new InvalidImageContentException("The JPEG XL squeeze channel is empty or its resolution shift is too large.");
@@ -516,8 +542,8 @@ internal sealed class JxlModularDecoder : IDisposable
             int halfHeight = horizontal ? channel.Height : (channel.Height / 2) + (channel.Height & 1);
             Size averages = new(halfWidth, halfHeight);
             Size residuals = horizontal ? new Size(channel.Width - halfWidth, channel.Height) : new Size(channel.Width, channel.Height - halfHeight);
-            channels[begin + c] = new JxlModularChannel(averages, horizontalShift, verticalShift);
-            channels.Insert(residualStart + c, new JxlModularChannel(residuals, horizontalShift, verticalShift));
+            channels[begin + c] = new JxlModularChannelLayout(averages, horizontalShift, verticalShift);
+            channels.Insert(residualStart + c, new JxlModularChannelLayout(residuals, horizontalShift, verticalShift));
         }
 
         transforms.Add(new Transform(SqueezeTransform, begin, number, 0, 0, 0, horizontal, inPlace));
@@ -747,7 +773,7 @@ internal sealed class JxlModularDecoder : IDisposable
                 JxlModularChannel index = channels[begin];
                 for (int c = 1; c < transform.ChannelCount; c++)
                 {
-                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, index.Size, index.HorizontalShift, index.VerticalShift);
+                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, index.Layout);
                     try
                     {
                         channels.Insert(begin + c, output);
@@ -811,7 +837,7 @@ internal sealed class JxlModularDecoder : IDisposable
                         vertical--;
                     }
 
-                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, size, horizontal, vertical);
+                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, new JxlModularChannelLayout(size, horizontal, vertical));
                     try
                     {
                         if (!output.IsEmpty)
@@ -845,7 +871,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="number">The positive selected count from the encoded syntax.</param>
     /// <param name="metadataCount">The number of leading metadata channels.</param>
     /// <param name="equalShapes">Whether the transform requires equal dimensions and shifts.</param>
-    private static void CheckChannelRange(List<JxlModularChannel> channels, int begin, int number, int metadataCount, bool equalShapes)
+    private static void CheckChannelRange(List<JxlModularChannelLayout> channels, int begin, int number, int metadataCount, bool equalShapes)
     {
         if (begin + number > channels.Count || (begin < metadataCount && begin + number > metadataCount))
         {
@@ -854,7 +880,7 @@ internal sealed class JxlModularDecoder : IDisposable
 
         if (equalShapes)
         {
-            JxlModularChannel first = channels[begin];
+            JxlModularChannelLayout first = channels[begin];
             for (int c = begin + 1; c < begin + number; c++)
             {
                 if (!first.HasSameShape(channels[c]))
@@ -882,7 +908,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// </summary>
     /// <param name="channels">The channel layouts.</param>
     /// <returns>The leading metadata count.</returns>
-    private static int GetMetadataCount(List<JxlModularChannel> channels)
+    private static int GetMetadataCount(List<JxlModularChannelLayout> channels)
     {
         int count = 0;
         while (count < channels.Count && channels[count].IsMetadata)
@@ -899,12 +925,12 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="channels">The transformed layouts in encoded order.</param>
     /// <param name="maximumSize">The normal-channel dimension limit.</param>
     /// <returns>The number of channels eligible for this stream.</returns>
-    private static int GetEligiblePrefix(List<JxlModularChannel> channels, int maximumSize)
+    private static int GetEligiblePrefix(List<JxlModularChannelLayout> channels, int maximumSize)
     {
         int count = 0;
         while (count < channels.Count)
         {
-            JxlModularChannel channel = channels[count];
+            JxlModularChannelLayout channel = channels[count];
             if (!channel.IsMetadata && (channel.Width > maximumSize || channel.Height > maximumSize))
             {
                 break;
@@ -983,12 +1009,12 @@ internal sealed class JxlModularDecoder : IDisposable
     /// </summary>
     /// <param name="channels">The complete transformed frame layouts.</param>
     /// <param name="groupSize">The native coding-group dimension in pixels.</param>
-    private static void ValidateGroupDimensions(List<JxlModularChannel> channels, int groupSize)
+    private static void ValidateGroupDimensions(List<JxlModularChannelLayout> channels, int groupSize)
     {
         int prefix = GetEligiblePrefix(channels, groupSize);
         for (int c = prefix; c < channels.Count; c++)
         {
-            JxlModularChannel channel = channels[c];
+            JxlModularChannelLayout channel = channels[c];
             if (channel.IsEmpty)
             {
                 continue;
@@ -1008,8 +1034,8 @@ internal sealed class JxlModularDecoder : IDisposable
     /// Validates restored output layouts before exporting local samples or exposing completed frame channels.
     /// </summary>
     /// <param name="channels">The reconstructed output descriptors.</param>
-    /// <param name="expected">The original unallocated shapes or borrowed group targets.</param>
-    private static void ValidateShapes(List<JxlModularChannel> channels, ReadOnlySpan<JxlModularChannel> expected)
+    /// <param name="expected">The original frame layouts or the layouts of retained borrowed group targets.</param>
+    private static void ValidateShapes(List<JxlModularChannel> channels, ReadOnlySpan<JxlModularChannelLayout> expected)
     {
         if (channels.Count != expected.Length)
         {
@@ -1018,7 +1044,7 @@ internal sealed class JxlModularDecoder : IDisposable
 
         for (int c = 0; c < channels.Count; c++)
         {
-            if (!channels[c].HasSameShape(expected[c]))
+            if (!channels[c].Layout.HasSameShape(expected[c]))
             {
                 throw new InvalidImageContentException("The JPEG XL inverse transforms changed the output channel dimensions.");
             }

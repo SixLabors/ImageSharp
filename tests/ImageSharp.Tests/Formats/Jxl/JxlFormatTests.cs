@@ -23,6 +23,57 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlFormatTests
 {
     /// <summary>
+    /// Verifies that layouts allocate no samples and borrowed channels do not release their source storage.
+    /// </summary>
+    [Fact]
+    public void ModularChannelSeparatesLayoutAndSampleOwnership()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        JxlModularChannelLayout layout = new(new Size(3, 2), 1, 0);
+        Assert.Empty(allocator.AllocationLog);
+
+        using (JxlModularChannel owned = JxlModularChannel.Allocate(allocator, layout))
+        {
+            // Allocate returns usable storage immediately. No later initialization step is required.
+            Assert.Equal(layout, owned.Layout);
+            owned.Region.DangerousGetRowSpan(1)[1] = 37;
+            using (JxlModularChannel borrowed = owned.Borrow(new Rectangle(1, 1, 1, 1)))
+            {
+                Assert.Equal(new Size(1, 1), borrowed.Layout.Size);
+                Assert.Equal(1, borrowed.Layout.HorizontalShift);
+                Assert.Equal(0, borrowed.Layout.VerticalShift);
+                Assert.Equal(37, borrowed.Region.DangerousGetRowSpan(0)[0]);
+                borrowed.Region.DangerousGetRowSpan(0)[0] = 53;
+            }
+
+            // Disposing the borrowed channel does not return its owner's buffer. Its sample write remains available.
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(53, owned.Region.DangerousGetRowSpan(1)[1]);
+        }
+
+        Assert.NotEmpty(allocator.AllocationLog);
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.Equal(0, allocator.LiveBufferBytes);
+
+        int allocationCount = allocator.AllocationLog.Count;
+        ReadOnlySpan<Size> emptySizes = [new(0, 1), new(1, 0)];
+        foreach (Size size in emptySizes)
+        {
+            // Empty transform outputs retain their logical dimensions and shifts without a dummy allocation.
+            JxlModularChannelLayout emptyLayout = new(size, -1, -1);
+            using JxlModularChannel empty = JxlModularChannel.Allocate(allocator, emptyLayout);
+            Assert.Equal(emptyLayout, empty.Layout);
+            Assert.True(empty.IsEmpty);
+            Assert.Equal(0, empty.Region.Width);
+            Assert.Equal(0, empty.Region.Height);
+        }
+
+        Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+        Assert.Equal(0, allocator.LiveBufferBytes);
+    }
+
+    /// <summary>
     /// Verifies DC arithmetic, signed threshold buckets and short tails against native output at each SIMD width.
     /// </summary>
     /// <param name="file">The stored image or partial DC-global metadata used to prepare the operator.</param>

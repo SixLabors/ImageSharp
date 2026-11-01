@@ -1705,6 +1705,9 @@ public static class TestImages
         public const string LosslessRgba3x3 = "Jxl/3x3a_srgb_lossless.jxl";
         public const string LosslessRgb3x3Truncated = "Jxl/3x3_srgb_lossless_truncated.jxl";
 
+        // Unmodified VarDCT input from jxl-rs with nonzero DC samples and one extra precision bit.
+        public const string LossyRgb3x3 = "Jxl/3x3_srgb_lossy.jxl";
+
         // Unmodified modular inputs from the reference corpora cover transforms, alpha and sixteen-bit precision.
         public const string SqueezeEdge = "Jxl/squeeze_edge.jxl";
         public const string GrayAlphaLossless = "Jxl/gray_alpha_lossless.jxl";
@@ -1716,6 +1719,9 @@ public static class TestImages
         public const string TerminalLzCopy = "Jxl/terminal-lz-copy.jxl";
         public const string TerminalLzCopyAns = "Jxl/terminal-lz-copy-ans.jxl";
         public const string TerminalLzCopyInvalidAns = "Jxl/terminal-lz-copy-ans-invalid-state.jxl";
+
+        // Native-encoded DC-global metadata with signed thresholds. Only the raw signature precedes this partial section.
+        public const string VarDctDcThresholds = "Jxl/dc-global-thresholds-partial.jxl";
 
         // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
         // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.

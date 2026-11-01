@@ -19,6 +19,8 @@ internal sealed class JxlFrameHeader
     public const ulong SkipAdaptiveDcSmoothing = 0x80;
 
     private InlineArray4<byte> jpegSampling;
+    private InlineArray4<byte> horizontalSamplingShifts;
+    private InlineArray4<byte> verticalSamplingShifts;
     private InlineArray16<byte> passShifts;
     private InlineArray4<byte> downsampling;
     private InlineArray4<byte> lastDownsamplingPass;
@@ -99,6 +101,16 @@ internal sealed class JxlFrameHeader
     /// Gets the three JPEG sampling codes in codestream component order.
     /// </summary>
     public ReadOnlySpan<byte> JpegSampling => this.jpegSampling[..3];
+
+    /// <summary>
+    /// Gets each component's horizontal resolution reduction, as a base-two shift relative to the finest component.
+    /// </summary>
+    public ReadOnlySpan<byte> HorizontalSamplingShifts => this.horizontalSamplingShifts[..3];
+
+    /// <summary>
+    /// Gets each component's vertical resolution reduction, as a base-two shift relative to the finest component.
+    /// </summary>
+    public ReadOnlySpan<byte> VerticalSamplingShifts => this.verticalSamplingShifts[..3];
 
     /// <summary>
     /// Gets the color upsampling factor, from one to eight in powers of two.
@@ -299,9 +311,23 @@ internal sealed class JxlFrameHeader
         frame.YCbCr = !image.UsesXybTransform && reader.ReadBoolean();
         if (frame.YCbCr && (frame.Flags & UseLowFrequencyFrame) == 0)
         {
+            int maximumHorizontal = 0;
+            int maximumVertical = 0;
             for (int i = 0; i < 3; i++)
             {
-                frame.jpegSampling[i] = (byte)reader.ReadBits(2);
+                byte code = (byte)reader.ReadBits(2);
+                frame.jpegSampling[i] = code;
+                maximumHorizontal = Math.Max(maximumHorizontal, code is 1 or 2 ? 1 : 0);
+                maximumVertical = Math.Max(maximumVertical, code is 1 or 3 ? 1 : 0);
+            }
+
+            // Codes describe relative JPEG sampling factors. Subtract from each axis's largest factor
+            // to obtain the resolution shifts used by both modular channels and VarDCT block planes.
+            for (int i = 0; i < 3; i++)
+            {
+                byte code = frame.jpegSampling[i];
+                frame.horizontalSamplingShifts[i] = (byte)(maximumHorizontal - (code is 1 or 2 ? 1 : 0));
+                frame.verticalSamplingShifts[i] = (byte)(maximumVertical - (code is 1 or 3 ? 1 : 0));
             }
         }
 

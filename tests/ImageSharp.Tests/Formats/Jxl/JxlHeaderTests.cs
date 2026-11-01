@@ -1,12 +1,16 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -19,6 +23,78 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public class JxlHeaderTests
 {
+    /// <summary>
+    /// Verifies DC-global parsing against both references and the first DC group's samples against libjxl.
+    /// </summary>
+    /// <param name="file">The unchanged reference input with one combined frame section.</param>
+    /// <param name="globalScale">The encoded global scale reported by both references.</param>
+    /// <param name="dcQuantizer">The encoded DC quantizer reported by both references.</param>
+    /// <param name="globalBits">The number of DC-global bits before the global modular tree.</param>
+    /// <param name="modularBits">The number of bits consumed through the global modular data.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.Square, 4587, 16, 201, 317)]
+    [InlineData(TestImages.Jxl.LossyRgb3x3, 32768, 100, 213, 321)]
+    public void ReadVarDctDcMatchesNative(string file, int globalScale, int dcQuantizer, int globalBits, int modularBits)
+    {
+        using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+        Assert.False(frame.Modular);
+        Assert.Equal(1, sections.Sizes.Length);
+        long start = reader.Position;
+        reader.BeginSection(sections.Sizes.Span[0]);
+
+        Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        Assert.Equal(new Vector3(1F / 4096F, 1F / 512F, 1F / 256F), factors);
+        Assert.Equal(globalScale, varDct.GlobalScale);
+        Assert.Equal(dcQuantizer, varDct.DcQuantizer);
+        Assert.Equal(start + globalBits, reader.Position);
+        Assert.Equal(1, varDct.DcContextCount);
+        Assert.Equal(15, varDct.BlockContextCount);
+        Assert.True(varDct.QuantizationThresholds.IsEmpty);
+
+        // Both files explicitly encode this map; neither uses its one-bit default shortcut.
+        // Its 183 bits must be consumed before color correlation and the shared modular tree.
+        ReadOnlySpan<byte> blockMap =
+        [
+            0, 1, 2, 2, 3, 3, 4, 5, 6, 6, 6, 6, 6,
+            7, 8, 9, 9, 10, 11, 12, 13, 14, 14, 14, 14, 14,
+            7, 8, 9, 9, 10, 11, 12, 13, 14, 14, 14, 14, 14
+        ];
+
+        Assert.Equal(blockMap, varDct.BlockContextMap);
+        Assert.Equal(0F, varDct.DcCorrelationX);
+        Assert.Equal(1F, varDct.DcCorrelationB);
+        for (int c = 0; c < 3; c++)
+        {
+            Assert.True(varDct.GetDcThresholds(c).IsEmpty);
+        }
+
+        // These VarDCT files have no extra channels. The global modular tree is present, but no
+        // global channel header follows it. The same owner then decodes the DC samples in Y, X, B order.
+        using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
+        Assert.Equal(start + modularBits, reader.Position);
+        varDct.ReadDcGroup(ref reader, modular, 0, default);
+        Assert.Equal(start + (file == TestImages.Jxl.Square ? 326 : 368), reader.Position);
+
+        // Original libjxl DequantDC produces these exact single-precision results. The nonzero fixture
+        // uses one extra precision bit and restores B by adding Y after scaling its coded residual.
+        Vector3 expected = file == TestImages.Jxl.Square ? Vector3.Zero : new Vector3(0.000244140625F, 0.200312495F, 0.242031246F);
+        for (int c = 0; c < 3; c++)
+        {
+            Buffer2DRegion<float> channel = varDct.GetDcChannel(c);
+            Assert.Equal(1, channel.Width);
+            Assert.Equal(1, channel.Height);
+            Assert.Equal(expected[c], channel.DangerousGetRowSpan(0)[0]);
+        }
+
+        Assert.Equal((byte)0, varDct.DcContexts.DangerousGetRowSpan(0)[0]);
+    }
+
     /// <summary>
     /// Verifies that stopping within a final copy is valid for byte and integer entropy consumers.
     /// </summary>

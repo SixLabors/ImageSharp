@@ -31,6 +31,32 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     {
     }
 
+    /// <summary>
+    /// Reads the DC matrix factors shared by modular and VarDCT frames.
+    /// </summary>
+    /// <param name="reader">The reader after image features and before VarDCT quantization or the global modular tree.</param>
+    /// <returns>The finite positive factors in X, Y, B component order.</returns>
+    public static Vector3 ReadDcQuantization(ref JxlBitReader reader)
+    {
+        const float EncodedFactorScale = 1F / 128F;
+        const float MinimumFactor = 1E-8F;
+
+        // DC factors precede both coding modes. Defaults are exact powers of two; explicit half values
+        // use units of 1/128. Retain those fractions until coefficient dequantization.
+        if (reader.ReadBoolean())
+        {
+            return new Vector3(1F / 4096F, 1F / 512F, 1F / 256F);
+        }
+
+        Vector3 factors = new Vector3(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf()) * EncodedFactorScale;
+        if (factors.X < MinimumFactor || factors.Y < MinimumFactor || factors.Z < MinimumFactor)
+        {
+            throw new InvalidImageContentException("The JPEG XL DC dequantization factor is invalid.");
+        }
+
+        return factors;
+    }
+
     /// <inheritdoc/>
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
@@ -280,6 +306,9 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             SelectSection(ref reader, sizes, order, offsets, 0);
         }
 
+        // These fields belong to the frame's DC-global syntax, before the modular tree and channel header.
+        // Native RGB modular samples do not use the DC factors, but their encoding must still be validated.
+        _ = ReadDcQuantization(ref reader);
         JxlModularDecoder modular = JxlModularDecoder.Read(
             ref reader, header, frame, this.Options.Configuration.MemoryAllocator, cancellationToken);
 

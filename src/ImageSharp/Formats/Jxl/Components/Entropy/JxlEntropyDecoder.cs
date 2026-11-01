@@ -250,8 +250,11 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
     /// <param name="allocator">The decoder's allocator.</param>
-    /// <param name="map">The destination fixed by the consuming syntax.</param>
-    private static void ReadContextMap(ref JxlBitReader reader, MemoryAllocator allocator, Span<byte> map)
+    /// <param name="map">The nonempty destination sized by the consuming syntax before this call.</param>
+    /// <remarks>
+    /// This method validates dense cluster numbering. The caller validates any smaller cluster limit required by its own syntax.
+    /// </remarks>
+    public static void ReadContextMap(ref JxlBitReader reader, MemoryAllocator allocator, Span<byte> map)
     {
         if (reader.ReadBoolean())
         {

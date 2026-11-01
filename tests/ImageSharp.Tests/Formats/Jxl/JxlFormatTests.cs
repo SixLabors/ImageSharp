@@ -1,11 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -18,6 +22,124 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public class JxlFormatTests
 {
+    /// <summary>
+    /// Verifies DC arithmetic, signed threshold buckets and short tails against native output at each SIMD width.
+    /// </summary>
+    /// <param name="file">The stored image or partial DC-global metadata used to prepare the operator.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.LossyRgb3x3)]
+    [InlineData(TestImages.Jxl.VarDctDcThresholds)]
+    public void DequantizeDcRowMatchesNativeAcrossSimdWidths(string file)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateVarDctDcRows,
+            file,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks independently decoded native float bits and bucket indices, including integer extremes and reconstruction values above pixel bounds.
+    /// </summary>
+    /// <param name="file">The stored quantization and threshold metadata.</param>
+    private static void ValidateVarDctDcRows(string file)
+    {
+        using MemoryStream headerInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
+        using BufferedReadStream headerBuffered = new(Configuration.Default, headerInput);
+        JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered));
+        JxlHeader header = JxlHeader.Read(ref headerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref headerReader, header, false, SegmentIntegrityHandling.Strict);
+        using JxlFrameSections sections = JxlFrameSections.Read(ref headerReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+
+        bool customThresholds = file == TestImages.Jxl.VarDctDcThresholds;
+        using MemoryStream input = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, input);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+
+        // The partial input contains the same DC-global syntax directly after its two-byte signature.
+        // The complete input uses the section offset obtained from its normal frame-table parser.
+        reader.SeekBytePosition(customThresholds ? 2 : sections.PayloadOffset);
+        Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(
+            ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+
+        ReadOnlySpan<int> x =
+        [
+            int.MinValue, int.MaxValue, -258, -257, -256, -2, -1, 0, 1, 255, 256, 257,
+            -16777217, -16777216, -16777215, 16777215, 16777216, 16777217,
+            -1025, -1024, -1023, 1023, 1024, 1025, -33, -32, -31, 31, 32, 33, -3, 3, 0
+        ];
+
+        ReadOnlySpan<int> y =
+        [
+            int.MaxValue, int.MinValue, -18, -17, -16, -1, 0, 1, 16, 17, 18, 0,
+            -16777217, -16777216, -16777215, 16777215, 16777216, 16777217,
+            1025, 1024, 1023, -1023, -1024, -1025, -33, -32, -31, 31, 32, 33, 1, -1, 0
+        ];
+
+        ReadOnlySpan<int> b =
+        [
+            int.MinValue, int.MaxValue, -101, -100, -99, 99, 100, 101, 0, -1, 1, 0,
+            16777217, 16777216, 16777215, -16777215, -16777216, -16777217,
+            -1025, -1024, -1023, 1023, 1024, 1025, -33, -32, -31, 31, 32, 33, -2, 2, int.MaxValue
+        ];
+
+        // Original libjxl DequantDC produced these exact float bits with extra precision = 1.
+        // Correlation uses ratios zero and one, so fused and unfused multiply-add give the same results here.
+        ReadOnlySpan<uint> expectedX =
+        [
+            0xC5A3D70A, 0x45A3D70A, 0xBA251EB8, 0xBA247AE1, 0xBA23D70A, 0xB6A3D70A, 0xB623D70A, 0x00000000,
+            0x3623D70A, 0x3A233333, 0x3A23D70A, 0x3A247AE1, 0xC223D70A, 0xC223D70A, 0xC223D709, 0x4223D709,
+            0x4223D70A, 0x4223D70A, 0xBB240000, 0xBB23D70A, 0xBB23AE14, 0x3B23AE14, 0x3B23D70A, 0x3B240000,
+            0xB8A8F5C2, 0xB8A3D70A, 0xB89EB852, 0x389EB852, 0x38A3D70A, 0x38A8F5C2, 0xB6F5C28F, 0x36F5C28F, 0x00000000
+        ];
+
+        ReadOnlySpan<uint> expectedY =
+        [
+            0x4723D70A, 0xC723D70A, 0xB9B851EB, 0xB9AE147B, 0xB9A3D70A, 0xB7A3D70A, 0x00000000, 0x37A3D70A,
+            0x39A3D70A, 0x39AE147B, 0x39B851EB, 0x00000000, 0xC3A3D70A, 0xC3A3D70A, 0xC3A3D709, 0x43A3D709,
+            0x43A3D70A, 0x43A3D70A, 0x3CA40000, 0x3CA3D70A, 0x3CA3AE14, 0xBCA3AE14, 0xBCA3D70A, 0xBCA40000,
+            0xBA28F5C2, 0xBA23D70A, 0xBA1EB852, 0x3A1EB852, 0x3A23D70A, 0x3A28F5C2, 0x37A3D70A, 0xB7A3D70A, 0x00000000
+        ];
+
+        ReadOnlySpan<uint> expectedB =
+        [
+            0xC723D70A, 0x4723D70A, 0xBB8CCCCD, 0xBB8AE148, 0xBB88F5C2, 0x3B7C28F5, 0x3B800000, 0x3B81EB85,
+            0x39A3D70A, 0x3999999A, 0x39CCCCCC, 0x00000000, 0x43A3D70A, 0x43A3D70A, 0x43A3D709, 0xC3A3D709,
+            0xC3A3D70A, 0xC3A3D70A, 0xBCA40000, 0xBCA3D70A, 0xBCA3AE14, 0x3CA3AE14, 0x3CA3D70A, 0x3CA40000,
+            0xBAFD70A3, 0xBAF5C28F, 0xBAEE147B, 0x3AEE147B, 0x3AF5C28F, 0x3AFD70A3, 0xB875C28F, 0x3875C28F, 0x47A3D70A
+        ];
+
+        ReadOnlySpan<byte> expectedContexts = [1, 6, 0, 0, 0, 2, 3, 3, 5, 5, 5, 5, 2, 2, 2, 5, 5, 5, 1, 1, 1, 6, 6, 6, 0, 0, 0, 7, 7, 7, 1, 6, 3];
+        float[] outputX = new float[x.Length];
+        float[] outputY = new float[x.Length];
+        float[] outputB = new float[x.Length];
+        byte[] contexts = new byte[x.Length + 2];
+        ReadOnlySpan<int> lengths = [1, 7, 15, 29, 33];
+        foreach (int length in lengths)
+        {
+            // Vary the row end to cover vector remainders and scalar tails. Sentinel bytes detect a context
+            // packing store that writes a complete register instead of its four, eight or sixteen valid bytes.
+            contexts.AsSpan().Fill(byte.MaxValue);
+            varDct.DequantizeDcRow(
+                x[..length],
+                y[..length],
+                b[..length],
+                outputX.AsSpan(0, length),
+                outputY.AsSpan(0, length),
+                outputB.AsSpan(0, length),
+                contexts.AsSpan(1, length),
+                1);
+
+            Assert.Equal(byte.MaxValue, contexts[0]);
+            Assert.Equal(byte.MaxValue, contexts[length + 1]);
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(expectedX[i], BitConverter.SingleToUInt32Bits(outputX[i]));
+                Assert.Equal(expectedY[i], BitConverter.SingleToUInt32Bits(outputY[i]));
+                Assert.Equal(expectedB[i], BitConverter.SingleToUInt32Bits(outputB[i]));
+                Assert.Equal(customThresholds ? expectedContexts[i] : (byte)0, contexts[i + 1]);
+            }
+        }
+    }
+
     /// <summary>
     /// Verifies complete modular pixel output against independently decoded native pixels.
     /// </summary>

@@ -39,6 +39,7 @@ internal sealed class JxlModularDecoder : IDisposable
     private readonly JxlModularChannel[] originalShapes;
     private readonly int groupSize;
     private readonly int bitDepth;
+    private readonly int originalChannelCount;
     private readonly List<JxlModularChannel> groupChannels = [];
     private readonly List<JxlModularChannel> groupTargets = [];
     private readonly List<Transform> groupTransforms = [];
@@ -60,26 +61,24 @@ internal sealed class JxlModularDecoder : IDisposable
         this.groupSize = frame.GroupSize;
         this.bitDepth = image.Metadata.BitDepth.BitsPerSample;
         int colorCount = image.ProfileColorType == JxlColorType.Luminance && !image.UsesXybTransform && !frame.YCbCr ? 1 : 3;
+        this.originalChannelCount = colorCount + image.Metadata.ExtraChannels.Count;
+
+        // VarDCT reconstructs its color coefficients in separate modular streams. The frame-wide modular image
+        // contains only extra channels. Its global tree limit still counts the original color channels.
+        if (!frame.Modular)
+        {
+            colorCount = 0;
+        }
+
         this.channels = new List<JxlModularChannel>(colorCount + image.Metadata.ExtraChannels.Count);
         Size size = frame.CodingSize;
-        int maximumHorizontal = 0;
-        int maximumVertical = 0;
-        if (frame.YCbCr)
-        {
-            // JPEG sampling codes describe relative sampling factors. Subtract each code from the largest factor,
-            // as native YCbCrChromaSubsampling does, to obtain the channel's actual resolution reduction.
-            foreach (byte code in frame.JpegSampling)
-            {
-                maximumHorizontal = Math.Max(maximumHorizontal, code is 1 or 2 ? 1 : 0);
-                maximumVertical = Math.Max(maximumVertical, code is 1 or 3 ? 1 : 0);
-            }
-        }
+        ReadOnlySpan<byte> horizontalShifts = frame.HorizontalSamplingShifts;
+        ReadOnlySpan<byte> verticalShifts = frame.VerticalSamplingShifts;
 
         for (int c = 0; c < colorCount; c++)
         {
-            byte code = frame.JpegSampling[c];
-            int horizontal = frame.YCbCr ? maximumHorizontal - (code is 1 or 2 ? 1 : 0) : 0;
-            int vertical = frame.YCbCr ? maximumVertical - (code is 1 or 3 ? 1 : 0) : 0;
+            int horizontal = horizontalShifts[c];
+            int vertical = verticalShifts[c];
             Size channelSize = new(((size.Width - 1) >> horizontal) + 1, ((size.Height - 1) >> vertical) + 1);
             this.channels.Add(new JxlModularChannel(channelSize, horizontal, vertical));
         }
@@ -107,7 +106,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <summary>
     /// Reads global modular metadata and its eligible channel prefix, retaining larger channels for later group streams.
     /// </summary>
-    /// <param name="reader">The reader bounded to the DC-global section.</param>
+    /// <param name="reader">The reader at the global-tree flag, after the frame's DC factors and any VarDCT global fields.</param>
     /// <param name="image">The image-wide sample declarations.</param>
     /// <param name="frame">The retained frame header.</param>
     /// <param name="allocator">The allocator for all samples and reusable scratch.</param>
@@ -119,26 +118,19 @@ internal sealed class JxlModularDecoder : IDisposable
         JxlModularDecoder result = new(image, frame, allocator);
         try
         {
-            // DC dequantization precedes modular data even when reconstruction does not use those factors.
-            if (!reader.ReadBoolean())
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    if (reader.ReadHalf() / 128F < 1E-8F)
-                    {
-                        throw new InvalidImageContentException("The JPEG XL DC dequantization factor is invalid.");
-                    }
-                }
-            }
-
             if (reader.ReadBoolean())
             {
-                int limit = GetGlobalTreeLimit(frame.CodingSize, result.channels.Count);
+                int limit = GetGlobalTreeLimit(frame.CodingSize, result.originalChannelCount);
                 result.globalTree = JxlModularTree.Read(ref reader, allocator, limit);
             }
 
-            result.ReadStream(
-                ref reader, result.channels, result.globalTransforms, result.groupSize, 0, true, out result.globalPredictor, cancellationToken);
+            // A VarDCT frame without extra channels can still define the shared tree above. It has no global
+            // modular channels, so no modular header or sample stream follows that tree.
+            if (result.channels.Count != 0)
+            {
+                result.ReadStream(
+                    ref reader, result.channels, result.globalTransforms, result.groupSize, 0, true, out result.globalPredictor, cancellationToken);
+            }
 
             result.globalPrefixCount = GetEligiblePrefix(result.channels, result.groupSize);
             return result;
@@ -165,6 +157,7 @@ internal sealed class JxlModularDecoder : IDisposable
         // One decoder processes groups sequentially. Reuse descriptor capacity without sharing ownership of frame samples.
         List<JxlModularChannel> local = this.groupChannels;
         List<JxlModularChannel> targets = this.groupTargets;
+
         local.Clear();
         targets.Clear();
         for (int c = this.globalPrefixCount; c < this.channels.Count; c++)
@@ -188,6 +181,47 @@ internal sealed class JxlModularDecoder : IDisposable
                 targets.Add(borrowed);
             }
         }
+
+        this.ReadSelectedChannels(ref reader, streamId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Decodes a modular stream into caller-owned channel regions and reverses its local transforms.
+    /// </summary>
+    /// <param name="reader">The reader bounded to the containing frame section.</param>
+    /// <param name="targets">The allocated output layouts in encoded channel order. The caller retains ownership of every region.</param>
+    /// <param name="streamId">The format-defined identifier used by tree property one.</param>
+    /// <param name="cancellationToken">The token checked between channels, transforms and rows.</param>
+    /// <remarks>
+    /// VarDCT DC samples and AC metadata use the same modular syntax as image groups, with explicitly declared channel layouts.
+    /// Completed samples remain in the supplied regions. Temporary transformed samples are released before this method returns.
+    /// </remarks>
+    public void ReadChannels(ref JxlBitReader reader, ReadOnlySpan<JxlModularChannel> targets, int streamId, CancellationToken cancellationToken)
+    {
+        this.groupChannels.Clear();
+        this.groupTargets.Clear();
+        foreach (JxlModularChannel target in targets)
+        {
+            // Borrow the complete requested region without copying its owner. Empty layouts retain their channel
+            // positions because tree property zero and transform ranges refer to the full encoded channel sequence.
+            JxlModularChannel borrowed = target.Borrow(new Rectangle(Point.Empty, target.Size));
+            this.groupChannels.Add(borrowed);
+            this.groupTargets.Add(borrowed);
+        }
+
+        this.ReadSelectedChannels(ref reader, streamId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reconstructs the prepared borrowed channels through one shared stream, transform and export path.
+    /// </summary>
+    /// <param name="reader">The reader bounded to the containing section.</param>
+    /// <param name="streamId">The selected modular stream identifier.</param>
+    /// <param name="cancellationToken">The token checked during reconstruction and export.</param>
+    private void ReadSelectedChannels(ref JxlBitReader reader, int streamId, CancellationToken cancellationToken)
+    {
+        List<JxlModularChannel> local = this.groupChannels;
+        List<JxlModularChannel> targets = this.groupTargets;
 
         // Empty group selections have no modular header or entropy stream.
         if (local.Count == 0)

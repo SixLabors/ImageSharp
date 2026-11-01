@@ -176,7 +176,8 @@ internal struct JxlBitReader
     public uint ReadU32((int Bits, uint Offset) first, (int Bits, uint Offset) second, (int Bits, uint Offset) third, (int Bits, uint Offset) fourth)
     {
         // Choices are fixed by each header field. A zero-width choice encodes its offset without a payload.
-        // The syntax choices bound both the width and sum; no untrusted value selects a new width or offset here.
+        // The caller fixes every width and offset. Addition uses unsigned 32-bit arithmetic, including
+        // the wrap specified for signed DC thresholds whose last choice carries a full 32-bit payload.
         (int bits, uint offset) = this.ReadBits(2) switch
         {
             0 => first,

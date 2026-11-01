@@ -224,6 +224,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
 
             // Metadata bounds and map validation precede sample allocations. All DC groups reuse this frame storage.
             result.PrepareDcStorage(frame, allocator);
+            result.PrepareAcStorage(allocator);
             return result;
         }
         catch
@@ -255,6 +256,15 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
         }
 
         this.dcContexts?.Dispose();
+        this.acRecords.Dispose();
+        foreach (Buffer2D<sbyte> map in this.correlationMaps)
+        {
+            map.Dispose();
+        }
+
+        this.strategies?.Dispose();
+        this.quantization?.Dispose();
+        this.sharpness?.Dispose();
         this.blockContextMap?.Dispose();
     }
 

@@ -1723,6 +1723,13 @@ public static class TestImages
         // Native-encoded DC-global metadata with signed thresholds. Only the raw signature precedes this partial section.
         public const string VarDctDcThresholds = "Jxl/dc-global-thresholds-partial.jxl";
 
+        // Native-encoded AC metadata, verified through libjxl's original metadata decoder. These partial streams
+        // contain their raw signature and one modular metadata payload, without an image or frame header.
+        public const string AcMetadataSaturation = "Jxl/ac-metadata-saturation-partial.jxl";
+        public const string AcMetadataInvalidSharpness = "Jxl/ac-metadata-invalid-epf-partial.jxl";
+        public const string AcMetadataInvalidStrategy = "Jxl/ac-metadata-invalid-strategy-partial.jxl";
+        public const string AcMetadataStrategyOverflow = "Jxl/ac-metadata-overflow-strategy-partial.jxl";
+
         // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
         // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
         public const string Splines = "Jxl/splines.jxl";

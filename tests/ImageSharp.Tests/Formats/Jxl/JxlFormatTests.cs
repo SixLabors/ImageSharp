@@ -23,6 +23,66 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlFormatTests
 {
     /// <summary>
+    /// Verifies AC metadata packing and field bounds at every SIMD width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void AcMetadataPackingPreservesFieldRulesAcrossSimdWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateAcMetadataPacking,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks signed-byte saturation, valid sharpness values, rejected sharpness bounds and exact packed-store lengths.
+    /// </summary>
+    private static void ValidateAcMetadataPacking()
+    {
+        ReadOnlySpan<int> correlations =
+        [
+            int.MinValue, -129, -128, -127, -1, 0, 1, 7, 8, 126, 127, 128, 129, int.MaxValue, -200, 200,
+            -2, 2, -130, 130, -128, 127, 0, 4, -9, 9, -255, 255, -129, 128, 6, 5, 3
+        ];
+
+        // Correlation fields saturate to signed eight-bit storage. Sharpness is an index into an eight-entry table:
+        // values zero through seven retain their value; every other integer is invalid rather than saturated.
+        ReadOnlySpan<sbyte> expectedCorrelations =
+        [
+            -128, -128, -128, -127, -1, 0, 1, 7, 8, 126, 127, 127, 127, 127, -128, 127,
+            -2, 2, -128, 127, -128, 127, 0, 4, -9, 9, -128, 127, -128, 127, 6, 5, 3
+        ];
+
+        ReadOnlySpan<int> sharpness = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0];
+        ReadOnlySpan<byte> expectedSharpness = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0];
+        sbyte[] correlationOutput = new sbyte[correlations.Length + 2];
+        byte[] sharpnessOutput = new byte[sharpness.Length + 2];
+        ReadOnlySpan<int> lengths = [1, 7, 15, 29, 33];
+        foreach (int length in lengths)
+        {
+            // Offset destinations test unaligned stores. Sentinels at both ends detect stores wider than the logical row.
+            correlationOutput.AsSpan().Fill(85);
+            sharpnessOutput.AsSpan().Fill(byte.MaxValue);
+            JxlVarDctDecoder.ConvertCorrelationRow(correlations[..length], correlationOutput.AsSpan(1, length));
+            JxlVarDctDecoder.ConvertSharpnessRow(sharpness[..length], sharpnessOutput.AsSpan(1, length));
+
+            Assert.Equal(expectedCorrelations[..length], correlationOutput.AsSpan(1, length));
+            Assert.Equal(expectedSharpness[..length], sharpnessOutput.AsSpan(1, length));
+            Assert.Equal((sbyte)85, correlationOutput[0]);
+            Assert.Equal((sbyte)85, correlationOutput[length + 1]);
+            Assert.Equal(byte.MaxValue, sharpnessOutput[0]);
+            Assert.Equal(byte.MaxValue, sharpnessOutput[length + 1]);
+        }
+
+        int[] invalidSharpness = sharpness.ToArray();
+        ReadOnlySpan<int> invalidValues = [-1, 8];
+        foreach (int invalid in invalidValues)
+        {
+            // Put the invalid value in the first vector block, so accelerated paths must enforce the same rule as scalar code.
+            invalidSharpness[0] = invalid;
+            Assert.Throws<InvalidImageContentException>(
+                () => JxlVarDctDecoder.ConvertSharpnessRow(invalidSharpness, sharpnessOutput.AsSpan(0, invalidSharpness.Length)));
+        }
+    }
+
+    /// <summary>
     /// Verifies that layouts allocate no samples and borrowed channels do not release their source storage.
     /// </summary>
     [Fact]

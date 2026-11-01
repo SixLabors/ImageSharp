@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public class JxlHeaderTests
 {
     /// <summary>
-    /// Verifies DC-global parsing against both references and the first DC group's samples against libjxl.
+    /// Verifies DC-global parsing against both references and the first DC group's samples and AC metadata against libjxl.
     /// </summary>
     /// <param name="file">The unchanged reference input with one combined frame section.</param>
     /// <param name="globalScale">The encoded global scale reported by both references.</param>
@@ -34,7 +34,7 @@ public class JxlHeaderTests
     [Theory]
     [InlineData(TestImages.Jxl.Square, 4587, 16, 201, 317)]
     [InlineData(TestImages.Jxl.LossyRgb3x3, 32768, 100, 213, 321)]
-    public void ReadVarDctDcMatchesNative(string file, int globalScale, int dcQuantizer, int globalBits, int modularBits)
+    public void ReadVarDctDcAndAcMetadataMatchesNative(string file, int globalScale, int dcQuantizer, int globalBits, int modularBits)
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
@@ -93,6 +93,83 @@ public class JxlHeaderTests
         }
 
         Assert.Equal((byte)0, varDct.DcContexts.DangerousGetRowSpan(0)[0]);
+
+        // This group has no modular extra channels. AC metadata follows the DC samples without byte alignment.
+        // Native decoding selects strategy 12 / quantizer 11 for Square, and strategy 2 / quantizer 60 for LossyRgb3x3.
+        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        int strategy = file == TestImages.Jxl.Square ? 12 : 2;
+        Assert.Equal(start + (file == TestImages.Jxl.Square ? 342 : 396), reader.Position);
+        Assert.Equal((byte)((strategy << 1) | 1), varDct.Strategies.DangerousGetRowSpan(0)[0]);
+        Assert.Equal(file == TestImages.Jxl.Square ? 11 : 60, varDct.Quantization.DangerousGetRowSpan(0)[0]);
+        Assert.Equal((byte)4, varDct.Sharpness.DangerousGetRowSpan(0)[0]);
+        Assert.Equal((sbyte)0, varDct.CorrelationX.DangerousGetRowSpan(0)[0]);
+        Assert.Equal((sbyte)0, varDct.CorrelationB.DangerousGetRowSpan(0)[0]);
+        Assert.Equal(1U << strategy, varDct.UsedStrategies);
+    }
+
+    /// <summary>
+    /// Verifies the format's saturation rules for encoded correlation and quantization fields.
+    /// </summary>
+    [Fact]
+    public void ReadAcMetadataSaturatesStoredFields()
+    {
+        (sbyte correlationX, sbyte correlationB, int quantizer, byte sharpness, byte strategy) = ReadAcMetadataFixture(TestImages.Jxl.AcMetadataSaturation);
+
+        // Original libjxl accepts these out-of-range modular integers and bounds the stored metadata fields.
+        // Sharpness seven is valid. The packed strategy stores raw code 12 and its first-block bit.
+        Assert.Equal(sbyte.MaxValue, correlationX);
+        Assert.Equal(sbyte.MinValue, correlationB);
+        Assert.Equal(256, quantizer);
+        Assert.Equal((byte)7, sharpness);
+        Assert.Equal((byte)25, strategy);
+    }
+
+    /// <summary>
+    /// Verifies native rejection rules for invalid sharpness, strategy codes and transform dimensions.
+    /// </summary>
+    /// <param name="file">The stored native-encoded malformed metadata.</param>
+    /// <param name="field">The field whose semantic validation must fail after entropy decoding.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.AcMetadataInvalidSharpness, "sharpness")]
+    [InlineData(TestImages.Jxl.AcMetadataInvalidStrategy, "strategy")]
+    [InlineData(TestImages.Jxl.AcMetadataStrategyOverflow, "boundary")]
+    public void ReadAcMetadataRejectsInvalidFields(string file, string field)
+    {
+        InvalidImageContentException error = Assert.Throws<InvalidImageContentException>(() => ReadAcMetadataFixture(file));
+        Assert.Contains(field, error.Message);
+    }
+
+    /// <summary>
+    /// Reads a stored partial AC metadata stream using the real frame geometry and shared modular decoder.
+    /// </summary>
+    /// <param name="file">The native-encoded partial stream, including its raw signature.</param>
+    /// <returns>The first block's decoded correlation, quantizer, sharpness and packed strategy fields.</returns>
+    private static (sbyte CorrelationX, sbyte CorrelationB, int Quantizer, byte Sharpness, byte Strategy) ReadAcMetadataFixture(string file)
+    {
+        using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
+        using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
+        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
+        JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict);
+        using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
+        frameReader.BeginSection(sections.Sizes.Span[0]);
+        Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref frameReader);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlModularDecoder modular = JxlModularDecoder.Read(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, default);
+        varDct.ReadDcGroup(ref frameReader, modular, 0, default);
+
+        using MemoryStream input = new(TestFile.Create(file).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, input);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
+        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+
+        return (
+            varDct.CorrelationX.DangerousGetRowSpan(0)[0],
+            varDct.CorrelationB.DangerousGetRowSpan(0)[0],
+            varDct.Quantization.DangerousGetRowSpan(0)[0],
+            varDct.Sharpness.DangerousGetRowSpan(0)[0],
+            varDct.Strategies.DangerousGetRowSpan(0)[0]);
     }
 
     /// <summary>

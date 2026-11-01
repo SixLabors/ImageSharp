@@ -23,6 +23,7 @@ internal sealed partial class JxlVarDctDecoder
     private Size dcSize;
     private int dcGroupDimension;
     private int dcGroupColumns;
+    private int dcGroupCount;
     private bool is444;
 
     /// <summary>
@@ -47,9 +48,7 @@ internal sealed partial class JxlVarDctDecoder
     public void ReadDcGroup(ref JxlBitReader reader, JxlModularDecoder modular, int group, CancellationToken cancellationToken)
     {
         int extraPrecision = (int)reader.ReadBits(2);
-        int x = (group % this.dcGroupColumns) * this.dcGroupDimension;
-        int y = (group / this.dcGroupColumns) * this.dcGroupDimension;
-        Rectangle rectangle = new(x, y, Math.Min(this.dcGroupDimension, this.dcSize.Width - x), Math.Min(this.dcGroupDimension, this.dcSize.Height - y));
+        Rectangle rectangle = this.GetDcGroupRectangle(group);
         InlineArray4<JxlModularChannel> targetStorage = default;
         Span<JxlModularChannel> targets = targetStorage;
 
@@ -240,21 +239,38 @@ internal sealed partial class JxlVarDctDecoder
 
         this.dcGroupDimension = frame.GroupSize;
         this.dcGroupColumns = ((this.dcSize.Width - 1) / this.dcGroupDimension) + 1;
+
+        // The frame header already bounds the total section count, including every DC group, to an int-sized table.
+        this.dcGroupCount = this.dcGroupColumns * (((this.dcSize.Height - 1) / this.dcGroupDimension) + 1);
         Size scratchSize = new(Math.Min(this.dcSize.Width, this.dcGroupDimension), Math.Min(this.dcSize.Height, this.dcGroupDimension));
         for (int c = 0; c < 3; c++)
         {
             Size size = new(this.dcSize.Width >> horizontal[c], this.dcSize.Height >> vertical[c]);
             this.dcChannels.Add(allocator.Allocate2D<float>(size));
 
-            // Scratch is encoded Y, X, B. Three at-most-256-by-256 int planes consume at most 768 KiB for VarDCT.
-            // Borrow smaller edge rectangles for later groups instead of renting new buffers or clearing whole planes.
+            // Scratch is encoded Y, X, B. After DC conversion, plane zero also holds the full-grid sharpness samples.
+            // Keep that backing plane unreduced; each DC stream still borrows its actual component dimensions.
             int component = c < 2 ? c ^ 1 : c;
-            Size integerSize = new(scratchSize.Width >> horizontal[component], scratchSize.Height >> vertical[component]);
+            Size integerSize = c == 0 ? scratchSize : new(scratchSize.Width >> horizontal[component], scratchSize.Height >> vertical[component]);
             this.dcScratch[c] = JxlModularChannel.Allocate(allocator, new JxlModularChannelLayout(integerSize, 0, 0));
         }
 
         this.dcContexts = allocator.Allocate2D<byte>(this.dcSize);
         this.DcContexts = this.dcContexts.GetRegion();
+    }
+
+    /// <summary>
+    /// Locates one DC group on the sampling-padded block grid shared by DC samples and AC metadata.
+    /// </summary>
+    /// <param name="group">The validated row-major DC group index.</param>
+    /// <returns>The group clipped to the padded eight-pixel block dimensions.</returns>
+    private Rectangle GetDcGroupRectangle(int group)
+    {
+        // Native DCGroupRect clips to xsize_blocks/ysize_blocks, not the unpadded pixel size.
+        // This retains the final sampling-alignment blocks used by subsampled DC and strategy metadata.
+        int x = (group % this.dcGroupColumns) * this.dcGroupDimension;
+        int y = (group / this.dcGroupColumns) * this.dcGroupDimension;
+        return new Rectangle(x, y, Math.Min(this.dcGroupDimension, this.dcSize.Width - x), Math.Min(this.dcGroupDimension, this.dcSize.Height - y));
     }
 
     /// <summary>

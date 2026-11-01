@@ -315,8 +315,7 @@ internal sealed class JxlModularDecoder : IDisposable
             for (int c = 0; c < descriptors.Length; c++)
             {
                 JxlModularChannel shape = descriptors[c];
-                descriptors[c] = new JxlModularChannel(shape.Size, shape.HorizontalShift, shape.VerticalShift);
-                descriptors[c].Allocate(this.allocator);
+                descriptors[c] = JxlModularChannel.Allocate(this.allocator, shape.Size, shape.HorizontalShift, shape.VerticalShift);
             }
         }
 
@@ -748,8 +747,7 @@ internal sealed class JxlModularDecoder : IDisposable
                 JxlModularChannel index = channels[begin];
                 for (int c = 1; c < transform.ChannelCount; c++)
                 {
-                    JxlModularChannel output = new(index.Size, index.HorizontalShift, index.VerticalShift);
-                    output.Allocate(this.allocator);
+                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, index.Size, index.HorizontalShift, index.VerticalShift);
                     try
                     {
                         channels.Insert(begin + c, output);
@@ -813,8 +811,7 @@ internal sealed class JxlModularDecoder : IDisposable
                         vertical--;
                     }
 
-                    JxlModularChannel output = new(size, horizontal, vertical);
-                    output.Allocate(this.allocator);
+                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, size, horizontal, vertical);
                     try
                     {
                         if (!output.IsEmpty)

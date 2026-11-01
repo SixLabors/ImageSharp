@@ -69,17 +69,26 @@ internal struct JxlModularChannel : IDisposable
     public Buffer2DRegion<int> Region => this.region;
 
     /// <summary>
-    /// Allocates the final encoded shape once its complete transform list has been applied.
+    /// Creates a channel that owns sample storage for its final encoded shape.
     /// </summary>
     /// <param name="allocator">The decoder's tracked sample allocator.</param>
-    public void Allocate(MemoryAllocator allocator)
+    /// <param name="size">The final logical dimensions. Empty channels do not allocate sample storage.</param>
+    /// <param name="horizontalShift">The horizontal resolution shift, or minus one for metadata.</param>
+    /// <param name="verticalShift">The vertical resolution shift, or minus one for metadata.</param>
+    /// <returns>A new channel. Its owner must dispose it after decoding and any borrowed regions have finished.</returns>
+    public static JxlModularChannel Allocate(MemoryAllocator allocator, Size size, int horizontalShift, int verticalShift)
     {
+        JxlModularChannel result = new(size, horizontalShift, verticalShift);
+
         // Empty palette and squeeze channels are legal. Preserve their logical shape without allocating a dummy sample.
-        if (!this.IsEmpty)
+        // Allocate only while creating this value, so an existing channel's owner cannot be overwritten here.
+        if (!result.IsEmpty)
         {
-            this.ownedBuffer = allocator.Allocate2D<int>(this.Size, AllocationOptions.Clean);
-            this.region = new Buffer2DRegion<int>(this.ownedBuffer);
+            result.ownedBuffer = allocator.Allocate2D<int>(size, AllocationOptions.Clean);
+            result.region = new Buffer2DRegion<int>(result.ownedBuffer);
         }
+
+        return result;
     }
 
     /// <summary>

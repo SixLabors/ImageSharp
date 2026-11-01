@@ -250,8 +250,7 @@ internal sealed partial class JxlVarDctDecoder
             // Borrow smaller edge rectangles for later groups instead of renting new buffers or clearing whole planes.
             int component = c < 2 ? c ^ 1 : c;
             Size integerSize = new(scratchSize.Width >> horizontal[component], scratchSize.Height >> vertical[component]);
-            this.dcScratch[c] = new JxlModularChannel(integerSize, 0, 0);
-            this.dcScratch[c].Allocate(allocator);
+            this.dcScratch[c] = JxlModularChannel.Allocate(allocator, integerSize, 0, 0);
         }
 
         this.dcContexts = allocator.Allocate2D<byte>(this.dcSize);

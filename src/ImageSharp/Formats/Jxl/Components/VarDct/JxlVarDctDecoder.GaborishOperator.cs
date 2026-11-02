@@ -10,12 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal sealed partial class JxlVarDctDecoder
 {
     /// <summary>
-    /// Applies one normalized Gaborish row with complete-vector stores and an equivalent scalar remainder.
+    /// Applies one normalized Gaborish row to logical source rows with mirrored horizontal borders.
     /// </summary>
-    /// <param name="top">The preceding mirrored row, with three border values on each side.</param>
-    /// <param name="middle">The current original padded row.</param>
-    /// <param name="bottom">The following mirrored padded row.</param>
-    /// <param name="destination">The logical output row.</param>
+    /// <param name="top">The preceding mirrored logical row.</param>
+    /// <param name="middle">The current original logical row.</param>
+    /// <param name="bottom">The following mirrored logical row.</param>
+    /// <param name="destination">The logical output row, which does not overlap the source rows.</param>
     /// <param name="operation">The normalized center, axial and diagonal weights.</param>
     private static void FilterGaborishRow(
         ReadOnlySpan<float> top, ReadOnlySpan<float> middle, ReadOnlySpan<float> bottom, Span<float> destination, GaborishOperator operation)
@@ -24,16 +24,20 @@ internal sealed partial class JxlVarDctDecoder
         ref float m = ref MemoryMarshal.GetReference(middle);
         ref float b = ref MemoryMarshal.GetReference(bottom);
         ref float output = ref MemoryMarshal.GetReference(destination);
-        int x = 0;
+        int width = destination.Length;
+        int interiorLength = Math.Max(width - 2, 0);
+        int interiorEnd = interiorLength + 1;
+        int x = 1;
 
-        // Each SIMD lane computes one complete output column. The padded source rows permit unaligned neighbor loads;
-        // complete output batches never touch pixels beyond the logical row. The scalar tail uses the same sum grouping.
+        // Each lane computes one interior column. Limiting batches to [1,width-1) keeps both shifted
+        // neighbor loads inside the logical source rows. Widths one and two have no interior columns.
+        // Unaligned loads and the scalar remainder retain the same axial and diagonal sum grouping.
         if (Vector512.IsHardwareAccelerated)
         {
-            nuint count = (destination.Length - x).Vector512Count<float>();
+            nuint count = (interiorEnd - x).Vector512Count<float>();
             for (nuint block = 0; block < count; block++, x += Vector512<float>.Count)
             {
-                nuint position = (nuint)(x + RestorationRadius);
+                nuint position = (nuint)x;
                 Vector512<float> center = Vector512.LoadUnsafe(ref m, position);
                 Vector512<float> axial = (Vector512.LoadUnsafe(ref m, position - 1) + Vector512.LoadUnsafe(ref m, position + 1))
                     + (Vector512.LoadUnsafe(ref t, position) + Vector512.LoadUnsafe(ref b, position));
@@ -47,10 +51,10 @@ internal sealed partial class JxlVarDctDecoder
 
         if (Vector256.IsHardwareAccelerated)
         {
-            nuint count = (destination.Length - x).Vector256Count<float>();
+            nuint count = (interiorEnd - x).Vector256Count<float>();
             for (nuint block = 0; block < count; block++, x += Vector256<float>.Count)
             {
-                nuint position = (nuint)(x + RestorationRadius);
+                nuint position = (nuint)x;
                 Vector256<float> center = Vector256.LoadUnsafe(ref m, position);
                 Vector256<float> axial = (Vector256.LoadUnsafe(ref m, position - 1) + Vector256.LoadUnsafe(ref m, position + 1))
                     + (Vector256.LoadUnsafe(ref t, position) + Vector256.LoadUnsafe(ref b, position));
@@ -64,10 +68,10 @@ internal sealed partial class JxlVarDctDecoder
 
         if (Vector128.IsHardwareAccelerated)
         {
-            nuint count = (destination.Length - x).Vector128Count<float>();
+            nuint count = (interiorEnd - x).Vector128Count<float>();
             for (nuint block = 0; block < count; block++, x += Vector128<float>.Count)
             {
-                nuint position = (nuint)(x + RestorationRadius);
+                nuint position = (nuint)x;
                 Vector128<float> center = Vector128.LoadUnsafe(ref m, position);
                 Vector128<float> axial = (Vector128.LoadUnsafe(ref m, position - 1) + Vector128.LoadUnsafe(ref m, position + 1))
                     + (Vector128.LoadUnsafe(ref t, position) + Vector128.LoadUnsafe(ref b, position));
@@ -79,16 +83,32 @@ internal sealed partial class JxlVarDctDecoder
             }
         }
 
-        for (; x < destination.Length; x++)
+        for (; x < interiorEnd; x++)
         {
-            int position = x + RestorationRadius;
-            float axial = (Unsafe.Add(ref m, position - 1) + Unsafe.Add(ref m, position + 1))
+            float axial = (Unsafe.Add(ref m, x - 1) + Unsafe.Add(ref m, x + 1))
+                + (Unsafe.Add(ref t, x) + Unsafe.Add(ref b, x));
+
+            float diagonal = (Unsafe.Add(ref t, x - 1) + Unsafe.Add(ref t, x + 1))
+                + (Unsafe.Add(ref b, x - 1) + Unsafe.Add(ref b, x + 1));
+
+            Unsafe.Add(ref output, x) = operation.Invoke(Unsafe.Add(ref m, x), axial, diagonal);
+        }
+
+        // Half-sample reflection repeats the first or last sample for a one-column neighbor.
+        // A one-column row has one edge; every wider row has two distinct edges. Keep the same
+        // sum grouping and operator as the interior rather than a separate border kernel.
+        for (int edge = 0; edge < Math.Min(width, 2); edge++)
+        {
+            int position = edge == 0 ? 0 : width - 1;
+            int left = Math.Max(position - 1, 0);
+            int right = Math.Min(position + 1, width - 1);
+            float axial = (Unsafe.Add(ref m, left) + Unsafe.Add(ref m, right))
                 + (Unsafe.Add(ref t, position) + Unsafe.Add(ref b, position));
 
-            float diagonal = (Unsafe.Add(ref t, position - 1) + Unsafe.Add(ref t, position + 1))
-                + (Unsafe.Add(ref b, position - 1) + Unsafe.Add(ref b, position + 1));
+            float diagonal = (Unsafe.Add(ref t, left) + Unsafe.Add(ref t, right))
+                + (Unsafe.Add(ref b, left) + Unsafe.Add(ref b, right));
 
-            Unsafe.Add(ref output, x) = operation.Invoke(Unsafe.Add(ref m, position), axial, diagonal);
+            Unsafe.Add(ref output, position) = operation.Invoke(Unsafe.Add(ref m, position), axial, diagonal);
         }
     }
 

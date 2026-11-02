@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
@@ -139,12 +140,22 @@ internal struct JxlBitReader
         if (this.availableBits < count)
         {
             this.Refill(count);
+            if (this.availableBits < count)
+            {
+                ThrowBoundaryExceeded();
+            }
         }
 
-        // A field must exist in full. Validate consumption once; zero padding belongs only to prefix lookahead.
+        // The fast path already proved availability. Only a short refill needs a second availability check.
+        // Cached lookahead can extend beyond this section, so every path must still validate its allowance.
+        if (count > this.remainingSectionBits)
+        {
+            ThrowBoundaryExceeded();
+        }
+
         // Retain the result before consumption shifts the reservoir. A 64-bit mask handles both zero and 32 bits.
         uint result = (uint)this.buffer;
-        this.ConsumeBits(count);
+        this.AdvanceBits(count);
         return result & (uint)((1UL << count) - 1);
     }
 
@@ -176,12 +187,10 @@ internal struct JxlBitReader
     {
         if (count > this.availableBits || count > this.remainingSectionBits)
         {
-            throw new InvalidImageContentException("The JPEG XL field exceeds its section or codestream boundary.");
+            ThrowBoundaryExceeded();
         }
 
-        this.buffer >>= count;
-        this.availableBits -= count;
-        this.remainingSectionBits -= count;
+        this.AdvanceBits(count);
     }
 
     /// <summary>
@@ -483,6 +492,29 @@ internal struct JxlBitReader
         }
 
         return new Size((int)width, (int)height);
+    }
+
+    /// <summary>
+    /// Throws the shared error for a field that exceeds the codestream or section boundary.
+    /// </summary>
+    /// <remarks>
+    /// Keeps exception construction outside the inlined field-read and consumption paths.
+    /// </remarks>
+    /// <exception cref="InvalidImageContentException">The complete field cannot be consumed.</exception>
+    [DoesNotReturn]
+    private static void ThrowBoundaryExceeded()
+        => throw new InvalidImageContentException("The JPEG XL field exceeds its section or codestream boundary.");
+
+    /// <summary>
+    /// Consumes a field whose complete width has been validated against the reservoir and current section.
+    /// </summary>
+    /// <param name="count">The validated number of bits, from zero through 32.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AdvanceBits(int count)
+    {
+        this.buffer >>= count;
+        this.availableBits -= count;
+        this.remainingSectionBits -= count;
     }
 
     /// <summary>

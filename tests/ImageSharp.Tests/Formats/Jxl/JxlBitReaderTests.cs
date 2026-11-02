@@ -103,6 +103,18 @@ public class JxlBitReaderTests
             reader.ReadBits(32);
         }
 
+        // Only the stored final byte, 0x03, remains. A short refill must not consume that byte on failure.
+        const string boundaryError = "The JPEG XL field exceeds its section or codestream boundary.";
+        InvalidImageContentException shortRead = Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(32));
+        Assert.Equal(boundaryError, shortRead.Message);
+        Assert.Equal(640, reader.Position);
+
+        // Prefix lookup can zero-pad its high bits, but those bits must not become valid consumption.
+        Assert.Equal(0x03U, reader.PeekBits(32));
+        InvalidImageContentException paddedConsumption = Assert.Throws<InvalidImageContentException>(() => reader.ConsumeBits(9));
+        Assert.Equal(boundaryError, paddedConsumption.Message);
+        Assert.Equal(640, reader.Position);
+
         reader.ReadBits(8);
 
         Assert.Equal(648, reader.Position);
@@ -123,6 +135,8 @@ public class JxlBitReaderTests
 
         // The first reservoir also contains the following 3F byte. Lookahead can expose only FA from this section.
         Assert.Equal(0xFAU, reader.PeekBits(16));
+        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(16));
+        Assert.Equal(16, reader.Position);
         Assert.Equal(2U, reader.ReadBits(3));
         reader.EndSection();
 

@@ -3,6 +3,8 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Memory;
@@ -58,6 +60,41 @@ internal sealed class JxlModularTree : IDisposable
     /// The initial node capacity. Larger trees grow only while their metadata is parsed.
     /// </summary>
     private const int InitialCapacity = 64;
+
+    /// <summary>
+    /// The interval lookup's first representable property value, as defined by jxl-rs LUT_MIN_SPLITVAL.
+    /// </summary>
+    private const int MinimumLookupValue = -1024;
+
+    /// <summary>
+    /// The interval lookup's last representable property value, as defined by jxl-rs LUT_MAX_SPLITVAL.
+    /// </summary>
+    private const int MaximumLookupValue = 1023;
+
+    /// <summary>
+    /// The number of signed property values represented by each interval table.
+    /// </summary>
+    private const int LookupLength = MaximumLookupValue - MinimumLookupValue + 1;
+
+    /// <summary>
+    /// The largest candidate-leaf count accepted by the reference bitset representation.
+    /// </summary>
+    private const int MaximumLookupLeaves = 256;
+
+    /// <summary>
+    /// The largest distinct property count accepted by the reference bitset representation.
+    /// </summary>
+    private const int MaximumLookupProperties = 8;
+
+    /// <summary>
+    /// The largest property ID represented by the lookup's 64-bit requirement mask.
+    /// </summary>
+    private const int MaximumLookupProperty = 63;
+
+    /// <summary>
+    /// The largest channel sample count that retains direct traversal to avoid lookup preparation cost.
+    /// </summary>
+    private const int SmallChannelSampleCount = 64;
 
     private readonly IMemoryOwner<Node> nodes;
     private readonly int nodeCount;
@@ -196,6 +233,318 @@ internal sealed class JxlModularTree : IDisposable
         }
     }
 
+    /// <summary>
+    /// Prepares a bounded interval lookup for mixed-predictor trees, or returns an empty view for the ordinary tree walk.
+    /// </summary>
+    /// <param name="nodes">The statically reduced, breadth-first tree. Its storage remains unchanged during lookup.</param>
+    /// <param name="sampleCount">The number of samples in this channel.</param>
+    /// <param name="workspace">The frame-owned table storage and temporary metadata scratch.</param>
+    /// <returns>A borrowed lookup whose tables remain valid until the next channel is prepared, or an empty view.</returns>
+    /// <remarks>
+    /// Eligibility follows jxl-rs specialized_trees/mod.rs and bitset_tree.rs at revision
+    /// d7a831fae15b903f1b56a76668030c19ac07bb6f. Small channels retain the ordinary walk to avoid table setup cost.
+    /// At most 256 leaves, eight properties below 64 and thresholds from -1024 through 1022 can use this representation.
+    /// Other trees retain their full property and threshold ranges through the existing walk.
+    /// </remarks>
+    public static Lookup PrepareLookup(ReadOnlySpan<Node> nodes, long sampleCount, JxlModularWorkspace workspace)
+    {
+        if (sampleCount <= SmallChannelSampleCount || nodes.Length <= 1 || nodes.Length > (2 * MaximumLookupLeaves) - 1)
+        {
+            return default;
+        }
+
+        ulong propertyMask = 0;
+        int depth = 0;
+        int levelEnd = 1;
+        int nextLevelEnd = 1;
+        for (int i = 0; i < nodes.Length; i++)
+        {
+            if (i == levelEnd)
+            {
+                depth++;
+                levelEnd = nextLevelEnd;
+            }
+
+            ref readonly Node node = ref nodes[i];
+            if (node.Property >= 0)
+            {
+                // The last table value is 1023. A threshold of 1023 would leave its greater branch
+                // outside the table, so it must use the unrestricted fallback instead.
+                if (node.Property > MaximumLookupProperty || node.Value < MinimumLookupValue || node.Value >= MaximumLookupValue)
+                {
+                    return default;
+                }
+
+                propertyMask |= 1UL << node.Property;
+                nextLevelEnd = Math.Max(nextLevelEnd, node.FirstChild + 2);
+            }
+        }
+
+        int propertyCount = BitOperations.PopCount(propertyMask);
+        int minimumDepth = propertyCount == 1 ? 1 : propertyCount == 2 ? 3 : 5;
+        if (propertyCount > MaximumLookupProperties || depth < minimumDepth)
+        {
+            return default;
+        }
+
+        int leafCount = (nodes.Length + 1) / 2;
+        int splitCount = leafCount - 1;
+        int frameLength = 1 + (2 * propertyCount);
+
+        // Setup uses the existing integer reference scratch before any row references are borrowed.
+        // A depth-first pending stack has at most leafCount+1 frames. Each frame stores its source
+        // node and one half-open value interval per property. Its storage does not escape this method.
+        Span<int> scratch = workspace.PrepareReferences(Math.Max(splitCount, (leafCount + 1) * frameLength));
+        Span<int> splits = scratch[..splitCount];
+        int splitIndex = 0;
+        foreach (ref readonly Node node in nodes)
+        {
+            if (node.Property >= 0)
+            {
+                int ordinal = BitOperations.PopCount(propertyMask & ((1UL << node.Property) - 1));
+                splits[splitIndex++] = (ordinal * LookupLength) + node.Value + 1 - MinimumLookupValue;
+            }
+        }
+
+        // Sorting at most 255 metadata thresholds identifies the actual intervals. Repeated thresholds
+        // share a mask entry; table allocation therefore follows this tree rather than the format maximum.
+        splits.Sort();
+        InlineArray8<int> intervalCounts = default;
+        Span<int> counts = intervalCounts;
+        counts[..propertyCount].Fill(1);
+        int previousSplit = -1;
+        foreach (int split in splits)
+        {
+            if (split != previousSplit)
+            {
+                counts[split / LookupLength]++;
+                previousSplit = split;
+            }
+        }
+
+        int bucketStride = leafCount <= 64 ? 1 : leafCount <= 128 ? 2 : 4;
+        int intervalCount = 0;
+        foreach (int count in counts[..propertyCount])
+        {
+            intervalCount += count;
+        }
+
+        // Eight bytes hold the property IDs. Align the offset metadata and masks to eight bytes;
+        // all pixel-time spans then point into this single tracked owner. A one-property tree maps
+        // directly to leaf IDs and needs neither offsets nor masks.
+        int offsetBytes = propertyCount == 1 ? 0 : ((propertyCount * sizeof(int)) + 7) & ~7;
+        int maskLength = propertyCount == 1 ? 0 : intervalCount * bucketStride;
+        int byteLength = 8 + (propertyCount * LookupLength) + offsetBytes + (maskLength * sizeof(ulong)) + (leafCount * sizeof(int));
+        Span<byte> bytes = MemoryMarshal.AsBytes(workspace.PrepareTreeLookup((byteLength + 7) / 8));
+        Span<byte> propertyIds = bytes[..propertyCount];
+        Span<byte> tables = bytes.Slice(8, propertyCount * LookupLength);
+        int position = 8 + tables.Length;
+        Span<int> offsets = MemoryMarshal.Cast<byte, int>(bytes.Slice(position, offsetBytes));
+        position += offsetBytes;
+        Span<ulong> masks = MemoryMarshal.Cast<byte, ulong>(bytes.Slice(position, maskLength * sizeof(ulong)));
+        position += maskLength * sizeof(ulong);
+        Span<int> leaves = MemoryMarshal.Cast<byte, int>(bytes.Slice(position, leafCount * sizeof(int)));
+        InlineArray64<byte> ordinalStorage = default;
+        Span<byte> ordinals = ordinalStorage;
+        ulong remainingProperties = propertyMask;
+        for (int i = 0; i < propertyCount; i++)
+        {
+            byte property = (byte)BitOperations.TrailingZeroCount(remainingProperties);
+            propertyIds[i] = property;
+            ordinals[property] = (byte)i;
+            remainingProperties &= remainingProperties - 1;
+        }
+
+        if (propertyCount != 1)
+        {
+            tables.Clear();
+            foreach (int split in splits)
+            {
+                tables[split] = 1;
+            }
+
+            int maskOffset = 0;
+            for (int p = 0; p < propertyCount; p++)
+            {
+                offsets[p] = maskOffset;
+                maskOffset += counts[p] * bucketStride;
+                Span<byte> table = tables.Slice(p * LookupLength, LookupLength);
+                int interval = 0;
+                for (int value = 0; value < table.Length; value++)
+                {
+                    interval += table[value];
+                    table[value] = (byte)interval;
+                }
+            }
+
+            masks.Clear();
+        }
+
+        // The sorted thresholds are no longer needed. Reuse their scratch for pending node ranges.
+        Span<int> stack = scratch;
+        stack[..frameLength].Clear();
+        for (int p = 0; p < propertyCount; p++)
+        {
+            stack[2 + (2 * p)] = LookupLength;
+        }
+
+        int pending = 1;
+        int leaf = 0;
+        while (pending != 0)
+        {
+            Span<int> frame = stack.Slice(--pending * frameLength, frameLength);
+            int nodeIndex = frame[0];
+            ref readonly Node node = ref nodes[nodeIndex];
+            if (node.Property >= 0)
+            {
+                int property = ordinals[node.Property];
+                int range = 1 + (2 * property);
+                int cut = node.Value + 1 - MinimumLookupValue;
+
+                // Tree validation already requires two nonempty branches. The accepted thresholds also
+                // lie inside the lookup range, so this cut lies strictly inside its inherited interval.
+                Span<int> first = stack.Slice(pending * frameLength, frameLength);
+                Span<int> second = stack.Slice((pending + 1) * frameLength, frameLength);
+                frame.CopyTo(second);
+                first[0] = node.FirstChild;
+                first[range] = cut;
+                second[0] = node.FirstChild + 1;
+                second[range + 1] = cut;
+                pending += 2;
+                continue;
+            }
+
+            leaves[leaf] = nodeIndex;
+            if (propertyCount == 1)
+            {
+                tables[frame[1]..frame[2]].Fill((byte)leaf);
+            }
+            else
+            {
+                int bucket = leaf >> 6;
+                ulong bit = 1UL << (leaf & 63);
+                for (int p = 0; p < propertyCount; p++)
+                {
+                    int range = 1 + (2 * p);
+                    ReadOnlySpan<byte> table = tables.Slice(p * LookupLength, LookupLength);
+                    int first = table[frame[range]];
+                    int last = table[frame[range + 1] - 1];
+                    for (int interval = first; interval <= last; interval++)
+                    {
+                        masks[offsets[p] + (interval * bucketStride) + bucket] |= bit;
+                    }
+                }
+            }
+
+            leaf++;
+        }
+
+        return new Lookup(propertyMask, propertyIds, tables, offsets[..(propertyCount == 1 ? 0 : propertyCount)], masks, leaves, bucketStride);
+    }
+
+    /// <summary>
+    /// Combines two tree levels per split so sample traversal selects one of four adjacent descendants.
+    /// </summary>
+    /// <param name="nodes">The validated, statically reduced tree in breadth-first order.</param>
+    /// <param name="workspace">The frame-owned storage reused between channels.</param>
+    /// <returns>The completed flat tree, borrowed until the next channel is prepared.</returns>
+    /// <remarks>
+    /// This follows jxl-rs flat_tree.rs at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
+    /// Leaves retain their original reduced-tree indices. Their contexts, offsets, multipliers and predictors do not change.
+    /// </remarks>
+    public static ReadOnlySpan<FlatNode> PrepareFlatTree(ReadOnlySpan<Node> nodes, JxlModularWorkspace workspace)
+    {
+        int depth = 0;
+        int levelEnd = 1;
+        int nextLevelEnd = 1;
+        int splits = 0;
+        for (int i = 0; i < nodes.Length; i++)
+        {
+            if (i == levelEnd)
+            {
+                depth++;
+                levelEnd = nextLevelEnd;
+            }
+
+            ref readonly Node node = ref nodes[i];
+            if (node.Property >= 0)
+            {
+                nextLevelEnd = Math.Max(nextLevelEnd, node.FirstChild + 2);
+                splits += (depth & 1) == 0 ? 1 : 0;
+            }
+        }
+
+        // Every even-depth split emits four descendants. A leaf at the intervening level is emitted
+        // twice, so selecting either of its two descendants reaches the same original leaf. These
+        // duplicates are included in the exact 4*splits+1 length before the only allocation is prepared.
+        Span<FlatNode> flat = workspace.PrepareFlatTree((4 * splits) + 1);
+        flat[0] = new FlatNode(0);
+        int pending = 1;
+        for (int i = 0; i < pending; i++)
+        {
+            int sourceIndex = flat[i].FirstChild;
+            ref readonly Node node = ref nodes[sourceIndex];
+            if (node.Property < 0)
+            {
+                // The queued source index already represents this completed leaf.
+                continue;
+            }
+
+            ref readonly Node greater = ref nodes[node.FirstChild];
+            ref readonly Node lesser = ref nodes[node.FirstChild + 1];
+            int greaterFirst = greater.Property < 0 ? node.FirstChild : greater.FirstChild;
+            int greaterSecond = greater.Property < 0 ? greaterFirst : greaterFirst + 1;
+            int lesserFirst = lesser.Property < 0 ? node.FirstChild + 1 : lesser.FirstChild;
+            int lesserSecond = lesser.Property < 0 ? lesserFirst : lesserFirst + 1;
+            flat[pending] = new FlatNode(greaterFirst);
+            flat[pending + 1] = new FlatNode(greaterSecond);
+            flat[pending + 2] = new FlatNode(lesserFirst);
+            flat[pending + 3] = new FlatNode(lesserSecond);
+
+            // Unprocessed entries hold source indices in FirstChild. The current entry is replaced
+            // only after its descendants are queued. No queue allocation or source-tree mutation is needed.
+            flat[i] = new FlatNode(
+                (byte)node.Property,
+                node.Value,
+                greater.Property < 0 ? (byte)0 : (byte)greater.Property,
+                greater.Value,
+                lesser.Property < 0 ? (byte)0 : (byte)lesser.Property,
+                lesser.Value,
+                pending);
+
+            pending += 4;
+        }
+
+        return flat;
+    }
+
+    /// <summary>
+    /// Selects an original leaf through a flat tree without restricting property values or tree size.
+    /// </summary>
+    /// <param name="nodes">The completed flat nodes.</param>
+    /// <param name="properties">The fixed 256-entry property array. Validated byte indices cover its complete domain.</param>
+    /// <returns>The matching leaf index in the unchanged reduced tree.</returns>
+    public static int FindFlatLeaf(ReadOnlySpan<FlatNode> nodes, ref InlineArray256<int> properties)
+    {
+        int position = 0;
+        while (!nodes[position].IsLeaf)
+        {
+            ref readonly FlatNode node = ref nodes[position];
+
+            // Byte indices always address the fixed 256-entry inline array. The JIT receives their
+            // complete range without unsafe indexing or additional validation at each lookup.
+            int parentLow = properties[node.Property] <= node.Value ? 1 : 0;
+            int greaterLow = properties[node.GreaterProperty] <= node.GreaterValue ? 1 : 0;
+            int lesserLow = properties[node.LesserProperty] <= node.LesserValue ? 1 : 0;
+
+            // The greater parent's grandchildren occupy offsets 0/1; the lesser parent's occupy 2/3.
+            // Both child comparisons are independent. A duplicated leaf makes its unused comparison harmless.
+            position = node.FirstChild + (parentLow != 0 ? 2 | lesserLow : greaterLow);
+        }
+
+        return nodes[position].FirstChild;
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -213,7 +562,7 @@ internal sealed class JxlModularTree : IDisposable
     /// <param name="decodedCount">The number of preceding tree values.</param>
     /// <returns>The decoded unsigned field.</returns>
     private static uint ReadValue(
-        ref JxlBitReader reader, ref JxlEntropyDecoder.Reader symbols, int context, scoped Span<uint> history, ref uint decodedCount)
+        ref JxlBitReader reader, ref JxlEntropyDecoder.Reader symbols, int context, Span<uint> history, ref uint decodedCount)
     {
         uint value = symbols.ReadUInt32(ref reader, context, history, decodedCount);
         decodedCount++;
@@ -288,6 +637,220 @@ internal sealed class JxlModularTree : IDisposable
                 upper[property] = frame.OriginalUpper;
                 depth--;
             }
+        }
+    }
+
+    /// <summary>
+    /// Stores one parent split with both child splits, or an original reduced-tree leaf index.
+    /// </summary>
+    /// <remarks>
+    /// The leaf flag and three byte property IDs occupy four bytes, followed by four signed integers.
+    /// Tree parsing validates property IDs from zero through 255. The byte fields preserve that bound for lookup.
+    /// </remarks>
+    public readonly struct FlatNode
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlatNode"/> struct for an original tree leaf or queued source node.
+        /// </summary>
+        /// <param name="sourceIndex">The original reduced-tree node index.</param>
+        public FlatNode(int sourceIndex)
+        {
+            this.IsLeaf = true;
+            this.Property = 0;
+            this.GreaterProperty = 0;
+            this.LesserProperty = 0;
+            this.Value = 0;
+            this.GreaterValue = 0;
+            this.LesserValue = 0;
+            this.FirstChild = sourceIndex;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlatNode"/> struct for a completed two-level split.
+        /// </summary>
+        /// <param name="property">The parent's validated property index.</param>
+        /// <param name="value">The parent's signed threshold.</param>
+        /// <param name="greaterProperty">The greater child's property, or zero when that child is a duplicated leaf.</param>
+        /// <param name="greaterValue">The greater child's signed threshold.</param>
+        /// <param name="lesserProperty">The lesser child's property, or zero when that child is a duplicated leaf.</param>
+        /// <param name="lesserValue">The lesser child's signed threshold.</param>
+        /// <param name="firstChild">The first of four adjacent compiled descendants.</param>
+        public FlatNode(byte property, int value, byte greaterProperty, int greaterValue, byte lesserProperty, int lesserValue, int firstChild)
+        {
+            this.IsLeaf = false;
+            this.Property = property;
+            this.GreaterProperty = greaterProperty;
+            this.LesserProperty = lesserProperty;
+            this.Value = value;
+            this.GreaterValue = greaterValue;
+            this.LesserValue = lesserValue;
+            this.FirstChild = firstChild;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this completed entry identifies an original reduced-tree leaf.
+        /// </summary>
+        public bool IsLeaf { get; }
+
+        /// <summary>
+        /// Gets the parent property index, from zero through 255.
+        /// </summary>
+        public byte Property { get; }
+
+        /// <summary>
+        /// Gets the greater child's property. Its value is ignored when both descendants refer to one leaf.
+        /// </summary>
+        public byte GreaterProperty { get; }
+
+        /// <summary>
+        /// Gets the lesser child's property. Its value is ignored when both descendants refer to one leaf.
+        /// </summary>
+        public byte LesserProperty { get; }
+
+        /// <summary>
+        /// Gets the parent's signed threshold.
+        /// </summary>
+        public int Value { get; }
+
+        /// <summary>
+        /// Gets the greater child's signed threshold.
+        /// </summary>
+        public int GreaterValue { get; }
+
+        /// <summary>
+        /// Gets the lesser child's signed threshold.
+        /// </summary>
+        public int LesserValue { get; }
+
+        /// <summary>
+        /// Gets the first compiled descendant for a split, or the original reduced-tree index for a leaf.
+        /// </summary>
+        public int FirstChild { get; }
+    }
+
+    /// <summary>
+    /// Borrows a prepared mixed-tree selector without taking ownership of its tables or source nodes.
+    /// </summary>
+    public readonly ref struct Lookup
+    {
+        private readonly ReadOnlySpan<byte> properties;
+        private readonly ReadOnlySpan<byte> tables;
+        private readonly ReadOnlySpan<int> offsets;
+        private readonly ReadOnlySpan<ulong> masks;
+        private readonly ReadOnlySpan<int> leaves;
+        private readonly int bucketStride;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Lookup"/> struct from one frame-owned table allocation.
+        /// </summary>
+        /// <param name="propertyMask">The distinct selected property indices.</param>
+        /// <param name="properties">The selected property IDs in ascending order.</param>
+        /// <param name="tables">The 2048-entry interval or leaf lookup for each selected property.</param>
+        /// <param name="offsets">The first mask word for each property's actual intervals.</param>
+        /// <param name="masks">Candidate-leaf masks, with one, two or four words per interval.</param>
+        /// <param name="leaves">The reduced-tree node index for each candidate leaf.</param>
+        /// <param name="bucketStride">The mask words per interval. A fourth word pads three-bucket trees for SIMD loading.</param>
+        public Lookup(
+            ulong propertyMask,
+            ReadOnlySpan<byte> properties,
+            ReadOnlySpan<byte> tables,
+            ReadOnlySpan<int> offsets,
+            ReadOnlySpan<ulong> masks,
+            ReadOnlySpan<int> leaves,
+            int bucketStride)
+        {
+            this.PropertyMask = propertyMask;
+            this.properties = properties;
+            this.tables = tables;
+            this.offsets = offsets;
+            this.masks = masks;
+            this.leaves = leaves;
+            this.bucketStride = bucketStride;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the unrestricted binary tree must be used instead.
+        /// </summary>
+        public bool IsEmpty => this.properties.IsEmpty;
+
+        /// <summary>
+        /// Gets the distinct property requirements, with bit n representing property n.
+        /// </summary>
+        public ulong PropertyMask { get; }
+
+        /// <summary>
+        /// Gets the required property IDs in ascending order. Property eight therefore precedes property nine.
+        /// </summary>
+        public ReadOnlySpan<byte> PropertyIndices => this.properties;
+
+        /// <summary>
+        /// Selects the exact source-tree leaf by intersecting the intervals satisfied by the current properties.
+        /// </summary>
+        /// <param name="values">The current properties at their format-defined indices.</param>
+        /// <returns>The matching leaf's index in the unchanged reduced tree.</returns>
+        public int FindLeaf(ReadOnlySpan<int> values)
+        {
+            // Saturate only the lookup index. All thresholds lie inside this range, so a value outside
+            // it selects exactly the same branches as its nearest table endpoint. Prediction values do not change.
+            if (this.properties.Length == 1)
+            {
+                int index = Math.Clamp(values[this.properties[0]], MinimumLookupValue, MaximumLookupValue) - MinimumLookupValue;
+                return this.leaves[this.tables[index]];
+            }
+
+            if (this.bucketStride == 1)
+            {
+                ulong candidates = ulong.MaxValue;
+                for (int p = 0; p < this.properties.Length; p++)
+                {
+                    int value = Math.Clamp(values[this.properties[p]], MinimumLookupValue, MaximumLookupValue) - MinimumLookupValue;
+                    int interval = this.tables[(p * LookupLength) + value];
+                    candidates &= this.masks[this.offsets[p] + interval];
+                }
+
+                return this.leaves[BitOperations.TrailingZeroCount(candidates)];
+            }
+
+            ref ulong masks = ref MemoryMarshal.GetReference(this.masks);
+            if (this.bucketStride == 2)
+            {
+                // Two lanes cover 128 leaves. Each property loads one contiguous candidate mask;
+                // lane-wise AND retains the single leaf satisfying all property intervals.
+                Vector128<ulong> candidates = Vector128.Create(ulong.MaxValue);
+                for (int p = 0; p < this.properties.Length; p++)
+                {
+                    int value = Math.Clamp(values[this.properties[p]], MinimumLookupValue, MaximumLookupValue) - MinimumLookupValue;
+                    int interval = this.tables[(p * LookupLength) + value];
+                    nuint offset = (nuint)(this.offsets[p] + (interval * 2));
+                    candidates &= Vector128.LoadUnsafe(ref masks, offset);
+                }
+
+                ulong first = candidates.GetElement(0);
+                int leaf = first != 0 ? BitOperations.TrailingZeroCount(first) : 64 + BitOperations.TrailingZeroCount(candidates.GetElement(1));
+                return this.leaves[leaf];
+            }
+
+            // Four lanes cover 256 leaves. A three-bucket tree has a zero fourth lane from setup.
+            // Vector256 also retains exact lane-wise behavior on 128-bit and scalar fallback runtimes.
+            Vector256<ulong> remaining = Vector256.Create(ulong.MaxValue);
+            for (int p = 0; p < this.properties.Length; p++)
+            {
+                int value = Math.Clamp(values[this.properties[p]], MinimumLookupValue, MaximumLookupValue) - MinimumLookupValue;
+                int interval = this.tables[(p * LookupLength) + value];
+                nuint offset = (nuint)(this.offsets[p] + (interval * 4));
+                remaining &= Vector256.LoadUnsafe(ref masks, offset);
+            }
+
+            for (int bucket = 0; bucket < 3; bucket++)
+            {
+                ulong candidates = remaining.GetElement(bucket);
+                if (candidates != 0)
+                {
+                    return this.leaves[(bucket * 64) + BitOperations.TrailingZeroCount(candidates)];
+                }
+            }
+
+            return this.leaves[192 + BitOperations.TrailingZeroCount(remaining.GetElement(3))];
         }
     }
 

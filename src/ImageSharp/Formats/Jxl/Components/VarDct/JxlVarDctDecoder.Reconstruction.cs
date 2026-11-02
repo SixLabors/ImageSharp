@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
@@ -90,187 +89,108 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Reconstructs the current group's accumulated coefficients before its storage is reused for another group.
-    /// </summary>
-    /// <param name="group">The validated row-major AC group index.</param>
-    /// <param name="cancellationToken">The token checked between block rows and transforms.</param>
-    public void ReconstructGroup(int group, CancellationToken cancellationToken)
-    {
-        Span<float> workspace = this.reconstructionMemory.Span;
-        ReadOnlySpan<float> matrices = this.QuantizationMatrices;
-        if (this.Uses16BitCoefficients)
-        {
-            this.ReconstructGroup(
-                group, this.GetCoefficients16(0), this.GetCoefficients16(1), this.GetCoefficients16(2), matrices, workspace, cancellationToken);
-        }
-        else
-        {
-            this.ReconstructGroup(
-                group, this.GetCoefficients32(0), this.GetCoefficients32(1), this.GetCoefficients32(2), matrices, workspace, cancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// Dequantizes and transforms packed short or int coefficients through the same block traversal.
+    /// Reconstructs one fully accumulated transform block before the entropy traversal advances to the next block.
     /// </summary>
     /// <typeparam name="TCoefficient">The frame-selected short or int coefficient storage.</typeparam>
-    /// <param name="group">The current group index.</param>
-    /// <param name="quantizedX">The complete packed X coefficient plane.</param>
-    /// <param name="quantizedY">The complete packed Y coefficient plane.</param>
-    /// <param name="quantizedB">The complete packed B coefficient plane.</param>
-    /// <param name="matrices">The frame's retained decoder matrices.</param>
+    /// <param name="bx">The transform origin in the full horizontal block grid.</param>
+    /// <param name="by">The transform origin in the full vertical block grid.</param>
+    /// <param name="strategy">The validated serialized transform strategy.</param>
+    /// <param name="blockWidth">The transform width in eight-pixel blocks.</param>
+    /// <param name="blockHeight">The transform height in eight-pixel blocks.</param>
+    /// <param name="active">A bit for each component present at this sampling-aligned origin.</param>
+    /// <param name="hasAc">A bit for each component that received AC in any progressive pass.</param>
+    /// <param name="quantizedX">The complete accumulated X residual block, or zeros for an inactive component.</param>
+    /// <param name="quantizedY">The complete accumulated Y block, or zeros for an inactive component.</param>
+    /// <param name="quantizedB">The complete accumulated B residual block, or zeros for an inactive component.</param>
+    /// <param name="matrices">The three decoder-matrix planes for this transform.</param>
     /// <param name="workspace">The frame-owned coefficient, spatial and inverse-transform scratch ranges.</param>
-    /// <param name="cancellationToken">The token checked during traversal.</param>
-    private void ReconstructGroup<TCoefficient>(
-        int group,
+    /// <param name="scale">The inverse global scale divided by this block's quantizer.</param>
+    /// <param name="correlation">The complete Y-to-X and Y-to-B ratios for the transform's color tile.</param>
+    private void ReconstructBlock<TCoefficient>(
+        int bx,
+        int by,
+        byte strategy,
+        int blockWidth,
+        int blockHeight,
+        int active,
+        int hasAc,
         ReadOnlySpan<TCoefficient> quantizedX,
         ReadOnlySpan<TCoefficient> quantizedY,
         ReadOnlySpan<TCoefficient> quantizedB,
         ReadOnlySpan<float> matrices,
         Span<float> workspace,
-        CancellationToken cancellationToken)
+        float scale,
+        Vector2 correlation)
         where TCoefficient : unmanaged, IBinaryInteger<TCoefficient>
     {
-        Rectangle rectangle = this.GetAcGroupRectangle(group);
-        InlineArray4<int> offsetStorage = default;
-        Span<int> offsets = offsetStorage;
-        InlineArray64<int> zeroStorage = default;
-        ReadOnlySpan<int> zeroIntegers = zeroStorage;
-        ReadOnlySpan<TCoefficient> zeros = MemoryMarshal.Cast<int, TCoefficient>(zeroIntegers);
+        int area = quantizedX.Length;
+        Span<float> coefficients = workspace[..(3 * area)];
         Span<float> spatial = workspace.Slice(3 * this.reconstructionBlockArea, this.reconstructionBlockArea);
         Span<float> scratch = workspace.Slice(4 * this.reconstructionBlockArea, this.inverseScratchLength);
-        ReadOnlySpan<int> matrixOffsets = this.QuantizationMatrixOffsets;
-        ReadOnlySpan<byte> hasAc = this.nonzeroMemory.Span[(this.nonzeroMemory.Length / 2)..];
-
-        for (int by = rectangle.Y; by < rectangle.Bottom; by++)
+        int dcOnly = 0;
+        if (area == CoefficientBlockArea)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            ReadOnlySpan<byte> strategies = this.Strategies.DangerousGetRowSpan(by);
-            ReadOnlySpan<int> quantizers = this.Quantization.DangerousGetRowSpan(by);
-            ReadOnlySpan<sbyte> correlationX = this.CorrelationX.DangerousGetRowSpan(by >> ColorTileShift);
-            ReadOnlySpan<sbyte> correlationB = this.CorrelationB.DangerousGetRowSpan(by >> ColorTileShift);
-            int bx = rectangle.X;
-            while (bx < rectangle.Right)
+            // A single-block transform without AC produces one constant DC value. AC presence includes
+            // every progressive pass. Y correlation can supply AC to X or B even without its own residual.
+            dcOnly = (hasAc & 2) == 0 ? 2 : 0;
+            dcOnly |= (hasAc & 1) == 0 && ((hasAc & 2) == 0 || correlation.X == 0F) ? 1 : 0;
+            dcOnly |= (hasAc & 4) == 0 && ((hasAc & 2) == 0 || correlation.Y == 0F) ? 4 : 0;
+        }
+
+        if ((dcOnly & active) != active)
+        {
+            DequantizeAcBlock(
+                quantizedX, quantizedY, quantizedB, matrices, coefficients, this.quantizationScale * scale, correlation, this.quantizationBias);
+        }
+
+        for (int component = 0; component < 3; component++)
+        {
+            if ((active & (1 << component)) == 0)
             {
-                byte packed = strategies[bx];
-                if ((packed & FirstBlockFlag) == 0)
+                continue;
+            }
+
+            int x = bx >> this.horizontalShifts[component];
+            int y = by >> this.verticalShifts[component];
+            Buffer2D<float> output = this.reconstructedChannels[component];
+            Size outputSize = this.reconstructedSizes[component];
+            int left = x * BlockSize;
+            int top = y * BlockSize;
+
+            // Sampling-factor padding can add whole blocks outside a component's visible dimensions.
+            // Their coefficients have already been decoded, but they supply no samples to reconstruct.
+            if (left >= outputSize.Width || top >= outputSize.Height)
+            {
+                continue;
+            }
+
+            Buffer2DRegion<float> dc = this.GetDcChannel(component).GetSubRegion(new Rectangle(x, y, blockWidth, blockHeight));
+            if ((dcOnly & (1 << component)) != 0)
+            {
+                // Fill visible rows through the existing buffer API. Partial edge blocks and split
+                // allocations receive the same constant samples as a complete inverse transform.
+                int dcWidth = Math.Min(BlockSize, outputSize.Width - left);
+                int dcHeight = Math.Min(BlockSize, outputSize.Height - top);
+                float value = dc.DangerousGetRowSpan(0)[0];
+                for (int row = 0; row < dcHeight; row++)
                 {
-                    bx++;
-                    continue;
+                    output.DangerousGetRowSpan(top + row).Slice(left, dcWidth).Fill(value);
                 }
 
-                cancellationToken.ThrowIfCancellationRequested();
-                byte strategy = (byte)(packed >> 1);
-                int blockWidth = StrategyWidths[strategy];
-                int blockHeight = StrategyHeights[strategy];
-                int area = CoefficientBlockArea * blockWidth * blockHeight;
-                int active = 0;
-                for (int component = 0; component < 3; component++)
-                {
-                    if (((bx >> this.horizontalShifts[component]) << this.horizontalShifts[component]) == bx
-                        && ((by >> this.verticalShifts[component]) << this.verticalShifts[component]) == by)
-                    {
-                        active |= 1 << component;
-                    }
-                }
+                continue;
+            }
 
-                // Subsampled frames permit only single-block transforms. A zero block supplies inactive
-                // components without reading a later packed transform. Only active components are written below.
-                ReadOnlySpan<TCoefficient> qx = (active & 1) != 0 ? quantizedX.Slice(offsets[0], area) : zeros[..area];
-                ReadOnlySpan<TCoefficient> qy = (active & 2) != 0 ? quantizedY.Slice(offsets[1], area) : zeros[..area];
-                ReadOnlySpan<TCoefficient> qb = (active & 4) != 0 ? quantizedB.Slice(offsets[2], area) : zeros[..area];
-                Span<float> coefficients = workspace[..(3 * area)];
-                int matrixOffset = matrixOffsets[GetQuantizationMatrixIndex(strategy, 0)];
-                float scale = this.InverseGlobalScale / quantizers[bx];
-                Vector2 correlation = new(
-                    this.BaseCorrelationX + (correlationX[bx >> ColorTileShift] * this.ColorScale),
-                    this.BaseCorrelationB + (correlationB[bx >> ColorTileShift] * this.ColorScale));
+            JxlInverseTransform.Transform(
+                strategy, coefficients.Slice(component * area, area), dc, spatial[..area], blockWidth * BlockSize, scratch);
 
-                int dcOnly = 0;
-                if (area == CoefficientBlockArea)
-                {
-                    // A single-block transform without AC produces one constant DC value. Retain AC
-                    // presence across all passes; the final pass alone does not describe the complete block.
-                    // Color correlation can also supply Y's AC to X or B when that component has no AC of its own.
-                    int localX = bx - rectangle.X;
-                    int localY = by - rectangle.Y;
-                    InlineArray4<byte> presence = default;
-                    for (int component = 0; component < 3; component++)
-                    {
-                        if ((active & (1 << component)) != 0)
-                        {
-                            int width = rectangle.Width >> this.horizontalShifts[component];
-                            int index = (this.coefficientOffsets[component] / CoefficientBlockArea)
-                                + ((localY >> this.verticalShifts[component]) * width) + (localX >> this.horizontalShifts[component]);
-
-                            presence[component] = hasAc[index];
-                        }
-                    }
-
-                    dcOnly = presence[1] == 0 ? 2 : 0;
-                    dcOnly |= presence[0] == 0 && (presence[1] == 0 || correlation.X == 0F) ? 1 : 0;
-                    dcOnly |= presence[2] == 0 && (presence[1] == 0 || correlation.Y == 0F) ? 4 : 0;
-                }
-
-                if ((dcOnly & active) != active)
-                {
-                    DequantizeAcBlock(
-                        qx, qy, qb, matrices.Slice(matrixOffset, 3 * area), coefficients, this.quantizationScale * scale, correlation, this.quantizationBias);
-                }
-
-                for (int component = 0; component < 3; component++)
-                {
-                    if ((active & (1 << component)) == 0)
-                    {
-                        continue;
-                    }
-
-                    int x = bx >> this.horizontalShifts[component];
-                    int y = by >> this.verticalShifts[component];
-                    Buffer2D<float> output = this.reconstructedChannels[component];
-                    Size outputSize = this.reconstructedSizes[component];
-                    int left = x * BlockSize;
-                    int top = y * BlockSize;
-                    offsets[component] += area;
-
-                    // Sampling-factor padding can add whole blocks outside a component's visible dimensions.
-                    // Their coefficients have already been decoded, but they supply no samples to reconstruct.
-                    if (left >= outputSize.Width || top >= outputSize.Height)
-                    {
-                        continue;
-                    }
-
-                    Buffer2DRegion<float> dc = this.GetDcChannel(component).GetSubRegion(new Rectangle(x, y, blockWidth, blockHeight));
-                    if ((dcOnly & (1 << component)) != 0)
-                    {
-                        // Fill visible rows through the existing buffer API. Partial edge blocks and split
-                        // allocations receive the same constant samples as a complete inverse transform.
-                        int dcWidth = Math.Min(BlockSize, outputSize.Width - left);
-                        int dcHeight = Math.Min(BlockSize, outputSize.Height - top);
-                        float value = dc.DangerousGetRowSpan(0)[0];
-                        for (int row = 0; row < dcHeight; row++)
-                        {
-                            output.DangerousGetRowSpan(top + row).Slice(left, dcWidth).Fill(value);
-                        }
-
-                        continue;
-                    }
-
-                    JxlInverseTransform.Transform(
-                        strategy, coefficients.Slice(component * area, area), dc, spatial[..area], blockWidth * BlockSize, scratch);
-
-                    // The allocator can split a frame plane across backing buffers. Reconstruct into the reusable
-                    // contiguous spatial block, then copy each visible row through the existing Buffer2D API.
-                    // Clip only storage at partial image edges; transform arithmetic uses the complete padded block.
-                    int width = Math.Min(blockWidth * BlockSize, outputSize.Width - left);
-                    int height = Math.Min(blockHeight * BlockSize, outputSize.Height - top);
-                    for (int row = 0; row < height; row++)
-                    {
-                        spatial.Slice(row * blockWidth * BlockSize, width).CopyTo(output.DangerousGetRowSpan(top + row).Slice(left, width));
-                    }
-                }
-
-                bx += blockWidth;
+            // The allocator can split a frame plane across backing buffers. Reconstruct into the reusable
+            // contiguous spatial block, then copy each visible row through the existing Buffer2D API.
+            // Clip only storage at partial image edges; transform arithmetic uses the complete padded block.
+            int width = Math.Min(blockWidth * BlockSize, outputSize.Width - left);
+            int height = Math.Min(blockHeight * BlockSize, outputSize.Height - top);
+            for (int row = 0; row < height; row++)
+            {
+                spatial.Slice(row * blockWidth * BlockSize, width).CopyTo(output.DangerousGetRowSpan(top + row).Slice(left, width));
             }
         }
     }

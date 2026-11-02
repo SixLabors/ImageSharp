@@ -69,6 +69,57 @@ internal static partial class JxlInverseTransform
     }
 
     /// <summary>
+    /// Reconstructs a complete eight-by-eight DCT block with both axes retained in register values.
+    /// </summary>
+    /// <param name="source">The 64 normalized coefficients, including the restored DC value.</param>
+    /// <param name="destination">The complete spatial block. The caller clips visible image edges after reconstruction.</param>
+    /// <param name="stride">The destination row stride in floats.</param>
+    private static void InverseDct8By8(ReadOnlySpan<float> source, Span<float> destination, int stride)
+    {
+        ref float input = ref MemoryMarshal.GetReference(source);
+        ref float output = ref MemoryMarshal.GetReference(destination);
+
+        // Eight float columns fill one Vector256 exactly. Each register holds one frequency row;
+        // its lanes carry independent columns through the same eight-point butterfly as the general path.
+        // A Vector512 would require padding outside this block. Smaller SIMD widths retain the general path.
+        Vector256<float> v0 = Vector256.LoadUnsafe(ref input);
+        Vector256<float> v1 = Vector256.LoadUnsafe(ref input, 8U);
+        Vector256<float> v2 = Vector256.LoadUnsafe(ref input, 16U);
+        Vector256<float> v3 = Vector256.LoadUnsafe(ref input, 24U);
+        Vector256<float> v4 = Vector256.LoadUnsafe(ref input, 32U);
+        Vector256<float> v5 = Vector256.LoadUnsafe(ref input, 40U);
+        Vector256<float> v6 = Vector256.LoadUnsafe(ref input, 48U);
+        Vector256<float> v7 = Vector256.LoadUnsafe(ref input, 56U);
+        Inverse8<Vector256<float>, Vector256Operator>(ref v0, ref v1, ref v2, ref v3, ref v4, ref v5, ref v6, ref v7);
+
+        // The first axis, transpose and second axis have the same order as InverseDct. The shared
+        // transpose exchanges 32-bit lanes without arithmetic; these ref casts retain every float bit.
+        // Keep the first-axis output here rather than storing and reloading a separate transpose plane.
+        SimdUtils.Transpose(
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v0),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v1),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v2),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v3),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v4),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v5),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v6),
+            ref Unsafe.As<Vector256<float>, Vector256<int>>(ref v7));
+
+        Inverse8<Vector256<float>, Vector256Operator>(ref v0, ref v1, ref v2, ref v3, ref v4, ref v5, ref v6, ref v7);
+
+        // Only complete output rows are stored. The same strided destination contract serves the
+        // contiguous reconstruction workspace and leaves any destination-row padding unchanged.
+        v0.StoreUnsafe(ref output);
+        v1.StoreUnsafe(ref output, (nuint)stride);
+        v2.StoreUnsafe(ref output, (nuint)(2 * stride));
+        v3.StoreUnsafe(ref output, (nuint)(3 * stride));
+        v4.StoreUnsafe(ref output, (nuint)(4 * stride));
+        v5.StoreUnsafe(ref output, (nuint)(5 * stride));
+        v6.StoreUnsafe(ref output, (nuint)(6 * stride));
+        v7.StoreUnsafe(ref output, (nuint)(7 * stride));
+    }
+
+    /// <summary>
     /// Transforms contiguous columns along one axis. Source and destination must not overlap.
     /// </summary>
     /// <param name="source">The input matrix from its logical origin.</param>

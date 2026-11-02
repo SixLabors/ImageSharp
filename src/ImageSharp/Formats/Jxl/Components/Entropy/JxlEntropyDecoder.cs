@@ -85,7 +85,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="reader">The bounded bit reader.</param>
         /// <param name="tableOffset">The selected cluster's table offset.</param>
         /// <returns>The entropy-coded token before hybrid-integer expansion.</returns>
-        static abstract uint ReadCode(scoped ref Reader entropy, scoped ref JxlBitReader reader, int tableOffset);
+        static abstract uint ReadCode(ref Reader entropy, ref JxlBitReader reader, int tableOffset);
     }
 
     /// <summary>
@@ -117,7 +117,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// <param name="contextCount">The context count fixed by the consuming syntax.</param>
     /// <param name="allowLz77">Whether this syntax permits copy tokens.</param>
     /// <returns>The table owner. Dispose it after all borrowed readers finish.</returns>
-    public static JxlEntropyDecoder Read(scoped ref JxlBitReader reader, MemoryAllocator allocator, int contextCount, bool allowLz77)
+    public static JxlEntropyDecoder Read(ref JxlBitReader reader, MemoryAllocator allocator, int contextCount, bool allowLz77)
     {
         bool lz77 = reader.ReadBoolean();
         if (lz77 && !allowLz77)
@@ -296,7 +296,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// </summary>
     /// <param name="reader">The bit reader positioned at the section's initial ANS state, when present.</param>
     /// <returns>The section reader.</returns>
-    public Reader CreateReader(scoped ref JxlBitReader reader) => new(this, ref reader);
+    public Reader CreateReader(ref JxlBitReader reader) => new(this, this.ansBuckets is null ? FinalAnsState : reader.ReadBits(32));
 
     /// <inheritdoc/>
     public void Dispose()
@@ -316,7 +316,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// <remarks>
     /// This method validates dense cluster numbering. The caller validates any smaller cluster limit required by its own syntax.
     /// </remarks>
-    public static void ReadContextMap(scoped ref JxlBitReader reader, MemoryAllocator allocator, scoped Span<byte> map)
+    public static void ReadContextMap(ref JxlBitReader reader, MemoryAllocator allocator, Span<byte> map)
     {
         if (reader.ReadBoolean())
         {
@@ -404,7 +404,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint ReadCode(scoped ref Reader entropy, scoped ref JxlBitReader reader, int tableOffset)
+        public static uint ReadCode(ref Reader entropy, ref JxlBitReader reader, int tableOffset)
             => entropy.ReadAnsCode(ref reader, tableOffset);
     }
 
@@ -418,7 +418,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint ReadCode(scoped ref Reader entropy, scoped ref JxlBitReader reader, int tableOffset)
+        public static uint ReadCode(ref Reader entropy, ref JxlBitReader reader, int tableOffset)
             => entropy.ReadAnsCode(ref reader, tableOffset);
     }
 
@@ -432,7 +432,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint ReadCode(scoped ref Reader entropy, scoped ref JxlBitReader reader, int tableOffset)
+        public static uint ReadCode(ref Reader entropy, ref JxlBitReader reader, int tableOffset)
             => entropy.ReadPrefixCode(ref reader, tableOffset);
     }
 
@@ -446,7 +446,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint ReadCode(scoped ref Reader entropy, scoped ref JxlBitReader reader, int tableOffset)
+        public static uint ReadCode(ref Reader entropy, ref JxlBitReader reader, int tableOffset)
             => entropy.ReadPrefixCode(ref reader, tableOffset);
     }
 
@@ -468,8 +468,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// Initializes a new instance of the <see cref="Reader"/> struct and borrows the owner's table spans.
         /// </summary>
         /// <param name="code">The table owner, which must outlive this reader.</param>
-        /// <param name="reader">The section bit reader.</param>
-        public Reader(JxlEntropyDecoder code, scoped ref JxlBitReader reader)
+        /// <param name="initialState">The section's decoded ANS state, or the unused final-state constant for prefix coding.</param>
+        public Reader(JxlEntropyDecoder code, uint initialState)
         {
             // Cache borrowed spans once. The owner outlives this stack-only reader and returns its storage
             // only after decoding finishes; no per-symbol rent or Memory.Span access is required.
@@ -478,7 +478,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
             this.clusters = code.clusters.Memory.Span;
             this.prefix = code.prefixCodes is null ? [] : code.prefixCodes.Memory.Span;
             this.buckets = code.ansBuckets is null ? [] : code.ansBuckets.Memory.Span;
-            this.state = this.buckets.IsEmpty ? FinalAnsState : reader.ReadBits(32);
+            this.state = initialState;
             this.remainingCopy = 0;
             this.copyDistance = 0;
         }
@@ -490,7 +490,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="context">The context fixed by the consumer's syntax or preceding decoded bytes.</param>
         /// <param name="decoded">All preceding bytes in this entropy section.</param>
         /// <returns>The next byte.</returns>
-        public byte ReadByte(scoped ref JxlBitReader reader, int context, scoped ReadOnlySpan<byte> decoded)
+        public byte ReadByte(ref JxlBitReader reader, int context, ReadOnlySpan<byte> decoded)
         {
             if (this.remainingCopy != 0)
             {
@@ -533,7 +533,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// </param>
         /// <param name="decodedCount">The number of preceding values, including values already copied.</param>
         /// <returns>The next literal or copied value. Nonempty history receives the returned value.</returns>
-        public uint ReadUInt32(scoped ref JxlBitReader reader, int context, scoped Span<uint> history, uint decodedCount)
+        public uint ReadUInt32(ref JxlBitReader reader, int context, Span<uint> history, uint decodedCount)
             => this.ReadUInt32(ref reader, context, history, decodedCount, 0);
 
         /// <summary>
@@ -545,7 +545,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="decodedCount">The number of preceding residual values in this stream.</param>
         /// <param name="distanceMultiplier">Zero for linear distances, or the maximum encoded channel width for modular samples.</param>
         /// <returns>The decoded residual before prediction. Nonempty history receives the returned value.</returns>
-        public uint ReadUInt32(scoped ref JxlBitReader reader, int context, scoped Span<uint> history, uint decodedCount, int distanceMultiplier)
+        public uint ReadUInt32(ref JxlBitReader reader, int context, Span<uint> history, uint decodedCount, int distanceMultiplier)
         {
             // General consumers select the completed table mode here. Repeated consumers can select
             // the same operator once outside their loop through the constrained overload below.
@@ -573,9 +573,9 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <returns>The literal or copied value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint ReadUInt32<TOperator>(
-            scoped ref JxlBitReader reader,
+            ref JxlBitReader reader,
             int context,
-            scoped Span<uint> history,
+            Span<uint> history,
             uint decodedCount,
             int distanceMultiplier)
             where TOperator : struct, IEntropyOperator
@@ -638,7 +638,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="context">The consuming syntax's context.</param>
         /// <param name="copyCount">Zero for a literal, or the decoded copy length.</param>
         /// <returns>The literal or distance symbol. Image consumers apply their own two-dimensional distance mapping.</returns>
-        public uint ReadToken(scoped ref JxlBitReader reader, int context, out uint copyCount)
+        public uint ReadToken(ref JxlBitReader reader, int context, out uint copyCount)
         {
             if (this.code.UsesPrefixCodes)
             {
@@ -661,7 +661,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="copyCount">Zero for a literal, or the decoded copy length.</param>
         /// <returns>The literal or copy-distance value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint ReadToken<TOperator>(scoped ref JxlBitReader reader, int context, out uint copyCount)
+        private uint ReadToken<TOperator>(ref JxlBitReader reader, int context, out uint copyCount)
             where TOperator : struct, IEntropyOperator
         {
             ref readonly Cluster cluster = ref this.clusters[this.contextMap[context]];
@@ -706,7 +706,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="tableOffset">The selected cluster's root table offset.</param>
         /// <returns>The unexpanded symbol.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint ReadPrefixCode(scoped ref JxlBitReader reader, int tableOffset)
+        public uint ReadPrefixCode(ref JxlBitReader reader, int tableOffset)
         {
             // The first eight bits select the cluster's root entry. A longer entry points into a
             // second-level table relative to that root position; only then consume the root bits separately.
@@ -730,7 +730,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="tableOffset">The selected cluster's alias table offset.</param>
         /// <returns>The unexpanded symbol.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint ReadAnsCode(scoped ref JxlBitReader reader, int tableOffset)
+        public uint ReadAnsCode(ref JxlBitReader reader, int tableOffset)
         {
             // Split the state's low twelve bits into a bucket number and a position within that bucket.
             // The alias entry supplies the alternate frequency and cumulative offset without a 4096-entry table.
@@ -823,7 +823,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="reader">The bounded bit reader.</param>
         /// <param name="alphabetBits">The entropy alphabet's maximum bit width.</param>
         /// <returns>The validated configuration.</returns>
-        public static HybridUint Read(scoped ref JxlBitReader reader, int alphabetBits)
+        public static HybridUint Read(ref JxlBitReader reader, int alphabetBits)
         {
             // A split at the alphabet width encodes values directly. Smaller splits also describe
             // leading and trailing token bits; their combined width cannot exceed the split exponent.
@@ -860,7 +860,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="token">The entropy-coded token.</param>
         /// <returns>The reconstructed unsigned value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint Expand(scoped ref JxlBitReader reader, uint token)
+        public uint Expand(ref JxlBitReader reader, uint token)
         {
             uint split = 1U << this.splitExponent;
             if (token < split)

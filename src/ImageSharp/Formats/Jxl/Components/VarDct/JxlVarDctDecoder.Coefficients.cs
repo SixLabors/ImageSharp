@@ -72,15 +72,16 @@ internal sealed partial class JxlVarDctDecoder
         => MemoryMarshal.Cast<byte, int>(this.coefficientMemory.Span).Slice(this.coefficientOffsets[component], this.coefficientCounts[component]);
 
     /// <summary>
-    /// Reads one group's selected pass and accumulates its signed coefficients in the reusable typed workspace.
+    /// Reads one group's selected pass and reconstructs each completed block during its final pass.
     /// </summary>
     /// <param name="reader">The bounded AC-group reader at its histogram selector.</param>
     /// <param name="group">The validated row-major AC group index.</param>
     /// <param name="pass">The progressive pass index, starting at zero for each group.</param>
     /// <param name="cancellationToken">The token checked between block rows and transform origins.</param>
     /// <remarks>
-    /// Read all passes of one group before reconstruction and before starting another group.
+    /// Call <see cref="PrepareReconstruction"/> before reading groups. Read all passes of one group before starting another group.
     /// Pass zero clears only the active coefficient planes; later passes add their shifted values.
+    /// Each final-pass block consumes all accumulated contributions before the same traversal advances to the next transform.
     /// Nonzero predictors and LZ77 positions start again for every group/pass, as prescribed by the entropy syntax.
     /// </remarks>
     public void ReadAcGroup(ref JxlBitReader reader, int group, int pass, CancellationToken cancellationToken)
@@ -248,6 +249,12 @@ internal sealed partial class JxlVarDctDecoder
         Span<byte> nonzeroStorage = this.nonzeroMemory.Span;
         Span<byte> nonzeros = nonzeroStorage[..(nonzeroStorage.Length / 2)];
         Span<byte> hasAc = nonzeroStorage[nonzeros.Length..];
+        bool reconstruct = pass == this.acPasses.Count - 1;
+        Span<float> reconstruction = reconstruct ? this.reconstructionMemory.Span : [];
+        ReadOnlySpan<float> matrices = reconstruct ? this.QuantizationMatrices : [];
+        ReadOnlySpan<int> matrixOffsets = reconstruct ? this.QuantizationMatrixOffsets : [];
+        InlineArray64<TCoefficient> zeroStorage = default;
+        ReadOnlySpan<TCoefficient> zeros = zeroStorage;
         Buffer2DRegion<byte> strategies = this.Strategies.GetSubRegion(rectangle);
         Buffer2DRegion<int> quantization = this.Quantization.GetSubRegion(rectangle);
         Buffer2DRegion<byte> dcContexts = this.DcContexts.GetSubRegion(rectangle);
@@ -273,6 +280,9 @@ internal sealed partial class JxlVarDctDecoder
             ReadOnlySpan<byte> strategyRow = strategies.DangerousGetRowSpan(y);
             ReadOnlySpan<int> quantizerRow = quantization.DangerousGetRowSpan(y);
             ReadOnlySpan<byte> dcRow = dcContexts.DangerousGetRowSpan(y);
+            int fullY = rectangle.Y + y;
+            ReadOnlySpan<sbyte> correlationX = reconstruct ? this.CorrelationX.DangerousGetRowSpan(fullY >> ColorTileShift) : [];
+            ReadOnlySpan<sbyte> correlationB = reconstruct ? this.CorrelationB.DangerousGetRowSpan(fullY >> ColorTileShift) : [];
             for (int x = 0; x < rectangle.Width; x++)
             {
                 byte packedStrategy = strategyRow[x];
@@ -289,6 +299,8 @@ internal sealed partial class JxlVarDctDecoder
                 int size = coveredBlocks * CoefficientBlockArea;
                 int blockShift = BitOperations.Log2((uint)coveredBlocks);
                 int orderFamily = orderFamilies[strategy];
+                int active = 0;
+                int acComponents = 0;
 
                 // Entropy always visits Y, X, B. Subsampled components only have a block at their aligned full-grid origins.
                 // AC metadata already forbids multiblock transforms with subsampling, so an active reduced component still has 64 coefficients.
@@ -305,6 +317,7 @@ internal sealed partial class JxlVarDctDecoder
                     }
 
                     int rowWidth = rectangle.Width >> horizontalShift;
+                    active |= 1 << component;
                     int predictorOffset = (this.coefficientOffsets[component] / CoefficientBlockArea) + (sampleY * rowWidth) + sampleX;
                     int predicted = sampleX == 0
                         ? sampleY == 0 ? 32 : nonzeros[predictorOffset - rowWidth]
@@ -343,6 +356,11 @@ internal sealed partial class JxlVarDctDecoder
                         {
                             hasAc.Slice(predictorOffset + (row * rowWidth), coveredWidth).Fill(1);
                         }
+                    }
+
+                    if (hasAc[predictorOffset] != 0)
+                    {
+                        acComponents |= 1 << component;
                     }
 
                     int densityOffset = histogramOffset + (blockContextCount * NonzeroContextCount) + (blockContext * ZeroDensityContextCount);
@@ -384,6 +402,37 @@ internal sealed partial class JxlVarDctDecoder
                     {
                         throw new InvalidImageContentException("The JPEG XL AC scan ends before all declared nonzero coefficients.");
                     }
+                }
+
+                if (reconstruct)
+                {
+                    // Earlier passes already occupy these typed blocks. The final pass has now added all
+                    // three components, so reconstruct while the strategy, sampling and quantizer are still known.
+                    // Inactive subsampled components need only one zero block; multiblock subsampling was rejected in AC metadata.
+                    ReadOnlySpan<TCoefficient> qx = (active & 1) != 0 ? coefficients.Slice(positions[0] - size, size) : zeros[..size];
+                    ReadOnlySpan<TCoefficient> qy = (active & 2) != 0 ? coefficients.Slice(positions[1] - size, size) : zeros[..size];
+                    ReadOnlySpan<TCoefficient> qb = (active & 4) != 0 ? coefficients.Slice(positions[2] - size, size) : zeros[..size];
+                    int fullX = rectangle.X + x;
+                    int matrixOffset = matrixOffsets[GetQuantizationMatrixIndex(strategy, 0)];
+                    Vector2 correlation = new(
+                        this.BaseCorrelationX + (correlationX[fullX >> ColorTileShift] * this.ColorScale),
+                        this.BaseCorrelationB + (correlationB[fullX >> ColorTileShift] * this.ColorScale));
+
+                    this.ReconstructBlock(
+                        fullX,
+                        fullY,
+                        strategy,
+                        coveredWidth,
+                        coveredHeight,
+                        active,
+                        acComponents,
+                        qx,
+                        qy,
+                        qb,
+                        matrices.Slice(matrixOffset, 3 * size),
+                        reconstruction,
+                        this.InverseGlobalScale / quantizerRow[x],
+                        correlation);
                 }
             }
         }

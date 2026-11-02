@@ -17,7 +17,7 @@ internal static class JxlHuffmanDecoder
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
     /// <param name="lengths">The destination, with one entry per alphabet symbol.</param>
-    public static void ReadCodeLengths(ref JxlBitReader reader, scoped Span<int> lengths)
+    public static void ReadCodeLengths(ref JxlBitReader reader, Span<int> lengths)
     {
         lengths.Clear();
         if (lengths.Length == 1)

@@ -68,8 +68,7 @@ public partial class JxlHeaderTests
             MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
             using MemoryStream stream = new(TestFile.Create(files[index]).Bytes, false);
             using BufferedReadStream buffered = new(Configuration.Default, stream);
-            InlineArray64<byte> readerBuffer = default;
-            JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+            JxlBitReader reader = new(new JxlCodestreamReader(buffered));
             JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
             JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
             Assert.Equal(framePositions[index], reader.Position);

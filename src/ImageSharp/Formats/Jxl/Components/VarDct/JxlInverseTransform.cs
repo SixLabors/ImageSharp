@@ -162,6 +162,12 @@ internal static partial class JxlInverseTransform
     /// <param name="scratch">One matrix plane followed by axis storage.</param>
     private static void InverseDct(Span<float> coefficients, int rows, int columns, Span<float> destination, int stride, Span<float> scratch)
     {
+        if (rows == 8 && columns == 8 && Vector256.IsHardwareAccelerated)
+        {
+            InverseDct8By8(coefficients, destination, stride);
+            return;
+        }
+
         int area = rows * columns;
         Span<float> temporary = scratch[..area];
         Span<float> axes = scratch[area..];

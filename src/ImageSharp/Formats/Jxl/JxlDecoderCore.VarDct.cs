@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
@@ -111,11 +112,13 @@ internal sealed partial class JxlDecoderCore
         Buffer2DRegion<float> component1 = varDct.GetReconstructedChannel(1);
         Buffer2DRegion<float> component2 = varDct.GetReconstructedChannel(2);
         using IMemoryOwner<Vector4> vectorOwner = configuration.MemoryAllocator.Allocate<Vector4>(width);
+        using IMemoryOwner<Rgb>? rgbOwner = header.UsesXybTransform ? configuration.MemoryAllocator.Allocate<Rgb>(width) : null;
         using IMemoryOwner<float>? alphaOwner = alphaChannel < 0 || upsampledAlpha.HasValue
             ? null
             : configuration.MemoryAllocator.Allocate<float>(width);
 
         Span<Vector4> vectors = vectorOwner.Memory.Span;
+        Span<Rgb> rgb = rgbOwner is null ? [] : rgbOwner.Memory.Span;
         Span<float> alpha = alphaOwner is null ? [] : alphaOwner.Memory.Span;
         float alphaMaximum = MathF.ScaleB(1F, alphaDepth.BitsPerSample) - 1F;
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
@@ -126,14 +129,10 @@ internal sealed partial class JxlDecoderCore
             XybTransform = header.XybTransform
         };
 
-        // One stack block holds a full sixteen-color Vector512 group. The shared model APIs own all
-        // SIMD arithmetic and scalar tails. Their three-component storage does not contain alpha.
-        InlineArray16<Xyb> xybStorage = default;
-        InlineArray16<Rgb> rgbStorage = default;
-        InlineArray16<Vector4> convertedStorage = default;
-        Span<Xyb> xyb = xybStorage;
-        Span<Rgb> rgb = rgbStorage;
-        Span<Vector4> converted = convertedStorage;
+        // Packed XYB needs three floats per sample and fits in the four-float vector row. The RGB row
+        // remains separate: conversion finishes reading XYB before pixel vectors overwrite that storage.
+        // Both model types use sequential three-float layouts. Alpha stays in its own row until conversion finishes.
+        Span<Xyb> xyb = header.UsesXybTransform ? MemoryMarshal.Cast<Vector4, Xyb>(vectors)[..width] : [];
         bool convertGamma = !header.UsesXybTransform && header.Gamma.HasValue;
         double expansionGamma = header.Gamma is Rational gamma ? (double)gamma.Denominator / gamma.Numerator : 1D;
 
@@ -153,36 +152,47 @@ internal sealed partial class JxlDecoderCore
                 TensorPrimitives.Divide(alpha, alphaMaximum, alpha);
             }
 
-            SimdUtils.InterleaveFloatPlanes(
-                component0.DangerousGetRowSpan(y), component1.DangerousGetRowSpan(y), component2.DangerousGetRowSpan(y), rowAlpha, vectors);
-
             if (header.UsesXybTransform)
             {
                 // XYB reconstructs working sRGB directly from its encoded matrix and intensity target.
                 // An embedded profile describes the original image's suggested output space; it must
                 // not be applied to these reconstructed sRGB samples as though they were device RGB.
-                for (int x = 0; x < width; x += xyb.Length)
+                // A unit scale preserves finite values, including signed zero. The shared interleave
+                // and model methods own SIMD widths and scalar tails; each model call receives the complete row.
+                SimdUtils.PackedNormalizeInterleave3(
+                    component0.DangerousGetRowSpan(y),
+                    component1.DangerousGetRowSpan(y),
+                    component2.DangerousGetRowSpan(y),
+                    MemoryMarshal.Cast<Xyb, float>(xyb),
+                    1F);
+
+                Xyb.ToProfileConnectionSpace(conversion, xyb, rgb);
+                Rgb.ToScaledVector4(rgb, vectors);
+                if (!rowAlpha.IsEmpty)
                 {
-                    int count = Math.Min(xyb.Length, width - x);
-                    Span<Vector4> block = vectors.Slice(x, count);
-                    Xyb.FromScaledVector4(block, xyb[..count]);
-                    Xyb.ToProfileConnectionSpace(conversion, xyb[..count], rgb[..count]);
-                    Rgb.ToScaledVector4(rgb[..count], converted[..count]);
-                    for (int i = 0; i < count; i++)
+                    // RGB supplies opaque W values. Restore encoded alpha only when it exists;
+                    // the destination pixel conversion below still owns its bounds and association.
+                    for (int x = 0; x < width; x++)
                     {
-                        block[i] = Numerics.WithW(converted[i], block[i]);
+                        vectors[x].W = rowAlpha[x];
                     }
                 }
             }
-            else if (convertGamma)
+            else
             {
-                if (alphaRepresentation == PixelAlphaRepresentation.Associated)
-                {
-                    PixelOperations.UnPremultiply(vectors, vectors);
-                }
+                SimdUtils.InterleaveFloatPlanes(
+                    component0.DangerousGetRowSpan(y), component1.DangerousGetRowSpan(y), component2.DangerousGetRowSpan(y), rowAlpha, vectors);
 
-                GammaCompanding.Expand(vectors, expansionGamma);
-                SRgbCompanding.Compress(vectors);
+                if (convertGamma)
+                {
+                    if (alphaRepresentation == PixelAlphaRepresentation.Associated)
+                    {
+                        PixelOperations.UnPremultiply(vectors, vectors);
+                    }
+
+                    GammaCompanding.Expand(vectors, expansionGamma);
+                    SRgbCompanding.Compress(vectors);
+                }
             }
 
             // Color and filters retain float samples. The destination pixel API owns its finite range,

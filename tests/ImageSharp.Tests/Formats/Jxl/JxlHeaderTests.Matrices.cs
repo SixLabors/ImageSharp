@@ -51,8 +51,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
-        InlineArray64<byte> frameReaderBuffer = default;
-        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered), frameReaderBuffer);
+        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
         JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -72,16 +71,14 @@ public partial class JxlHeaderTests
         {
             using MemoryStream selectionInput = new(TestFile.Create(selection).Bytes, false);
             using BufferedReadStream selectionBuffered = new(Configuration.Default, selectionInput);
-            InlineArray64<byte> selectionReaderBuffer = default;
-            JxlBitReader selectionReader = new(new JxlCodestreamReader(selectionBuffered), selectionReaderBuffer);
+            JxlBitReader selectionReader = new(new JxlCodestreamReader(selectionBuffered));
             Assert.Equal(0x0AFFU, selectionReader.ReadBits(16));
             varDct.ReadAcMetadata(ref selectionReader, modular, 0, default);
         }
 
         using MemoryStream input = new(TestFile.Create(matrices).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
 
         // The rectangular case includes an unused RAW family with three 8-by-32 integer planes. It must consume
@@ -140,8 +137,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream ownerInput = new(TestFile.Create(TestImages.Jxl.VarDctRectangularOwner).Bytes, false);
         using BufferedReadStream ownerBuffered = new(Configuration.Default, ownerInput);
-        InlineArray64<byte> ownerReaderBuffer = default;
-        JxlBitReader ownerReader = new(new JxlCodestreamReader(ownerBuffered), ownerReaderBuffer);
+        JxlBitReader ownerReader = new(new JxlCodestreamReader(ownerBuffered));
         JxlHeader header = JxlHeader.Read(ref ownerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref ownerReader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal(new Size(8, 32), header.Size);
@@ -157,8 +153,7 @@ public partial class JxlHeaderTests
 
         using MemoryStream selectionInput = new(TestFile.Create(selection).Bytes, false);
         using BufferedReadStream selectionBuffered = new(Configuration.Default, selectionInput);
-        InlineArray64<byte> selectionReaderBuffer = default;
-        JxlBitReader selectionReader = new(new JxlCodestreamReader(selectionBuffered), selectionReaderBuffer);
+        JxlBitReader selectionReader = new(new JxlCodestreamReader(selectionBuffered));
         Assert.Equal(0x0AFFU, selectionReader.ReadBits(16));
         varDct.ReadAcMetadata(ref selectionReader, modular, 0, default);
         Assert.Equal(16 + selectionBits, selectionReader.Position);
@@ -166,8 +161,7 @@ public partial class JxlHeaderTests
 
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctRectangularMatrices).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         varDct.ReadQuantizationMatrices(ref reader, modular, Configuration.Default.MemoryAllocator, default);
         Assert.Equal(16 + 753, reader.Position);

@@ -31,8 +31,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LowFrequencyPyramid).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
         JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
         Assert.Equal(new Size(64, 64), header.Size);
@@ -69,8 +68,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -141,6 +139,7 @@ public partial class JxlHeaderTests
         // Both references consume the complete AC-global description at these bit offsets. The remaining
         // bits belong to the AC coefficient group, not to padding between the global and group descriptions.
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(start + (file == TestImages.Jxl.Square ? 360 : 618), reader.Position);
         Assert.Equal(1U, varDct.AcHistogramSetCount);
         Assert.Equal(1, varDct.AcPassCount);
@@ -224,8 +223,6 @@ public partial class JxlHeaderTests
             0x3F0A49C5U, 0x3ED3EC7AU, 0x3F451DC7U, 0x3E094DFDU, 0x3E3A08ABU, 0x3ECABA1DU, 0x3F85624EU, 0x3F020871U, 0xBE1B5B2EU
         ];
 
-        varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
-        varDct.ReconstructGroup(0, default);
         for (int component = 0; component < 3; component++)
         {
             Buffer2DRegion<float> reconstructed = varDct.GetReconstructedChannel(component);
@@ -263,8 +260,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctProgressiveLzOwner).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal((byte)2, frame.PassCount);
@@ -275,6 +271,7 @@ public partial class JxlHeaderTests
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(363, reader.Position);
 
         // One cluster serves both literal and distance contexts. Native width selection interprets copy token
@@ -311,8 +308,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctWideCoefficientsOwner).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
@@ -321,6 +317,7 @@ public partial class JxlHeaderTests
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(272, reader.Position);
         Assert.Equal(32, varDct.MaximumAcValueBits);
         Assert.False(varDct.Uses16BitCoefficients);
@@ -350,8 +347,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctSubsampledQfOwner).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal(new Size(32, 8), frame.CodingSize);
@@ -365,6 +361,7 @@ public partial class JxlHeaderTests
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
         varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
         Assert.Equal(590, reader.Position);
         Assert.True(varDct.Uses16BitCoefficients);
 
@@ -430,8 +427,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
-        InlineArray64<byte> frameReaderBuffer = default;
-        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered), frameReaderBuffer);
+        JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
         JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -443,8 +439,7 @@ public partial class JxlHeaderTests
 
         using MemoryStream input = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
 
@@ -470,11 +465,14 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         using JxlEntropyDecoder entropy = JxlEntropyDecoder.Read(ref reader, Configuration.Default.MemoryAllocator, 2, true);
-        JxlEntropyDecoder.Reader symbols = new(entropy, ref reader);
+        InlineArray4<byte> byteStorage = default;
+        InlineArray4<uint> integerStorage = default;
+        Span<byte> byteHistory = byteStorage;
+        Span<uint> integerHistory = integerStorage;
+        JxlEntropyDecoder.Reader symbols = entropy.CreateReader(ref reader);
 
         // Context zero emits literal 7. Context one emits a length-three copy at distance one.
         // Both references return [7, 7] and accept the final state with two copied values still unused.
@@ -482,18 +480,14 @@ public partial class JxlHeaderTests
         uint second;
         if (byteValues)
         {
-            InlineArray4<byte> storage = default;
-            Span<byte> history = storage;
-            history[0] = symbols.ReadByte(ref reader, 0, []);
-            first = history[0];
-            second = symbols.ReadByte(ref reader, 1, history[..1]);
+            byteHistory[0] = symbols.ReadByte(ref reader, 0, []);
+            first = byteHistory[0];
+            second = symbols.ReadByte(ref reader, 1, byteHistory[..1]);
         }
         else
         {
-            InlineArray4<uint> storage = default;
-            Span<uint> history = storage;
-            first = symbols.ReadUInt32(ref reader, 0, history, 0);
-            second = symbols.ReadUInt32(ref reader, 1, history, 1);
+            first = symbols.ReadUInt32(ref reader, 0, integerHistory, 0);
+            second = symbols.ReadUInt32(ref reader, 1, integerHistory, 1);
         }
 
         Assert.Equal(7U, first);
@@ -509,11 +503,10 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.TerminalLzCopyInvalidAns).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         using JxlEntropyDecoder entropy = JxlEntropyDecoder.Read(ref reader, Configuration.Default.MemoryAllocator, 2, true);
-        JxlEntropyDecoder.Reader symbols = new(entropy, ref reader);
+        JxlEntropyDecoder.Reader symbols = entropy.CreateReader(ref reader);
         InlineArray4<uint> storage = default;
         Span<uint> history = storage;
 
@@ -542,8 +535,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.PermutedSections).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -585,8 +577,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.CmykLayers).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         Assert.Equal(new Size(512, 512), header.Size);
@@ -613,8 +604,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LosslessFloat).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         Assert.Equal(new Size(500, 500), header.Size);
@@ -631,12 +621,9 @@ public partial class JxlHeaderTests
         // This stored input contains the first 80 bytes of with_icc.jxl. The reference inspector also rejects it as truncated.
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.TruncatedIcc).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        Assert.Throws<InvalidImageContentException>(() =>
-        {
-            InlineArray64<byte> readerBuffer = default;
-            JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
-            JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
-        });
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+
+        Assert.Throws<InvalidImageContentException>(() => JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict));
     }
 
     /// <summary>
@@ -655,8 +642,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.SpotColor).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         Assert.Equal(new Size(600, 400), header.Size);
@@ -689,8 +675,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         Assert.Equal(new Size(width, height), header.Size);
@@ -719,8 +704,7 @@ public partial class JxlHeaderTests
         configuration.MemoryAllocator = new TestMemoryAllocator();
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(configuration, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, configuration.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         // jxl_cli --original-icc-out extracts the embedded bytes before color conversion.
@@ -743,8 +727,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.CroppedTrafficLight).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         Assert.Equal(new Rational(100, 1), header.TicksPerSecond);
@@ -762,8 +745,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Orientation6).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         // The reference inspector reports the displayed 256-by-100 size after applying orientation 6.
@@ -780,8 +762,7 @@ public partial class JxlHeaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.WithPreview).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
 
         Assert.Equal(new Size(64, 64), header.Size);

@@ -14,21 +14,16 @@ public class JxlBitReaderTests
     /// Verifies bit order, zero-width fields, complete 32-bit reads and a reservoir refill across container fragments.
     /// </summary>
     /// <param name="file">The stored raw or fragmented codestream.</param>
-    /// <param name="windowSize">The borrowed window size. Eight bytes forces physical refills; 64 retains later fields.</param>
     [Theory]
-    [InlineData(TestImages.Jxl.Splines, 8)]
-    [InlineData(TestImages.Jxl.Splines, 64)]
-    [InlineData(TestImages.Jxl.SplinesFragmentedV0, 8)]
-    [InlineData(TestImages.Jxl.SplinesFragmentedV0, 64)]
-    [InlineData(TestImages.Jxl.SplinesFragmentedV1, 8)]
-    [InlineData(TestImages.Jxl.SplinesFragmentedV1, 64)]
-    public void ReadBitsRetainsFieldOrderAcrossRefills(string file, int windowSize)
+    [InlineData(TestImages.Jxl.Splines)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV0)]
+    [InlineData(TestImages.Jxl.SplinesFragmentedV1)]
+    public void ReadBitsRetainsFieldOrderAcrossRefills(string file)
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlCodestreamReader codestream = new(buffered);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(codestream, readerBuffer[..windowSize]);
+        JxlBitReader reader = new(codestream);
 
         // These literal values describe the first twelve stored bytes of libjxl's splines codestream.
         // They are independent of the container reader and include the transition to a second 64-bit reservoir.
@@ -40,35 +35,6 @@ public class JxlBitReaderTests
         Assert.Equal(0x63U, reader.ReadBits(8));
         Assert.Equal(0x00E00010U, reader.ReadBits(32));
         Assert.Equal(96, reader.Position);
-
-        // An ended section must retain later prefetched window bytes without consuming them early.
-        reader.SeekBytePosition(0);
-        Assert.Equal(0x0AFFU, reader.ReadBits(16));
-        reader.BeginSection(1);
-        Assert.Equal(0xFAU, reader.ReadBits(8));
-        reader.EndSection();
-        Assert.Equal(0x90013FU, reader.ReadBits(24));
-
-        // Bit and byte skips must drain both caches before advancing the physical source. The next three
-        // bytes at offset nine are 00 E0 00 in the independently recorded twelve-byte prefix above.
-        reader.SeekBytePosition(0);
-        reader.ReadBits(1);
-        reader.SkipBits(71);
-        Assert.Equal(0x00E000U, reader.ReadBits(24));
-        reader.SeekBytePosition(0);
-        reader.ReadBits(8);
-        Assert.True(reader.TrySkipBytes(8));
-        Assert.Equal(0x00E000U, reader.ReadBits(24));
-
-        // An aligned byte copy follows the same cache order as bit reads.
-        reader.SeekBytePosition(0);
-        reader.ReadBits(8);
-        InlineArray8<byte> byteFields = default;
-        reader.ReadBytes(byteFields);
-        ReadOnlySpan<byte> expectedFields = [0x0A, 0xFA, 0x3F, 0x01, 0x90, 0xD8, 0x63, 0x10];
-
-        Assert.True(((ReadOnlySpan<byte>)byteFields).SequenceEqual(expectedFields));
-        Assert.Equal(72, reader.Position);
 
         // Start a one-byte section and prefetch its bits, then move back to the signature.
         // Reading sixteen bits proves that seeking discards both the cached bits and the previous eight-bit section bound.
@@ -97,8 +63,7 @@ public class JxlBitReaderTests
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlCodestreamReader codestream = new(buffered);
-        InlineArray64<byte> readerBuffer = default;
-        JxlBitReader reader = new(codestream, readerBuffer);
+        JxlBitReader reader = new(codestream);
 
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
 
@@ -113,15 +78,11 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.WidthExceedsInt32).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        // The stored header declares height 2^30 and ratio 2:1. Its derived width is 2^31, beyond Size's int range.
-        InvalidImageContentException error = Assert.Throws<InvalidImageContentException>(() =>
-        {
-            InlineArray64<byte> readerBuffer = default;
-            JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
-            Assert.Equal(0x0AFFU, reader.ReadBits(16));
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        Assert.Equal(0x0AFFU, reader.ReadBits(16));
 
-            reader.ReadSize();
-        });
+        // The stored header declares height 2^30 and ratio 2:1. Its derived width is 2^31, beyond Size's int range.
+        InvalidImageContentException error = Assert.Throws<InvalidImageContentException>(() => reader.ReadSize());
 
         Assert.Contains("width", error.Message);
     }
@@ -134,21 +95,17 @@ public class JxlBitReaderTests
     {
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
-        Assert.Throws<InvalidImageContentException>(() =>
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+
+        // The stored codestream contains 81 bytes. Consume every actual bit, including the final short refill.
+        for (int i = 0; i < 20; i++)
         {
-            InlineArray64<byte> readerBuffer = default;
-            JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
+            reader.ReadBits(32);
+        }
 
-            // The stored codestream contains 81 bytes. Consume every actual bit, including the final short refill.
-            for (int i = 0; i < 20; i++)
-            {
-                reader.ReadBits(32);
-            }
+        reader.ReadBits(8);
 
-            reader.ReadBits(8);
-
-            Assert.Equal(648, reader.Position);
-            reader.ReadBits(1);
-        });
+        Assert.Equal(648, reader.Position);
+        Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(1));
     }
 }

@@ -136,7 +136,7 @@ internal sealed class JxlFrameSections : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The optional order owner and combined section payload length.</returns>
     private static (IMemoryOwner<uint>? Order, long Length) ReadTable(
-        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, scoped Span<uint> sizes, CancellationToken cancellationToken)
+        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, Span<uint> sizes, CancellationToken cancellationToken)
     {
         bool permuted = reader.ReadBoolean();
         reader.CheckBitBudget((ulong)sectionCount * MinimumBitsPerEntry);
@@ -188,7 +188,7 @@ internal sealed class JxlFrameSections : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The logical-to-physical order owner, or null for Identify or a zero-length encoded permutation.</returns>
     private static IMemoryOwner<uint>? ReadPermutation(
-        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, scoped Span<uint> workspace, CancellationToken cancellationToken)
+        ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, Span<uint> workspace, CancellationToken cancellationToken)
     {
         using JxlEntropyDecoder codes = JxlEntropyDecoder.Read(ref reader, allocator, JxlPermutation.ContextCount, true);
         JxlEntropyDecoder.Reader symbols = codes.CreateReader(ref reader);

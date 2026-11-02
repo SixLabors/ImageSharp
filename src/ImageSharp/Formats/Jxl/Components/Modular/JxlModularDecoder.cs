@@ -201,7 +201,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// Completed samples remain in the supplied regions. Temporary transformed samples are released before this method returns.
     /// </remarks>
     public void ReadChannels(
-        ref JxlBitReader reader, scoped ReadOnlySpan<JxlModularChannel> targets, int streamId, int sampleBitDepth, CancellationToken cancellationToken)
+        ref JxlBitReader reader, ReadOnlySpan<JxlModularChannel> targets, int streamId, int sampleBitDepth, CancellationToken cancellationToken)
     {
         this.groupChannels.Clear();
         this.groupTargets.Clear();
@@ -608,22 +608,68 @@ internal sealed partial class JxlModularDecoder : IDisposable
         JxlWeightedPredictor weightedPredictor,
         CancellationToken cancellationToken)
     {
+        // A stream retains one coding mode across all channels. Select it before the sample traversal,
+        // so every predictor worker uses the same closed entropy path without testing the mode per value.
+        if (tree.Codes.UsesPrefixCodes)
+        {
+            if (tree.Codes.UsesLz77)
+            {
+                this.DecodeSamples<JxlEntropyDecoder.PrefixLz77Operator>(
+                    ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
+            }
+            else
+            {
+                this.DecodeSamples<JxlEntropyDecoder.PrefixOperator>(
+                    ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
+            }
+        }
+        else if (tree.Codes.UsesLz77)
+        {
+            this.DecodeSamples<JxlEntropyDecoder.AnsLz77Operator>(
+                ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
+        }
+        else
+        {
+            this.DecodeSamples<JxlEntropyDecoder.AnsOperator>(
+                ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Decodes the eligible channels with one fixed entropy mode and shared stream history.
+    /// </summary>
+    /// <typeparam name="TOperator">The stream's ANS or prefix decoder, with or without LZ77.</typeparam>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="channels">The allocated encoded channel layouts.</param>
+    /// <param name="count">The eligible prefix length, including empty channels for property numbering.</param>
+    /// <param name="samples">The number of nonempty samples in this stream.</param>
+    /// <param name="streamId">The static stream property.</param>
+    /// <param name="tree">The selected tree and sample entropy tables.</param>
+    /// <param name="weightedPredictor">The current group's weighted coefficients.</param>
+    /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
+    private void DecodeSamples<TOperator>(
+        ref JxlBitReader reader,
+        List<JxlModularChannel> channels,
+        int count,
+        long samples,
+        int streamId,
+        JxlModularTree tree,
+        JxlWeightedPredictor weightedPredictor,
+        CancellationToken cancellationToken)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+    {
         ReadOnlySpan<JxlModularChannel> descriptors = CollectionsMarshal.AsSpan(channels);
         ReadOnlySpan<JxlModularTree.Node> sourceNodes = tree.Nodes;
 
         // A one-leaf tree is already channel-independent. Keep that common case allocation-free.
         Span<JxlModularTree.Node> preparedNodes = sourceNodes.Length == 1 ? [] : this.workspace.PrepareChannelTree(sourceNodes.Length);
         GetSampleCount(channels, count, out int maximumWidth);
-        int historyLength = tree.Codes.UsesLz77
+        int historyLength = TOperator.UsesLz77
             ? (int)BitOperations.RoundUpToPowerOf2((uint)Math.Min(samples, JxlEntropyDecoder.MaximumLz77Distance))
             : 0;
 
         // Width belongs to the complete entropy stream, not the current channel. Palette metadata can be its widest channel.
         Span<uint> history = this.workspace.PrepareHistory(historyLength);
-        InlineArray256<int> propertyStorage = default;
-        InlineArray64<int> referenceStorage = default;
-        Span<int> properties = propertyStorage;
-        Span<int> referenceIndices = referenceStorage;
         JxlEntropyDecoder.Reader symbols = tree.Codes.CreateReader(ref reader);
         uint decoded = 0;
 
@@ -666,19 +712,19 @@ internal sealed partial class JxlModularDecoder : IDisposable
             // preparation or predictor selection. Entropy state and residual history still span every channel.
             if (nodes.Length == 1 && nodes[0].Predictor == 0)
             {
-                DecodeZeroChannel(ref reader, ref symbols, channel.Region, in nodes[0], history, ref decoded, maximumWidth, cancellationToken);
+                DecodeZeroChannel<TOperator>(ref reader, ref symbols, channel.Region, in nodes[0], history, ref decoded, maximumWidth, cancellationToken);
                 continue;
             }
 
             if (gradientOnly)
             {
-                DecodeGradientChannel(ref reader, ref symbols, channel.Region, nodes, history, ref decoded, maximumWidth, cancellationToken);
+                DecodeGradientChannel<TOperator>(ref reader, ref symbols, channel.Region, nodes, history, ref decoded, maximumWidth, cancellationToken);
                 continue;
             }
 
             if (weightedOnly)
             {
-                DecodeWeightedChannel(
+                DecodeWeightedChannel<TOperator>(
                     ref reader,
                     ref symbols,
                     channel.Region,
@@ -693,118 +739,224 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 continue;
             }
 
-            properties.Clear();
-            properties[0] = channelIndex;
-            properties[1] = streamId;
-            int referenceProperties = ((propertyCount - FirstReferenceProperty + 3) / PropertiesPerReference) * PropertiesPerReference;
-            Span<int> referenceValues = this.workspace.PrepareReferences(referenceProperties * ReferenceBlockLength);
+            this.DecodeGeneralChannel<TOperator>(
+                ref reader,
+                ref symbols,
+                descriptors,
+                channelIndex,
+                nodes,
+                propertyCount,
+                streamId,
+                usesWeighted,
+                ref weightedPredictor,
+                errors,
+                history,
+                ref decoded,
+                maximumWidth,
+                cancellationToken);
+        }
 
-            // Earlier channels are considered newest first. Only equal dimensions and resolution shifts can supply reference properties.
-            // Missing references retain their initialized zero properties; no padded reference image is allocated.
-            int references = 0;
-            for (int previous = channelIndex - 1; previous >= 0 && references * PropertiesPerReference < referenceProperties; previous--)
+        symbols.CheckFinalState();
+    }
+
+    /// <summary>
+    /// Reconstructs one mixed-predictor channel with its selected tree and bounded cross-channel properties.
+    /// </summary>
+    /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The entropy state shared by every channel in this stream.</param>
+    /// <param name="descriptors">The ready channels. Earlier matching channels can supply reference properties.</param>
+    /// <param name="channelIndex">The current channel and its static property zero.</param>
+    /// <param name="nodes">The current channel's reduced tree, retained unchanged throughout traversal.</param>
+    /// <param name="propertyCount">The property range required by the reduced tree.</param>
+    /// <param name="streamId">The static stream property one.</param>
+    /// <param name="usesWeighted">Whether any reachable leaf or property requires weighted prediction state.</param>
+    /// <param name="weightedPredictor">The current group's coefficients and mutable prediction state.</param>
+    /// <param name="errors">The frame-owned weighted error rows, already reset for this channel.</param>
+    /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
+    /// <param name="decoded">The number of residuals consumed across all preceding channels and current samples.</param>
+    /// <param name="maximumWidth">The complete stream width used by modular LZ77 distances.</param>
+    /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
+    private void DecodeGeneralChannel<TOperator>(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        ReadOnlySpan<JxlModularChannel> descriptors,
+        int channelIndex,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        int propertyCount,
+        int streamId,
+        bool usesWeighted,
+        ref JxlWeightedPredictor weightedPredictor,
+        Span<int> errors,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth,
+        CancellationToken cancellationToken)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+    {
+        // General properties and reference indices belong to this worker. The stream dispatcher and
+        // specialized channel loops do not share its stack state or its prediction-loop compilation budget.
+        JxlModularChannel channel = descriptors[channelIndex];
+        InlineArray256<int> propertyStorage = default;
+        InlineArray64<int> referenceStorage = default;
+        Span<int> properties = propertyStorage;
+        Span<int> referenceIndices = referenceStorage;
+
+        // Compile only trees for which interval lookup removes a sufficiently deep per-sample walk.
+        // Lookup setup borrows reference scratch first; every returned table belongs to another retained owner.
+        JxlModularTree.Lookup lookup = JxlModularTree.PrepareLookup(nodes, (long)channel.Width * channel.Height, this.workspace);
+        ReadOnlySpan<JxlModularTree.FlatNode> flatNodes = lookup.IsEmpty && nodes.Length > 1
+            ? JxlModularTree.PrepareFlatTree(nodes, this.workspace)
+            : [];
+
+        properties.Clear();
+        properties[0] = channelIndex;
+        properties[1] = streamId;
+        int referenceProperties = ((propertyCount - FirstReferenceProperty + 3) / PropertiesPerReference) * PropertiesPerReference;
+        Span<int> referenceValues = this.workspace.PrepareReferences(referenceProperties * ReferenceBlockLength);
+
+        // Earlier channels are considered newest first. Only equal dimensions and resolution shifts can supply reference properties.
+        // Missing references retain their initialized zero properties; no padded reference image is allocated.
+        int references = 0;
+        for (int previous = channelIndex - 1; previous >= 0 && references * PropertiesPerReference < referenceProperties; previous--)
+        {
+            if (channel.HasSameShape(descriptors[previous]))
             {
-                if (channel.HasSameShape(descriptors[previous]))
-                {
-                    referenceIndices[references++] = previous;
-                }
+                referenceIndices[references++] = previous;
             }
+        }
 
-            for (int y = 0; y < channel.Height; y++)
+        for (int y = 0; y < channel.Height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Span<int> row = channel.Region.DangerousGetRowSpan(y);
+            ReadOnlySpan<int> topRow = y == 0 ? row : channel.Region.DangerousGetRowSpan(y - 1);
+            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : channel.Region.DangerousGetRowSpan(y - 2);
+            properties[9] = 0;
+
+            // Bound reference scratch to 64 columns. Borrow each matching source row before its SIMD preparation,
+            // then pass only spans through the pixel loop. Every property occupies one contiguous block plane.
+            for (int start = 0; start < row.Length; start += ReferenceBlockLength)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                Span<int> row = channel.Region.DangerousGetRowSpan(y);
-                ReadOnlySpan<int> topRow = y == 0 ? row : channel.Region.DangerousGetRowSpan(y - 1);
-                ReadOnlySpan<int> aboveRow = y < 2 ? topRow : channel.Region.DangerousGetRowSpan(y - 2);
-                properties[9] = 0;
-
-                // Bound reference scratch to 64 columns. Borrow each matching source row before its SIMD preparation,
-                // then pass only spans through the pixel loop. Every property occupies one contiguous block plane.
-                for (int start = 0; start < row.Length; start += ReferenceBlockLength)
+                int length = Math.Min(ReferenceBlockLength, row.Length - start);
+                for (int r = 0; r < references; r++)
                 {
-                    int length = Math.Min(ReferenceBlockLength, row.Length - start);
-                    for (int r = 0; r < references; r++)
+                    if (!lookup.IsEmpty && ((lookup.PropertyMask >> (FirstReferenceProperty + (r * PropertiesPerReference))) & 15) == 0)
                     {
-                        JxlModularChannel reference = descriptors[referenceIndices[r]];
-                        ReadOnlySpan<int> source = reference.Region.DangerousGetRowSpan(y);
-                        ReadOnlySpan<int> top = y == 0 ? source : reference.Region.DangerousGetRowSpan(y - 1);
-                        int offset = r * PropertiesPerReference * ReferenceBlockLength;
-                        JxlModularPredictor.PrepareReferences(
-                            source,
-                            top,
-                            start,
-                            y != 0,
-                            referenceValues.Slice(offset, length),
-                            referenceValues.Slice(offset + ReferenceBlockLength, length),
-                            referenceValues.Slice(offset + (2 * ReferenceBlockLength), length),
-                            referenceValues.Slice(offset + (3 * ReferenceBlockLength), length));
+                        // A matching earlier channel can exist without contributing any selected property.
+                        // Its scratch is never read, so neither its rows nor its reference equations are needed.
+                        continue;
                     }
 
-                    for (int column = 0; column < length; column++)
+                    JxlModularChannel reference = descriptors[referenceIndices[r]];
+                    ReadOnlySpan<int> source = reference.Region.DangerousGetRowSpan(y);
+                    ReadOnlySpan<int> top = y == 0 ? source : reference.Region.DangerousGetRowSpan(y - 1);
+                    int offset = r * PropertiesPerReference * ReferenceBlockLength;
+                    JxlModularPredictor.PrepareReferences(
+                        source,
+                        top,
+                        start,
+                        y != 0,
+                        referenceValues.Slice(offset, length),
+                        referenceValues.Slice(offset + ReferenceBlockLength, length),
+                        referenceValues.Slice(offset + (2 * ReferenceBlockLength), length),
+                        referenceValues.Slice(offset + (3 * ReferenceBlockLength), length));
+                }
+
+                for (int column = 0; column < length; column++)
+                {
+                    int x = start + column;
+                    int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
+                    int top = y != 0 ? topRow[x] : left;
+                    int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
+                    int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
+                    int leftLeft = x > 1 ? row[x - 2] : left;
+                    int topTop = y > 1 ? aboveRow[x] : top;
+                    int topRightRight = y != 0 && x + 2 < row.Length ? topRow[x + 2] : topRight;
+                    long weighted = 0;
+                    if (usesWeighted)
                     {
-                        int x = start + column;
-                        int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
-                        int top = y != 0 ? topRow[x] : left;
-                        int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
-                        int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
-                        int leftLeft = x > 1 ? row[x - 2] : left;
-                        int topTop = y > 1 ? aboveRow[x] : top;
-                        int topRightRight = y != 0 && x + 2 < row.Length ? topRow[x + 2] : topRight;
-                        long weighted = 0;
-                        if (usesWeighted)
+                        weighted = weightedPredictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out int errorProperty);
+                        properties[15] = errorProperty;
+                    }
+
+                    int leaf = 0;
+                    if (!lookup.IsEmpty)
+                    {
+                        // The selected property IDs are sorted. Property eight consumes the preceding
+                        // pixel's gradient before property nine replaces it. Missing reference channels stay zero.
+                        foreach (byte property in lookup.PropertyIndices)
                         {
-                            weighted = weightedPredictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out int errorProperty);
-                            properties[15] = errorProperty;
+                            properties[property] = property switch
+                            {
+                                2 => y,
+                                3 => x,
+                                4 => top < 0 ? unchecked(-top) : top,
+                                5 => left < 0 ? unchecked(-left) : left,
+                                6 => top,
+                                7 => left,
+                                8 => unchecked(left - properties[9]),
+                                9 => unchecked(left + top - topLeft),
+                                10 => unchecked(left - topLeft),
+                                11 => unchecked(topLeft - top),
+                                12 => unchecked(top - topRight),
+                                13 => unchecked(top - topTop),
+                                14 => unchecked(left - leftLeft),
+                                15 => properties[15],
+                                _ => property - FirstReferenceProperty < references * PropertiesPerReference
+                                    ? referenceValues[((property - FirstReferenceProperty) * ReferenceBlockLength) + column]
+                                    : 0,
+                            };
                         }
 
-                        int leaf = 0;
-                        if (nodes[leaf].Property >= 0)
+                        if ((lookup.PropertyMask & (1UL << 8)) != 0 && (lookup.PropertyMask & (1UL << 9)) == 0)
                         {
-                            // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
-                            properties[2] = y;
-                            properties[3] = x;
-                            properties[4] = top < 0 ? unchecked(-top) : top;
-                            properties[5] = left < 0 ? unchecked(-left) : left;
-                            properties[6] = top;
-                            properties[7] = left;
-                            properties[8] = unchecked(left - properties[9]);
+                            // Property eight still needs the previous gradient when no split reads property nine.
                             properties[9] = unchecked(left + top - topLeft);
-                            properties[10] = unchecked(left - topLeft);
-                            properties[11] = unchecked(topLeft - top);
-                            properties[12] = unchecked(top - topRight);
-                            properties[13] = unchecked(top - topTop);
-                            properties[14] = unchecked(left - leftLeft);
-                            for (int p = 0; p < references * PropertiesPerReference; p++)
-                            {
-                                properties[FirstReferenceProperty + p] = referenceValues[(p * ReferenceBlockLength) + column];
-                            }
-
-                            while (nodes[leaf].Property >= 0)
-                            {
-                                ref readonly JxlModularTree.Node split = ref nodes[leaf];
-                                leaf = split.FirstChild + (properties[split.Property] > split.Value ? 0 : 1);
-                            }
                         }
 
-                        ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                        uint residual = symbols.ReadUInt32(ref reader, node.FirstChild, history, decoded++, maximumWidth);
-                        int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                        long prediction = node.Predictor == 6
-                            ? weighted
-                            : JxlModularPredictor.Predict(node.Predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
-
-                        row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
-                        if (usesWeighted)
+                        leaf = lookup.FindLeaf(properties);
+                    }
+                    else if (nodes[leaf].Property >= 0)
+                    {
+                        // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
+                        properties[2] = y;
+                        properties[3] = x;
+                        properties[4] = top < 0 ? unchecked(-top) : top;
+                        properties[5] = left < 0 ? unchecked(-left) : left;
+                        properties[6] = top;
+                        properties[7] = left;
+                        properties[8] = unchecked(left - properties[9]);
+                        properties[9] = unchecked(left + top - topLeft);
+                        properties[10] = unchecked(left - topLeft);
+                        properties[11] = unchecked(topLeft - top);
+                        properties[12] = unchecked(top - topRight);
+                        properties[13] = unchecked(top - topTop);
+                        properties[14] = unchecked(left - leftLeft);
+                        for (int p = 0; p < references * PropertiesPerReference; p++)
                         {
-                            // Weighted errors advance even when this tree leaf selected another predictor.
-                            weightedPredictor.Update(errors, x, y, row[x]);
+                            properties[FirstReferenceProperty + p] = referenceValues[(p * ReferenceBlockLength) + column];
                         }
+
+                        leaf = JxlModularTree.FindFlatLeaf(flatNodes, ref propertyStorage);
+                    }
+
+                    ref readonly JxlModularTree.Node node = ref nodes[leaf];
+                    uint residual = symbols.ReadUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                    int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+                    long prediction = node.Predictor == 6
+                        ? weighted
+                        : JxlModularPredictor.Predict(node.Predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
+
+                    row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
+                    if (usesWeighted)
+                    {
+                        // Weighted errors advance even when this tree leaf selected another predictor.
+                        weightedPredictor.Update(errors, x, y, row[x]);
                     }
                 }
             }
         }
-
-        symbols.CheckFinalState();
     }
 
     /// <summary>
@@ -873,6 +1025,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <summary>
     /// Decodes a fixed zero-predictor leaf without reading neighbors or constructing tree properties.
     /// </summary>
+    /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
     /// <param name="reader">The bounded sample reader.</param>
     /// <param name="symbols">The entropy state shared by all channels in this stream.</param>
     /// <param name="channel">The complete output region.</param>
@@ -881,7 +1034,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="decoded">The number of residuals consumed across all channels.</param>
     /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
-    private static void DecodeZeroChannel(
+    private static void DecodeZeroChannel<TOperator>(
         ref JxlBitReader reader,
         ref JxlEntropyDecoder.Reader symbols,
         Buffer2DRegion<int> channel,
@@ -890,6 +1043,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
         ref uint decoded,
         int maximumWidth,
         CancellationToken cancellationToken)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
         for (int y = 0; y < channel.Height; y++)
         {
@@ -897,7 +1051,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             Span<int> row = channel.DangerousGetRowSpan(y);
             for (int x = 0; x < row.Length; x++)
             {
-                uint residual = symbols.ReadUInt32(ref reader, leaf.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadUInt32<TOperator>(ref reader, leaf.FirstChild, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 row[x] = unchecked((int)(leaf.Value + ((long)signed * leaf.Multiplier)));
             }
@@ -907,6 +1061,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <summary>
     /// Decodes gradient-only trees using their single dynamic property and three required neighbors.
     /// </summary>
+    /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
     /// <param name="reader">The bounded sample reader.</param>
     /// <param name="symbols">The entropy state shared by all channels in this stream.</param>
     /// <param name="channel">The complete output region.</param>
@@ -915,7 +1070,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="decoded">The number of residuals consumed across all channels.</param>
     /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
-    private static void DecodeGradientChannel(
+    private static void DecodeGradientChannel<TOperator>(
         ref JxlBitReader reader,
         ref JxlEntropyDecoder.Reader symbols,
         Buffer2DRegion<int> channel,
@@ -924,6 +1079,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
         ref uint decoded,
         int maximumWidth,
         CancellationToken cancellationToken)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
         for (int y = 0; y < channel.Height; y++)
         {
@@ -947,7 +1103,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                uint residual = symbols.ReadUInt32(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
 
                 // Property nine wraps in int units. Prediction instead retains the exact widened gradient,
@@ -964,6 +1120,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <summary>
     /// Decodes weighted-only trees without preparing unused general or cross-channel properties.
     /// </summary>
+    /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
     /// <param name="reader">The bounded sample reader.</param>
     /// <param name="symbols">The entropy state shared by all channels in this stream.</param>
     /// <param name="channel">The complete output region.</param>
@@ -974,7 +1131,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="decoded">The number of residuals consumed across all channels.</param>
     /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
-    private static void DecodeWeightedChannel(
+    private static void DecodeWeightedChannel<TOperator>(
         ref JxlBitReader reader,
         ref JxlEntropyDecoder.Reader symbols,
         Buffer2DRegion<int> channel,
@@ -985,6 +1142,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
         ref uint decoded,
         int maximumWidth,
         CancellationToken cancellationToken)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
         for (int y = 0; y < channel.Height; y++)
         {
@@ -1008,7 +1166,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                uint residual = symbols.ReadUInt32(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
                 predictor.Update(errors, x, y, row[x]);

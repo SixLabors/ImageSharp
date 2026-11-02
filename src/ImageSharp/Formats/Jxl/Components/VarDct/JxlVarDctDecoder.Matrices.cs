@@ -249,7 +249,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="mode">The encoded nonlibrary mode.</param>
     /// <param name="parameters">The reused primary, secondary and special-weight storage.</param>
     /// <returns>The encoded mode and radial band counts.</returns>
-    private static MatrixDescription ReadMatrixDescription(ref JxlBitReader reader, int family, byte mode, scoped Span<float> parameters)
+    private static MatrixDescription ReadMatrixDescription(ref JxlBitReader reader, int family, byte mode, Span<float> parameters)
     {
         // Identity, small DCT and AFV descriptions occupy one eight-by-eight coefficient block.
         // The generic radial and RAW modes also support the larger and rectangular families.
@@ -313,7 +313,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="reader">The reader at the four-bit band count minus one.</param>
     /// <param name="parameters">Three sixteen-value band slots.</param>
     /// <returns>The number of bands per component, from one through sixteen.</returns>
-    private static int ReadDistanceBands(ref JxlBitReader reader, scoped Span<float> parameters)
+    private static int ReadDistanceBands(ref JxlBitReader reader, Span<float> parameters)
     {
         int count = (int)reader.ReadBits(4) + 1;
         for (int component = 0; component < MatrixComponentCount; component++)

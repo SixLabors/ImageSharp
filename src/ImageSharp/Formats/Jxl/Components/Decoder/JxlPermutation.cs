@@ -38,7 +38,7 @@ internal static class JxlPermutation
         ref JxlEntropyDecoder.Reader symbols,
         int size,
         int skip,
-        scoped Span<uint> history,
+        Span<uint> history,
         ref uint position)
     {
         uint length = symbols.ReadUInt32(ref reader, GetContext((uint)size), history, position++);
@@ -70,10 +70,10 @@ internal static class JxlPermutation
         int size,
         int skip,
         uint length,
-        scoped ReadOnlySpan<uint> mapping,
-        scoped Span<uint> destination,
-        scoped Span<uint> ranks,
-        scoped Span<uint> history,
+        ReadOnlySpan<uint> mapping,
+        Span<uint> destination,
+        Span<uint> ranks,
+        Span<uint> history,
         ref uint position,
         CancellationToken cancellationToken)
     {

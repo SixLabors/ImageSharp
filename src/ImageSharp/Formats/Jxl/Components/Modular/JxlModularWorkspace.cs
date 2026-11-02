@@ -16,6 +16,8 @@ internal sealed class JxlModularWorkspace : IDisposable
     private IMemoryOwner<int>? integerScratch;
     private IMemoryOwner<int>? references;
     private IMemoryOwner<JxlModularTree.Node>? channelTree;
+    private IMemoryOwner<ulong>? treeLookup;
+    private IMemoryOwner<JxlModularTree.FlatNode>? flatTree;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlModularWorkspace"/> class without renting unused buffers.
@@ -45,9 +47,9 @@ internal sealed class JxlModularWorkspace : IDisposable
     public Span<int> PrepareReconstructionRow(int width) => Prepare(ref this.integerScratch, width, this.allocator);
 
     /// <summary>
-    /// Prepares four property planes per earlier channel, with at most 64 samples in each plane.
+    /// Prepares bounded cross-channel property planes or temporary interval-lookup metadata.
     /// </summary>
-    /// <param name="length">The required property count times the 64-sample block length, at most 15360 integers.</param>
+    /// <param name="length">The bounded required length. Property planes use at most 15360 integers; lookup metadata uses at most 4369.</param>
     /// <returns>The reusable property span, borrowed once before sample loops.</returns>
     public Span<int> PrepareReferences(int length) => Prepare(ref this.references, length, this.allocator);
 
@@ -58,9 +60,25 @@ internal sealed class JxlModularWorkspace : IDisposable
     /// <returns>The reusable tree span, borrowed once before channel traversal.</returns>
     public Span<JxlModularTree.Node> PrepareChannelTree(int length) => Prepare(ref this.channelTree, length, this.allocator);
 
+    /// <summary>
+    /// Prepares compact interval tables and leaf masks for one reduced channel tree.
+    /// </summary>
+    /// <param name="length">The actual table size in eight-byte words, including alignment padding.</param>
+    /// <returns>The retained table span, borrowed until the next channel is prepared.</returns>
+    public Span<ulong> PrepareTreeLookup(int length) => Prepare(ref this.treeLookup, length, this.allocator);
+
+    /// <summary>
+    /// Prepares two-level split nodes and duplicated leaf entries for the current channel.
+    /// </summary>
+    /// <param name="length">The exact completed flat-tree length.</param>
+    /// <returns>The retained node span, reused as the preparation queue before sample traversal.</returns>
+    public Span<JxlModularTree.FlatNode> PrepareFlatTree(int length) => Prepare(ref this.flatTree, length, this.allocator);
+
     /// <inheritdoc/>
     public void Dispose()
     {
+        this.flatTree?.Dispose();
+        this.treeLookup?.Dispose();
         this.channelTree?.Dispose();
         this.references?.Dispose();
         this.integerScratch?.Dispose();
@@ -68,7 +86,7 @@ internal sealed class JxlModularWorkspace : IDisposable
     }
 
     /// <summary>
-    /// Grows one tracked allocation only before an entropy stream, inverse transform or completed-frame reconstruction.
+    /// Grows one tracked allocation before channel traversal, an inverse transform or completed-frame reconstruction.
     /// </summary>
     /// <typeparam name="T">The unmanaged scratch element type.</typeparam>
     /// <param name="owner">The allocation retained between operations.</param>

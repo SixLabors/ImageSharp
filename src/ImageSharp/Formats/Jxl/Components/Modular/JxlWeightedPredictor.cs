@@ -3,6 +3,8 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
@@ -88,7 +90,7 @@ internal struct JxlWeightedPredictor
     private InlineArray4<long> predictions;
     private long combinedPrediction;
     private int rowStride;
-    private int planeLength;
+    private int combinedErrorLength;
 
     /// <summary>
     /// Gets floor(2^24 / (index + 1)) for indices zero through 63. The format uses these exact integer reciprocals.
@@ -151,7 +153,8 @@ internal struct JxlWeightedPredictor
     public static int GetStorageLength(int width)
     {
         // Palette tables and reconstructed channels can be wider than coding groups.
-        // Widen before sizing all five two-row planes; their shared span and indices must fit in an int.
+        // Widen before sizing two rows with one combined error and four predictor errors per column.
+        // The complete shared span and all indices must fit in an int.
         long length = ((long)width + RowMargin) * StoredRows * (PredictorCount + 1);
         if (length > int.MaxValue)
         {
@@ -168,19 +171,20 @@ internal struct JxlWeightedPredictor
     /// <param name="width">The channel width.</param>
     public void Reset(Span<int> errors, int width)
     {
-        // Plane zero stores signed combined errors. The next four planes store unsigned predictor errors
-        // in the same integer words. Every plane has two alternating rows and two trailing margin entries.
+        // The first two rows store signed combined errors. The remaining storage holds two rows of
+        // adjacent [predictor0,predictor1,predictor2,predictor3] unsigned errors for each column. Every
+        // row retains two trailing margin entries. The total remains five error words per column in each retained row.
         this.rowStride = width + RowMargin;
-        this.planeLength = this.rowStride * StoredRows;
+        this.combinedErrorLength = this.rowStride * StoredRows;
 
         // The shared scratch can belong to a wider channel. Only these five two-row planes take part in the current prediction.
-        errors[..(this.planeLength * (PredictorCount + 1))].Clear();
+        errors[..(this.combinedErrorLength * (PredictorCount + 1))].Clear();
     }
 
     /// <summary>
     /// Calculates the weighted prediction and its signed error property before decoding the current residual.
     /// </summary>
-    /// <param name="errors">The retained channel error planes.</param>
+    /// <param name="errors">The two scalar combined-error rows followed by the two interleaved predictor-error rows.</param>
     /// <param name="x">The current column.</param>
     /// <param name="y">The current row.</param>
     /// <param name="left">The preceding sample, with the modular edge substitution already applied.</param>
@@ -197,20 +201,21 @@ internal struct JxlWeightedPredictor
         int north = previousRow + x;
         int northEast = x + 1 < this.rowStride - RowMargin ? north + 1 : north;
         int northWest = x == 0 ? north : north - 1;
-        InlineArray4<uint> weights = default;
-        uint weightSum = 0;
 
-        // The preceding error row accumulates westward contributions as this row advances. Its N, NE and NW
-        // entries therefore measure each predictor's local error. Reduce magnitudes to the 64-entry reciprocal table.
-        for (int i = 0; i < PredictorCount; i++)
-        {
-            int offset = (i + 1) * this.planeLength;
-            uint error = unchecked((uint)errors[offset + north] + (uint)errors[offset + northEast] + (uint)errors[offset + northWest]);
-            int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
-            uint weight = MinimumWeight + ((this.maximumWeights[i] * Reciprocals[(int)(error >> shift)]) >> shift);
-            weights[i] = weight;
-            weightSum += weight;
-        }
+        // Fixed lanes identify the four predictors for this one sample, not four image columns.
+        // Each wrapped sum combines the previous row's N, NE and NW errors exactly as libjxl and
+        // jxl-rs predict.rs do. Each load contains all four predictors at one neighboring column.
+        ref uint errorWords = ref Unsafe.As<int, uint>(ref MemoryMarshal.GetReference(errors));
+        int predictorBase = this.combinedErrorLength;
+        Vector128<uint> summedErrors = Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (north * PredictorCount)))
+            + Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (northEast * PredictorCount)))
+            + Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (northWest * PredictorCount)));
+
+        uint weight0 = GetWeight(summedErrors.GetElement(0), this.maximumWeights[0]);
+        uint weight1 = GetWeight(summedErrors.GetElement(1), this.maximumWeights[1]);
+        uint weight2 = GetWeight(summedErrors.GetElement(2), this.maximumWeights[2]);
+        uint weight3 = GetWeight(summedErrors.GetElement(3), this.maximumWeights[3]);
+        uint weightSum = weight0 + weight1 + weight2 + weight3;
 
         long errorWest = x == 0 ? 0 : errors[currentRow + x - 1];
         long errorNorth = errors[north];
@@ -252,18 +257,16 @@ internal struct JxlWeightedPredictor
         // Each initial weight is at least four. Scaling by their common magnitude retains a positive
         // sum no greater than 31. The reciprocal table replaces division with the exact format approximation.
         int weightShift = BitOperations.Log2(weightSum) - NormalizedWeightBits;
-        weightSum = 0;
-        for (int i = 0; i < PredictorCount; i++)
-        {
-            weights[i] >>= weightShift;
-            weightSum += weights[i];
-        }
-
+        weight0 >>= weightShift;
+        weight1 >>= weightShift;
+        weight2 >>= weightShift;
+        weight3 >>= weightShift;
+        weightSum = weight0 + weight1 + weight2 + weight3;
         long sum = (weightSum >> 1) - 1;
-        for (int i = 0; i < PredictorCount; i++)
-        {
-            sum += this.predictions[i] * weights[i];
-        }
+        sum += this.predictions[0] * weight0;
+        sum += this.predictions[1] * weight1;
+        sum += this.predictions[2] * weight2;
+        sum += this.predictions[3] * weight3;
 
         long prediction = (sum * Reciprocals[(int)weightSum - 1]) >> ReciprocalBits;
         if (((errorNorth ^ errorWest) | (errorNorth ^ errorNorthWest)) <= 0)
@@ -280,7 +283,7 @@ internal struct JxlWeightedPredictor
     /// <summary>
     /// Updates all prediction errors from the reconstructed sample, even when its leaf selected another predictor.
     /// </summary>
-    /// <param name="errors">The retained channel error planes.</param>
+    /// <param name="errors">The two scalar combined-error rows followed by the two interleaved predictor-error rows.</param>
     /// <param name="x">The reconstructed column.</param>
     /// <param name="y">The reconstructed row.</param>
     /// <param name="value">The reconstructed signed sample.</param>
@@ -292,14 +295,62 @@ internal struct JxlWeightedPredictor
         long scaled = (long)value << ExtraBits;
         errors[currentRow + x] = unchecked((int)(this.combinedPrediction - scaled));
 
-        // Keep unsigned error magnitudes as raw integer words. Adding into the preceding row's next
-        // column supplies the west and west-west contributions used by the next Predict call.
-        for (int i = 0; i < PredictorCount; i++)
+        // The four lanes depend on this same reconstructed sample. They can be computed together,
+        // although the predictor state still advances sequentially from one image column to the next.
+        // Format-bounded predictions and 32-bit samples keep each difference and its absolute value in long.
+        Vector128<uint> magnitudes;
+        ref long prediction = ref this.predictions[0];
+        if (Vector256.IsHardwareAccelerated)
         {
-            uint error = unchecked((uint)((Math.Abs(this.predictions[i] - scaled) + PredictionRounding) >> ExtraBits));
-            int offset = (i + 1) * this.planeLength;
-            errors[offset + currentRow + x] = unchecked((int)error);
-            errors[offset + previousRow + x + 1] = unchecked(errors[offset + previousRow + x + 1] + (int)error);
+            Vector256<long> difference = Vector256.LoadUnsafe(ref prediction) - Vector256.Create(scaled);
+            Vector256<long> absolute = Vector256.Abs(difference) + Vector256.Create((long)PredictionRounding);
+            Vector256<long> rounded = Vector256.ShiftRightLogical(absolute, ExtraBits);
+
+            // Narrow discards high bits; it does not saturate. This retains the native uint conversion,
+            // including wrapped error magnitudes. Only the populated four-lane lower half is stored.
+            magnitudes = Vector256.Narrow(rounded, Vector256<long>.Zero).GetLower().AsUInt32();
         }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<long> scaledValue = Vector128.Create(scaled);
+            Vector128<long> rounding = Vector128.Create((long)PredictionRounding);
+            Vector128<long> first = Vector128.Abs(Vector128.LoadUnsafe(ref prediction) - scaledValue) + rounding;
+            Vector128<long> second = Vector128.Abs(Vector128.LoadUnsafe(ref prediction, (nuint)Vector128<long>.Count) - scaledValue) + rounding;
+            first = Vector128.ShiftRightLogical(first, ExtraBits);
+            second = Vector128.ShiftRightLogical(second, ExtraBits);
+            magnitudes = Vector128.Narrow(first, second).AsUInt32();
+        }
+        else
+        {
+            // Scalar equations retain the same long arithmetic, rounding and conversion to the low 32 bits.
+            magnitudes = Vector128.Create(
+                unchecked((uint)((Math.Abs(this.predictions[0] - scaled) + PredictionRounding) >> ExtraBits)),
+                unchecked((uint)((Math.Abs(this.predictions[1] - scaled) + PredictionRounding) >> ExtraBits)),
+                unchecked((uint)((Math.Abs(this.predictions[2] - scaled) + PredictionRounding) >> ExtraBits)),
+                unchecked((uint)((Math.Abs(this.predictions[3] - scaled) + PredictionRounding) >> ExtraBits)));
+        }
+
+        // Store one current-column group and add into the previous row's next group. That wrapped
+        // addition supplies the westward contributions consumed by the next Predict call. The row margin
+        // guarantees a complete four-lane group even when this is the last visible image column.
+        ref uint errorWords = ref Unsafe.As<int, uint>(ref MemoryMarshal.GetReference(errors));
+        nuint current = (nuint)(this.combinedErrorLength + ((currentRow + x) * PredictorCount));
+        nuint next = (nuint)(this.combinedErrorLength + ((previousRow + x + 1) * PredictorCount));
+        magnitudes.StoreUnsafe(ref errorWords, current);
+        (Vector128.LoadUnsafe(ref errorWords, next) + magnitudes).StoreUnsafe(ref errorWords, next);
+    }
+
+    /// <summary>
+    /// Converts one wrapped local error sum to the format's positive predictor weight.
+    /// </summary>
+    /// <param name="error">The wrapped unsigned sum of north, northeast and northwest error magnitudes.</param>
+    /// <param name="maximumWeight">The four-bit maximum weight read from the group header.</param>
+    /// <returns>The integer reciprocal weight, including the minimum contribution of four.</returns>
+    private static uint GetWeight(uint error, uint maximumWeight)
+    {
+        // Widen before adding one: uint.MaxValue must have log2(error+1)=32. This shift bounds the
+        // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
+        int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
+        return MinimumWeight + ((maximumWeight * Reciprocals[(int)(error >> shift)]) >> shift);
     }
 }

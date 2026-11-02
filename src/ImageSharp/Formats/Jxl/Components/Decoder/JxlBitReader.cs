@@ -14,15 +14,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// <remarks>
 /// The parser owns this mutable value. Pass it by reference between header parsing methods so cached bits are not copied.
 /// The codestream reader owns fragment traversal and borrows the decoder's buffered input.
-/// The caller owns the read window and must keep it allocated until parsing finishes.
 /// </remarks>
-internal ref struct JxlBitReader
+internal struct JxlBitReader
 {
     private static readonly UTF8Encoding NameEncoding = new(false, true);
 
     private readonly JxlCodestreamReader source;
-    private readonly Span<byte> readBuffer;
-    private ReadOnlySpan<byte> unreadBytes;
     private ulong buffer;
     private int availableBits;
 
@@ -35,12 +32,9 @@ internal ref struct JxlBitReader
     /// Initializes a new instance of the <see cref="JxlBitReader"/> struct.
     /// </summary>
     /// <param name="source">The logical codestream, positioned at the first field to read.</param>
-    /// <param name="readBuffer">Caller-owned read storage of at least eight bytes, retained for this reader's lifetime.</param>
-    public JxlBitReader(JxlCodestreamReader source, Span<byte> readBuffer)
+    public JxlBitReader(JxlCodestreamReader source)
     {
         this.source = source;
-        this.readBuffer = readBuffer;
-        this.unreadBytes = [];
         this.buffer = 0;
         this.availableBits = 0;
         this.sectionEnd = long.MaxValue;
@@ -49,12 +43,12 @@ internal ref struct JxlBitReader
     /// <summary>
     /// Gets the number of logical codestream bits consumed, excluding prefetched bits.
     /// </summary>
-    public readonly long Position => ((this.source.Position - this.unreadBytes.Length) * 8) - this.availableBits;
+    public readonly long Position => (this.source.Position * 8) - this.availableBits;
 
     /// <summary>
     /// Gets the number of complete logical codestream bytes consumed, excluding prefetched bits.
     /// </summary>
-    public readonly long BytePosition => this.source.Position - this.unreadBytes.Length - ((this.availableBits + 7) / 8);
+    public readonly long BytePosition => this.source.Position - ((this.availableBits + 7) / 8);
 
     /// <summary>
     /// Positions the codestream at a byte offset and discards lookahead and the preceding section bound.
@@ -65,7 +59,6 @@ internal ref struct JxlBitReader
         // A section can move backward or across container fragments. Its new bytes must come from
         // the source's selected range, not bits prefetched at the preceding section's physical position.
         this.source.Seek(position);
-        this.unreadBytes = [];
         this.buffer = 0;
         this.availableBits = 0;
         this.sectionEnd = long.MaxValue;
@@ -107,10 +100,9 @@ internal ref struct JxlBitReader
             throw new InvalidImageContentException("The JPEG XL field cannot fit in the remaining section.");
         }
 
-        // Count both read caches first. The source position already includes every prefetched window byte.
-        // Round only uncached bits up to whole bytes, without multiplying the physical file length by eight.
-        ulong cached = (ulong)this.availableBits + ((ulong)this.unreadBytes.Length * 8);
-        ulong uncached = count - Math.Min(count, cached);
+        // Count cached bits first, including an incomplete byte. Round only the uncached part up to whole bytes.
+        // Divide before rounding so neither an arbitrary file length nor a declared bit count is multiplied by eight.
+        ulong uncached = count - Math.Min(count, (ulong)this.availableBits);
         ulong requiredBytes = (uncached >> 3) + ((uncached & 7) != 0 ? 1UL : 0UL);
         if (requiredBytes > (ulong)(this.source.MaximumLength - this.source.Position))
         {
@@ -127,21 +119,8 @@ internal ref struct JxlBitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadBits(int count)
     {
-        if (this.availableBits < count)
-        {
-            this.Refill(count);
-        }
-
-        // A consuming read needs no zero-padded lookahead. Validate once before extraction instead of
-        // recalculating the logical section position in both PeekBits and ConsumeBits for the same field.
-        if (count > this.availableBits || count > this.sectionEnd - this.Position)
-        {
-            throw new InvalidImageContentException("The JPEG XL field exceeds its section or codestream boundary.");
-        }
-
-        uint result = (uint)(this.buffer & ((1UL << count) - 1));
-        this.buffer >>= count;
-        this.availableBits -= count;
+        uint result = this.PeekBits(count);
+        this.ConsumeBits(count);
         return result;
     }
 
@@ -285,7 +264,7 @@ internal ref struct JxlBitReader
     /// Reads successive byte fields, retaining the current bit alignment.
     /// </summary>
     /// <param name="destination">The span receiving the encoded byte fields.</param>
-    public void ReadBytes(scoped Span<byte> destination)
+    public void ReadBytes(Span<byte> destination)
     {
         // The aligned copy below bypasses ReadBits. Prove that its complete byte field stays inside
         // the current section before either draining lookahead or reading directly from the codestream.
@@ -309,13 +288,7 @@ internal ref struct JxlBitReader
             destination[written++] = (byte)this.ReadBits(8);
         }
 
-        // The read window follows the reservoir in logical order. Drain it before reading physical bytes,
-        // because the source position already follows this prefetched range.
-        int cached = Math.Min(this.unreadBytes.Length, destination.Length - written);
-        this.unreadBytes[..cached].CopyTo(destination[written..]);
-        this.unreadBytes = this.unreadBytes[cached..];
-        written += cached;
-
+        // After draining the prefetched whole bytes, copy aligned input through the existing buffered reader.
         // A physical fragment can end before this byte field does, so continue until the destination is full.
         while (written < destination.Length)
         {
@@ -347,11 +320,8 @@ internal ref struct JxlBitReader
 
         if (count != 0)
         {
-            // The reservoir is empty and its next byte comes from the borrowed read window. Skip that
-            // range before seeking physical bytes, or prefetched bytes would be counted twice.
-            int cachedBytes = (int)Math.Min(count >> 3, (ulong)this.unreadBytes.Length);
-            this.unreadBytes = this.unreadBytes[cachedBytes..];
-            count -= (uint)cachedBytes * 8UL;
+            // Once the reservoir is empty, the physical input is byte-aligned. Seek whole bytes instead of
+            // issuing one buffered read for every machine word of an unknown extension.
             if (!this.source.TrySkip((long)(count >> 3)))
             {
                 throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
@@ -378,10 +348,7 @@ internal ref struct JxlBitReader
         int bits = cached * 8;
         this.buffer = bits == 64 ? 0 : this.buffer >> bits;
         this.availableBits -= bits;
-        long remaining = boundedCount - cached;
-        int cachedBytes = (int)Math.Min(remaining, this.unreadBytes.Length);
-        this.unreadBytes = this.unreadBytes[cachedBytes..];
-        bool complete = this.source.TrySkip(remaining - cachedBytes);
+        bool complete = this.source.TrySkip(boundedCount - cached);
         return complete && boundedCount == count;
     }
 
@@ -489,62 +456,36 @@ internal ref struct JxlBitReader
     }
 
     /// <summary>
-    /// Refills the reservoir from the borrowed read window, preserving exact section and fragment boundaries.
+    /// Refills the 64-bit reservoir with whole bytes until the next field is available.
     /// </summary>
     /// <param name="count">The number of bits needed by the pending field.</param>
     private void Refill(int count)
     {
         while (this.availableBits < count)
         {
-            // Logical consumption excludes both caches. The next reservoir byte follows only the cached bits;
-            // it can still be in the window even when the physical source has passed the section end.
-            long nextByte = this.source.Position - this.unreadBytes.Length;
-            long remainingBytes = (this.sectionEnd / 8) - nextByte;
+            // The physical source can be ahead of this section because earlier lookahead retained its bytes.
+            // Do not read or open another fragment once the section's last physical byte has been prefetched.
+            long remainingBytes = (this.sectionEnd / 8) - this.source.Position;
             if (remainingBytes <= 0)
             {
                 break;
             }
 
-            if (this.unreadBytes.IsEmpty)
+            InlineArray8<byte> storage = default;
+            Span<byte> bytes = storage;
+            int capacity = (int)Math.Min((64 - this.availableBits) / 8, remainingBytes);
+            int read = this.source.Read(bytes[..capacity]);
+            if (read == 0)
             {
-                // Read one bounded physical range. CodestreamReader validates container sequencing and can
-                // return at a fragment boundary. No stream call, copy or fragment lookup occurs per machine word.
-                int capacity = (int)Math.Min(this.readBuffer.Length, remainingBytes);
-                int read = this.source.Read(this.readBuffer[..capacity]);
-                if (read == 0)
-                {
-                    // Prefix lookup can inspect zero padding, but ConsumeBits cannot consume missing input.
-                    break;
-                }
-
-                this.unreadBytes = this.readBuffer[..read];
+                // Prefix lookup may inspect zero padding. ConsumeBits still requires every consumed bit to
+                // exist in the input, including when the selected code is shorter than the lookup table width.
+                break;
             }
 
-            int bytesToConsume = (int)Math.Min(Math.Min((64 - this.availableBits) / 8, this.unreadBytes.Length), remainingBytes);
-            ulong next;
-            if (this.unreadBytes.Length >= sizeof(ulong))
-            {
-                // The unaligned load stays inside caller-owned storage. Only the consumed low bytes enter
-                // the reservoir; bytes after a section boundary or an eventual seek cannot leave stale high bits.
-                next = BinaryPrimitives.ReadUInt64LittleEndian(this.unreadBytes);
-                if (bytesToConsume < sizeof(ulong))
-                {
-                    next &= (1UL << (bytesToConsume * 8)) - 1;
-                }
-            }
-            else
-            {
-                // A short window tail can precede another fragment. Zero only this final machine word and
-                // append the exact available count, so padding never becomes consumable encoded data.
-                InlineArray8<byte> storage = default;
-                Span<byte> tail = storage;
-                this.unreadBytes[..bytesToConsume].CopyTo(tail);
-                next = BinaryPrimitives.ReadUInt64LittleEndian(tail);
-            }
-
-            this.buffer |= next << this.availableBits;
-            this.availableBits += bytesToConsume * 8;
-            this.unreadBytes = this.unreadBytes[bytesToConsume..];
+            // A container read can end at a fragment boundary. Unwritten bytes remain zero and do not become
+            // available bits. The next iteration appends more bytes at the existing bit count, including unaligned fields.
+            this.buffer |= BinaryPrimitives.ReadUInt64LittleEndian(bytes) << this.availableBits;
+            this.availableBits += read * 8;
         }
     }
 }

@@ -15,7 +15,12 @@ internal sealed partial class JxlVarDctDecoder
 {
     private IMemoryOwner<byte>? coefficientStorage;
     private IMemoryOwner<byte>? nonzeroStorage;
-    private IMemoryOwner<uint>? coefficientHistory;
+
+    /// <summary>
+    /// Owns the uint history reused by order setup and then coefficient decoding. Their entropy streams do not overlap.
+    /// </summary>
+    private IMemoryOwner<uint>? entropyHistory;
+
     private Memory<byte> coefficientMemory;
     private Memory<byte> nonzeroMemory;
     private Memory<uint> coefficientHistoryMemory;
@@ -165,8 +170,25 @@ internal sealed partial class JxlVarDctDecoder
         if (usesHistory)
         {
             int historyLength = (int)BitOperations.RoundUpToPowerOf2((uint)Math.Min(count, JxlEntropyDecoder.MaximumLz77Distance));
-            this.coefficientHistory = allocator.Allocate<uint>(historyLength);
-            this.coefficientHistoryMemory = this.coefficientHistory.Memory;
+            IMemoryOwner<uint>? historyOwner = this.entropyHistory;
+            if (historyOwner is null || historyOwner.Memory.Length < historyLength)
+            {
+                // Order decoding has ended. Grow before traversal, without copying previous stream values.
+                // Allocate first so a failed rent leaves the preceding owner available to frame cleanup.
+                IMemoryOwner<uint> replacement = allocator.Allocate<uint>(historyLength);
+                historyOwner?.Dispose();
+                this.entropyHistory = historyOwner = replacement;
+            }
+
+            // Each AC stream starts its logical decoded position at zero. Its distance bound prevents reads
+            // of preceding order or group values, so retaining storage needs neither a copy nor a clear.
+            this.coefficientHistoryMemory = historyOwner.Memory[..historyLength];
+        }
+        else
+        {
+            // Only order setup needed a history. No coefficient pass can consume it, so return it now.
+            this.entropyHistory?.Dispose();
+            this.entropyHistory = null;
         }
     }
 
@@ -508,11 +530,12 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Releases the one-group coefficient, predictor and optional LZ77 allocations with the frame owner.
+    /// Releases the one-group coefficient and predictor allocations, and the history shared with order setup.
     /// </summary>
     private void DisposeCoefficientStorage()
     {
-        this.coefficientHistory?.Dispose();
+        this.entropyHistory?.Dispose();
+        this.entropyHistory = null;
         this.nonzeroStorage?.Dispose();
         this.coefficientStorage?.Dispose();
         this.coefficientMemory = default;

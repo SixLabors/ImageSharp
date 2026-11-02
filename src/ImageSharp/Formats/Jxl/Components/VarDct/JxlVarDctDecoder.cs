@@ -275,13 +275,8 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
             channel.Dispose();
         }
 
-        for (int c = 0; c < 3; c++)
-        {
-            this.dcScratch[c].Dispose();
-        }
-
+        this.DisposeDcGroupScratch();
         this.dcContexts?.Dispose();
-        this.acRecords.Dispose();
         foreach (Buffer2D<sbyte> map in this.correlationMaps)
         {
             map.Dispose();
@@ -311,5 +306,20 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
         }
 
         return count;
+    }
+
+    /// <summary>
+    /// Releases temporary integer planes after all DC groups and their AC metadata are complete, or during failure cleanup.
+    /// </summary>
+    private void DisposeDcGroupScratch()
+    {
+        // Float DC planes and the completed metadata maps have separate owners. Neither needs these temporary integers.
+        // Each channel clears its ownership on disposal, so final cleanup can revisit the same fields after early release.
+        for (int c = 0; c < 3; c++)
+        {
+            this.dcScratch[c].Dispose();
+        }
+
+        this.acRecords.Dispose();
     }
 }

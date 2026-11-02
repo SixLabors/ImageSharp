@@ -444,7 +444,7 @@ internal struct JxlWeightedPredictor
                 // multiplication. Integer products and sums preserve the scalar result without floating-point rounding.
                 // Scaled int samples have magnitude at most 2^34. The five-bit correction coefficients keep each prediction
                 // below 2^37 in magnitude; normalized weights total at most 31, so every dot-product partial fits long.
-                Vector256<long> wideWeights = Vector256.Create(Vector128.WidenLower(weights), Vector128.WidenUpper(weights)).AsInt64();
+                Vector256<long> wideWeights = Vector256.WidenLower(weights.ToVector256()).AsInt64();
                 ref long firstPrediction = ref Unsafe.As<InlineArray4<long>, long>(ref this.predictions);
                 sum += Vector256.Sum(Vector256.LoadUnsafe(ref firstPrediction) * wideWeights);
             }

@@ -46,6 +46,9 @@ internal sealed partial class JxlVarDctDecoder
     public void ReadGlobalAc(
         ref JxlBitReader reader, JxlFrameHeader frame, JxlModularDecoder modular, MemoryAllocator allocator, CancellationToken cancellationToken)
     {
+        // DC groups have copied their results into retained float planes and metadata maps. RAW matrices use
+        // their own modular channels, so return this integer scratch before any global-AC setup allocation.
+        this.DisposeDcGroupScratch();
         this.ReadQuantizationMatrices(ref reader, modular, allocator, cancellationToken);
 
         // The padded block grid cannot cross an additional AC-group boundary. Its group count therefore
@@ -92,6 +95,10 @@ internal sealed partial class JxlVarDctDecoder
             this.MaximumAcValueBits = Math.Max(this.MaximumAcValueBits, entropy.MaximumValueBits);
             maximumShiftedBits = Math.Max(maximumShiftedBits, entropy.MaximumValueBits + frame.PassShifts[pass]);
         }
+
+        // Completed orders belong to each pass, not to the temporary permutation workspace. No later order setup
+        // needs this workspace. Keep only the shared entropy history, which coefficient decoding can reuse without copying.
+        this.DisposeOrderWorkspace();
 
         // Pair each pass's integer width with that pass's shift. Combining unrelated maxima would select
         // wider storage unnecessarily. Adding ceil(log2(pass count)) then bounds progressive accumulation.

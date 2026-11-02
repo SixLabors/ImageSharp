@@ -26,7 +26,6 @@ internal sealed partial class JxlVarDctDecoder
     private const int OrderCancellationInterval = 1024;
 
     private IMemoryOwner<uint>? orderWorkspace;
-    private IMemoryOwner<uint>? orderHistory;
 
     /// <summary>
     /// Gets the coefficient-order family for each validated strategy. Transposed strategies share the same order.
@@ -65,6 +64,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="offsets">Space for thirty-nine component offsets. Unused entries receive minus one.</param>
     /// <param name="cancellationToken">The token checked during order generation and entropy traversal.</param>
     /// <returns>The completed order owner transferred to the pass. Default component orders can share an offset.</returns>
+    /// <remarks>Read all pass orders during global-AC setup, before coefficient storage is prepared.</remarks>
     public IMemoryOwner<uint> ReadCoefficientOrders(
         ref JxlBitReader reader,
         MemoryAllocator allocator,
@@ -152,12 +152,14 @@ internal sealed partial class JxlVarDctDecoder
                 ? (int)BitOperations.RoundUpToPowerOf2(Math.Min(symbolBudget, JxlEntropyDecoder.MaximumLz77Distance))
                 : 0;
 
-            IMemoryOwner<uint>? historyOwner = this.orderHistory;
+            // Order streams finish before coefficient decoding. Reuse this ring across pass setup and retain
+            // its allocation for that later phase. Each stream starts at position zero, so old values need no copy.
+            IMemoryOwner<uint>? historyOwner = this.entropyHistory;
             if (historyLength != 0 && (historyOwner is null || historyOwner.Memory.Length < historyLength))
             {
                 IMemoryOwner<uint> replacement = allocator.Allocate<uint>(historyLength);
                 historyOwner?.Dispose();
-                this.orderHistory = historyOwner = replacement;
+                this.entropyHistory = historyOwner = replacement;
             }
 
             // Borrow tracked scratch once before the entropy loop. At the maximum 256-by-256 transform, the
@@ -274,11 +276,11 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Releases tracked order scratch retained between passes. Completed pass orders have separate owners.
+    /// Releases permutation scratch after order setup or during failure cleanup. Completed pass orders have separate owners.
     /// </summary>
     private void DisposeOrderWorkspace()
     {
-        this.orderHistory?.Dispose();
         this.orderWorkspace?.Dispose();
+        this.orderWorkspace = null;
     }
 }

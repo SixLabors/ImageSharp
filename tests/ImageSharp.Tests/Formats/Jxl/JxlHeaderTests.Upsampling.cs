@@ -125,7 +125,8 @@ public partial class JxlHeaderTests
             float[] minimum = new float[inputSize.Width * inputSize.Height];
             float[] maximum = new float[minimum.Length];
             PrepareExpectedUpsamplingBounds(inputSize, minimum, maximum);
-            varDct.ApplyUpsampling(header, frame, allocator, default);
+            using JxlUpsampler upsampler = new(header, expectedSize, inputSize, factor, allocator);
+            varDct.ApplyUpsampling(upsampler, factor, default);
             for (int component = 0; component < 3; component++)
             {
                 Buffer2DRegion<float> plane = varDct.GetReconstructedChannel(component);

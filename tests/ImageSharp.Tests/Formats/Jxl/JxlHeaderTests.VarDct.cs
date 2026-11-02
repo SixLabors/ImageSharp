@@ -27,6 +27,7 @@ public partial class JxlHeaderTests
     [InlineData(TestImages.Jxl.ProgressiveAc)]
     [InlineData(TestImages.Jxl.NarrowEdgeGroup)]
     [InlineData(TestImages.Jxl.OddSizeUpsampling)]
+    [InlineData(TestImages.Jxl.UpsamplingWithAlpha)]
     public void DecodeVarDctGroupsMatchNative(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateVarDctGroupPixels,
@@ -45,6 +46,7 @@ public partial class JxlHeaderTests
             TestImages.Jxl.PermutedSections => new Size(2143, 1050),
             TestImages.Jxl.ProgressiveAc => new Size(2268, 1512),
             TestImages.Jxl.OddSizeUpsampling => new Size(257, 257),
+            TestImages.Jxl.UpsamplingWithAlpha => new Size(800, 600),
             _ => new Size(513, 321)
         };
 
@@ -65,7 +67,11 @@ public partial class JxlHeaderTests
                     $"{file}, ({x},{y}), component {component}: {actual[component]:R}, native {expected[component]:R}.");
             }
 
-            Assert.InRange(MathF.Abs(actual.W - expected.W), 0F, 0.0000001F);
+            // The pixel contract bounds final alpha to zero through one, after interpolation.
+            // The alpha-upsample references disagree by at most 4.76837e-7; round only that case upward to 5e-7.
+            float expectedAlpha = Math.Clamp(expected.W, 0F, 1F);
+            float alphaBound = file == TestImages.Jxl.UpsamplingWithAlpha ? 0.0000005F : 0.0000001F;
+            Assert.InRange(MathF.Abs(actual.W - expectedAlpha), 0F, alphaBound);
         }
     }
 
@@ -80,7 +86,8 @@ public partial class JxlHeaderTests
     /// Original jxl-rs revision d7a831fae15b903f1b56a76668030c19ac07bb6f independently decoded these original files
     /// with --num-threads 1 --high-precision --data-type f32 and its sRGB output selection.
     /// Maximum full-image RGB disagreements are 1.35e-5, 1.20e-5 and 4.25e-5, respectively. Alpha agrees exactly.
-    /// The odd-size upsampled file disagrees by at most 4.26e-6.
+    /// The odd-size upsampled file disagrees by at most 4.26e-6. The alpha-upsampled file differs by at most
+    /// 4.42e-5 in RGB and 4.77e-7 in alpha. Its recorded raw alpha remains unclipped, as supplied by both reference decoders.
     /// Coordinates cover AC seams at 255/256, DC seams at 2047/2048, upsampling phases and final partial groups.
     /// </remarks>
     private static (int X, int Y, uint R, uint G, uint B, uint A)[] NativeVarDctGroupPoints(string file) => file switch
@@ -137,6 +144,34 @@ public partial class JxlHeaderTests
             (256, 255, 0x3F3A4B20U, 0x3F45A392U, 0x3F528815U, 0x3F800000U),
             (255, 256, 0x3F394491U, 0x3F418AD6U, 0x3F49EE4BU, 0x3F800000U),
             (256, 256, 0x3F3CB4E3U, 0x3F47CB03U, 0x3F500638U, 0x3F800000U),
+        ],
+        TestImages.Jxl.UpsamplingWithAlpha =>
+        [
+            (284, 28, 0x3EF75CDDU, 0x3EF75CE7U, 0x3F6C5B57U, 0x3E536006U),
+            (285, 28, 0x3EFC939CU, 0x3EFC93A1U, 0x3F63F02DU, 0x3E3B6913U),
+            (286, 28, 0x3F017806U, 0x3F017806U, 0x3F58BD5BU, 0x3E273D44U),
+            (287, 28, 0x3F03DA3AU, 0x3F03DA3DU, 0x3F483E15U, 0x3E0DAC73U),
+            (284, 29, 0x3F02FB30U, 0x3F02FB33U, 0x3F739F59U, 0x3E9E9AC6U),
+            (285, 29, 0x3F097755U, 0x3F09775AU, 0x3F712D0DU, 0x3E91C277U),
+            (286, 29, 0x3F1001A7U, 0x3F1001ADU, 0x3F6E84C8U, 0x3E85F64EU),
+            (287, 29, 0x3F16254FU, 0x3F162552U, 0x3F68C0BFU, 0x3E6BA91DU),
+            (284, 30, 0x3EFFA9E6U, 0x3EFFA9E8U, 0x3F74BEF2U, 0x3ED33F26U),
+            (285, 30, 0x3F0A010EU, 0x3F0A0113U, 0x3F70F6F6U, 0x3EC65D3CU),
+            (286, 30, 0x3F141267U, 0x3F141268U, 0x3F6CC415U, 0x3EB9AEC7U),
+            (287, 30, 0x3F1DD428U, 0x3F1DD428U, 0x3F68393AU, 0x3EA752F9U),
+            (284, 31, 0x3EEE6B1FU, 0x3EEE6B25U, 0x3F779D96U, 0x3F05FA53U),
+            (285, 31, 0x3F028344U, 0x3F028346U, 0x3F73CACAU, 0x3EFFFDBCU),
+            (286, 31, 0x3F0D7744U, 0x3F0D774AU, 0x3F6F9300U, 0x3EF36C16U),
+            (287, 31, 0x3F188BBBU, 0x3F188BC1U, 0x3F6ABE56U, 0x3EE0303CU),
+            (0, 0, 0xB8216AAFU, 0xB8216ABEU, 0xB8BFAC7FU, 0x00000000U),
+            (799, 0, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (0, 599, 0xBA77893AU, 0xBA778943U, 0xBB456EA5U, 0x00000000U),
+            (799, 599, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (399, 299, 0x3F7BCAEDU, 0x3F672251U, 0x3F6938F5U, 0x3F7F0734U),
+            (400, 299, 0x3F7A1BF4U, 0x3F5E86C2U, 0x3F6076E2U, 0x3F7E6776U),
+            (399, 300, 0x3F74A052U, 0x3F4FB308U, 0x3F5131A6U, 0x3F7D8C67U),
+            (400, 300, 0x3F718860U, 0x3F43D98EU, 0x3F451D67U, 0x3F7BF1DDU),
+            (309, 177, 0x3EEFF346U, 0x3EEFF82EU, 0x3F584947U, 0x3F80A256U),
         ],
         _ => [],
     };

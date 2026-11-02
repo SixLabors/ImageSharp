@@ -1813,6 +1813,7 @@ public static class TestImages
         public const string ProgressiveAc = "Jxl/progressive_ac.jxl";
         public const string NarrowEdgeGroup = "Jxl/narrow_edge_group.jxl";
         public const string OddSizeUpsampling = "Jxl/oddsize_ups.jxl";
+        public const string UpsamplingWithAlpha = "Jxl/upsampling.jxl";
 
         // This stored variant omits the final section byte. The native decoder rejects it as truncated.
         public const string TruncatedSections = "Jxl/has_permutation_truncated.jxl";

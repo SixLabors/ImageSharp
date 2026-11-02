@@ -17,6 +17,70 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 internal sealed partial class JxlDecoderCore
 {
     /// <summary>
+    /// Expands color and optional integer alpha with one shared component workspace after all modular transforms complete.
+    /// </summary>
+    /// <param name="header">The frame's upsampling weights and extra-channel precision.</param>
+    /// <param name="frame">The final output size and effective color and alpha factors.</param>
+    /// <param name="varDct">The owner of restored float color planes.</param>
+    /// <param name="modular">The owner of completed integer extra channels.</param>
+    /// <param name="alphaChannel">The alpha extra-channel index, or minus one for no alpha.</param>
+    /// <param name="cancellationToken">The token checked during sample conversion and expansion.</param>
+    /// <returns>The owned final float alpha plane, or null when alpha needs no upsampling. The caller disposes a returned plane.</returns>
+    private Buffer2D<float>? UpsampleVarDctFrame(
+        JxlHeader header, JxlFrameHeader frame, JxlVarDctDecoder varDct, JxlModularDecoder modular, int alphaChannel, CancellationToken cancellationToken)
+    {
+        int colorFactor = frame.Upsampling;
+        int alphaFactor = alphaChannel < 0 ? 1 : frame.ExtraChannelUpsampling[alphaChannel];
+        int maximumFactor = Math.Max(colorFactor, alphaFactor);
+        if (maximumFactor == 1)
+        {
+            return null;
+        }
+
+        // The parser requires extra-channel factors to be at least the color factor. A coded alpha plane
+        // therefore fits the color row window. When color stays at full size, reserve only the smaller alpha window.
+        Size maximumSourceSize = colorFactor > 1 ? frame.CodingSize : modular.GetChannel(alphaChannel).Size;
+        Configuration configuration = this.Options.Configuration;
+        using JxlUpsampler upsampler = new(header, frame.Size, maximumSourceSize, maximumFactor, configuration.MemoryAllocator);
+        if (colorFactor > 1)
+        {
+            varDct.ApplyUpsampling(upsampler, colorFactor, cancellationToken);
+        }
+
+        if (alphaFactor == 1)
+        {
+            return null;
+        }
+
+        // One final-capacity float plane retains alpha until pixel packing. Its source integers remain
+        // owned by the modular decoder. Color and alpha reuse the same kernels and row window above.
+        Buffer2D<float> alpha = configuration.MemoryAllocator.Allocate2D<float>(frame.Size);
+        try
+        {
+            Buffer2DRegion<int> source = modular.GetChannel(alphaChannel);
+            int precision = header.Metadata.ExtraChannels[alphaChannel].BitDepth.BitsPerSample;
+            float maximum = MathF.ScaleB(1F, precision) - 1F;
+            for (int y = 0; y < source.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Span<float> target = alpha.DangerousGetRowSpan(y)[..source.Width];
+                TensorPrimitives.ConvertChecked<int, float>(source.DangerousGetRowSpan(y), target);
+                TensorPrimitives.Divide(target, maximum, target);
+            }
+
+            // Lossy reconstruction can produce alpha below zero or above one. Preserve those samples
+            // through interpolation; only the destination pixel API applies the normalized alpha bounds.
+            upsampler.Apply(alpha, source.Size, alphaFactor, cancellationToken);
+            return alpha;
+        }
+        catch
+        {
+            alpha.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Converts restored VarDCT planes to working sRGB and packs the requested pixels once.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
@@ -24,6 +88,7 @@ internal sealed partial class JxlDecoderCore
     /// <param name="varDct">The completed color reconstruction, including chroma upsampling and restoration.</param>
     /// <param name="modular">The completed native extra channels.</param>
     /// <param name="destination">The final frame.</param>
+    /// <param name="upsampledAlpha">The borrowed expanded alpha plane, or null for native-resolution alpha.</param>
     /// <param name="alphaChannel">The modular alpha index, or minus one for opaque input.</param>
     /// <param name="alphaDepth">The integer alpha precision.</param>
     /// <param name="alphaRepresentation">The encoded RGB association.</param>
@@ -33,6 +98,7 @@ internal sealed partial class JxlDecoderCore
         JxlVarDctDecoder varDct,
         JxlModularDecoder modular,
         ImageFrame<TPixel> destination,
+        Buffer2DRegion<float>? upsampledAlpha,
         int alphaChannel,
         JxlBitDepth alphaDepth,
         PixelAlphaRepresentation alphaRepresentation,
@@ -45,7 +111,10 @@ internal sealed partial class JxlDecoderCore
         Buffer2DRegion<float> component1 = varDct.GetReconstructedChannel(1);
         Buffer2DRegion<float> component2 = varDct.GetReconstructedChannel(2);
         using IMemoryOwner<Vector4> vectorOwner = configuration.MemoryAllocator.Allocate<Vector4>(width);
-        using IMemoryOwner<float>? alphaOwner = alphaChannel < 0 ? null : configuration.MemoryAllocator.Allocate<float>(width);
+        using IMemoryOwner<float>? alphaOwner = alphaChannel < 0 || upsampledAlpha.HasValue
+            ? null
+            : configuration.MemoryAllocator.Allocate<float>(width);
+
         Span<Vector4> vectors = vectorOwner.Memory.Span;
         Span<float> alpha = alphaOwner is null ? [] : alphaOwner.Memory.Span;
         float alphaMaximum = MathF.ScaleB(1F, alphaDepth.BitsPerSample) - 1F;
@@ -71,7 +140,12 @@ internal sealed partial class JxlDecoderCore
         for (int y = 0; y < destination.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (alphaChannel >= 0)
+            ReadOnlySpan<float> rowAlpha = alpha;
+            if (upsampledAlpha.HasValue)
+            {
+                rowAlpha = upsampledAlpha.Value.DangerousGetRowSpan(y);
+            }
+            else if (alphaChannel >= 0)
             {
                 // Extra channels remain integers through all modular transforms. Normalize their stored
                 // precision only at output; this row is reused, and no float alpha image is allocated.
@@ -80,7 +154,7 @@ internal sealed partial class JxlDecoderCore
             }
 
             SimdUtils.InterleaveFloatPlanes(
-                component0.DangerousGetRowSpan(y), component1.DangerousGetRowSpan(y), component2.DangerousGetRowSpan(y), alpha, vectors);
+                component0.DangerousGetRowSpan(y), component1.DangerousGetRowSpan(y), component2.DangerousGetRowSpan(y), rowAlpha, vectors);
 
             if (header.UsesXybTransform)
             {

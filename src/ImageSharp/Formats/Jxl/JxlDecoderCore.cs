@@ -158,12 +158,12 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
         if (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular
             || frame.HasCrop || frame.Size != header.Size || (frame.Flags & ~JxlFrameHeader.SkipAdaptiveDcSmoothing) != 0
-            || (frame.Upsampling != 1 && (frame.Modular || header.Metadata.ExtraChannels.Count != 0))
+            || (frame.Upsampling != 1 && frame.Modular)
             || (frame.Modular && (frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)))
         {
             throw new NotSupportedException(
                 "JPEG XL decoding currently requires a final full-canvas frame without image features. "
-                + "Upsampling of modular color or extra channels is not yet supported.");
+                + "Upsampling of modular frames is not yet supported.");
         }
 
         // Native compact RGB must already use sRGB primaries and D65. A compact gamma changes only
@@ -191,9 +191,10 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         if (header.Metadata.ExtraChannels.Count == 1)
         {
             JxlExtraChannelMetadata alpha = header.Metadata.ExtraChannels[0];
-            if (alpha.Type != JxlExtraChannelType.Alpha || alpha.BitDepth.ExponentBits != 0 || frame.ExtraChannelUpsampling[0] != 1)
+            if (alpha.Type != JxlExtraChannelType.Alpha || alpha.BitDepth.ExponentBits != 0
+                || (frame.Modular && frame.ExtraChannelUpsampling[0] != 1))
             {
-                throw new NotSupportedException("JPEG XL reconstruction currently supports only full-resolution integer alpha.");
+                throw new NotSupportedException("JPEG XL reconstruction requires integer alpha. Modular alpha must have full resolution.");
             }
 
             alphaChannel = frame.Modular ? colorCount : 0;
@@ -205,6 +206,9 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         (JxlModularDecoder Modular, JxlVarDctDecoder? VarDct) reconstructed = this.DecodeFrameData(ref reader, header, frame, sections, cancellationToken);
         using JxlModularDecoder modular = reconstructed.Modular;
         using JxlVarDctDecoder? varDct = reconstructed.VarDct;
+        using Buffer2D<float>? upsampledAlpha = varDct is null
+            ? null
+            : this.UpsampleVarDctFrame(header, frame, varDct, modular, alphaChannel, cancellationToken);
 
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
@@ -220,7 +224,8 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
             if (varDct is not null)
             {
-                this.PackVarDctFrame(header, varDct, modular, destination, alphaChannel, alphaDepth, alphaRepresentation, cancellationToken);
+                this.PackVarDctFrame(
+                    header, varDct, modular, destination, upsampledAlpha?.GetRegion(), alphaChannel, alphaDepth, alphaRepresentation, cancellationToken);
                 this.CompleteMetadata(codestream, header, metadata, cancellationToken);
                 return image;
             }
@@ -451,7 +456,6 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
             modular.Complete(cancellationToken);
             varDct?.ApplyRestoration(frame, allocator, cancellationToken);
-            varDct?.ApplyUpsampling(header, frame, allocator, cancellationToken);
 
             // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);

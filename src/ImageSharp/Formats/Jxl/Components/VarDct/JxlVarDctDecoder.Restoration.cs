@@ -274,8 +274,8 @@ internal sealed partial class JxlVarDctDecoder
             this.reconstructedChannels[component].DangerousGetRowSpan(row)[..width].CopyTo(destination.Slice(RestorationRadius, width));
             for (int i = 0; i < RestorationRadius; i++)
             {
-                destination[i] = destination[RestorationRadius + MirrorRestorationIndex(i - RestorationRadius, width)];
-                destination[RestorationRadius + width + i] = destination[RestorationRadius + MirrorRestorationIndex((long)width + i, width)];
+                destination[i] = destination[RestorationRadius + JxlUpsampler.MirrorIndex(i - RestorationRadius, width)];
+                destination[RestorationRadius + width + i] = destination[RestorationRadius + JxlUpsampler.MirrorIndex((long)width + i, width)];
             }
         }
     }
@@ -292,33 +292,8 @@ internal sealed partial class JxlVarDctDecoder
     {
         for (int offset = -RestorationRadius; offset <= RestorationRadius; offset++)
         {
-            int physical = MirrorRestorationIndex((long)row + offset, height);
+            int physical = JxlUpsampler.MirrorIndex((long)row + offset, height);
             rows[offset + RestorationRadius] = (physical % ringRows) * stride;
         }
-    }
-
-    /// <summary>
-    /// Mirrors a neighborhood coordinate about the half-sample image border, repeating the border sample.
-    /// </summary>
-    /// <param name="index">The possibly out-of-range neighborhood coordinate.</param>
-    /// <param name="length">The positive axis extent.</param>
-    /// <returns>The original physical sample index.</returns>
-    private static int MirrorRestorationIndex(long index, int length)
-    {
-        // This is the symmetric border used by libjxl's render pipeline and convolution's mirror rule.
-        // Widening the doubled period also handles an int-sized vertical extent without overflow.
-        if ((ulong)index < (uint)length)
-        {
-            return (int)index;
-        }
-
-        long period = 2L * length;
-        long position = index % period;
-        if (position < 0)
-        {
-            position += period;
-        }
-
-        return (int)(position < length ? position : period - 1 - position);
     }
 }

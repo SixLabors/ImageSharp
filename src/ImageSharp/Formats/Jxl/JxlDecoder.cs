@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 /// Pixel decoding supports final full-canvas modular integer RGB and luminance frames with sRGB primaries and D65.
 /// Modular frames can use the sRGB or a gamma transfer curve, reversible color transforms, palettes, squeeze and weighted prediction.
 /// VarDCT frames support progressive coefficients, XYB conversion, chroma expansion, adaptive DC smoothing, Gaborish and EPF.
-/// VarDCT color can use twofold, fourfold or eightfold frame upsampling when no extra channels are present.
-/// Both coding modes support one full-resolution integer alpha channel. Modular upsampling and other image features are not yet supported.
+/// VarDCT color and alpha can use twofold, fourfold or eightfold upsampling.
+/// Both coding modes support one integer alpha channel. Modular upsampling and other image features are not yet supported.
 /// </remarks>
 public sealed class JxlDecoder : SpecializedImageDecoder<JxlDecoderOptions>
 {

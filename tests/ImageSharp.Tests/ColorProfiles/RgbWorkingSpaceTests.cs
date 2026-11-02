@@ -121,6 +121,19 @@ public class RgbWorkingSpaceTests
 
         Assert.Equal(expectedCompressed, actualCompressed, TolerantComparer);
 
+        Vector3[] packed = linear.Select(color => new Vector3(color.X, color.Y, color.Z)).ToArray();
+        workingSpace.Compress(packed.AsSpan());
+        for (int i = 0; i < packed.Length; i++)
+        {
+            Assert.Equal(expectedCompressed[i], new Vector4(packed[i], linear[i].W), TolerantComparer);
+        }
+
+        workingSpace.Expand(packed.AsSpan());
+        for (int i = 0; i < packed.Length; i++)
+        {
+            Assert.Equal(linear[i], new Vector4(packed[i], linear[i].W), RoundTripComparer);
+        }
+
         workingSpace.Expand(actualCompressed);
 
         Assert.Equal(linear, actualCompressed, RoundTripComparer);
@@ -129,5 +142,79 @@ public class RgbWorkingSpaceTests
         {
             Assert.Equal(linear[i].W, actualCompressed[i].W);
         }
+    }
+
+    /// <summary>
+    /// Checks that existing custom bulk overrides also control packed RGB conversion across multiple stack blocks.
+    /// </summary>
+    [Fact]
+    public void PackedRgbUsesCustomBulkOverrides()
+    {
+        CustomWorkingSpace custom = new();
+        RgbWorkingSpace workingSpace = custom;
+        Vector3[] colors = new Vector3[33];
+        Array.Fill(colors, new Vector3(0.25F, 0.5F, 0.75F));
+
+        workingSpace.Compress(colors.AsSpan());
+        Assert.True(custom.CompressCalls > 0);
+        Assert.All(colors, color => Assert.Equal(new Vector3(0.5F, 2F, 6F), color));
+
+        workingSpace.Expand(colors.AsSpan());
+        Assert.True(custom.ExpandCalls > 0);
+        Assert.All(colors, color => Assert.Equal(new Vector3(0.25F, 0.5F, 0.75F), color));
+    }
+
+    /// <summary>
+    /// Supplies an existing four-component working-space contract without packed RGB overrides.
+    /// </summary>
+    private sealed class CustomWorkingSpace : RgbWorkingSpace
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomWorkingSpace"/> class with sRGB primaries and white.
+        /// </summary>
+        public CustomWorkingSpace()
+            : base(KnownRgbWorkingSpaces.SRgb.WhitePoint, KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates)
+        {
+        }
+
+        /// <summary>
+        /// Gets the number of four-component compression calls.
+        /// </summary>
+        public int CompressCalls { get; private set; }
+
+        /// <summary>
+        /// Gets the number of four-component expansion calls.
+        /// </summary>
+        public int ExpandCalls { get; private set; }
+
+        /// <inheritdoc/>
+        public override void Compress(Span<Vector4> vectors)
+        {
+            this.CompressCalls++;
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                Assert.Equal(1F, vectors[i].W);
+                vectors[i] = this.Compress(vectors[i]);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void Expand(Span<Vector4> vectors)
+        {
+            this.ExpandCalls++;
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                Assert.Equal(1F, vectors[i].W);
+                vectors[i] = this.Expand(vectors[i]);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override Vector4 Compress(Vector4 vector) => vector * new Vector4(2F, 4F, 8F, 1F);
+
+        /// <inheritdoc/>
+        public override Vector4 Expand(Vector4 vector) => vector / new Vector4(2F, 4F, 8F, 1F);
     }
 }

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// <remarks>
 /// Inputs use normalized color component units. SDR components use [0,1]; extended components use [-65504,65504].
 /// The supplied transfer curve determines whether input components are linear or nonlinear.
-/// Vector4 APIs transform RGB in X, Y, Z and retain alpha in W. Component APIs transform every SIMD lane.
+/// Vector3 APIs transform RGB in X, Y and Z. Vector4 APIs also retain alpha in W. Component APIs transform every SIMD lane.
 /// </remarks>
 public static class CompandingUtilities
 {
@@ -74,6 +74,44 @@ public static class CompandingUtilities
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Transforms every component of packed RGB colors in place with the shared result bounds.
+    /// </summary>
+    /// <typeparam name="TOperator">The component operation, without layout or result-bound handling.</typeparam>
+    /// <param name="values">The normalized RGB colors. Every vector stores three adjacent components and no alpha.</param>
+    /// <param name="operation">The configured transfer curve.</param>
+    /// <param name="colorRange">The result range applied after curve evaluation.</param>
+    internal static void Compand<TOperator>(Span<Vector3> values, TOperator operation, PixelColorRange colorRange)
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+    {
+        Span<float> components = MemoryMarshal.Cast<Vector3, float>(values);
+        BoundedOperator<TOperator> bounded = new(operation, colorRange);
+
+        if (!Vector128.IsHardwareAccelerated)
+        {
+            TensorPrimitives_.Invoke(components, bounded);
+            return;
+        }
+
+        // Packed triples have no alpha lanes. The shared component traversal applies the same bounded curve to every lane.
+        // Give it complete 128-bit groups so its descending SIMD loops do not evaluate a scalar power in the final components.
+        int complete = (int)components.Length.Vector128Count<float>() * Vector128<float>.Count;
+        TensorPrimitives_.Invoke(components[..complete], bounded);
+        Span<float> remainder = components[complete..];
+
+        if (!remainder.IsEmpty)
+        {
+            // Keep the same 128-bit curve arithmetic for the final one to three components. Padding is private to this value;
+            // the component operator has no cross-lane state. Copy back only the valid lanes, with no source or destination overread.
+            InlineArray4<float> storage = default;
+            Span<float> padded = storage;
+            remainder.CopyTo(padded);
+            ref float first = ref MemoryMarshal.GetReference(padded);
+            bounded.Invoke(Vector128.LoadUnsafe(ref first)).StoreUnsafe(ref first);
+            padded[..remainder.Length].CopyTo(remainder);
+        }
     }
 
     /// <summary>

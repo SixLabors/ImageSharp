@@ -274,6 +274,62 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
+    /// Checks packed RGB curves, finite result bounds and partial SIMD colors at every supported execution width.
+    /// </summary>
+    [Fact]
+    public void PackedCompanding_MatchesFormulas() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckPackedCompanding,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Uses the established transfer formulas and error bounds for packed triples, including guarded output tails.
+    /// </summary>
+    private static void CheckPackedCompanding()
+    {
+        ReadOnlySpan<int> lengths = [0, 1, 2, 3, 17];
+        ReadOnlySpan<float> samples = [-16F, -2F, -1F, -0F, 0F, 0.001F, 0.04F, 0.25F, 1F, 16F,
+            float.NaN, float.NegativeInfinity, float.PositiveInfinity];
+        Vector3 sentinel = new(-123F, 456F, -789F);
+
+        foreach (string curve in CompandingCurves)
+        {
+            foreach (bool compress in new[] { false, true })
+            {
+                foreach (int length in lengths)
+                {
+                    Vector3[] actual = new Vector3[length + 1];
+                    for (int i = 0; i < length; i++)
+                    {
+                        actual[i] = new Vector3(samples[(3 * i) % samples.Length], samples[((3 * i) + 1) % samples.Length],
+                            samples[((3 * i) + 2) % samples.Length]);
+                    }
+
+                    actual[^1] = sentinel;
+                    ApplyCompanding(curve, compress, actual.AsSpan(0, length));
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        for (int component = 0; component < 3; component++)
+                        {
+                            float input = samples[((3 * i) + component) % samples.Length];
+                            float reference = ExpectedComponent(curve, compress, input);
+                            reference = float.IsNaN(reference)
+                                ? ColorNumerics.MinColorValue
+                                : Math.Clamp(reference, ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue);
+
+                            float scale = MathF.Max(1F, MathF.Abs(reference));
+                            Assert.Equal(reference / scale, actual[i][component] / scale, DirectComparer);
+                        }
+                    }
+
+                    // The padded SIMD tail belongs to the compander. It must not publish padding over the next color.
+                    Assert.Equal(sentinel, actual[^1]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Checks fixed power classification and scalar remainders through the shared bulk entry point.
     /// </summary>
     [Fact]
@@ -513,6 +569,49 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
                 break;
             case (nameof(LCompanding), true):
                 LCompanding.Compress(values, bitDepth, colorRange);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Calls the packed RGB overload of each public compander.
+    /// </summary>
+    /// <param name="curve">The compander under test.</param>
+    /// <param name="compress">Whether to encode linear values.</param>
+    /// <param name="values">The packed colors transformed in place.</param>
+    private static void ApplyCompanding(string curve, bool compress, Span<Vector3> values)
+    {
+        switch ((curve, compress))
+        {
+            case (nameof(SRgbCompanding), false):
+                SRgbCompanding.Expand(values);
+                break;
+            case (nameof(SRgbCompanding), true):
+                SRgbCompanding.Compress(values);
+                break;
+            case (nameof(GammaCompanding), false):
+                GammaCompanding.Expand(values, 2.2);
+                break;
+            case (nameof(GammaCompanding), true):
+                GammaCompanding.Compress(values, 2.2);
+                break;
+            case (nameof(Rec709Companding), false):
+                Rec709Companding.Expand(values);
+                break;
+            case (nameof(Rec709Companding), true):
+                Rec709Companding.Compress(values);
+                break;
+            case (nameof(Rec2020Companding), false):
+                Rec2020Companding.Expand(values);
+                break;
+            case (nameof(Rec2020Companding), true):
+                Rec2020Companding.Compress(values);
+                break;
+            case (nameof(LCompanding), false):
+                LCompanding.Expand(values);
+                break;
+            case (nameof(LCompanding), true):
+                LCompanding.Compress(values);
                 break;
         }
     }

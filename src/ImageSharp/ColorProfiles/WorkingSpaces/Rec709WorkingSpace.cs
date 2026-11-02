@@ -25,7 +25,13 @@ public sealed class Rec709WorkingSpace : RgbWorkingSpace
     public override void Compress(Span<Vector4> vectors) => Rec709Companding.Compress(vectors);
 
     /// <inheritdoc/>
+    public override void Compress(Span<Vector3> vectors) => Rec709Companding.Compress(vectors);
+
+    /// <inheritdoc/>
     public override void Expand(Span<Vector4> vectors) => Rec709Companding.Expand(vectors);
+
+    /// <inheritdoc/>
+    public override void Expand(Span<Vector3> vectors) => Rec709Companding.Expand(vectors);
 
     /// <inheritdoc/>
     public override Vector4 Compress(Vector4 vector) => Rec709Companding.Compress(vector);

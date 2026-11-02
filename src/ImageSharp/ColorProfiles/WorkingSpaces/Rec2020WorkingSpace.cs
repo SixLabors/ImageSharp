@@ -25,7 +25,13 @@ public sealed class Rec2020WorkingSpace : RgbWorkingSpace
     public override void Compress(Span<Vector4> vectors) => Rec2020Companding.Compress(vectors);
 
     /// <inheritdoc/>
+    public override void Compress(Span<Vector3> vectors) => Rec2020Companding.Compress(vectors);
+
+    /// <inheritdoc/>
     public override void Expand(Span<Vector4> vectors) => Rec2020Companding.Expand(vectors);
+
+    /// <inheritdoc/>
+    public override void Expand(Span<Vector3> vectors) => Rec2020Companding.Expand(vectors);
 
     /// <inheritdoc/>
     public override Vector4 Compress(Vector4 vector) => Rec2020Companding.Compress(vector);

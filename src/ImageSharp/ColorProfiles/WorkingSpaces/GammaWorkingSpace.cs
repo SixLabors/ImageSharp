@@ -29,7 +29,13 @@ public sealed class GammaWorkingSpace : RgbWorkingSpace
     public override void Compress(Span<Vector4> vectors) => GammaCompanding.Compress(vectors, this.Gamma);
 
     /// <inheritdoc/>
+    public override void Compress(Span<Vector3> vectors) => GammaCompanding.Compress(vectors, this.Gamma);
+
+    /// <inheritdoc/>
     public override void Expand(Span<Vector4> vectors) => GammaCompanding.Expand(vectors, this.Gamma);
+
+    /// <inheritdoc/>
+    public override void Expand(Span<Vector3> vectors) => GammaCompanding.Expand(vectors, this.Gamma);
 
     /// <inheritdoc/>
     public override Vector4 Compress(Vector4 vector) => GammaCompanding.Compress(vector, this.Gamma);

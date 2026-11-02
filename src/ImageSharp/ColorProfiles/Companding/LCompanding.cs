@@ -54,6 +54,13 @@ public static partial class LCompanding
         => CompressCore(vectors, PixelColorRange.Extended);
 
     /// <summary>
+    /// Compresses linear RGB within the extended color range.
+    /// </summary>
+    /// <param name="vectors">The normalized linear RGB colors, with RGB in X, Y and Z.</param>
+    public static void Compress(Span<Vector3> vectors)
+        => CompandingUtilities.Compand(vectors, default(CompressOperator), PixelColorRange.Extended);
+
+    /// <summary>
     /// Compresses linear RGB at the requested component precision and retains alpha.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
@@ -79,6 +86,13 @@ public static partial class LCompanding
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     public static void Expand(Span<Vector4> vectors)
         => ExpandCore(vectors, PixelColorRange.Extended);
+
+    /// <summary>
+    /// Expands nonlinear RGB within the extended color range.
+    /// </summary>
+    /// <param name="vectors">The normalized nonlinear RGB colors, with RGB in X, Y and Z.</param>
+    public static void Expand(Span<Vector3> vectors)
+        => CompandingUtilities.Compand(vectors, default(ExpandOperator), PixelColorRange.Extended);
 
     /// <summary>
     /// Expands nonlinear RGB at the requested component precision and retains alpha.

@@ -212,68 +212,57 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
         Matrix4x4 matrix = transform.Inverse;
         Vector3 biases = transform.Biases;
         Vector3 cubeRootBiases = transform.CubeRootBiases;
-        InlineArray16<Vector4> storage = default;
-        Span<Vector4> buffer = storage;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Xyb, Vector3>(source);
+        int i = 0;
 
-        // XYB stores three adjacent floats per color. The working-space API needs Vector4 pixel vectors, so reuse one stack block.
-        // Its sixteen entries hold one full Vector512<float> group. SIMD loads support unaligned spans; no alignment is required.
-        // Each SIMD register holds one component from consecutive colors. Interleaving adds an alpha of one because XYB has no alpha.
-        for (int offset = 0; offset < source.Length; offset += buffer.Length)
+        // Each SIMD lane carries the same component from consecutive colors. Store the reconstructed linear RGB
+        // directly as three adjacent components per color. All input components load before their matching output stores.
+        if (Vector512.IsHardwareAccelerated)
         {
-            int count = Math.Min(buffer.Length, source.Length - offset);
-            ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Xyb, Vector3>(source.Slice(offset, count));
-            ReadOnlySpan<float> components = MemoryMarshal.Cast<Vector3, float>(packed);
-            Span<Vector4> colors = buffer[..count];
-            int i = 0;
+            nuint vectorCount = (source.Length - i).Vector512Count<float>();
 
-            if (Vector512.IsHardwareAccelerated)
+            for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
             {
-                nuint vectorCount = components[(i * 3)..].Vector512Count<float>() / 3;
-
-                for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
-                {
-                    SimdUtils.Deinterleave3(packed, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> b);
-                    ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector512<float> r, out Vector512<float> g, out Vector512<float> blue);
-                    SimdUtils.Interleave4(r, g, blue, Vector512<float>.One, ref Unsafe.As<Vector4, float>(ref colors[i]));
-                }
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> b);
+                ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector512<float> r, out Vector512<float> g, out Vector512<float> blue);
+                SimdUtils.Interleave3(r, g, blue, ref Unsafe.As<Rgb, float>(ref destination[i]));
             }
-
-            if (Vector256.IsHardwareAccelerated)
-            {
-                nuint vectorCount = components[(i * 3)..].Vector256Count<float>() / 3;
-
-                for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
-                {
-                    SimdUtils.Deinterleave3(packed, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> b);
-                    ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector256<float> r, out Vector256<float> g, out Vector256<float> blue);
-                    SimdUtils.Interleave4(r, g, blue, Vector256<float>.One, ref Unsafe.As<Vector4, float>(ref colors[i]));
-                }
-            }
-
-            if (Vector128.IsHardwareAccelerated)
-            {
-                nuint vectorCount = components[(i * 3)..].Vector128Count<float>() / 3;
-
-                for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
-                {
-                    SimdUtils.Deinterleave3(packed, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> b);
-                    ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector128<float> r, out Vector128<float> g, out Vector128<float> blue);
-                    SimdUtils.Interleave4(r, g, blue, Vector128<float>.One, ref Unsafe.As<Vector4, float>(ref colors[i]));
-                }
-            }
-
-            // The scalar path handles the tail, or the whole batch without SIMD. It uses the same equations and reads no padding.
-            for (; i < count; i++)
-            {
-                Vector3 value = packed[i];
-                ConvertToRgb(value.X, value.Y, value.Z, in matrix, biases, cubeRootBiases, out float r, out float g, out float b);
-                colors[i] = new(r, g, b, 1F);
-            }
-
-            // The shared working-space API encodes the reconstructed linear RGB. Only the filled part of the block is published.
-            options.SourceRgbWorkingSpace.Compress(colors);
-            Rgb.FromScaledVector4(colors, destination.Slice(offset, count));
         }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (source.Length - i).Vector256Count<float>();
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
+            {
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> b);
+                ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector256<float> r, out Vector256<float> g, out Vector256<float> blue);
+                SimdUtils.Interleave3(r, g, blue, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (source.Length - i).Vector128Count<float>();
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
+            {
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> b);
+                ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector128<float> r, out Vector128<float> g, out Vector128<float> blue);
+                SimdUtils.Interleave3(r, g, blue, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        // Scalar colors use the same equations without reading padding. Companding follows only after every linear color is stored.
+        for (; i < source.Length; i++)
+        {
+            Vector3 value = packed[i];
+            ConvertToRgb(value.X, value.Y, value.Z, in matrix, biases, cubeRootBiases, out float r, out float g, out float b);
+            destination[i] = new Rgb(r, g, b);
+        }
+
+        // The working space encodes the complete packed RGB span. No opacity lane is introduced or evaluated by its transfer curve.
+        options.SourceRgbWorkingSpace.Compress(MemoryMarshal.Cast<Rgb, Vector3>(destination[..source.Length]));
     }
 
     /// <inheritdoc/>

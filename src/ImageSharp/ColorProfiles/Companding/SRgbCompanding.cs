@@ -23,6 +23,26 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// </remarks>
 public static partial class SRgbCompanding
 {
+    /// <summary>
+    /// The scale of the nonlinear sRGB segment.
+    /// </summary>
+    private const float NonlinearScale = 1.055F;
+
+    /// <summary>
+    /// The offset of the nonlinear sRGB segment.
+    /// </summary>
+    private const float NonlinearOffset = 0.055F;
+
+    /// <summary>
+    /// The nonlinear input magnitude at the sRGB segment junction.
+    /// </summary>
+    private const float NonlinearThreshold = 0.04045F;
+
+    /// <summary>
+    /// The corresponding linear junction, using the existing single-precision ratio.
+    /// </summary>
+    private const float LinearThreshold = NonlinearThreshold / LinearSlope;
+
     private static Func<double, double, double> CompressFunction
         => (d, _) =>
         {
@@ -53,6 +73,13 @@ public static partial class SRgbCompanding
         => CompressCore(vectors, PixelColorRange.Extended);
 
     /// <summary>
+    /// Compresses linear RGB within the extended color range.
+    /// </summary>
+    /// <param name="vectors">The normalized linear RGB colors, with RGB in X, Y and Z.</param>
+    public static void Compress(Span<Vector3> vectors)
+        => CompandingUtilities.Compand(vectors, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), PixelColorRange.Extended);
+
+    /// <summary>
     /// Compresses linear RGB at the requested component precision and retains alpha.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
@@ -78,6 +105,13 @@ public static partial class SRgbCompanding
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     public static void Expand(Span<Vector4> vectors)
         => ExpandCore(vectors, PixelColorRange.Extended);
+
+    /// <summary>
+    /// Expands nonlinear RGB within the extended color range.
+    /// </summary>
+    /// <param name="vectors">The normalized nonlinear RGB colors, with RGB in X, Y and Z.</param>
+    public static void Expand(Span<Vector3> vectors)
+        => CompandingUtilities.Compand(vectors, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), PixelColorRange.Extended);
 
     /// <summary>
     /// Expands nonlinear RGB at the requested component precision and retains alpha.
@@ -159,7 +193,7 @@ public static partial class SRgbCompanding
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     private static void ExpandCore(Span<Vector4> vectors, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vectors, new ExpandOperator(1.055F, 0.055F, 0.04045F), colorRange);
+        => CompandingUtilities.Compand(vectors, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), colorRange);
 
     /// <summary>
     /// Expands nonlinear RGB within the requested color range and retains alpha.
@@ -168,7 +202,7 @@ public static partial class SRgbCompanding
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     private static Vector4 ExpandCore(Vector4 vector, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vector, new ExpandOperator(1.055F, 0.055F, 0.04045F), colorRange);
+        => CompandingUtilities.Compand(vector, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), colorRange);
 
     /// <summary>
     /// Compresses linear RGB within the requested color range and retains alpha.
@@ -176,7 +210,7 @@ public static partial class SRgbCompanding
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     private static void CompressCore(Span<Vector4> vectors, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vectors, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F), colorRange);
+        => CompandingUtilities.Compand(vectors, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), colorRange);
 
     /// <summary>
     /// Compresses linear RGB within the requested color range and retains alpha.
@@ -185,7 +219,7 @@ public static partial class SRgbCompanding
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     private static Vector4 CompressCore(Vector4 vector, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vector, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F), colorRange);
+        => CompandingUtilities.Compand(vector, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), colorRange);
 
     /// <summary>
     /// Gets the shared sRGB expansion table without allocating a table for each caller.

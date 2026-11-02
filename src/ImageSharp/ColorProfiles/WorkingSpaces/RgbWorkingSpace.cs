@@ -61,6 +61,20 @@ public abstract class RgbWorkingSpace
     public abstract void Expand(Span<Vector4> vectors);
 
     /// <summary>
+    /// Compresses linear RGB colors to their nonlinear equivalents.
+    /// </summary>
+    /// <param name="vectors">The RGB colors, with components in X, Y and Z.</param>
+    /// <remarks>Existing four-component bulk overrides also control this overload unless it is overridden.</remarks>
+    public virtual void Compress(Span<Vector3> vectors) => this.Compand(vectors, false);
+
+    /// <summary>
+    /// Expands nonlinear RGB colors to their linear equivalents.
+    /// </summary>
+    /// <param name="vectors">The RGB colors, with components in X, Y and Z.</param>
+    /// <remarks>Existing four-component bulk overrides also control this overload unless it is overridden.</remarks>
+    public virtual void Expand(Span<Vector3> vectors) => this.Compand(vectors, true);
+
+    /// <summary>
     /// Compresses the linear vector to its nonlinear equivalent with respect to the energy.
     /// </summary>
     /// <param name="vector">The vector.</param>
@@ -101,6 +115,44 @@ public abstract class RgbWorkingSpace
     /// <inheritdoc/>
     public override int GetHashCode()
         => HashCode.Combine(this.GetType(), this.WhitePoint, this.ChromaticityCoordinates);
+
+    /// <summary>
+    /// Adapts packed RGB to the existing bulk overrides of a custom working space.
+    /// </summary>
+    /// <param name="vectors">The packed RGB colors transformed in place.</param>
+    /// <param name="expand">True to expand nonlinear colors; false to compress linear colors.</param>
+    private void Compand(Span<Vector3> vectors, bool expand)
+    {
+        InlineArray16<Vector4> storage = default;
+        Span<Vector4> buffer = storage;
+
+        // Existing custom spaces only need to implement the four-component contract. Keep their bulk override in control,
+        // with alpha one and the same bounded stack block for both directions. Built-in spaces use packed overrides instead.
+        for (int offset = 0; offset < vectors.Length; offset += buffer.Length)
+        {
+            int count = Math.Min(buffer.Length, vectors.Length - offset);
+            Span<Vector4> colors = buffer[..count];
+            for (int i = 0; i < count; i++)
+            {
+                colors[i] = new Vector4(vectors[offset + i], 1F);
+            }
+
+            if (expand)
+            {
+                this.Expand(colors);
+            }
+            else
+            {
+                this.Compress(colors);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                Vector4 color = colors[i];
+                vectors[offset + i] = new Vector3(color.X, color.Y, color.Z);
+            }
+        }
+    }
 
     /// <summary>
     /// Builds the linear RGB-to-XYZ matrix from the primaries and reference white.

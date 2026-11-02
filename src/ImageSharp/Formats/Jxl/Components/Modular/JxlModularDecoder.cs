@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 /// Each stream uses the same transform parser and prediction traversal on one thread.
 /// Global transforms remain pending until every group has populated its encoded frame regions.
 /// </remarks>
-internal sealed class JxlModularDecoder : IDisposable
+internal sealed partial class JxlModularDecoder : IDisposable
 {
     // Transform tags are serialized in two bits. Tag three has no defined transform.
     private const byte ColorTransform = 0;

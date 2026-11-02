@@ -75,6 +75,21 @@ internal sealed partial class JxlVarDctDecoder
         => this.reconstructedChannels[component].GetRegion(new Rectangle(Point.Empty, this.reconstructedSizes[component]));
 
     /// <summary>
+    /// Transfers the three completed native float planes to the decoder's saved LF slot without copying samples.
+    /// </summary>
+    /// <returns>The X, Y and B plane owners. The caller must dispose them after their final dependent frame.</returns>
+    /// <remarks>
+    /// Call this after restoration and frame upsampling. This owner must not reconstruct or read color planes after transfer.
+    /// </remarks>
+    public Buffer2D<float>[] TakeReconstructedChannels()
+    {
+        // Build the complete result before removing ownership. If the array allocation fails, Dispose still releases the planes.
+        Buffer2D<float>[] result = this.reconstructedChannels.ToArray();
+        this.reconstructedChannels.Clear();
+        return result;
+    }
+
+    /// <summary>
     /// Reconstructs the current group's accumulated coefficients before its storage is reused for another group.
     /// </summary>
     /// <param name="group">The validated row-major AC group index.</param>

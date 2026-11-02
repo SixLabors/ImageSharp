@@ -1716,6 +1716,10 @@ public static class TestImages
         public const string Rgb16 = "Jxl/image_integration_rgb16.jxl";
         public const string EmptyPalette = "Jxl/issue648_palette0.jxl";
 
+        // Native-written modular XYB prefixes preserve signed integer extremes and metadata-dependent scaling.
+        public const string ModularXyb8Owner = "Jxl/modular_xyb_8_owner.jxl";
+        public const string ModularXyb24Owner = "Jxl/modular_xyb_24_owner.jxl";
+
         // Fixed entropy sections verified by libjxl and jxl-rs. Each follows the raw signature, without an image header.
         public const string TerminalLzCopy = "Jxl/terminal-lz-copy.jxl";
         public const string TerminalLzCopyAns = "Jxl/terminal-lz-copy-ans.jxl";
@@ -1815,6 +1819,8 @@ public static class TestImages
         public const string NarrowEdgeGroup = "Jxl/narrow_edge_group.jxl";
         public const string OddSizeUpsampling = "Jxl/oddsize_ups.jxl";
         public const string UpsamplingWithAlpha = "Jxl/upsampling.jxl";
+        public const string Dice = "Jxl/dice.jxl";
+        public const string PaletteAlphaUpsampling8 = "Jxl/ec_upsampling8_multi_group.jxl";
 
         // This stored variant omits the final section byte. The native decoder rejects it as truncated.
         public const string TruncatedSections = "Jxl/has_permutation_truncated.jxl";

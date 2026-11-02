@@ -57,7 +57,7 @@ public partial class JxlHeaderTests
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         frameReader.BeginSection(sections.Sizes.Span[0]);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref frameReader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref frameReader, modular, 0, default);
 
@@ -146,7 +146,7 @@ public partial class JxlHeaderTests
         // This stored component prefix contains image/frame headers and DC-global/DC data, without a section table.
         // Both original decoders consume exactly185 bits and reconstruct three zero-valued one-by-four DC planes.
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref ownerReader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref ownerReader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref ownerReader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref ownerReader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref ownerReader, modular, 0, default);
         Assert.Equal(185, ownerReader.Position);

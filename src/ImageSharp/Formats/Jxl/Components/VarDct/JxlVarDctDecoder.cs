@@ -140,8 +140,17 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// <param name="frame">The frame geometry and sampling layout.</param>
     /// <param name="allocator">The tracked allocator for frame samples, scratch and the variable block context map.</param>
     /// <param name="dcFactors">The preceding DC matrix factors in X, Y, B order.</param>
-    /// <returns>The owner of frame metadata, DC planes and reusable integer scratch. Failure releases all allocated storage.</returns>
-    public static JxlVarDctDecoder ReadGlobal(ref JxlBitReader reader, JxlHeader image, JxlFrameHeader frame, MemoryAllocator allocator, Vector3 dcFactors)
+    /// <param name="dcReference">
+    /// Three saved native float planes, or empty for coded DC. The caller keeps these planes alive until this owner is disposed.
+    /// </param>
+    /// <returns>The frame metadata, DC regions and local scratch owner. Failure releases every local allocation.</returns>
+    public static JxlVarDctDecoder ReadGlobal(
+        ref JxlBitReader reader,
+        JxlHeader image,
+        JxlFrameHeader frame,
+        MemoryAllocator allocator,
+        Vector3 dcFactors,
+        ReadOnlySpan<Buffer2D<float>> dcReference)
     {
         JxlVarDctDecoder result = new(dcFactors, image.Metadata.BitDepth.BitsPerSample);
         try
@@ -228,7 +237,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
             result.DcCorrelationB = result.BaseCorrelationB + (dcB * result.ColorScale);
 
             // Metadata bounds and map validation precede sample allocations. All DC groups reuse this frame storage.
-            result.PrepareDcStorage(frame, allocator);
+            result.PrepareDcStorage(frame, allocator, dcReference);
             result.PrepareAcStorage(allocator);
             return result;
         }
@@ -260,6 +269,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
         this.DisposeCoefficientStorage();
         this.DisposeReconstruction();
 
+        // Only locally allocated DC planes enter this list. Borrowed LF planes stay with the decoder's saved-slot owner.
         foreach (Buffer2D<float> channel in this.dcChannels)
         {
             channel.Dispose();

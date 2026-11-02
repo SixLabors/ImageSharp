@@ -35,7 +35,7 @@ public partial class JxlHeaderTests
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         frameReader.BeginSection(sections.Sizes.Span[0]);
         Vector3 dcFactors = JxlDecoderCore.ReadDcQuantization(ref frameReader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, image, frame, Configuration.Default.MemoryAllocator, dcFactors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, image, frame, Configuration.Default.MemoryAllocator, dcFactors, []);
         using MemoryStream orderInput = new(TestFile.Create(TestImages.Jxl.VarDctCustomOrders).Bytes, false);
         using BufferedReadStream orderBuffered = new(Configuration.Default, orderInput);
         JxlBitReader reader = new(new JxlCodestreamReader(orderBuffered));

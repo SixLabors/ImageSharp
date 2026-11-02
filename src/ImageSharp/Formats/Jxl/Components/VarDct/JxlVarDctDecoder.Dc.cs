@@ -16,6 +16,7 @@ internal sealed partial class JxlVarDctDecoder
 {
     private const int BlockSize = 8;
     private readonly List<Buffer2D<float>> dcChannels = new(3);
+    private InlineArray4<Buffer2DRegion<float>> dcRegions;
     private InlineArray4<JxlModularChannel> dcScratch;
     private InlineArray4<byte> horizontalShifts;
     private InlineArray4<byte> verticalShifts;
@@ -35,8 +36,8 @@ internal sealed partial class JxlVarDctDecoder
     /// Borrows one frame DC plane in X, Y, B component order.
     /// </summary>
     /// <param name="component">The component index, from zero through two.</param>
-    /// <returns>The float DC plane at that component's sampling resolution.</returns>
-    public Buffer2DRegion<float> GetDcChannel(int component) => this.dcChannels[component].GetRegion();
+    /// <returns>The float DC plane at that component's sampling resolution. Saved LF planes remain owned by the decoder.</returns>
+    public Buffer2DRegion<float> GetDcChannel(int component) => this.dcRegions[component];
 
     /// <summary>
     /// Reads one coded DC group and retains its dequantized planes and AC context indices.
@@ -210,11 +211,12 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
-    /// Allocates all DC planes and the maximum reusable integer group once at the frame boundary.
+    /// Borrows saved DC planes or allocates coded DC storage, with reusable integer scratch sized for its actual consumers.
     /// </summary>
     /// <param name="frame">The frame's coding size and cached sampling shifts.</param>
     /// <param name="allocator">The tracked allocator used by every retained sample plane.</param>
-    private void PrepareDcStorage(JxlFrameHeader frame, MemoryAllocator allocator)
+    /// <param name="dcReference">Three ready saved LF planes, or empty when this frame has encoded DC samples.</param>
+    private void PrepareDcStorage(JxlFrameHeader frame, MemoryAllocator allocator, ReadOnlySpan<Buffer2D<float>> dcReference)
     {
         ReadOnlySpan<byte> horizontal = frame.HorizontalSamplingShifts;
         ReadOnlySpan<byte> vertical = frame.VerticalSamplingShifts;
@@ -243,19 +245,45 @@ internal sealed partial class JxlVarDctDecoder
         // The frame header already bounds the total section count, including every DC group, to an int-sized table.
         this.dcGroupCount = this.dcGroupColumns * (((this.dcSize.Height - 1) / this.dcGroupDimension) + 1);
         Size scratchSize = new(Math.Min(this.dcSize.Width, this.dcGroupDimension), Math.Min(this.dcSize.Height, this.dcGroupDimension));
+        bool referenced = !dcReference.IsEmpty;
         for (int c = 0; c < 3; c++)
         {
             Size size = new(this.dcSize.Width >> horizontal[c], this.dcSize.Height >> vertical[c]);
-            this.dcChannels.Add(allocator.Allocate2D<float>(size));
+            if (referenced)
+            {
+                // Native DecodeGroup checks that each requested DC rectangle fits the saved plane. A larger saved
+                // plane is valid; this frame reads only its top-left block extent. Keep the slot's ownership outside this owner.
+                Buffer2D<float> source = dcReference[c];
+                if (source.Width < size.Width || source.Height < size.Height)
+                {
+                    throw new InvalidImageContentException("The JPEG XL low-frequency frame is too small for the DC block grid.");
+                }
 
-            // Scratch is encoded Y, X, B. After DC conversion, plane zero also holds the full-grid sharpness samples.
-            // Keep that backing plane unreduced; each DC stream still borrows its actual component dimensions.
+                this.dcRegions[c] = source.GetRegion(new Rectangle(Point.Empty, size));
+            }
+            else
+            {
+                Buffer2D<float> channel = allocator.Allocate2D<float>(size);
+                this.dcChannels.Add(channel);
+                this.dcRegions[c] = channel.GetRegion();
+            }
+
+            // Plane zero holds full-grid sharpness after DC decoding, or immediately when DC is referenced.
+            // Coded DC also needs two full component planes. Referenced DC needs only the much smaller correlation
+            // maps in those two positions: each correlation sample covers eight by eight DC blocks.
             int component = c < 2 ? c ^ 1 : c;
-            Size integerSize = c == 0 ? scratchSize : new(scratchSize.Width >> horizontal[component], scratchSize.Height >> vertical[component]);
+            Size integerSize = c == 0
+                ? scratchSize
+                : referenced
+                    ? new Size(((scratchSize.Width - 1) >> ColorTileShift) + 1, ((scratchSize.Height - 1) >> ColorTileShift) + 1)
+                    : new Size(scratchSize.Width >> horizontal[component], scratchSize.Height >> vertical[component]);
+
             this.dcScratch[c] = JxlModularChannel.Allocate(allocator, new JxlModularChannelLayout(integerSize, 0, 0));
         }
 
-        this.dcContexts = allocator.Allocate2D<byte>(this.dcSize);
+        // A reference contains restored float samples, not quantized integers. Native InitPassesSharedState
+        // sets every DC context to zero instead of classifying those floats against this frame's thresholds.
+        this.dcContexts = allocator.Allocate2D<byte>(this.dcSize, referenced ? AllocationOptions.Clean : AllocationOptions.None);
         this.DcContexts = this.dcContexts.GetRegion();
     }
 

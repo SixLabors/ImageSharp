@@ -19,7 +19,7 @@ public partial class JxlHeaderTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Verifies real progressive, permuted-section and partial-alpha groups through the public decoder at every SIMD width.
+    /// Verifies progressive groups, LF dependencies, permuted sections and partial alpha through the public decoder at every SIMD width.
     /// </summary>
     /// <param name="file">The unchanged input from the reference decoder's stored test files.</param>
     [Theory]
@@ -28,6 +28,9 @@ public partial class JxlHeaderTests
     [InlineData(TestImages.Jxl.NarrowEdgeGroup)]
     [InlineData(TestImages.Jxl.OddSizeUpsampling)]
     [InlineData(TestImages.Jxl.UpsamplingWithAlpha)]
+    [InlineData(TestImages.Jxl.LowFrequencyPyramid)]
+    [InlineData(TestImages.Jxl.Dice)]
+    [InlineData(TestImages.Jxl.PaletteAlphaUpsampling8)]
     public void DecodeVarDctGroupsMatchNative(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateVarDctGroupPixels,
@@ -47,10 +50,16 @@ public partial class JxlHeaderTests
             TestImages.Jxl.ProgressiveAc => new Size(2268, 1512),
             TestImages.Jxl.OddSizeUpsampling => new Size(257, 257),
             TestImages.Jxl.UpsamplingWithAlpha => new Size(800, 600),
+            TestImages.Jxl.LowFrequencyPyramid => new Size(64, 64),
+            TestImages.Jxl.Dice => new Size(800, 600),
+            TestImages.Jxl.PaletteAlphaUpsampling8 => new Size(1024, 192),
             _ => new Size(513, 321)
         };
 
         Assert.Equal(expectedSize, image.Size);
+
+        // LF dependencies supply native samples to the displayed frame; they do not become Image.Frames entries.
+        Assert.Single(image.Frames);
         foreach ((int x, int y, uint r, uint g, uint b, uint a) in NativeVarDctGroupPoints(file))
         {
             Vector4 actual = image[x, y].ToVector4();
@@ -68,9 +77,16 @@ public partial class JxlHeaderTests
             }
 
             // The pixel contract bounds final alpha to zero through one, after interpolation.
-            // The alpha-upsample references disagree by at most 4.76837e-7; round only that case upward to 5e-7.
+            // The alpha4 references disagree by at most 4.76837e-7; alpha8 reaches 2.38419e-7.
+            // Round each new case's independent bound upward. Native-resolution alpha permits only normalization rounding.
             float expectedAlpha = Math.Clamp(expected.W, 0F, 1F);
-            float alphaBound = file == TestImages.Jxl.UpsamplingWithAlpha ? 0.0000005F : 0.0000001F;
+            float alphaBound = file switch
+            {
+                TestImages.Jxl.UpsamplingWithAlpha => 0.0000005F,
+                TestImages.Jxl.PaletteAlphaUpsampling8 => 0.0000003F,
+                _ => 0.0000001F
+            };
+
             Assert.InRange(MathF.Abs(actual.W - expectedAlpha), 0F, alphaBound);
         }
     }
@@ -88,6 +104,11 @@ public partial class JxlHeaderTests
     /// Maximum full-image RGB disagreements are 1.35e-5, 1.20e-5 and 4.25e-5, respectively. Alpha agrees exactly.
     /// The odd-size upsampled file disagrees by at most 4.26e-6. The alpha-upsampled file differs by at most
     /// 4.42e-5 in RGB and 4.77e-7 in alpha. Its recorded raw alpha remains unclipped, as supplied by both reference decoders.
+    /// The 64-by-64 squeeze_empty_residual input contains a modular LF level two, a VarDCT LF level one and the final frame.
+    /// Both later frames consume the preceding LF samples. The original decoders disagree by at most 2.48e-6 over the complete sRGB output.
+    /// dice.jxl retains global alpha squeeze residuals in later groups. RGB differs by at most 4.33e-5; alpha agrees exactly.
+    /// ec_upsampling8_multi_group.jxl keeps color at full resolution and expands palette alpha eightfold after four groups.
+    /// Its RGB differs by at most 1.84e-5 and its alpha by at most 2.39e-7. These values precede final pixel bounds.
     /// Coordinates cover AC seams at 255/256, DC seams at 2047/2048, upsampling phases and final partial groups.
     /// </remarks>
     private static (int X, int Y, uint R, uint G, uint B, uint A)[] NativeVarDctGroupPoints(string file) => file switch
@@ -172,6 +193,73 @@ public partial class JxlHeaderTests
             (399, 300, 0x3F74A052U, 0x3F4FB308U, 0x3F5131A6U, 0x3F7D8C67U),
             (400, 300, 0x3F718860U, 0x3F43D98EU, 0x3F451D67U, 0x3F7BF1DDU),
             (309, 177, 0x3EEFF346U, 0x3EEFF82EU, 0x3F584947U, 0x3F80A256U),
+        ],
+        TestImages.Jxl.LowFrequencyPyramid =>
+        [
+            (0, 0, 0x3EF21326U, 0x3F14E7DCU, 0x3E51ED29U, 0x3F800000U),
+            (7, 0, 0x3EF1ADC6U, 0x3F146519U, 0x3E50D304U, 0x3F800000U),
+            (8, 0, 0x3F072954U, 0x3F2179D8U, 0x3E816B31U, 0x3F800000U),
+            (7, 7, 0x3EF0947BU, 0x3F140B92U, 0x3E4DF401U, 0x3F800000U),
+            (8, 7, 0x3EF0BAFEU, 0x3F1350C0U, 0x3E4BB805U, 0x3F800000U),
+            (7, 8, 0x3EF2F16BU, 0x3F15F0D1U, 0x3E5022AEU, 0x3F800000U),
+            (8, 8, 0x3EEFFF60U, 0x3F158ABFU, 0x3E4384ABU, 0x3F800000U),
+            (31, 31, 0x3E7551E4U, 0x3EB8214CU, 0x3E036BFBU, 0x3F800000U),
+            (32, 32, 0x3E7640FCU, 0x3EB53491U, 0x3E015F1AU, 0x3F800000U),
+            (63, 0, 0x3EDC6C65U, 0x3F07057EU, 0x3E7B30C3U, 0x3F800000U),
+            (0, 63, 0x3F6C65A6U, 0x3F6A0E1BU, 0x3F294448U, 0x3F800000U),
+            (63, 63, 0x3F0AD82CU, 0x3F1C96D6U, 0x3E4B631FU, 0x3F800000U),
+        ],
+        TestImages.Jxl.Dice =>
+        [
+            (0, 0, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (799, 0, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (0, 599, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (799, 599, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (255, 95, 0x3E7A7F9CU, 0x3E7A7FA9U, 0x3F48FFBAU, 0x3F4CCCCEU),
+            (256, 95, 0x3E7AAE10U, 0x3E7AAE1CU, 0x3F48B6CFU, 0x3F4CCCCEU),
+            (511, 95, 0x3DC5C9B6U, 0x3F1A5C95U, 0x3E2B0980U, 0x3F3DBDBEU),
+            (512, 95, 0x3E0A27F5U, 0x3F1BD899U, 0x3E0A9DFDU, 0x3F41C1C3U),
+            (767, 95, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (768, 95, 0x3224F19BU, 0x3224F1A6U, 0x3224F1A4U, 0x00000000U),
+            (255, 255, 0x3EBC79DDU, 0x3E8B39FCU, 0x3F787129U, 0x00000000U),
+            (256, 255, 0x3F2DE2FDU, 0x3E8A7E2AU, 0x3F443495U, 0xBB808081U),
+            (255, 256, 0x3F0326A7U, 0x3EA46C92U, 0x3F55F185U, 0x3B808081U),
+            (256, 256, 0x3F49F7A7U, 0x3E97D473U, 0x3F269592U, 0xBB808081U),
+            (511, 511, 0x3F7BB5DCU, 0x3F2352A1U, 0x3EB45F22U, 0x00000000U),
+            (512, 511, 0x3F7BEA14U, 0x3F1E7A8BU, 0x3EB73094U, 0x00000000U),
+            (511, 512, 0x3F7AF047U, 0x3F2396EAU, 0x3EB6B518U, 0x00000000U),
+            (512, 512, 0x3F7BF106U, 0x3F1E4916U, 0x3EB7792AU, 0x00000000U),
+            (256, 24, 0x3F34B266U, 0x3F34B268U, 0x3F7930E0U, 0x3ED0D0D2U),
+            (259, 24, 0x3F21C170U, 0x3F21C174U, 0x3F7791DDU, 0x3EB0B0B1U),
+            (263, 24, 0x3F08C775U, 0x3F08C778U, 0x3F7391D5U, 0x3E848485U),
+            (256, 27, 0x3F0C61EAU, 0x3F0C61F0U, 0x3F6F732BU, 0x3F2DADAEU),
+            (259, 27, 0x3EFDE7A5U, 0x3EFDE7A7U, 0x3F6E6491U, 0x3F1C9C9DU),
+            (263, 27, 0x3ECF98F2U, 0x3ECF98FAU, 0x3F6B30E3U, 0x3F058586U),
+            (256, 31, 0x3EDA4BD9U, 0x3EDA4BDDU, 0x3F6A3228U, 0x3F68E8EAU),
+            (259, 31, 0x3EB4C1A9U, 0x3EB4C1AFU, 0x3F65EA21U, 0x3F5EDEE0U),
+            (263, 31, 0x3E939443U, 0x3E939445U, 0x3F652995U, 0x3F4DCDCFU),
+        ],
+        TestImages.Jxl.PaletteAlphaUpsampling8 =>
+        [
+            (0, 0, 0x3E413564U, 0x3E6322FCU, 0x3F1D0102U, 0x3F7AFAFCU),
+            (1023, 0, 0x3E2F7C26U, 0x3ECB26ABU, 0x3EBC5B60U, 0x3F7AFAFCU),
+            (0, 191, 0x3F06B383U, 0x3F55D264U, 0x3EF2CED9U, 0x3CA0A0A1U),
+            (1023, 191, 0x3F2BE399U, 0x3F478F4BU, 0x3F1E6A3CU, 0x3CA0A0A1U),
+            (255, 95, 0x3EC66864U, 0x3EABB0F4U, 0x3E27ECA0U, 0x3F0029ABU),
+            (256, 95, 0x3EC3CB05U, 0x3EAC06BBU, 0x3E19346BU, 0x3F0029ABU),
+            (511, 95, 0x3E773677U, 0x3E6CEFB6U, 0x3E6CE85DU, 0x3F0029ABU),
+            (512, 95, 0x3E7CFE25U, 0x3E7A8FBFU, 0x3E88B7A4U, 0x3F0029ABU),
+            (767, 95, 0x3D99B095U, 0x3E9338C6U, 0x3E80EEF7U, 0x3F0029ABU),
+            (768, 95, 0x3D8D71F4U, 0x3E986DDAU, 0x3E85A1CCU, 0x3F0029ABU),
+            (0, 96, 0x3EA2F3AEU, 0x3EB0F8ABU, 0x3E871E37U, 0x3EFFACAAU),
+            (3, 96, 0x3EA18EE4U, 0x3EAFB792U, 0x3E899F27U, 0x3EFFB6F2U),
+            (7, 96, 0x3E9CDF3AU, 0x3EAA80C1U, 0x3E8C0BA1U, 0x3EFFACABU),
+            (0, 99, 0x3EC72B73U, 0x3ECFD961U, 0x3E8B7926U, 0x3EF622A4U),
+            (3, 99, 0x3EC35991U, 0x3ECFC15FU, 0x3E8F4B43U, 0x3EF62168U),
+            (7, 99, 0x3EB88C1FU, 0x3ECB913FU, 0x3E9338CDU, 0x3EF622A2U),
+            (0, 103, 0x3ECB600DU, 0x3ED5526DU, 0x3E93AD0DU, 0x3EE9E37EU),
+            (3, 103, 0x3EC6C1D9U, 0x3ED6211AU, 0x3E965101U, 0x3EE9D558U),
+            (7, 103, 0x3EBA1472U, 0x3ED451AFU, 0x3E98591AU, 0x3EE9E37FU),
         ],
         _ => [],
     };

@@ -78,7 +78,7 @@ public partial class JxlHeaderTests
         reader.BeginSection(sections.Sizes.Span[0]);
 
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         Assert.Equal(new Vector3(1F / 4096F, 1F / 512F, 1F / 256F), factors);
         Assert.Equal(globalScale, varDct.GlobalScale);
         Assert.Equal(dcQuantizer, varDct.DcQuantizer);
@@ -267,7 +267,7 @@ public partial class JxlHeaderTests
         Assert.Equal((byte)2, frame.PassCount);
         Assert.Equal((ReadOnlySpan<byte>)[2, 0], frame.PassShifts);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
@@ -312,7 +312,7 @@ public partial class JxlHeaderTests
         JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
@@ -355,7 +355,7 @@ public partial class JxlHeaderTests
         // This native-encoded component fixture omits the section table and stores all required fields in parser order.
         // Its four block quantizers are [1, 2, 200, 1], with threshold 100. X/B at block two use reduced coordinate one.
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);
@@ -431,7 +431,7 @@ public partial class JxlHeaderTests
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         frameReader.BeginSection(sections.Sizes.Span[0]);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref frameReader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref frameReader, header, frame, Configuration.Default.MemoryAllocator, default);
         varDct.ReadDcGroup(ref frameReader, modular, 0, default);
 

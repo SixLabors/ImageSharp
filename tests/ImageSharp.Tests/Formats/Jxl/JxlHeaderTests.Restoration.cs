@@ -129,7 +129,7 @@ public partial class JxlHeaderTests
         JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
-        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, factors);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, factors, []);
         using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, default);
         varDct.ReadDcGroup(ref reader, modular, 0, default);
         varDct.ReadAcMetadata(ref reader, modular, 0, default);

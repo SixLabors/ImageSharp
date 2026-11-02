@@ -169,7 +169,7 @@ public class JxlFormatTests
         reader.SeekBytePosition(customThresholds ? 2 : sections.PayloadOffset);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(
-            ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+            ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
 
         ReadOnlySpan<int> x =
         [

@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 
 /// <summary>
-/// Owns reusable residual history, weighted errors and bounded cross-channel property storage for one modular frame.
+/// Owns reusable residual history, integer prediction and reconstruction scratch, and bounded cross-channel properties for one modular frame.
 /// </summary>
 internal sealed class JxlModularWorkspace : IDisposable
 {
     private readonly MemoryAllocator allocator;
     private IMemoryOwner<uint>? history;
-    private IMemoryOwner<int>? errors;
+    private IMemoryOwner<int>? integerScratch;
     private IMemoryOwner<int>? references;
 
     /// <summary>
@@ -34,7 +34,14 @@ internal sealed class JxlModularWorkspace : IDisposable
     /// </summary>
     /// <param name="width">The validated maximum channel width.</param>
     /// <returns>The caller's reusable error span.</returns>
-    public Span<int> PrepareErrors(int width) => Prepare(ref this.errors, JxlWeightedPredictor.GetStorageLength(width), this.allocator);
+    public Span<int> PrepareErrors(int width) => Prepare(ref this.integerScratch, JxlWeightedPredictor.GetStorageLength(width), this.allocator);
+
+    /// <summary>
+    /// Borrows one integer row after modular decoding, reusing predictor storage when its capacity is sufficient.
+    /// </summary>
+    /// <param name="width">The validated coded row width.</param>
+    /// <returns>The reusable row span. No predictor operation can overlap its reconstruction use.</returns>
+    public Span<int> PrepareReconstructionRow(int width) => Prepare(ref this.integerScratch, width, this.allocator);
 
     /// <summary>
     /// Prepares four property planes per earlier channel, with at most 64 samples in each plane.
@@ -47,12 +54,12 @@ internal sealed class JxlModularWorkspace : IDisposable
     public void Dispose()
     {
         this.references?.Dispose();
-        this.errors?.Dispose();
+        this.integerScratch?.Dispose();
         this.history?.Dispose();
     }
 
     /// <summary>
-    /// Grows one tracked allocation only at an entropy-stream or inverse-transform boundary.
+    /// Grows one tracked allocation only before an entropy stream, inverse transform or completed-frame reconstruction.
     /// </summary>
     /// <typeparam name="T">The unmanaged scratch element type.</typeparam>
     /// <param name="owner">The allocation retained between operations.</param>

@@ -74,7 +74,7 @@ public partial class JxlHeaderTests
             Assert.Equal(framePositions[index], reader.Position);
             Assert.Equal(factors[index], frame.Upsampling);
             Vector3 dcFactors = JxlDecoderCore.ReadDcQuantization(ref reader);
-            using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors);
+            using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors, []);
             using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, default);
             Assert.Equal(globalPositions[index], reader.Position);
             varDct.ReadDcGroup(ref reader, modular, 0, default);

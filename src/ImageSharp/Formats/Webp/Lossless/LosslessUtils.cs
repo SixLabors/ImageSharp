@@ -45,19 +45,19 @@ internal static unsafe class LosslessUtils
         return VectorMismatch(array1, array2, maxLimit);
     }
 
+    /// <summary>
+    /// Counts equal leading values up to the caller's match-length limit.
+    /// </summary>
+    /// <param name="array1">The first candidate sequence, covering at least length values.</param>
+    /// <param name="array2">The second candidate sequence, covering at least length values.</param>
+    /// <param name="length">The maximum number of values to compare.</param>
+    /// <returns>The first unequal value's index, or length when every compared value matches.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int VectorMismatch(ReadOnlySpan<uint> array1, ReadOnlySpan<uint> array2, int length)
     {
-        int matchLen = 0;
-        ref uint array1Ref = ref MemoryMarshal.GetReference(array1);
-        ref uint array2Ref = ref MemoryMarshal.GetReference(array2);
-
-        while (matchLen < length && Unsafe.Add(ref array1Ref, (uint)matchLen) == Unsafe.Add(ref array2Ref, (uint)matchLen))
-        {
-            matchLen++;
-        }
-
-        return matchLen;
+        // The runtime compares uint sequences with its SIMD prefix scan and returns an element count.
+        // Limit both views so an equal prefix cannot extend beyond the current match candidate.
+        return MemoryExtensions.CommonPrefixLength<uint>(array1[..length], array2[..length]);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

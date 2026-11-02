@@ -3,6 +3,8 @@
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
+#pragma warning disable IDE0032 // Use auto property
+
 /// <summary>
 /// Provides methods to read ICC data types
 /// </summary>
@@ -24,6 +26,11 @@ internal sealed partial class IccDataReader
     /// <param name="data">The data to read</param>
     public IccDataReader(byte[] data)
         => this.data = data ?? throw new ArgumentNullException(nameof(data));
+
+    /// <summary>
+    /// Gets the reading position.
+    /// </summary>
+    public int Index => this.currentIndex;
 
     /// <summary>
     /// Gets the length in bytes of the raw data

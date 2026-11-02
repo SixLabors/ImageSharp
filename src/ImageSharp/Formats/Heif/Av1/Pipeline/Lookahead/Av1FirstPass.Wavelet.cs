@@ -359,7 +359,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
                 Vector128<int> block1 = TOperator.LoadWidened(source, start + 8, default(Vector128<int>));
                 Vector128<int> block2 = TOperator.LoadWidened(source, start + 16, default(Vector128<int>));
                 Vector128<int> block3 = TOperator.LoadWidened(source, start + 24, default(Vector128<int>));
-                Av1Transform2dOperations.Transpose(ref block0, ref block1, ref block2, ref block3);
+                SimdUtils.Transpose(ref block0, ref block1, ref block2, ref block3);
                 row[half * 4] = block0 << 2;
                 row[(half * 4) + 1] = block1 << 2;
                 row[(half * 4) + 2] = block2 << 2;
@@ -407,7 +407,7 @@ internal sealed partial class Av1FirstPass<TSample, TOperator>
             Vector256<int> block5 = TOperator.LoadWidened(source, index + 40, default(Vector256<int>));
             Vector256<int> block6 = TOperator.LoadWidened(source, index + 48, default(Vector256<int>));
             Vector256<int> block7 = TOperator.LoadWidened(source, index + 56, default(Vector256<int>));
-            Av1Transform2dOperations.Transpose(ref block0, ref block1, ref block2, ref block3, ref block4, ref block5, ref block6, ref block7);
+            SimdUtils.Transpose(ref block0, ref block1, ref block2, ref block3, ref block4, ref block5, ref block6, ref block7);
             row[0] = block0 << 2;
             row[1] = block1 << 2;
             row[2] = block2 << 2;

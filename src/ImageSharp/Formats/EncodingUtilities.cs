@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -165,5 +166,39 @@ internal static class EncodingUtilities
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Replaces component values with positive zero where the corresponding alpha is zero.
+    /// </summary>
+    /// <param name="alpha">The borrowed alpha values, with one value per component.</param>
+    /// <param name="components">The component values to update, with the same length as alpha.</param>
+    public static void ReplaceTransparentPixels(ReadOnlySpan<float> alpha, Span<float> components)
+        => TensorPrimitives_.Invoke(alpha, components, components, default(ClearTransparentComponentOperator));
+
+    /// <summary>
+    /// Clears only components selected by exact zero alpha, without multiplying or normalizing their values.
+    /// </summary>
+    private readonly struct ClearTransparentComponentOperator : TensorPrimitives_.IBinaryOperator
+    {
+        // Each lane pairs one alpha value with one component. Selection clears even NaN components and preserves all unselected bits.
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float first, float second) => first == 0F ? 0F : second;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> first, Vector128<float> second)
+            => Vector128.ConditionalSelect(Vector128.Equals(first, Vector128<float>.Zero), Vector128<float>.Zero, second);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> first, Vector256<float> second)
+            => Vector256.ConditionalSelect(Vector256.Equals(first, Vector256<float>.Zero), Vector256<float>.Zero, second);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> first, Vector512<float> second)
+            => Vector512.ConditionalSelect(Vector512.Equals(first, Vector512<float>.Zero), Vector512<float>.Zero, second);
     }
 }

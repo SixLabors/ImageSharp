@@ -70,6 +70,24 @@ public partial class SimdUtilsTests
             }
         }
 
+        // A native extra channel occupies X and uses W for its selected weight. Missing Y/Z planes must supply zero
+        // without allocating dummy rows. Check packing before unpacking so inverse mistakes cannot cancel.
+        SimdUtils.InterleaveFloatPlanes(components[0], default, default, components[3], vectors);
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[0][i]), BitConverter.SingleToInt32Bits(vectors[i].X));
+            Assert.Equal(0, BitConverter.SingleToInt32Bits(vectors[i].Y));
+            Assert.Equal(0, BitConverter.SingleToInt32Bits(vectors[i].Z));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[3][i]), BitConverter.SingleToInt32Bits(vectors[i].W));
+        }
+
+        SimdUtils.DeinterleaveFloatPlanes(vectors, output[0], default, default, output[3]);
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[0][i]), BitConverter.SingleToInt32Bits(output[0][i]));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[3][i]), BitConverter.SingleToInt32Bits(output[3][i]));
+        }
+
         // An absent fourth plane must supply opaque values in both full registers and tails.
         SimdUtils.InterleaveFloatPlanes(components[0], components[1], components[2], ReadOnlySpan<float>.Empty, vectors);
         for (int i = 0; i < count; i++)

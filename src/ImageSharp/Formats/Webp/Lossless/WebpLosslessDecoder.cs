@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.ColorConverters;
 using SixLabors.ImageSharp.Memory;
@@ -41,8 +42,6 @@ internal sealed class WebpLosslessDecoder
     private const int BitsSpecialMarker = 0x100;
 
     private const uint PackedNonLiteralCode = 0;
-
-    private static readonly int CodeToPlaneCodes = WebpLookupTables.CodeToPlane.Length;
 
     // Memory needed for lookup tables of one Huffman tree group. Red, blue, alpha and distance alphabets are constant (256 for red, blue and alpha, 40 for
     // distance) and lookup table sizes for them in worst case are 630 and 410 respectively. Size of green alphabet depends on color cache size and is equal
@@ -947,18 +946,13 @@ internal sealed class WebpLosslessDecoder
 
     private static int PlaneCodeToDistance(int xSize, int planeCode)
     {
-        if (planeCode > CodeToPlaneCodes)
+        if (planeCode > Lz77DistanceCodes.Count)
         {
-            return planeCode - CodeToPlaneCodes;
+            return planeCode - Lz77DistanceCodes.Count;
         }
 
-        int distCode = WebpLookupTables.CodeToPlane[planeCode - 1];
-        int yOffset = distCode >> 4;
-        int xOffset = 8 - (distCode & 0xf);
-        int dist = (yOffset * xSize) + xOffset;
-
-        // dist < 1 can happen if xSize is very small.
-        return dist >= 1 ? dist : 1;
+        // WebP numbers short-distance codes from one; the shared codebook uses zero-based indices.
+        return Lz77DistanceCodes.GetDistance(planeCode - 1, xSize);
     }
 
     /// <summary>

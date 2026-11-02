@@ -24,6 +24,7 @@ public class RgbWorkingSpaceTests
         KnownRgbWorkingSpaces.SRgbSimplified,
         KnownRgbWorkingSpaces.Rec709,
         KnownRgbWorkingSpaces.Rec2020,
+        KnownRgbWorkingSpaces.DisplayP3,
         KnownRgbWorkingSpaces.ECIRgbv2,
         KnownRgbWorkingSpaces.AdobeRgb1998,
         KnownRgbWorkingSpaces.ApplesRgb,

@@ -1,0 +1,89 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Jxl.Cms;
+using SixLabors.ImageSharp.Formats.Jxl.Memory;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
+
+internal class WriteToImageBundleStage(Configuration configuration, JxlImageBundle bundle, JxlColorEncoding colorEncoding)
+    : RenderPipelineStageBase(configuration)
+{
+    /// <inheritdoc />
+    public override string Name => "WriteIB";
+
+    /// <inheritdoc />
+    public override void SetInputSizes(Span<Size> inputSizes)
+    {
+        if (inputSizes.Length < 3)
+        {
+            throw new InvalidOperationException("Not enough input sizes");
+        }
+
+        for (int c = 1; c < inputSizes.Length; c++)
+        {
+            if (inputSizes[c].Width != inputSizes[0].Width ||
+                inputSizes[c].Height != inputSizes[0].Height)
+            {
+                throw new InvalidOperationException("Input sizes must be equal to the first input size");
+            }
+        }
+
+        using JxlImage3<float> tmp = new(this.GetConfiguration(), inputSizes[0].Width, inputSizes[0].Height);
+
+        // The bundle releases its previous channels. New planes transfer to it as each setter succeeds.
+        bundle.ClearExtraChannels();
+
+        if (!bundle.SetFromImage(tmp, colorEncoding))
+        {
+            throw new InvalidOperationException("Could not set the image of an image bundle");
+        }
+
+        // Add all extra channels to the image bundle.
+        for (int c = 3; c < inputSizes.Length; c++)
+        {
+            JxlPlane<float> ch = new(this.GetConfiguration(), inputSizes[c].Width, inputSizes[c].Height);
+            bundle.AddExtraChannel(ch);
+        }
+    }
+
+    /// <inheritdoc />
+    public override void ProcessRow(
+        Buffer2D<Memory<float>> inputRows,
+        Buffer2D<Memory<float>> outputRows,
+        int xExtraLeft,
+        int xExtraRight,
+        int width,
+        int xPos,
+        int yPos)
+    {
+        if (xExtraLeft != 0 || xExtraRight != 0)
+        {
+            throw new InvalidOperationException("xExtraLeft and xExtraRight must be 0");
+        }
+
+        for (int c = 0; c < 3; c++)
+        {
+            this.GetInputRow(inputRows, c, 0)[..width]
+                .CopyTo(bundle.Color.PlaneRow(c, yPos)[xPos..]);
+        }
+
+        int ecIndex = 0;
+        foreach (JxlPlane<float> ec in bundle.EnumerateExtraChannels())
+        {
+            if (ec.XSize < xPos + width)
+            {
+                throw new InvalidOperationException("Width is too small");
+            }
+
+            this.GetInputRow(inputRows, ecIndex++ + 3, 0)[..width]
+                .CopyTo(ec.GetRow(yPos)[(xPos - xExtraLeft)..]);
+        }
+    }
+
+    /// <inheritdoc />
+    public override RenderPipelineChannelMode GetChannelMode(int channel)
+        => RenderPipelineChannelMode.Input; // We only decode input. We don't write anything back to the output.
+}

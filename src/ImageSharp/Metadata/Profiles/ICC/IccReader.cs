@@ -71,30 +71,25 @@ internal sealed class IccReader
     public IccProfile ToProfile()
     {
         ReadOnlySpan<byte> data = this.profileData.WrittenSpan;
+        int declaredSize = GetValidatedProfileLength(data);
 
-        // Even a profile with no tags requires the 128-byte ICC header and the 4-byte tag count.
-        if (data.Length < 132)
-        {
-            throw new InvalidIccProfileException("Invalid ICC profile.");
-        }
+        // The accumulator remains reusable. Copy only the declared profile into the retained array.
+        return CreateProfile(data[..declaredSize].ToArray());
+    }
 
-        uint declaredSize = BinaryPrimitives.ReadUInt32BigEndian(data);
+    /// <summary>
+    /// Creates a validated profile from a complete, caller-owned byte array.
+    /// </summary>
+    /// <param name="data">The complete profile bytes. The caller must not change these bytes after this call.</param>
+    /// <returns>The validated profile, retaining the array when it contains exactly the declared profile.</returns>
+    /// <remarks>Trailing bytes are excluded from the retained profile. This requires a copy only when trailing bytes are present.</remarks>
+    public static IccProfile ToProfile(byte[] data)
+    {
+        int declaredSize = GetValidatedProfileLength(data);
 
-        // The declared size must also include the header and tag count and fit within the bytes read.
-        if (declaredSize < 132 || declaredSize > data.Length || declaredSize >= IccProfile.MaxProfileSize ||
-            !IsTagTableValid(data[..(int)declaredSize]))
-        {
-            throw new InvalidIccProfileException("Invalid ICC profile.");
-        }
-
-        // Retain only the declared profile bytes so lazy tag parsing uses the same boundary as validation.
-        IccProfile profile = new(data[..(int)declaredSize].ToArray());
-        if (!profile.CheckIsValid())
-        {
-            throw new InvalidIccProfileException("Invalid ICC profile.");
-        }
-
-        return profile;
+        // Decompressors can supply the final array directly. Preserve the same declared-size boundary
+        // as the segmented reader without copying an already complete profile.
+        return CreateProfile(declaredSize == data.Length ? data : data.AsSpan(0, declaredSize).ToArray());
     }
 
     /// <summary>
@@ -130,7 +125,7 @@ internal sealed class IccReader
         return ReadTagData(reader);
     }
 
-    private static IccProfileHeader ReadHeader(IccDataReader reader)
+    internal static IccProfileHeader ReadHeader(IccDataReader reader)
     {
         reader.SetIndex(0);
 
@@ -156,7 +151,7 @@ internal sealed class IccReader
         };
     }
 
-    private static IccTagDataEntry[] ReadTagData(IccDataReader reader)
+    internal static IccTagDataEntry[] ReadTagData(IccDataReader reader)
     {
         IccTagTableEntry[] tagTable = ReadTagTable(reader);
         List<IccTagDataEntry> entries = new(tagTable.Length);
@@ -211,6 +206,47 @@ internal sealed class IccReader
         }
 
         return [.. table];
+    }
+
+    /// <summary>
+    /// Checks profile-length and tag-table boundaries before retaining profile bytes.
+    /// </summary>
+    /// <param name="data">The available profile bytes, which can include trailing data.</param>
+    /// <returns>The declared profile length.</returns>
+    private static int GetValidatedProfileLength(ReadOnlySpan<byte> data)
+    {
+        // Even a profile with no tags requires the 128-byte ICC header and the 4-byte tag count.
+        if (data.Length < 132)
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        uint declaredSize = BinaryPrimitives.ReadUInt32BigEndian(data);
+
+        // Bound the table by the declared profile, not by any readable bytes after that profile.
+        if (declaredSize < 132 || declaredSize > data.Length || declaredSize >= IccProfile.MaxProfileSize ||
+            !IsTagTableValid(data[..(int)declaredSize]))
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        return (int)declaredSize;
+    }
+
+    /// <summary>
+    /// Creates a profile from validated length and table boundaries, then checks its parsed header.
+    /// </summary>
+    /// <param name="data">The owned array containing exactly the declared profile bytes.</param>
+    /// <returns>The profile with a valid header.</returns>
+    private static IccProfile CreateProfile(byte[] data)
+    {
+        IccProfile profile = new(data);
+        if (!profile.CheckIsValid())
+        {
+            throw new InvalidIccProfileException("Invalid ICC profile.");
+        }
+
+        return profile;
     }
 
     /// <summary>

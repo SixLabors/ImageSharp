@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -9,6 +10,54 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class LosslessUtilsTests
 {
+    /// <summary>
+    /// Checks row, column, endpoint, and narrow-row distances in the shared wire codebook.
+    /// </summary>
+    /// <param name="index">The zero-based short-distance index.</param>
+    /// <param name="width">The number of values in each row.</param>
+    /// <param name="expected">The backward distance defined by the row and column offsets.</param>
+    [Theory]
+    [InlineData(0, 10, 10)]
+    [InlineData(1, 10, 1)]
+    [InlineData(3, 10, 9)]
+    [InlineData(96, 10, 8)]
+    [InlineData(119, 10, 78)]
+    [InlineData(3, 1, 1)]
+    [InlineData(79, 1, 1)]
+    public void ShortDistance_DecodesRowAndColumnOffsets(int index, int width, int expected)
+        => Assert.Equal(expected, Lz77DistanceCodes.GetDistance(index, width));
+
+    /// <summary>
+    /// Checks bounded match scanning with runtime SIMD enabled.
+    /// </summary>
+    [Fact]
+    public void FindMatchLength_WithHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFindMatchLengthTest, HwIntrinsics.AllowAll);
+
+    /// <summary>
+    /// Checks the same bounded match scanning without hardware intrinsics.
+    /// </summary>
+    [Fact]
+    public void FindMatchLength_WithoutHardwareIntrinsics_Works()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFindMatchLengthTest, HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the match limit, a partial-word mismatch, and the encoder's best-match rejection.
+    /// </summary>
+    private static void RunFindMatchLengthTest()
+    {
+        ReadOnlySpan<uint> left = [0x01020304, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        ReadOnlySpan<uint> right = [0x01020304, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0x01000010];
+
+        // The final words differ in one byte. A byte-based SIMD scan must report complete uint values.
+        Assert.Equal(16, LosslessUtils.VectorMismatch(left, right, left.Length));
+        Assert.Equal(9, LosslessUtils.VectorMismatch(left, right, 9));
+
+        // A candidate can extend the previous best only when the values at that position match.
+        Assert.Equal(16, LosslessUtils.FindMatchLength(left, right, 15, left.Length));
+        Assert.Equal(0, LosslessUtils.FindMatchLength(left, right, 16, left.Length));
+    }
+
     private static void RunCombinedShannonEntropyTest()
     {
         int[] x =

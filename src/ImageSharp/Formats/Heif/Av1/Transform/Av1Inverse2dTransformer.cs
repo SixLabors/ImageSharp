@@ -855,7 +855,7 @@ internal static partial class Av1Inverse2dTransformer
                     row15 = Vector512<int>.Zero;
                 }
 
-                Av1Transform2dOperations.Transpose(
+                SimdUtils.Transpose(
                     ref row0,
                     ref row1,
                     ref row2,
@@ -920,7 +920,7 @@ internal static partial class Av1Inverse2dTransformer
                 Vector512<int> row14 = Av1Transform2dOperations.RoundShift(tempOut[column + 14], -shift0);
                 Vector512<int> row15 = Av1Transform2dOperations.RoundShift(tempOut[column + 15], -shift0);
 
-                Av1Transform2dOperations.Transpose(
+                SimdUtils.Transpose(
                     ref row0,
                     ref row1,
                     ref row2,
@@ -1053,7 +1053,7 @@ internal static partial class Av1Inverse2dTransformer
                     row7 = Vector256<int>.Zero;
                 }
 
-                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
+                SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
 
                 tempIn[column + 0] = PrepareInverseRow(row0, normalizeRectangle, rowClampBits);
                 tempIn[column + 1] = PrepareInverseRow(row1, normalizeRectangle, rowClampBits);
@@ -1086,7 +1086,7 @@ internal static partial class Av1Inverse2dTransformer
                 Vector256<int> row6 = Av1Transform2dOperations.RoundShift(tempOut[column + 6], -shift0);
                 Vector256<int> row7 = Av1Transform2dOperations.RoundShift(tempOut[column + 7], -shift0);
 
-                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
+                SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
 
                 row0.StoreUnsafe(ref bufferBase, (nuint)(((row + 0) * width) + column));
                 row1.StoreUnsafe(ref bufferBase, (nuint)(((row + 1) * width) + column));
@@ -1348,7 +1348,7 @@ internal static partial class Av1Inverse2dTransformer
                     row3 = Vector128<int>.Zero;
                 }
 
-                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+                SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
 
                 tempIn[column + 0] = PrepareInverseRow(row0, normalizeRectangle, rowClampBits);
                 tempIn[column + 1] = PrepareInverseRow(row1, normalizeRectangle, rowClampBits);
@@ -1373,7 +1373,7 @@ internal static partial class Av1Inverse2dTransformer
                 Vector128<int> row2 = Av1Transform2dOperations.RoundShift(tempOut[column + 2], -shift0);
                 Vector128<int> row3 = Av1Transform2dOperations.RoundShift(tempOut[column + 3], -shift0);
 
-                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+                SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
 
                 row0.StoreUnsafe(ref bufferBase, (nuint)(((row + 0) * width) + column));
                 row1.StoreUnsafe(ref bufferBase, (nuint)(((row + 1) * width) + column));

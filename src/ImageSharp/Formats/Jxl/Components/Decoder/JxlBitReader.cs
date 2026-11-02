@@ -119,9 +119,16 @@ internal struct JxlBitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadBits(int count)
     {
-        uint result = this.PeekBits(count);
+        if (this.availableBits < count)
+        {
+            this.Refill(count);
+        }
+
+        // A field must exist in full. Validate consumption once; zero padding belongs only to prefix lookahead.
+        // Retain the result before consumption shifts the reservoir. A 64-bit mask handles both zero and 32 bits.
+        uint result = (uint)this.buffer;
         this.ConsumeBits(count);
-        return result;
+        return result & (uint)((1UL << count) - 1);
     }
 
     /// <summary>

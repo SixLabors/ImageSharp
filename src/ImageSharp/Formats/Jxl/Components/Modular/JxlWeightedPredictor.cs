@@ -177,7 +177,7 @@ internal struct JxlWeightedPredictor
         this.rowStride = width + RowMargin;
         this.combinedErrorLength = this.rowStride * StoredRows;
 
-        // The shared scratch can belong to a wider channel. Only these five two-row planes take part in the current prediction.
+        // Clear only the combined and interleaved error rows used by this channel; the shared scratch can belong to a wider channel.
         errors[..(this.combinedErrorLength * (PredictorCount + 1))].Clear();
     }
 
@@ -298,13 +298,15 @@ internal struct JxlWeightedPredictor
         // The four lanes depend on this same reconstructed sample. They can be computed together,
         // although the predictor state still advances sequentially from one image column to the next.
         // Format-bounded predictions and 32-bit samples keep each difference and its absolute value in long.
+        // A logical shift removes the three fractional bits. The direct vector operator keeps the
+        // shift in the arithmetic expression at every width; narrowing below retains the low 32 bits.
         Vector128<uint> magnitudes;
         ref long prediction = ref this.predictions[0];
         if (Vector256.IsHardwareAccelerated)
         {
             Vector256<long> difference = Vector256.LoadUnsafe(ref prediction) - Vector256.Create(scaled);
             Vector256<long> absolute = Vector256.Abs(difference) + Vector256.Create((long)PredictionRounding);
-            Vector256<long> rounded = Vector256.ShiftRightLogical(absolute, ExtraBits);
+            Vector256<long> rounded = absolute >>> ExtraBits;
 
             // Narrow discards high bits; it does not saturate. This retains the native uint conversion,
             // including wrapped error magnitudes. Only the populated four-lane lower half is stored.
@@ -316,8 +318,8 @@ internal struct JxlWeightedPredictor
             Vector128<long> rounding = Vector128.Create((long)PredictionRounding);
             Vector128<long> first = Vector128.Abs(Vector128.LoadUnsafe(ref prediction) - scaledValue) + rounding;
             Vector128<long> second = Vector128.Abs(Vector128.LoadUnsafe(ref prediction, (nuint)Vector128<long>.Count) - scaledValue) + rounding;
-            first = Vector128.ShiftRightLogical(first, ExtraBits);
-            second = Vector128.ShiftRightLogical(second, ExtraBits);
+            first >>>= ExtraBits;
+            second >>>= ExtraBits;
             magnitudes = Vector128.Narrow(first, second).AsUInt32();
         }
         else
@@ -346,8 +348,11 @@ internal struct JxlWeightedPredictor
     /// <param name="error">The wrapped unsigned sum of north, northeast and northwest error magnitudes.</param>
     /// <param name="maximumWeight">The four-bit maximum weight read from the group header.</param>
     /// <returns>The integer reciprocal weight, including the minimum contribution of four.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint GetWeight(uint error, uint maximumWeight)
     {
+        // All four predictor weights use this equation for every sample. Keep it in the caller, as in
+        // jxl-rs predict.rs, so the four local error lanes do not cross separate call boundaries.
         // Widen before adding one: uint.MaxValue must have log2(error+1)=32. This shift bounds the
         // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
         int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);

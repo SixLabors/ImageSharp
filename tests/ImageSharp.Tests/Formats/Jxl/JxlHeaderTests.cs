@@ -452,6 +452,51 @@ public partial class JxlHeaderTests
     }
 
     /// <summary>
+    /// Verifies direct tokens and the largest valid literal-bit width in fixed 4/2/0 expansion.
+    /// </summary>
+    /// <param name="token">The entropy token before fixed hybrid expansion.</param>
+    /// <param name="expected">The unsigned value derived from the unchanged stored prefix.</param>
+    /// <param name="bitsRead">The required literal-bit count.</param>
+    [Theory]
+    [InlineData(0U, 0U, 0)]
+    [InlineData(15U, 15U, 0)]
+    [InlineData(16U, 19U, 2)]
+    [InlineData(127U, 0xFFFA0AFFU, 29)]
+    public void ExpandAns420PreservesLiteralBoundaries(uint token, uint expected, int bitsRead)
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+
+        // This raw codestream starts FF 0A FA 3F. Its first two low-order bits are 3, and its first
+        // 29 bits are 0x1FFA0AFF. Token 16 supplies high bits 4, giving (4<<2)|3 = 19.
+        // Token 127 supplies high bits 7, giving (7<<29)|0x1FFA0AFF = 0xFFFA0AFF in 32 bits.
+        // The fixed operator does not read its configuration argument; its type selects all three widths.
+        uint actual = JxlEntropyDecoder.Ans420Operator.Expand(ref reader, token, default);
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(bitsRead, reader.Position);
+    }
+
+    /// <summary>
+    /// Verifies that fixed 4/2/0 expansion rejects a thirty-three-bit value before consuming literal bits.
+    /// </summary>
+    [Fact]
+    public void ExpandAns420RejectsOverflowBeforeReading()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Splines).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+
+        // Token 128 requires 30 literal bits plus the three high bits, which cannot fit in uint.
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(
+            () => JxlEntropyDecoder.Ans420Operator.Expand(ref reader, 128, default));
+
+        Assert.Equal("The JPEG XL hybrid integer exceeds 32 bits.", exception.Message);
+        Assert.Equal(0, reader.Position);
+    }
+
+    /// <summary>
     /// Verifies that stopping within a final copy is valid for byte and integer entropy consumers.
     /// </summary>
     /// <param name="file">The stored prefix or ANS entropy section.</param>

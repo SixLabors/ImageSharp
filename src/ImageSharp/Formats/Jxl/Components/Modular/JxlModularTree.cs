@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
@@ -113,12 +114,12 @@ internal sealed class JxlModularTree : IDisposable
     }
 
     /// <summary>
-    /// Gets the initialized tree nodes. Borrow this span once before decoding samples.
+    /// Gets the initialized tree nodes. Completed leaves name sample entropy clusters; splits name adjacent child nodes.
     /// </summary>
     public ReadOnlySpan<Node> Nodes => this.nodes.Memory.Span[..this.nodeCount];
 
     /// <summary>
-    /// Gets the sample entropy tables. Leaf contexts select these tables through their context map.
+    /// Gets the sample entropy tables. Completed leaf cluster IDs select these tables directly.
     /// </summary>
     public JxlEntropyDecoder Codes { get; }
 
@@ -223,6 +224,20 @@ internal sealed class JxlModularTree : IDisposable
             // The tree's entropy state ends before these descriptions. Sample symbols use one context per leaf,
             // with their own reader and LZ77 history; tree tokens never enter the sample history.
             sampleCodes = JxlEntropyDecoder.Read(ref reader, allocator, leaves, true);
+
+            // Each parsed leaf initially names one sample context. Resolve that immutable map once,
+            // after its tables exist and before publishing any nodes. All channel pruning and lookup
+            // forms then retain the cluster ID directly, including a one-leaf tree with no prepared-node allocation.
+            ReadOnlySpan<byte> contextMap = sampleCodes.ContextMap;
+            for (int i = 0; i < count; i++)
+            {
+                ref readonly Node node = ref nodes[i];
+                if (node.Property < 0)
+                {
+                    nodes[i] = new Node(node.Property, node.Value, contextMap[node.FirstChild], node.Predictor, node.Multiplier);
+                }
+            }
+
             return new JxlModularTree(nodeOwner, count, sampleCodes);
         }
         catch
@@ -519,30 +534,31 @@ internal sealed class JxlModularTree : IDisposable
     }
 
     /// <summary>
-    /// Selects an original leaf through a flat tree without restricting property values or tree size.
+    /// Selects an original leaf through a completed flat tree without restricting property values or tree size.
     /// </summary>
-    /// <param name="nodes">The completed flat nodes.</param>
+    /// <param name="nodes">The nonempty result of PrepareFlatTree, unchanged until this method returns.</param>
     /// <param name="properties">The fixed 256-entry property array. Validated byte indices cover its complete domain.</param>
     /// <returns>The matching leaf index in the unchanged reduced tree.</returns>
     public static int FindFlatLeaf(ReadOnlySpan<FlatNode> nodes, ref InlineArray256<int> properties)
     {
-        int position = 0;
-        while (!nodes[position].IsLeaf)
+        ref FlatNode first = ref MemoryMarshal.GetReference(nodes);
+        ref readonly FlatNode node = ref first;
+        while (!node.IsLeaf)
         {
-            ref readonly FlatNode node = ref nodes[position];
-
-            // Byte indices always address the fixed 256-entry inline array. The JIT receives their
-            // complete range without unsafe indexing or additional validation at each lookup.
+            // Byte property IDs always address the fixed 256-entry inline array. Their bound is
+            // independent of the compiled node indices and needs no further property-range validation.
             int parentLow = properties[node.Property] <= node.Value ? 1 : 0;
             int greaterLow = properties[node.GreaterProperty] <= node.GreaterValue ? 1 : 0;
             int lesserLow = properties[node.LesserProperty] <= node.LesserValue ? 1 : 0;
 
-            // The greater parent's grandchildren occupy offsets 0/1; the lesser parent's occupy 2/3.
-            // Both child comparisons are independent. A duplicated leaf makes its unused comparison harmless.
-            position = node.FirstChild + (parentLow != 0 ? 2 | lesserLow : greaterLow);
+            // PrepareFlatTree writes all four children through bounds-checked span indexing before publication.
+            // FirstChild + 3 is therefore inside the completed span, and these comparisons select offsets 0..3.
+            // Children also follow their parent, so traversal advances to a leaf through valid managed references.
+            int child = node.FirstChild + (parentLow != 0 ? 2 | lesserLow : greaterLow);
+            node = ref Unsafe.Add(ref first, child);
         }
 
-        return nodes[position].FirstChild;
+        return node.FirstChild;
     }
 
     /// <inheritdoc/>
@@ -864,7 +880,7 @@ internal sealed class JxlModularTree : IDisposable
         /// </summary>
         /// <param name="property">The property index, or minus one for a leaf.</param>
         /// <param name="value">The split threshold or leaf predictor offset.</param>
-        /// <param name="firstChild">The first adjacent child index, or the leaf's sample entropy context.</param>
+        /// <param name="firstChild">The first split child, or a leaf entropy ID. Read maps raw leaf contexts to clusters before publication.</param>
         /// <param name="predictor">The leaf predictor code, from zero through thirteen.</param>
         /// <param name="multiplier">The positive leaf residual multiplier.</param>
         public Node(int property, int value, int firstChild, byte predictor, uint multiplier)
@@ -887,7 +903,7 @@ internal sealed class JxlModularTree : IDisposable
         public int Value { get; }
 
         /// <summary>
-        /// Gets the first adjacent child index or the leaf's sample entropy context.
+        /// Gets the first adjacent split child index, or the sample entropy cluster for a completed leaf.
         /// </summary>
         public int FirstChild { get; }
 

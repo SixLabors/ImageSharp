@@ -29,7 +29,12 @@ internal sealed class JxlEntropyDecoder : IDisposable
     private readonly IMemoryOwner<Cluster> clusters;
     private readonly IMemoryOwner<HuffmanCode>? prefixCodes;
     private readonly IMemoryOwner<JxlAnsDecoder.Bucket>? ansBuckets;
-    private readonly int alphabetBits;
+
+    // ANS divides a twelve-bit probability index into an alphabet bucket and a position within it.
+    // These table-wide values are copied into each reader once; prefix-coded owners keep both at zero.
+    private readonly int ansBucketBits;
+    private readonly uint ansBucketMask;
+
     private readonly uint minimumCopySymbol;
     private readonly uint minimumCopyLength;
     private readonly HybridUint copyLength;
@@ -41,7 +46,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// <param name="clusters">The owned integer configurations and table offsets, one per cluster.</param>
     /// <param name="prefixCodes">The owned prefix tables, or null for ANS.</param>
     /// <param name="ansBuckets">The owned ANS tables, or null for prefix coding.</param>
-    /// <param name="alphabetBits">The ANS alphabet width, or 15 for prefix coding.</param>
+    /// <param name="ansBucketBits">The bit count of one ANS bucket's probability range, or zero for prefix coding.</param>
+    /// <param name="ansBucketMask">The mask for that within-bucket position, or zero for prefix coding.</param>
     /// <param name="minimumCopySymbol">The first LZ77 token, or uint.MaxValue without LZ77.</param>
     /// <param name="minimumCopyLength">The minimum copy length.</param>
     /// <param name="copyLength">The copy-length configuration, unused without LZ77.</param>
@@ -52,7 +58,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
         IMemoryOwner<Cluster> clusters,
         IMemoryOwner<HuffmanCode>? prefixCodes,
         IMemoryOwner<JxlAnsDecoder.Bucket>? ansBuckets,
-        int alphabetBits,
+        int ansBucketBits,
+        uint ansBucketMask,
         uint minimumCopySymbol,
         uint minimumCopyLength,
         HybridUint copyLength,
@@ -63,7 +70,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
         this.clusters = clusters;
         this.prefixCodes = prefixCodes;
         this.ansBuckets = ansBuckets;
-        this.alphabetBits = alphabetBits;
+        this.ansBucketBits = ansBucketBits;
+        this.ansBucketMask = ansBucketMask;
         this.minimumCopySymbol = minimumCopySymbol;
         this.minimumCopyLength = minimumCopyLength;
         this.copyLength = copyLength;
@@ -109,6 +117,11 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// Gets a value indicating whether the section uses prefix codes rather than ANS.
     /// </summary>
     public bool UsesPrefixCodes => this.prefixCodes is not null;
+
+    /// <summary>
+    /// Gets the original syntax-context to cluster map. Borrow it once while this table owner remains alive.
+    /// </summary>
+    public ReadOnlySpan<byte> ContextMap => this.contextMap.Memory.Span;
 
     /// <summary>
     /// Gets a value indicating whether ANS tokens can use fixed hybrid integer widths 4/2/0 without LZ77 state.
@@ -221,8 +234,13 @@ internal sealed class JxlEntropyDecoder : IDisposable
                     }
                 }
 
+                // The serialized two-bit field gives alphabet widths 5..8. The remaining 7..4 bits
+                // locate a position inside each bucket's share of the fixed twelve-bit probability range.
+                int bucketBits = JxlAnsDecoder.ProbabilityBits - alphabetBits;
+                uint bucketMask = (1U << bucketBits) - 1;
+
                 return new JxlEntropyDecoder(
-                    mapOwner, clusterOwner, null, ansOwner, alphabetBits, minimumSymbol, minimumLength, length, maximumValueBits, canUseAns420);
+                    mapOwner, clusterOwner, null, ansOwner, bucketBits, bucketMask, minimumSymbol, minimumLength, length, maximumValueBits, canUseAns420);
             }
 
             // Cluster numbers are bytes, so at most 256 alphabet sizes are needed. This bounded
@@ -301,7 +319,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
             }
 
             return new JxlEntropyDecoder(
-                mapOwner, clusterOwner, prefixOwner, null, alphabetBits, minimumSymbol, minimumLength, length, maximumValueBits, canUseAns420);
+                mapOwner, clusterOwner, prefixOwner, null, 0, 0, minimumSymbol, minimumLength, length, maximumValueBits, canUseAns420);
         }
         catch
         {
@@ -545,6 +563,12 @@ internal sealed class JxlEntropyDecoder : IDisposable
         private readonly ReadOnlySpan<Cluster> clusters;
         private readonly ReadOnlySpan<HuffmanCode> prefix;
         private readonly ReadOnlySpan<JxlAnsDecoder.Bucket> buckets;
+
+        // Cache the table-wide index decomposition once with the table spans. Its shift and mask
+        // are invariant for every symbol, including LZ77 tokens and distances from the same owner.
+        private readonly int bucketBits;
+        private readonly uint bucketMask;
+
         private uint state;
         private uint remainingCopy;
         private int copyDistance;
@@ -563,6 +587,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
             this.clusters = code.clusters.Memory.Span;
             this.prefix = code.prefixCodes is null ? [] : code.prefixCodes.Memory.Span;
             this.buckets = code.ansBuckets is null ? [] : code.ansBuckets.Memory.Span;
+            this.bucketBits = code.ansBucketBits;
+            this.bucketMask = code.ansBucketMask;
             this.state = initialState;
             this.remainingCopy = 0;
             this.copyDistance = 0;
@@ -647,11 +673,11 @@ internal sealed class JxlEntropyDecoder : IDisposable
         }
 
         /// <summary>
-        /// Reads a value using the entropy mode selected once by the consuming traversal.
+        /// Reads a context-selected value using the entropy mode fixed for the consuming traversal.
         /// </summary>
         /// <typeparam name="TOperator">The completed tables' symbol and LZ77 mode.</typeparam>
         /// <param name="reader">The bounded bit reader.</param>
-        /// <param name="context">The consuming syntax's context.</param>
+        /// <param name="context">The consuming syntax's original context.</param>
         /// <param name="history">The caller-owned power-of-two history, empty without LZ77.</param>
         /// <param name="decodedCount">The number of preceding values in this section.</param>
         /// <param name="distanceMultiplier">Zero for linear history, or the modular channel width.</param>
@@ -665,47 +691,70 @@ internal sealed class JxlEntropyDecoder : IDisposable
             int distanceMultiplier)
             where TOperator : struct, IEntropyOperator
         {
-            // Both operator properties and calls specialize at JIT/AOT compilation. A no-LZ scan
-            // has no copy-state checks, history writes or copy-token interpretation per coefficient.
+            // An active copy needs neither a token nor its context. Preserve that path before
+            // resolving the original syntax context.
+            if (TOperator.UsesLz77 && this.remainingCopy != 0)
+            {
+                return this.ContinueCopy(history, decodedCount);
+            }
+
+            return this.ReadClusteredUInt32<TOperator>(ref reader, this.contextMap[context], history, decodedCount, distanceMultiplier);
+        }
+
+        /// <summary>
+        /// Reads a value from a cluster already selected by prepared metadata, sharing all literal and LZ77 handling.
+        /// </summary>
+        /// <typeparam name="TOperator">The completed tables' symbol and LZ77 mode.</typeparam>
+        /// <param name="reader">The bounded bit reader.</param>
+        /// <param name="clusterIndex">The validated entropy cluster ID, with no further context mapping.</param>
+        /// <param name="history">The caller-owned power-of-two history, empty without LZ77.</param>
+        /// <param name="decodedCount">The number of preceding values in this section.</param>
+        /// <param name="distanceMultiplier">Zero for linear history, or the modular channel width.</param>
+        /// <returns>The literal or copied value. Nonempty history receives that value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public uint ReadClusteredUInt32<TOperator>(
+            ref JxlBitReader reader,
+            int clusterIndex,
+            Span<uint> history,
+            uint decodedCount,
+            int distanceMultiplier)
+            where TOperator : struct, IEntropyOperator
+        {
+            // Both operator properties and calls specialize at JIT/AOT compilation. Prepared tree
+            // leaves already supply clusters, so their residuals need no dependent context-map load.
             if (!TOperator.UsesLz77)
             {
-                ref readonly Cluster cluster = ref this.clusters[this.contextMap[context]];
+                ref readonly Cluster cluster = ref this.clusters[clusterIndex];
                 uint token = TOperator.ReadCode(ref this, ref reader, cluster.TableOffset);
                 return TOperator.Expand(ref reader, token, cluster.Integer);
             }
 
-            // The consumer bounds the total value count and supplies a power-of-two ring only for LZ77.
-            // Mask logical positions into that ring; history remains caller-owned and is reused through the section.
-            uint value;
             if (this.remainingCopy != 0)
             {
-                this.remainingCopy--;
-                value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
+                return this.ContinueCopy(history, decodedCount);
             }
-            else
+
+            uint value = this.ReadClusteredToken<TOperator>(ref reader, clusterIndex, out uint copyCount);
+            if (copyCount != 0)
             {
-                value = this.ReadToken<TOperator>(ref reader, context, out uint copyCount);
-                if (copyCount != 0)
+                if (decodedCount == 0)
                 {
-                    if (decodedCount == 0)
-                    {
-                        throw new InvalidImageContentException("The JPEG XL LZ77 copy precedes the first decoded value.");
-                    }
-
-                    // Copies can overlap their own output. A fixed backward distance and a circular write position
-                    // reproduce that sequence one value at a time, including after the window wraps.
-                    // Image streams map the first 120 symbols to two-dimensional offsets. ICC and tree
-                    // streams use plain distances. All variants cap distance to the window and available history.
-                    ulong distance = distanceMultiplier == 0
-                        ? (ulong)value + 1
-                        : value < Lz77DistanceCodes.Count
-                            ? (uint)Lz77DistanceCodes.GetDistance((int)value, distanceMultiplier)
-                            : (ulong)value - Lz77DistanceCodes.Count + 1;
-
-                    this.copyDistance = (int)Math.Min(Math.Min(distance, MaximumLz77Distance), decodedCount);
-                    this.remainingCopy = copyCount - 1;
-                    value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
+                    throw new InvalidImageContentException("The JPEG XL LZ77 copy precedes the first decoded value.");
                 }
+
+                // Copies can overlap their own output. A fixed backward distance and a circular write position
+                // reproduce that sequence one value at a time, including after the window wraps.
+                // Image streams map the first 120 symbols to two-dimensional offsets. ICC and tree
+                // streams use plain distances. All variants cap distance to the window and available history.
+                ulong distance = distanceMultiplier == 0
+                    ? (ulong)value + 1
+                    : value < Lz77DistanceCodes.Count
+                        ? (uint)Lz77DistanceCodes.GetDistance((int)value, distanceMultiplier)
+                        : (ulong)value - Lz77DistanceCodes.Count + 1;
+
+                this.copyDistance = (int)Math.Min(Math.Min(distance, MaximumLz77Distance), decodedCount);
+                this.remainingCopy = copyCount - 1;
+                value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
             }
 
             if (!history.IsEmpty)
@@ -720,21 +769,23 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// Reads a literal value, or a copy-distance symbol with a nonzero copy length.
         /// </summary>
         /// <param name="reader">The bounded bit reader.</param>
-        /// <param name="context">The consuming syntax's context.</param>
+        /// <param name="context">The consuming syntax's original context.</param>
         /// <param name="copyCount">Zero for a literal, or the decoded copy length.</param>
         /// <returns>The literal or distance symbol. Image consumers apply their own two-dimensional distance mapping.</returns>
         public uint ReadToken(ref JxlBitReader reader, int context, out uint copyCount)
         {
+            int clusterIndex = this.contextMap[context];
+
             if (this.code.UsesPrefixCodes)
             {
                 return this.code.UsesLz77
-                    ? this.ReadToken<PrefixLz77Operator>(ref reader, context, out copyCount)
-                    : this.ReadToken<PrefixOperator>(ref reader, context, out copyCount);
+                    ? this.ReadClusteredToken<PrefixLz77Operator>(ref reader, clusterIndex, out copyCount)
+                    : this.ReadClusteredToken<PrefixOperator>(ref reader, clusterIndex, out copyCount);
             }
 
             return this.code.UsesLz77
-                ? this.ReadToken<AnsLz77Operator>(ref reader, context, out copyCount)
-                : this.ReadToken<AnsOperator>(ref reader, context, out copyCount);
+                ? this.ReadClusteredToken<AnsLz77Operator>(ref reader, clusterIndex, out copyCount)
+                : this.ReadClusteredToken<AnsOperator>(ref reader, clusterIndex, out copyCount);
         }
 
         /// <summary>
@@ -742,14 +793,14 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// </summary>
         /// <typeparam name="TOperator">The completed tables' symbol and LZ77 mode.</typeparam>
         /// <param name="reader">The bounded bit reader.</param>
-        /// <param name="context">The consuming syntax's context.</param>
+        /// <param name="clusterIndex">The already-resolved entropy cluster.</param>
         /// <param name="copyCount">Zero for a literal, or the decoded copy length.</param>
         /// <returns>The literal or copy-distance value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint ReadToken<TOperator>(ref JxlBitReader reader, int context, out uint copyCount)
+        private uint ReadClusteredToken<TOperator>(ref JxlBitReader reader, int clusterIndex, out uint copyCount)
             where TOperator : struct, IEntropyOperator
         {
-            ref readonly Cluster cluster = ref this.clusters[this.contextMap[context]];
+            ref readonly Cluster cluster = ref this.clusters[clusterIndex];
             uint token = TOperator.ReadCode(ref this, ref reader, cluster.TableOffset);
             if (token < this.code.minimumCopySymbol)
             {
@@ -819,14 +870,18 @@ internal sealed class JxlEntropyDecoder : IDisposable
         {
             // Split the state's low twelve bits into a bucket number and a position within that bucket.
             // The alias entry supplies the alternate frequency and cumulative offset without a 4096-entry table.
-            int bucketBits = JxlAnsDecoder.ProbabilityBits - this.code.alphabetBits;
             uint index = this.state & (JxlAnsDecoder.ProbabilityTotal - 1);
-            int bucketIndex = (int)(index >> bucketBits);
-            uint positionInBucket = index & ((1U << bucketBits) - 1);
+            int bucketIndex = (int)(index >> this.bucketBits);
+            uint positionInBucket = index & this.bucketMask;
             JxlAnsDecoder.Bucket bucket = this.buckets[tableOffset + bucketIndex];
-            bool alias = positionInBucket >= bucket.Cutoff;
-            uint frequency = alias ? (uint)(bucket.Frequency ^ bucket.AliasFrequencyXor) : bucket.Frequency;
-            uint offset = positionInBucket + (alias ? bucket.AliasOffset : 0U);
+
+            // One 0-or-1 selector gates the alias fields, as in jxl-rs entropy_coding/ans.rs.
+            // Multiplication selects the frequency XOR and offset without repeating a data-dependent branch.
+            // The selector keeps one symbol term and clears the other. Products retain the bucket fields' validated integer bounds.
+            uint selectAlias = positionInBucket >= bucket.Cutoff ? 1U : 0U;
+            uint frequency = bucket.Frequency ^ (bucket.AliasFrequencyXor * selectAlias);
+            uint offset = positionInBucket + (bucket.AliasOffset * selectAlias);
+            uint symbol = (bucket.AliasSymbol * selectAlias) | ((uint)bucketIndex * (1U - selectAlias));
             this.state = ((this.state >> JxlAnsDecoder.ProbabilityBits) * frequency) + offset;
 
             // ANS consumes sixteen bits only when the updated state falls below its normalization threshold.
@@ -836,18 +891,42 @@ internal sealed class JxlEntropyDecoder : IDisposable
                 this.state = (this.state << 16) | reader.ReadBits(16);
             }
 
-            return alias ? bucket.AliasSymbol : (uint)bucketIndex;
+            return symbol;
+        }
+
+        /// <summary>
+        /// Continues an active copy through the same caller-owned circular history for both reader entry points.
+        /// </summary>
+        /// <param name="history">The nonempty power-of-two history already used by the copy's first value.</param>
+        /// <param name="decodedCount">The current logical history position.</param>
+        /// <returns>The copied value, also retained at the current history position.</returns>
+        private uint ContinueCopy(Span<uint> history, uint decodedCount)
+        {
+            // A copy already read its first value from this window. The source read therefore requires
+            // nonempty history, and overlapping writes reproduce runs without another token or context lookup.
+            this.remainingCopy--;
+            uint value = history[(int)((decodedCount - (uint)this.copyDistance) & (uint)(history.Length - 1))];
+            history[(int)(decodedCount & (uint)(history.Length - 1))] = value;
+            return value;
         }
     }
 
     /// <summary>
     /// Splits an unsigned integer between an entropy token and following literal bits.
     /// </summary>
+    /// <remarks>
+    /// Read validates all configurations used by general expansion. Default values are retained only for absent LZ77
+    /// copy-length data or ignored fixed-width operator arguments; they do not represent a parsed configuration.
+    /// </remarks>
     public readonly struct HybridUint
     {
-        private readonly int splitExponent;
-        private readonly int highBits;
-        private readonly int lowBits;
+        // Prefix alphabets have at most 15 bits; ANS alphabets and copy-length configurations have at most eight.
+        // Read bounds each width by that alphabet before construction. Three byte widths and a cached uint token
+        // occupy eight bytes with natural alignment. Cache the split once rather than shifting for every decoded value.
+        private readonly uint splitToken;
+        private readonly byte splitExponent;
+        private readonly byte highBits;
+        private readonly byte lowBits;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HybridUint"/> struct from validated field widths.
@@ -857,9 +936,10 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <param name="lowBits">The trailing bits retained in the token.</param>
         private HybridUint(int splitExponent, int highBits, int lowBits)
         {
-            this.splitExponent = splitExponent;
-            this.highBits = highBits;
-            this.lowBits = lowBits;
+            this.splitToken = 1U << splitExponent;
+            this.splitExponent = (byte)splitExponent;
+            this.highBits = (byte)highBits;
+            this.lowBits = (byte)lowBits;
         }
 
         /// <summary>
@@ -874,10 +954,9 @@ internal sealed class JxlEntropyDecoder : IDisposable
         /// <returns>The configured split width for a direct token, or the reconstructed width for an expanded token.</returns>
         public int GetBitCount(uint token)
         {
-            uint split = 1U << this.splitExponent;
-            return token < split
+            return token < this.splitToken
                 ? this.splitExponent
-                : this.splitExponent + 1 + (int)((token - split) >> (this.highBits + this.lowBits));
+                : this.splitExponent + 1 + (int)((token - this.splitToken) >> (this.highBits + this.lowBits));
         }
 
         /// <summary>
@@ -925,8 +1004,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint Expand(ref JxlBitReader reader, uint token)
         {
-            uint split = 1U << this.splitExponent;
-            if (token < split)
+            if (token < this.splitToken)
             {
                 return token;
             }
@@ -935,7 +1013,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
             // value bits. Insert the implicit leading one and read only the middle bits from the stream.
             // Validate the reconstructed width first because C# masks an out-of-range shift count.
             int tokenBits = this.highBits + this.lowBits;
-            uint bits = (uint)(this.splitExponent - tokenBits) + ((token - split) >> tokenBits);
+            uint bits = (uint)(this.splitExponent - tokenBits) + ((token - this.splitToken) >> tokenBits);
             if (bits + (uint)tokenBits >= 32)
             {
                 throw new InvalidImageContentException("The JPEG XL hybrid integer exceeds 32 bits.");

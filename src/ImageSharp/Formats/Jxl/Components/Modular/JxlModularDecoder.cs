@@ -948,7 +948,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     }
 
                     ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                    uint residual = symbols.ReadUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                    uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
                     int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                     long prediction = node.Predictor == 6
                         ? weighted
@@ -1057,7 +1057,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             Span<int> row = channel.DangerousGetRowSpan(y);
             for (int x = 0; x < row.Length; x++)
             {
-                uint residual = symbols.ReadUInt32<TOperator>(ref reader, leaf.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, leaf.FirstChild, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 row[x] = unchecked((int)(leaf.Value + ((long)signed * leaf.Multiplier)));
             }
@@ -1109,7 +1109,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                uint residual = symbols.ReadUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
 
                 // Property nine wraps in int units. Prediction instead retains the exact widened gradient,
@@ -1172,7 +1172,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                uint residual = symbols.ReadUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
                 predictor.Update(errors, x, y, row[x]);

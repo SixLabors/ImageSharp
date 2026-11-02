@@ -74,21 +74,26 @@ internal sealed partial class JxlVarDctDecoder
             return;
         }
 
-        // Reserve only the largest enabled neighborhood, with at most seven physical rows per component.
-        // Tiny images retain each physical row once; mirrored accesses reuse it instead of allocating repeated copies.
+        // The largest EPF neighborhood retains at most seven physical rows per component. When Gaborish
+        // feeds EPF, append at most three raw rows per component in the same owner. Its filtered rows
+        // go straight into the EPF ring. Tiny images retain each physical row once in each disjoint ring.
         int maximumRadius = filter.Iterations == 3 ? 3 : filter.Iterations != 0 ? 2 : 1;
         int ringRows = Math.Min((2 * maximumRadius) + 1, size.Height);
+        int gaborishRows = filter.Gaborish && filter.Iterations != 0 ? Math.Min(3, size.Height) : 0;
         long rowStride = (long)size.Width + (2 * RestorationRadius);
-        long windowLength = 3 * ringRows * rowStride;
+        long windowLength = 3 * (ringRows + gaborishRows) * rowStride;
         if (windowLength > int.MaxValue)
         {
             throw new InvalidMemoryOperationException("The JPEG XL restoration row window exceeds the supported buffer length.");
         }
 
         using IMemoryOwner<float> windowOwner = allocator.Allocate<float>((int)windowLength);
-        Span<float> window = windowOwner.Memory.Span[..(int)windowLength];
+        Span<float> storage = windowOwner.Memory.Span[..(int)windowLength];
         int stride = (int)rowStride;
-        if (filter.Gaborish)
+        int epfWindowLength = 3 * ringRows * stride;
+        Span<float> window = storage[..epfWindowLength];
+        Span<float> gaborishWindow = storage[epfWindowLength..];
+        if (filter.Gaborish && filter.Iterations == 0)
         {
             this.ApplyGaborish(filter, size, window, stride, ringRows, cancellationToken);
         }
@@ -101,13 +106,18 @@ internal sealed partial class JxlVarDctDecoder
             Span<float> sigma = sigmaStorage.Slice(this.dcSize.Width, this.dcSize.Width);
             if (filter.Iterations == 3)
             {
-                this.ApplyEpf<Epf0Neighborhood>(filter, size, window, stride, ringRows, quantizationSigma, sigma, filter.Pass0SigmaScale, cancellationToken);
+                this.ApplyEpf<Epf0Neighborhood>(
+                    filter, size, window, gaborishWindow, stride, ringRows, quantizationSigma, sigma, filter.Pass0SigmaScale, cancellationToken);
+
+                // Only the first EPF consumes Gaborish output. Later passes read their preceding EPF's completed component planes.
+                gaborishWindow = [];
             }
 
-            this.ApplyEpf<Epf1Neighborhood>(filter, size, window, stride, ringRows, quantizationSigma, sigma, 1F, cancellationToken);
+            this.ApplyEpf<Epf1Neighborhood>(filter, size, window, gaborishWindow, stride, ringRows, quantizationSigma, sigma, 1F, cancellationToken);
             if (filter.Iterations >= 2)
             {
-                this.ApplyEpf<Epf2Neighborhood>(filter, size, window, stride, ringRows, quantizationSigma, sigma, filter.Pass2SigmaScale, cancellationToken);
+                this.ApplyEpf<Epf2Neighborhood>(
+                    filter, size, window, [], stride, ringRows, quantizationSigma, sigma, filter.Pass2SigmaScale, cancellationToken);
             }
         }
     }
@@ -165,6 +175,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="filter">The parsed channel, border and sigma parameters.</param>
     /// <param name="size">The full coding-resolution dimensions.</param>
     /// <param name="window">The reusable three-component ring.</param>
+    /// <param name="gaborishWindow">The separate raw Gaborish ring for the first EPF, or an empty span to read completed component rows.</param>
     /// <param name="stride">The padded row stride.</param>
     /// <param name="ringRows">The number of physical rows retained per component.</param>
     /// <param name="quantizationSigma">The retained quantizer-dependent sigma term in each block column.</param>
@@ -175,6 +186,7 @@ internal sealed partial class JxlVarDctDecoder
         JxlRestorationFilter filter,
         Size size,
         Span<float> window,
+        Span<float> gaborishWindow,
         int stride,
         int ringRows,
         Span<float> quantizationSigma,
@@ -190,9 +202,21 @@ internal sealed partial class JxlVarDctDecoder
         Span<float> multipliers = multiplierStorage;
         float ordinaryMultiplier = sigmaScale * EpfDistanceScale;
         float borderMultiplier = ordinaryMultiplier * filter.BorderSadMultiplier;
+        InlineArray4<GaborishOperator> gaborishStorage = default;
+        Span<GaborishOperator> gaborish = gaborishStorage;
+        if (!gaborishWindow.IsEmpty)
+        {
+            for (int component = 0; component < 3; component++)
+            {
+                gaborish[component] = new GaborishOperator(filter.GaborishWeight1[component], filter.GaborishWeight2[component]);
+            }
+        }
+
+        // Produce input rows in physical order. A mirrored EPF access can refer only to a row already
+        // produced here. At the bottom edge the retained physical rows supply every reflected neighbor.
         for (int y = 0; y < Math.Min(radius + 1, size.Height); y++)
         {
-            this.LoadRestorationRow(window, stride, ringRows, size.Width, y);
+            this.LoadEpfRow(window, gaborishWindow, gaborish, size, stride, ringRows, y);
         }
 
         for (int y = 0; y < size.Height; y++)
@@ -200,7 +224,7 @@ internal sealed partial class JxlVarDctDecoder
             cancellationToken.ThrowIfCancellationRequested();
             if (y != 0 && y < size.Height - radius)
             {
-                this.LoadRestorationRow(window, stride, ringRows, size.Width, y + radius);
+                this.LoadEpfRow(window, gaborishWindow, gaborish, size, stride, ringRows, y + radius);
             }
 
             if ((y & (BlockSize - 1)) == 0)
@@ -222,7 +246,65 @@ internal sealed partial class JxlVarDctDecoder
             Span<float> destinationX = this.reconstructedChannels[0].DangerousGetRowSpan(y)[..size.Width];
             Span<float> destinationY = this.reconstructedChannels[1].DangerousGetRowSpan(y)[..size.Width];
             Span<float> destinationB = this.reconstructedChannels[2].DangerousGetRowSpan(y)[..size.Width];
+
+            // With fused Gaborish, input production already passed this row's final raw-sample use.
+            // Final EPF stores can overwrite the component planes without changing future Gaborish input.
             FilterEpfRow<TNeighborhood>(operation, destinationX, destinationY, destinationB);
+        }
+    }
+
+    /// <summary>
+    /// Supplies the next physical EPF input row, either from completed planes or directly from Gaborish.
+    /// </summary>
+    /// <param name="window">The EPF input ring, partitioned into three component ranges.</param>
+    /// <param name="gaborishWindow">The disjoint raw Gaborish ring, or an empty span without fused Gaborish.</param>
+    /// <param name="gaborish">The prepared Gaborish operators, used only when the raw ring is present.</param>
+    /// <param name="size">The full coding-resolution dimensions.</param>
+    /// <param name="stride">The padded row stride shared by both rings.</param>
+    /// <param name="ringRows">The number of physical rows retained for each EPF component.</param>
+    /// <param name="row">The next physical row. Calls start at zero and advance by one.</param>
+    private void LoadEpfRow(
+        Span<float> window,
+        Span<float> gaborishWindow,
+        ReadOnlySpan<GaborishOperator> gaborish,
+        Size size,
+        int stride,
+        int ringRows,
+        int row)
+    {
+        if (gaborishWindow.IsEmpty)
+        {
+            this.LoadRestorationRow(window, stride, ringRows, size.Width, row);
+            return;
+        }
+
+        int rawRows = Math.Min(3, size.Height);
+        if (row == 0)
+        {
+            // Gaborish needs one original row ahead. Tiny images keep all available rows, so repeated
+            // reflection reads their original samples rather than another filtered or overwritten row.
+            for (int y = 0; y < Math.Min(2, size.Height); y++)
+            {
+                this.LoadRestorationRow(gaborishWindow, stride, rawRows, size.Width, y);
+            }
+        }
+        else if (row + 1 < size.Height)
+        {
+            this.LoadRestorationRow(gaborishWindow, stride, rawRows, size.Width, row + 1);
+        }
+
+        InlineArray8<int> rowStorage = default;
+        Span<int> rows = rowStorage;
+        PrepareRestorationRows(rows, row, size.Height, stride, rawRows);
+        for (int component = 0; component < 3; component++)
+        {
+            int sourceOffset = component * rawRows * stride;
+            ReadOnlySpan<float> top = gaborishWindow.Slice(sourceOffset + rows[RestorationRadius - 1], stride);
+            ReadOnlySpan<float> middle = gaborishWindow.Slice(sourceOffset + rows[RestorationRadius], stride);
+            ReadOnlySpan<float> bottom = gaborishWindow.Slice(sourceOffset + rows[RestorationRadius + 1], stride);
+            Span<float> destination = window.Slice(((component * ringRows) + (row % ringRows)) * stride, stride);
+            FilterGaborishRow(top, middle, bottom, destination.Slice(RestorationRadius, size.Width), gaborish[component]);
+            PadRestorationRow(destination, size.Width);
         }
     }
 
@@ -272,11 +354,23 @@ internal sealed partial class JxlVarDctDecoder
         {
             Span<float> destination = window.Slice(((component * ringRows) + (row % ringRows)) * stride, stride);
             this.reconstructedChannels[component].DangerousGetRowSpan(row)[..width].CopyTo(destination.Slice(RestorationRadius, width));
-            for (int i = 0; i < RestorationRadius; i++)
-            {
-                destination[i] = destination[RestorationRadius + JxlUpsampler.MirrorIndex(i - RestorationRadius, width)];
-                destination[RestorationRadius + width + i] = destination[RestorationRadius + JxlUpsampler.MirrorIndex((long)width + i, width)];
-            }
+            PadRestorationRow(destination, width);
+        }
+    }
+
+    /// <summary>
+    /// Fills both horizontal margins from a completed physical row using the format's repeated reflection.
+    /// </summary>
+    /// <param name="row">The padded row, with its logical samples already stored after the leading margin.</param>
+    /// <param name="width">The logical row width, which can be smaller than the three-sample margin.</param>
+    private static void PadRestorationRow(Span<float> row, int width)
+    {
+        // Mirror each logical index independently. Repeating edge samples handles widths one and two
+        // without reading an uninitialized margin or changing the filter's source sample order.
+        for (int i = 0; i < RestorationRadius; i++)
+        {
+            row[i] = row[RestorationRadius + JxlUpsampler.MirrorIndex(i - RestorationRadius, width)];
+            row[RestorationRadius + width + i] = row[RestorationRadius + JxlUpsampler.MirrorIndex((long)width + i, width)];
         }
     }
 

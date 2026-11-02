@@ -15,6 +15,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 internal static class JxlModularPalette
 {
     /// <summary>
+    /// The scratch length for one component's signed deltas, four-level cube and five-level cube.
+    /// </summary>
+    public const int ImplicitEntryCount = DeltaEntryCount + SmallCubeEntries + LargeCubeEntries;
+
+    /// <summary>
     /// The number of color components defined by the implicit palette.
     /// </summary>
     private const int RgbComponents = 3;
@@ -28,6 +33,11 @@ internal static class JxlModularPalette
     /// The number of entries in the first implicit four-level RGB cube.
     /// </summary>
     private const int SmallCubeEntries = 64;
+
+    /// <summary>
+    /// The number of entries in the implicit five-level RGB cube.
+    /// </summary>
+    private const int LargeCubeEntries = 125;
 
     /// <summary>
     /// The base-two divisor used to center the smaller cube's values between the larger cube's levels.
@@ -45,21 +55,23 @@ internal static class JxlModularPalette
     private const int MaximumImplicitPrecision = 24;
 
     /// <summary>
-    /// The integer reciprocal and product shift for exact division by five on nonnegative signed integers.
+    /// The integer reciprocal numerator for exact division by 125 on nonnegative signed integers.
     /// </summary>
-    private const int Divide5Multiplier = 1717986919;
-    private const int Divide5Shift = 33;
+    private const int Divide125Multiplier = 1099511628;
 
     /// <summary>
-    /// The integer reciprocal and product shift for exact division by twenty-five on nonnegative signed integers.
+    /// The reciprocal denominator's base-two exponent for division by 125.
     /// </summary>
-    private const int Divide25Multiplier = 1374389535;
-    private const int Divide25Shift = 35;
+    private const int Divide125Shift = 37;
 
     /// <summary>
-    /// The integer reciprocal and product shift for exact division by 143 on nonnegative signed integers.
+    /// The integer reciprocal numerator for exact division by 143 on nonnegative signed integers.
     /// </summary>
     private const int Divide143Multiplier = 961111563;
+
+    /// <summary>
+    /// The reciprocal denominator's base-two exponent for division by 143.
+    /// </summary>
     private const int Divide143Shift = 37;
 
     /// <summary>
@@ -92,6 +104,7 @@ internal static class JxlModularPalette
     /// <param name="bitDepth">The encoded sample precision used to scale implicit colors.</param>
     /// <param name="weightedPredictor">The group's weighted predictor coefficients.</param>
     /// <param name="scratch">Reusable weighted error storage large enough for an output row.</param>
+    /// <param name="implicitScratch">At least ImplicitEntryCount integers, separate from the error rows and all channel samples.</param>
     /// <param name="cancellationToken">The token checked between rows and output channels.</param>
     public static void Apply(
         Buffer2DRegion<int> indices,
@@ -102,6 +115,7 @@ internal static class JxlModularPalette
         int bitDepth,
         JxlWeightedPredictor weightedPredictor,
         Span<int> scratch,
+        Span<int> implicitScratch,
         CancellationToken cancellationToken)
     {
         // Empty transformed channels retain their logical dimensions but have no samples or row storage to borrow.
@@ -118,7 +132,10 @@ internal static class JxlModularPalette
             int component = i == outputs.Length - 1 ? 0 : i + 1;
             Buffer2DRegion<int> output = outputs[component];
             ReadOnlySpan<int> table = palette.Width == 0 ? [] : palette.DangerousGetRowSpan(component);
-            PaletteLookupOperator lookup = new(table, component, bitDepth);
+
+            // The caller borrows this table once after entropy decoding. Refill it for each component only after
+            // the preceding component is complete; no row or prediction state retains the old table values.
+            PaletteLookupOperator lookup = new(table, implicitScratch, component, bitDepth);
 
             if (predictor == 0)
             {
@@ -293,14 +310,14 @@ internal static class JxlModularPalette
     /// Divides 4 nonnegative signed integers by a constant using exact widened products.
     /// </summary>
     /// <param name="values">Values from zero through int.MaxValue.</param>
-    /// <param name="multiplier">The reciprocal numerator for one of the three palette divisors.</param>
+    /// <param name="multiplier">The reciprocal numerator for one of the two palette divisors.</param>
     /// <param name="shift">The reciprocal denominator's base-two exponent.</param>
     /// <returns>The integer quotient in each original lane.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> DividePositive(Vector128<int> values, int multiplier, int shift)
     {
         // For divisor d and m=ceil(2^shift/d), (m*d-2^shift)*int.MaxValue < 2^shift proves exact truncation.
-        // The three declared pairs satisfy this bound. No floating-point estimate or correction step is required.
+        // For 125 the excess numerator is 28, and for 143 it is 37. Both satisfy the bound without a correction step.
         Vector128<int> factor = Vector128.Create(multiplier);
         Vector128<long> even = Vector128_.MultiplyWideningEven(values, factor) >> shift;
 
@@ -315,14 +332,14 @@ internal static class JxlModularPalette
     /// Divides 8 nonnegative signed integers by a constant using exact widened products.
     /// </summary>
     /// <param name="values">Values from zero through int.MaxValue.</param>
-    /// <param name="multiplier">The reciprocal numerator for one of the three palette divisors.</param>
+    /// <param name="multiplier">The reciprocal numerator for one of the two palette divisors.</param>
     /// <param name="shift">The reciprocal denominator's base-two exponent.</param>
     /// <returns>The integer quotient in each original lane.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> DividePositive(Vector256<int> values, int multiplier, int shift)
     {
         // For divisor d and m=ceil(2^shift/d), (m*d-2^shift)*int.MaxValue < 2^shift proves exact truncation.
-        // The three declared pairs satisfy this bound. No floating-point estimate or correction step is required.
+        // For 125 the excess numerator is 28, and for 143 it is 37. Both satisfy the bound without a correction step.
         Vector256<int> factor = Vector256.Create(multiplier);
         Vector256<long> even = Vector256_.MultiplyWideningEven(values, factor) >> shift;
 
@@ -337,14 +354,14 @@ internal static class JxlModularPalette
     /// Divides 16 nonnegative signed integers by a constant using exact widened products.
     /// </summary>
     /// <param name="values">Values from zero through int.MaxValue.</param>
-    /// <param name="multiplier">The reciprocal numerator for one of the three palette divisors.</param>
+    /// <param name="multiplier">The reciprocal numerator for one of the two palette divisors.</param>
     /// <param name="shift">The reciprocal denominator's base-two exponent.</param>
     /// <returns>The integer quotient in each original lane.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<int> DividePositive(Vector512<int> values, int multiplier, int shift)
     {
         // For divisor d and m=ceil(2^shift/d), (m*d-2^shift)*int.MaxValue < 2^shift proves exact truncation.
-        // The three declared pairs satisfy this bound. No floating-point estimate or correction step is required.
+        // For 125 the excess numerator is 28, and for 143 it is 37. Both satisfy the bound without a correction step.
         Vector512<int> factor = Vector512.Create(multiplier);
         Vector512<long> even = Vector512_.MultiplyWideningEven(values, factor) >> shift;
 
@@ -361,30 +378,55 @@ internal static class JxlModularPalette
     private readonly ref struct PaletteLookupOperator
     {
         private readonly ReadOnlySpan<int> palette;
-        private readonly ReadOnlySpan<int> deltas;
+        private readonly ReadOnlySpan<int> implicitValues;
         private readonly int component;
-        private readonly int range;
-        private readonly int deltaShift;
-        private readonly int smallCubeOffset;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteLookupOperator"/> struct for one output component.
         /// </summary>
         /// <param name="palette">The explicit entries for this component, or an empty span.</param>
+        /// <param name="implicitScratch">The caller's reusable component table, with at least ImplicitEntryCount entries.</param>
         /// <param name="component">The component's zero-based position within this palette transform.</param>
         /// <param name="bitDepth">The encoded sample precision.</param>
-        public PaletteLookupOperator(ReadOnlySpan<int> palette, int component, int bitDepth)
+        public PaletteLookupOperator(ReadOnlySpan<int> palette, Span<int> implicitScratch, int component, int bitDepth)
         {
             this.palette = palette;
-            this.deltas = DeltaColors;
+            this.implicitValues = implicitScratch;
             this.component = component;
+
+            // Extra components, including alpha, have only explicit entries. Their lookup exits before reading this table.
+            if (component >= RgbComponents)
+            {
+                return;
+            }
 
             // Implicit values use at most 24 bits. Explicit entries retain their decoded signed integer precision.
             // Cube products are at most 4*(2^24-1). Scaled delta magnitudes are at most 144*2^16. Both fit in int.
             int precision = Math.Min(bitDepth, MaximumImplicitPrecision);
-            this.range = (1 << precision) - 1;
-            this.deltaShift = Math.Max(precision - DeltaPrecision, 0);
-            this.smallCubeOffset = 1 << Math.Max(precision - SmallCubeCenterShift, 0);
+            int range = (1 << precision) - 1;
+            int deltaShift = Math.Max(precision - DeltaPrecision, 0);
+            int smallCubeOffset = 1 << Math.Max(precision - SmallCubeCenterShift, 0);
+
+            // Layout: [143 signed deltas | 64 four-level cube entries | 125 five-level cube entries].
+            // Scale each value once. Every scalar and SIMD lookup reads this same component table.
+            ReadOnlySpan<int> deltas = DeltaColors;
+            for (int i = 0; i < DeltaEntryCount; i++)
+            {
+                int value = deltas[(((i + 1) >> 1) * RgbComponents) + component];
+                implicitScratch[i] = (value * (((i & 1) << 1) - 1)) << deltaShift;
+            }
+
+            for (int i = 0; i < SmallCubeEntries; i++)
+            {
+                int digit = (i >> (2 * component)) & 3;
+                implicitScratch[DeltaEntryCount + i] = ((digit * range) >> 2) + smallCubeOffset;
+            }
+
+            int divisor = component == 0 ? 1 : component == 1 ? 5 : 25;
+            for (int i = 0; i < LargeCubeEntries; i++)
+            {
+                implicitScratch[DeltaEntryCount + SmallCubeEntries + i] = (((i / divisor) % 5) * range) >> 2;
+            }
         }
 
         /// <summary>
@@ -408,23 +450,18 @@ internal static class JxlModularPalette
 
             if (index < 0)
             {
-                // Complementing avoids negating int.MinValue. The 143-entry cycle alternates signs around 72 base colors.
-                int delta = ~index % DeltaEntryCount;
-                int value = this.deltas[(((delta + 1) >> 1) * RgbComponents) + this.component];
-                return (value * (((delta & 1) << 1) - 1)) << this.deltaShift;
+                // Complementing avoids negating int.MinValue. The prepared 143-entry cycle already includes signs and scaling.
+                return this.implicitValues[~index % DeltaEntryCount];
             }
 
             int cube = index - this.palette.Length;
             if (cube < SmallCubeEntries)
             {
-                int digit = (cube >> (2 * this.component)) & 3;
-                return ((digit * this.range) >> 2) + this.smallCubeOffset;
+                return this.implicitValues[DeltaEntryCount + cube];
             }
 
-            // The larger cube has five levels per component. Values beyond its 125 entries repeat by modulo five.
-            int large = cube - SmallCubeEntries;
-            int divisor = this.component == 0 ? 1 : this.component == 1 ? 5 : 25;
-            return (((large / divisor) % 5) * this.range) >> 2;
+            // The three component periods divide 125. Reducing the complete cube index retains each component's original digit.
+            return this.implicitValues[DeltaEntryCount + SmallCubeEntries + ((cube - SmallCubeEntries) % LargeCubeEntries)];
         }
 
         /// <summary>
@@ -455,33 +492,25 @@ internal static class JxlModularPalette
                 return Vector128.ConditionalSelect(explicitMask, explicitValues, Vector128<int>.Zero);
             }
 
-            // Both reciprocal inputs are nonnegative and no greater than int.MaxValue, including complemented int.MinValue.
+            // Each lane maps one signed index to the prepared table. Complementing int.MinValue gives int.MaxValue,
+            // so both reciprocal inputs stay in the proven nonnegative signed range.
             Vector128<int> negative = Vector128.Max(~indices, Vector128<int>.Zero);
             Vector128<int> delta = negative - (DividePositive(negative, Divide143Multiplier, Divide143Shift) * Vector128.Create(DeltaEntryCount));
-            Vector128<int> deltaIndices = (((delta + Vector128<int>.One) >> 1) * Vector128.Create(RgbComponents)) + Vector128.Create(this.component);
-            Vector128<int> deltaValues = Vector128_.Gather(ref MemoryMarshal.GetReference(this.deltas), deltaIndices);
-            deltaValues *= ((delta & Vector128<int>.One) << 1) - Vector128<int>.One;
-            deltaValues <<= this.deltaShift;
 
-            // Clamp only unused index arithmetic, not palette values. Valid implicit indices retain their full format-defined range.
+            // Clamp only unused index arithmetic. Subtract after removing negative inputs so int.MinValue cannot wrap.
+            // Masking the small-cube candidate keeps even unselected lanes inside its 64-entry portion of the table.
             Vector128<int> nonnegative = Vector128.Max(indices, Vector128<int>.Zero);
             Vector128<int> cube = Vector128.Max(nonnegative - Vector128.Create(this.palette.Length), Vector128<int>.Zero);
-            Vector128<int> digit = (cube >> (2 * this.component)) & Vector128.Create(3);
-            Vector128<int> smallValues = ((digit * Vector128.Create(this.range)) >> 2) + Vector128.Create(this.smallCubeOffset);
+            Vector128<int> smallIndices = Vector128.Create(DeltaEntryCount) + (cube & Vector128.Create(SmallCubeEntries - 1));
             Vector128<int> large = Vector128.Max(cube - Vector128.Create(SmallCubeEntries), Vector128<int>.Zero);
-            if (this.component != 0)
-            {
-                large = this.component == 1
-                    ? DividePositive(large, Divide5Multiplier, Divide5Shift)
-                    : DividePositive(large, Divide25Multiplier, Divide25Shift);
-            }
+            Vector128<int> largeRemainder = large - (DividePositive(large, Divide125Multiplier, Divide125Shift) * Vector128.Create(LargeCubeEntries));
+            Vector128<int> largeIndices = Vector128.Create(DeltaEntryCount + SmallCubeEntries) + largeRemainder;
+            Vector128<int> implicitIndices = Vector128.ConditionalSelect(
+                Vector128.LessThan(cube, Vector128.Create(SmallCubeEntries)), smallIndices, largeIndices);
 
-            Vector128<int> largeDigit = large - (DividePositive(large, Divide5Multiplier, Divide5Shift) * Vector128.Create(5));
-            Vector128<int> largeValues = (largeDigit * Vector128.Create(this.range)) >> 2;
-            Vector128<int> implicitValues = Vector128.ConditionalSelect(
-                Vector128.LessThan(cube, Vector128.Create(SmallCubeEntries)), smallValues, largeValues);
-
-            implicitValues = Vector128.ConditionalSelect(Vector128.LessThan(indices, Vector128<int>.Zero), deltaValues, implicitValues);
+            // Select the bounded table index before gathering. Unselected signed-index families never perform an invalid read.
+            implicitIndices = Vector128.ConditionalSelect(Vector128.LessThan(indices, Vector128<int>.Zero), delta, implicitIndices);
+            Vector128<int> implicitValues = Vector128_.Gather(ref MemoryMarshal.GetReference(this.implicitValues), implicitIndices);
             return Vector128.ConditionalSelect(explicitMask, explicitValues, implicitValues);
         }
 
@@ -513,33 +542,25 @@ internal static class JxlModularPalette
                 return Vector256.ConditionalSelect(explicitMask, explicitValues, Vector256<int>.Zero);
             }
 
-            // Both reciprocal inputs are nonnegative and no greater than int.MaxValue, including complemented int.MinValue.
+            // Each lane maps one signed index to the prepared table. Complementing int.MinValue gives int.MaxValue,
+            // so both reciprocal inputs stay in the proven nonnegative signed range.
             Vector256<int> negative = Vector256.Max(~indices, Vector256<int>.Zero);
             Vector256<int> delta = negative - (DividePositive(negative, Divide143Multiplier, Divide143Shift) * Vector256.Create(DeltaEntryCount));
-            Vector256<int> deltaIndices = (((delta + Vector256<int>.One) >> 1) * Vector256.Create(RgbComponents)) + Vector256.Create(this.component);
-            Vector256<int> deltaValues = Vector256_.Gather(ref MemoryMarshal.GetReference(this.deltas), deltaIndices);
-            deltaValues *= ((delta & Vector256<int>.One) << 1) - Vector256<int>.One;
-            deltaValues <<= this.deltaShift;
 
-            // Clamp only unused index arithmetic, not palette values. Valid implicit indices retain their full format-defined range.
+            // Clamp only unused index arithmetic. Subtract after removing negative inputs so int.MinValue cannot wrap.
+            // Masking the small-cube candidate keeps even unselected lanes inside its 64-entry portion of the table.
             Vector256<int> nonnegative = Vector256.Max(indices, Vector256<int>.Zero);
             Vector256<int> cube = Vector256.Max(nonnegative - Vector256.Create(this.palette.Length), Vector256<int>.Zero);
-            Vector256<int> digit = (cube >> (2 * this.component)) & Vector256.Create(3);
-            Vector256<int> smallValues = ((digit * Vector256.Create(this.range)) >> 2) + Vector256.Create(this.smallCubeOffset);
+            Vector256<int> smallIndices = Vector256.Create(DeltaEntryCount) + (cube & Vector256.Create(SmallCubeEntries - 1));
             Vector256<int> large = Vector256.Max(cube - Vector256.Create(SmallCubeEntries), Vector256<int>.Zero);
-            if (this.component != 0)
-            {
-                large = this.component == 1
-                    ? DividePositive(large, Divide5Multiplier, Divide5Shift)
-                    : DividePositive(large, Divide25Multiplier, Divide25Shift);
-            }
+            Vector256<int> largeRemainder = large - (DividePositive(large, Divide125Multiplier, Divide125Shift) * Vector256.Create(LargeCubeEntries));
+            Vector256<int> largeIndices = Vector256.Create(DeltaEntryCount + SmallCubeEntries) + largeRemainder;
+            Vector256<int> implicitIndices = Vector256.ConditionalSelect(
+                Vector256.LessThan(cube, Vector256.Create(SmallCubeEntries)), smallIndices, largeIndices);
 
-            Vector256<int> largeDigit = large - (DividePositive(large, Divide5Multiplier, Divide5Shift) * Vector256.Create(5));
-            Vector256<int> largeValues = (largeDigit * Vector256.Create(this.range)) >> 2;
-            Vector256<int> implicitValues = Vector256.ConditionalSelect(
-                Vector256.LessThan(cube, Vector256.Create(SmallCubeEntries)), smallValues, largeValues);
-
-            implicitValues = Vector256.ConditionalSelect(Vector256.LessThan(indices, Vector256<int>.Zero), deltaValues, implicitValues);
+            // Select the bounded table index before gathering. Unselected signed-index families never perform an invalid read.
+            implicitIndices = Vector256.ConditionalSelect(Vector256.LessThan(indices, Vector256<int>.Zero), delta, implicitIndices);
+            Vector256<int> implicitValues = Vector256_.Gather(ref MemoryMarshal.GetReference(this.implicitValues), implicitIndices);
             return Vector256.ConditionalSelect(explicitMask, explicitValues, implicitValues);
         }
 
@@ -571,33 +592,25 @@ internal static class JxlModularPalette
                 return Vector512.ConditionalSelect(explicitMask, explicitValues, Vector512<int>.Zero);
             }
 
-            // Both reciprocal inputs are nonnegative and no greater than int.MaxValue, including complemented int.MinValue.
+            // Each lane maps one signed index to the prepared table. Complementing int.MinValue gives int.MaxValue,
+            // so both reciprocal inputs stay in the proven nonnegative signed range.
             Vector512<int> negative = Vector512.Max(~indices, Vector512<int>.Zero);
             Vector512<int> delta = negative - (DividePositive(negative, Divide143Multiplier, Divide143Shift) * Vector512.Create(DeltaEntryCount));
-            Vector512<int> deltaIndices = (((delta + Vector512<int>.One) >> 1) * Vector512.Create(RgbComponents)) + Vector512.Create(this.component);
-            Vector512<int> deltaValues = Vector512_.Gather(ref MemoryMarshal.GetReference(this.deltas), deltaIndices);
-            deltaValues *= ((delta & Vector512<int>.One) << 1) - Vector512<int>.One;
-            deltaValues <<= this.deltaShift;
 
-            // Clamp only unused index arithmetic, not palette values. Valid implicit indices retain their full format-defined range.
+            // Clamp only unused index arithmetic. Subtract after removing negative inputs so int.MinValue cannot wrap.
+            // Masking the small-cube candidate keeps even unselected lanes inside its 64-entry portion of the table.
             Vector512<int> nonnegative = Vector512.Max(indices, Vector512<int>.Zero);
             Vector512<int> cube = Vector512.Max(nonnegative - Vector512.Create(this.palette.Length), Vector512<int>.Zero);
-            Vector512<int> digit = (cube >> (2 * this.component)) & Vector512.Create(3);
-            Vector512<int> smallValues = ((digit * Vector512.Create(this.range)) >> 2) + Vector512.Create(this.smallCubeOffset);
+            Vector512<int> smallIndices = Vector512.Create(DeltaEntryCount) + (cube & Vector512.Create(SmallCubeEntries - 1));
             Vector512<int> large = Vector512.Max(cube - Vector512.Create(SmallCubeEntries), Vector512<int>.Zero);
-            if (this.component != 0)
-            {
-                large = this.component == 1
-                    ? DividePositive(large, Divide5Multiplier, Divide5Shift)
-                    : DividePositive(large, Divide25Multiplier, Divide25Shift);
-            }
+            Vector512<int> largeRemainder = large - (DividePositive(large, Divide125Multiplier, Divide125Shift) * Vector512.Create(LargeCubeEntries));
+            Vector512<int> largeIndices = Vector512.Create(DeltaEntryCount + SmallCubeEntries) + largeRemainder;
+            Vector512<int> implicitIndices = Vector512.ConditionalSelect(
+                Vector512.LessThan(cube, Vector512.Create(SmallCubeEntries)), smallIndices, largeIndices);
 
-            Vector512<int> largeDigit = large - (DividePositive(large, Divide5Multiplier, Divide5Shift) * Vector512.Create(5));
-            Vector512<int> largeValues = (largeDigit * Vector512.Create(this.range)) >> 2;
-            Vector512<int> implicitValues = Vector512.ConditionalSelect(
-                Vector512.LessThan(cube, Vector512.Create(SmallCubeEntries)), smallValues, largeValues);
-
-            implicitValues = Vector512.ConditionalSelect(Vector512.LessThan(indices, Vector512<int>.Zero), deltaValues, implicitValues);
+            // Select the bounded table index before gathering. Unselected signed-index families never perform an invalid read.
+            implicitIndices = Vector512.ConditionalSelect(Vector512.LessThan(indices, Vector512<int>.Zero), delta, implicitIndices);
+            Vector512<int> implicitValues = Vector512_.Gather(ref MemoryMarshal.GetReference(this.implicitValues), implicitIndices);
             return Vector512.ConditionalSelect(explicitMask, explicitValues, implicitValues);
         }
     }

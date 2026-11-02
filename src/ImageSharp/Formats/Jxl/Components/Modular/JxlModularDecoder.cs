@@ -953,13 +953,18 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         ? ref JxlModularTree.FindFlatLeaf(flatNodes, ref propertyStorage)
                         : ref nodes[leaf]);
 
-                    uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
-                    int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+                    // Complete prediction before entropy expansion. The neighbor values
+                    // and leaf reference can then expire before a refill call; only the guess and multiplier must survive.
                     long prediction = node.Predictor == 6
                         ? weighted
                         : JxlModularPredictor.Predict(node.Predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
 
-                    row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
+                    long guess = unchecked(prediction + node.Value);
+                    uint multiplier = node.Multiplier;
+                    int cluster = node.FirstChild;
+                    uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
+                    int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+                    row[x] = unchecked((int)(guess + ((long)signed * multiplier)));
                     if (usesWeighted)
                     {
                         // Weighted errors advance even when this tree leaf selected another predictor.
@@ -1056,15 +1061,20 @@ internal sealed partial class JxlModularDecoder : IDisposable
         CancellationToken cancellationToken)
         where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
+        // This channel has one immutable zero-predictor leaf. Entropy decoding cannot change its offset or multiplier.
+        long guess = leaf.Value;
+        uint multiplier = leaf.Multiplier;
+        int cluster = leaf.FirstChild;
+
         for (int y = 0; y < channel.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Span<int> row = channel.DangerousGetRowSpan(y);
             for (int x = 0; x < row.Length; x++)
             {
-                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, leaf.FirstChild, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                row[x] = unchecked((int)(leaf.Value + ((long)signed * leaf.Multiplier)));
+                row[x] = unchecked((int)(guess + ((long)signed * multiplier)));
             }
         }
     }
@@ -1114,13 +1124,17 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
-                int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
 
                 // Property nine wraps in int units. Prediction instead retains the exact widened gradient,
                 // then limits it by W and N before the residual is applied. Carry these neighbors across columns.
+                // Finish the guess before entropy expansion so leaf data need not survive a refill call.
                 long prediction = Math.Clamp((long)left + top - topLeft, Math.Min(left, top), Math.Max(left, top));
-                int value = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
+                long guess = unchecked(prediction + node.Value);
+                uint multiplier = node.Multiplier;
+                int cluster = node.FirstChild;
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
+                int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+                int value = unchecked((int)(guess + ((long)signed * multiplier)));
                 row[x] = value;
                 topLeft = y == 0 ? value : top;
                 left = value;
@@ -1177,9 +1191,15 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 ref readonly JxlModularTree.Node node = ref nodes[leaf];
-                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+
+                // Weighted prediction has already prepared its error-update state. Complete the leaf's guess now,
+                // then read the residual. The sample and its error rows remain unchanged if that read fails.
+                long guess = unchecked(prediction + node.Value);
+                uint multiplier = node.Multiplier;
+                int cluster = node.FirstChild;
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
+                row[x] = unchecked((int)(guess + ((long)signed * multiplier)));
                 predictor.Update(errors, x, y, row[x]);
             }
         }
@@ -1272,6 +1292,11 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 }
 
                 Span<int> errors = transform.Predictor == 6 && !index.IsEmpty ? this.workspace.PrepareErrors(index.Width) : [];
+
+                // Entropy decoding has released its reference-property spans. Reuse that allocation for one component's
+                // implicit palette; weighted error rows have a separate owner and remain valid while the table changes.
+                Span<int> implicitPalette = !index.IsEmpty ? this.workspace.PrepareImplicitPalette() : [];
+
                 JxlModularPalette.Apply(
                     index.Region,
                     channels[0].Region,
@@ -1281,6 +1306,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     sampleBitDepth,
                     weightedPredictor,
                     errors,
+                    implicitPalette,
                     cancellationToken);
 
                 if (useTargets)

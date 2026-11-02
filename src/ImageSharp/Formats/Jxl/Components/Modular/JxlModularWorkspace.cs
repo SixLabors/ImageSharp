@@ -54,6 +54,13 @@ internal sealed class JxlModularWorkspace : IDisposable
     public Span<int> PrepareReferences(int length) => Prepare(ref this.references, length, this.allocator);
 
     /// <summary>
+    /// Borrows one implicit-palette component table after modular sample decoding.
+    /// </summary>
+    /// <returns>The reusable table span. No reference-property operation can overlap its palette use.</returns>
+    public Span<int> PrepareImplicitPalette()
+        => Prepare(ref this.references, JxlModularPalette.ImplicitEntryCount, this.allocator);
+
+    /// <summary>
     /// Prepares reusable nodes for the current channel's statically reduced prediction tree.
     /// </summary>
     /// <param name="length">The initialized source tree length, which bounds the reduced tree and its pending nodes.</param>

@@ -157,11 +157,13 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
         if (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular
-            || frame.HasCrop || frame.Size != header.Size || frame.Upsampling != 1 || (frame.Flags & ~JxlFrameHeader.SkipAdaptiveDcSmoothing) != 0
+            || frame.HasCrop || frame.Size != header.Size || (frame.Flags & ~JxlFrameHeader.SkipAdaptiveDcSmoothing) != 0
+            || (frame.Upsampling != 1 && (frame.Modular || header.Metadata.ExtraChannels.Count != 0))
             || (frame.Modular && (frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)))
         {
             throw new NotSupportedException(
-                "JPEG XL decoding currently requires a final full-canvas frame without upsampling or image features.");
+                "JPEG XL decoding currently requires a final full-canvas frame without image features. "
+                + "Upsampling of modular color or extra channels is not yet supported.");
         }
 
         // Native compact RGB must already use sRGB primaries and D65. A compact gamma changes only
@@ -449,6 +451,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
             modular.Complete(cancellationToken);
             varDct?.ApplyRestoration(frame, allocator, cancellationToken);
+            varDct?.ApplyUpsampling(header, frame, allocator, cancellationToken);
 
             // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);

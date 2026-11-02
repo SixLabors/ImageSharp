@@ -1737,6 +1737,18 @@ public static class TestImages
         public const string VarDctRestorationSamples = "Jxl/restoration-numeric-input.bin";
         public const string VarDctRestorationNative = "Jxl/restoration-numeric-native.bin";
         public const string VarDctRestorationRust = "Jxl/restoration-numeric-rust.bin";
+
+        // Native metadata prefixes and independent float outputs cover phase filters, custom weights and mirrored tiny extents.
+        public const string VarDctUpsampling2Default = "Jxl/upsample2-default-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling2Custom = "Jxl/upsample2-custom-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling4Default = "Jxl/upsample4-default-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling4Custom = "Jxl/upsample4-custom-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling8Default = "Jxl/upsample8-default-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling8Custom = "Jxl/upsample8-custom-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling8Tiny = "Jxl/upsample8-default-1x1-owner-partial.jxl";
+        public const string VarDctUpsampling4Tiny = "Jxl/upsample4-default-3x3-owner-partial.jxl";
+        public const string VarDctUpsamplingNative = "Jxl/upsampling-native.bin";
+        public const string VarDctUpsamplingRust = "Jxl/upsampling-rust.bin";
         public const string AcMetadataRectangularDct = "Jxl/ac-metadata-rectangular-strategy6-partial.jxl";
         public const string AcMetadataRectangularRaw = "Jxl/ac-metadata-rectangular-strategy8-partial.jxl";
         public const string AcMetadataRawMatrix = "Jxl/ac-metadata-matrix-0-partial.jxl";
@@ -1800,6 +1812,7 @@ public static class TestImages
         public const string PermutedSections = "Jxl/has_permutation.jxl";
         public const string ProgressiveAc = "Jxl/progressive_ac.jxl";
         public const string NarrowEdgeGroup = "Jxl/narrow_edge_group.jxl";
+        public const string OddSizeUpsampling = "Jxl/oddsize_ups.jxl";
 
         // This stored variant omits the final section byte. The native decoder rejects it as truncated.
         public const string TruncatedSections = "Jxl/has_permutation_truncated.jxl";

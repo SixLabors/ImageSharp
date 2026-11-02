@@ -1,5 +1,6 @@
 <#@ template language="C#" #>
 <#@ import namespace="System" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
 <#@ output extension=".cs" #>
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
@@ -33,7 +34,8 @@ internal static partial class JxlInverseTransform
         ReadOnlySpan<float> multipliers16 = Multipliers16;
         ReadOnlySpan<float> multipliers32 = Multipliers32;
 
-        // Load all 32 frequencies before any output store. This also permits exact in-place calls from larger axes.
+        // Load each frequency at its first arithmetic use. This keeps unused input values out of live registers.
+        // All inputs are consumed before the final stores, so source and destination can still be the same rows.
         // Each lane follows the same unnormalized butterfly. The caller handles SIMD width and column remainders.
 <#
     // Emit the existing C# inverse network, including its fixed four- and eight-point leaves. Only variable names
@@ -42,10 +44,24 @@ internal static partial class JxlInverseTransform
     // Preserve current+preceding add order, separate sqrt(2) multiplication and the existing multiply-add operators.
     // Regenerate with: t4 JxlInverseTransform.Dct.Generated.tt -o JxlInverseTransform.Dct.Generated.cs
     int next = 32;
+    bool[] loadedInputs = new bool[32];
 
-    // Writes one arithmetic node and returns its generated local name.
+    // Writes input loads at their first use, then writes the unchanged arithmetic node. Only v0 through v31
+    // denote source rows; later variables already hold arithmetic results. All loads precede the final output
+    // stores because every source coefficient contributes to the complete network before those stores begin.
     string Emit(string expression)
     {
+        foreach (Match match in Regex.Matches(expression, @"\bv([0-9]+)\b"))
+        {
+            int index = int.Parse(match.Groups[1].Value);
+            if (index < loadedInputs.Length && !loadedInputs[index])
+            {
+                loadedInputs[index] = true;
+                string source = index == 0 ? "ref source" : "ref Unsafe.Add(ref source, " + index + " * sourceStride)";
+                WriteLine("        TLanes v" + index + " = TOperator.Load(" + source + ");");
+            }
+        }
+
         string variable = "v" + next++;
         WriteLine("        TLanes " + variable + " = " + expression + ";");
         return variable;
@@ -131,8 +147,6 @@ internal static partial class JxlInverseTransform
     for (int i = 0; i < input.Length; i++)
     {
         input[i] = "v" + i;
-        string source = i == 0 ? "ref source" : "ref Unsafe.Add(ref source, " + i + " * sourceStride)";
-        WriteLine("        TLanes " + input[i] + " = TOperator.Load(" + source + ");");
     }
 
     string[] output = Network(input);

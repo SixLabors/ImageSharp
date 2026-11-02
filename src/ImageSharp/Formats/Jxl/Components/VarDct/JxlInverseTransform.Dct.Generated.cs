@@ -30,44 +30,17 @@ internal static partial class JxlInverseTransform
         ReadOnlySpan<float> multipliers16 = Multipliers16;
         ReadOnlySpan<float> multipliers32 = Multipliers32;
 
-        // Load all 32 frequencies before any output store. This also permits exact in-place calls from larger axes.
+        // Load each frequency at its first arithmetic use. This keeps unused input values out of live registers.
+        // All inputs are consumed before the final stores, so source and destination can still be the same rows.
         // Each lane follows the same unnormalized butterfly. The caller handles SIMD width and column remainders.
-        TLanes v0 = TOperator.Load(ref source);
-        TLanes v1 = TOperator.Load(ref Unsafe.Add(ref source, 1 * sourceStride));
-        TLanes v2 = TOperator.Load(ref Unsafe.Add(ref source, 2 * sourceStride));
-        TLanes v3 = TOperator.Load(ref Unsafe.Add(ref source, 3 * sourceStride));
-        TLanes v4 = TOperator.Load(ref Unsafe.Add(ref source, 4 * sourceStride));
-        TLanes v5 = TOperator.Load(ref Unsafe.Add(ref source, 5 * sourceStride));
-        TLanes v6 = TOperator.Load(ref Unsafe.Add(ref source, 6 * sourceStride));
-        TLanes v7 = TOperator.Load(ref Unsafe.Add(ref source, 7 * sourceStride));
-        TLanes v8 = TOperator.Load(ref Unsafe.Add(ref source, 8 * sourceStride));
-        TLanes v9 = TOperator.Load(ref Unsafe.Add(ref source, 9 * sourceStride));
-        TLanes v10 = TOperator.Load(ref Unsafe.Add(ref source, 10 * sourceStride));
-        TLanes v11 = TOperator.Load(ref Unsafe.Add(ref source, 11 * sourceStride));
-        TLanes v12 = TOperator.Load(ref Unsafe.Add(ref source, 12 * sourceStride));
-        TLanes v13 = TOperator.Load(ref Unsafe.Add(ref source, 13 * sourceStride));
-        TLanes v14 = TOperator.Load(ref Unsafe.Add(ref source, 14 * sourceStride));
-        TLanes v15 = TOperator.Load(ref Unsafe.Add(ref source, 15 * sourceStride));
-        TLanes v16 = TOperator.Load(ref Unsafe.Add(ref source, 16 * sourceStride));
-        TLanes v17 = TOperator.Load(ref Unsafe.Add(ref source, 17 * sourceStride));
-        TLanes v18 = TOperator.Load(ref Unsafe.Add(ref source, 18 * sourceStride));
-        TLanes v19 = TOperator.Load(ref Unsafe.Add(ref source, 19 * sourceStride));
-        TLanes v20 = TOperator.Load(ref Unsafe.Add(ref source, 20 * sourceStride));
-        TLanes v21 = TOperator.Load(ref Unsafe.Add(ref source, 21 * sourceStride));
-        TLanes v22 = TOperator.Load(ref Unsafe.Add(ref source, 22 * sourceStride));
-        TLanes v23 = TOperator.Load(ref Unsafe.Add(ref source, 23 * sourceStride));
-        TLanes v24 = TOperator.Load(ref Unsafe.Add(ref source, 24 * sourceStride));
-        TLanes v25 = TOperator.Load(ref Unsafe.Add(ref source, 25 * sourceStride));
-        TLanes v26 = TOperator.Load(ref Unsafe.Add(ref source, 26 * sourceStride));
-        TLanes v27 = TOperator.Load(ref Unsafe.Add(ref source, 27 * sourceStride));
-        TLanes v28 = TOperator.Load(ref Unsafe.Add(ref source, 28 * sourceStride));
-        TLanes v29 = TOperator.Load(ref Unsafe.Add(ref source, 29 * sourceStride));
-        TLanes v30 = TOperator.Load(ref Unsafe.Add(ref source, 30 * sourceStride));
-        TLanes v31 = TOperator.Load(ref Unsafe.Add(ref source, 31 * sourceStride));
 
         // Four-point leaf: the even two-point transform, original odd sum, and separate sqrt(2) multiplication.
+        TLanes v0 = TOperator.Load(ref source);
+        TLanes v16 = TOperator.Load(ref Unsafe.Add(ref source, 16 * sourceStride));
         TLanes v32 = TOperator.Add(v0, v16);
         TLanes v33 = TOperator.Subtract(v0, v16);
+        TLanes v24 = TOperator.Load(ref Unsafe.Add(ref source, 24 * sourceStride));
+        TLanes v8 = TOperator.Load(ref Unsafe.Add(ref source, 8 * sourceStride));
         TLanes v34 = TOperator.Add(v24, v8);
         TLanes v35 = TOperator.Multiply(v8, 1.4142135623730951F);
         TLanes v36 = TOperator.Add(v35, v34);
@@ -80,9 +53,13 @@ internal static partial class JxlInverseTransform
         TLanes v41 = TOperator.MultiplyAdd(v37, -multipliers4[1], v33);
 
         // 8-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
+        TLanes v4 = TOperator.Load(ref Unsafe.Add(ref source, 4 * sourceStride));
         TLanes v42 = TOperator.Multiply(v4, 1.4142135623730951F);
+        TLanes v12 = TOperator.Load(ref Unsafe.Add(ref source, 12 * sourceStride));
         TLanes v43 = TOperator.Add(v12, v4);
+        TLanes v20 = TOperator.Load(ref Unsafe.Add(ref source, 20 * sourceStride));
         TLanes v44 = TOperator.Add(v20, v12);
+        TLanes v28 = TOperator.Load(ref Unsafe.Add(ref source, 28 * sourceStride));
         TLanes v45 = TOperator.Add(v28, v20);
 
         // Four-point leaf: the even two-point transform, original odd sum, and separate sqrt(2) multiplication.
@@ -110,12 +87,20 @@ internal static partial class JxlInverseTransform
         TLanes v63 = TOperator.MultiplyAdd(v53, -multipliers8[3], v39);
 
         // 16-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
+        TLanes v30 = TOperator.Load(ref Unsafe.Add(ref source, 30 * sourceStride));
+        TLanes v26 = TOperator.Load(ref Unsafe.Add(ref source, 26 * sourceStride));
         TLanes v64 = TOperator.Add(v30, v26);
+        TLanes v22 = TOperator.Load(ref Unsafe.Add(ref source, 22 * sourceStride));
         TLanes v65 = TOperator.Add(v26, v22);
+        TLanes v18 = TOperator.Load(ref Unsafe.Add(ref source, 18 * sourceStride));
         TLanes v66 = TOperator.Add(v22, v18);
+        TLanes v14 = TOperator.Load(ref Unsafe.Add(ref source, 14 * sourceStride));
         TLanes v67 = TOperator.Add(v18, v14);
+        TLanes v10 = TOperator.Load(ref Unsafe.Add(ref source, 10 * sourceStride));
         TLanes v68 = TOperator.Add(v14, v10);
+        TLanes v6 = TOperator.Load(ref Unsafe.Add(ref source, 6 * sourceStride));
         TLanes v69 = TOperator.Add(v10, v6);
+        TLanes v2 = TOperator.Load(ref Unsafe.Add(ref source, 2 * sourceStride));
         TLanes v70 = TOperator.Add(v6, v2);
         TLanes v71 = TOperator.Multiply(v2, 1.4142135623730951F);
 
@@ -182,20 +167,36 @@ internal static partial class JxlInverseTransform
         TLanes v119 = TOperator.MultiplyAdd(v97, -multipliers16[7], v57);
 
         // 32-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
+        TLanes v31 = TOperator.Load(ref Unsafe.Add(ref source, 31 * sourceStride));
+        TLanes v29 = TOperator.Load(ref Unsafe.Add(ref source, 29 * sourceStride));
         TLanes v120 = TOperator.Add(v31, v29);
+        TLanes v27 = TOperator.Load(ref Unsafe.Add(ref source, 27 * sourceStride));
         TLanes v121 = TOperator.Add(v29, v27);
+        TLanes v25 = TOperator.Load(ref Unsafe.Add(ref source, 25 * sourceStride));
         TLanes v122 = TOperator.Add(v27, v25);
+        TLanes v23 = TOperator.Load(ref Unsafe.Add(ref source, 23 * sourceStride));
         TLanes v123 = TOperator.Add(v25, v23);
+        TLanes v21 = TOperator.Load(ref Unsafe.Add(ref source, 21 * sourceStride));
         TLanes v124 = TOperator.Add(v23, v21);
+        TLanes v19 = TOperator.Load(ref Unsafe.Add(ref source, 19 * sourceStride));
         TLanes v125 = TOperator.Add(v21, v19);
+        TLanes v17 = TOperator.Load(ref Unsafe.Add(ref source, 17 * sourceStride));
         TLanes v126 = TOperator.Add(v19, v17);
+        TLanes v15 = TOperator.Load(ref Unsafe.Add(ref source, 15 * sourceStride));
         TLanes v127 = TOperator.Add(v17, v15);
+        TLanes v13 = TOperator.Load(ref Unsafe.Add(ref source, 13 * sourceStride));
         TLanes v128 = TOperator.Add(v15, v13);
+        TLanes v11 = TOperator.Load(ref Unsafe.Add(ref source, 11 * sourceStride));
         TLanes v129 = TOperator.Add(v13, v11);
+        TLanes v9 = TOperator.Load(ref Unsafe.Add(ref source, 9 * sourceStride));
         TLanes v130 = TOperator.Add(v11, v9);
+        TLanes v7 = TOperator.Load(ref Unsafe.Add(ref source, 7 * sourceStride));
         TLanes v131 = TOperator.Add(v9, v7);
+        TLanes v5 = TOperator.Load(ref Unsafe.Add(ref source, 5 * sourceStride));
         TLanes v132 = TOperator.Add(v7, v5);
+        TLanes v3 = TOperator.Load(ref Unsafe.Add(ref source, 3 * sourceStride));
         TLanes v133 = TOperator.Add(v5, v3);
+        TLanes v1 = TOperator.Load(ref Unsafe.Add(ref source, 1 * sourceStride));
         TLanes v134 = TOperator.Add(v3, v1);
         TLanes v135 = TOperator.Multiply(v1, 1.4142135623730951F);
 

@@ -103,6 +103,50 @@ internal static partial class JxlInverseTransform
     ];
 
     /// <summary>
+    /// Gets the 16-point butterfly multipliers shared by fixed inverse and general forward transforms.
+    /// </summary>
+    /// <remarks>
+    /// These are the existing <c>WcMultipliers&lt;16&gt;</c> float values from libjxl dct_scales.h.
+    /// Both paths read this one literal; no multiplier is recomputed or rounded during generation.
+    /// </remarks>
+    private static ReadOnlySpan<float> Multipliers16 =>
+    [
+        0.5024192861881557F, 0.5224986149396889F, 0.5669440348163577F, 0.6468217833599901F, 0.7881546234512502F, 1.060677685990347F,
+        1.7224470982383342F, 5.101148618689155F,
+    ];
+
+    /// <summary>
+    /// Gets the 32-point butterfly multipliers shared by fixed inverse and general forward transforms.
+    /// </summary>
+    /// <remarks>
+    /// These are the existing <c>WcMultipliers&lt;32&gt;</c> float values from libjxl dct_scales.h.
+    /// Both paths read this one literal; no multiplier is recomputed or rounded during generation.
+    /// </remarks>
+    private static ReadOnlySpan<float> Multipliers32 =>
+    [
+        0.5006029982351963F, 0.5054709598975436F, 0.5154473099226246F, 0.5310425910897841F, 0.5531038960344445F, 0.5829349682061339F,
+        0.6225041230356648F, 0.6748083414550057F, 0.7445362710022986F, 0.8393496454155268F, 0.9725682378619608F, 1.1694399334328847F,
+        1.4841646163141662F, 2.057781009953411F, 3.407608418468719F, 10.190008123548033F,
+    ];
+
+    /// <summary>
+    /// Gets the 64-point butterfly multipliers shared by fixed inverse and general forward transforms.
+    /// </summary>
+    /// <remarks>
+    /// These are the existing <c>WcMultipliers&lt;64&gt;</c> float values from libjxl dct_scales.h.
+    /// Both paths read this one literal; no multiplier is recomputed or rounded during generation.
+    /// </remarks>
+    private static ReadOnlySpan<float> Multipliers64 =>
+    [
+        0.500150636020651F, 0.5013584524464084F, 0.5037887256810443F, 0.5074711720725553F, 0.5124514794082247F, 0.5187927131053328F,
+        0.52657731515427F, 0.535909816907992F, 0.5469204379855088F, 0.5597698129470802F, 0.57465518403266F, 0.5918185358574165F,
+        0.6115573478825099F, 0.6342389366884031F, 0.6603198078137061F, 0.6903721282002123F, 0.7251205223771985F, 0.7654941649730891F,
+        0.8127020908144905F, 0.8683447152233481F, 0.9345835970364075F, 1.0144082649970547F, 1.1120716205797176F, 1.233832737976571F,
+        1.3892939586328277F, 1.5939722833856311F, 1.8746759800084078F, 2.282050068005162F, 2.924628428158216F, 4.084611078129248F,
+        6.796750711673633F, 20.373878167231453F,
+    ];
+
+    /// <summary>
     /// Gets the radix-two butterfly multipliers for one axis length.
     /// </summary>
     /// <param name="length">The transform axis length.</param>
@@ -117,26 +161,9 @@ internal static partial class JxlInverseTransform
     {
         4 => Multipliers4,
         8 => Multipliers8,
-        16 =>
-        [
-            0.5024192861881557F, 0.5224986149396889F, 0.5669440348163577F, 0.6468217833599901F, 0.7881546234512502F, 1.060677685990347F,
-            1.7224470982383342F, 5.101148618689155F,
-        ],
-        32 =>
-        [
-            0.5006029982351963F, 0.5054709598975436F, 0.5154473099226246F, 0.5310425910897841F, 0.5531038960344445F, 0.5829349682061339F,
-            0.6225041230356648F, 0.6748083414550057F, 0.7445362710022986F, 0.8393496454155268F, 0.9725682378619608F, 1.1694399334328847F,
-            1.4841646163141662F, 2.057781009953411F, 3.407608418468719F, 10.190008123548033F,
-        ],
-        64 =>
-        [
-            0.500150636020651F, 0.5013584524464084F, 0.5037887256810443F, 0.5074711720725553F, 0.5124514794082247F, 0.5187927131053328F,
-            0.52657731515427F, 0.535909816907992F, 0.5469204379855088F, 0.5597698129470802F, 0.57465518403266F, 0.5918185358574165F,
-            0.6115573478825099F, 0.6342389366884031F, 0.6603198078137061F, 0.6903721282002123F, 0.7251205223771985F, 0.7654941649730891F,
-            0.8127020908144905F, 0.8683447152233481F, 0.9345835970364075F, 1.0144082649970547F, 1.1120716205797176F, 1.233832737976571F,
-            1.3892939586328277F, 1.5939722833856311F, 1.8746759800084078F, 2.282050068005162F, 2.924628428158216F, 4.084611078129248F,
-            6.796750711673633F, 20.373878167231453F,
-        ],
+        16 => Multipliers16,
+        32 => Multipliers32,
+        64 => Multipliers64,
         128 =>
         [
             0.5000376519155477F, 0.5003390374428216F, 0.5009427176380873F, 0.5018505174842379F, 0.5030651913013697F, 0.5045904432216454F,

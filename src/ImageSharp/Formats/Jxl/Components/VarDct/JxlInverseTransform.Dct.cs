@@ -262,6 +262,31 @@ internal static partial class JxlInverseTransform
             return;
         }
 
+        if (inverse && length == 32)
+        {
+            // Each lane carries one complete column. The fixed network loads every frequency before its first store,
+            // so these columns need no values plane or recursive split copies.
+            for (int column = start; column < start + count; column += lanes)
+            {
+                Inverse32<TLanes, TOperator>(ref Unsafe.Add(ref input, column), sourceStride, ref Unsafe.Add(ref output, column), destinationStride);
+            }
+
+            return;
+        }
+
+        if (inverse && length == 64)
+        {
+            // The caller reserves three longest-axis batches. This worker uses only one 64-value batch for its two
+            // 32-point halves. It reads source columns directly and writes their symmetric outputs directly.
+            Span<TLanes> split = MemoryMarshal.Cast<float, TLanes>(scratch)[..64];
+            for (int column = start; column < start + count; column += lanes)
+            {
+                Inverse64<TLanes, TOperator>(ref Unsafe.Add(ref input, column), sourceStride, ref Unsafe.Add(ref output, column), destinationStride, split);
+            }
+
+            return;
+        }
+
         Span<TLanes> storage = MemoryMarshal.Cast<float, TLanes>(scratch);
         Span<TLanes> values = storage[..length];
         Span<TLanes> temporary = storage[length..];
@@ -338,6 +363,24 @@ internal static partial class JxlInverseTransform
                 ref Unsafe.Add(ref firstValue, 5),
                 ref Unsafe.Add(ref firstValue, 6),
                 ref Unsafe.Add(ref firstValue, 7));
+
+            return;
+        }
+
+        if (length is 32 or 64)
+        {
+            // The same fixed workers also serve the children of 128- and 256-point axes. Their contiguous lane rows
+            // already occupy the caller's workspace. Reinterpret those rows without copying or changing lane order.
+            ref float firstColumn = ref Unsafe.As<TLanes, float>(ref firstValue);
+            int lanes = Unsafe.SizeOf<TLanes>() / sizeof(float);
+            if (length == 32)
+            {
+                Inverse32<TLanes, TOperator>(ref firstColumn, lanes, ref firstColumn, lanes);
+            }
+            else
+            {
+                Inverse64<TLanes, TOperator>(ref firstColumn, lanes, ref firstColumn, lanes, temporary[..64]);
+            }
 
             return;
         }
@@ -444,6 +487,63 @@ internal static partial class JxlInverseTransform
         v5 = TOperator.MultiplyAdd(odd2, -multipliers[2], even2);
         v3 = TOperator.MultiplyAdd(odd3, multipliers[3], even3);
         v4 = TOperator.MultiplyAdd(odd3, -multipliers[3], even3);
+    }
+
+    /// <summary>
+    /// Reconstructs 64-point columns through two fixed 32-point butterflies and their symmetric output pairs.
+    /// </summary>
+    /// <typeparam name="TLanes">Independent column values, with one column in each scalar or SIMD lane.</typeparam>
+    /// <typeparam name="TOperator">The existing arithmetic for those lanes.</typeparam>
+    /// <param name="source">The first input column. All input rows must contain a complete lane batch.</param>
+    /// <param name="sourceStride">The distance between input rows, in floats.</param>
+    /// <param name="destination">The first output column. It can be the same location as the source.</param>
+    /// <param name="destinationStride">The distance between output rows, in floats.</param>
+    /// <param name="split">At least 64 lane values. This storage must not overlap the input or output.</param>
+    private static void Inverse64<TLanes, TOperator>(
+        ref float source, int sourceStride, ref float destination, int destinationStride, Span<TLanes> split)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        const int Length = 64;
+        const int Half = Length / 2;
+        int lanes = Unsafe.SizeOf<TLanes>() / sizeof(float);
+        ref TLanes even = ref MemoryMarshal.GetReference(split);
+        ref TLanes odd = ref Unsafe.Add(ref even, Half);
+
+        // Storage is [even frequencies: 32 lane rows | odd frequencies: 32 lane rows]. Each lane is an independent
+        // column. Load both halves before any output store so the complete transform also permits in-place calls.
+        for (int i = 0; i < Half; i++)
+        {
+            Unsafe.Add(ref even, i) = TOperator.Load(ref Unsafe.Add(ref source, (2 * i) * sourceStride));
+            Unsafe.Add(ref odd, i) = TOperator.Load(ref Unsafe.Add(ref source, ((2 * i) + 1) * sourceStride));
+        }
+
+        ref float evenFloats = ref Unsafe.As<TLanes, float>(ref even);
+        Inverse32<TLanes, TOperator>(ref evenFloats, lanes, ref evenFloats, lanes);
+
+        // Descending traversal retains each original preceding odd coefficient. BTranspose uses this addition
+        // order, followed by a separate sqrt(2) multiplication of the first coefficient. Neither operation is fused.
+        for (int i = Half - 1; i > 0; i--)
+        {
+            ref TLanes current = ref Unsafe.Add(ref odd, i);
+            current = TOperator.Add(current, Unsafe.Add(ref odd, i - 1));
+        }
+
+        odd = TOperator.Multiply(odd, 1.4142135623730951F);
+        ref float oddFloats = ref Unsafe.As<TLanes, float>(ref odd);
+        Inverse32<TLanes, TOperator>(ref oddFloats, lanes, ref oddFloats, lanes);
+        ReadOnlySpan<float> multipliers = Multipliers64;
+
+        // Positive and negative multipliers form symmetric positions from the same even and odd values.
+        // Store directly to the caller's row stride. The inverse has no 1/N scale. Scalar and all SIMD widths
+        // use the same operator calls; the outer dispatcher supplies only complete batches and scalar remainders.
+        for (int i = 0; i < Half; i++)
+        {
+            TLanes evenValue = Unsafe.Add(ref even, i);
+            TLanes oddValue = Unsafe.Add(ref odd, i);
+            TOperator.Store(TOperator.MultiplyAdd(oddValue, multipliers[i], evenValue), ref Unsafe.Add(ref destination, i * destinationStride));
+            TOperator.Store(TOperator.MultiplyAdd(oddValue, -multipliers[i], evenValue), ref Unsafe.Add(ref destination, (Length - i - 1) * destinationStride));
+        }
     }
 
     /// <summary>

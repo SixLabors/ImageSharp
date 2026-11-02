@@ -1710,6 +1710,7 @@ public static class TestImages
 
         // Unmodified modular inputs from the reference corpora cover transforms, alpha and sixteen-bit precision.
         public const string SqueezeEdge = "Jxl/squeeze_edge.jxl";
+        public const string LowFrequencyPyramid = "Jxl/squeeze_empty_residual.jxl";
         public const string GrayAlphaLossless = "Jxl/gray_alpha_lossless.jxl";
         public const string DeltaPalette = "Jxl/delta_palette.jxl";
         public const string Rgb16 = "Jxl/image_integration_rgb16.jxl";

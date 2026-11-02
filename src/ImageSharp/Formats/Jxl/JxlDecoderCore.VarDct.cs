@@ -41,7 +41,7 @@ internal sealed partial class JxlDecoderCore
         // therefore fits the color row window. When color stays at full size, reserve only the smaller alpha window.
         Size maximumSourceSize = colorFactor > 1 ? frame.CodingSize : modular.GetChannel(alphaChannel).Size;
         Configuration configuration = this.Options.Configuration;
-        using JxlUpsampler upsampler = new(header, frame.Size, maximumSourceSize, maximumFactor, configuration.MemoryAllocator);
+        using JxlUpsampler upsampler = new(header, frame.OutputSize, maximumSourceSize, maximumFactor, configuration.MemoryAllocator);
         if (colorFactor > 1)
         {
             varDct.ApplyUpsampling(upsampler, colorFactor, cancellationToken);
@@ -54,7 +54,7 @@ internal sealed partial class JxlDecoderCore
 
         // One final-capacity float plane retains alpha until pixel packing. Its source integers remain
         // owned by the modular decoder. Color and alpha reuse the same kernels and row window above.
-        Buffer2D<float> alpha = configuration.MemoryAllocator.Allocate2D<float>(frame.Size);
+        Buffer2D<float> alpha = configuration.MemoryAllocator.Allocate2D<float>(frame.OutputSize);
         try
         {
             Buffer2DRegion<int> source = modular.GetChannel(alphaChannel);

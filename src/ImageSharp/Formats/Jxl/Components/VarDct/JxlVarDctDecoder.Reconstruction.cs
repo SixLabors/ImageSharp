@@ -59,10 +59,10 @@ internal sealed partial class JxlVarDctDecoder
             int width = ((size.Width - 1) >> horizontal) + 1;
             int height = ((size.Height - 1) >> vertical) + 1;
 
-            // Reserve the final frame dimensions once. Native component samples initially occupy only this
+            // Reserve the frame output dimensions once, including LF reduction. Native samples initially occupy this
             // logical rectangle; chroma and frame upsampling reuse the same backing plane before filtering/output.
             this.reconstructedSizes[component] = new Size(width, height);
-            this.reconstructedChannels.Add(allocator.Allocate2D<float>(frame.Size));
+            this.reconstructedChannels.Add(allocator.Allocate2D<float>(frame.OutputSize));
         }
     }
 

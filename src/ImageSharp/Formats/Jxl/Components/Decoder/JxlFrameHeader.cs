@@ -238,17 +238,34 @@ internal sealed class JxlFrameHeader
     public bool IsDisplayed => this.Type is FrameType.Regular or FrameType.SkipProgressive && (this.IsLast || this.Duration != 0);
 
     /// <summary>
+    /// Gets the frame output dimensions after low-frequency reduction and before canvas placement.
+    /// </summary>
+    /// <remarks>
+    /// These dimensions include color upsampling. Level n reduces the declared frame size by 8^n,
+    /// with each dimension rounded upward. Ordinary frames use level zero and retain their declared size.
+    /// </remarks>
+    public Size OutputSize
+    {
+        get
+        {
+            uint divisor = 1U << (3 * this.LowFrequencyLevel);
+
+            return new Size((int)(((uint)this.Size.Width + divisor - 1) / divisor), (int)(((uint)this.Size.Height + divisor - 1) / divisor));
+        }
+    }
+
+    /// <summary>
     /// Gets the coded dimensions after low-frequency reduction and before color upsampling.
     /// </summary>
     public Size CodingSize
     {
         get
         {
-            // LF level n reduces each dimension by 8^n; upsampling adds another power-of-two divisor.
-            // Combining the divisors preserves the same ceiling as applying these reductions successively.
-            uint divisor = (uint)this.Upsampling << (3 * this.LowFrequencyLevel);
+            // The output size already includes LF reduction. Coding planes precede color upsampling,
+            // so divide this reduced extent once more, rounding upward at an incomplete final phase group.
+            Size output = this.OutputSize;
 
-            return new Size((int)(((uint)this.Size.Width + divisor - 1) / divisor), (int)(((uint)this.Size.Height + divisor - 1) / divisor));
+            return new Size(((output.Width - 1) / this.Upsampling) + 1, ((output.Height - 1) / this.Upsampling) + 1);
         }
     }
 

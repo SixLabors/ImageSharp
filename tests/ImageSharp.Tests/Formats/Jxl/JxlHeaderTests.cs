@@ -24,6 +24,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public partial class JxlHeaderTests
 {
     /// <summary>
+    /// Verifies output and coding dimensions across the original reference file's two LF levels and displayed frame.
+    /// </summary>
+    [Fact]
+    public void ReadLowFrequencyOutputDimensionsMatchesReferences()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LowFrequencyPyramid).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, stream);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
+        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
+        Assert.Equal(new Size(64, 64), header.Size);
+
+        // Original libjxl ToFrameDimensions and jxl-rs size_upsampled agree on this existing three-frame pyramid.
+        // Frame declarations keep the canvas size. Their output planes reduce by 8^level before color upsampling.
+        ReadOnlySpan<int> levels = [2, 1, 0];
+        ReadOnlySpan<int> lengths = [1, 8, 64];
+        for (int i = 0; i < levels.Length; i++)
+        {
+            JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+            Assert.Equal(new Size(64, 64), frame.Size);
+            Assert.Equal(levels[i], frame.LowFrequencyLevel);
+            Assert.Equal(new Size(lengths[i], lengths[i]), frame.OutputSize);
+            Assert.Equal(frame.OutputSize, frame.CodingSize);
+            Assert.Equal(i == 2 ? JxlFrameHeader.FrameType.Regular : JxlFrameHeader.FrameType.LowFrequency, frame.Type);
+            Assert.Equal(i == 2, frame.IsLast);
+            Assert.True(JxlFrameSections.Skip(ref reader, allocator, frame.SectionCount, SegmentIntegrityHandling.Strict, default));
+        }
+    }
+
+    /// <summary>
     /// Verifies DC and AC metadata, tables and quantized coefficients against the original reference decoders.
     /// </summary>
     /// <param name="file">The unchanged reference input with one combined frame section.</param>

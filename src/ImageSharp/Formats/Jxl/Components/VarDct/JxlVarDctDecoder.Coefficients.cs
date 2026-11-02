@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
@@ -242,8 +243,6 @@ internal sealed partial class JxlVarDctDecoder
         ReadOnlySpan<int> orderOffsets = passInfo.Offsets;
         ReadOnlySpan<byte> blockContexts = this.BlockContextMap;
         ReadOnlySpan<uint> quantizerThresholds = this.QuantizationThresholds;
-        ReadOnlySpan<byte> frequencyContexts = CoefficientFrequencyContexts;
-        ReadOnlySpan<ushort> nonzeroContexts = CoefficientNonzeroContexts;
 
         // Native and Rust select the entropy mode before decoding coefficients. The constrained operator
         // removes unused coding and history paths from this loop while retaining one shared traversal.
@@ -372,40 +371,21 @@ internal sealed partial class JxlVarDctDecoder
                     ReadOnlySpan<uint> order = orders.Slice(orderOffsets[(orderFamily * 3) + component], size);
                     Span<TCoefficient> block = coefficients.Slice(positions[component], size);
                     positions[component] += size;
-                    int previous = remaining > size / 16 ? 0 : 1;
-                    int countBucket = nonzeroContexts[(remaining + coveredBlocks - 1) >> blockShift];
-
-                    // The first coveredBlocks order entries are LLF coefficients restored from the DC plane later.
-                    // Entropy state and remaining-count contexts depend on preceding symbols, so the coefficient scan is sequential.
-                    // Stop when the remaining nonzeros cannot fit the remaining scan positions. This rejects malformed
-                    // runs before their context could leave the format's 458-entry zero-density context region.
-                    for (int k = coveredBlocks; remaining != 0 && k <= size - remaining; k++)
-                    {
-                        int context = densityOffset + countBucket + frequencyContexts[k >> blockShift] + previous;
-                        uint value = symbols.ReadUInt32<TOperator>(ref reader, context, history, decodedCount++, 0);
-                        if (value == 0)
-                        {
-                            // Zero changes only the previous-symbol context. The packed coefficient and remaining-count bucket stay unchanged.
-                            previous = 0;
-                            continue;
-                        }
-
-                        // Unsigned zigzag maps 0, 1, 2, 3 to 0, -1, 1, -2. Shift while the bits are unsigned, then store using
-                        // the existing generic integer truncation/addition contract. This matches native two's-complement accumulation.
-                        uint signedBits = unchecked((value >> 1) ^ (0U - (value & 1)));
-                        int coefficient = unchecked((int)(signedBits << coefficientShift));
-                        int index = (int)order[k];
-                        block[index] = unchecked(block[index] + TCoefficient.CreateTruncating(coefficient));
-
-                        // Count the encoded nonzero before progressive truncation. A nonzero can wrap to zero after shifting.
-                        previous = 1;
-                        remaining--;
-                        countBucket = nonzeroContexts[(remaining + coveredBlocks - 1) >> blockShift];
-                    }
-
                     if (remaining != 0)
                     {
-                        throw new InvalidImageContentException("The JPEG XL AC scan ends before all declared nonzero coefficients.");
+                        // Empty scans consume no coefficient symbols. Their positions and predictor cells still advance above.
+                        ReadAcCoefficients<TCoefficient, TOperator>(
+                            ref reader,
+                            ref symbols,
+                            block,
+                            order,
+                            coveredBlocks,
+                            blockShift,
+                            coefficientShift,
+                            densityOffset,
+                            remaining,
+                            history,
+                            ref decodedCount);
                     }
                 }
 
@@ -443,6 +423,88 @@ internal sealed partial class JxlVarDctDecoder
         }
 
         symbols.CheckFinalState();
+    }
+
+    /// <summary>
+    /// Reads one component's bounded AC scan and accumulates its contribution to the retained transform block.
+    /// </summary>
+    /// <typeparam name="TCoefficient">The selected short or int coefficient storage.</typeparam>
+    /// <typeparam name="TOperator">The selected entropy and LZ77 mode.</typeparam>
+    /// <param name="reader">The current bounded group/pass reader.</param>
+    /// <param name="symbols">The current section's entropy state and borrowed tables.</param>
+    /// <param name="block">The complete retained coefficient block, with 64 times coveredBlocks entries.</param>
+    /// <param name="order">The validated permutation of this block's frequency positions, with the same length as block.</param>
+    /// <param name="coveredBlocks">The transform's positive power-of-two area in 8 by 8 pixel blocks.</param>
+    /// <param name="blockShift">The base-two logarithm of coveredBlocks.</param>
+    /// <param name="coefficientShift">The current pass's unsigned coefficient shift.</param>
+    /// <param name="densityOffset">The histogram and block-context offset of the 458-entry zero-density region.</param>
+    /// <param name="remaining">The validated positive nonzero count, no greater than block.Length minus coveredBlocks.</param>
+    /// <param name="history">The retained history ring, or an empty span without LZ77.</param>
+    /// <param name="decodedCount">The decoded-value position, including counts and coefficients preceding this scan.</param>
+    /// <exception cref="InvalidImageContentException">The scan cannot contain its declared nonzero coefficients or its entropy data is invalid.</exception>
+    private static void ReadAcCoefficients<TCoefficient, TOperator>(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        Span<TCoefficient> block,
+        ReadOnlySpan<uint> order,
+        int coveredBlocks,
+        int blockShift,
+        int coefficientShift,
+        int densityOffset,
+        int remaining,
+        Span<uint> history,
+        ref uint decodedCount)
+        where TCoefficient : unmanaged, IBinaryInteger<TCoefficient>
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+    {
+        int size = block.Length;
+        int previous = remaining > size / 16 ? 0 : 1;
+        ref byte frequencyContexts = ref MemoryMarshal.GetReference(CoefficientFrequencyContexts);
+        ref ushort nonzeroContexts = ref MemoryMarshal.GetReference(CoefficientNonzeroContexts);
+        ref uint firstOrder = ref MemoryMarshal.GetReference(order);
+        ref TCoefficient firstCoefficient = ref MemoryMarshal.GetReference(block);
+
+        // The caller validates remaining <= size-coveredBlocks, and size=64*coveredBlocks. Ceiling division
+        // therefore gives a nonzero bucket in 0..63. Only decrementing remaining preserves that bound throughout
+        // the scan, including the final zero bucket. Both fixed context tables contain exactly 64 entries.
+        int countBucket = Unsafe.Add(ref nonzeroContexts, (remaining + coveredBlocks - 1) >> blockShift);
+
+        // The first coveredBlocks order entries are LLF coefficients restored from the DC plane later.
+        // With remaining>0, k<=size-remaining gives coveredBlocks<=k<size. Thus k>>blockShift is in 0..63,
+        // and order[k] lies within this complete block. ReadCoefficientOrders generates natural indices in 0..size-1;
+        // JxlPermutation validates the Lehmer digits and only permutes those indices. The selected coefficient stays inside the block.
+        // Borrow managed references once instead of rechecking those established bounds for each symbol.
+        for (int k = coveredBlocks; remaining != 0 && k <= size - remaining; k++)
+        {
+            int context = densityOffset + countBucket + Unsafe.Add(ref frequencyContexts, k >> blockShift) + previous;
+            uint value = symbols.ReadUInt32<TOperator>(ref reader, context, history, decodedCount++, 0);
+            if (value == 0)
+            {
+                // Zero changes only the previous-symbol context. The coefficient and remaining-count bucket stay unchanged.
+                previous = 0;
+                continue;
+            }
+
+            // Unsigned zigzag maps 0, 1, 2, 3 to 0, -1, 1, -2. Shift unsigned bits before converting to signed storage.
+            // Retain generic truncation and unchecked addition so short/int progressive accumulation keeps its original wrapping.
+            uint signedBits = unchecked((value >> 1) ^ (0U - (value & 1)));
+            int coefficient = unchecked((int)(signedBits << coefficientShift));
+            int index = (int)Unsafe.Add(ref firstOrder, k);
+            ref TCoefficient target = ref Unsafe.Add(ref firstCoefficient, index);
+            target = unchecked(target + TCoefficient.CreateTruncating(coefficient));
+
+            // Count the encoded nonzero even when progressive shifting wraps its stored coefficient to zero.
+            previous = 1;
+            remaining--;
+            countBucket = Unsafe.Add(ref nonzeroContexts, (remaining + coveredBlocks - 1) >> blockShift);
+        }
+
+        // Keep the remaining-count loop bound above: malformed runs must stop before their contexts can
+        // leave this block's zero-density region. They still fail here with the original content error.
+        if (remaining != 0)
+        {
+            throw new InvalidImageContentException("The JPEG XL AC scan ends before all declared nonzero coefficients.");
+        }
     }
 
     /// <summary>

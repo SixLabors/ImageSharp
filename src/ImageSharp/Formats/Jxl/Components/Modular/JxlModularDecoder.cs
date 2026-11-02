@@ -832,6 +832,9 @@ internal sealed partial class JxlModularDecoder : IDisposable
             }
         }
 
+        // The prepared tree is nonempty and unchanged for this channel. Borrow its root before sample traversal.
+        ref readonly JxlModularTree.Node rootNode = ref nodes[0];
+
         for (int y = 0; y < channel.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -923,7 +926,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
                         leaf = lookup.FindLeaf(properties);
                     }
-                    else if (nodes[leaf].Property >= 0)
+                    else if (rootNode.Property >= 0)
                     {
                         // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
                         properties[2] = y;
@@ -943,11 +946,13 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         {
                             properties[FirstReferenceProperty + p] = referenceValues[(p * ReferenceBlockLength) + column];
                         }
-
-                        leaf = JxlModularTree.FindFlatLeaf(flatNodes, ref propertyStorage);
                     }
 
-                    ref readonly JxlModularTree.Node node = ref nodes[leaf];
+                    // Borrow the selected representation's payload directly. Only interval lookup and singleton trees use the source nodes.
+                    ref readonly JxlModularTree.Node node = ref (!flatNodes.IsEmpty
+                        ? ref JxlModularTree.FindFlatLeaf(flatNodes, ref propertyStorage)
+                        : ref nodes[leaf]);
+
                     uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, node.FirstChild, history, decoded++, maximumWidth);
                     int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                     long prediction = node.Predictor == 6

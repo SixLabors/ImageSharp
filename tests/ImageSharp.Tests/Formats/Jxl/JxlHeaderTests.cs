@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
@@ -23,6 +24,52 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public partial class JxlHeaderTests
 {
+    /// <summary>
+    /// Verifies compact flat-tree storage and complete leaf payloads across signed threshold boundaries.
+    /// </summary>
+    /// <param name="outerProperty">The value compared with the root's threshold of seven.</param>
+    /// <param name="innerProperty">The value compared with the lesser child's threshold of minus five.</param>
+    /// <param name="offset">The expected signed prediction offset.</param>
+    /// <param name="cluster">The expected sample entropy cluster.</param>
+    /// <param name="predictor">The expected predictor code.</param>
+    /// <param name="multiplier">The expected unsigned residual multiplier.</param>
+    [Theory]
+    [InlineData(8, 0, -123, 17, (byte)6, 0x12345678U)]
+    [InlineData(7, -4, 321, 18, (byte)13, 0x23456789U)]
+    [InlineData(7, -5, -456, 19, (byte)5, 0x3456789AU)]
+    public void FlatTreeRetainsLeafPayload(int outerProperty, int innerProperty, int offset, int cluster, byte predictor, uint multiplier)
+    {
+        Assert.Equal(20, Unsafe.SizeOf<JxlModularTree.Node>());
+        Assert.Equal(20, Unsafe.SizeOf<JxlModularTree.FlatNode>());
+
+        // Greater values select the first child. Property 255 also proves that a full byte property ID
+        // cannot be confused with the separate leaf tag. The second comparison includes equality at -5.
+        JxlModularTree.Node[] nodes =
+        [
+            new(255, 7, 1, 0, 1),
+            new(-1, -123, 17, 6, 0x12345678U),
+            new(2, -5, 3, 0, 1),
+            new(-1, 321, 18, 13, 0x23456789U),
+            new(-1, -456, 19, 5, 0x3456789AU)
+        ];
+
+        using JxlModularWorkspace workspace = new(Configuration.Default.MemoryAllocator);
+        ReadOnlySpan<JxlModularTree.FlatNode> flat = JxlModularTree.PrepareFlatTree(nodes, workspace);
+
+        // Completed flat storage owns the copied leaf fields. Source-node reuse must not change the selected payload.
+        nodes.AsSpan().Clear();
+        InlineArray256<int> properties = default;
+        properties[255] = outerProperty;
+        properties[2] = innerProperty;
+        ref readonly JxlModularTree.Node leaf = ref JxlModularTree.FindFlatLeaf(flat, ref properties);
+
+        Assert.Equal(-1, leaf.Property);
+        Assert.Equal(offset, leaf.Value);
+        Assert.Equal(cluster, leaf.FirstChild);
+        Assert.Equal(predictor, leaf.Predictor);
+        Assert.Equal(multiplier, leaf.Multiplier);
+    }
+
     /// <summary>
     /// Verifies output and coding dimensions across the original reference file's two LF levels and displayed frame.
     /// </summary>

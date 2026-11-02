@@ -465,7 +465,7 @@ internal sealed class JxlModularTree : IDisposable
     /// <returns>The completed flat tree, borrowed until the next channel is prepared.</returns>
     /// <remarks>
     /// This follows jxl-rs flat_tree.rs at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
-    /// Leaves retain their original reduced-tree indices. Their contexts, offsets, multipliers and predictors do not change.
+    /// Leaves retain their complete entropy and prediction fields inside the flat storage, without a second source-node lookup.
     /// </remarks>
     public static ReadOnlySpan<FlatNode> PrepareFlatTree(ReadOnlySpan<Node> nodes, JxlModularWorkspace workspace)
     {
@@ -501,7 +501,9 @@ internal sealed class JxlModularTree : IDisposable
             ref readonly Node node = ref nodes[sourceIndex];
             if (node.Property < 0)
             {
-                // The queued source index already represents this completed leaf.
+                // Replace the queued source index with its complete payload before publishing the tree.
+                // The copied Property=-1 also supplies the leaf tag through the shared first four bytes.
+                flat[i] = new FlatNode(in node);
                 continue;
             }
 
@@ -534,12 +536,12 @@ internal sealed class JxlModularTree : IDisposable
     }
 
     /// <summary>
-    /// Selects an original leaf through a completed flat tree without restricting property values or tree size.
+    /// Selects a retained leaf through a completed flat tree without restricting property values or tree size.
     /// </summary>
     /// <param name="nodes">The nonempty result of PrepareFlatTree, unchanged until this method returns.</param>
     /// <param name="properties">The fixed 256-entry property array. Validated byte indices cover its complete domain.</param>
-    /// <returns>The matching leaf index in the unchanged reduced tree.</returns>
-    public static int FindFlatLeaf(ReadOnlySpan<FlatNode> nodes, ref InlineArray256<int> properties)
+    /// <returns>The matching leaf, borrowed until the flat workspace is prepared for another channel.</returns>
+    public static ref readonly Node FindFlatLeaf(ReadOnlySpan<FlatNode> nodes, ref InlineArray256<int> properties)
     {
         ref FlatNode first = ref MemoryMarshal.GetReference(nodes);
         ref readonly FlatNode node = ref first;
@@ -558,7 +560,7 @@ internal sealed class JxlModularTree : IDisposable
             node = ref Unsafe.Add(ref first, child);
         }
 
-        return node.FirstChild;
+        return ref node.Leaf;
     }
 
     /// <inheritdoc/>
@@ -657,28 +659,89 @@ internal sealed class JxlModularTree : IDisposable
     }
 
     /// <summary>
-    /// Stores one parent split with both child splits, or an original reduced-tree leaf index.
+    /// Stores one parent split with both child splits, or one complete retained leaf.
     /// </summary>
     /// <remarks>
-    /// The leaf flag and three byte property IDs occupy four bytes, followed by four signed integers.
-    /// Tree parsing validates property IDs from zero through 255. The byte fields preserve that bound for lookup.
+    /// Both representations occupy twenty bytes. A split stores three byte property IDs and a zero tag,
+    /// followed by three thresholds and its first compiled child. A leaf overlaps the unchanged sequential Node layout.
+    /// Its Property=-1 writes all four leading bytes as 255, so byte three distinguishes leaves from splits on every byte order.
+    /// No managed references overlap. Only the representation selected by the tag can be read after compilation.
     /// </remarks>
+    [StructLayout(LayoutKind.Explicit, Size = 20)]
     public readonly struct FlatNode
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="FlatNode"/> struct for an original tree leaf or queued source node.
+        /// The complete leaf payload, valid only when IsLeaf is true.
+        /// </summary>
+        [FieldOffset(0)]
+        public readonly Node Leaf;
+
+        /// <summary>
+        /// The parent's validated property ID for a completed split.
+        /// </summary>
+        [FieldOffset(0)]
+        public readonly byte Property;
+
+        /// <summary>
+        /// The greater child's property ID, ignored when both descendants contain the same leaf.
+        /// </summary>
+        [FieldOffset(1)]
+        public readonly byte GreaterProperty;
+
+        /// <summary>
+        /// The lesser child's property ID, ignored when both descendants contain the same leaf.
+        /// </summary>
+        [FieldOffset(2)]
+        public readonly byte LesserProperty;
+
+        /// <summary>
+        /// The parent's signed threshold for a completed split.
+        /// </summary>
+        [FieldOffset(4)]
+        public readonly int Value;
+
+        /// <summary>
+        /// The greater child's signed threshold for a completed split.
+        /// </summary>
+        [FieldOffset(8)]
+        public readonly int GreaterValue;
+
+        /// <summary>
+        /// The lesser child's signed threshold for a completed split.
+        /// </summary>
+        [FieldOffset(12)]
+        public readonly int LesserValue;
+
+        /// <summary>
+        /// The first compiled descendant for a completed split, or a temporary source index during compilation.
+        /// </summary>
+        [FieldOffset(16)]
+        public readonly int FirstChild;
+
+        /// <summary>
+        /// Zero for a split or queued entry, or 255 from a completed leaf's Property=-1.
+        /// </summary>
+        [FieldOffset(3)]
+        private readonly byte tag;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlatNode"/> struct for a queued source node.
         /// </summary>
         /// <param name="sourceIndex">The original reduced-tree node index.</param>
         public FlatNode(int sourceIndex)
         {
-            this.IsLeaf = true;
-            this.Property = 0;
-            this.GreaterProperty = 0;
-            this.LesserProperty = 0;
-            this.Value = 0;
-            this.GreaterValue = 0;
-            this.LesserValue = 0;
+            this = default;
             this.FirstChild = sourceIndex;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlatNode"/> struct with a completed source leaf.
+        /// </summary>
+        /// <param name="leaf">The validated leaf, whose Property is minus one and whose entropy ID is already a cluster.</param>
+        public FlatNode(in Node leaf)
+        {
+            this = default;
+            this.Leaf = leaf;
         }
 
         /// <summary>
@@ -693,7 +756,7 @@ internal sealed class JxlModularTree : IDisposable
         /// <param name="firstChild">The first of four adjacent compiled descendants.</param>
         public FlatNode(byte property, int value, byte greaterProperty, int greaterValue, byte lesserProperty, int lesserValue, int firstChild)
         {
-            this.IsLeaf = false;
+            this = default;
             this.Property = property;
             this.GreaterProperty = greaterProperty;
             this.LesserProperty = lesserProperty;
@@ -704,44 +767,9 @@ internal sealed class JxlModularTree : IDisposable
         }
 
         /// <summary>
-        /// Gets a value indicating whether this completed entry identifies an original reduced-tree leaf.
+        /// Gets a value indicating whether this completed entry contains a retained leaf payload.
         /// </summary>
-        public bool IsLeaf { get; }
-
-        /// <summary>
-        /// Gets the parent property index, from zero through 255.
-        /// </summary>
-        public byte Property { get; }
-
-        /// <summary>
-        /// Gets the greater child's property. Its value is ignored when both descendants refer to one leaf.
-        /// </summary>
-        public byte GreaterProperty { get; }
-
-        /// <summary>
-        /// Gets the lesser child's property. Its value is ignored when both descendants refer to one leaf.
-        /// </summary>
-        public byte LesserProperty { get; }
-
-        /// <summary>
-        /// Gets the parent's signed threshold.
-        /// </summary>
-        public int Value { get; }
-
-        /// <summary>
-        /// Gets the greater child's signed threshold.
-        /// </summary>
-        public int GreaterValue { get; }
-
-        /// <summary>
-        /// Gets the lesser child's signed threshold.
-        /// </summary>
-        public int LesserValue { get; }
-
-        /// <summary>
-        /// Gets the first compiled descendant for a split, or the original reduced-tree index for a leaf.
-        /// </summary>
-        public int FirstChild { get; }
+        public bool IsLeaf => this.tag != 0;
     }
 
     /// <summary>
@@ -873,6 +901,11 @@ internal sealed class JxlModularTree : IDisposable
     /// <summary>
     /// Stores one split or leaf without references so the allocator can own contiguous node storage.
     /// </summary>
+    /// <remarks>
+    /// Field order is also the compiled flat leaf layout: three integers, one predictor byte and one unsigned multiplier.
+    /// Property must remain the first integer. Its minus-one leaf value supplies the overlapping flat entry's byte tag.
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
     public readonly struct Node
     {
         /// <summary>

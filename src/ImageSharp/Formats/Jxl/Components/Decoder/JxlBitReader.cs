@@ -501,6 +501,7 @@ internal struct JxlBitReader
     /// Keeps exception construction outside the inlined field-read and consumption paths.
     /// </remarks>
     /// <exception cref="InvalidImageContentException">The complete field cannot be consumed.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [DoesNotReturn]
     private static void ThrowBoundaryExceeded()
         => throw new InvalidImageContentException("The JPEG XL field exceeds its section or codestream boundary.");

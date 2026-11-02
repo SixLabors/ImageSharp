@@ -923,7 +923,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
         Span<int> properties = propertyStorage;
         Span<int> referenceIndices = referenceStorage;
 
-        properties.Clear();
         properties[0] = channelIndex;
         properties[1] = streamId;
         int referenceProperties = ((propertyCount - FirstReferenceProperty + 3) / PropertiesPerReference) * PropertiesPerReference;

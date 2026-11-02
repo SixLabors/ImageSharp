@@ -284,9 +284,8 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 ImageMetadata metadata = new() { IccProfile = header.IccProfile };
                 metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
 
-                // Both packing paths write the complete canvas before returning it. Any failure disposes the image,
-                // so the destination needs no initial clear and cannot expose unwritten pixels.
-                Image<TPixel> image = Image.CreateUninitialized<TPixel>(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
+                // Initialize output so a partly written frame cannot expose data retained in pooled memory.
+                Image<TPixel> image = new(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
                 try
                 {
                     ImageFrame<TPixel> destination = image.Frames.RootFrame;

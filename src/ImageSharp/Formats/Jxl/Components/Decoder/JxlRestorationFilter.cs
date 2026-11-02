@@ -65,12 +65,12 @@ internal sealed class JxlRestorationFilter
     public Vector3 ChannelScale { get; private set; } = new(40F, 5F, 3.5F);
 
     /// <summary>
-    /// Gets the distance threshold used to clear the first filter pass's weight.
+    /// Gets the encoded first-pass zero-flush threshold. The reference filter retains this field but does not apply it to weights.
     /// </summary>
     public float Pass1ZeroFlush { get; private set; } = 0.45F;
 
     /// <summary>
-    /// Gets the distance threshold used to clear the second filter pass's weight.
+    /// Gets the encoded second-pass zero-flush threshold. The reference filter retains this field but does not apply it to weights.
     /// </summary>
     public float Pass2ZeroFlush { get; private set; } = 0.6F;
 

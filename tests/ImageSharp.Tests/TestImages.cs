@@ -1731,6 +1731,12 @@ public static class TestImages
         public const string VarDctSubsampledQfOwner = "Jxl/subsampled-qf-owner-partial.jxl";
         public const string VarDctWideCoefficientsOwner = "Jxl/wide-coefficients-owner-partial.jxl";
         public const string VarDctProgressiveLzOwner = "Jxl/progressive-lz-owner-partial.jxl";
+        public const string VarDctSmoothing444 = "Jxl/smoothing-444-owner-partial.jxl";
+        public const string VarDctSmoothingSubsampled = "Jxl/smoothing-subsampled-owner-partial.jxl";
+        public const string VarDctRestorationOwner = "Jxl/restoration-numeric-owner-partial.jxl";
+        public const string VarDctRestorationSamples = "Jxl/restoration-numeric-input.bin";
+        public const string VarDctRestorationNative = "Jxl/restoration-numeric-native.bin";
+        public const string VarDctRestorationRust = "Jxl/restoration-numeric-rust.bin";
         public const string AcMetadataRectangularDct = "Jxl/ac-metadata-rectangular-strategy6-partial.jxl";
         public const string AcMetadataRectangularRaw = "Jxl/ac-metadata-rectangular-strategy8-partial.jxl";
         public const string AcMetadataRawMatrix = "Jxl/ac-metadata-matrix-0-partial.jxl";

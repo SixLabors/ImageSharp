@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 /// <summary>
 /// Owns one JPEG XL read operation and applies the general decoder policies.
 /// </summary>
-internal sealed class JxlDecoderCore : ImageDecoderCore
+internal sealed partial class JxlDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlDecoderCore"/> class.
@@ -132,7 +133,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reconstructs one supported modular frame and packs its native channels into the final image.
+    /// Reconstructs one supported frame and packs its native channels into the final image.
     /// </summary>
     /// <typeparam name="TPixel">The requested destination pixel format.</typeparam>
     /// <param name="reader">The reader following the already parsed image header.</param>
@@ -155,26 +156,28 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         }
 
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
-        if (!frame.Modular || !frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular
+        if (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular
             || frame.HasCrop || frame.Size != header.Size || frame.Upsampling != 1 || (frame.Flags & ~JxlFrameHeader.SkipAdaptiveDcSmoothing) != 0
-            || frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)
+            || (frame.Modular && (frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)))
         {
             throw new NotSupportedException(
-                "JPEG XL decoding currently requires a final full-canvas modular frame without upsampling, filters or image features.");
+                "JPEG XL decoding currently requires a final full-canvas frame without upsampling or image features.");
         }
 
         // Native compact RGB must already use sRGB primaries and D65. A compact gamma changes only
         // the transfer curve, so shared companders can convert it without a matrix or another image buffer.
-        // Other primaries, ICC, XYB and YCbCr require reconstruction or color conversion not implemented here.
-        if (header.UsesXybTransform || frame.YCbCr || header.HasIccProfile || header.Metadata.BitDepth.ExponentBits != 0
+        // XYB has its own transform to sRGB, independent of the original profile's suggested output space.
+        // Native RGB with other primaries, ICC, floating representations and YCbCr need their own output conversion.
+        if ((frame.Modular && header.UsesXybTransform) || frame.YCbCr
+            || (!header.UsesXybTransform && (header.HasIccProfile || header.Metadata.BitDepth.ExponentBits != 0
             || (!header.Gamma.HasValue && header.TransferCharacteristics != CicpTransferCharacteristics.Iec61966_2_1)
             || header.WhitePoint != KnownIlluminants.D65Chromaticity
-            || !header.Primaries.Equals(KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates))
+            || !header.Primaries.Equals(KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates))))
         {
             throw new NotSupportedException("JPEG XL color transformation and floating-point reconstruction are not yet supported.");
         }
 
-        int colorCount = header.ProfileColorType == JxlColorType.Luminance ? 1 : 3;
+        int colorCount = !header.UsesXybTransform && header.ProfileColorType == JxlColorType.Luminance ? 1 : 3;
         int alphaChannel = -1;
         JxlBitDepth alphaDepth = header.Metadata.BitDepth;
         PixelAlphaRepresentation alphaRepresentation = PixelAlphaRepresentation.Unassociated;
@@ -191,13 +194,15 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 throw new NotSupportedException("JPEG XL reconstruction currently supports only full-resolution integer alpha.");
             }
 
-            alphaChannel = colorCount;
+            alphaChannel = frame.Modular ? colorCount : 0;
             alphaDepth = alpha.BitDepth;
             alphaRepresentation = alpha.AlphaRepresentation;
         }
 
         using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
-        using JxlModularDecoder modular = this.DecodeModularFrame(ref reader, header, frame, sections, cancellationToken);
+        (JxlModularDecoder Modular, JxlVarDctDecoder? VarDct) reconstructed = this.DecodeFrameData(ref reader, header, frame, sections, cancellationToken);
+        using JxlModularDecoder modular = reconstructed.Modular;
+        using JxlVarDctDecoder? varDct = reconstructed.VarDct;
 
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
@@ -209,6 +214,13 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             if (header.TicksPerSecond is Rational rate)
             {
                 frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
+            }
+
+            if (varDct is not null)
+            {
+                this.PackVarDctFrame(header, varDct, modular, destination, alphaChannel, alphaDepth, alphaRepresentation, cancellationToken);
+                this.CompleteMetadata(codestream, header, metadata, cancellationToken);
+                return image;
             }
 
             // Integer channels retain their native precision through prediction and inverse transforms.
@@ -272,15 +284,15 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reconstructs global channels and sequential modular groups before reversing the global transforms.
+    /// Reconstructs frame sections in dependency order and completes their native component planes.
     /// </summary>
     /// <param name="reader">The reader at the frame's first section payload.</param>
     /// <param name="header">The native channel declarations.</param>
     /// <param name="frame">The coding dimensions and pass descriptions.</param>
     /// <param name="sections">The retained physical section sizes and logical ordering.</param>
     /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
-    /// <returns>The owner of the completed native channel planes.</returns>
-    private JxlModularDecoder DecodeModularFrame(
+    /// <returns>The completed modular owner and the VarDCT owner when the frame has transform-coded color.</returns>
+    private (JxlModularDecoder Modular, JxlVarDctDecoder? VarDct) DecodeFrameData(
         ref JxlBitReader reader, JxlHeader header, JxlFrameHeader frame, JxlFrameSections sections, CancellationToken cancellationToken)
     {
         ReadOnlySpan<uint> sizes = sections.Sizes.Span;
@@ -306,14 +318,15 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             SelectSection(ref reader, sizes, order, offsets, 0);
         }
 
-        // These fields belong to the frame's DC-global syntax, before the modular tree and channel header.
-        // Native RGB modular samples do not use the DC factors, but their encoding must still be validated.
-        _ = ReadDcQuantization(ref reader);
-        JxlModularDecoder modular = JxlModularDecoder.Read(
-            ref reader, header, frame, this.Options.Configuration.MemoryAllocator, cancellationToken);
-
+        // Transform-coded color and modular extra channels share the global tree. Read the VarDCT fields
+        // before that tree; its owner also supplies the quantization matrices and reusable group storage.
+        Vector3 dcFactors = ReadDcQuantization(ref reader);
+        MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
+        JxlVarDctDecoder? varDct = frame.Modular ? null : JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors);
+        JxlModularDecoder? modular = null;
         try
         {
+            modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, cancellationToken);
             if (!combined)
             {
                 reader.EndSection();
@@ -342,20 +355,41 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 }
 
                 Rectangle rectangle = new((group % dcGroupColumns) * dcGroupSize, (group / dcGroupColumns) * dcGroupSize, dcGroupSize, dcGroupSize);
+                varDct?.ReadDcGroup(ref reader, modular, group, cancellationToken);
                 modular.ReadGroup(ref reader, rectangle, 3, 1000, 1 + dcGroupCount + group, cancellationToken);
+                varDct?.ReadAcMetadata(ref reader, modular, group, cancellationToken);
                 if (!combined)
                 {
                     reader.EndSection();
                 }
             }
 
-            // AC-global contains no fields in a modular-only frame. Its physical range still has to remain bounded.
+            // Smoothing reads the complete padded DC grid. It must run after every DC group and before
+            // any inverse transform copies those values into its low-frequency coefficient positions.
+            if (varDct is not null && (frame.Flags & JxlFrameHeader.SkipAdaptiveDcSmoothing) == 0)
+            {
+                varDct.SmoothDc(allocator, cancellationToken);
+            }
+
+            // Modular-only frames have no AC-global fields, but their physical section remains bounded.
             if (!combined)
             {
                 SelectSection(ref reader, sizes, order, offsets, 1 + dcGroupCount);
+            }
+
+            if (varDct is not null)
+            {
+                varDct.ReadGlobalAc(ref reader, frame, modular, allocator, cancellationToken);
+                varDct.PrepareReconstruction(allocator, header, frame);
+            }
+
+            if (!combined)
+            {
                 reader.EndSection();
             }
 
+            InlineArray16<int> minimumShifts = default;
+            InlineArray16<int> maximumShifts = default;
             int maximumShift = 2;
             int minimumShift = 3;
             ReadOnlySpan<byte> downsampling = frame.Downsampling;
@@ -375,7 +409,17 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     minimumShift = 0;
                 }
 
-                for (int group = 0; group < groupCount; group++)
+                minimumShifts[pass] = minimumShift;
+                maximumShifts[pass] = maximumShift;
+                maximumShift = minimumShift - 1;
+            }
+
+            // Accumulate every pass for one group before reusing its coefficient buffer. Section seeking
+            // handles any physical order without retaining coefficients for the complete image.
+            // Modular groups use the same pass-specific resolution ranges and complete their global transforms below.
+            for (int group = 0; group < groupCount; group++)
+            {
+                for (int pass = 0; pass < frame.PassCount; pass++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!combined)
@@ -387,14 +431,15 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     // These IDs identify entropy contexts; they are different from physical section numbers.
                     int streamId = 1 + (3 * dcGroupCount) + JxlConstants.QuantizationTableCount + (pass * groupCount) + group;
                     Rectangle rectangle = new((group % groupColumns) * groupSize, (group / groupColumns) * groupSize, groupSize, groupSize);
-                    modular.ReadGroup(ref reader, rectangle, minimumShift, maximumShift, streamId, cancellationToken);
+                    varDct?.ReadAcGroup(ref reader, group, pass, cancellationToken);
+                    modular.ReadGroup(ref reader, rectangle, minimumShifts[pass], maximumShifts[pass], streamId, cancellationToken);
                     if (!combined)
                     {
                         reader.EndSection();
                     }
                 }
 
-                maximumShift = minimumShift - 1;
+                varDct?.ReconstructGroup(group, cancellationToken);
             }
 
             if (combined)
@@ -403,14 +448,16 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             }
 
             modular.Complete(cancellationToken);
+            varDct?.ApplyRestoration(frame, allocator, cancellationToken);
 
             // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);
-            return modular;
+            return (modular, varDct);
         }
         catch
         {
-            modular.Dispose();
+            modular?.Dispose();
+            varDct?.Dispose();
             throw;
         }
     }

@@ -69,7 +69,7 @@ internal sealed partial class JxlVarDctDecoder
         ref JxlBitReader reader,
         MemoryAllocator allocator,
         uint usedStrategies,
-        Span<int> offsets,
+        scoped Span<int> offsets,
         CancellationToken cancellationToken)
     {
         uint encodedFamilies = reader.ReadU32((0, 0x5F), (0, 0x13), (0, 0), (13, 0));

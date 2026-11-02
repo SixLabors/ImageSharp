@@ -65,8 +65,11 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
         // The shared decoder base owns the buffered input. The codestream reader borrows it and follows
         // container fragments without copying their payloads. The header owns the decoded ICC profile.
+        // Retain one allocator-owned window through the complete operation. Eight bytes support a full
+        // reservoir load even when the configured stream buffer is smaller; larger windows amortize stream reads.
+        using IMemoryOwner<byte> readBuffer = this.Options.Configuration.MemoryAllocator.Allocate<byte>(Math.Max(sizeof(ulong), stream.BufferSize));
         JxlCodestreamReader codestream = new(stream);
-        JxlBitReader reader = new(codestream);
+        JxlBitReader reader = new(codestream, readBuffer.Memory.Span);
         JxlHeader header = this.ReadHeader(ref reader);
 
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
@@ -113,8 +116,12 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Retain one allocator-owned window through the complete operation. Eight bytes support a full
+        // reservoir load even when the configured stream buffer is smaller; larger windows amortize stream reads.
+        using IMemoryOwner<byte> readBuffer = this.Options.Configuration.MemoryAllocator.Allocate<byte>(Math.Max(sizeof(ulong), stream.BufferSize));
         JxlCodestreamReader codestream = new(stream);
-        JxlBitReader reader = new(codestream);
+        JxlBitReader reader = new(codestream, readBuffer.Memory.Span);
         JxlHeader header = this.ReadHeader(ref reader);
 
         return this.DecodeFrame<TPixel>(ref reader, codestream, header, cancellationToken);
@@ -586,7 +593,11 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
     /// <param name="offsets">The precomputed physical payload starts in logical codestream byte units.</param>
     /// <param name="logicalIndex">The section required by the current decoding stage.</param>
     private static void SelectSection(
-        ref JxlBitReader reader, ReadOnlySpan<uint> sizes, ReadOnlySpan<uint> order, ReadOnlySpan<long> offsets, int logicalIndex)
+        ref JxlBitReader reader,
+        scoped ReadOnlySpan<uint> sizes,
+        scoped ReadOnlySpan<uint> order,
+        scoped ReadOnlySpan<long> offsets,
+        int logicalIndex)
     {
         int physicalIndex = order.IsEmpty ? logicalIndex : (int)order[logicalIndex];
         reader.SeekBytePosition(offsets[physicalIndex]);

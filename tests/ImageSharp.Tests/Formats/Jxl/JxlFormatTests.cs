@@ -154,7 +154,8 @@ public class JxlFormatTests
     {
         using MemoryStream headerInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream headerBuffered = new(Configuration.Default, headerInput);
-        JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered));
+        InlineArray64<byte> headerReaderBuffer = default;
+        JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered), headerReaderBuffer);
         JxlHeader header = JxlHeader.Read(ref headerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref headerReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref headerReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
@@ -162,7 +163,8 @@ public class JxlFormatTests
         bool customThresholds = file == TestImages.Jxl.VarDctDcThresholds;
         using MemoryStream input = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
-        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        InlineArray64<byte> readerBuffer = default;
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered), readerBuffer);
 
         // The partial input contains the same DC-global syntax directly after its two-byte signature.
         // The complete input uses the section offset obtained from its normal frame-table parser.

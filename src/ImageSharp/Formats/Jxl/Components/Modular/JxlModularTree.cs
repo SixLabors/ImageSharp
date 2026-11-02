@@ -213,7 +213,7 @@ internal sealed class JxlModularTree : IDisposable
     /// <param name="decodedCount">The number of preceding tree values.</param>
     /// <returns>The decoded unsigned field.</returns>
     private static uint ReadValue(
-        ref JxlBitReader reader, ref JxlEntropyDecoder.Reader symbols, int context, Span<uint> history, ref uint decodedCount)
+        ref JxlBitReader reader, ref JxlEntropyDecoder.Reader symbols, int context, scoped Span<uint> history, ref uint decodedCount)
     {
         uint value = symbols.ReadUInt32(ref reader, context, history, decodedCount);
         decodedCount++;

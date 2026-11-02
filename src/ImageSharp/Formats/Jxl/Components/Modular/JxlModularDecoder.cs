@@ -201,7 +201,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// Completed samples remain in the supplied regions. Temporary transformed samples are released before this method returns.
     /// </remarks>
     public void ReadChannels(
-        ref JxlBitReader reader, ReadOnlySpan<JxlModularChannel> targets, int streamId, int sampleBitDepth, CancellationToken cancellationToken)
+        ref JxlBitReader reader, scoped ReadOnlySpan<JxlModularChannel> targets, int streamId, int sampleBitDepth, CancellationToken cancellationToken)
     {
         this.groupChannels.Clear();
         this.groupTargets.Clear();
@@ -238,9 +238,10 @@ internal sealed partial class JxlModularDecoder : IDisposable
         try
         {
             List<Transform> transforms = this.groupTransforms;
-            this.ReadStream(ref reader, local, transforms, int.MaxValue, streamId, false, out JxlWeightedPredictor predictor, cancellationToken);
+            bool separateStorage = this.ReadStream(
+                ref reader, local, transforms, int.MaxValue, streamId, false, out JxlWeightedPredictor predictor, cancellationToken);
 
-            this.UndoTransforms(local, transforms, predictor, sampleBitDepth, cancellationToken);
+            this.UndoTransforms(local, transforms, predictor, sampleBitDepth, CollectionsMarshal.AsSpan(targets), cancellationToken);
 
             // Parsing no longer needs the encoded layouts. Reuse that list to validate the restored channels
             // against their retained borrowed targets without creating a per-group layout array.
@@ -251,15 +252,23 @@ internal sealed partial class JxlModularDecoder : IDisposable
             }
 
             ValidateShapes(local, CollectionsMarshal.AsSpan(this.layouts));
-            if (transforms.Count != 0)
+            if (separateStorage)
             {
-                // Only transformed groups need separate encoded storage. Ordinary groups already decoded directly into borrowed frame regions.
+                // The final local palette or squeeze can already have restored selected channels in their targets.
+                // Export only the remaining owned channels. Empty channels share the same empty region and need no row access.
                 for (int c = 0; c < local.Count; c++)
                 {
+                    Buffer2DRegion<int> source = local[c].Region;
+                    Buffer2DRegion<int> target = targets[c].Region;
+                    if (ReferenceEquals(source.Buffer, target.Buffer) && source.Bounds == target.Bounds)
+                    {
+                        continue;
+                    }
+
                     for (int y = 0; y < local[c].Height; y++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        local[c].Region.DangerousGetRowSpan(y).CopyTo(targets[c].Region.DangerousGetRowSpan(y));
+                        source.DangerousGetRowSpan(y).CopyTo(target.DangerousGetRowSpan(y));
                     }
                 }
             }
@@ -278,7 +287,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="cancellationToken">The token checked between transforms and rows.</param>
     public void Complete(CancellationToken cancellationToken)
     {
-        this.UndoTransforms(this.channels, this.globalTransforms, this.globalPredictor, this.bitDepth, cancellationToken);
+        this.UndoTransforms(this.channels, this.globalTransforms, this.globalPredictor, this.bitDepth, [], cancellationToken);
         ValidateShapes(this.channels, this.originalLayouts);
         this.globalTransforms.Clear();
     }
@@ -303,7 +312,8 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="allocateAll">Whether original frame layouts supply this initially empty global sample list.</param>
     /// <param name="weightedPredictor">The header's predictor coefficients retained for inverse palette operations.</param>
     /// <param name="cancellationToken">The operation's cancellation token.</param>
-    private void ReadStream(
+    /// <returns>Whether this local stream uses separate storage that must be copied back after its inverse transforms.</returns>
+    private bool ReadStream(
         ref JxlBitReader reader,
         List<JxlModularChannel> channels,
         List<Transform> transforms,
@@ -336,7 +346,13 @@ internal sealed partial class JxlModularDecoder : IDisposable
             ValidateGroupDimensions(layouts, this.groupSize);
         }
 
-        if (allocateAll || transforms.Count != 0)
+        bool changesShape = false;
+        foreach (Transform transform in transforms)
+        {
+            changesShape |= transform.Kind != ColorTransform;
+        }
+
+        if (allocateAll || changesShape)
         {
             // Parsing changes layouts only. Borrowed targets retain their ready regions until every encoded shape
             // has passed validation. Reserve descriptor capacity before renting samples so Add cannot strand an owner.
@@ -347,13 +363,31 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 channels.Add(JxlModularChannel.Allocate(this.allocator, layout));
             }
         }
+        else
+        {
+            // RCT does not change channel shapes or introduce samples. Select each encoded channel's final target
+            // before decoding, so its inverse can work in place. Wire-order permutations compose here; the existing
+            // reverse-order inverses restore both component values and the original descriptor order afterward.
+            // Regions remain pairwise distinct: this only reorders the caller's already distinct target descriptors.
+            foreach (Transform transform in transforms)
+            {
+                int begin = transform.Begin;
+                int permutation = transform.ColorOperation / 7;
+                JxlModularChannel first = channels[begin + (permutation % 3)];
+                JxlModularChannel second = channels[begin + ((permutation + 1 + (permutation / 3)) % 3)];
+                JxlModularChannel third = channels[begin + ((permutation + 2 - (permutation / 3)) % 3)];
+                channels[begin] = first;
+                channels[begin + 1] = second;
+                channels[begin + 2] = third;
+            }
+        }
 
         int count = GetEligiblePrefix(layouts, maximumSize);
         long samples = GetSampleCount(channels, count, out _);
         if (samples == 0)
         {
             // A header can leave every normal channel for later groups. No local tree or sample entropy follows in that case.
-            return;
+            return changesShape && !allocateAll;
         }
 
         JxlModularTree tree = useGlobalTree
@@ -362,6 +396,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
         using JxlModularTree? localTree = useGlobalTree ? null : tree;
         this.DecodeSamples(ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
+        return changesShape && !allocateAll;
     }
 
     /// <summary>
@@ -574,15 +609,10 @@ internal sealed partial class JxlModularDecoder : IDisposable
         CancellationToken cancellationToken)
     {
         ReadOnlySpan<JxlModularChannel> descriptors = CollectionsMarshal.AsSpan(channels);
-        ReadOnlySpan<JxlModularTree.Node> nodes = tree.Nodes;
-        int propertyCount = FirstReferenceProperty;
-        bool usesWeighted = false;
-        foreach (ref readonly JxlModularTree.Node node in nodes)
-        {
-            propertyCount = Math.Max(propertyCount, node.Property + 1);
-            usesWeighted |= node.Predictor == 6 || node.Property == 15;
-        }
+        ReadOnlySpan<JxlModularTree.Node> sourceNodes = tree.Nodes;
 
+        // A one-leaf tree is already channel-independent. Keep that common case allocation-free.
+        Span<JxlModularTree.Node> preparedNodes = sourceNodes.Length == 1 ? [] : this.workspace.PrepareChannelTree(sourceNodes.Length);
         GetSampleCount(channels, count, out int maximumWidth);
         int historyLength = tree.Codes.UsesLz77
             ? (int)BitOperations.RoundUpToPowerOf2((uint)Math.Min(samples, JxlEntropyDecoder.MaximumLz77Distance))
@@ -590,9 +620,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
         // Width belongs to the complete entropy stream, not the current channel. Palette metadata can be its widest channel.
         Span<uint> history = this.workspace.PrepareHistory(historyLength);
-        Span<int> errors = usesWeighted ? this.workspace.PrepareErrors(maximumWidth) : [];
-        int referenceProperties = ((propertyCount - FirstReferenceProperty + 3) / PropertiesPerReference) * PropertiesPerReference;
-        Span<int> referenceValues = this.workspace.PrepareReferences(referenceProperties * ReferenceBlockLength);
         InlineArray256<int> propertyStorage = default;
         InlineArray64<int> referenceStorage = default;
         Span<int> properties = propertyStorage;
@@ -609,13 +636,68 @@ internal sealed partial class JxlModularDecoder : IDisposable
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            properties.Clear();
-            properties[0] = channelIndex;
-            properties[1] = streamId;
+            int propertyCount = FirstReferenceProperty;
+            bool usesWeighted = sourceNodes[0].Predictor == 6;
+            bool weightedOnly = usesWeighted;
+            bool gradientOnly = sourceNodes[0].Predictor == 5;
+            ReadOnlySpan<JxlModularTree.Node> nodes = sourceNodes;
+            if (!preparedNodes.IsEmpty)
+            {
+                int nodeCount = PrepareChannelTree(
+                    sourceNodes,
+                    preparedNodes,
+                    channelIndex,
+                    streamId,
+                    out propertyCount,
+                    out usesWeighted,
+                    out weightedOnly,
+                    out gradientOnly);
+
+                nodes = preparedNodes[..nodeCount];
+            }
+
+            Span<int> errors = usesWeighted ? this.workspace.PrepareErrors(maximumWidth) : [];
             if (usesWeighted)
             {
                 weightedPredictor.Reset(errors, channel.Width);
             }
+
+            // Dispatch once for the channel. These trees do not need the general property array, cross-channel
+            // preparation or predictor selection. Entropy state and residual history still span every channel.
+            if (nodes.Length == 1 && nodes[0].Predictor == 0)
+            {
+                DecodeZeroChannel(ref reader, ref symbols, channel.Region, in nodes[0], history, ref decoded, maximumWidth, cancellationToken);
+                continue;
+            }
+
+            if (gradientOnly)
+            {
+                DecodeGradientChannel(ref reader, ref symbols, channel.Region, nodes, history, ref decoded, maximumWidth, cancellationToken);
+                continue;
+            }
+
+            if (weightedOnly)
+            {
+                DecodeWeightedChannel(
+                    ref reader,
+                    ref symbols,
+                    channel.Region,
+                    nodes,
+                    ref weightedPredictor,
+                    errors,
+                    history,
+                    ref decoded,
+                    maximumWidth,
+                    cancellationToken);
+
+                continue;
+            }
+
+            properties.Clear();
+            properties[0] = channelIndex;
+            properties[1] = streamId;
+            int referenceProperties = ((propertyCount - FirstReferenceProperty + 3) / PropertiesPerReference) * PropertiesPerReference;
+            Span<int> referenceValues = this.workspace.PrepareReferences(referenceProperties * ReferenceBlockLength);
 
             // Earlier channels are considered newest first. Only equal dimensions and resolution shifts can supply reference properties.
             // Missing references retain their initialized zero properties; no padded reference image is allocated.
@@ -626,13 +708,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 {
                     referenceIndices[references++] = previous;
                 }
-            }
-
-            int root = 0;
-            while (nodes[root].Property is 0 or 1)
-            {
-                ref readonly JxlModularTree.Node split = ref nodes[root];
-                root = split.FirstChild + (properties[split.Property] > split.Value ? 0 : 1);
             }
 
             for (int y = 0; y < channel.Height; y++)
@@ -682,7 +757,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                             properties[15] = errorProperty;
                         }
 
-                        int leaf = root;
+                        int leaf = 0;
                         if (nodes[leaf].Property >= 0)
                         {
                             // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
@@ -733,24 +808,241 @@ internal sealed partial class JxlModularDecoder : IDisposable
     }
 
     /// <summary>
+    /// Removes all decisions fixed by this channel and stream, then records only the remaining prediction requirements.
+    /// </summary>
+    /// <param name="source">The validated breadth-first source tree.</param>
+    /// <param name="destination">Reusable node storage at least as long as the source tree.</param>
+    /// <param name="channel">The fixed value of tree property zero.</param>
+    /// <param name="stream">The fixed value of tree property one.</param>
+    /// <param name="propertyCount">The remaining property range, including the sixteen standard positions.</param>
+    /// <param name="usesWeighted">Whether a reachable property or leaf requires weighted prediction.</param>
+    /// <param name="weightedOnly">Whether only property fifteen and weighted leaf predictions remain.</param>
+    /// <param name="gradientOnly">Whether only property nine and gradient leaf predictions remain.</param>
+    /// <returns>The initialized reduced node count.</returns>
+    private static int PrepareChannelTree(
+        ReadOnlySpan<JxlModularTree.Node> source,
+        Span<JxlModularTree.Node> destination,
+        int channel,
+        int stream,
+        out int propertyCount,
+        out bool usesWeighted,
+        out bool weightedOnly,
+        out bool gradientOnly)
+    {
+        // Pending source nodes and completed destination nodes share this breadth-first array. A processed split
+        // appends its two source children before replacing itself with destination indices. No separate queue is needed.
+        // Every source node has one parent, so removing static splits cannot increase the source node count.
+        destination[0] = source[0];
+        int count = 1;
+        propertyCount = FirstReferenceProperty;
+        usesWeighted = false;
+        weightedOnly = true;
+        gradientOnly = true;
+        for (int i = 0; i < count; i++)
+        {
+            JxlModularTree.Node node = destination[i];
+            while (node.Property is 0 or 1)
+            {
+                int property = node.Property == 0 ? channel : stream;
+                node = source[node.FirstChild + (property > node.Value ? 0 : 1)];
+            }
+
+            if (node.Property < 0)
+            {
+                destination[i] = node;
+                usesWeighted |= node.Predictor == 6;
+                weightedOnly &= node.Predictor == 6;
+                gradientOnly &= node.Predictor == 5;
+            }
+            else
+            {
+                destination[count] = source[node.FirstChild];
+                destination[count + 1] = source[node.FirstChild + 1];
+                destination[i] = new JxlModularTree.Node(node.Property, node.Value, count, node.Predictor, node.Multiplier);
+                count += 2;
+                propertyCount = Math.Max(propertyCount, node.Property + 1);
+                usesWeighted |= node.Property == 15;
+                weightedOnly &= node.Property == 15;
+                gradientOnly &= node.Property == 9;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Decodes a fixed zero-predictor leaf without reading neighbors or constructing tree properties.
+    /// </summary>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The entropy state shared by all channels in this stream.</param>
+    /// <param name="channel">The complete output region.</param>
+    /// <param name="leaf">The channel's fixed residual context, multiplier and offset.</param>
+    /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
+    /// <param name="decoded">The number of residuals consumed across all channels.</param>
+    /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
+    /// <param name="cancellationToken">The token checked before each row.</param>
+    private static void DecodeZeroChannel(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        Buffer2DRegion<int> channel,
+        in JxlModularTree.Node leaf,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth,
+        CancellationToken cancellationToken)
+    {
+        for (int y = 0; y < channel.Height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Span<int> row = channel.DangerousGetRowSpan(y);
+            for (int x = 0; x < row.Length; x++)
+            {
+                uint residual = symbols.ReadUInt32(ref reader, leaf.FirstChild, history, decoded++, maximumWidth);
+                int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+                row[x] = unchecked((int)(leaf.Value + ((long)signed * leaf.Multiplier)));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Decodes gradient-only trees using their single dynamic property and three required neighbors.
+    /// </summary>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The entropy state shared by all channels in this stream.</param>
+    /// <param name="channel">The complete output region.</param>
+    /// <param name="nodes">The reduced tree containing only property-nine splits and gradient leaves.</param>
+    /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
+    /// <param name="decoded">The number of residuals consumed across all channels.</param>
+    /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
+    /// <param name="cancellationToken">The token checked before each row.</param>
+    private static void DecodeGradientChannel(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        Buffer2DRegion<int> channel,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth,
+        CancellationToken cancellationToken)
+    {
+        for (int y = 0; y < channel.Height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Span<int> row = channel.DangerousGetRowSpan(y);
+            ReadOnlySpan<int> topRow = y == 0 ? row : channel.DangerousGetRowSpan(y - 1);
+
+            // The first row has no initialized northern samples. Its N and NW substitutions both follow W;
+            // later rows carry the previous N as NW, including the repeated first sample at column zero.
+            int left = y == 0 ? 0 : topRow[0];
+            int topLeft = left;
+            for (int x = 0; x < row.Length; x++)
+            {
+                int top = y == 0 ? left : topRow[x];
+                int property = unchecked(left + top - topLeft);
+                int leaf = 0;
+                while (nodes[leaf].Property >= 0)
+                {
+                    ref readonly JxlModularTree.Node split = ref nodes[leaf];
+                    leaf = split.FirstChild + (property > split.Value ? 0 : 1);
+                }
+
+                ref readonly JxlModularTree.Node node = ref nodes[leaf];
+                uint residual = symbols.ReadUInt32(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+
+                // Property nine wraps in int units. Prediction instead retains the exact widened gradient,
+                // then limits it by W and N before the residual is applied. Carry these neighbors across columns.
+                long prediction = Math.Clamp((long)left + top - topLeft, Math.Min(left, top), Math.Max(left, top));
+                int value = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
+                row[x] = value;
+                topLeft = y == 0 ? value : top;
+                left = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Decodes weighted-only trees without preparing unused general or cross-channel properties.
+    /// </summary>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The entropy state shared by all channels in this stream.</param>
+    /// <param name="channel">The complete output region.</param>
+    /// <param name="nodes">The reduced tree containing only property-fifteen splits and weighted leaves.</param>
+    /// <param name="predictor">The prepared weighted predictor, advanced for every reconstructed sample.</param>
+    /// <param name="errors">The caller-owned error rows for this channel.</param>
+    /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
+    /// <param name="decoded">The number of residuals consumed across all channels.</param>
+    /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
+    /// <param name="cancellationToken">The token checked before each row.</param>
+    private static void DecodeWeightedChannel(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        Buffer2DRegion<int> channel,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        ref JxlWeightedPredictor predictor,
+        Span<int> errors,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth,
+        CancellationToken cancellationToken)
+    {
+        for (int y = 0; y < channel.Height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Span<int> row = channel.DangerousGetRowSpan(y);
+            ReadOnlySpan<int> topRow = y == 0 ? row : channel.DangerousGetRowSpan(y - 1);
+            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : channel.DangerousGetRowSpan(y - 2);
+            for (int x = 0; x < row.Length; x++)
+            {
+                int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
+                int top = y != 0 ? topRow[x] : left;
+                int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
+                int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
+                int topTop = y > 1 ? aboveRow[x] : top;
+                long prediction = predictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out int property);
+                int leaf = 0;
+                while (nodes[leaf].Property >= 0)
+                {
+                    ref readonly JxlModularTree.Node split = ref nodes[leaf];
+                    leaf = split.FirstChild + (property > split.Value ? 0 : 1);
+                }
+
+                ref readonly JxlModularTree.Node node = ref nodes[leaf];
+                uint residual = symbols.ReadUInt32(ref reader, node.FirstChild, history, decoded++, maximumWidth);
+                int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+                row[x] = unchecked((int)(prediction + node.Value + ((long)signed * node.Multiplier)));
+                predictor.Update(errors, x, y, row[x]);
+            }
+        }
+    }
+
+    /// <summary>
     /// Reverses shape transforms in reverse order, releasing consumed owned planes at their transform boundary.
     /// </summary>
     /// <param name="channels">The decoded stream channels, updated to their original layouts.</param>
     /// <param name="transforms">The flattened records in forward wire order.</param>
     /// <param name="weightedPredictor">The group coefficients used by delta palettes.</param>
     /// <param name="sampleBitDepth">The stream precision used to reconstruct implicit palette entries.</param>
+    /// <param name="targets">The ready borrowed final regions for a local stream, or empty for globally owned output.</param>
     /// <param name="cancellationToken">The token checked between transforms and rows.</param>
     private void UndoTransforms(
         List<JxlModularChannel> channels,
         List<Transform> transforms,
         JxlWeightedPredictor weightedPredictor,
         int sampleBitDepth,
+        ReadOnlySpan<JxlModularChannel> targets,
         CancellationToken cancellationToken)
     {
         for (int i = transforms.Count - 1; i >= 0; i--)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Transform transform = transforms[i];
+
+            // The last inverse restores the original validated layouts. Local shape-changing streams allocated
+            // every encoded source separately, so these final targets cannot overlap those sources. Their descriptors
+            // are borrowed: releasing local channels must never return the frame's memory. Intermediate and global
+            // outputs still need owned planes because subsequent transforms or groups retain their samples.
+            bool useTargets = i == 0 && !targets.IsEmpty;
             if (transform.Kind == ColorTransform)
             {
                 JxlModularChannel first = channels[transform.Begin];
@@ -779,9 +1071,13 @@ internal sealed partial class JxlModularDecoder : IDisposable
             {
                 int begin = transform.Begin + 1;
                 JxlModularChannel index = channels[begin];
+                JxlModularChannel firstOutput = useTargets ? targets[transform.Begin] : index;
                 for (int c = 1; c < transform.ChannelCount; c++)
                 {
-                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, index.Layout);
+                    JxlModularChannel output = useTargets
+                        ? targets[transform.Begin + c]
+                        : JxlModularChannel.Allocate(this.allocator, index.Layout);
+
                     try
                     {
                         channels.Insert(begin + c, output);
@@ -803,7 +1099,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
                 for (int c = 0; c < outputs.Length; c++)
                 {
-                    outputs[c] = channels[begin + c].Region;
+                    outputs[c] = c == 0 ? firstOutput.Region : channels[begin + c].Region;
                 }
 
                 Span<int> errors = transform.Predictor == 6 && !index.IsEmpty ? this.workspace.PrepareErrors(index.Width) : [];
@@ -817,6 +1113,14 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     weightedPredictor,
                     errors,
                     cancellationToken);
+
+                if (useTargets)
+                {
+                    // Palette lookup preserves its source indices through all components. Release their owner only
+                    // after the complete output exists in the borrowed targets; failure leaves it reachable for cleanup.
+                    index.Dispose();
+                    channels[begin] = firstOutput;
+                }
 
                 JxlModularChannel palette = channels[0];
                 palette.Dispose();
@@ -845,7 +1149,10 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         vertical--;
                     }
 
-                    JxlModularChannel output = JxlModularChannel.Allocate(this.allocator, new JxlModularChannelLayout(size, horizontal, vertical));
+                    JxlModularChannel output = useTargets
+                        ? targets[transform.Begin + c]
+                        : JxlModularChannel.Allocate(this.allocator, new JxlModularChannelLayout(size, horizontal, vertical));
+
                     try
                     {
                         if (!output.IsEmpty)

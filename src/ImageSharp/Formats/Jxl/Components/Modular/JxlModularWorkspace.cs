@@ -15,6 +15,7 @@ internal sealed class JxlModularWorkspace : IDisposable
     private IMemoryOwner<uint>? history;
     private IMemoryOwner<int>? integerScratch;
     private IMemoryOwner<int>? references;
+    private IMemoryOwner<JxlModularTree.Node>? channelTree;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlModularWorkspace"/> class without renting unused buffers.
@@ -50,9 +51,17 @@ internal sealed class JxlModularWorkspace : IDisposable
     /// <returns>The reusable property span, borrowed once before sample loops.</returns>
     public Span<int> PrepareReferences(int length) => Prepare(ref this.references, length, this.allocator);
 
+    /// <summary>
+    /// Prepares reusable nodes for the current channel's statically reduced prediction tree.
+    /// </summary>
+    /// <param name="length">The initialized source tree length, which bounds the reduced tree and its pending nodes.</param>
+    /// <returns>The reusable tree span, borrowed once before channel traversal.</returns>
+    public Span<JxlModularTree.Node> PrepareChannelTree(int length) => Prepare(ref this.channelTree, length, this.allocator);
+
     /// <inheritdoc/>
     public void Dispose()
     {
+        this.channelTree?.Dispose();
         this.references?.Dispose();
         this.integerScratch?.Dispose();
         this.history?.Dispose();

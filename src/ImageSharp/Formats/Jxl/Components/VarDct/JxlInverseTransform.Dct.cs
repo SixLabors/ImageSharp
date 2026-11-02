@@ -130,7 +130,7 @@ internal static partial class JxlInverseTransform
     /// <param name="length">The transform axis length.</param>
     /// <param name="start">The first column.</param>
     /// <param name="count">The number of columns, a multiple of the lane count.</param>
-    /// <param name="scratch">The loaded values followed by recursive butterfly storage.</param>
+    /// <param name="scratch">The loaded values followed by recursive storage. Small inverse axes do not use it.</param>
     /// <param name="inverse">Whether to apply the inverse transform.</param>
     private static void TransformColumns<TLanes, TOperator>(
         ReadOnlySpan<float> source,
@@ -145,12 +145,75 @@ internal static partial class JxlInverseTransform
         where TLanes : unmanaged
         where TOperator : struct, ILaneOperator<TLanes>
     {
-        Span<TLanes> storage = MemoryMarshal.Cast<float, TLanes>(scratch);
-        Span<TLanes> values = storage[..length];
-        Span<TLanes> temporary = storage[length..];
         ref float input = ref MemoryMarshal.GetReference(source);
         ref float output = ref MemoryMarshal.GetReference(destination);
         int lanes = Unsafe.SizeOf<TLanes>() / sizeof(float);
+
+        // Small inverse axes fit in local lane values. Read each column batch directly, keep the complete
+        // butterfly in those values, then store once. No axis scratch is needed between these operations.
+        // The same lane operator supplies scalar, 128-bit, 256-bit and 512-bit arithmetic.
+        if (inverse && length == 8)
+        {
+            for (int column = start; column < start + count; column += lanes)
+            {
+                TLanes v0 = TOperator.Load(ref Unsafe.Add(ref input, column));
+                TLanes v1 = TOperator.Load(ref Unsafe.Add(ref input, sourceStride + column));
+                TLanes v2 = TOperator.Load(ref Unsafe.Add(ref input, (2 * sourceStride) + column));
+                TLanes v3 = TOperator.Load(ref Unsafe.Add(ref input, (3 * sourceStride) + column));
+                TLanes v4 = TOperator.Load(ref Unsafe.Add(ref input, (4 * sourceStride) + column));
+                TLanes v5 = TOperator.Load(ref Unsafe.Add(ref input, (5 * sourceStride) + column));
+                TLanes v6 = TOperator.Load(ref Unsafe.Add(ref input, (6 * sourceStride) + column));
+                TLanes v7 = TOperator.Load(ref Unsafe.Add(ref input, (7 * sourceStride) + column));
+
+                Inverse8<TLanes, TOperator>(ref v0, ref v1, ref v2, ref v3, ref v4, ref v5, ref v6, ref v7);
+                TOperator.Store(v0, ref Unsafe.Add(ref output, column));
+                TOperator.Store(v1, ref Unsafe.Add(ref output, destinationStride + column));
+                TOperator.Store(v2, ref Unsafe.Add(ref output, (2 * destinationStride) + column));
+                TOperator.Store(v3, ref Unsafe.Add(ref output, (3 * destinationStride) + column));
+                TOperator.Store(v4, ref Unsafe.Add(ref output, (4 * destinationStride) + column));
+                TOperator.Store(v5, ref Unsafe.Add(ref output, (5 * destinationStride) + column));
+                TOperator.Store(v6, ref Unsafe.Add(ref output, (6 * destinationStride) + column));
+                TOperator.Store(v7, ref Unsafe.Add(ref output, (7 * destinationStride) + column));
+            }
+
+            return;
+        }
+
+        if (inverse && length == 4)
+        {
+            for (int column = start; column < start + count; column += lanes)
+            {
+                TLanes v0 = TOperator.Load(ref Unsafe.Add(ref input, column));
+                TLanes v1 = TOperator.Load(ref Unsafe.Add(ref input, sourceStride + column));
+                TLanes v2 = TOperator.Load(ref Unsafe.Add(ref input, (2 * sourceStride) + column));
+                TLanes v3 = TOperator.Load(ref Unsafe.Add(ref input, (3 * sourceStride) + column));
+
+                Inverse4<TLanes, TOperator>(ref v0, ref v1, ref v2, ref v3);
+                TOperator.Store(v0, ref Unsafe.Add(ref output, column));
+                TOperator.Store(v1, ref Unsafe.Add(ref output, destinationStride + column));
+                TOperator.Store(v2, ref Unsafe.Add(ref output, (2 * destinationStride) + column));
+                TOperator.Store(v3, ref Unsafe.Add(ref output, (3 * destinationStride) + column));
+            }
+
+            return;
+        }
+
+        if (inverse && length == 2)
+        {
+            for (int column = start; column < start + count; column += lanes)
+            {
+                TLanes first = TOperator.Load(ref Unsafe.Add(ref input, column));
+                TLanes second = TOperator.Load(ref Unsafe.Add(ref input, sourceStride + column));
+                TOperator.Store(TOperator.Add(first, second), ref Unsafe.Add(ref output, column));
+                TOperator.Store(TOperator.Subtract(first, second), ref Unsafe.Add(ref output, destinationStride + column));
+            }
+
+            return;
+        }
+
+        Span<TLanes> storage = MemoryMarshal.Cast<float, TLanes>(scratch);
+        Span<TLanes> values = storage[..length];
+        Span<TLanes> temporary = storage[length..];
         for (int column = start; column < start + count; column += lanes)
         {
             for (int i = 0; i < length; i++)
@@ -178,12 +241,12 @@ internal static partial class JxlInverseTransform
     }
 
     /// <summary>
-    /// Applies the inverse radix-two network in place. Recursive calls share the unused suffix of temporary storage.
+    /// Applies the inverse radix-two network in place, using fixed butterflies at its small leaves.
     /// </summary>
     /// <typeparam name="TLanes">The independent column lanes.</typeparam>
     /// <typeparam name="TOperator">The arithmetic implementation.</typeparam>
     /// <param name="values">The frequency values, then spatial values.</param>
-    /// <param name="temporary">At least twice the number of values.</param>
+    /// <param name="temporary">At least twice the number of values. Axes of eight or fewer values do not use it.</param>
     private static void Inverse<TLanes, TOperator>(Span<TLanes> values, Span<TLanes> temporary)
         where TLanes : unmanaged
         where TOperator : struct, ILaneOperator<TLanes>
@@ -199,6 +262,32 @@ internal static partial class JxlInverseTransform
             TLanes first = values[0];
             values[0] = TOperator.Add(first, values[1]);
             values[1] = TOperator.Subtract(first, values[1]);
+            return;
+        }
+
+        // Larger transforms reach these same fixed leaves. Their values already occupy axis scratch,
+        // but the leaf itself needs no even/odd copy or recursive call.
+        ref TLanes firstValue = ref MemoryMarshal.GetReference(values);
+        if (length == 4)
+        {
+            Inverse4<TLanes, TOperator>(
+                ref firstValue, ref Unsafe.Add(ref firstValue, 1), ref Unsafe.Add(ref firstValue, 2), ref Unsafe.Add(ref firstValue, 3));
+
+            return;
+        }
+
+        if (length == 8)
+        {
+            Inverse8<TLanes, TOperator>(
+                ref firstValue,
+                ref Unsafe.Add(ref firstValue, 1),
+                ref Unsafe.Add(ref firstValue, 2),
+                ref Unsafe.Add(ref firstValue, 3),
+                ref Unsafe.Add(ref firstValue, 4),
+                ref Unsafe.Add(ref firstValue, 5),
+                ref Unsafe.Add(ref firstValue, 6),
+                ref Unsafe.Add(ref firstValue, 7));
+
             return;
         }
 
@@ -227,6 +316,83 @@ internal static partial class JxlInverseTransform
             values[i] = TOperator.MultiplyAdd(odd[i], multipliers[i], even[i]);
             values[length - i - 1] = TOperator.MultiplyAdd(odd[i], -multipliers[i], even[i]);
         }
+    }
+
+    /// <summary>
+    /// Reconstructs four frequency values with the fixed inverse radix-two butterfly.
+    /// </summary>
+    /// <typeparam name="TLanes">Independent column values, with one column in each scalar or SIMD lane.</typeparam>
+    /// <typeparam name="TOperator">The existing arithmetic for those lanes.</typeparam>
+    /// <param name="v0">Frequency zero, replaced by spatial position zero.</param>
+    /// <param name="v1">Frequency one, replaced by spatial position one.</param>
+    /// <param name="v2">Frequency two, replaced by spatial position two.</param>
+    /// <param name="v3">Frequency three, replaced by spatial position three.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Inverse4<TLanes, TOperator>(ref TLanes v0, ref TLanes v1, ref TLanes v2, ref TLanes v3)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        // These are IDCT1DImpl<4>'s even/odd split, two-point leaves and BTranspose stage from libjxl dct-inl.h.
+        // Form every input-dependent value before replacing the distinct outputs. Addition order and rounding
+        // match the general network: the preceding odd coefficient is added before the first one is scaled.
+        TLanes even0 = TOperator.Add(v0, v2);
+        TLanes even1 = TOperator.Subtract(v0, v2);
+        TLanes adjacent = TOperator.Add(v3, v1);
+        TLanes scaled = TOperator.Multiply(v1, 1.4142135623730951F);
+        TLanes odd0 = TOperator.Add(scaled, adjacent);
+        TLanes odd1 = TOperator.Subtract(scaled, adjacent);
+        ReadOnlySpan<float> multipliers = Multipliers4;
+
+        // Paired outputs use the same even value and opposite odd multipliers. The inverse has no 1/N scale.
+        v0 = TOperator.MultiplyAdd(odd0, multipliers[0], even0);
+        v3 = TOperator.MultiplyAdd(odd0, -multipliers[0], even0);
+        v1 = TOperator.MultiplyAdd(odd1, multipliers[1], even1);
+        v2 = TOperator.MultiplyAdd(odd1, -multipliers[1], even1);
+    }
+
+    /// <summary>
+    /// Reconstructs eight frequency values with two fixed four-point butterflies and their final symmetric pairs.
+    /// </summary>
+    /// <typeparam name="TLanes">Independent column values, with one column in each scalar or SIMD lane.</typeparam>
+    /// <typeparam name="TOperator">The existing arithmetic for those lanes.</typeparam>
+    /// <param name="v0">Frequency zero, replaced by spatial position zero.</param>
+    /// <param name="v1">Frequency one, replaced by spatial position one.</param>
+    /// <param name="v2">Frequency two, replaced by spatial position two.</param>
+    /// <param name="v3">Frequency three, replaced by spatial position three.</param>
+    /// <param name="v4">Frequency four, replaced by spatial position four.</param>
+    /// <param name="v5">Frequency five, replaced by spatial position five.</param>
+    /// <param name="v6">Frequency six, replaced by spatial position six.</param>
+    /// <param name="v7">Frequency seven, replaced by spatial position seven.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Inverse8<TLanes, TOperator>(
+        ref TLanes v0, ref TLanes v1, ref TLanes v2, ref TLanes v3, ref TLanes v4, ref TLanes v5, ref TLanes v6, ref TLanes v7)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        TLanes even0 = v0;
+        TLanes even1 = v2;
+        TLanes even2 = v4;
+        TLanes even3 = v6;
+        Inverse4<TLanes, TOperator>(ref even0, ref even1, ref even2, ref even3);
+
+        // BTranspose adds each original odd coefficient to its predecessor. Separate locals retain those
+        // originals without a temporary span. Each lane follows the native eight-point network independently.
+        TLanes odd0 = TOperator.Multiply(v1, 1.4142135623730951F);
+        TLanes odd1 = TOperator.Add(v3, v1);
+        TLanes odd2 = TOperator.Add(v5, v3);
+        TLanes odd3 = TOperator.Add(v7, v5);
+        Inverse4<TLanes, TOperator>(ref odd0, ref odd1, ref odd2, ref odd3);
+        ReadOnlySpan<float> multipliers = Multipliers8;
+
+        // The final stage joins even and odd frequencies into reversed output pairs, with no normalization.
+        v0 = TOperator.MultiplyAdd(odd0, multipliers[0], even0);
+        v7 = TOperator.MultiplyAdd(odd0, -multipliers[0], even0);
+        v1 = TOperator.MultiplyAdd(odd1, multipliers[1], even1);
+        v6 = TOperator.MultiplyAdd(odd1, -multipliers[1], even1);
+        v2 = TOperator.MultiplyAdd(odd2, multipliers[2], even2);
+        v5 = TOperator.MultiplyAdd(odd2, -multipliers[2], even2);
+        v3 = TOperator.MultiplyAdd(odd3, multipliers[3], even3);
+        v4 = TOperator.MultiplyAdd(odd3, -multipliers[3], even3);
     }
 
     /// <summary>

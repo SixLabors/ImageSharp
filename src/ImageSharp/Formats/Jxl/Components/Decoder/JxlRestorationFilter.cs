@@ -57,7 +57,20 @@ internal sealed class JxlRestorationFilter
     /// <summary>
     /// Gets the edge-preserving filter's eight sharpness factors.
     /// </summary>
-    public ReadOnlySpan<float> Sharpness => this.sharpness is null ? [0F, 1F / 7F, 2F / 7F, 3F / 7F, 4F / 7F, 5F / 7F, 6F / 7F, 1F] : this.sharpness;
+    public ReadOnlySpan<float> Sharpness
+    {
+        get
+        {
+            if (this.sharpness is not null)
+            {
+                return this.sharpness;
+            }
+
+            // Return the constants directly as a span so the compiler stores them in static data.
+            // Combining this literal with the custom array in a conditional expression creates a new array on each read.
+            return [0F, 1F / 7F, 2F / 7F, 3F / 7F, 4F / 7F, 5F / 7F, 6F / 7F, 1F];
+        }
+    }
 
     /// <summary>
     /// Gets the component multipliers used to measure color distance in the edge-preserving filter.

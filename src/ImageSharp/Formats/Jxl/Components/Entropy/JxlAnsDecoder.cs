@@ -25,7 +25,7 @@ internal static class JxlAnsDecoder
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
     /// <param name="buckets">The caller-owned table, with 32, 64, 128 or 256 entries.</param>
-    public static void ReadDistribution(ref JxlBitReader reader, Span<Bucket> buckets)
+    public static void ReadDistribution(ref JxlBitReader reader, scoped Span<Bucket> buckets)
     {
         Span<int> frequencies = stackalloc int[256];
         frequencies = frequencies[..buckets.Length];
@@ -171,7 +171,7 @@ internal static class JxlAnsDecoder
     /// </summary>
     /// <param name="reader">The bounded codestream reader.</param>
     /// <param name="frequencies">The zero-initialized distribution storage.</param>
-    private static void ReadComplexDistribution(ref JxlBitReader reader, Span<int> frequencies)
+    private static void ReadComplexDistribution(ref JxlBitReader reader, scoped Span<int> frequencies)
     {
         int bits = 0;
         while (bits < 3 && reader.ReadBoolean())

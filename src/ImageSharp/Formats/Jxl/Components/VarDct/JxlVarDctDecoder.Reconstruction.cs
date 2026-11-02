@@ -140,6 +140,7 @@ internal sealed partial class JxlVarDctDecoder
         Span<float> spatial = workspace.Slice(3 * this.reconstructionBlockArea, this.reconstructionBlockArea);
         Span<float> scratch = workspace.Slice(4 * this.reconstructionBlockArea, this.inverseScratchLength);
         ReadOnlySpan<int> matrixOffsets = this.QuantizationMatrixOffsets;
+        ReadOnlySpan<byte> hasAc = this.nonzeroMemory.Span[(this.nonzeroMemory.Length / 2)..];
 
         for (int by = rectangle.Y; by < rectangle.Bottom; by++)
         {
@@ -185,8 +186,37 @@ internal sealed partial class JxlVarDctDecoder
                     this.BaseCorrelationX + (correlationX[bx >> ColorTileShift] * this.ColorScale),
                     this.BaseCorrelationB + (correlationB[bx >> ColorTileShift] * this.ColorScale));
 
-                DequantizeAcBlock(
-                    qx, qy, qb, matrices.Slice(matrixOffset, 3 * area), coefficients, this.quantizationScale * scale, correlation, this.quantizationBias);
+                int dcOnly = 0;
+                if (area == CoefficientBlockArea)
+                {
+                    // A single-block transform without AC produces one constant DC value. Retain AC
+                    // presence across all passes; the final pass alone does not describe the complete block.
+                    // Color correlation can also supply Y's AC to X or B when that component has no AC of its own.
+                    int localX = bx - rectangle.X;
+                    int localY = by - rectangle.Y;
+                    InlineArray4<byte> presence = default;
+                    for (int component = 0; component < 3; component++)
+                    {
+                        if ((active & (1 << component)) != 0)
+                        {
+                            int width = rectangle.Width >> this.horizontalShifts[component];
+                            int index = (this.coefficientOffsets[component] / CoefficientBlockArea)
+                                + ((localY >> this.verticalShifts[component]) * width) + (localX >> this.horizontalShifts[component]);
+
+                            presence[component] = hasAc[index];
+                        }
+                    }
+
+                    dcOnly = presence[1] == 0 ? 2 : 0;
+                    dcOnly |= presence[0] == 0 && (presence[1] == 0 || correlation.X == 0F) ? 1 : 0;
+                    dcOnly |= presence[2] == 0 && (presence[1] == 0 || correlation.Y == 0F) ? 4 : 0;
+                }
+
+                if ((dcOnly & active) != active)
+                {
+                    DequantizeAcBlock(
+                        qx, qy, qb, matrices.Slice(matrixOffset, 3 * area), coefficients, this.quantizationScale * scale, correlation, this.quantizationBias);
+                }
 
                 for (int component = 0; component < 3; component++)
                 {
@@ -211,6 +241,21 @@ internal sealed partial class JxlVarDctDecoder
                     }
 
                     Buffer2DRegion<float> dc = this.GetDcChannel(component).GetSubRegion(new Rectangle(x, y, blockWidth, blockHeight));
+                    if ((dcOnly & (1 << component)) != 0)
+                    {
+                        // Fill visible rows through the existing buffer API. Partial edge blocks and split
+                        // allocations receive the same constant samples as a complete inverse transform.
+                        int dcWidth = Math.Min(BlockSize, outputSize.Width - left);
+                        int dcHeight = Math.Min(BlockSize, outputSize.Height - top);
+                        float value = dc.DangerousGetRowSpan(0)[0];
+                        for (int row = 0; row < dcHeight; row++)
+                        {
+                            output.DangerousGetRowSpan(top + row).Slice(left, dcWidth).Fill(value);
+                        }
+
+                        continue;
+                    }
+
                     JxlInverseTransform.Transform(
                         strategy, coefficients.Slice(component * area, area), dc, spatial[..area], blockWidth * BlockSize, scratch);
 

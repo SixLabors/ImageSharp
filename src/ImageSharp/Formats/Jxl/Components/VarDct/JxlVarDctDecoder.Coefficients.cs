@@ -88,6 +88,9 @@ internal sealed partial class JxlVarDctDecoder
         Rectangle rectangle = this.GetAcGroupRectangle(group);
         if (pass == 0)
         {
+            // Predictor counts restart for each pass. The second half instead records whether any pass
+            // supplied AC for a block, so reconstruction can recognize constant blocks after all passes.
+            this.nonzeroMemory.Span[(this.nonzeroMemory.Length / 2)..].Clear();
             for (int component = 0; component < 3; component++)
             {
                 int width = rectangle.Width >> this.horizontalShifts[component];
@@ -144,7 +147,10 @@ internal sealed partial class JxlVarDctDecoder
         // for typed span borrowing; they do not allocate buffers or bypass the tracked allocator.
         this.coefficientStorage = allocator.Allocate<byte>(count * elementSize);
         this.coefficientMemory = this.coefficientStorage.Memory;
-        this.nonzeroStorage = allocator.Allocate<byte>(count / CoefficientBlockArea);
+
+        // Share one allocation between pass-local count predictors and group-wide AC-presence flags.
+        // Both use the same component block grids; only the presence flags survive between progressive passes.
+        this.nonzeroStorage = allocator.Allocate<byte>(2 * (count / CoefficientBlockArea));
         this.nonzeroMemory = this.nonzeroStorage.Memory;
         foreach (AcPass pass in this.acPasses)
         {
@@ -175,6 +181,43 @@ internal sealed partial class JxlVarDctDecoder
         ref JxlBitReader reader, Rectangle rectangle, int pass, Span<TCoefficient> coefficients, CancellationToken cancellationToken)
         where TCoefficient : unmanaged, IBinaryInteger<TCoefficient>
     {
+        JxlEntropyDecoder entropy = this.acPasses[pass].Entropy;
+        if (entropy.UsesPrefixCodes)
+        {
+            if (entropy.UsesLz77)
+            {
+                this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.PrefixLz77Operator>(ref reader, rectangle, pass, coefficients, cancellationToken);
+            }
+            else
+            {
+                this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.PrefixOperator>(ref reader, rectangle, pass, coefficients, cancellationToken);
+            }
+        }
+        else if (entropy.UsesLz77)
+        {
+            this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.AnsLz77Operator>(ref reader, rectangle, pass, coefficients, cancellationToken);
+        }
+        else
+        {
+            this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.AnsOperator>(ref reader, rectangle, pass, coefficients, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Reads one pass with coefficient storage and entropy mode selected outside the transform traversal.
+    /// </summary>
+    /// <typeparam name="TCoefficient">The selected short or int coefficient storage.</typeparam>
+    /// <typeparam name="TOperator">The pass's ANS or prefix decoder, with or without LZ77.</typeparam>
+    /// <param name="reader">The bounded group reader at its histogram selector.</param>
+    /// <param name="rectangle">The group in the full padded block grid.</param>
+    /// <param name="pass">The selected progressive pass.</param>
+    /// <param name="coefficients">The reused typed workspace containing all three component planes.</param>
+    /// <param name="cancellationToken">The token checked between block rows and transform origins.</param>
+    private void ReadAcGroup<TCoefficient, TOperator>(
+        ref JxlBitReader reader, Rectangle rectangle, int pass, Span<TCoefficient> coefficients, CancellationToken cancellationToken)
+        where TCoefficient : unmanaged, IBinaryInteger<TCoefficient>
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+    {
         AcPass passInfo = this.acPasses[pass];
         int histogramBits = 32 - BitOperations.LeadingZeroCount(this.AcHistogramSetCount - 1);
         uint histogram = reader.ReadBits(histogramBits);
@@ -195,11 +238,16 @@ internal sealed partial class JxlVarDctDecoder
         ReadOnlySpan<uint> quantizerThresholds = this.QuantizationThresholds;
         ReadOnlySpan<byte> frequencyContexts = CoefficientFrequencyContexts;
         ReadOnlySpan<ushort> nonzeroContexts = CoefficientNonzeroContexts;
-        Span<uint> history = passInfo.Entropy.UsesLz77 ? this.coefficientHistoryMemory.Span : [];
+
+        // Native and Rust select the entropy mode before decoding coefficients. The constrained operator
+        // removes unused coding and history paths from this loop while retaining one shared traversal.
+        Span<uint> history = TOperator.UsesLz77 ? this.coefficientHistoryMemory.Span : [];
         ReadOnlySpan<byte> widths = StrategyWidths;
         ReadOnlySpan<byte> heights = StrategyHeights;
         ReadOnlySpan<byte> orderFamilies = StrategyOrderFamilies;
-        Span<byte> nonzeros = this.nonzeroMemory.Span;
+        Span<byte> nonzeroStorage = this.nonzeroMemory.Span;
+        Span<byte> nonzeros = nonzeroStorage[..(nonzeroStorage.Length / 2)];
+        Span<byte> hasAc = nonzeroStorage[nonzeros.Length..];
         Buffer2DRegion<byte> strategies = this.Strategies.GetSubRegion(rectangle);
         Buffer2DRegion<int> quantization = this.Quantization.GetSubRegion(rectangle);
         Buffer2DRegion<byte> dcContexts = this.DcContexts.GetSubRegion(rectangle);
@@ -280,7 +328,7 @@ internal sealed partial class JxlVarDctDecoder
                     int blockContext = blockContexts[(mapIndex * dcContextCount) + dcRow[x]];
                     int predictionBucket = predicted < 8 ? predicted : 4 + (predicted / 2);
                     int countContext = histogramOffset + (predictionBucket * blockContextCount) + blockContext;
-                    uint count = symbols.ReadUInt32(ref reader, countContext, history, decodedCount++);
+                    uint count = symbols.ReadUInt32<TOperator>(ref reader, countContext, history, decodedCount++, 0);
                     if (count > size - coveredBlocks)
                     {
                         throw new InvalidImageContentException("The JPEG XL AC nonzero count exceeds its transform size.");
@@ -291,6 +339,10 @@ internal sealed partial class JxlVarDctDecoder
                     for (int row = 0; row < coveredHeight; row++)
                     {
                         nonzeros.Slice(predictorOffset + (row * rowWidth), coveredWidth).Fill(normalizedCount);
+                        if (count != 0)
+                        {
+                            hasAc.Slice(predictorOffset + (row * rowWidth), coveredWidth).Fill(1);
+                        }
                     }
 
                     int densityOffset = histogramOffset + (blockContextCount * NonzeroContextCount) + (blockContext * ZeroDensityContextCount);
@@ -307,7 +359,7 @@ internal sealed partial class JxlVarDctDecoder
                     for (int k = coveredBlocks; remaining != 0 && k <= size - remaining; k++)
                     {
                         int context = densityOffset + countBucket + frequencyContexts[k >> blockShift] + previous;
-                        uint value = symbols.ReadUInt32(ref reader, context, history, decodedCount++);
+                        uint value = symbols.ReadUInt32<TOperator>(ref reader, context, history, decodedCount++, 0);
                         if (value == 0)
                         {
                             // Zero changes only the previous-symbol context. The packed coefficient and remaining-count bucket stay unchanged.

@@ -87,6 +87,22 @@ internal static partial class JxlInverseTransform
     ];
 
     /// <summary>
+    /// Gets the four-point inverse butterfly multipliers, also used by the general forward network.
+    /// </summary>
+    private static ReadOnlySpan<float> Multipliers4 =>
+    [
+        0.541196100146197F, 1.3065629648763764F,
+    ];
+
+    /// <summary>
+    /// Gets the eight-point inverse butterfly multipliers, also used by the general forward network.
+    /// </summary>
+    private static ReadOnlySpan<float> Multipliers8 =>
+    [
+        0.5097955791041592F, 0.6013448869350453F, 0.8999762231364156F, 2.5629154477415055F,
+    ];
+
+    /// <summary>
     /// Gets the radix-two butterfly multipliers for one axis length.
     /// </summary>
     /// <param name="length">The transform axis length.</param>
@@ -99,14 +115,8 @@ internal static partial class JxlInverseTransform
     /// </remarks>
     private static ReadOnlySpan<float> GetMultipliers(int length) => length switch
     {
-        4 =>
-        [
-            0.541196100146197F, 1.3065629648763764F,
-        ],
-        8 =>
-        [
-            0.5097955791041592F, 0.6013448869350453F, 0.8999762231364156F, 2.5629154477415055F,
-        ],
+        4 => Multipliers4,
+        8 => Multipliers8,
         16 =>
         [
             0.5024192861881557F, 0.5224986149396889F, 0.5669440348163577F, 0.6468217833599901F, 0.7881546234512502F, 1.060677685990347F,

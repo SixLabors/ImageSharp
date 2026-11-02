@@ -84,9 +84,9 @@ internal static class JxlModularPalette
     /// <summary>
     /// Restores equally sized output channels while preserving the index plane until the final output is reconstructed.
     /// </summary>
-    /// <param name="indices">The decoded signed index plane. The first output aliases this region.</param>
+    /// <param name="indices">The decoded signed index plane. The first output can alias this region.</param>
     /// <param name="palette">The explicit palette, with one row per output component. A zero-width palette needs no backing storage.</param>
-    /// <param name="outputs">The allocated output regions in component order, including the reused index region first.</param>
+    /// <param name="outputs">The ready output regions in component order. The first can reuse the index region.</param>
     /// <param name="deltaCount">The number of explicit entries that contain prediction deltas.</param>
     /// <param name="predictor">The validated predictor code, from zero through thirteen.</param>
     /// <param name="bitDepth">The encoded sample precision used to scale implicit colors.</param>
@@ -110,8 +110,8 @@ internal static class JxlModularPalette
             return;
         }
 
-        // Restore the other channels before overwriting indices with output zero. This keeps one index image,
-        // even for delta prediction: every output depends only on its own reconstructed neighbors.
+        // Restore output zero last so it can reuse the index region. Local final transforms can instead supply
+        // separate borrowed targets. Delta prediction remains independent because each output uses only its own restored neighbors.
         for (int i = 0; i < outputs.Length; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();

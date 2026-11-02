@@ -299,7 +299,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// <param name="reader">The reader at the four-bit threshold count.</param>
     /// <param name="destination">Space for the syntax's maximum fifteen thresholds.</param>
     /// <returns>The number of thresholds read.</returns>
-    private static int ReadDcThresholds(ref JxlBitReader reader, Span<int> destination)
+    private static int ReadDcThresholds(ref JxlBitReader reader, scoped Span<int> destination)
     {
         int count = (int)reader.ReadBits(4);
         for (int i = 0; i < count; i++)

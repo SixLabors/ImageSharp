@@ -1798,6 +1798,8 @@ public static class TestImages
         public const string GrayscalePatchesWithIcc = "Jxl/small_grayscale_patches_modular_with_icc.jxl";
         public const string WithPreview = "Jxl/with_preview.jxl";
         public const string PermutedSections = "Jxl/has_permutation.jxl";
+        public const string ProgressiveAc = "Jxl/progressive_ac.jxl";
+        public const string NarrowEdgeGroup = "Jxl/narrow_edge_group.jxl";
 
         // This stored variant omits the final section byte. The native decoder rejects it as truncated.
         public const string TruncatedSections = "Jxl/has_permutation_truncated.jxl";

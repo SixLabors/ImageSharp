@@ -541,8 +541,10 @@ internal sealed class JxlModularTree : IDisposable
     /// <param name="first">The first node in the nonempty result of PrepareFlatTree, unchanged until this method returns.</param>
     /// <param name="properties">The fixed 256-entry property array. Validated byte indices cover its complete domain.</param>
     /// <returns>The matching leaf, borrowed until the flat workspace is prepared for another channel.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref readonly Node FindFlatLeaf(ref FlatNode first, ref InlineArray256<int> properties)
     {
+        // Keep this per-sample walk in the caller, which still needs its prediction neighbors after selecting the leaf.
         // The compiler establishes every child index before publication. Traversal needs the retained root,
         // not a span descriptor copied at each sample. The workspace retains this storage throughout channel traversal.
         ref readonly FlatNode node = ref first;

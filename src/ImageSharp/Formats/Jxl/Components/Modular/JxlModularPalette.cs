@@ -226,34 +226,39 @@ internal static class JxlModularPalette
         in PaletteLookupOperator lookup,
         CancellationToken cancellationToken)
     {
+        int rowLength = output.Width;
+
         for (int y = 0; y < output.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ReadOnlySpan<int> indexRow = indices.DangerousGetRowSpan(y);
-            Span<int> row = output.DangerousGetRowSpan(y);
-            ReadOnlySpan<int> topRow = y == 0 ? row : output.DangerousGetRowSpan(y - 1);
-            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : output.DangerousGetRowSpan(y - 2);
 
-            for (int x = 0; x < row.Length; x++)
+            // Palette reconstruction validates equal index/output shapes. Region rows share rowLength,
+            // and the edge conditions below bound neighbor offsets. Read each index before an aliased output store.
+            ref int indexStart = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y));
+            ref int first = ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y));
+            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 1)));
+            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 2)));
+
+            for (int x = 0; x < rowLength; x++)
             {
-                int index = indexRow[x];
+                int index = Unsafe.Add(ref indexStart, x);
                 int value = lookup.Invoke(index);
                 if (index < deltaCount)
                 {
                     // Negative implicit indices are deltas too. Predict from already restored output,
                     // never from the index plane or from another output channel.
-                    int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
-                    int top = y != 0 ? topRow[x] : left;
-                    int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
-                    int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
-                    int leftLeft = x > 1 ? row[x - 2] : left;
-                    int topTop = y > 1 ? aboveRow[x] : top;
-                    int topRightRight = y != 0 && x + 2 < row.Length ? topRow[x + 2] : topRight;
+                    int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
+                    int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
+                    int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
+                    int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
+                    int leftLeft = x > 1 ? Unsafe.Add(ref first, x - 2) : left;
+                    int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
+                    int topRightRight = y != 0 && x + 2 < rowLength ? Unsafe.Add(ref topStart, x + 2) : topRight;
                     long prediction = JxlModularPredictor.Predict(predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
                     value = unchecked((int)(prediction + value));
                 }
 
-                row[x] = value;
+                Unsafe.Add(ref first, x) = value;
             }
         }
     }
@@ -277,30 +282,35 @@ internal static class JxlModularPalette
         in PaletteLookupOperator lookup,
         CancellationToken cancellationToken)
     {
+        int rowLength = output.Width;
+
         for (int y = 0; y < output.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ReadOnlySpan<int> indexRow = indices.DangerousGetRowSpan(y);
-            Span<int> row = output.DangerousGetRowSpan(y);
-            ReadOnlySpan<int> topRow = y == 0 ? row : output.DangerousGetRowSpan(y - 1);
-            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : output.DangerousGetRowSpan(y - 2);
 
-            for (int x = 0; x < row.Length; x++)
+            // The validated regions have equal widths. Borrow their rows once and keep the same edge
+            // substitutions as nonweighted prediction. The index load precedes its possible in-place output store.
+            ref int indexStart = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y));
+            ref int first = ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y));
+            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 1)));
+            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 2)));
+
+            for (int x = 0; x < rowLength; x++)
             {
-                int index = indexRow[x];
+                int index = Unsafe.Add(ref indexStart, x);
                 int value = lookup.Invoke(index);
-                int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
-                int top = y != 0 ? topRow[x] : left;
-                int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
-                int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
-                int topTop = y > 1 ? aboveRow[x] : top;
+                int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
+                int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
+                int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
+                int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
+                int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
                 long prediction = weightedPredictor.Predict(scratch, x, y, left, top, topLeft, topRight, topTop, out _);
                 if (index < deltaCount)
                 {
                     value = unchecked((int)(prediction + value));
                 }
 
-                row[x] = value;
+                Unsafe.Add(ref first, x) = value;
                 weightedPredictor.Update(scratch, x, y, value);
             }
         }

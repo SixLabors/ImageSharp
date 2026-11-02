@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
@@ -834,20 +835,24 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
         // The prepared tree is nonempty and unchanged for this channel. Borrow its root before sample traversal.
         ref readonly JxlModularTree.Node rootNode = ref nodes[0];
+        int rowLength = channel.Width;
 
         for (int y = 0; y < channel.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Span<int> row = channel.Region.DangerousGetRowSpan(y);
-            ReadOnlySpan<int> topRow = y == 0 ? row : channel.Region.DangerousGetRowSpan(y - 1);
-            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : channel.Region.DangerousGetRowSpan(y - 2);
+
+            // Every row in this region has rowLength samples. The block limit bounds x, and the
+            // neighbor conditions below bound each offset. The decoder retains this row storage throughout traversal.
+            ref int first = ref MemoryMarshal.GetReference(channel.Region.DangerousGetRowSpan(y));
+            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(channel.Region.DangerousGetRowSpan(y - 1)));
+            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(channel.Region.DangerousGetRowSpan(y - 2)));
             properties[9] = 0;
 
             // Bound reference scratch to 64 columns. Borrow each matching source row before its SIMD preparation,
             // then pass only spans through the pixel loop. Every property occupies one contiguous block plane.
-            for (int start = 0; start < row.Length; start += ReferenceBlockLength)
+            for (int start = 0; start < rowLength; start += ReferenceBlockLength)
             {
-                int length = Math.Min(ReferenceBlockLength, row.Length - start);
+                int length = Math.Min(ReferenceBlockLength, rowLength - start);
                 for (int r = 0; r < references; r++)
                 {
                     if (!lookup.IsEmpty && ((lookup.PropertyMask >> (FirstReferenceProperty + (r * PropertiesPerReference))) & 15) == 0)
@@ -875,13 +880,13 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 for (int column = 0; column < length; column++)
                 {
                     int x = start + column;
-                    int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
-                    int top = y != 0 ? topRow[x] : left;
-                    int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
-                    int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
-                    int leftLeft = x > 1 ? row[x - 2] : left;
-                    int topTop = y > 1 ? aboveRow[x] : top;
-                    int topRightRight = y != 0 && x + 2 < row.Length ? topRow[x + 2] : topRight;
+                    int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
+                    int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
+                    int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
+                    int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
+                    int leftLeft = x > 1 ? Unsafe.Add(ref first, x - 2) : left;
+                    int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
+                    int topRightRight = y != 0 && x + 2 < rowLength ? Unsafe.Add(ref topStart, x + 2) : topRight;
                     long weighted = 0;
                     if (usesWeighted)
                     {
@@ -964,11 +969,12 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     int cluster = node.FirstChild;
                     uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
                     int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                    row[x] = unchecked((int)(guess + ((long)signed * multiplier)));
+                    int value = unchecked((int)(guess + ((long)signed * multiplier)));
+                    Unsafe.Add(ref first, x) = value;
                     if (usesWeighted)
                     {
                         // Weighted errors advance even when this tree leaf selected another predictor.
-                        weightedPredictor.Update(errors, x, y, row[x]);
+                        weightedPredictor.Update(errors, x, y, value);
                     }
                 }
             }
@@ -1169,19 +1175,25 @@ internal sealed partial class JxlModularDecoder : IDisposable
         CancellationToken cancellationToken)
         where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
+        int rowLength = channel.Width;
+
         for (int y = 0; y < channel.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Span<int> row = channel.DangerousGetRowSpan(y);
-            ReadOnlySpan<int> topRow = y == 0 ? row : channel.DangerousGetRowSpan(y - 1);
-            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : channel.DangerousGetRowSpan(y - 2);
-            for (int x = 0; x < row.Length; x++)
+
+            // Region rows share one validated width. The loop and neighbor conditions bound every access,
+            // so retain their managed references instead of repeating independent span checks for each sample.
+            ref int first = ref MemoryMarshal.GetReference(channel.DangerousGetRowSpan(y));
+            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(channel.DangerousGetRowSpan(y - 1)));
+            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(channel.DangerousGetRowSpan(y - 2)));
+
+            for (int x = 0; x < rowLength; x++)
             {
-                int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
-                int top = y != 0 ? topRow[x] : left;
-                int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
-                int topRight = y != 0 && x + 1 < row.Length ? topRow[x + 1] : top;
-                int topTop = y > 1 ? aboveRow[x] : top;
+                int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
+                int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
+                int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
+                int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
+                int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
                 long prediction = predictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out int property);
                 int leaf = 0;
                 while (nodes[leaf].Property >= 0)
@@ -1199,8 +1211,9 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 int cluster = node.FirstChild;
                 uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                row[x] = unchecked((int)(guess + ((long)signed * multiplier)));
-                predictor.Update(errors, x, y, row[x]);
+                int value = unchecked((int)(guess + ((long)signed * multiplier)));
+                Unsafe.Add(ref first, x) = value;
+                predictor.Update(errors, x, y, value);
             }
         }
     }

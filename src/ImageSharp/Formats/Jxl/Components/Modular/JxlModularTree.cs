@@ -556,7 +556,10 @@ internal sealed class JxlModularTree : IDisposable
             // PrepareFlatTree writes all four children through bounds-checked span indexing before publication.
             // FirstChild + 3 is therefore inside the completed span, and these comparisons select offsets 0..3.
             // Children also follow their parent, so traversal advances to a leaf through valid managed references.
-            int child = node.FirstChild + (parentLow != 0 ? 2 | lesserLow : greaterLow);
+            // Each comparison is zero or one. The parent bit selects pair 0..1 or pair 2..3; AND masks retain
+            // only that pair's low bit. This forms the same child offset without a data-dependent branch.
+            int low = (greaterLow & (parentLow ^ 1)) | (lesserLow & parentLow);
+            int child = node.FirstChild + ((parentLow << 1) | low);
             node = ref Unsafe.Add(ref first, child);
         }
 

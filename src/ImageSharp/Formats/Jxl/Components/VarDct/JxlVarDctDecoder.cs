@@ -36,7 +36,12 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// Initializes a new instance of the <see cref="JxlVarDctDecoder"/> class with the frame's preceding DC factors.
     /// </summary>
     /// <param name="dcFactors">The validated DC matrix factors in X, Y, B component order.</param>
-    private JxlVarDctDecoder(Vector3 dcFactors) => this.DcFactors = dcFactors;
+    /// <param name="sampleBitDepth">The image precision used by DC and extra-channel modular transforms.</param>
+    private JxlVarDctDecoder(Vector3 dcFactors, int sampleBitDepth)
+    {
+        this.DcFactors = dcFactors;
+        this.sampleBitDepth = sampleBitDepth;
+    }
 
     /// <summary>
     /// Gets the DC matrix factors before global and DC quantizer scaling, in X, Y, B order.
@@ -138,7 +143,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// <returns>The owner of frame metadata, DC planes and reusable integer scratch. Failure releases all allocated storage.</returns>
     public static JxlVarDctDecoder ReadGlobal(ref JxlBitReader reader, JxlHeader image, JxlFrameHeader frame, MemoryAllocator allocator, Vector3 dcFactors)
     {
-        JxlVarDctDecoder result = new(dcFactors);
+        JxlVarDctDecoder result = new(dcFactors, image.Metadata.BitDepth.BitsPerSample);
         try
         {
             // Both U32 fields include positive offsets. Their syntax excludes a zero divisor without another guard.
@@ -245,6 +250,14 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        foreach (AcPass pass in this.acPasses)
+        {
+            pass.Dispose();
+        }
+
+        this.DisposeQuantizationMatrices();
+        this.DisposeOrderWorkspace();
+
         foreach (Buffer2D<float> channel in this.dcChannels)
         {
             channel.Dispose();

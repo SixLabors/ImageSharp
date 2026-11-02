@@ -45,6 +45,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// <param name="minimumCopySymbol">The first LZ77 token, or uint.MaxValue without LZ77.</param>
     /// <param name="minimumCopyLength">The minimum copy length.</param>
     /// <param name="copyLength">The copy-length configuration, unused without LZ77.</param>
+    /// <param name="maximumValueBits">The conservative hybrid-integer width represented by the completed symbol tables.</param>
     private JxlEntropyDecoder(
         IMemoryOwner<byte> contextMap,
         IMemoryOwner<Cluster> clusters,
@@ -53,7 +54,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
         int alphabetBits,
         uint minimumCopySymbol,
         uint minimumCopyLength,
-        HybridUint copyLength)
+        HybridUint copyLength,
+        int maximumValueBits)
     {
         this.contextMap = contextMap;
         this.clusters = clusters;
@@ -63,12 +65,22 @@ internal sealed class JxlEntropyDecoder : IDisposable
         this.minimumCopySymbol = minimumCopySymbol;
         this.minimumCopyLength = minimumCopyLength;
         this.copyLength = copyLength;
+        this.MaximumValueBits = maximumValueBits;
     }
 
     /// <summary>
     /// Gets a value indicating whether this entropy section permits LZ77 copy tokens.
     /// </summary>
     public bool UsesLz77 => this.minimumCopySymbol != uint.MaxValue;
+
+    /// <summary>
+    /// Gets the conservative hybrid-integer width represented by the symbol tables, including LZ77 length and distance symbols.
+    /// </summary>
+    /// <remarks>
+    /// Direct tokens use their configured split width. A zero-valued singleton can therefore have a nonzero bound.
+    /// Consumers use this metadata to select coefficient storage; actual decoded values still receive normal width validation.
+    /// </remarks>
+    public int MaximumValueBits { get; }
 
     /// <summary>
     /// Reads entropy descriptions. Retained lookup data and table scratch use the configured allocator.
@@ -126,6 +138,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
 
             bool prefix = reader.ReadBoolean();
             int alphabetBits = prefix ? HuffmanTableBuilder.MaximumCodeLength : (int)reader.ReadBits(2) + 5;
+            int maximumValueBits = 0;
+            int distanceCluster = lz77 ? map[^1] : -1;
             clusterOwner = allocator.Allocate<Cluster>(clusterCount);
             Span<Cluster> clusters = clusterOwner.Memory.Span;
 
@@ -143,10 +157,21 @@ internal sealed class JxlEntropyDecoder : IDisposable
                 Span<JxlAnsDecoder.Bucket> buckets = ansOwner.Memory.Span;
                 for (int i = 0; i < clusterCount; i++)
                 {
-                    JxlAnsDecoder.ReadDistribution(ref reader, buckets.Slice(clusters[i].TableOffset, 1 << alphabetBits));
+                    Span<JxlAnsDecoder.Bucket> table = buckets.Slice(clusters[i].TableOffset, 1 << alphabetBits);
+                    JxlAnsDecoder.ReadDistribution(ref reader, table);
+                    for (int symbol = 0; symbol < table.Length; symbol++)
+                    {
+                        // Alias buckets retain each original symbol's frequency. Only nonzero support can emit a token.
+                        if (table[symbol].Frequency != 0)
+                        {
+                            int bits = GetSymbolBitCount((uint)symbol, clusters[i].Integer, minimumSymbol, length, i == distanceCluster);
+                            maximumValueBits = Math.Max(maximumValueBits, bits);
+                        }
+                    }
                 }
 
-                return new JxlEntropyDecoder(mapOwner, clusterOwner, null, ansOwner, alphabetBits, minimumSymbol, minimumLength, length);
+                return new JxlEntropyDecoder(
+                    mapOwner, clusterOwner, null, ansOwner, alphabetBits, minimumSymbol, minimumLength, length, maximumValueBits);
             }
 
             // Cluster numbers are bytes, so at most 256 alphabet sizes are needed. This bounded
@@ -188,6 +213,15 @@ internal sealed class JxlEntropyDecoder : IDisposable
             {
                 Span<int> current = lengths.Slice(alphabetOffset, alphabetSizes[i]);
                 JxlHuffmanDecoder.ReadCodeLengths(ref reader, current);
+                for (int symbol = 0; symbol < current.Length; symbol++)
+                {
+                    if (current[symbol] != 0)
+                    {
+                        int bits = GetSymbolBitCount((uint)symbol, clusters[i].Integer, minimumSymbol, length, i == distanceCluster);
+                        maximumValueBits = Math.Max(maximumValueBits, bits);
+                    }
+                }
+
                 int count = HuffmanTableBuilder.Build([], 8, current, workspace);
                 if (count == 0)
                 {
@@ -215,7 +249,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
                 alphabetOffset += current.Length;
             }
 
-            return new JxlEntropyDecoder(mapOwner, clusterOwner, prefixOwner, null, alphabetBits, minimumSymbol, minimumLength, length);
+            return new JxlEntropyDecoder(
+                mapOwner, clusterOwner, prefixOwner, null, alphabetBits, minimumSymbol, minimumLength, length, maximumValueBits);
         }
         catch
         {
@@ -312,6 +347,24 @@ internal sealed class JxlEntropyDecoder : IDisposable
         {
             throw new InvalidImageContentException("The JPEG XL context map skips a cluster number.");
         }
+    }
+
+    /// <summary>
+    /// Calculates the configured width for a literal, copy length or copy distance token.
+    /// </summary>
+    /// <param name="symbol">A symbol with nonzero probability in its table.</param>
+    /// <param name="integer">The cluster's normal hybrid configuration.</param>
+    /// <param name="minimumCopySymbol">The first copy token, or uint.MaxValue without LZ77.</param>
+    /// <param name="copyLength">The copy-length hybrid configuration.</param>
+    /// <param name="distanceCluster">Whether this cluster supplies copy distances.</param>
+    /// <returns>The conservative width used by the native decoder to select coefficient storage.</returns>
+    private static int GetSymbolBitCount(uint symbol, HybridUint integer, uint minimumCopySymbol, HybridUint copyLength, bool distanceCluster)
+    {
+        // Copy tokens use the length configuration outside the distance cluster. Distance symbols retain
+        // their normal integer configuration, even when a context map shares that cluster with literals.
+        return !distanceCluster && symbol >= minimumCopySymbol
+            ? copyLength.GetBitCount(symbol - minimumCopySymbol)
+            : integer.GetBitCount(symbol);
     }
 
     /// <summary>
@@ -593,6 +646,19 @@ internal sealed class JxlEntropyDecoder : IDisposable
             this.splitExponent = splitExponent;
             this.highBits = highBits;
             this.lowBits = lowBits;
+        }
+
+        /// <summary>
+        /// Gets the conservative output width represented by an entropy token without consuming its middle bits.
+        /// </summary>
+        /// <param name="token">The validated table symbol, adjusted for copy-length syntax when required.</param>
+        /// <returns>The configured split width for a direct token, or the reconstructed width for an expanded token.</returns>
+        public int GetBitCount(uint token)
+        {
+            uint split = 1U << this.splitExponent;
+            return token < split
+                ? this.splitExponent
+                : this.splitExponent + 1 + (int)((token - split) >> (this.highBits + this.lowBits));
         }
 
         /// <summary>

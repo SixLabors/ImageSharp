@@ -102,7 +102,7 @@ internal sealed partial class JxlVarDctDecoder
         targets[1] = this.dcScratch[2].Borrow(colorBounds, ColorTileShift, ColorTileShift);
         targets[2] = this.acRecords.Borrow(new Rectangle(0, 0, count, RecordRows));
         targets[3] = this.dcScratch[0].Borrow(new Rectangle(Point.Empty, rectangle.Size));
-        modular.ReadChannels(ref reader, targets, 1 + (2 * this.dcGroupCount) + group, cancellationToken);
+        modular.ReadChannels(ref reader, targets, 1 + (2 * this.dcGroupCount) + group, this.sampleBitDepth, cancellationToken);
 
         Rectangle colorRectangle = new(rectangle.X >> ColorTileShift, rectangle.Y >> ColorTileShift, colorSize.Width, colorSize.Height);
         Buffer2DRegion<sbyte> outputCorrelationX = this.CorrelationX.GetSubRegion(colorRectangle);

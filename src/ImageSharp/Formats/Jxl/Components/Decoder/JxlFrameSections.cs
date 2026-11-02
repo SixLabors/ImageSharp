@@ -190,25 +190,18 @@ internal sealed class JxlFrameSections : IDisposable
     private static IMemoryOwner<uint>? ReadPermutation(
         ref JxlBitReader reader, MemoryAllocator allocator, int sectionCount, Span<uint> workspace, CancellationToken cancellationToken)
     {
-        // JPEG XL coefficient orders and section orders share eight contexts. ceil(log2(value+1)) is the bit length
-        // of value, including zero. Computing it without value+1 also avoids overflow at the unsigned endpoint.
-        using JxlEntropyDecoder codes = JxlEntropyDecoder.Read(ref reader, allocator, 8, true);
+        using JxlEntropyDecoder codes = JxlEntropyDecoder.Read(ref reader, allocator, JxlPermutation.ContextCount, true);
         JxlEntropyDecoder.Reader symbols = codes.CreateReader(ref reader);
-        int context = Math.Min(32 - BitOperations.LeadingZeroCount((uint)sectionCount), 7);
-        uint end = symbols.ReadUInt32(ref reader, context, [], 0);
-        if (end > (uint)sectionCount)
-        {
-            throw new InvalidImageContentException("The JPEG XL section permutation exceeds its table size.");
-        }
-
+        uint position = 0;
+        uint end = JxlPermutation.ReadLength(ref reader, ref symbols, sectionCount, 0, [], ref position);
         if (end == 0)
         {
             symbols.CheckFinalState();
             return null;
         }
 
-        // Only an LZ77-enabled permutation needs retained symbol history. Rent once at this table boundary, never
-        // inside the symbol loop. Include the end symbol and round to a power of two for masked circular indexing.
+        // The first length has already been decoded. Include it when preparing the shared circular symbol history.
+        // Coefficient orders use the same helper with one larger history retained across all component permutations.
         int historyLength = codes.UsesLz77 ? (int)BitOperations.RoundUpToPowerOf2(Math.Min(end + 1, JxlEntropyDecoder.MaximumLz77Distance)) : 0;
         using IMemoryOwner<uint>? historyOwner = historyLength == 0 ? null : allocator.Allocate<uint>(historyLength);
         Span<uint> history = historyOwner is null ? [] : historyOwner.Memory.Span;
@@ -221,64 +214,16 @@ internal sealed class JxlFrameSections : IDisposable
         try
         {
             Span<uint> order = [];
-            uint highestBit = 0;
             if (!workspace.IsEmpty)
             {
                 orderOwner = allocator.Allocate<uint>(sectionCount);
                 order = orderOwner.Memory.Span;
-                highestBit = 1U << BitOperations.Log2((uint)sectionCount);
-
-                // Every section starts unused. A one-based Fenwick node contains the number of entries covered by
-                // its lowest set bit. The sizes buffer is overwritten by actual size entries after this tree is no longer needed.
-                for (int i = 0; i < workspace.Length; i++)
-                {
-                    if ((i & (CancellationInterval - 1)) == 0)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                    }
-
-                    uint position = (uint)i + 1;
-                    workspace[i] = position & (~position + 1);
-                }
             }
 
-            uint previous = 0;
-            for (int i = 0; i < (int)end; i++)
-            {
-                if ((i & (CancellationInterval - 1)) == 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
-                context = Math.Min(32 - BitOperations.LeadingZeroCount(previous), 7);
-                uint value = symbols.ReadUInt32(ref reader, context, history, (uint)i + 1);
-                if (value >= (uint)(sectionCount - i))
-                {
-                    throw new InvalidImageContentException("The JPEG XL section permutation contains an invalid Lehmer digit.");
-                }
-
-                previous = value;
-                if (!order.IsEmpty)
-                {
-                    order[i] = TakeRank(workspace, value + 1, highestBit);
-                }
-            }
+            JxlPermutation.ReadDigits(
+                ref reader, ref symbols, sectionCount, 0, end, [], order, workspace, history, ref position, cancellationToken);
 
             symbols.CheckFinalState();
-            if (!order.IsEmpty)
-            {
-                // Unencoded Lehmer digits are zero. Select the first remaining physical section for each trailing entry.
-                for (int i = (int)end; i < order.Length; i++)
-                {
-                    if ((i & (CancellationInterval - 1)) == 0)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                    }
-
-                    order[i] = TakeRank(workspace, 1, highestBit);
-                }
-            }
-
             return orderOwner;
         }
         catch
@@ -286,39 +231,5 @@ internal sealed class JxlFrameSections : IDisposable
             orderOwner?.Dispose();
             throw;
         }
-    }
-
-    /// <summary>
-    /// Removes and returns the physical section with the specified one-based rank among unused sections.
-    /// </summary>
-    /// <param name="tree">The Fenwick counts for the physical section indices.</param>
-    /// <param name="rank">The validated one-based unused-section rank.</param>
-    /// <param name="highestBit">The highest power of two no greater than the section count.</param>
-    /// <returns>The selected zero-based physical section index.</returns>
-    private static uint TakeRank(Span<uint> tree, uint rank, uint highestBit)
-    {
-        uint length = (uint)tree.Length;
-        uint next = 0;
-
-        // Search from the largest block down. Skip a block only when it contains fewer unused entries than the requested rank.
-        // Exact-size storage needs the candidate bound; no padded tree or second allocation is required.
-        for (uint bit = highestBit; bit != 0; bit >>= 1)
-        {
-            uint candidate = next + bit;
-            if (candidate <= length && tree[(int)candidate - 1] < rank)
-            {
-                rank -= tree[(int)candidate - 1];
-                next = candidate;
-            }
-        }
-
-        // The validated rank selects an existing entry. Decrement every containing node to remove it.
-        // Unsigned positions can reach 2^31 when leaving an int-sized tree; they do not wrap or become negative indices.
-        for (uint position = next + 1; position <= length; position += position & (~position + 1))
-        {
-            tree[(int)position - 1]--;
-        }
-
-        return next;
     }
 }

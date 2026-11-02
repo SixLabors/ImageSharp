@@ -21,10 +21,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 
 [Trait("Format", "Jxl")]
 [ValidateDisposedMemoryAllocations]
-public class JxlHeaderTests
+public partial class JxlHeaderTests
 {
     /// <summary>
-    /// Verifies DC-global parsing against both references and the first DC group's samples and AC metadata against libjxl.
+    /// Verifies DC and AC metadata, matrices, orders and entropy-table boundaries against libjxl and jxl-rs.
     /// </summary>
     /// <param name="file">The unchanged reference input with one combined frame section.</param>
     /// <param name="globalScale">The encoded global scale reported by both references.</param>
@@ -34,7 +34,7 @@ public class JxlHeaderTests
     [Theory]
     [InlineData(TestImages.Jxl.Square, 4587, 16, 201, 317)]
     [InlineData(TestImages.Jxl.LossyRgb3x3, 32768, 100, 213, 321)]
-    public void ReadVarDctDcAndAcMetadataMatchesNative(string file, int globalScale, int dcQuantizer, int globalBits, int modularBits)
+    public void ReadVarDctGlobalMetadataMatchesNative(string file, int globalScale, int dcQuantizer, int globalBits, int modularBits)
     {
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
@@ -105,6 +105,43 @@ public class JxlHeaderTests
         Assert.Equal((sbyte)0, varDct.CorrelationX.DangerousGetRowSpan(0)[0]);
         Assert.Equal((sbyte)0, varDct.CorrelationB.DangerousGetRowSpan(0)[0]);
         Assert.Equal(1U << strategy, varDct.UsedStrategies);
+
+        // Both references consume the complete AC-global description at these bit offsets. The remaining
+        // bits belong to the AC coefficient group, not to padding between the global and group descriptions.
+        varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        Assert.Equal(start + (file == TestImages.Jxl.Square ? 360 : 618), reader.Position);
+        Assert.Equal(1U, varDct.AcHistogramSetCount);
+        Assert.Equal(1, varDct.AcPassCount);
+        Assert.Equal(file == TestImages.Jxl.Square ? 4 : 13, varDct.MaximumAcValueBits);
+        Assert.True(varDct.Uses16BitCoefficients);
+
+        // These one-block transforms share the natural 8-by-8 order across X, Y and B. Retain one copy,
+        // and leave every unused family unallocated. The native and Rust reports contain this complete order.
+        ReadOnlySpan<uint> naturalOrder =
+        [
+            0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5,
+            12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28,
+            35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,
+            58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
+        ];
+
+        Assert.Equal(naturalOrder, varDct.GetCoefficientOrders(0).Span);
+        int orderIndex = JxlVarDctDecoder.GetCoefficientOrderIndex((byte)strategy, 0);
+        ReadOnlySpan<int> offsets = varDct.GetCoefficientOrderOffsets(0);
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            Assert.Equal(i >= orderIndex && i < orderIndex + 3 ? 0 : -1, offsets[i]);
+        }
+
+        // The selected matrices contain three 64-coefficient planes. The unused quantization families
+        // have no retained storage. Matrix arithmetic has separate native-backed all-mode and SIMD checks.
+        Assert.Equal(3 * naturalOrder.Length, varDct.QuantizationMatrices.Length);
+        int matrixIndex = JxlVarDctDecoder.GetQuantizationMatrixIndex((byte)strategy, 0);
+        ReadOnlySpan<int> matrixOffsets = varDct.QuantizationMatrixOffsets;
+        for (int i = 0; i < matrixOffsets.Length; i++)
+        {
+            Assert.Equal(i >= matrixIndex && i < matrixIndex + 3 ? (i - matrixIndex) * naturalOrder.Length : -1, matrixOffsets[i]);
+        }
     }
 
     /// <summary>

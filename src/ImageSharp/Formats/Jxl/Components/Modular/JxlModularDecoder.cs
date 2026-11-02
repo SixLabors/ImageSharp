@@ -185,7 +185,7 @@ internal sealed class JxlModularDecoder : IDisposable
             }
         }
 
-        this.ReadSelectedChannels(ref reader, streamId, cancellationToken);
+        this.ReadSelectedChannels(ref reader, streamId, this.bitDepth, cancellationToken);
     }
 
     /// <summary>
@@ -194,12 +194,14 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="reader">The reader bounded to the containing frame section.</param>
     /// <param name="targets">The allocated output layouts in encoded channel order. The caller retains ownership of every region.</param>
     /// <param name="streamId">The format-defined identifier used by tree property one.</param>
+    /// <param name="sampleBitDepth">The stream precision used by inverse palettes. RAW quantization tables use eight bits.</param>
     /// <param name="cancellationToken">The token checked between channels, transforms and rows.</param>
     /// <remarks>
     /// VarDCT DC samples and AC metadata use the same modular syntax as image groups, with explicitly declared channel layouts.
     /// Completed samples remain in the supplied regions. Temporary transformed samples are released before this method returns.
     /// </remarks>
-    public void ReadChannels(ref JxlBitReader reader, ReadOnlySpan<JxlModularChannel> targets, int streamId, CancellationToken cancellationToken)
+    public void ReadChannels(
+        ref JxlBitReader reader, ReadOnlySpan<JxlModularChannel> targets, int streamId, int sampleBitDepth, CancellationToken cancellationToken)
     {
         this.groupChannels.Clear();
         this.groupTargets.Clear();
@@ -212,7 +214,7 @@ internal sealed class JxlModularDecoder : IDisposable
             this.groupTargets.Add(borrowed);
         }
 
-        this.ReadSelectedChannels(ref reader, streamId, cancellationToken);
+        this.ReadSelectedChannels(ref reader, streamId, sampleBitDepth, cancellationToken);
     }
 
     /// <summary>
@@ -220,8 +222,9 @@ internal sealed class JxlModularDecoder : IDisposable
     /// </summary>
     /// <param name="reader">The reader bounded to the containing section.</param>
     /// <param name="streamId">The selected modular stream identifier.</param>
+    /// <param name="sampleBitDepth">The precision declared by this stream, independently of its integer storage.</param>
     /// <param name="cancellationToken">The token checked during reconstruction and export.</param>
-    private void ReadSelectedChannels(ref JxlBitReader reader, int streamId, CancellationToken cancellationToken)
+    private void ReadSelectedChannels(ref JxlBitReader reader, int streamId, int sampleBitDepth, CancellationToken cancellationToken)
     {
         List<JxlModularChannel> local = this.groupChannels;
         List<JxlModularChannel> targets = this.groupTargets;
@@ -237,7 +240,7 @@ internal sealed class JxlModularDecoder : IDisposable
             List<Transform> transforms = this.groupTransforms;
             this.ReadStream(ref reader, local, transforms, int.MaxValue, streamId, false, out JxlWeightedPredictor predictor, cancellationToken);
 
-            this.UndoTransforms(local, transforms, predictor, cancellationToken);
+            this.UndoTransforms(local, transforms, predictor, sampleBitDepth, cancellationToken);
 
             // Parsing no longer needs the encoded layouts. Reuse that list to validate the restored channels
             // against their retained borrowed targets without creating a per-group layout array.
@@ -275,7 +278,7 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="cancellationToken">The token checked between transforms and rows.</param>
     public void Complete(CancellationToken cancellationToken)
     {
-        this.UndoTransforms(this.channels, this.globalTransforms, this.globalPredictor, cancellationToken);
+        this.UndoTransforms(this.channels, this.globalTransforms, this.globalPredictor, this.bitDepth, cancellationToken);
         ValidateShapes(this.channels, this.originalLayouts);
         this.globalTransforms.Clear();
     }
@@ -735,9 +738,14 @@ internal sealed class JxlModularDecoder : IDisposable
     /// <param name="channels">The decoded stream channels, updated to their original layouts.</param>
     /// <param name="transforms">The flattened records in forward wire order.</param>
     /// <param name="weightedPredictor">The group coefficients used by delta palettes.</param>
+    /// <param name="sampleBitDepth">The stream precision used to reconstruct implicit palette entries.</param>
     /// <param name="cancellationToken">The token checked between transforms and rows.</param>
     private void UndoTransforms(
-        List<JxlModularChannel> channels, List<Transform> transforms, JxlWeightedPredictor weightedPredictor, CancellationToken cancellationToken)
+        List<JxlModularChannel> channels,
+        List<Transform> transforms,
+        JxlWeightedPredictor weightedPredictor,
+        int sampleBitDepth,
+        CancellationToken cancellationToken)
     {
         for (int i = transforms.Count - 1; i >= 0; i--)
         {
@@ -805,7 +813,7 @@ internal sealed class JxlModularDecoder : IDisposable
                     outputs,
                     transform.DeltaCount,
                     transform.Predictor,
-                    this.bitDepth,
+                    sampleBitDepth,
                     weightedPredictor,
                     errors,
                     cancellationToken);

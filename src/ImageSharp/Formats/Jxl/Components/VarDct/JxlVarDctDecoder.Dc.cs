@@ -63,7 +63,7 @@ internal sealed partial class JxlVarDctDecoder
 
         // DC streams inherit the image's modular bit depth, including inverse-palette scaling. They use stream IDs
         // 1 + group, before extra-channel DC streams and AC metadata. No intermediate pixels or color clipping apply.
-        modular.ReadChannels(ref reader, targets[..3], 1 + group, cancellationToken);
+        modular.ReadChannels(ref reader, targets[..3], 1 + group, this.sampleBitDepth, cancellationToken);
 
         Buffer2DRegion<int> quantizedY = targets[0].Region;
         Buffer2DRegion<int> quantizedX = targets[1].Region;

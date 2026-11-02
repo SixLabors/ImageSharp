@@ -1723,6 +1723,19 @@ public static class TestImages
         // Native-encoded DC-global metadata with signed thresholds. Only the raw signature precedes this partial section.
         public const string VarDctDcThresholds = "Jxl/dc-global-thresholds-partial.jxl";
 
+        // Native-encoded AC-global matrix descriptions and coefficient orders, verified by both references.
+        public const string VarDctCustomMatrices = "Jxl/ac-matrices-custom-partial.jxl";
+        public const string VarDctDefaultMatrices = "Jxl/ac-matrices-default-partial.jxl";
+        public const string VarDctRectangularMatrices = "Jxl/ac-matrices-rectangular-partial.jxl";
+        public const string VarDctRectangularOwner = "Jxl/vardct-rectangular-owner-partial.jxl";
+        public const string AcMetadataRectangularDct = "Jxl/ac-metadata-rectangular-strategy6-partial.jxl";
+        public const string AcMetadataRectangularRaw = "Jxl/ac-metadata-rectangular-strategy8-partial.jxl";
+        public const string AcMetadataRawMatrix = "Jxl/ac-metadata-matrix-0-partial.jxl";
+        public const string AcMetadataIdentityMatrix = "Jxl/ac-metadata-matrix-1-partial.jxl";
+        public const string AcMetadataDct4Matrix = "Jxl/ac-metadata-matrix-3-partial.jxl";
+        public const string AcMetadataAfvMatrix = "Jxl/ac-metadata-matrix-14-partial.jxl";
+        public const string VarDctCustomOrders = "Jxl/ac-orders-custom-partial.jxl";
+
         // Native-encoded AC metadata, verified through libjxl's original metadata decoder. These partial streams
         // contain their raw signature and one modular metadata payload, without an image or frame header.
         public const string AcMetadataSaturation = "Jxl/ac-metadata-saturation-partial.jxl";

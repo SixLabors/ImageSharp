@@ -767,7 +767,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     }
 
     /// <summary>
-    /// Reconstructs one mixed-predictor channel with its selected tree and bounded cross-channel properties.
+    /// Selects one tree representation before reconstructing a mixed-predictor channel.
     /// </summary>
     /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
     /// <param name="reader">The bounded sample reader.</param>
@@ -801,6 +801,120 @@ internal sealed partial class JxlModularDecoder : IDisposable
         CancellationToken cancellationToken)
         where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
+        if (nodes.Length == 1)
+        {
+            // A fixed leaf needs neither interval tables nor compiled flat storage.
+            this.DecodeGeneralChannel<TOperator, JxlModularTree.SingleLeafTreeOperator>(
+                ref reader,
+                ref symbols,
+                descriptors,
+                channelIndex,
+                nodes,
+                [],
+                default,
+                propertyCount,
+                streamId,
+                usesWeighted,
+                ref weightedPredictor,
+                errors,
+                history,
+                ref decoded,
+                maximumWidth,
+                cancellationToken);
+
+            return;
+        }
+
+        JxlModularChannel channel = descriptors[channelIndex];
+
+        // Lookup preparation can reuse reference scratch. Complete it before the worker borrows that scratch;
+        // the returned tables belong to separate retained owners and remain unchanged throughout the channel.
+        JxlModularTree.Lookup lookup = JxlModularTree.PrepareLookup(nodes, (long)channel.Width * channel.Height, this.workspace);
+
+        if (!lookup.IsEmpty)
+        {
+            this.DecodeGeneralChannel<TOperator, JxlModularTree.IntervalTreeOperator>(
+                ref reader,
+                ref symbols,
+                descriptors,
+                channelIndex,
+                nodes,
+                [],
+                lookup,
+                propertyCount,
+                streamId,
+                usesWeighted,
+                ref weightedPredictor,
+                errors,
+                history,
+                ref decoded,
+                maximumWidth,
+                cancellationToken);
+
+            return;
+        }
+
+        ReadOnlySpan<JxlModularTree.FlatNode> flatNodes = JxlModularTree.PrepareFlatTree(nodes, this.workspace);
+        this.DecodeGeneralChannel<TOperator, JxlModularTree.FlatTreeOperator>(
+            ref reader,
+            ref symbols,
+            descriptors,
+            channelIndex,
+            nodes,
+            flatNodes,
+            default,
+            propertyCount,
+            streamId,
+            usesWeighted,
+            ref weightedPredictor,
+            errors,
+            history,
+            ref decoded,
+            maximumWidth,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Reconstructs one mixed-predictor channel with a fixed entropy mode and tree representation.
+    /// </summary>
+    /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
+    /// <typeparam name="TTreeOperator">The tree representation selected once for this channel.</typeparam>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The entropy state shared by every channel in this stream.</param>
+    /// <param name="descriptors">The ready channels. Earlier matching channels can supply reference properties.</param>
+    /// <param name="channelIndex">The current channel and its static property zero.</param>
+    /// <param name="nodes">The current channel's reduced tree, retained unchanged throughout traversal.</param>
+    /// <param name="flatNodes">The completed flat entries, or empty for interval and fixed-leaf selection.</param>
+    /// <param name="lookup">The prepared interval tables, or empty for flat and fixed-leaf selection.</param>
+    /// <param name="propertyCount">The property range required by the reduced tree.</param>
+    /// <param name="streamId">The static stream property one.</param>
+    /// <param name="usesWeighted">Whether any reachable leaf or property requires weighted prediction state.</param>
+    /// <param name="weightedPredictor">The current group's coefficients and mutable prediction state.</param>
+    /// <param name="errors">The frame-owned weighted error rows, already reset for this channel.</param>
+    /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
+    /// <param name="decoded">The number of residuals consumed across all preceding channels and current samples.</param>
+    /// <param name="maximumWidth">The complete stream width used by modular LZ77 distances.</param>
+    /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
+    private void DecodeGeneralChannel<TOperator, TTreeOperator>(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        ReadOnlySpan<JxlModularChannel> descriptors,
+        int channelIndex,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        ReadOnlySpan<JxlModularTree.FlatNode> flatNodes,
+        JxlModularTree.Lookup lookup,
+        int propertyCount,
+        int streamId,
+        bool usesWeighted,
+        ref JxlWeightedPredictor weightedPredictor,
+        Span<int> errors,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth,
+        CancellationToken cancellationToken)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+        where TTreeOperator : struct, JxlModularTree.ITreeOperator
+    {
         // General properties and reference indices belong to this worker. The stream dispatcher and
         // specialized channel loops do not share its stack state or its prediction-loop compilation budget.
         JxlModularChannel channel = descriptors[channelIndex];
@@ -808,13 +922,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
         InlineArray64<int> referenceStorage = default;
         Span<int> properties = propertyStorage;
         Span<int> referenceIndices = referenceStorage;
-
-        // Compile only trees for which interval lookup removes a sufficiently deep per-sample walk.
-        // Lookup setup borrows reference scratch first; every returned table belongs to another retained owner.
-        JxlModularTree.Lookup lookup = JxlModularTree.PrepareLookup(nodes, (long)channel.Width * channel.Height, this.workspace);
-        ReadOnlySpan<JxlModularTree.FlatNode> flatNodes = lookup.IsEmpty && nodes.Length > 1
-            ? JxlModularTree.PrepareFlatTree(nodes, this.workspace)
-            : [];
 
         properties.Clear();
         properties[0] = channelIndex;
@@ -833,8 +940,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
             }
         }
 
-        // The prepared tree is nonempty and unchanged for this channel. Borrow its root before sample traversal.
-        ref readonly JxlModularTree.Node rootNode = ref nodes[0];
         int rowLength = channel.Width;
 
         for (int y = 0; y < channel.Height; y++)
@@ -855,7 +960,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 int length = Math.Min(ReferenceBlockLength, rowLength - start);
                 for (int r = 0; r < references; r++)
                 {
-                    if (!lookup.IsEmpty && ((lookup.PropertyMask >> (FirstReferenceProperty + (r * PropertiesPerReference))) & 15) == 0)
+                    if (TTreeOperator.UsesLookup && ((lookup.PropertyMask >> (FirstReferenceProperty + (r * PropertiesPerReference))) & 15) == 0)
                     {
                         // A matching earlier channel can exist without contributing any selected property.
                         // Its scratch is never read, so neither its rows nor its reference equations are needed.
@@ -894,8 +999,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         properties[15] = errorProperty;
                     }
 
-                    int leaf = 0;
-                    if (!lookup.IsEmpty)
+                    if (TTreeOperator.UsesLookup)
                     {
                         // The selected property IDs are sorted. Property eight consumes the preceding
                         // pixel's gradient before property nine replaces it. Missing reference channels stay zero.
@@ -928,10 +1032,8 @@ internal sealed partial class JxlModularDecoder : IDisposable
                             // Property eight still needs the previous gradient when no split reads property nine.
                             properties[9] = unchecked(left + top - topLeft);
                         }
-
-                        leaf = lookup.FindLeaf(properties);
                     }
-                    else if (rootNode.Property >= 0)
+                    else if (TTreeOperator.UsesProperties)
                     {
                         // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
                         properties[2] = y;
@@ -953,10 +1055,9 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         }
                     }
 
-                    // Borrow the selected representation's payload directly. Only interval lookup and singleton trees use the source nodes.
-                    ref readonly JxlModularTree.Node node = ref (!flatNodes.IsEmpty
-                        ? ref JxlModularTree.FindFlatLeaf(ref MemoryMarshal.GetReference(flatNodes), ref propertyStorage)
-                        : ref nodes[leaf]);
+                    // The channel's operator fixes both property preparation and leaf selection. Flat and fixed-leaf
+                    // traversals do not read interval state. All representations borrow the existing retained payload.
+                    ref readonly JxlModularTree.Node node = ref TTreeOperator.SelectLeaf(nodes, flatNodes, in lookup, ref propertyStorage);
 
                     // Complete prediction before entropy expansion. The neighbor values
                     // and leaf reference can then expire before a refill call; only the guess and multiplier must survive.

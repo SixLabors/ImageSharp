@@ -114,6 +114,36 @@ internal sealed class JxlModularTree : IDisposable
     }
 
     /// <summary>
+    /// Selects a leaf through the tree representation prepared once for a channel.
+    /// </summary>
+    public interface ITreeOperator
+    {
+        /// <summary>
+        /// Gets a value indicating whether this representation reads prepared interval tables.
+        /// </summary>
+        static abstract bool UsesLookup { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether leaf selection reads dynamic sample properties.
+        /// </summary>
+        static abstract bool UsesProperties { get; }
+
+        /// <summary>
+        /// Borrows the selected leaf from the completed representation without changing its storage.
+        /// </summary>
+        /// <param name="nodes">The reduced nodes, used by interval lookup and single-leaf selection.</param>
+        /// <param name="flatNodes">The completed flat nodes, used only by flat traversal.</param>
+        /// <param name="lookup">The prepared interval tables, used only by interval lookup.</param>
+        /// <param name="properties">The current sample's fixed 256-entry property array.</param>
+        /// <returns>The leaf retained by the selected representation throughout channel traversal.</returns>
+        static abstract ref readonly Node SelectLeaf(
+            ReadOnlySpan<Node> nodes,
+            ReadOnlySpan<FlatNode> flatNodes,
+            in Lookup lookup,
+            ref InlineArray256<int> properties);
+    }
+
+    /// <summary>
     /// Gets the initialized tree nodes. Completed leaves name sample entropy clusters; splits name adjacent child nodes.
     /// </summary>
     public ReadOnlySpan<Node> Nodes => this.nodes.Memory.Span[..this.nodeCount];
@@ -777,6 +807,69 @@ internal sealed class JxlModularTree : IDisposable
         /// Gets a value indicating whether this completed entry contains a retained leaf payload.
         /// </summary>
         public bool IsLeaf => this.tag != 0;
+    }
+
+    /// <summary>
+    /// Selects a reduced-tree leaf through prepared interval tables.
+    /// </summary>
+    public readonly struct IntervalTreeOperator : ITreeOperator
+    {
+        /// <inheritdoc/>
+        public static bool UsesLookup => true;
+
+        /// <inheritdoc/>
+        public static bool UsesProperties => true;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly Node SelectLeaf(
+            ReadOnlySpan<Node> nodes,
+            ReadOnlySpan<FlatNode> flatNodes,
+            in Lookup lookup,
+            ref InlineArray256<int> properties)
+            => ref nodes[lookup.FindLeaf(properties)];
+    }
+
+    /// <summary>
+    /// Selects a retained leaf through completed two-level flat entries.
+    /// </summary>
+    public readonly struct FlatTreeOperator : ITreeOperator
+    {
+        /// <inheritdoc/>
+        public static bool UsesLookup => false;
+
+        /// <inheritdoc/>
+        public static bool UsesProperties => true;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly Node SelectLeaf(
+            ReadOnlySpan<Node> nodes,
+            ReadOnlySpan<FlatNode> flatNodes,
+            in Lookup lookup,
+            ref InlineArray256<int> properties)
+            => ref FindFlatLeaf(ref MemoryMarshal.GetReference(flatNodes), ref properties);
+    }
+
+    /// <summary>
+    /// Selects a channel's single fixed leaf without reading sample properties.
+    /// </summary>
+    public readonly struct SingleLeafTreeOperator : ITreeOperator
+    {
+        /// <inheritdoc/>
+        public static bool UsesLookup => false;
+
+        /// <inheritdoc/>
+        public static bool UsesProperties => false;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly Node SelectLeaf(
+            ReadOnlySpan<Node> nodes,
+            ReadOnlySpan<FlatNode> flatNodes,
+            in Lookup lookup,
+            ref InlineArray256<int> properties)
+            => ref nodes[0];
     }
 
     /// <summary>

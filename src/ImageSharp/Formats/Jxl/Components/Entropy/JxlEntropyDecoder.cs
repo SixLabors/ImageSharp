@@ -875,13 +875,14 @@ internal sealed class JxlEntropyDecoder : IDisposable
             uint positionInBucket = index & this.bucketMask;
             JxlAnsDecoder.Bucket bucket = this.buckets[tableOffset + bucketIndex];
 
-            // One 0-or-1 selector gates the alias fields, as in jxl-rs entropy_coding/ans.rs.
-            // Multiplication selects the frequency XOR and offset without repeating a data-dependent branch.
-            // The selector keeps one symbol term and clears the other. Products retain the bucket fields' validated integer bounds.
+            // Unsigned subtraction maps a zero selector to zero and a one selector to all one bits.
+            // Each AND either clears a complete field or retains it unchanged. The complementary mask keeps
+            // only the direct bucket index. This keeps field selection off the multiplication chain used by the ANS state.
             uint selectAlias = positionInBucket >= bucket.Cutoff ? 1U : 0U;
-            uint frequency = bucket.Frequency ^ (bucket.AliasFrequencyXor * selectAlias);
-            uint offset = positionInBucket + (bucket.AliasOffset * selectAlias);
-            uint symbol = (bucket.AliasSymbol * selectAlias) | ((uint)bucketIndex * (1U - selectAlias));
+            uint aliasMask = unchecked(0U - selectAlias);
+            uint frequency = bucket.Frequency ^ (bucket.AliasFrequencyXor & aliasMask);
+            uint offset = positionInBucket + (bucket.AliasOffset & aliasMask);
+            uint symbol = (bucket.AliasSymbol & aliasMask) | ((uint)bucketIndex & ~aliasMask);
             this.state = ((this.state >> JxlAnsDecoder.ProbabilityBits) * frequency) + offset;
 
             // ANS consumes sixteen bits only when the updated state falls below its normalization threshold.

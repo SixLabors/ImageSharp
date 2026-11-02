@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
@@ -24,6 +25,51 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public partial class JxlHeaderTests
 {
+    /// <summary>
+    /// Verifies exact predictor weights for wrapped error sums and magnitude-shift boundaries on every SIMD path.
+    /// </summary>
+    [Fact]
+    public void PredictorWeightsPreserveUnsignedErrorBounds()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePredictorWeightErrorBounds,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the format's integer weight equation with literal maximum weights and independent exact expected weights.
+    /// </summary>
+    private static void ValidatePredictorWeightErrorBounds()
+    {
+        Vector128<uint> maximum = Vector128.Create(13U, 12U, 12U, 12U);
+        Vector128<uint>[] inputs =
+        [
+            Vector128<uint>.Zero,
+            Vector128.Create(uint.MaxValue, 0U, 0U, 0U),
+            Vector128.Create(31U, 32U, 63U, 64U),
+            Vector128.Create(0x7FFFFFFEU, 0x7FFFFFFFU, 0x80000000U, uint.MaxValue)
+        ];
+
+        // The ISO 18181-1 equation, also used by libjxl context_predict.h and jxl-rs predict.rs, is
+        // 4 + floor(maximum * floor(2^24/(index+1)) / 2^shift), with index=floor(error/2^shift).
+        // The shift is max(0,floor(log2(error+1))-5).
+        // These literal results use exact integer division and the mathematical 33-bit error+1 value.
+        Vector128<uint>[] expected =
+        [
+            Vector128.Create(218103812U, 201326596U, 201326596U, 201326596U),
+            Vector128.Create(4U, 201326596U, 201326596U, 201326596U),
+            Vector128.Create(6815748U, 6100804U, 3145732U, 3050404U),
+            Vector128.Create(4U, 4U, 4U, 4U)
+        ];
+
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            Vector128<uint> actual = JxlWeightedPredictor.CalculateWeights(inputs[i], maximum);
+            for (int lane = 0; lane < Vector128<uint>.Count; lane++)
+            {
+                Assert.Equal(expected[i].GetElement(lane), actual.GetElement(lane));
+            }
+        }
+    }
+
     /// <summary>
     /// Verifies compact flat-tree storage and complete leaf payloads across signed threshold boundaries.
     /// </summary>

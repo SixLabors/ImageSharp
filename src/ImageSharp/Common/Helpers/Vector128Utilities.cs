@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -314,6 +315,60 @@ internal static class Vector128_
            7);
 
         return Vector128.ShuffleNative(value, indices);
+    }
+
+    /// <summary>
+    /// Counts leading zero bits independently in four unsigned 32-bit lanes.
+    /// </summary>
+    /// <param name="value">The four unsigned words.</param>
+    /// <returns>The zero count of each lane, from zero through 32. A zero input has 32 leading zero bits.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<uint> LeadingZeroCount(Vector128<uint> value)
+    {
+        if (Avx512CD.VL.IsSupported)
+        {
+            return Avx512CD.VL.LeadingZeroCount(value);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.LeadingZeroCount(value);
+        }
+
+        // Build the four counts directly. No temporary span or wider vector is needed.
+        return Vector128.Create(
+            (uint)BitOperations.LeadingZeroCount(value.GetElement(0)),
+            (uint)BitOperations.LeadingZeroCount(value.GetElement(1)),
+            (uint)BitOperations.LeadingZeroCount(value.GetElement(2)),
+            (uint)BitOperations.LeadingZeroCount(value.GetElement(3)));
+    }
+
+    /// <summary>
+    /// Shifts four unsigned 32-bit lanes right by their corresponding lane counts, inserting zero bits.
+    /// </summary>
+    /// <param name="value">The four unsigned words.</param>
+    /// <param name="count">The per-lane shift counts. Each count must be from zero through 31.</param>
+    /// <returns>The shifted unsigned words in the same lane order.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<uint> ShiftRightLogicalVariable(Vector128<uint> value, Vector128<uint> count)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ShiftRightLogicalVariable(value, count);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            // ARM logical shifts use signed counts: negative counts shift right. The caller's 0..31
+            // bound keeps negation exact and matches AVX2 and the scalar unsigned right-shift semantics.
+            return AdvSimd.ShiftLogical(value, -count.AsInt32());
+        }
+
+        return Vector128.Create(
+            value.GetElement(0) >> (int)count.GetElement(0),
+            value.GetElement(1) >> (int)count.GetElement(1),
+            value.GetElement(2) >> (int)count.GetElement(2),
+            value.GetElement(3) >> (int)count.GetElement(3));
     }
 
     /// <summary>

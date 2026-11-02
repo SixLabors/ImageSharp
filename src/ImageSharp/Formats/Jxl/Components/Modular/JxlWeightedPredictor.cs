@@ -5,6 +5,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
@@ -145,6 +148,37 @@ internal struct JxlWeightedPredictor
     }
 
     /// <summary>
+    /// Calculates the format's four exact integer predictor weights from wrapped local error sums.
+    /// </summary>
+    /// <param name="errors">Four unsigned error sums in predictor order, including values across the complete uint range.</param>
+    /// <param name="maximumWeights">The corresponding four-bit maximum weights. Each lane must be from zero through 15.</param>
+    /// <returns>The unnormalized integer weights in predictor order, each with the format's minimum contribution of four.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<uint> CalculateWeights(Vector128<uint> errors, Vector128<uint> maximumWeights)
+    {
+        // Lanes identify four predictors for this sample. For a nonzero uint value,
+        // floor(log2(value)) = 31-LZCNT(value). Error+1 needs a separate all-ones lane:
+        // its mathematical value is 2^32, so the required shift is 32-5 rather than the wrapped zero's shift.
+        Vector128<uint> incremented = errors + Vector128<uint>.One;
+        Vector128<int> shifts = Vector128.Max(
+            Vector128.Create(31 - ErrorWeightMagnitudeBits) - Vector128_.LeadingZeroCount(incremented).AsInt32(),
+            Vector128<int>.Zero);
+
+        Vector128<uint> counts = Vector128.ConditionalSelect(
+            Vector128.Equals(errors, Vector128<uint>.AllBitsSet),
+            Vector128.Create((uint)(32 - ErrorWeightMagnitudeBits)),
+            shifts.AsUInt32());
+
+        // Shifts are 0..27 and every index is 0..63, including index 31 for uint.MaxValue.
+        // Gather uses the existing exact reciprocal table; its values fit signed 32-bit words too.
+        // A four-bit maximum weight times 2^24 is at most 251658240, so the product fits uint.
+        Vector128<uint> indices = Vector128_.ShiftRightLogicalVariable(errors, counts);
+        ref uint table = ref MemoryMarshal.GetReference(Reciprocals);
+        Vector128<uint> reciprocals = Vector128_.Gather(ref Unsafe.As<uint, int>(ref table), indices.AsInt32()).AsUInt32();
+        return Vector128_.ShiftRightLogicalVariable(maximumWeights * reciprocals, counts) + Vector128.Create((uint)MinimumWeight);
+    }
+
+    /// <summary>
     /// Gets the number of integer values required for two rows of combined and individual prediction errors.
     /// </summary>
     /// <param name="width">The validated modular channel width.</param>
@@ -211,12 +245,6 @@ internal struct JxlWeightedPredictor
             + Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (northEast * PredictorCount)))
             + Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (northWest * PredictorCount)));
 
-        uint weight0 = GetWeight(summedErrors.GetElement(0), this.maximumWeights[0]);
-        uint weight1 = GetWeight(summedErrors.GetElement(1), this.maximumWeights[1]);
-        uint weight2 = GetWeight(summedErrors.GetElement(2), this.maximumWeights[2]);
-        uint weight3 = GetWeight(summedErrors.GetElement(3), this.maximumWeights[3]);
-        uint weightSum = weight0 + weight1 + weight2 + weight3;
-
         long errorWest = x == 0 ? 0 : errors[currentRow + x - 1];
         long errorNorth = errors[north];
         long errorNorthWest = errors[northWest];
@@ -254,21 +282,7 @@ internal struct JxlWeightedPredictor
             + (errorNorthEast * this.northEastErrorCoefficient) + ((nn - n) * this.northDifferenceCoefficient)
             + ((nw - w) * this.westDifferenceCoefficient)) >> CorrectionShift);
 
-        // Each initial weight is at least four. Scaling by their common magnitude retains a positive
-        // sum no greater than 31. The reciprocal table replaces division with the exact format approximation.
-        int weightShift = BitOperations.Log2(weightSum) - NormalizedWeightBits;
-        weight0 >>= weightShift;
-        weight1 >>= weightShift;
-        weight2 >>= weightShift;
-        weight3 >>= weightShift;
-        weightSum = weight0 + weight1 + weight2 + weight3;
-        long sum = (weightSum >> 1) - 1;
-        sum += this.predictions[0] * weight0;
-        sum += this.predictions[1] * weight1;
-        sum += this.predictions[2] * weight2;
-        sum += this.predictions[3] * weight3;
-
-        long prediction = (sum * Reciprocals[(int)weightSum - 1]) >> ReciprocalBits;
+        long prediction = this.CombinePredictions(summedErrors);
         if (((errorNorth ^ errorWest) | (errorNorth ^ errorNorthWest)) <= 0)
         {
             // The format bounds a prediction by W, NE and N only for this error-sign condition.
@@ -357,5 +371,72 @@ internal struct JxlWeightedPredictor
         // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
         int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
         return MinimumWeight + ((maximumWeight * Reciprocals[(int)(error >> shift)]) >> shift);
+    }
+
+    /// <summary>
+    /// Combines the four retained predictions with exact integer weights from their wrapped local error sums.
+    /// </summary>
+    /// <param name="errors">Four unsigned lanes in predictor order, each containing the wrapped N, NE and NW error sum.</param>
+    /// <returns>The weighted prediction with its three fractional bits, before the error-sign clamp.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private long CombinePredictions(Vector128<uint> errors)
+    {
+        if (Avx512CD.VL.IsSupported || AdvSimd.IsSupported)
+        {
+            ref uint firstMaximum = ref Unsafe.As<InlineArray4<uint>, uint>(ref this.maximumWeights);
+            Vector128<uint> weights = CalculateWeights(errors, Vector128.LoadUnsafe(ref firstMaximum));
+
+            // A four-bit maximum weight times 2^24 is at most 251658240. Each resulting weight is
+            // at most 251658244; their sum fits uint. The shared magnitude normalization leaves a
+            // positive sum no greater than 31, exactly as the scalar equations below do.
+            uint weightSum = Vector128.Sum(weights);
+            int weightShift = BitOperations.Log2(weightSum) - NormalizedWeightBits;
+            weights >>= weightShift;
+            weightSum = Vector128.Sum(weights);
+            long sum = (weightSum >> 1) - 1;
+
+            if (Avx512DQ.VL.IsSupported)
+            {
+                // Four uint weights widen to exactly four long lanes. DQ supplies native low-64-bit
+                // multiplication. Integer products and sums preserve the scalar result without floating-point rounding.
+                // Scaled int samples have magnitude at most 2^34. The five-bit correction coefficients keep each prediction
+                // below 2^37 in magnitude; normalized weights total at most 31, so every dot-product partial fits long.
+                Vector256<long> wideWeights = Vector256.Create(Vector128.WidenLower(weights), Vector128.WidenUpper(weights)).AsInt64();
+                ref long firstPrediction = ref Unsafe.As<InlineArray4<long>, long>(ref this.predictions);
+                sum += Vector256.Sum(Vector256.LoadUnsafe(ref firstPrediction) * wideWeights);
+            }
+            else
+            {
+                // Targets without DQ retain four scalar products instead of emulating long-lane multiplication.
+                // This also keeps ARM's native four-lane weight arithmetic without requiring a nonexistent general long multiply.
+                sum += this.predictions[0] * weights.GetElement(0);
+                sum += this.predictions[1] * weights.GetElement(1);
+                sum += this.predictions[2] * weights.GetElement(2);
+                sum += this.predictions[3] * weights.GetElement(3);
+            }
+
+            return (sum * Reciprocals[(int)weightSum - 1]) >> ReciprocalBits;
+        }
+
+        // Keep the original scalar weight, normalization and dot-product flow on targets without native
+        // lane-wise leading-zero count. In particular, AVX2-only targets do not pack and extract weights.
+        uint weight0 = GetWeight(errors.GetElement(0), this.maximumWeights[0]);
+        uint weight1 = GetWeight(errors.GetElement(1), this.maximumWeights[1]);
+        uint weight2 = GetWeight(errors.GetElement(2), this.maximumWeights[2]);
+        uint weight3 = GetWeight(errors.GetElement(3), this.maximumWeights[3]);
+        uint scalarWeightSum = weight0 + weight1 + weight2 + weight3;
+        int scalarWeightShift = BitOperations.Log2(scalarWeightSum) - NormalizedWeightBits;
+        weight0 >>= scalarWeightShift;
+        weight1 >>= scalarWeightShift;
+        weight2 >>= scalarWeightShift;
+        weight3 >>= scalarWeightShift;
+        scalarWeightSum = weight0 + weight1 + weight2 + weight3;
+        long scalarSum = (scalarWeightSum >> 1) - 1;
+        scalarSum += this.predictions[0] * weight0;
+        scalarSum += this.predictions[1] * weight1;
+        scalarSum += this.predictions[2] * weight2;
+        scalarSum += this.predictions[3] * weight3;
+
+        return (scalarSum * Reciprocals[(int)scalarWeightSum - 1]) >> ReciprocalBits;
     }
 }

@@ -257,27 +257,54 @@ internal struct JxlWeightedPredictor
         // The four signed errors come from int storage. Integer SIMD absolute value retains the
         // int.MinValue bit pattern; treating the magnitudes as uint represents its exact value 2^31.
         // Strict comparisons retain W, N, NW, NE tie order without long absolute-value overflow checks.
-        Vector128<uint> magnitudes = Vector128.Abs(Vector128.Create((int)errorWest, (int)errorNorth, (int)errorNorthWest, (int)errorNorthEast)).AsUInt32();
-        long largestError = errorWest;
-        uint largestMagnitude = magnitudes.GetElement(0);
-        if (magnitudes.GetElement(1) > largestMagnitude)
-        {
-            largestError = errorNorth;
-            largestMagnitude = magnitudes.GetElement(1);
-        }
+        Vector128<int> signedErrors = Vector128.Create((int)errorWest, (int)errorNorth, (int)errorNorthWest, (int)errorNorthEast);
+        Vector128<uint> magnitudes = Vector128.Abs(signedErrors).AsUInt32();
 
-        if (magnitudes.GetElement(2) > largestMagnitude)
+        if (Vector128.IsHardwareAccelerated)
         {
-            largestError = errorNorthWest;
-            largestMagnitude = magnitudes.GetElement(2);
-        }
+            const byte SwapAdjacentErrors = 0xB1;
+            const byte SwapErrorPairs = 0x4E;
 
-        if (magnitudes.GetElement(3) > largestMagnitude)
+            // Adjacent lanes compare [W,N] and [NW,NE]. Shuffle control 0xB1 selects [N,W,NE,NW].
+            // Replace a signed candidate only for a strictly greater unsigned magnitude. Lane zero therefore
+            // keeps W before N on ties; lane two keeps NW before NE. int.MinValue retains magnitude 2^31.
+            Vector128<uint> adjacentMagnitudes = Vector128_.ShuffleNative(magnitudes.AsInt32(), SwapAdjacentErrors).AsUInt32();
+            Vector128<int> swappedErrors = Vector128_.ShuffleNative(signedErrors, SwapAdjacentErrors);
+            Vector128<int> takeAdjacent = Vector128.GreaterThan(adjacentMagnitudes, magnitudes).AsInt32();
+            Vector128<int> winners = Vector128.ConditionalSelect(takeAdjacent, swappedErrors, signedErrors);
+            Vector128<uint> pairMagnitudes = Vector128.Max(magnitudes, adjacentMagnitudes);
+
+            // Each pair now has the same maximum magnitude in both lanes. Control 0x4E selects [2,3,0,1],
+            // bringing the NW/NE winner to lane zero. A strict comparison keeps W/N ahead of NW/NE on ties.
+            Vector128<uint> otherMagnitudes = Vector128_.ShuffleNative(pairMagnitudes.AsInt32(), SwapErrorPairs).AsUInt32();
+            Vector128<int> otherWinners = Vector128_.ShuffleNative(winners, SwapErrorPairs);
+            Vector128<int> takeOther = Vector128.GreaterThan(otherMagnitudes, pairMagnitudes).AsInt32();
+            property = Vector128.ConditionalSelect(takeOther, otherWinners, winners).ToScalar();
+        }
+        else
         {
-            largestError = errorNorthEast;
-        }
+            long largestError = errorWest;
+            uint largestMagnitude = magnitudes.GetElement(0);
 
-        property = (int)largestError;
+            if (magnitudes.GetElement(1) > largestMagnitude)
+            {
+                largestError = errorNorth;
+                largestMagnitude = magnitudes.GetElement(1);
+            }
+
+            if (magnitudes.GetElement(2) > largestMagnitude)
+            {
+                largestError = errorNorthWest;
+                largestMagnitude = magnitudes.GetElement(2);
+            }
+
+            if (magnitudes.GetElement(3) > largestMagnitude)
+            {
+                largestError = errorNorthEast;
+            }
+
+            property = (int)largestError;
+        }
 
         // Predictions retain three fractional bits. Widen native samples before shifting and preserve
         // arithmetic right shifts in each correction. Floating-point division changes the specified rounding.

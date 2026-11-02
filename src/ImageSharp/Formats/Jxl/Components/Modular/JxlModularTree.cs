@@ -538,13 +538,15 @@ internal sealed class JxlModularTree : IDisposable
     /// <summary>
     /// Selects a retained leaf through a completed flat tree without restricting property values or tree size.
     /// </summary>
-    /// <param name="nodes">The nonempty result of PrepareFlatTree, unchanged until this method returns.</param>
+    /// <param name="first">The first node in the nonempty result of PrepareFlatTree, unchanged until this method returns.</param>
     /// <param name="properties">The fixed 256-entry property array. Validated byte indices cover its complete domain.</param>
     /// <returns>The matching leaf, borrowed until the flat workspace is prepared for another channel.</returns>
-    public static ref readonly Node FindFlatLeaf(ReadOnlySpan<FlatNode> nodes, ref InlineArray256<int> properties)
+    public static ref readonly Node FindFlatLeaf(ref FlatNode first, ref InlineArray256<int> properties)
     {
-        ref FlatNode first = ref MemoryMarshal.GetReference(nodes);
+        // The compiler establishes every child index before publication. Traversal needs the retained root,
+        // not a span descriptor copied at each sample. The workspace retains this storage throughout channel traversal.
         ref readonly FlatNode node = ref first;
+
         while (!node.IsLeaf)
         {
             // Byte property IDs always address the fixed 256-entry inline array. Their bound is

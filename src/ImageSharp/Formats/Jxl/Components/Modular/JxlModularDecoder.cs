@@ -950,7 +950,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
                     // Borrow the selected representation's payload directly. Only interval lookup and singleton trees use the source nodes.
                     ref readonly JxlModularTree.Node node = ref (!flatNodes.IsEmpty
-                        ? ref JxlModularTree.FindFlatLeaf(flatNodes, ref propertyStorage)
+                        ? ref JxlModularTree.FindFlatLeaf(ref MemoryMarshal.GetReference(flatNodes), ref propertyStorage)
                         : ref nodes[leaf]);
 
                     // Complete prediction before entropy expansion. The neighbor values

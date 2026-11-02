@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public partial class JxlHeaderTests
 {
     /// <summary>
-    /// Verifies exact predictor weights for wrapped error sums and magnitude-shift boundaries on every SIMD path.
+    /// Verifies exact predictor weights and signed error properties at magnitude boundaries on every SIMD path.
     /// </summary>
     [Fact]
     public void PredictorWeightsPreserveUnsignedErrorBounds()
@@ -35,7 +36,7 @@ public partial class JxlHeaderTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks the format's integer weight equation with literal maximum weights and independent exact expected weights.
+    /// Checks integer weights and signed error selection against independent exact expectations.
     /// </summary>
     private static void ValidatePredictorWeightErrorBounds()
     {
@@ -67,6 +68,34 @@ public partial class JxlHeaderTests
             {
                 Assert.Equal(expected[i].GetElement(lane), actual.GetElement(lane));
             }
+        }
+
+        // Property 15 selects the signed error of greatest magnitude, keeping W, N, NW, NE tie order.
+        // The minimum signed int has magnitude 2^31, greater than int.MaxValue, and must not overflow.
+        InlineArray64<int> errorStorage = default;
+        Span<int> errorRows = errorStorage;
+        Vector128<int>[] neighbors =
+        [
+            Vector128.Create(int.MinValue, int.MaxValue, int.MinValue, 0),
+            Vector128.Create(7, -7, 7, -7),
+            Vector128.Create(1, -7, 7, 0),
+            Vector128.Create(1, 2, -7, 7),
+            Vector128.Create(1, -2, 3, -4)
+        ];
+
+        ReadOnlySpan<int> expectedProperties = [int.MinValue, 7, -7, -7, -4];
+        for (int i = 0; i < neighbors.Length; i++)
+        {
+            // Three columns give a stride of five. At x=1, W is current-row column zero;
+            // N, NW and NE are preceding-row columns one, zero and two. Zero coefficients are valid.
+            JxlWeightedPredictor predictor = default;
+            predictor.Reset(errorRows, 3);
+            errorRows[5] = neighbors[i].GetElement(0);
+            errorRows[1] = neighbors[i].GetElement(1);
+            errorRows[0] = neighbors[i].GetElement(2);
+            errorRows[2] = neighbors[i].GetElement(3);
+            predictor.Predict(errorRows, 1, 2, 0, 0, 0, 0, 0, out int property);
+            Assert.Equal(expectedProperties[i], property);
         }
     }
 
@@ -107,7 +136,7 @@ public partial class JxlHeaderTests
         InlineArray256<int> properties = default;
         properties[255] = outerProperty;
         properties[2] = innerProperty;
-        ref readonly JxlModularTree.Node leaf = ref JxlModularTree.FindFlatLeaf(flat, ref properties);
+        ref readonly JxlModularTree.Node leaf = ref JxlModularTree.FindFlatLeaf(ref MemoryMarshal.GetReference(flat), ref properties);
 
         Assert.Equal(-1, leaf.Property);
         Assert.Equal(offset, leaf.Value);

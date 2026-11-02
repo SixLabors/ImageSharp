@@ -239,28 +239,40 @@ internal struct JxlWeightedPredictor
         // Fixed lanes identify the four predictors for this one sample, not four image columns.
         // Each wrapped sum combines the previous row's N, NE and NW errors exactly as libjxl and
         // jxl-rs predict.rs do. Each load contains all four predictors at one neighboring column.
-        ref uint errorWords = ref Unsafe.As<int, uint>(ref MemoryMarshal.GetReference(errors));
+        ref int firstError = ref MemoryMarshal.GetReference(errors);
+        ref uint errorWords = ref Unsafe.As<int, uint>(ref firstError);
         int predictorBase = this.combinedErrorLength;
         Vector128<uint> summedErrors = Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (north * PredictorCount)))
             + Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (northEast * PredictorCount)))
             + Vector128.LoadUnsafe(ref errorWords, (nuint)(predictorBase + (northWest * PredictorCount)));
 
-        long errorWest = x == 0 ? 0 : errors[currentRow + x - 1];
-        long errorNorth = errors[north];
-        long errorNorthWest = errors[northWest];
-        long errorNorthEast = errors[northEast];
+        // Reset reserves both rows with a two-word margin, and callers traverse 0 <= x < width.
+        // These scalar indices are therefore within the first two rows, just like the vector indices above.
+        // Borrow the same managed reference so each sample does not repeat the already established bounds checks.
+        long errorWest = x == 0 ? 0 : Unsafe.Add(ref firstError, currentRow + x - 1);
+        long errorNorth = Unsafe.Add(ref firstError, north);
+        long errorNorthWest = Unsafe.Add(ref firstError, northWest);
+        long errorNorthEast = Unsafe.Add(ref firstError, northEast);
+
+        // The four signed errors come from int storage. Integer SIMD absolute value retains the
+        // int.MinValue bit pattern; treating the magnitudes as uint represents its exact value 2^31.
+        // Strict comparisons retain W, N, NW, NE tie order without long absolute-value overflow checks.
+        Vector128<uint> magnitudes = Vector128.Abs(Vector128.Create((int)errorWest, (int)errorNorth, (int)errorNorthWest, (int)errorNorthEast)).AsUInt32();
         long largestError = errorWest;
-        if (Math.Abs(errorNorth) > Math.Abs(largestError))
+        uint largestMagnitude = magnitudes.GetElement(0);
+        if (magnitudes.GetElement(1) > largestMagnitude)
         {
             largestError = errorNorth;
+            largestMagnitude = magnitudes.GetElement(1);
         }
 
-        if (Math.Abs(errorNorthWest) > Math.Abs(largestError))
+        if (magnitudes.GetElement(2) > largestMagnitude)
         {
             largestError = errorNorthWest;
+            largestMagnitude = magnitudes.GetElement(2);
         }
 
-        if (Math.Abs(errorNorthEast) > Math.Abs(largestError))
+        if (magnitudes.GetElement(3) > largestMagnitude)
         {
             largestError = errorNorthEast;
         }
@@ -307,7 +319,11 @@ internal struct JxlWeightedPredictor
         int currentRow = (y & 1) == 0 ? this.rowStride : 0;
         int previousRow = (y & 1) == 0 ? 0 : this.rowStride;
         long scaled = (long)value << ExtraBits;
-        errors[currentRow + x] = unchecked((int)(this.combinedPrediction - scaled));
+
+        // The validated column and Reset's two-row layout bound this index below combinedErrorLength.
+        // Use the same reference for the scalar combined error and the interleaved vector errors below.
+        ref int firstError = ref MemoryMarshal.GetReference(errors);
+        Unsafe.Add(ref firstError, currentRow + x) = unchecked((int)(this.combinedPrediction - scaled));
 
         // The four lanes depend on this same reconstructed sample. They can be computed together,
         // although the predictor state still advances sequentially from one image column to the next.
@@ -349,7 +365,7 @@ internal struct JxlWeightedPredictor
         // Store one current-column group and add into the previous row's next group. That wrapped
         // addition supplies the westward contributions consumed by the next Predict call. The row margin
         // guarantees a complete four-lane group even when this is the last visible image column.
-        ref uint errorWords = ref Unsafe.As<int, uint>(ref MemoryMarshal.GetReference(errors));
+        ref uint errorWords = ref Unsafe.As<int, uint>(ref firstError);
         nuint current = (nuint)(this.combinedErrorLength + ((currentRow + x) * PredictorCount));
         nuint next = (nuint)(this.combinedErrorLength + ((previousRow + x + 1) * PredictorCount));
         magnitudes.StoreUnsafe(ref errorWords, current);

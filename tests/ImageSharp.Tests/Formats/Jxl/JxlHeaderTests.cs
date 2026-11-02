@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public partial class JxlHeaderTests
 {
     /// <summary>
-    /// Verifies DC and AC metadata, matrices, orders and entropy-table boundaries against libjxl and jxl-rs.
+    /// Verifies DC and AC metadata, tables and quantized coefficients against the original reference decoders.
     /// </summary>
     /// <param name="file">The unchanged reference input with one combined frame section.</param>
     /// <param name="globalScale">The encoded global scale reported by both references.</param>
@@ -141,6 +141,216 @@ public partial class JxlHeaderTests
         for (int i = 0; i < matrixOffsets.Length; i++)
         {
             Assert.Equal(i >= matrixIndex && i < matrixIndex + 3 ? (i - matrixIndex) * naturalOrder.Length : -1, matrixOffsets[i]);
+        }
+
+        // Original libjxl DecodeACVarBlock consumes these complete group payloads and validates their final ANS states.
+        // Square has no nonzero AC values. The other file has 28, 18, 23 nonzeros in encoded Y, X, B component order.
+        varDct.ReadAcGroup(ref reader, 0, 0, default);
+        Assert.Equal(start + (file == TestImages.Jxl.Square ? 360 : 1472), reader.Position);
+        for (int component = 0; component < 3; component++)
+        {
+            ReadOnlySpan<short> coefficients = varDct.GetCoefficients16(component);
+            Assert.Equal(64, coefficients.Length);
+            if (file == TestImages.Jxl.Square)
+            {
+                Assert.False(coefficients.ContainsAnyExcept((short)0));
+                continue;
+            }
+
+            // These complete X, Y, B planes come from original libjxl, independently of this entropy implementation.
+            // Their first slot remains zero because the inverse transform restores its LF value from the DC plane.
+            ReadOnlySpan<short> expectedCoefficients = component switch
+            {
+                0 =>
+                [
+                    0, 35, 47, 0, 52, 10, 0, 0, 35, 23, 0, 0, -4, 2, 0, 0, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 430, 40, 0, 0, 132, 7, 0, 0,
+                    -5, 4, 0, 0, -5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ],
+                1 =>
+                [
+                    0, 1103, 153, 1494, 994, -83, -58, -58, 3882, -523, 0, 0, 195, -131, -153, -153, 2405, 0, -756, 0, 0, 0, 0, 0, 3465, 0, 0, 0, 0, 0,
+                    0, 0, -753, -214, 0, 0, -166, -28, 0, 0, 1009, -233, 0, 0, 93, 19, 0, 0, 924, -247, 0, 0, 0, 0, 0, 0, 924, -247, 0, 0, 0, 0, 0, 0,
+                ],
+                _ =>
+                [
+                    0, 802, 155, 518, -74, 184, 166, 166, -429, -214, 0, 0, 4, -10, -12, -12, -440, 0, -230, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+                    191, 66, 0, 0, 43, 11, 0, 0, 1, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ]
+            };
+
+            Assert.Equal(expectedCoefficients, coefficients);
+        }
+
+        // libjxl DequantBlock and TransformToPixels at revision 91837342b24034078780b687f57f670a7def8153
+        // produce these visible 3-by-3 samples for the unchanged lossy input, in X/Y/B plane order.
+        // Original jxl-rs differs by at most 5.96046e-8. An 8e-8 absolute bound includes that measured difference
+        // and float multiply-add variation. These samples precede restoration, color conversion and pixel packing.
+        ReadOnlySpan<uint> spatialBits =
+        [
+            0x3D267ADCU, 0xBCFAAC3EU, 0x3BA91E93U, 0x3C3AC971U, 0xBC53876DU, 0x3B383647U, 0xBA8F4634U, 0x39B3D114U, 0x3A2661F6U,
+            0x3EF7C0A4U, 0x3F6F477EU, 0x3E313E6AU, 0x3DD27E51U, 0x3EBCFE8EU, 0x3E69A42BU, 0x3F844168U, 0x3F00485BU, 0xBE111608U,
+            0x3F0A49C5U, 0x3ED3EC7AU, 0x3F451DC7U, 0x3E094DFDU, 0x3E3A08ABU, 0x3ECABA1DU, 0x3F85624EU, 0x3F020871U, 0xBE1B5B2EU
+        ];
+
+        varDct.PrepareReconstruction(Configuration.Default.MemoryAllocator, header, frame);
+        varDct.ReconstructGroup(0, default);
+        for (int component = 0; component < 3; component++)
+        {
+            Buffer2DRegion<float> reconstructed = varDct.GetReconstructedChannel(component);
+            Assert.Equal(frame.CodingSize, new Size(reconstructed.Width, reconstructed.Height));
+            for (int y = 0; y < reconstructed.Height; y++)
+            {
+                ReadOnlySpan<float> row = reconstructed.DangerousGetRowSpan(y);
+                if (file == TestImages.Jxl.Square)
+                {
+                    Assert.False(row.ContainsAnyExcept(0F));
+                    continue;
+                }
+
+                for (int x = 0; x < row.Length; x++)
+                {
+                    float expectedSample = BitConverter.UInt32BitsToSingle(spatialBits[(component * 9) + (y * 3) + x]);
+                    Assert.InRange(MathF.Abs(row[x] - expectedSample), 0F, 0.00000008F);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies progressive coefficient shifts and accumulation through an LZ77-coded second pass.
+    /// </summary>
+    /// <remarks>
+    /// The stored component stream was generated with libjxl revision 91837342b24034078780b687f57f670a7def8153,
+    /// using ProgressiveSplitter, TokenizeCoefficients, BuildAndEncodeHistograms and WriteTokens.
+    /// Its shifts are 2 and 0. Every AC coefficient starts at X=20, Y=-20, B=20, then becomes X=23, Y=-23, B=21.
+    /// The original libjxl and jxl-rs decoders agree on every coefficient and the recorded bit positions.
+    /// The second pass uses the encoder's LZ77 run-length mode, so history must restart at that pass's first symbol.
+    /// </remarks>
+    [Fact]
+    public void ReadAcGroupAccumulatesProgressiveLzPasses()
+    {
+        using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctProgressiveLzOwner).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, input);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        Assert.Equal((byte)2, frame.PassCount);
+        Assert.Equal((ReadOnlySpan<byte>)[2, 0], frame.PassShifts);
+        Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
+        varDct.ReadDcGroup(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        Assert.Equal(363, reader.Position);
+
+        // One cluster serves both literal and distance contexts. Native width selection interprets copy token
+        // 518 with the shared normal hybrid configuration (4,2,0), giving a conservative bound of 130 bits.
+        // That selects int storage even though these actual coefficients fit short. jxl-rs counts the bound differently.
+        Assert.Equal(130, varDct.MaximumAcValueBits);
+        Assert.False(varDct.Uses16BitCoefficients);
+
+        // This partial stream omits a TOC. Its two coefficient packets are separately byte-aligned,
+        // as ordinary frame sections would be. Preserve the reader and group workspace across passes.
+        reader.AlignToByte();
+        for (int pass = 0; pass < frame.PassCount; pass++)
+        {
+            varDct.ReadAcGroup(ref reader, 0, pass, default);
+            Assert.Equal(pass == 0 ? 635 : 751, reader.Position);
+            ReadOnlySpan<int> expected = pass == 0 ? [20, -20, 20] : [23, -23, 21];
+            for (int component = 0; component < 3; component++)
+            {
+                ReadOnlySpan<int> coefficients = varDct.GetCoefficients32(component);
+                Assert.Equal(64, coefficients.Length);
+                Assert.Equal(0, coefficients[0]);
+                Assert.False(coefficients[1..].ContainsAnyExcept(expected[component]));
+            }
+
+            reader.AlignToByte();
+        }
+    }
+
+    /// <summary>
+    /// Verifies thirty-two-bit coefficient selection and complete signed values through native-encoded entropy tables.
+    /// </summary>
+    [Fact]
+    public void ReadAcGroupPreservesWideCoefficients()
+    {
+        using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctWideCoefficientsOwner).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, input);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
+        varDct.ReadDcGroup(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        Assert.Equal(272, reader.Position);
+        Assert.Equal(32, varDct.MaximumAcValueBits);
+        Assert.False(varDct.Uses16BitCoefficients);
+
+        // The original native decoder preserves both signs outside the short range and the complete uint32 zigzag endpoint.
+        // All other positions, including the LF prefix, remain zero. This fixture contains component fields without a TOC.
+        varDct.ReadAcGroup(ref reader, 0, 0, default);
+        Assert.Equal(407, reader.Position);
+        ReadOnlySpan<int> indices = [1, 8, 63];
+        ReadOnlySpan<int> values = [32768, -32769, int.MinValue];
+        for (int component = 0; component < 3; component++)
+        {
+            ReadOnlySpan<int> coefficients = varDct.GetCoefficients32(component);
+            Assert.Equal(64, coefficients.Length);
+            int index = indices[component];
+            Assert.Equal(values[component], coefficients[index]);
+            Assert.False(coefficients[..index].ContainsAnyExcept(0));
+            Assert.False(coefficients[(index + 1)..].ContainsAnyExcept(0));
+        }
+    }
+
+    /// <summary>
+    /// Verifies that subsampled AC contexts use the native encoder's component-scaled horizontal quantizer coordinate.
+    /// </summary>
+    [Fact]
+    public void ReadAcGroupUsesSubsampledQuantizerContexts()
+    {
+        using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctSubsampledQfOwner).Bytes, false);
+        using BufferedReadStream buffered = new(Configuration.Default, input);
+        JxlBitReader reader = new(new JxlCodestreamReader(buffered));
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
+        Assert.Equal(new Size(32, 8), frame.CodingSize);
+        Assert.Equal(79, reader.Position);
+
+        // This native-encoded component fixture omits the section table and stores all required fields in parser order.
+        // Its four block quantizers are [1, 2, 200, 1], with threshold 100. X/B at block two use reduced coordinate one.
+        Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
+        using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors);
+        using JxlModularDecoder modular = JxlModularDecoder.Read(ref reader, header, frame, Configuration.Default.MemoryAllocator, default);
+        varDct.ReadDcGroup(ref reader, modular, 0, default);
+        varDct.ReadAcMetadata(ref reader, modular, 0, default);
+        varDct.ReadGlobalAc(ref reader, frame, modular, Configuration.Default.MemoryAllocator, default);
+        Assert.Equal(590, reader.Position);
+        Assert.True(varDct.Uses16BitCoefficients);
+
+        // The original native encoder and decoder agree on one Y coefficient and zero X/B coefficients.
+        // Singleton histograms consume no group bits. Reading QF at full-grid x would select a different X/B histogram.
+        varDct.ReadAcGroup(ref reader, 0, 0, default);
+        Assert.Equal(590, reader.Position);
+        for (int component = 0; component < 3; component++)
+        {
+            ReadOnlySpan<short> coefficients = varDct.GetCoefficients16(component);
+            Assert.Equal(component == 1 ? 256 : 128, coefficients.Length);
+            if (component == 1)
+            {
+                Assert.Equal((short)1, coefficients[129]);
+                Assert.False(coefficients[..129].ContainsAnyExcept((short)0));
+                Assert.False(coefficients[130..].ContainsAnyExcept((short)0));
+            }
+            else
+            {
+                Assert.False(coefficients.ContainsAnyExcept((short)0));
+            }
         }
     }
 

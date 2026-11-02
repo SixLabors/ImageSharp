@@ -16,8 +16,11 @@ internal static class JxlPermutation
     /// </summary>
     public const int ContextCount = 8;
 
-    // Check at entry and after each 1024 rank or digit entries. This limits uninterrupted table work;
-    // the interval is a decoder cancellation policy, not a limit on encoded permutation sizes.
+    // Poll cancellation at loop indices divisible by 1024, rather than reading the token for every entry.
+    // Rank initialization and digit decoding count their own entries. The implicit tail uses the output index.
+    // Each periodic check therefore measures loop positions, not bytes read or elapsed time.
+    // Keep this value a power of two: the loops select check positions with index & (interval - 1).
+    // This value controls cancellation responsiveness. JPEG XL does not prescribe it, and no benchmark determined it.
     private const int CancellationInterval = 1024;
 
     /// <summary>

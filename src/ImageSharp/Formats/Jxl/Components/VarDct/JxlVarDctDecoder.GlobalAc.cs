@@ -80,7 +80,7 @@ internal sealed partial class JxlVarDctDecoder
 
                 // Capacity is reserved before any pass allocation. Transfer only complete order/table pairs;
                 // a failed parser or pass-object allocation releases the current pair and leaves earlier passes owned here.
-                this.acPasses.Add(new AcPass(orders, offsets, entropy));
+                this.acPasses.Add(new AcPass(orders, offsets, entropy, frame.PassShifts[pass]));
             }
             catch
             {
@@ -98,6 +98,7 @@ internal sealed partial class JxlVarDctDecoder
         // Keep the native strict comparison against the sixteen-bit storage width.
         int accumulationBits = 32 - BitOperations.LeadingZeroCount((uint)frame.PassCount - 1);
         this.Uses16BitCoefficients = maximumShiftedBits + accumulationBits < sizeof(short) * 8;
+        this.PrepareCoefficientStorage(allocator);
     }
 
     /// <summary>
@@ -136,11 +137,13 @@ internal sealed partial class JxlVarDctDecoder
         /// <param name="orders">The retained natural or encoded orders.</param>
         /// <param name="offsets">The thirty-nine initialized component offsets; remaining inline entries are unused.</param>
         /// <param name="entropy">The completed tables shared by the pass's groups.</param>
-        public AcPass(IMemoryOwner<uint> orders, InlineArray64<int> offsets, JxlEntropyDecoder entropy)
+        /// <param name="shift">The progressive left shift applied to this pass's signed coefficient values.</param>
+        public AcPass(IMemoryOwner<uint> orders, InlineArray64<int> offsets, JxlEntropyDecoder entropy, byte shift)
         {
             this.Orders = orders;
             this.offsets = offsets;
             this.Entropy = entropy;
+            this.Shift = shift;
         }
 
         /// <summary>
@@ -152,6 +155,11 @@ internal sealed partial class JxlVarDctDecoder
         /// Gets the owned entropy tables.
         /// </summary>
         public JxlEntropyDecoder Entropy { get; }
+
+        /// <summary>
+        /// Gets the progressive left shift applied before coefficient accumulation.
+        /// </summary>
+        public byte Shift { get; }
 
         /// <summary>
         /// Gets the initialized component offsets without another managed array.

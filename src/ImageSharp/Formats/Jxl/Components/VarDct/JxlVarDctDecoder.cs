@@ -257,6 +257,8 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
 
         this.DisposeQuantizationMatrices();
         this.DisposeOrderWorkspace();
+        this.DisposeCoefficientStorage();
+        this.DisposeReconstruction();
 
         foreach (Buffer2D<float> channel in this.dcChannels)
         {

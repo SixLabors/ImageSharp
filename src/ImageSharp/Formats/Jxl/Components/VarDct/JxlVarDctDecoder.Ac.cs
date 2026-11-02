@@ -66,7 +66,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <summary>
     /// Gets the number of horizontal DC blocks covered by each validated raw strategy code.
     /// </summary>
-    private static ReadOnlySpan<byte> StrategyWidths =>
+    public static ReadOnlySpan<byte> StrategyWidths =>
     [
         1, 1, 1, 1, 2, 4, 1, 2, 1, 4, 2, 4, 1, 1, 1, 1, 1, 1, 8, 4, 8, 16, 8, 16, 32, 16, 32
     ];
@@ -74,7 +74,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <summary>
     /// Gets the number of vertical DC blocks covered by each validated raw strategy code.
     /// </summary>
-    private static ReadOnlySpan<byte> StrategyHeights =>
+    public static ReadOnlySpan<byte> StrategyHeights =>
     [
         1, 1, 1, 1, 2, 4, 2, 1, 4, 1, 4, 2, 1, 1, 1, 1, 1, 1, 8, 8, 4, 16, 16, 8, 32, 32, 16
     ];

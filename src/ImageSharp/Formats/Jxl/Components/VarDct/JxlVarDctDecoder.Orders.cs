@@ -18,8 +18,11 @@ internal sealed partial class JxlVarDctDecoder
 
     private const int CoefficientBlockArea = BlockSize * BlockSize;
 
-    // Check cancellation at the first diagonal position and after each 1024 positions visited.
-    // This bounds uninterrupted traversal of large natural-order tables without checking every coefficient.
+    // Poll cancellation before the first diagonal position, then after each 1024 positions visited.
+    // The counter continues across both diagonal loops and includes positions discarded for rectangular transforms.
+    // This avoids reading the token at every position; it does not define an elapsed-time response limit.
+    // Keep this value a power of two: the loops select check positions with visited & (interval - 1).
+    // This value controls cancellation responsiveness. JPEG XL does not prescribe it, and no benchmark determined it.
     private const int OrderCancellationInterval = 1024;
 
     private IMemoryOwner<uint>? orderWorkspace;

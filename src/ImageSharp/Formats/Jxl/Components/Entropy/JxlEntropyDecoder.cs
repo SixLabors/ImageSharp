@@ -78,6 +78,8 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// </summary>
     /// <remarks>
     /// Direct tokens use their configured split width. A zero-valued singleton can therefore have a nonzero bound.
+    /// A cluster shared by literals and distances can also give a bound greater than 32 when it includes copy tokens.
+    /// Such a bound selects wider coefficient storage; it does not mean that the stream produces integers of that width.
     /// Consumers use this metadata to select coefficient storage; actual decoded values still receive normal width validation.
     /// </remarks>
     public int MaximumValueBits { get; }

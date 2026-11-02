@@ -1,0 +1,354 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
+
+internal sealed partial class JxlVarDctDecoder
+{
+    private IMemoryOwner<byte>? coefficientStorage;
+    private IMemoryOwner<byte>? nonzeroStorage;
+    private IMemoryOwner<uint>? coefficientHistory;
+    private Memory<byte> coefficientMemory;
+    private Memory<byte> nonzeroMemory;
+    private Memory<uint> coefficientHistoryMemory;
+    private InlineArray4<int> coefficientOffsets;
+    private InlineArray4<int> coefficientCounts;
+    private int acGroupColumns;
+
+    /// <summary>
+    /// Gets the format's frequency-position buckets, already multiplied by two for the previous-symbol context bit.
+    /// </summary>
+    private static ReadOnlySpan<byte> CoefficientFrequencyContexts =>
+    [
+
+        // libjxl ac_context.h defines these buckets. Index zero is unused: AC scanning starts after the LLF prefix.
+        0, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28,
+        30, 30, 32, 32, 34, 34, 36, 36, 38, 38, 40, 40, 42, 42, 44, 44,
+        46, 46, 46, 46, 48, 48, 48, 48, 50, 50, 50, 50, 52, 52, 52, 52,
+        54, 54, 54, 54, 56, 56, 56, 56, 58, 58, 58, 58, 60, 60, 60, 60
+    ];
+
+    /// <summary>
+    /// Gets the format's remaining-nonzero buckets, already multiplied by two for the previous-symbol context bit.
+    /// </summary>
+    private static ReadOnlySpan<ushort> CoefficientNonzeroContexts =>
+    [
+        0, 0, 62, 124, 124, 186, 186, 186, 186, 246, 246, 246, 246, 304, 304, 304,
+        304, 304, 304, 304, 304, 360, 360, 360, 360, 360, 360, 360, 360, 360, 360, 360,
+        360, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412,
+        412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412, 412
+    ];
+
+    /// <summary>
+    /// Borrows the current group's packed sixteen-bit coefficients for one component.
+    /// </summary>
+    /// <param name="component">The X, Y or B component index.</param>
+    /// <returns>The accumulated coefficients after all passes read so far.</returns>
+    /// <remarks>
+    /// Call this method only when <see cref="Uses16BitCoefficients"/> is true. Borrow once before block traversal.
+    /// Each active transform occupies its complete coefficient area, in transform-origin row order.
+    /// Skip inactive subsampled components when advancing a component's offset. Lowest-frequency prefix slots remain zero.
+    /// The next group's first pass overwrites this workspace, so reconstruction must finish before that pass starts.
+    /// </remarks>
+    public ReadOnlySpan<short> GetCoefficients16(int component)
+        => MemoryMarshal.Cast<byte, short>(this.coefficientMemory.Span).Slice(this.coefficientOffsets[component], this.coefficientCounts[component]);
+
+    /// <summary>
+    /// Borrows the current group's packed thirty-two-bit coefficients for one component.
+    /// </summary>
+    /// <param name="component">The X, Y or B component index.</param>
+    /// <returns>The accumulated coefficients after all passes read so far.</returns>
+    /// <remarks>
+    /// Call this method only when <see cref="Uses16BitCoefficients"/> is false. The packing and lifetime match <see cref="GetCoefficients16"/>.
+    /// </remarks>
+    public ReadOnlySpan<int> GetCoefficients32(int component)
+        => MemoryMarshal.Cast<byte, int>(this.coefficientMemory.Span).Slice(this.coefficientOffsets[component], this.coefficientCounts[component]);
+
+    /// <summary>
+    /// Reads one group's selected pass and accumulates its signed coefficients in the reusable typed workspace.
+    /// </summary>
+    /// <param name="reader">The bounded AC-group reader at its histogram selector.</param>
+    /// <param name="group">The validated row-major AC group index.</param>
+    /// <param name="pass">The progressive pass index, starting at zero for each group.</param>
+    /// <param name="cancellationToken">The token checked between block rows and transform origins.</param>
+    /// <remarks>
+    /// Read all passes of one group before reconstruction and before starting another group.
+    /// Pass zero clears only the active coefficient planes; later passes add their shifted values.
+    /// Nonzero predictors and LZ77 positions start again for every group/pass, as prescribed by the entropy syntax.
+    /// </remarks>
+    public void ReadAcGroup(ref JxlBitReader reader, int group, int pass, CancellationToken cancellationToken)
+    {
+        Rectangle rectangle = this.GetAcGroupRectangle(group);
+        if (pass == 0)
+        {
+            for (int component = 0; component < 3; component++)
+            {
+                int width = rectangle.Width >> this.horizontalShifts[component];
+                int height = rectangle.Height >> this.verticalShifts[component];
+                this.coefficientCounts[component] = width * height * CoefficientBlockArea;
+            }
+        }
+
+        // Dispatch once for the group. Generic integer operations then specialize to short or int stores,
+        // without a precision branch, boxing or interface dispatch for each coefficient.
+        if (this.Uses16BitCoefficients)
+        {
+            this.ReadAcGroup(ref reader, rectangle, pass, MemoryMarshal.Cast<byte, short>(this.coefficientMemory.Span), cancellationToken);
+        }
+        else
+        {
+            this.ReadAcGroup(ref reader, rectangle, pass, MemoryMarshal.Cast<byte, int>(this.coefficientMemory.Span), cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Locates one AC group in the padded eight-pixel block grid shared by strategies and DC contexts.
+    /// </summary>
+    /// <param name="group">The validated row-major AC group index.</param>
+    /// <returns>The group rectangle clipped to the padded block dimensions.</returns>
+    private Rectangle GetAcGroupRectangle(int group)
+    {
+        int x = (group % this.acGroupColumns) * this.acGroupBlockDimension;
+        int y = (group / this.acGroupColumns) * this.acGroupBlockDimension;
+        return new Rectangle(x, y, Math.Min(this.acGroupBlockDimension, this.dcSize.Width - x), Math.Min(this.acGroupBlockDimension, this.dcSize.Height - y));
+    }
+
+    /// <summary>
+    /// Prepares one largest active group after all pass entropy bounds have selected the coefficient precision.
+    /// </summary>
+    /// <param name="allocator">The tracked frame allocator.</param>
+    private void PrepareCoefficientStorage(MemoryAllocator allocator)
+    {
+        this.acGroupColumns = ((this.dcSize.Width - 1) / this.acGroupBlockDimension) + 1;
+        int width = Math.Min(this.dcSize.Width, this.acGroupBlockDimension);
+        int height = Math.Min(this.dcSize.Height, this.acGroupBlockDimension);
+        int count = 0;
+        bool usesHistory = false;
+        for (int component = 0; component < 3; component++)
+        {
+            this.coefficientOffsets[component] = count;
+            count += (width >> this.horizontalShifts[component]) * (height >> this.verticalShifts[component]) * CoefficientBlockArea;
+        }
+
+        this.coefficientOffsets[3] = count;
+        int elementSize = this.Uses16BitCoefficients ? sizeof(short) : sizeof(int);
+
+        // One byte allocation owns the selected short or int layout. Cached Memory values retain that allocation
+        // for typed span borrowing; they do not allocate buffers or bypass the tracked allocator.
+        this.coefficientStorage = allocator.Allocate<byte>(count * elementSize);
+        this.coefficientMemory = this.coefficientStorage.Memory;
+        this.nonzeroStorage = allocator.Allocate<byte>(count / CoefficientBlockArea);
+        this.nonzeroMemory = this.nonzeroStorage.Memory;
+        foreach (AcPass pass in this.acPasses)
+        {
+            usesHistory |= pass.Entropy.UsesLz77;
+        }
+
+        // Each active transform reads one count plus at most size - coveredBlocks coefficient values.
+        // That is at most size symbols. The complete group therefore needs no more history than its coefficient capacity.
+        // Reuse one power-of-two ring across groups and passes; a new logical position prevents reads of old contents.
+        if (usesHistory)
+        {
+            int historyLength = (int)BitOperations.RoundUpToPowerOf2((uint)Math.Min(count, JxlEntropyDecoder.MaximumLz77Distance));
+            this.coefficientHistory = allocator.Allocate<uint>(historyLength);
+            this.coefficientHistoryMemory = this.coefficientHistory.Memory;
+        }
+    }
+
+    /// <summary>
+    /// Reads one typed pass through the shared entropy reader, block contexts and scan-order tables.
+    /// </summary>
+    /// <typeparam name="TCoefficient">The selected short or int coefficient storage.</typeparam>
+    /// <param name="reader">The bounded group reader at its histogram selector.</param>
+    /// <param name="rectangle">The group in the full padded block grid.</param>
+    /// <param name="pass">The selected progressive pass.</param>
+    /// <param name="coefficients">The reused typed workspace containing all three component planes.</param>
+    /// <param name="cancellationToken">The token checked between block rows and transform origins.</param>
+    private void ReadAcGroup<TCoefficient>(
+        ref JxlBitReader reader, Rectangle rectangle, int pass, Span<TCoefficient> coefficients, CancellationToken cancellationToken)
+        where TCoefficient : unmanaged, IBinaryInteger<TCoefficient>
+    {
+        AcPass passInfo = this.acPasses[pass];
+        int histogramBits = 32 - BitOperations.LeadingZeroCount(this.AcHistogramSetCount - 1);
+        uint histogram = reader.ReadBits(histogramBits);
+        if (histogram >= this.AcHistogramSetCount)
+        {
+            // A non-power-of-two count leaves unused selector codes. They cannot index another pass's context map.
+            throw new InvalidImageContentException("The JPEG XL AC histogram selector is outside its permitted range.");
+        }
+
+        int histogramOffset = (int)histogram * this.AcContextCount;
+        int blockContextCount = this.BlockContextCount;
+        int dcContextCount = this.DcContextCount;
+        int coefficientShift = passInfo.Shift;
+        JxlEntropyDecoder.Reader symbols = passInfo.Entropy.CreateReader(ref reader);
+        ReadOnlySpan<uint> orders = passInfo.Orders.Memory.Span;
+        ReadOnlySpan<int> orderOffsets = passInfo.Offsets;
+        ReadOnlySpan<byte> blockContexts = this.BlockContextMap;
+        ReadOnlySpan<uint> quantizerThresholds = this.QuantizationThresholds;
+        ReadOnlySpan<byte> frequencyContexts = CoefficientFrequencyContexts;
+        ReadOnlySpan<ushort> nonzeroContexts = CoefficientNonzeroContexts;
+        Span<uint> history = passInfo.Entropy.UsesLz77 ? this.coefficientHistoryMemory.Span : [];
+        ReadOnlySpan<byte> widths = StrategyWidths;
+        ReadOnlySpan<byte> heights = StrategyHeights;
+        ReadOnlySpan<byte> orderFamilies = StrategyOrderFamilies;
+        Span<byte> nonzeros = this.nonzeroMemory.Span;
+        Buffer2DRegion<byte> strategies = this.Strategies.GetSubRegion(rectangle);
+        Buffer2DRegion<int> quantization = this.Quantization.GetSubRegion(rectangle);
+        Buffer2DRegion<byte> dcContexts = this.DcContexts.GetSubRegion(rectangle);
+        InlineArray4<int> positionStorage = default;
+        Span<int> positions = positionStorage;
+        uint decodedCount = 0;
+
+        // Predictor rows need no clear. Every preceding row/left cell is written by an already decoded transform;
+        // the first cell uses 32, the first row uses left, and the first column uses top. Continuations are filled too.
+        // Coefficients do need a clear before pass zero: unvisited AC slots and every LLF prefix must start at zero.
+        for (int component = 0; component < 3; component++)
+        {
+            positions[component] = this.coefficientOffsets[component];
+            if (pass == 0)
+            {
+                coefficients.Slice(positions[component], this.coefficientCounts[component]).Clear();
+            }
+        }
+
+        for (int y = 0; y < rectangle.Height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadOnlySpan<byte> strategyRow = strategies.DangerousGetRowSpan(y);
+            ReadOnlySpan<int> quantizerRow = quantization.DangerousGetRowSpan(y);
+            ReadOnlySpan<byte> dcRow = dcContexts.DangerousGetRowSpan(y);
+            for (int x = 0; x < rectangle.Width; x++)
+            {
+                byte packedStrategy = strategyRow[x];
+                if ((packedStrategy & FirstBlockFlag) == 0)
+                {
+                    continue;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                byte strategy = (byte)(packedStrategy >> 1);
+                int coveredWidth = widths[strategy];
+                int coveredHeight = heights[strategy];
+                int coveredBlocks = coveredWidth * coveredHeight;
+                int size = coveredBlocks * CoefficientBlockArea;
+                int blockShift = BitOperations.Log2((uint)coveredBlocks);
+                int orderFamily = orderFamilies[strategy];
+
+                // Entropy always visits Y, X, B. Subsampled components only have a block at their aligned full-grid origins.
+                // AC metadata already forbids multiblock transforms with subsampling, so an active reduced component still has 64 coefficients.
+                for (int encodedComponent = 0; encodedComponent < 3; encodedComponent++)
+                {
+                    int component = encodedComponent < 2 ? encodedComponent ^ 1 : encodedComponent;
+                    int horizontalShift = this.horizontalShifts[component];
+                    int verticalShift = this.verticalShifts[component];
+                    int sampleX = x >> horizontalShift;
+                    int sampleY = y >> verticalShift;
+                    if ((sampleX << horizontalShift) != x || (sampleY << verticalShift) != y)
+                    {
+                        continue;
+                    }
+
+                    int rowWidth = rectangle.Width >> horizontalShift;
+                    int predictorOffset = (this.coefficientOffsets[component] / CoefficientBlockArea) + (sampleY * rowWidth) + sampleX;
+                    int predicted = sampleX == 0
+                        ? sampleY == 0 ? 32 : nonzeros[predictorOffset - rowWidth]
+                        : sampleY == 0
+                            ? nonzeros[predictorOffset - 1]
+                            : (nonzeros[predictorOffset - rowWidth] + nonzeros[predictorOffset - 1] + 1) / 2;
+
+                    // Encoded block contexts use full-grid DC classification but component-scaled horizontal QF coordinates.
+                    // libjxl's enc_entropy_coder.cc writes that combination; reconstruction selects its spatial quantizer separately.
+                    int quantizerBucket = 0;
+                    foreach (uint threshold in quantizerThresholds)
+                    {
+                        if ((uint)quantizerRow[sampleX] > threshold)
+                        {
+                            quantizerBucket++;
+                        }
+                    }
+
+                    int mapComponent = component < 2 ? component ^ 1 : component;
+                    int mapIndex = (((mapComponent * OrderCount) + orderFamily) * (quantizerThresholds.Length + 1)) + quantizerBucket;
+                    int blockContext = blockContexts[(mapIndex * dcContextCount) + dcRow[x]];
+                    int predictionBucket = predicted < 8 ? predicted : 4 + (predicted / 2);
+                    int countContext = histogramOffset + (predictionBucket * blockContextCount) + blockContext;
+                    uint count = symbols.ReadUInt32(ref reader, countContext, history, decodedCount++);
+                    if (count > size - coveredBlocks)
+                    {
+                        throw new InvalidImageContentException("The JPEG XL AC nonzero count exceeds its transform size.");
+                    }
+
+                    int remaining = (int)count;
+                    byte normalizedCount = (byte)((remaining + coveredBlocks - 1) >> blockShift);
+                    for (int row = 0; row < coveredHeight; row++)
+                    {
+                        nonzeros.Slice(predictorOffset + (row * rowWidth), coveredWidth).Fill(normalizedCount);
+                    }
+
+                    int densityOffset = histogramOffset + (blockContextCount * NonzeroContextCount) + (blockContext * ZeroDensityContextCount);
+                    ReadOnlySpan<uint> order = orders.Slice(orderOffsets[(orderFamily * 3) + component], size);
+                    Span<TCoefficient> block = coefficients.Slice(positions[component], size);
+                    positions[component] += size;
+                    int previous = remaining > size / 16 ? 0 : 1;
+                    int countBucket = nonzeroContexts[(remaining + coveredBlocks - 1) >> blockShift];
+
+                    // The first coveredBlocks order entries are LLF coefficients restored from the DC plane later.
+                    // Entropy state and remaining-count contexts depend on preceding symbols, so the coefficient scan is sequential.
+                    // Stop when the remaining nonzeros cannot fit the remaining scan positions. This rejects malformed
+                    // runs before their context could leave the format's 458-entry zero-density context region.
+                    for (int k = coveredBlocks; remaining != 0 && k <= size - remaining; k++)
+                    {
+                        int context = densityOffset + countBucket + frequencyContexts[k >> blockShift] + previous;
+                        uint value = symbols.ReadUInt32(ref reader, context, history, decodedCount++);
+                        if (value == 0)
+                        {
+                            // Zero changes only the previous-symbol context. The packed coefficient and remaining-count bucket stay unchanged.
+                            previous = 0;
+                            continue;
+                        }
+
+                        // Unsigned zigzag maps 0, 1, 2, 3 to 0, -1, 1, -2. Shift while the bits are unsigned, then store using
+                        // the existing generic integer truncation/addition contract. This matches native two's-complement accumulation.
+                        uint signedBits = unchecked((value >> 1) ^ (0U - (value & 1)));
+                        int coefficient = unchecked((int)(signedBits << coefficientShift));
+                        int index = (int)order[k];
+                        block[index] = unchecked(block[index] + TCoefficient.CreateTruncating(coefficient));
+
+                        // Count the encoded nonzero before progressive truncation. A nonzero can wrap to zero after shifting.
+                        previous = 1;
+                        remaining--;
+                        countBucket = nonzeroContexts[(remaining + coveredBlocks - 1) >> blockShift];
+                    }
+
+                    if (remaining != 0)
+                    {
+                        throw new InvalidImageContentException("The JPEG XL AC scan ends before all declared nonzero coefficients.");
+                    }
+                }
+            }
+        }
+
+        symbols.CheckFinalState();
+    }
+
+    /// <summary>
+    /// Releases the one-group coefficient, predictor and optional LZ77 allocations with the frame owner.
+    /// </summary>
+    private void DisposeCoefficientStorage()
+    {
+        this.coefficientHistory?.Dispose();
+        this.nonzeroStorage?.Dispose();
+        this.coefficientStorage?.Dispose();
+        this.coefficientMemory = default;
+        this.nonzeroMemory = default;
+        this.coefficientHistoryMemory = default;
+    }
+}

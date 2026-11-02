@@ -628,6 +628,12 @@ internal sealed partial class JxlModularDecoder : IDisposable
             this.DecodeSamples<JxlEntropyDecoder.AnsLz77Operator>(
                 ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
         }
+        else if (tree.Codes.CanUseAns420)
+        {
+            // Every cluster has the same 4/2/0 widths. Select constant expansion before any channel or sample loop.
+            this.DecodeSamples<JxlEntropyDecoder.Ans420Operator>(
+                ref reader, channels, count, samples, streamId, tree, weightedPredictor, cancellationToken);
+        }
         else
         {
             this.DecodeSamples<JxlEntropyDecoder.AnsOperator>(

@@ -198,6 +198,11 @@ internal sealed partial class JxlVarDctDecoder
         {
             this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.AnsLz77Operator>(ref reader, rectangle, pass, coefficients, cancellationToken);
         }
+        else if (entropy.CanUseAns420)
+        {
+            // The pass retains one histogram set. Its fixed 4/2/0 expansion applies to every coefficient context.
+            this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.Ans420Operator>(ref reader, rectangle, pass, coefficients, cancellationToken);
+        }
         else
         {
             this.ReadAcGroup<TCoefficient, JxlEntropyDecoder.AnsOperator>(ref reader, rectangle, pass, coefficients, cancellationToken);

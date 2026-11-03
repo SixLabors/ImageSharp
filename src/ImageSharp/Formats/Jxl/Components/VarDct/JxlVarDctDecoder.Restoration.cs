@@ -42,6 +42,14 @@ internal sealed partial class JxlVarDctDecoder
     }
 
     /// <summary>
+    /// Borrows the prepared restoration workspace for sequential group-row output.
+    /// </summary>
+    /// <param name="frame">The coding dimensions and parsed restoration parameters.</param>
+    /// <returns>The row processor. Its borrowed storage remains owned by this decoder.</returns>
+    public JxlRestoration.RowProcessor<VarDctSigmaSource> CreateRestorationRows(JxlFrameHeader frame)
+        => new(frame.CodingSize, frame.RestorationFilter, new VarDctSigmaSource(this, frame.RestorationFilter), this.restorationMemory.Span);
+
+    /// <summary>
     /// Prepares one row of the native inverse-sigma field without allocating a full block-grid image.
     /// </summary>
     /// <param name="filter">The quantization multiplier and sharpness table.</param>
@@ -76,7 +84,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <summary>
     /// Borrows this decoder's validated block metadata for sigma preparation without copying its tables.
     /// </summary>
-    private readonly struct VarDctSigmaSource : JxlRestoration.ISigmaSource
+    public readonly struct VarDctSigmaSource : JxlRestoration.ISigmaSource
     {
         private readonly JxlVarDctDecoder decoder;
         private readonly JxlRestorationFilter filter;

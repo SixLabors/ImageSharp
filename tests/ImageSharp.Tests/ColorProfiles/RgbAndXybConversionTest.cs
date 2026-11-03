@@ -21,11 +21,16 @@ public class RgbAndXybConversionTest
     private static readonly ApproximateColorProfileComparer ConverterComparer = new(.0001F);
 
     /// <summary>
-    /// Verifies that an uninitialized value cannot introduce a zero divisor during transform preparation.
+    /// Rejects transforms whose intensity cannot produce finite normalization factors.
     /// </summary>
     [Fact]
-    public void OptionsRejectUninitializedTransform()
-        => Assert.Throws<ArgumentOutOfRangeException>(() => new ColorConversionOptions { XybTransform = default });
+    public void RejectsUnusableTransformNormalization()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ColorConversionOptions { XybTransform = default });
+
+        // A positive finite intensity is still invalid when 255/intensity overflows before matrix preparation.
+        Assert.Throws<ArgumentOutOfRangeException>(() => new XybTransform(Matrix4x4.Identity, Vector3.Zero, float.Epsilon));
+    }
 
     /// <summary>
     /// Verifies scalar and bulk conversion in both directions with every SIMD width and scalar fallback.
@@ -72,7 +77,13 @@ public class RgbAndXybConversionTest
         // exposes a missing transpose. Zero bias makes the expected cube roots independent of profile coefficients.
         Matrix4x4 forward = new(0F, 1F, 0F, 0F, 0F, 0F, 1F, 0F, 1F, 0F, 0F, 0F, 0F, 0F, 0F, 1F);
         Matrix4x4 inverse = new(0F, 0F, 1F, 0F, 1F, 0F, 0F, 0F, 0F, 1F, 0F, 0F, 0F, 0F, 0F, 1F);
-        GammaWorkingSpace linear = new(1F, KnownRgbWorkingSpaces.SRgb.WhitePoint, KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates);
+
+        // These primaries and white produce exactly representable RGB/XYZ matrices. They keep RGB/XYZ
+        // rounding out of the binary cube checks, so a failure identifies the selected XYB transform.
+        CieXyz white = new(.25F, 1F, .25F);
+        RgbPrimariesChromaticityCoordinates primaries = new(new(.5F, .5F), new(0F, 1F), new(0F, .5F));
+        GammaWorkingSpace linear = new(1F, white, primaries);
+        SRgbWorkingSpace nonlinearWorkingSpace = new(white, primaries);
         ReadOnlySpan<XybTransform> transforms =
         [
             new(forward, inverse, Vector3.Zero, 2040F),
@@ -96,41 +107,40 @@ public class RgbAndXybConversionTest
         {
             ColorConversionOptions options = new() { XybTransform = transform, SourceRgbWorkingSpace = linear, TargetRgbWorkingSpace = linear };
             ColorProfileConverter converter = new(options);
+            ColorProfileConverter nonlinear = new(new ColorConversionOptions
+            {
+                XybTransform = transform,
+                SourceRgbWorkingSpace = nonlinearWorkingSpace,
+                TargetRgbWorkingSpace = nonlinearWorkingSpace
+            });
 
-            // Check the public profile contract directly so RGB/XYZ rounding cannot obscure the
-            // component arithmetic. Thirty-three colors cross complete SIMD groups and a scalar tail.
-            Xyb.FromProfileConnectionSpace(options, source, encoded);
-            Xyb.ToProfileConnectionSpace(options, encoded, decoded);
+            // RGB is a genuine linear endpoint. The converter owns RGB-to-XYZ and XYZ-to-RGB conversion;
+            // XYB owns only its transform to and from the XYZ connection space. No RGB transfer runs inside XYB.
+            converter.Convert(source, encoded);
+            converter.Convert(encoded, decoded);
 
+            // Thirty-three colors cross complete SIMD groups and a scalar tail. The binary cube expectations
+            // remain independent of the implementation, including the selected transform and intensity scale.
             for (int i = 0; i < source.Length; i++)
             {
                 Xyb expectedColor = expected[i % expected.Length];
 
-                Assert.Equal(expectedColor, Xyb.FromProfileConnectingSpace(options, in source[i]), ComponentComparer);
+                Assert.Equal(expectedColor, converter.Convert<Rgb, Xyb>(source[i]), ComponentComparer);
                 Assert.Equal(expectedColor, encoded[i], ComponentComparer);
-                Assert.Equal(source[i], expectedColor.ToProfileConnectingSpace(options), ComponentComparer);
+                Assert.Equal(source[i], converter.Convert<Xyb, Rgb>(expectedColor), ComponentComparer);
                 Assert.Equal(source[i], decoded[i], ComponentComparer);
-            }
 
-            // The generic converter must select those same coefficients. Its complete working-space
-            // path also passes through XYZ, which has the separately established conversion bound.
-            converter.Convert<Rgb, Xyb>(source, encoded);
-            converter.Convert<Xyb, Rgb>(encoded, decoded);
-
-            for (int i = 0; i < source.Length; i++)
-            {
-                Xyb expectedColor = expected[i % expected.Length];
-
-                Assert.Equal(expectedColor, converter.Convert<Rgb, Xyb>(source[i]), ConverterComparer);
-                Assert.Equal(expectedColor, encoded[i], ConverterComparer);
-                Assert.Equal(source[i], converter.Convert<Xyb, Rgb>(expectedColor), ConverterComparer);
-                Assert.Equal(source[i], decoded[i], ConverterComparer);
+                // XYZ and XYB use linear matrix coordinates. The two converters have identical primaries
+                // and white points, so changing only their RGB transfer curves must not change either result.
+                CieXyz xyz = converter.Convert<Xyb, CieXyz>(expectedColor);
+                Assert.Equal(xyz, nonlinear.Convert<Xyb, CieXyz>(expectedColor));
+                Assert.Equal(converter.Convert<CieXyz, Xyb>(xyz), nonlinear.Convert<CieXyz, Xyb>(xyz));
             }
         }
     }
 
     /// <summary>
-    /// Checks scalar and bulk forward conversion without an RGB transfer or an XYZ matrix round trip.
+    /// Checks scalar and bulk forward conversion from a linear RGB endpoint through the public converter.
     /// </summary>
     /// <remarks>
     /// Expected values come from libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153,
@@ -185,15 +195,16 @@ public class RgbAndXybConversionTest
                 TargetRgbWorkingSpace = linear
             };
 
+            ColorProfileConverter converter = new(options);
             ReadOnlySpan<Xyb> expected = intensity == 255F ? expected255 : expected1000;
-            Xyb.FromProfileConnectionSpace(options, source, destination);
+            converter.Convert(source, destination);
 
             // Thirty-three samples cover complete SIMD groups and their scalar remainder.
             for (int i = 0; i < source.Length; i++)
             {
                 Xyb expectedColor = expected[i % expected.Length];
 
-                Assert.Equal(expectedColor, Xyb.FromProfileConnectingSpace(options, in source[i]), ComponentComparer);
+                Assert.Equal(expectedColor, converter.Convert<Rgb, Xyb>(source[i]), ComponentComparer);
                 Assert.Equal(expectedColor, destination[i], ComponentComparer);
             }
         }
@@ -298,25 +309,10 @@ public class RgbAndXybConversionTest
         VerifyNativeInverse(iso, isoInput255, isoExpected255, isoUnfused255);
         VerifyNativeInverse(new(iso.Inverse, iso.Biases, 1000F), isoInput1000, isoExpected1000, isoUnfused1000);
         VerifyNativeInverse(new(customInverse, new(-.004F, -.002F, -.006F), 1000F), customInput, customExpected, customUnfused);
-
-        // Raw reconstruction precedes frame blending and pixel storage. With identity coefficients and
-        // zero bias, (Y+X)^3, (Y-X)^3 and B^3 are exact cubes. Their values exceed the normalized pixel
-        // range deliberately. The raw API must retain them until the later color and pixel boundaries.
-        Xyb[] extended = new Xyb[33];
-        Array.Fill(extended, new Xyb(0F, 64F, -64F));
-        ColorConversionOptions rawOptions = new() { XybTransform = new(Matrix4x4.Identity, Vector3.Zero, 255F) };
-        Rgb[] raw = new Rgb[extended.Length];
-        Xyb.ToLinearRgb(rawOptions, extended, raw);
-        Rgb exact = new(262144F, 262144F, -262144F);
-        for (int i = 0; i < extended.Length; i++)
-        {
-            Assert.Equal(exact, extended[i].ToLinearRgb(rawOptions));
-            Assert.Equal(exact, raw[i]);
-        }
     }
 
     /// <summary>
-    /// Checks one native inverse case through scalar and bulk profile methods.
+    /// Checks one native inverse case through scalar and bulk conversion to a linear RGB endpoint.
     /// </summary>
     /// <param name="transform">The transform used by the native decoder.</param>
     /// <param name="samples">The native XYB input period.</param>
@@ -326,23 +322,20 @@ public class RgbAndXybConversionTest
     {
         GammaWorkingSpace linear = CreateNativeLinearSrgbWorkingSpace();
         ColorConversionOptions options = new() { XybTransform = transform, SourceRgbWorkingSpace = linear, TargetRgbWorkingSpace = linear };
+        ColorProfileConverter converter = new(options);
         Xyb[] source = new Xyb[33];
-        Rgb[] destination = new Rgb[source.Length];
-        Rgb[] rawDestination = new Rgb[source.Length + 1];
+        Rgb[] destination = new Rgb[source.Length + 1];
         Rgb sentinel = new(-1F, -2F, -3F);
-        rawDestination[^1] = sentinel;
+        destination[^1] = sentinel;
 
         for (int i = 0; i < source.Length; i++)
         {
             source[i] = samples[i % samples.Length];
         }
 
-        Xyb.ToProfileConnectionSpace(options, source, destination);
-
-        // Default sRGB transfer settings must not affect the explicitly linear API. These expectations
-        // come from native's raw inverse stage, before its separately recorded transfer operation.
-        ColorConversionOptions rawOptions = new() { XybTransform = transform };
-        Xyb.ToLinearRgb(rawOptions, source, rawDestination);
+        // The converter receives the XYZ connection values and produces the requested linear RGB endpoint.
+        // Its output transfer belongs to that endpoint, so the native linear samples need no encode/expand round trip.
+        converter.Convert(source, destination);
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -352,28 +345,26 @@ public class RgbAndXybConversionTest
             // MultiplyAddEstimate can use one fused operation or two separately rounded operations.
             // Original libjxl AVX2 and SSE4 kernels produced these two results from identical input bits.
             // Keep the same accuracy bound for both; an unfused target need not reproduce fused rounding.
-            Rgb actualScalar = source[i].ToProfileConnectingSpace(options);
+            Rgb actualScalar = converter.Convert<Xyb, Rgb>(source[i]);
             Assert.True(ComponentComparer.Equals(expectedColor, actualScalar) || ComponentComparer.Equals(unfusedColor, actualScalar),
                 $"Intensity {transform.IntensityTarget:R}; input {source[i]}; "
                 + $"fused {expectedColor.ToScaledVector4()}; unfused {unfusedColor.ToScaledVector4()}; scalar {actualScalar.ToScaledVector4()}.");
             Assert.True(ComponentComparer.Equals(expectedColor, destination[i]) || ComponentComparer.Equals(unfusedColor, destination[i]),
                 $"Intensity {transform.IntensityTarget:R}; input {source[i]}; "
                 + $"fused {expectedColor.ToScaledVector4()}; unfused {unfusedColor.ToScaledVector4()}; bulk {destination[i].ToScaledVector4()}.");
-
-            Rgb rawScalar = source[i].ToLinearRgb(rawOptions);
-            Assert.True(ComponentComparer.Equals(expectedColor, rawScalar) || ComponentComparer.Equals(unfusedColor, rawScalar));
-            Assert.True(ComponentComparer.Equals(expectedColor, rawDestination[i]) || ComponentComparer.Equals(unfusedColor, rawDestination[i]));
         }
 
-        Assert.Equal(sentinel, rawDestination[^1]);
+        Assert.Equal(sentinel, destination[^1]);
 
-        // Both models occupy three floats. The API must load a complete source batch before an
-        // overlapping output store. Reuse these inputs only after the separate-source checks finish.
+        // Both models occupy three floats. The public converter consumes the XYB source into its XYZ workspace
+        // before it publishes RGB. Check exact overlap only after all separate-source checks have consumed the inputs.
         Span<Rgb> inPlace = MemoryMarshal.Cast<Xyb, Rgb>(source.AsSpan());
-        Xyb.ToLinearRgb(rawOptions, source, inPlace);
+        converter.Convert(source, inPlace);
+
         for (int i = 0; i < inPlace.Length; i++)
         {
-            Assert.True(ComponentComparer.Equals(expected[i % expected.Length], inPlace[i]) || ComponentComparer.Equals(unfused[i % unfused.Length], inPlace[i]));
+            Assert.True(
+                ComponentComparer.Equals(expected[i % expected.Length], inPlace[i]) || ComponentComparer.Equals(unfused[i % unfused.Length], inPlace[i]));
         }
     }
 
@@ -474,8 +465,8 @@ public class RgbAndXybConversionTest
             });
             ReadOnlySpan<Xyb> expectedForward = space == 0 ? forwardP3 : forwardProPhoto;
             ReadOnlySpan<Rgb> expectedInverse = space == 0 ? inverseP3 : inverseProPhoto;
-            forward.Convert<Rgb, Xyb>(rgbSource, encoded);
-            inverse.Convert<Xyb, Rgb>(xybSource, decoded);
+            forward.Convert(rgbSource, encoded);
+            inverse.Convert(xybSource, decoded);
 
             for (int i = 0; i < rgbSource.Length; i++)
             {

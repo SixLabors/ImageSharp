@@ -1,11 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 
@@ -96,6 +97,7 @@ internal static class JxlModularPalette
     /// <summary>
     /// Restores equally sized output channels while preserving the index plane until the final output is reconstructed.
     /// </summary>
+    /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
     /// <param name="indices">The decoded signed index plane. The first output can alias this region.</param>
     /// <param name="palette">The explicit palette, with one row per output component. A zero-width palette needs no backing storage.</param>
     /// <param name="outputs">The ready output regions in component order. The first can reuse the index region.</param>
@@ -105,18 +107,21 @@ internal static class JxlModularPalette
     /// <param name="weightedPredictor">The group's weighted predictor coefficients.</param>
     /// <param name="scratch">Reusable weighted error storage large enough for an output row.</param>
     /// <param name="implicitScratch">At least ImplicitEntryCount integers, separate from the error rows and all channel samples.</param>
+    /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="cancellationToken">The token checked between rows and output channels.</param>
-    public static void Apply(
-        Buffer2DRegion<int> indices,
-        Buffer2DRegion<int> palette,
-        ReadOnlySpan<Buffer2DRegion<int>> outputs,
+    public static void Apply<TSample>(
+        JxlModularChannel indices,
+        JxlModularChannel palette,
+        ReadOnlySpan<JxlModularChannel> outputs,
         int deltaCount,
         byte predictor,
         int bitDepth,
         JxlWeightedPredictor weightedPredictor,
         Span<int> scratch,
         Span<int> implicitScratch,
+        Span<int> predictionRows,
         CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         // Empty transformed channels retain their logical dimensions but have no samples or row storage to borrow.
         if (indices.Width == 0 || indices.Height == 0)
@@ -130,19 +135,35 @@ internal static class JxlModularPalette
         {
             cancellationToken.ThrowIfCancellationRequested();
             int component = i == outputs.Length - 1 ? 0 : i + 1;
-            Buffer2DRegion<int> output = outputs[component];
-            ReadOnlySpan<int> table = palette.Width == 0 ? [] : palette.DangerousGetRowSpan(component);
+            JxlModularChannel output = outputs[component];
+            ReadOnlySpan<int> table = [];
+            if (palette.Width != 0)
+            {
+                ReadOnlySpan<TSample> stored = palette.GetRow<TSample>(component);
+                if (typeof(TSample) == typeof(short))
+                {
+                    // Gather reads integer entries. Widen only this small explicit table component;
+                    // image samples remain in their selected storage and no full-size shadow plane exists.
+                    Span<int> widened = implicitScratch.Slice(ImplicitEntryCount, palette.Width);
+                    TensorPrimitives.ConvertTruncating(stored, widened);
+                    table = widened;
+                }
+                else
+                {
+                    table = MemoryMarshal.Cast<TSample, int>(stored);
+                }
+            }
 
             // The caller borrows this table once after entropy decoding. Refill it for each component only after
             // the preceding component is complete; no row or prediction state retains the old table values.
-            PaletteLookupOperator lookup = new(table, implicitScratch, component, bitDepth);
+            PaletteLookupOperator lookup = new(table, implicitScratch[..ImplicitEntryCount], component, bitDepth);
 
             if (predictor == 0)
             {
                 for (int y = 0; y < output.Height; y++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    ApplyLookup(indices.DangerousGetRowSpan(y), output.DangerousGetRowSpan(y), in lookup);
+                    ApplyLookup<TSample>(indices.GetRow<TSample>(y), output.GetRow<TSample>(y), in lookup);
                 }
             }
             else if (predictor == 6)
@@ -150,11 +171,11 @@ internal static class JxlModularPalette
                 // Weighted state advances for every sample, including absolute palette entries.
                 // Reset the same caller-owned storage for each independent output channel.
                 weightedPredictor.Reset(scratch, output.Width);
-                ApplyWeighted(indices, output, deltaCount, weightedPredictor, scratch, in lookup, cancellationToken);
+                ApplyWeighted<TSample>(indices, output, deltaCount, weightedPredictor, scratch, predictionRows, in lookup, cancellationToken);
             }
             else
             {
-                ApplyPredicted(indices, output, deltaCount, predictor, in lookup, cancellationToken);
+                ApplyPredicted<TSample>(indices, output, deltaCount, predictor, predictionRows, in lookup, cancellationToken);
             }
         }
     }
@@ -162,13 +183,13 @@ internal static class JxlModularPalette
     /// <summary>
     /// Expands independent index values with descending SIMD widths and a scalar remainder.
     /// </summary>
+    /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
     /// <param name="indices">The input index row, which can alias the destination.</param>
     /// <param name="destination">The output component row.</param>
     /// <param name="lookup">The component's prepared palette arithmetic.</param>
-    private static void ApplyLookup(ReadOnlySpan<int> indices, Span<int> destination, in PaletteLookupOperator lookup)
+    private static void ApplyLookup<TSample>(ReadOnlySpan<TSample> indices, Span<TSample> destination, in PaletteLookupOperator lookup)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
-        ref int source = ref MemoryMarshal.GetReference(indices);
-        ref int output = ref MemoryMarshal.GetReference(destination);
         int x = 0;
 
         // Each lane is one independent column. Load its index before the store so output zero can reuse this row in place.
@@ -177,8 +198,8 @@ internal static class JxlModularPalette
             nuint count = indices.Length.Vector512Count<int>();
             for (nuint block = 0; block < count; block++, x += Vector512<int>.Count)
             {
-                Vector512<int> values = lookup.Invoke(Vector512.LoadUnsafe(ref source, (nuint)x));
-                values.StoreUnsafe(ref output, (nuint)x);
+                Vector512<int> values = lookup.Invoke(JxlModularChannel.Load512(indices, x));
+                JxlModularChannel.Store512(destination, x, values);
             }
         }
 
@@ -187,8 +208,8 @@ internal static class JxlModularPalette
             nuint count = (indices.Length - x).Vector256Count<int>();
             for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
             {
-                Vector256<int> values = lookup.Invoke(Vector256.LoadUnsafe(ref source, (nuint)x));
-                values.StoreUnsafe(ref output, (nuint)x);
+                Vector256<int> values = lookup.Invoke(JxlModularChannel.Load256(indices, x));
+                JxlModularChannel.Store256(destination, x, values);
             }
         }
 
@@ -197,34 +218,38 @@ internal static class JxlModularPalette
             nuint count = (indices.Length - x).Vector128Count<int>();
             for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
             {
-                Vector128<int> values = lookup.Invoke(Vector128.LoadUnsafe(ref source, (nuint)x));
-                values.StoreUnsafe(ref output, (nuint)x);
+                Vector128<int> values = lookup.Invoke(JxlModularChannel.Load128(indices, x));
+                JxlModularChannel.Store128(destination, x, values);
             }
         }
 
         // Scalar lookup uses the same explicit range, negative cycle and implicit cube equations.
         for (; x < indices.Length; x++)
         {
-            Unsafe.Add(ref output, x) = lookup.Invoke(Unsafe.Add(ref source, x));
+            destination[x] = TSample.CreateTruncating(lookup.Invoke(int.CreateTruncating(indices[x])));
         }
     }
 
     /// <summary>
     /// Restores delta entries with an existing nonweighted modular predictor.
     /// </summary>
+    /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
     /// <param name="indices">The unchanged input indices, or the region being restored in place.</param>
     /// <param name="output">The current component's output region.</param>
     /// <param name="deltaCount">The first index that denotes an absolute entry.</param>
     /// <param name="predictor">The validated nonzero, nonweighted predictor.</param>
+    /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="lookup">The component's palette arithmetic.</param>
     /// <param name="cancellationToken">The token checked between rows.</param>
-    private static void ApplyPredicted(
-        Buffer2DRegion<int> indices,
-        Buffer2DRegion<int> output,
+    private static void ApplyPredicted<TSample>(
+        JxlModularChannel indices,
+        JxlModularChannel output,
         int deltaCount,
         byte predictor,
+        Span<int> predictionRows,
         in PaletteLookupOperator lookup,
         CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         int rowLength = output.Width;
 
@@ -232,55 +257,156 @@ internal static class JxlModularPalette
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Palette reconstruction validates equal index/output shapes. Region rows share rowLength,
-            // and the edge conditions below bound neighbor offsets. Read each index before an aliased output store.
-            ref int indexStart = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y));
-            ref int first = ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y));
-            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 1)));
-            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 2)));
+            ReadOnlySpan<TSample> indexRow = indices.GetRow<TSample>(y);
+            Span<int> row = output.GetPredictionRow<TSample>(y, predictionRows);
+            ReadOnlySpan<int> top = y == 0 ? row : output.GetPredictionRow<TSample>(y - 1, predictionRows);
+            ReadOnlySpan<int> above = y < 2 ? top : output.GetPredictionRow<TSample>(y - 2, predictionRows);
+            ref int first = ref MemoryMarshal.GetReference(row);
+            int x = 0;
 
-            for (int x = 0; x < rowLength; x++)
+            // Only indices below deltaCount add a prediction. A block of absolute entries has no
+            // dependency between columns, so the existing lookup operator can restore it with SIMD.
+            // A mixed block retains scalar column order. Later deltas can then read every preceding
+            // absolute or delta result, including values written by a preceding SIMD block.
+            if (Vector512.IsHardwareAccelerated)
             {
-                int index = Unsafe.Add(ref indexStart, x);
-                int value = lookup.Invoke(index);
-                if (index < deltaCount)
+                Vector512<int> deltaLimit = Vector512.Create(deltaCount);
+                nuint count = (rowLength - x).Vector512Count<int>();
+                for (nuint block = 0; block < count; block++, x += Vector512<int>.Count)
                 {
-                    // Negative implicit indices are deltas too. Predict from already restored output,
-                    // never from the index plane or from another output channel.
-                    int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
-                    int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
-                    int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
-                    int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
-                    int leftLeft = x > 1 ? Unsafe.Add(ref first, x - 2) : left;
-                    int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
-                    int topRightRight = y != 0 && x + 2 < rowLength ? Unsafe.Add(ref topStart, x + 2) : topRight;
-                    long prediction = JxlModularPredictor.Predict(predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
-                    value = unchecked((int)(prediction + value));
+                    Vector512<int> values = JxlModularChannel.Load512(indexRow, x);
+                    if (!Vector512.LessThanAny(values, deltaLimit))
+                    {
+                        lookup.Invoke(values).StoreUnsafe(ref first, (nuint)x);
+                    }
+                    else
+                    {
+                        ApplyPredictedBlock(indexRow, row, top, above, x, Vector512<int>.Count, y, deltaCount, predictor, in lookup);
+                    }
                 }
-
-                Unsafe.Add(ref first, x) = value;
             }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                Vector256<int> deltaLimit = Vector256.Create(deltaCount);
+                nuint count = (rowLength - x).Vector256Count<int>();
+                for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
+                {
+                    Vector256<int> values = JxlModularChannel.Load256(indexRow, x);
+                    if (!Vector256.LessThanAny(values, deltaLimit))
+                    {
+                        lookup.Invoke(values).StoreUnsafe(ref first, (nuint)x);
+                    }
+                    else
+                    {
+                        ApplyPredictedBlock(indexRow, row, top, above, x, Vector256<int>.Count, y, deltaCount, predictor, in lookup);
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Vector128<int> deltaLimit = Vector128.Create(deltaCount);
+                nuint count = (rowLength - x).Vector128Count<int>();
+                for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
+                {
+                    Vector128<int> values = JxlModularChannel.Load128(indexRow, x);
+                    if (!Vector128.LessThanAny(values, deltaLimit))
+                    {
+                        lookup.Invoke(values).StoreUnsafe(ref first, (nuint)x);
+                    }
+                    else
+                    {
+                        ApplyPredictedBlock(indexRow, row, top, above, x, Vector128<int>.Count, y, deltaCount, predictor, in lookup);
+                    }
+                }
+            }
+
+            // Load each index before its store. This also permits the final component to replace
+            // the original index row in place, for both scalar blocks and the final short remainder.
+            ApplyPredictedBlock(indexRow, row, top, above, x, rowLength - x, y, deltaCount, predictor, in lookup);
+            output.CommitPredictionRow<TSample>(y, row);
+        }
+    }
+
+    /// <summary>
+    /// Restores a dependent block in column order using the same neighbors as scalar palette decoding.
+    /// </summary>
+    /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
+    /// <param name="indices">The complete index row, which can alias the output row.</param>
+    /// <param name="row">The complete current output row. Columns before start are already restored.</param>
+    /// <param name="top">The preceding output row, or the current row at the top image edge.</param>
+    /// <param name="above">The output row two rows above, or top at the first two image rows.</param>
+    /// <param name="start">The first column in this block.</param>
+    /// <param name="length">The number of columns in this block.</param>
+    /// <param name="y">The output row's zero-based image coordinate.</param>
+    /// <param name="deltaCount">The first index that denotes an absolute entry.</param>
+    /// <param name="predictor">The validated nonzero, nonweighted predictor.</param>
+    /// <param name="lookup">The component's prepared palette arithmetic.</param>
+    private static void ApplyPredictedBlock<TSample>(
+        ReadOnlySpan<TSample> indices,
+        Span<int> row,
+        ReadOnlySpan<int> top,
+        ReadOnlySpan<int> above,
+        int start,
+        int length,
+        int y,
+        int deltaCount,
+        byte predictor,
+        in PaletteLookupOperator lookup)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        ref TSample indexStart = ref MemoryMarshal.GetReference(indices);
+        ref int first = ref MemoryMarshal.GetReference(row);
+        ref int topStart = ref MemoryMarshal.GetReference(top);
+        ref int aboveStart = ref MemoryMarshal.GetReference(above);
+        int end = start + length;
+        for (int x = start; x < end; x++)
+        {
+            int index = int.CreateTruncating(Unsafe.Add(ref indexStart, x));
+            int value = lookup.Invoke(index);
+            if (index < deltaCount)
+            {
+                // Negative implicit indices are deltas too. Predict from already restored output,
+                // never from the index plane or from another output channel. Keep image coordinates
+                // here: block edges are not image edges, and they do not replace valid neighbors.
+                int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
+                int north = y != 0 ? Unsafe.Add(ref topStart, x) : left;
+                int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
+                int topRight = y != 0 && x + 1 < row.Length ? Unsafe.Add(ref topStart, x + 1) : north;
+                int leftLeft = x > 1 ? Unsafe.Add(ref first, x - 2) : left;
+                int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : north;
+                int topRightRight = y != 0 && x + 2 < row.Length ? Unsafe.Add(ref topStart, x + 2) : topRight;
+                long prediction = JxlModularPredictor.Predict(predictor, left, north, topLeft, topRight, leftLeft, topTop, topRightRight);
+                value = unchecked((int)(prediction + value));
+            }
+
+            Unsafe.Add(ref first, x) = value;
         }
     }
 
     /// <summary>
     /// Restores delta entries while advancing the weighted predictor for both absolute and delta samples.
     /// </summary>
+    /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
     /// <param name="indices">The unchanged input indices, or the region being restored in place.</param>
     /// <param name="output">The current component's output region.</param>
     /// <param name="deltaCount">The first index that denotes an absolute entry.</param>
     /// <param name="weightedPredictor">The reset weighted predictor for this output channel.</param>
     /// <param name="scratch">The caller-owned error rows reused throughout this channel.</param>
+    /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="lookup">The component's palette arithmetic.</param>
     /// <param name="cancellationToken">The token checked between rows.</param>
-    private static void ApplyWeighted(
-        Buffer2DRegion<int> indices,
-        Buffer2DRegion<int> output,
+    private static void ApplyWeighted<TSample>(
+        JxlModularChannel indices,
+        JxlModularChannel output,
         int deltaCount,
         JxlWeightedPredictor weightedPredictor,
         Span<int> scratch,
+        Span<int> predictionRows,
         in PaletteLookupOperator lookup,
         CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         int rowLength = output.Width;
 
@@ -290,14 +416,14 @@ internal static class JxlModularPalette
 
             // The validated regions have equal widths. Borrow their rows once and keep the same edge
             // substitutions as nonweighted prediction. The index load precedes its possible in-place output store.
-            ref int indexStart = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y));
-            ref int first = ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y));
-            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 1)));
-            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(output.DangerousGetRowSpan(y - 2)));
+            ref TSample indexStart = ref MemoryMarshal.GetReference(indices.GetRow<TSample>(y));
+            ref int first = ref MemoryMarshal.GetReference(output.GetPredictionRow<TSample>(y, predictionRows));
+            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(output.GetPredictionRow<TSample>(y - 1, predictionRows)));
+            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(output.GetPredictionRow<TSample>(y - 2, predictionRows)));
 
             for (int x = 0; x < rowLength; x++)
             {
-                int index = Unsafe.Add(ref indexStart, x);
+                int index = int.CreateTruncating(Unsafe.Add(ref indexStart, x));
                 int value = lookup.Invoke(index);
                 int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
                 int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
@@ -313,6 +439,8 @@ internal static class JxlModularPalette
                 Unsafe.Add(ref first, x) = value;
                 weightedPredictor.Update(scratch, x, y, value);
             }
+
+            output.CommitPredictionRow<TSample>(y, MemoryMarshal.CreateReadOnlySpan(ref first, rowLength));
         }
     }
 

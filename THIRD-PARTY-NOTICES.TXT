@@ -10,7 +10,7 @@ https://aomedia.googlesource.com/aom/
 SIMD log2 and exp2 approximations: skcms, BSD-3-Clause.
 https://github.com/google/skia/tree/main/modules/skcms
 
-JPEG XL header, entropy and ICC decoding: libjxl and jxl-rs, BSD-3-Clause.
+JPEG XL decoding algorithms: libjxl and jxl-rs, BSD-3-Clause.
 https://github.com/libjxl/libjxl
 https://github.com/libjxl/jxl-rs
 

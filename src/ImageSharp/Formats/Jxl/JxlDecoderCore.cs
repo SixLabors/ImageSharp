@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 /// <summary>
 /// Owns one JPEG XL read operation and applies the general decoder policies.
 /// </summary>
-internal sealed partial class JxlDecoderCore : ImageDecoderCore
+internal sealed class JxlDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlDecoderCore"/> class.
@@ -201,53 +201,64 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 }
 
                 using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
-                using JxlFrame reconstructed = this.DecodeFrameData(ref reader, header, frame, sections, dcReference, cancellationToken);
-                reconstructed.Reconstruct(allocator, visibleFrame, nonvisibleFrame, cancellationToken);
-
-                if (lowFrequency)
+                Image<TPixel>? image = null;
+                try
                 {
-                    // Both LF and displayed output complete the same native spatial operations. The LF slot takes
-                    // ownership before color conversion, alpha unassociation or pixel packing can change these samples.
-                    Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
-
-                    // Publish only a complete replacement. A level n producer borrows slot n and replaces slot n-1.
-                    // Dispose the previous contents of the replaced slot after the new planes are complete.
-                    int slot = frame.LowFrequencyLevel - 1;
-                    Buffer2D<float>[]? previous = lowFrequencyFrames[slot];
-                    lowFrequencyFrames[slot] = planes;
-                    if (previous is not null)
+                    if (!lowFrequency)
                     {
-                        foreach (Buffer2D<float> plane in previous)
+                        ImageMetadata metadata = new() { IccProfile = header.IccProfile };
+                        metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
+
+                        // Sequential output writes completed rows during AC traversal. Initialize the destination
+                        // first so malformed or cancelled input cannot expose samples retained in pooled memory.
+                        image = new Image<TPixel>(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
+                        JxlFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetFormatMetadata(JxlFormat.Instance);
+                        if (header.TicksPerSecond is Rational rate)
                         {
-                            plane.Dispose();
+                            frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
                         }
                     }
 
-                    continue;
-                }
+                    using JxlFrame reconstructed = this.DecodeFrameData(
+                        ref reader, header, frame, sections, dcReference, image?.Frames.RootFrame, cancellationToken);
 
-                ImageMetadata metadata = new() { IccProfile = header.IccProfile };
-                metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
-
-                // Initialize output so a partly written frame cannot expose data retained in pooled memory.
-                Image<TPixel> image = new(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
-                try
-                {
-                    ImageFrame<TPixel> destination = image.Frames.RootFrame;
-                    JxlFrameMetadata frameMetadata = destination.Metadata.GetFormatMetadata(JxlFormat.Instance);
-                    if (header.TicksPerSecond is Rational rate)
+                    bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
+                    if (!pixelsWritten)
                     {
-                        frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
+                        reconstructed.Reconstruct(allocator, visibleFrame, nonvisibleFrame, cancellationToken);
                     }
 
-                    this.PackFrame(header, reconstructed, destination, cancellationToken);
+                    if (image is null)
+                    {
+                        // LF storage retains native float samples. Transfer completed planes before any output
+                        // color conversion, and release the preceding contents of the same reference slot.
+                        Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
+                        int slot = frame.LowFrequencyLevel - 1;
+                        Buffer2D<float>[]? previous = lowFrequencyFrames[slot];
+                        lowFrequencyFrames[slot] = planes;
+                        if (previous is not null)
+                        {
+                            foreach (Buffer2D<float> plane in previous)
+                            {
+                                plane.Dispose();
+                            }
+                        }
 
-                    this.CompleteMetadata(codestream, header, metadata, cancellationToken);
+                        continue;
+                    }
+
+                    if (!pixelsWritten)
+                    {
+                        using JxlPixelConverter<TPixel> pixelConverter = new(this.Options.Configuration, header, reconstructed, image.Frames.RootFrame);
+                        pixelConverter.Convert(cancellationToken);
+                    }
+
+                    this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
                     return image;
                 }
                 catch
                 {
-                    image.Dispose();
+                    image?.Dispose();
                     throw;
                 }
             }
@@ -275,15 +286,20 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
     /// <param name="frame">The coding dimensions and pass descriptions.</param>
     /// <param name="sections">The retained physical section sizes and logical ordering.</param>
     /// <param name="dcReference">The borrowed saved LF planes, or an empty span for coded DC.</param>
+    /// <param name="destination">The initialized displayed frame, or null for retained LF output.</param>
     /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
-    /// <returns>The owner of the decoded native components. Spatial reconstruction has not yet been applied.</returns>
-    private JxlFrame DecodeFrameData(
+    /// <returns>
+    /// The native component owner. Group-row output has already written destination pixels; retained planes still require spatial reconstruction.
+    /// </returns>
+    private JxlFrame DecodeFrameData<TPixel>(
         ref JxlBitReader reader,
         JxlHeader header,
         JxlFrameHeader frame,
         JxlFrameSections sections,
         ReadOnlySpan<Buffer2D<float>> dcReference,
+        ImageFrame<TPixel>? destination,
         CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         ReadOnlySpan<uint> sizes = sections.Sizes.Span;
         ReadOnlySpan<uint> order = sections.Order.Span;
@@ -312,6 +328,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         JxlSplines? splines = null;
         JxlVarDctDecoder? varDct = null;
         JxlModularDecoder? modular = null;
+        JxlFrame? reconstructed = null;
         try
         {
             // Frame features precede DC factors in the DC-global section. Their entropy state ends
@@ -325,6 +342,18 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             Vector3 dcFactors = ReadDcQuantization(ref reader);
             varDct = frame.Modular ? null : JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors, dcReference);
             modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, cancellationToken);
+
+            // Global modular inverses can make alpha and black unavailable until all groups finish.
+            // Saved native frames and the existing spatial-feature passes also consume retained planes.
+            // Ordinary final color can instead be restored and packed as each group row becomes complete.
+            bool useGroupRows = destination is not null && varDct is not null
+                && frame.Type == JxlFrameHeader.FrameType.Regular && !frame.CanBeReferenced && !frame.NeedsBlending
+                && header.Metadata.ExtraChannels.Count == 0 && frame.Upsampling == 1 && splines is null && !noise.HasAny;
+            for (int component = 0; component < frame.HorizontalSamplingShifts.Length; component++)
+            {
+                useGroupRows &= frame.HorizontalSamplingShifts[component] == 0 && frame.VerticalSamplingShifts[component] == 0;
+            }
+
             if (!combined)
             {
                 reader.EndSection();
@@ -385,12 +414,27 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             if (varDct is not null)
             {
                 varDct.ReadGlobalAc(ref reader, frame, modular, allocator, cancellationToken);
-                varDct.PrepareReconstruction(allocator, header, frame);
+                varDct.PrepareReconstruction(allocator, header, frame, useGroupRows);
             }
 
             if (!combined)
             {
                 reader.EndSection();
+            }
+
+            // The frame takes ownership before traversal so both streamed and retained output share failure
+            // cleanup. No other owner disposes its component planes after this construction succeeds.
+            reconstructed = new JxlFrame(header, frame, modular, varDct, dcFactors, splines, noise);
+            using JxlPixelConverter<TPixel>? pixelConverter = varDct is not null && varDct.UsesGroupRows && destination is not null
+                ? new JxlPixelConverter<TPixel>(this.Options.Configuration, header, reconstructed, destination)
+                : null;
+
+            Span<Vector4> pixelRow = pixelConverter is null ? [] : pixelConverter.PixelRow;
+            bool restoreRows = pixelConverter is not null && (frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0);
+            JxlRestoration.RowProcessor<JxlVarDctDecoder.VarDctSigmaSource> restoration = default;
+            if (restoreRows && varDct is not null)
+            {
+                restoration = varDct.CreateRestorationRows(frame);
             }
 
             InlineArray16<int> minimumShifts = default;
@@ -424,6 +468,11 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             // Modular groups use the same pass-specific resolution ranges and complete their global transforms below.
             for (int group = 0; group < groupCount; group++)
             {
+                if (pixelConverter is not null && varDct is not null && group % groupColumns == 0)
+                {
+                    varDct.BeginGroupRow((group / groupColumns) * groupSize);
+                }
+
                 for (int pass = 0; pass < frame.PassCount; pass++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -443,6 +492,47 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                         reader.EndSection();
                     }
                 }
+
+                if (pixelConverter is not null && varDct is not null && ((group + 1) % groupColumns == 0 || group == groupCount - 1))
+                {
+                    // Every horizontal group in this strip now has all progressive passes. Filters retain
+                    // their pending neighboring rows before the next group row reuses the same native storage.
+                    int top = (group / groupColumns) * groupSize;
+                    int bottom = Math.Min(top + groupSize, size.Height);
+                    int componentWidth = varDct.GroupRowWidth;
+                    for (int y = top; y < bottom; y++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        ReadOnlySpan<float> row = varDct.GetGroupRow(y);
+                        ReadOnlySpan<float> rowX = row[..componentWidth];
+                        ReadOnlySpan<float> rowY = row.Slice(componentWidth, componentWidth);
+                        ReadOnlySpan<float> rowB = row.Slice(2 * componentWidth, componentWidth);
+                        if (restoreRows)
+                        {
+                            restoration.AppendRows(rowX, rowY, rowB);
+                            while (restoration.TryReadRow(out int outputY, out ReadOnlySpan<float> x, out ReadOnlySpan<float> luma, out ReadOnlySpan<float> b))
+                            {
+                                pixelConverter.ConvertRow(outputY, x, luma, b, pixelRow);
+                            }
+                        }
+                        else
+                        {
+                            pixelConverter.ConvertRow(y, rowX[..size.Width], rowY[..size.Width], rowB[..size.Width], pixelRow);
+                        }
+                    }
+                }
+            }
+
+            if (restoreRows && pixelConverter is not null)
+            {
+                // Final image reflection supplies the remaining filter neighborhoods. It does not create
+                // a strip boundary: global row coordinates remain unchanged through every restoration pass.
+                restoration.Complete();
+                while (restoration.TryReadRow(out int outputY, out ReadOnlySpan<float> x, out ReadOnlySpan<float> luma, out ReadOnlySpan<float> b))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    pixelConverter.ConvertRow(outputY, x, luma, b, pixelRow);
+                }
             }
 
             if (combined)
@@ -455,15 +545,21 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);
 
-            // The constructor transfers ready owners only after it succeeds. Until then this catch retains
-            // all parsed resources, including a failed final validation or allocation of the runtime frame object.
-            return new JxlFrame(header, frame, modular, varDct, dcFactors, splines, noise);
+            return reconstructed;
         }
         catch
         {
-            modular?.Dispose();
-            varDct?.Dispose();
-            splines?.Dispose();
+            if (reconstructed is not null)
+            {
+                reconstructed.Dispose();
+            }
+            else
+            {
+                modular?.Dispose();
+                varDct?.Dispose();
+                splines?.Dispose();
+            }
+
             throw;
         }
     }

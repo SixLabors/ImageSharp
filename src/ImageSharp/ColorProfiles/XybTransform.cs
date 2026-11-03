@@ -43,8 +43,10 @@ public readonly struct XybTransform
     /// </summary>
     /// <param name="inverse">The unscaled absorbance-to-linear-RGB matrix, in row-major coefficient order.</param>
     /// <param name="biases">The signed biases added after cubing during inverse conversion.</param>
-    /// <param name="intensityTarget">The positive finite intensity target, in nits.</param>
-    /// <exception cref="ArgumentOutOfRangeException">The intensity target is not positive and finite.</exception>
+    /// <param name="intensityTarget">The intensity represented by a linear RGB component of one, in nits.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The intensity target is zero, negative, NaN or infinite, or 255 divided by it exceeds <see cref="float.MaxValue"/>.
+    /// </exception>
     public XybTransform(Matrix4x4 inverse, Vector3 biases, float intensityTarget)
         : this(null, inverse, biases, intensityTarget)
     {
@@ -56,8 +58,10 @@ public readonly struct XybTransform
     /// <param name="forward">The unscaled linear-RGB-to-absorbance matrix, in row-major coefficient order.</param>
     /// <param name="inverse">The unscaled absorbance-to-linear-RGB matrix, in the same coefficient order.</param>
     /// <param name="biases">The signed biases added after cubing during inverse conversion.</param>
-    /// <param name="intensityTarget">The positive finite intensity target, in nits.</param>
-    /// <exception cref="ArgumentOutOfRangeException">The intensity target is not positive and finite.</exception>
+    /// <param name="intensityTarget">The intensity represented by a linear RGB component of one, in nits.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The intensity target is zero, negative, NaN or infinite, or 255 divided by it exceeds <see cref="float.MaxValue"/>.
+    /// </exception>
     public XybTransform(Matrix4x4 forward, Matrix4x4 inverse, Vector3 biases, float intensityTarget)
         : this((Matrix4x4?)forward, inverse, biases, intensityTarget)
     {
@@ -69,13 +73,15 @@ public readonly struct XybTransform
     /// <param name="forward">The supplied forward coefficients, or null to derive them from the inverse.</param>
     /// <param name="inverse">The inverse coefficients in row-major order.</param>
     /// <param name="biases">The signed inverse biases.</param>
-    /// <param name="intensityTarget">The positive finite intensity target, in nits.</param>
+    /// <param name="intensityTarget">The intensity represented by a linear RGB component of one, in nits.</param>
     private XybTransform(Matrix4x4? forward, Matrix4x4 inverse, Vector3 biases, float intensityTarget)
     {
-        if (!(intensityTarget > 0F && float.IsFinite(intensityTarget)))
-        {
-            throw new ArgumentOutOfRangeException(nameof(intensityTarget), "The intensity target must be positive and finite.");
-        }
+        Guard.MustBeGreaterThan(intensityTarget, 0F, nameof(intensityTarget));
+        Guard.MustBeLessThanOrEqualTo(intensityTarget, float.MaxValue, nameof(intensityTarget));
+
+        // Matrix preparation divides the 255-nit reference by this intensity. Reject an unrepresentable
+        // factor here, before finite coefficients or zero can become infinity or NaN during preparation.
+        Guard.MustBeLessThanOrEqualTo(ReferenceIntensity / intensityTarget, float.MaxValue, nameof(intensityTarget));
 
         // XYB has three components and no translation. Complete the unused axis with an identity
         // so a valid three by three matrix remains invertible even when the supplied M44 is zero.
@@ -107,17 +113,48 @@ public readonly struct XybTransform
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="XybTransform"/> struct with prepared conversion coefficients.
+    /// Initializes a new instance of the <see cref="XybTransform"/> struct with prepared XYZ connection coefficients and forward row order.
     /// </summary>
     /// <param name="source">The immutable public transform.</param>
-    private XybTransform(XybTransform source)
+    /// <param name="rgbToXyz">The source working space's linear RGB-to-XYZ matrix in row-vector layout.</param>
+    /// <param name="xyzToRgb">The target working space's XYZ-to-linear-RGB matrix in row-vector layout.</param>
+    private XybTransform(XybTransform source, Matrix4x4 rgbToXyz, Matrix4x4 xyzToRgb)
     {
-        // Vector3.Transform and the shared SIMD matrix operation use row vectors. Transpose the
-        // public row-major coefficients once. Scale relative RGB so one represents IntensityTarget nits.
-        this.Inverse = Matrix4x4.Transpose(source.Inverse) * (ReferenceIntensity / source.IntensityTarget);
-        this.forward = source.forward.HasValue
-            ? Matrix4x4.Transpose(source.forward.Value) * (source.IntensityTarget / ReferenceIntensity)
-            : null;
+        // Public matrices contain row-major coefficients. Transpose them for System.Numerics row vectors,
+        // then scale relative RGB so one represents IntensityTarget nits. Compose the XYZ connection here,
+        // when options prepare the transform, rather than multiplying matrices for every scalar color or bulk block.
+        Matrix4x4 inverse = Matrix4x4.Transpose(source.Inverse) * (ReferenceIntensity / source.IntensityTarget);
+        this.Inverse = inverse * rgbToXyz;
+
+        if (source.forward.HasValue)
+        {
+            Matrix4x4 matrix = xyzToRgb * (Matrix4x4.Transpose(source.forward.Value) * (source.IntensityTarget / ReferenceIntensity));
+
+            // Forward absorbance adds the negative bias, then Z, Y and X. Arrange those four coefficient
+            // rows once for homogeneous input [1,Z,Y,X]. The shared matrix operation can then retain that
+            // evaluation order without a separate dot product or per-color coefficient permutation.
+            this.forward = new Matrix4x4(
+                -source.Biases.X,
+                -source.Biases.Y,
+                -source.Biases.Z,
+                0F,
+                matrix.M31,
+                matrix.M32,
+                matrix.M33,
+                0F,
+                matrix.M21,
+                matrix.M22,
+                matrix.M23,
+                0F,
+                matrix.M11,
+                matrix.M12,
+                matrix.M13,
+                1F);
+        }
+        else
+        {
+            this.forward = null;
+        }
 
         this.Biases = source.Biases;
         this.IntensityTarget = source.IntensityTarget;
@@ -152,8 +189,10 @@ public readonly struct XybTransform
     internal Vector3 CubeRootBiases { get; }
 
     /// <summary>
-    /// Prepares both conversion directions in the matrix layout and intensity scale used by shared arithmetic.
+    /// Prepares both XYZ connection directions in the matrix layout and intensity scale used by shared arithmetic.
     /// </summary>
+    /// <param name="rgbToXyz">The source working space's linear RGB-to-XYZ matrix in row-vector layout.</param>
+    /// <param name="xyzToRgb">The target working space's XYZ-to-linear-RGB matrix in row-vector layout.</param>
     /// <returns>The prepared immutable transform.</returns>
-    internal XybTransform Transpose() => new(this);
+    internal XybTransform Prepare(Matrix4x4 rgbToXyz, Matrix4x4 xyzToRgb) => new(this, rgbToXyz, xyzToRgb);
 }

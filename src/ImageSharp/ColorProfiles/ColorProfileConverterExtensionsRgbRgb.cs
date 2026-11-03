@@ -35,19 +35,13 @@ public static class ColorProfileConverterExtensionsRgbRgb
 
         ColorConversionOptions options = converter.Options;
 
-        // Convert to input PCS
-        Rgb pcsFromA = source.ToProfileConnectingSpace(options);
-        CieXyz pcsFromB = pcsFromA.ToProfileConnectingSpace(options);
-
-        // Adapt to target white point
+        // A scalar call uses the existing prepared matrices directly. Do not prepare a bulk operation per color.
+        Rgb input = source.ToProfileConnectingSpace(options);
+        CieXyz xyz = input.ToProfileConnectingSpace(options);
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        pcsFromB = VonKriesChromaticAdaptation.Transform(in pcsFromB, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
-
-        // Convert between PCS
-        Rgb pcsTo = Rgb.FromProfileConnectingSpace(options, in pcsFromB);
-
-        // Convert to output from PCS
-        return TTo.FromProfileConnectingSpace(options, in pcsTo);
+        xyz = VonKriesChromaticAdaptation.Transform(in xyz, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
+        Rgb output = Rgb.FromProfileConnectingSpace(options, in xyz);
+        return TTo.FromProfileConnectingSpace(options, in output);
     }
 
     /// <summary>
@@ -81,16 +75,16 @@ public static class ColorProfileConverterExtensionsRgbRgb
         Span<Rgb> pcsFromTo = pcsFromToOwner.GetSpan();
         TFrom.ToProfileConnectionSpace(options, source, pcsFromTo);
 
-        using IMemoryOwner<CieXyz> pcsFromOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-        Span<CieXyz> pcsFrom = pcsFromOwner.GetSpan();
-        Rgb.ToProfileConnectionSpace(options, pcsFromTo, pcsFrom);
+        ColorProfileConverter.RgbConversion operation = new(
+            options.SourceRgbWorkingSpace,
+            options.TargetRgbWorkingSpace,
+            converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>(),
+            options.AdaptationMatrix,
+            options.InverseAdaptationMatrix);
 
-        // Adapt to target white point
-        (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        VonKriesChromaticAdaptation.Transform(pcsFrom, pcsFrom, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
-
-        // Convert between PCS.
-        Rgb.FromProfileConnectionSpace(options, pcsFrom, pcsFromTo);
+        // Retain the complete source staging before any destination write. Models can have different
+        // sizes and callers can reuse the same storage. The shared operation keeps XYZ and LMS in registers.
+        operation.Invoke(pcsFromTo);
 
         // Convert to output from PCS
         TTo.FromProfileConnectionSpace(options, pcsFromTo, destination);

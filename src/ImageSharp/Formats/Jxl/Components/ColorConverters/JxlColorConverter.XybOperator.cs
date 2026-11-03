@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 
@@ -12,48 +11,57 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 internal abstract partial class JxlColorConverterBase
 {
     /// <summary>
-    /// Converts normalized XYB through the shared transform configured for the codestream.
+    /// Reconstructs coding XYB directly to linear sRGB with shared scalar and SIMD arithmetic.
     /// </summary>
     internal readonly struct XybOperator : IJxlColorConverterOperator
     {
+        private readonly Xyb.InverseOperator inverse;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XybOperator"/> struct.
+        /// </summary>
+        /// <param name="transform">The header's inverse absorbance matrix, biases and intensity target.</param>
+        public XybOperator(XybTransform transform)
+        {
+            // ISO coefficients are row-major. Prepare the System.Numerics row-vector layout once.
+            // Linear RGB one represents the header intensity, relative to the 255-nit opsin reference.
+            Matrix4x4 matrix = Matrix4x4.Transpose(transform.Inverse) * (XybTransform.ReferenceIntensity / transform.IntensityTarget);
+            this.inverse = new Xyb.InverseOperator(matrix, transform.Biases, transform.CubeRootBiases);
+        }
+
         /// <inheritdoc/>
         public static int ComponentCount => 3;
 
         /// <inheritdoc/>
-        public static int PackedComponentCount => 3;
-
-        /// <inheritdoc/>
-        public static int ScratchComponentCount => 3;
-
-        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3)
-            => RgbOperator.ConvertToProfile(ref c0, ref c1, ref c2, ref c3);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, ref Vector128<float> c3)
-            => RgbOperator.ConvertToProfile(ref c0, ref c1, ref c2, ref c3);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, ref Vector256<float> c3)
-            => RgbOperator.ConvertToProfile(ref c0, ref c1, ref c2, ref c3);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, ref Vector512<float> c3)
-            => RgbOperator.ConvertToProfile(ref c0, ref c1, ref c2, ref c3);
-
-        /// <inheritdoc/>
-        public static void ConvertToRgb(Span<float> packed, Span<Vector4> destination, Span<float> scratch, ColorProfileConverter converter)
+        public void Invoke(ref float c0, ref float c1, ref float c2, ref float c3)
         {
-            // Both models occupy three floats. Shared conversion loads a complete source block before
-            // storing that block's RGB, so exact overlap reuses the packed row without copying it.
-            Span<Xyb> xyb = MemoryMarshal.Cast<float, Xyb>(packed);
-            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packed);
-            Xyb.ToProfileConnectionSpace(converter.Options, xyb, rgb);
-            Rgb.ToScaledVector4(rgb, destination);
+            // Restore linear RGB directly. No intermediate XYZ coordinates or packed color row are needed.
+            this.inverse.Invoke(c0, c1, c2, out c0, out c1, out c2);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, ref Vector128<float> c3)
+        {
+            // Restore linear RGB directly. No intermediate XYZ coordinates or packed color row are needed.
+            this.inverse.Invoke(c0, c1, c2, out c0, out c1, out c2);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, ref Vector256<float> c3)
+        {
+            // Restore linear RGB directly. No intermediate XYZ coordinates or packed color row are needed.
+            this.inverse.Invoke(c0, c1, c2, out c0, out c1, out c2);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, ref Vector512<float> c3)
+        {
+            // Restore linear RGB directly. No intermediate XYZ coordinates or packed color row are needed.
+            this.inverse.Invoke(c0, c1, c2, out c0, out c1, out c2);
         }
     }
 }

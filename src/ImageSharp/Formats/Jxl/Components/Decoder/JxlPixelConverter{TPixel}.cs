@@ -4,9 +4,13 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
@@ -33,9 +37,9 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     private readonly JxlHeader header;
 
     /// <summary>
-    /// The borrowed owner of native modular color and extra-channel samples.
+    /// The borrowed frame that owns native components during decoding and output.
     /// </summary>
-    private readonly JxlModularDecoder modular;
+    private readonly JxlFrame frame;
 
     /// <summary>
     /// The initialized destination frame. The decoder retains its ownership.
@@ -68,6 +72,11 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     private readonly JxlColorConverterBase colorConverter;
 
     /// <summary>
+    /// The paired ICC transform, or null when native operators can produce sRGB directly.
+    /// </summary>
+    private readonly ColorProfileConverter? profileConverter;
+
+    /// <summary>
     /// The shared destination packing and alpha conversion operations.
     /// </summary>
     private readonly PixelOperations<TPixel> pixelOperations;
@@ -88,9 +97,8 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     private readonly bool associated;
 
     // Lengths are float counts, not pixel counts. Together they partition the single row allocation
-    // into [pixel vectors | color scratch | normalized alpha | normalized black].
+    // into [pixel vectors | normalized alpha | normalized black].
     private readonly int vectorLength;
-    private readonly int colorLength;
     private readonly int alphaLength;
     private readonly int blackLength;
 
@@ -110,38 +118,38 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     private bool isDisposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlPixelConverter{TPixel}"/> class with ready source and destination owners.
+    /// Initializes a new instance of the <see cref="JxlPixelConverter{TPixel}"/> class with prepared source and destination owners.
     /// </summary>
     /// <param name="configuration">The destination pixel configuration and tracked allocator.</param>
     /// <param name="header">The native sample, extra-channel and association declarations.</param>
-    /// <param name="modular">The borrowed completed native channels and their color/extra layout.</param>
+    /// <param name="frame">The borrowed frame. Convert only completed rows; component owners remain valid until conversion ends.</param>
     /// <param name="destination">The initialized destination frame.</param>
-    /// <param name="alphaExtra">The first alpha extra-channel index, or minus one for opaque output.</param>
-    /// <param name="blackExtra">The required black extra-channel index, or minus one for other device models.</param>
-    /// <param name="upsampledAlpha">The borrowed expanded alpha plane, or null for a native-resolution row.</param>
-    /// <param name="upsampledBlack">The borrowed expanded black plane, or null for a native-resolution row.</param>
-    /// <param name="colorConverter">The prepared native-component to working-sRGB conversion.</param>
-    public JxlPixelConverter(
-        Configuration configuration,
-        JxlHeader header,
-        JxlModularDecoder modular,
-        ImageFrame<TPixel> destination,
-        int alphaExtra,
-        int blackExtra,
-        Buffer2D<float>? upsampledAlpha,
-        Buffer2D<float>? upsampledBlack,
-        JxlColorConverterBase colorConverter)
+    public JxlPixelConverter(Configuration configuration, JxlHeader header, JxlFrame frame, ImageFrame<TPixel> destination)
     {
         this.configuration = configuration;
         this.header = header;
-        this.modular = modular;
+        this.frame = frame;
         this.destination = destination;
-        this.upsampledAlpha = upsampledAlpha;
-        this.upsampledBlack = upsampledBlack;
-        this.colorConverter = colorConverter;
+        this.upsampledAlpha = frame.UpsampledAlpha;
+        this.upsampledBlack = frame.UpsampledBlack;
+        this.colorConverter = JxlColorConverterBase.Create(header, frame);
         this.pixelOperations = PixelOperations<TPixel>.Instance;
 
-        int extraOffset = modular.ColorChannelCount;
+        // Coding XYB reconstructs sRGB without its suggested output profile. Compact color descriptions
+        // also use direct operators. Only native components with an embedded non-sRGB profile need ICC.
+        if (!header.UsesXybTransform && IccProfile.TryGetIccProfileForColorConversion(header.IccProfile, out IccProfile? sourceProfile))
+        {
+            this.profileConverter = new ColorProfileConverter(new ColorConversionOptions
+            {
+                MemoryAllocator = configuration.MemoryAllocator,
+                SourceIccProfile = sourceProfile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile
+            });
+        }
+
+        int alphaExtra = frame.AlphaExtra;
+        int blackExtra = frame.BlackExtra;
+        int extraOffset = frame.Modular.ColorChannelCount;
         this.alphaChannel = alphaExtra < 0 ? -1 : extraOffset + alphaExtra;
         this.blackChannel = blackExtra < 0 ? -1 : extraOffset + blackExtra;
         this.alphaDepth = alphaExtra < 0 ? default : header.Metadata.ExtraChannels[alphaExtra].BitDepth;
@@ -149,10 +157,9 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         this.associated = alphaExtra >= 0 && header.Metadata.ExtraChannels[alphaExtra].AlphaRepresentation == PixelAlphaRepresentation.Associated;
 
         int width = destination.Width;
-        long colorLength64 = colorConverter.GetBufferLength(width);
-        this.alphaLength = alphaExtra >= 0 && upsampledAlpha is null ? width : 0;
-        this.blackLength = blackExtra >= 0 && upsampledBlack is null ? width : 0;
-        long rowLength = (4L * width) + colorLength64 + this.alphaLength + this.blackLength;
+        this.alphaLength = alphaExtra >= 0 && this.upsampledAlpha is null ? width : 0;
+        this.blackLength = blackExtra >= 0 && this.upsampledBlack is null ? width : 0;
+        long rowLength = (4L * width) + this.alphaLength + this.blackLength;
         if (rowLength > int.MaxValue)
         {
             throw new InvalidMemoryOperationException("The JPEG XL color conversion workspace exceeds the supported buffer length.");
@@ -161,60 +168,61 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         // A segmented destination can exceed a single float Span. Bound the complete row before narrowing
         // its nonnegative offsets. Acquire the only owned allocation last, after all other preparation succeeds.
         this.vectorLength = (int)(4L * width);
-        this.colorLength = (int)colorLength64;
         this.rowOwner = configuration.MemoryAllocator.Allocate<float>((int)rowLength);
         this.rowMemory = this.rowOwner.Memory[..(int)rowLength];
     }
 
     /// <summary>
-    /// Converts native modular color with its integer or floating-point carrier format selected before row traversal.
+    /// Gets the reusable pixel-vector row for a complete group-row conversion sequence.
+    /// </summary>
+    /// <remarks>Borrow once before row traversal. This operation retains ownership until disposal.</remarks>
+    public Span<Vector4> PixelRow => MemoryMarshal.Cast<float, Vector4>(this.rowMemory.Span[..this.vectorLength]);
+
+    /// <summary>
+    /// Converts the completed frame's native color planes and packs the destination pixels.
     /// </summary>
     /// <param name="cancellationToken">The token checked before each output row.</param>
-    public void ConvertModular(CancellationToken cancellationToken)
+    public void Convert(CancellationToken cancellationToken)
     {
-        Buffer2DRegion<int> first = this.modular.GetChannel(0);
-        bool grayscale = this.modular.ColorChannelCount == 1;
-        Buffer2DRegion<int> second = grayscale ? first : this.modular.GetChannel(1);
-        Buffer2DRegion<int> third = grayscale ? first : this.modular.GetChannel(2);
-        JxlBitDepth depth = this.header.Metadata.BitDepth;
-        if (depth.ExponentBits == 0)
+        if (this.frame.VarDct is JxlVarDctDecoder varDct)
         {
-            if (depth.BitsPerSample < 23)
-            {
-                this.ConvertRows(first, second, third, new JxlSampleConverter.IntegerOperator(depth.BitsPerSample), cancellationToken);
-            }
-            else
-            {
-                this.ConvertRows(first, second, third, new JxlSampleConverter.AccurateIntegerOperator(depth.BitsPerSample), cancellationToken);
-            }
+            this.ConvertRows(
+                varDct.GetReconstructedChannel(0),
+                varDct.GetReconstructedChannel(1),
+                varDct.GetReconstructedChannel(2),
+                default(JxlSampleConverter.IdentityOperator),
+                cancellationToken);
         }
-        else if (depth.BitsPerSample == 32)
+        else if (!this.frame.ModularColors.IsEmpty)
         {
-            this.ConvertRows(first, second, third, default(JxlSampleConverter.Binary32Operator), cancellationToken);
-        }
-        else if (depth.ExponentBits == 8)
-        {
-            this.ConvertRows(first, second, third, new JxlSampleConverter.Exponent8Operator(depth.BitsPerSample), cancellationToken);
+            // Spatial reconstruction already restored full-resolution float components. Borrow these
+            // planes directly and do not normalize them as native integer samples a second time.
+            ReadOnlySpan<Buffer2D<float>> colors = this.frame.ModularColors;
+            Buffer2DRegion<float> first = colors[0].GetRegion();
+            Buffer2DRegion<float> second = colors.Length == 1 ? first : colors[1].GetRegion();
+            Buffer2DRegion<float> third = colors.Length == 1 ? first : colors[2].GetRegion();
+
+            this.ConvertRows(first, second, third, default(JxlSampleConverter.IdentityOperator), cancellationToken);
         }
         else
         {
-            this.ConvertRows(first, second, third, new JxlSampleConverter.CustomFloatOperator(depth), cancellationToken);
+            this.ConvertModular(cancellationToken);
         }
     }
 
     /// <summary>
-    /// Converts restored full-resolution float color without another sample normalization.
+    /// Converts and packs one restored native color row with no pending extra-channel reconstruction.
     /// </summary>
-    /// <param name="component0">The first completed component plane.</param>
-    /// <param name="component1">The second plane, or the repeated luminance plane.</param>
-    /// <param name="component2">The third plane, or the repeated luminance plane.</param>
-    /// <param name="cancellationToken">The token checked before each output row.</param>
-    public void ConvertFloat(
-        Buffer2DRegion<float> component0,
-        Buffer2DRegion<float> component1,
-        Buffer2DRegion<float> component2,
-        CancellationToken cancellationToken)
-        => this.ConvertRows(component0, component1, component2, default(JxlSampleConverter.IdentityOperator), cancellationToken);
+    /// <param name="row">The global destination row.</param>
+    /// <param name="component0">The restored first native component.</param>
+    /// <param name="component1">The restored second native component.</param>
+    /// <param name="component2">The restored third native component.</param>
+    /// <param name="vectors">The pixel row borrowed before traversal.</param>
+    public void ConvertRow(int row, ReadOnlySpan<float> component0, ReadOnlySpan<float> component1, ReadOnlySpan<float> component2, Span<Vector4> vectors)
+    {
+        JxlColorConverterBase.ComponentValues<float> source = new(component0, component1, component2, [], []);
+        this.ConvertRow(row, in source, vectors, default(JxlSampleConverter.IdentityOperator));
+    }
 
     /// <inheritdoc/>
     public void Dispose()
@@ -226,6 +234,77 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
 
         this.rowOwner.Dispose();
         this.isDisposed = true;
+    }
+
+    /// <summary>
+    /// Converts native modular color with its integer or floating-point carrier format selected before row traversal.
+    /// </summary>
+    /// <param name="cancellationToken">The token checked before each output row.</param>
+    private void ConvertModular(CancellationToken cancellationToken)
+    {
+        JxlModularDecoder modular = this.frame.Modular;
+        JxlModularChannel first = modular.GetChannel(0);
+        bool grayscale = modular.ColorChannelCount == 1;
+        JxlModularChannel second = grayscale ? first : modular.GetChannel(1);
+        JxlModularChannel third = grayscale ? first : modular.GetChannel(2);
+        JxlBitDepth depth = this.header.Metadata.BitDepth;
+        if (depth.ExponentBits == 0)
+        {
+            if (depth.BitsPerSample < 23)
+            {
+                this.ConvertModularRows(first, second, third, new JxlSampleConverter.IntegerOperator(depth.BitsPerSample), cancellationToken);
+            }
+            else
+            {
+                this.ConvertModularRows(first, second, third, new JxlSampleConverter.AccurateIntegerOperator(depth.BitsPerSample), cancellationToken);
+            }
+        }
+        else if (depth.BitsPerSample == 32)
+        {
+            this.ConvertModularRows(first, second, third, default(JxlSampleConverter.Binary32Operator), cancellationToken);
+        }
+        else if (depth.ExponentBits == 8)
+        {
+            this.ConvertModularRows(first, second, third, new JxlSampleConverter.Exponent8Operator(depth.BitsPerSample), cancellationToken);
+        }
+        else
+        {
+            this.ConvertModularRows(first, second, third, new JxlSampleConverter.CustomFloatOperator(depth), cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Selects the modular storage width before converting all rows with the prepared sample operation.
+    /// </summary>
+    /// <typeparam name="TSampleOperator">The existing operation over signed 32-bit carriers.</typeparam>
+    /// <param name="first">The first borrowed color channel.</param>
+    /// <param name="second">The second channel, or the repeated grayscale channel.</param>
+    /// <param name="third">The third channel, or the repeated grayscale channel.</param>
+    /// <param name="sampleOperator">The prepared integer normalization or floating-point decoding operation.</param>
+    /// <param name="cancellationToken">The token checked before each output row.</param>
+    private void ConvertModularRows<TSampleOperator>(
+        JxlModularChannel first,
+        JxlModularChannel second,
+        JxlModularChannel third,
+        TSampleOperator sampleOperator,
+        CancellationToken cancellationToken)
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<int>
+    {
+        // All color channels use the image's modular storage width. Short storage widens in registers;
+        // it uses the same sample equations without allocating or copying full-width carrier planes.
+        if (first.Uses16BitStorage)
+        {
+            this.ConvertRows(
+                first.Region16,
+                second.Region16,
+                third.Region16,
+                new JxlSampleConverter.Int16Operator<TSampleOperator>(sampleOperator),
+                cancellationToken);
+        }
+        else
+        {
+            this.ConvertRows(first.Region, second.Region, third.Region, sampleOperator, cancellationToken);
+        }
     }
 
     /// <summary>
@@ -250,13 +329,12 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         int width = this.destination.Width;
         Span<float> row = this.rowMemory.Span;
         Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(row[..this.vectorLength]);
-        Span<float> color = row.Slice(this.vectorLength, this.colorLength);
-        Span<float> alpha = row.Slice(this.vectorLength + this.colorLength, this.alphaLength);
-        Span<float> black = row.Slice(this.vectorLength + this.colorLength + this.alphaLength, this.blackLength);
-        Buffer2DRegion<int> nativeAlpha = this.alphaChannel < 0 ? default : this.modular.GetChannel(this.alphaChannel);
-        Buffer2DRegion<int> nativeBlack = this.blackChannel < 0 ? default : this.modular.GetChannel(this.blackChannel);
+        Span<float> alpha = row.Slice(this.vectorLength, this.alphaLength);
+        Span<float> black = row.Slice(this.vectorLength + this.alphaLength, this.blackLength);
+        JxlModularChannel nativeAlpha = this.alphaChannel < 0 ? default : this.frame.Modular.GetChannel(this.alphaChannel);
+        JxlModularChannel nativeBlack = this.blackChannel < 0 ? default : this.frame.Modular.GetChannel(this.blackChannel);
 
-        // Vector output, packed color scratch and native extra rows share one owner. Borrow its Span once.
+        // Pixel vectors and native extra rows share one owner. Borrow its Span once.
         // Expanded extras borrow final float planes instead; they need no row storage or second normalization.
         for (int y = 0; y < this.destination.Height; y++)
         {
@@ -268,7 +346,15 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             }
             else if (this.alphaChannel >= 0)
             {
-                JxlSampleConverter.Convert(nativeAlpha.DangerousGetRowSpan(y), alpha, this.alphaDepth);
+                if (nativeAlpha.Uses16BitStorage)
+                {
+                    JxlSampleConverter.Convert(nativeAlpha.Region16.DangerousGetRowSpan(y), alpha, this.alphaDepth);
+                }
+                else
+                {
+                    JxlSampleConverter.Convert(nativeAlpha.Region.DangerousGetRowSpan(y), alpha, this.alphaDepth);
+                }
+
                 rowAlpha = alpha;
             }
 
@@ -279,26 +365,58 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             }
             else if (this.blackChannel >= 0)
             {
-                JxlSampleConverter.Convert(nativeBlack.DangerousGetRowSpan(y), black, this.blackDepth);
+                if (nativeBlack.Uses16BitStorage)
+                {
+                    JxlSampleConverter.Convert(nativeBlack.Region16.DangerousGetRowSpan(y), black, this.blackDepth);
+                }
+                else
+                {
+                    JxlSampleConverter.Convert(nativeBlack.Region.DangerousGetRowSpan(y), black, this.blackDepth);
+                }
+
                 rowBlack = black;
             }
 
             JxlColorConverterBase.ComponentValues<TSample> source = new(
                 component0.DangerousGetRowSpan(y), component1.DangerousGetRowSpan(y), component2.DangerousGetRowSpan(y), rowBlack, rowAlpha);
 
-            this.colorConverter.ConvertToRgb(in source, vectors, color, in sampleOperator);
+            this.ConvertRow(y, in source, vectors, in sampleOperator);
+        }
+    }
 
-            // Native color conversion precedes final unassociation. PixelOperations owns normalized alpha
-            // bounds, association and destination rounding; device conversion never treats K as alpha.
-            Span<TPixel> pixels = this.destination.PixelBuffer.DangerousGetRowSpan(y);
-            if (this.associated)
-            {
-                this.pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, vectors, pixels);
-            }
-            else
-            {
-                this.pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, vectors, pixels);
-            }
+    /// <summary>
+    /// Shares native color conversion and final pixel packing between retained-plane and sequential-row traversal.
+    /// </summary>
+    /// <typeparam name="TSample">The native modular carrier or restored float sample.</typeparam>
+    /// <typeparam name="TSampleOperator">The representation selected before traversal.</typeparam>
+    /// <param name="row">The global destination row.</param>
+    /// <param name="source">The complete native component rows, including ready alpha and black when present.</param>
+    /// <param name="vectors">The reusable pixel-vector row.</param>
+    /// <param name="sampleOperator">The prepared native sample representation.</param>
+    private void ConvertRow<TSample, TSampleOperator>(
+        int row, in JxlColorConverterBase.ComponentValues<TSample> source, Span<Vector4> vectors, in TSampleOperator sampleOperator)
+        where TSample : unmanaged
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>
+    {
+        if (this.profileConverter is null)
+        {
+            this.colorConverter.ConvertToRgb(in source, vectors, in sampleOperator);
+        }
+        else
+        {
+            this.colorConverter.ConvertToRgb(in source, vectors, this.profileConverter, in sampleOperator);
+        }
+
+        // Both traversal modes use the same color operator and PixelOperations packing. Normalized alpha
+        // bounds and association therefore do not depend on whether reconstruction retained whole planes.
+        Span<TPixel> pixels = this.destination.PixelBuffer.DangerousGetRowSpan(row);
+        if (this.associated)
+        {
+            this.pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, vectors, pixels);
+        }
+        else
+        {
+            this.pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, vectors, pixels);
         }
     }
 }

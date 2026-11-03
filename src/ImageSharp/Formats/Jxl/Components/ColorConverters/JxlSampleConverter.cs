@@ -19,30 +19,38 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 internal static class JxlSampleConverter
 {
     /// <summary>
-    /// Defines exact sample conversion for scalar and independent SIMD lanes of a 32-bit carrier type.
+    /// Defines exact conversion for scalar carriers and the populated lanes of a sample register.
     /// </summary>
     /// <typeparam name="TSample">The integer bit carrier or already-restored float sample.</typeparam>
     public interface IConversionOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
-        /// Converts one 32-bit carrier.
+        /// Converts one carrier.
         /// </summary>
         /// <param name="value">The encoded carrier or already-restored sample.</param>
         /// <returns>The normalized or decoded float sample.</returns>
         float Invoke(TSample value);
 
         /// <summary>
-        /// Converts independent 32-bit carriers without changing lane order.
+        /// Converts the low four carriers without changing lane order. Short storage uses half the input register.
         /// </summary>
         /// <param name="value">The encoded carriers or already-restored samples.</param>
         /// <returns>The decoded float samples in the same lanes.</returns>
         Vector128<float> Invoke(Vector128<TSample> value);
 
-        /// <inheritdoc cref="Invoke(Vector128{TSample})" />
+        /// <summary>
+        /// Converts the low eight carriers without changing lane order. Short storage uses half the input register.
+        /// </summary>
+        /// <param name="value">The encoded carriers or already-restored samples.</param>
+        /// <returns>The decoded float samples in the same lanes.</returns>
         Vector256<float> Invoke(Vector256<TSample> value);
 
-        /// <inheritdoc cref="Invoke(Vector128{TSample})" />
+        /// <summary>
+        /// Converts the low sixteen carriers without changing lane order. Short storage uses half the input register.
+        /// </summary>
+        /// <param name="value">The encoded carriers or already-restored samples.</param>
+        /// <returns>The decoded float samples in the same lanes.</returns>
         Vector512<float> Invoke(Vector512<TSample> value);
     }
 
@@ -83,45 +91,81 @@ internal static class JxlSampleConverter
     }
 
     /// <summary>
-    /// Traverses independent int-to-float samples with a prepared representation operator.
+    /// Converts a component row retained in signed 16-bit modular storage.
     /// </summary>
+    /// <param name="source">The short carriers promised by the image's modular storage flag.</param>
+    /// <param name="destination">Float storage with at least the source length.</param>
+    /// <param name="bitDepth">The validated integer or floating-point sample layout.</param>
+    public static void Convert(ReadOnlySpan<short> source, Span<float> destination, JxlBitDepth bitDepth)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+        if (bitDepth.ExponentBits == 0)
+        {
+            if (bitDepth.BitsPerSample < 23)
+            {
+                Convert(source, destination, new Int16Operator<IntegerOperator>(new IntegerOperator(bitDepth.BitsPerSample)));
+            }
+            else
+            {
+                Convert(source, destination, new Int16Operator<AccurateIntegerOperator>(new AccurateIntegerOperator(bitDepth.BitsPerSample)));
+            }
+        }
+        else if (bitDepth.BitsPerSample == 32)
+        {
+            Convert(source, destination, default(Int16Operator<Binary32Operator>));
+        }
+        else if (bitDepth.ExponentBits == 8)
+        {
+            Convert(source, destination, new Int16Operator<Exponent8Operator>(new Exponent8Operator(bitDepth.BitsPerSample)));
+        }
+        else
+        {
+            Convert(source, destination, new Int16Operator<CustomFloatOperator>(new CustomFloatOperator(bitDepth)));
+        }
+    }
+
+    /// <summary>
+    /// Traverses independent carriers with a prepared representation operator.
+    /// </summary>
+    /// <typeparam name="TSample">The signed short or int carrier type.</typeparam>
     /// <typeparam name="TOperator">The selected sample arithmetic.</typeparam>
     /// <param name="source">The reconstructed carriers.</param>
     /// <param name="destination">The validated destination row.</param>
     /// <param name="operation">The prepared factors or floating-point bit fields.</param>
-    private static void Convert<TOperator>(ReadOnlySpan<int> source, Span<float> destination, TOperator operation)
-        where TOperator : struct, IConversionOperator<int>
+    private static void Convert<TSample, TOperator>(ReadOnlySpan<TSample> source, Span<float> destination, TOperator operation)
+        where TSample : unmanaged
+        where TOperator : struct, IConversionOperator<TSample>
     {
-        ref int input = ref MemoryMarshal.GetReference(source);
         ref float output = ref MemoryMarshal.GetReference(destination);
         int i = 0;
 
-        // A register holds independent samples in row order. Each int lane produces one float lane;
-        // unaligned loads and stores need no padding. Descending widths leave only complete smaller groups.
+        // Each register produces one float per column. Short loads populate only the low half;
+        // the storage operator widens those samples before applying the same integer or float equations.
+        // Counts therefore follow float lanes, not the number of shorts in a full input register.
         if (Vector512.IsHardwareAccelerated)
         {
-            nuint count = (source.Length - i).Vector512Count<int>();
-            for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
+            nuint count = (source.Length - i).Vector512Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
-                operation.Invoke(Vector512.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                operation.Invoke(Load512(source, i)).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
-            nuint count = (source.Length - i).Vector256Count<int>();
-            for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
+            nuint count = (source.Length - i).Vector256Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
-                operation.Invoke(Vector256.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                operation.Invoke(Load256(source, i)).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            nuint count = (source.Length - i).Vector128Count<int>();
-            for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
+            nuint count = (source.Length - i).Vector128Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
-                operation.Invoke(Vector128.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                operation.Invoke(Load128(source, i)).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
@@ -130,6 +174,104 @@ internal static class JxlSampleConverter
         {
             destination[i] = operation.Invoke(source[i]);
         }
+    }
+
+    /// <summary>
+    /// Loads the carriers for 4 consecutive float outputs without reading beyond the source row.
+    /// </summary>
+    /// <typeparam name="TSample">Short, int or float, selected by the calling conversion worker.</typeparam>
+    /// <param name="source">The ready source row.</param>
+    /// <param name="index">The first of 4 validated columns.</param>
+    /// <returns>A register with 4 populated carriers in its low lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<TSample> Load128<TSample>(ReadOnlySpan<TSample> source, int index)
+        where TSample : unmanaged
+    {
+        ref TSample first = ref MemoryMarshal.GetReference(source);
+        if (typeof(TSample) == typeof(short))
+        {
+            // A short occupies half a float's storage. The matching operator consumes only these
+            // low 4 lanes, so a full output block reads exactly its 4 source samples.
+            return Vector64.LoadUnsafe(ref first, (nuint)index).ToVector128();
+        }
+
+        return Vector128.LoadUnsafe(ref first, (nuint)index);
+    }
+
+    /// <summary>
+    /// Loads the carriers for 8 consecutive float outputs without reading beyond the source row.
+    /// </summary>
+    /// <typeparam name="TSample">Short, int or float, selected by the calling conversion worker.</typeparam>
+    /// <param name="source">The ready source row.</param>
+    /// <param name="index">The first of 8 validated columns.</param>
+    /// <returns>A register with 8 populated carriers in its low lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<TSample> Load256<TSample>(ReadOnlySpan<TSample> source, int index)
+        where TSample : unmanaged
+    {
+        ref TSample first = ref MemoryMarshal.GetReference(source);
+        if (typeof(TSample) == typeof(short))
+        {
+            // A short occupies half a float's storage. The matching operator consumes only these
+            // low 8 lanes, so a full output block reads exactly its 8 source samples.
+            return Vector128.LoadUnsafe(ref first, (nuint)index).ToVector256();
+        }
+
+        return Vector256.LoadUnsafe(ref first, (nuint)index);
+    }
+
+    /// <summary>
+    /// Loads the carriers for 16 consecutive float outputs without reading beyond the source row.
+    /// </summary>
+    /// <typeparam name="TSample">Short, int or float, selected by the calling conversion worker.</typeparam>
+    /// <param name="source">The ready source row.</param>
+    /// <param name="index">The first of 16 validated columns.</param>
+    /// <returns>A register with 16 populated carriers in its low lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<TSample> Load512<TSample>(ReadOnlySpan<TSample> source, int index)
+        where TSample : unmanaged
+    {
+        ref TSample first = ref MemoryMarshal.GetReference(source);
+        if (typeof(TSample) == typeof(short))
+        {
+            // A short occupies half a float's storage. The matching operator consumes only these
+            // low 16 lanes, so a full output block reads exactly its 16 source samples.
+            return Vector256.LoadUnsafe(ref first, (nuint)index).ToVector512();
+        }
+
+        return Vector512.LoadUnsafe(ref first, (nuint)index);
+    }
+
+    /// <summary>
+    /// Widens signed 16-bit modular storage before applying an existing 32-bit carrier conversion.
+    /// </summary>
+    /// <typeparam name="TOperator">The existing integer normalization or floating-point carrier operation.</typeparam>
+    public readonly struct Int16Operator<TOperator> : IConversionOperator<short>
+        where TOperator : struct, IConversionOperator<int>
+    {
+        private readonly TOperator operation;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Int16Operator{TOperator}"/> struct.
+        /// </summary>
+        /// <param name="operation">The prepared operation over signed 32-bit carriers.</param>
+        public Int16Operator(TOperator operation) => this.operation = operation;
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(short value) => this.operation.Invoke(value);
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<short> value) => this.operation.Invoke(Vector128.WidenLower(value));
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<short> value) => this.operation.Invoke(Vector256.WidenLower(value));
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<short> value) => this.operation.Invoke(Vector512.WidenLower(value));
     }
 
     /// <summary>

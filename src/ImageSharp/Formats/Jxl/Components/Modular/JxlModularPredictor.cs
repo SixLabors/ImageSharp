@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -46,6 +47,7 @@ internal static class JxlModularPredictor
     /// <summary>
     /// Prepares four cross-channel property planes for a bounded block of an already reconstructed channel.
     /// </summary>
+    /// <typeparam name="TSample">The selected short or int modular storage.</typeparam>
     /// <param name="row">The complete current source row.</param>
     /// <param name="topRow">The complete preceding source row when <paramref name="hasTop"/> is true.</param>
     /// <param name="start">The first source column in the block.</param>
@@ -54,18 +56,17 @@ internal static class JxlModularPredictor
     /// <param name="values">The signed-value properties, with the same length as <paramref name="absoluteValues"/>.</param>
     /// <param name="absoluteResiduals">The absolute gradient-residual properties, with the same block length.</param>
     /// <param name="residuals">The signed gradient-residual properties, with the same block length.</param>
-    public static void PrepareReferences(
-        ReadOnlySpan<int> row,
-        ReadOnlySpan<int> topRow,
+    public static void PrepareReferences<TSample>(
+        ReadOnlySpan<TSample> row,
+        ReadOnlySpan<TSample> topRow,
         int start,
         bool hasTop,
         Span<int> absoluteValues,
         Span<int> values,
         Span<int> absoluteResiduals,
         Span<int> residuals)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
-        ref int rowRef = ref MemoryMarshal.GetReference(row);
-        ref int topRef = ref MemoryMarshal.GetReference(topRow);
         ref int absoluteValueRef = ref MemoryMarshal.GetReference(absoluteValues);
         ref int valueRef = ref MemoryMarshal.GetReference(values);
         ref int absoluteResidualRef = ref MemoryMarshal.GetReference(absoluteResiduals);
@@ -76,8 +77,10 @@ internal static class JxlModularPredictor
         // row equals left, and top-left at either edge equals left. Handle column zero before loading shifted SIMD rows.
         if (start == 0 && !absoluteValues.IsEmpty)
         {
-            int value = row[0];
-            ReferenceOperator.Apply(value, 0, hasTop ? topRow[0] : 0, 0, out absoluteValues[0], out absoluteResiduals[0], out residuals[0]);
+            int value = int.CreateTruncating(row[0]);
+            ReferenceOperator.Apply(
+                value, 0, hasTop ? int.CreateTruncating(topRow[0]) : 0, 0, out absoluteValues[0], out absoluteResiduals[0], out residuals[0]);
+
             values[0] = value;
             i = 1;
         }
@@ -90,10 +93,10 @@ internal static class JxlModularPredictor
             for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
             {
                 nuint x = (nuint)(start + i);
-                Vector512<int> value = Vector512.LoadUnsafe(ref rowRef, x);
-                Vector512<int> left = Vector512.LoadUnsafe(ref rowRef, x - 1);
-                Vector512<int> top = hasTop ? Vector512.LoadUnsafe(ref topRef, x) : left;
-                Vector512<int> topLeft = hasTop ? Vector512.LoadUnsafe(ref topRef, x - 1) : left;
+                Vector512<int> value = JxlModularChannel.Load512(row, (int)x);
+                Vector512<int> left = JxlModularChannel.Load512(row, (int)x - 1);
+                Vector512<int> top = hasTop ? JxlModularChannel.Load512(topRow, (int)x) : left;
+                Vector512<int> topLeft = hasTop ? JxlModularChannel.Load512(topRow, (int)x - 1) : left;
                 ReferenceOperator.Apply(
                     value,
                     left,
@@ -116,10 +119,10 @@ internal static class JxlModularPredictor
             for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
             {
                 nuint x = (nuint)(start + i);
-                Vector256<int> value = Vector256.LoadUnsafe(ref rowRef, x);
-                Vector256<int> left = Vector256.LoadUnsafe(ref rowRef, x - 1);
-                Vector256<int> top = hasTop ? Vector256.LoadUnsafe(ref topRef, x) : left;
-                Vector256<int> topLeft = hasTop ? Vector256.LoadUnsafe(ref topRef, x - 1) : left;
+                Vector256<int> value = JxlModularChannel.Load256(row, (int)x);
+                Vector256<int> left = JxlModularChannel.Load256(row, (int)x - 1);
+                Vector256<int> top = hasTop ? JxlModularChannel.Load256(topRow, (int)x) : left;
+                Vector256<int> topLeft = hasTop ? JxlModularChannel.Load256(topRow, (int)x - 1) : left;
                 ReferenceOperator.Apply(
                     value,
                     left,
@@ -142,10 +145,10 @@ internal static class JxlModularPredictor
             for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
             {
                 nuint x = (nuint)(start + i);
-                Vector128<int> value = Vector128.LoadUnsafe(ref rowRef, x);
-                Vector128<int> left = Vector128.LoadUnsafe(ref rowRef, x - 1);
-                Vector128<int> top = hasTop ? Vector128.LoadUnsafe(ref topRef, x) : left;
-                Vector128<int> topLeft = hasTop ? Vector128.LoadUnsafe(ref topRef, x - 1) : left;
+                Vector128<int> value = JxlModularChannel.Load128(row, (int)x);
+                Vector128<int> left = JxlModularChannel.Load128(row, (int)x - 1);
+                Vector128<int> top = hasTop ? JxlModularChannel.Load128(topRow, (int)x) : left;
+                Vector128<int> topLeft = hasTop ? JxlModularChannel.Load128(topRow, (int)x - 1) : left;
                 ReferenceOperator.Apply(
                     value,
                     left,
@@ -166,13 +169,13 @@ internal static class JxlModularPredictor
         for (; i < absoluteValues.Length; i++)
         {
             int x = start + i;
-            int value = row[x];
-            int left = row[x - 1];
+            int value = int.CreateTruncating(row[x]);
+            int left = int.CreateTruncating(row[x - 1]);
             ReferenceOperator.Apply(
                 value,
                 left,
-                hasTop ? topRow[x] : left,
-                hasTop ? topRow[x - 1] : left,
+                hasTop ? int.CreateTruncating(topRow[x]) : left,
+                hasTop ? int.CreateTruncating(topRow[x - 1]) : left,
                 out absoluteValues[i],
                 out absoluteResiduals[i],
                 out residuals[i]);

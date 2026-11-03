@@ -85,7 +85,8 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="pass">The progressive pass index, starting at zero for each group.</param>
     /// <param name="cancellationToken">The token checked between block rows and transform origins.</param>
     /// <remarks>
-    /// Call <see cref="PrepareReconstruction"/> before reading groups. Read all passes of one group before starting another group.
+    /// Call <see cref="PrepareReconstruction(MemoryAllocator, JxlHeader, JxlFrameHeader)"/> before reading groups.
+    /// Read all passes of one group before starting another group.
     /// Pass zero clears only the active coefficient planes; later passes add their shifted values.
     /// Each final-pass block consumes all accumulated contributions before the same traversal advances to the next transform.
     /// Nonzero predictors and LZ77 positions start again for every group/pass, as prescribed by the entropy syntax.

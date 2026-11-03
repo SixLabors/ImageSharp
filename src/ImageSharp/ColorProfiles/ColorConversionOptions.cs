@@ -15,7 +15,8 @@ public class ColorConversionOptions
 {
     private Matrix4x4 adaptationMatrix;
     private YCbCrTransform yCbCrTransform;
-    private XybTransform xybTransform;
+    private XybTransform? xybTransform;
+    private readonly Lazy<XybTransform> preparedXybTransform;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
@@ -24,7 +25,12 @@ public class ColorConversionOptions
     {
         this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
         this.YCbCrTransform = KnownYCbCrMatrices.BT601;
-        this.XybTransform = KnownXybTransforms.Iso18181;
+
+        // Read the working spaces when XYB conversion first requests the transform. Object initializers
+        // finish before conversion, and Lazy<T> shares one completed transform across concurrent callers.
+        this.preparedXybTransform = new(() => this.XybTransform.Prepare(
+            this.SourceRgbWorkingSpace.RgbToCieXyzMatrix,
+            this.TargetRgbWorkingSpace.CieXyzToRgbMatrix));
     }
 
     /// <summary>
@@ -53,7 +59,7 @@ public class ColorConversionOptions
     public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
 
     /// <summary>
-    /// Gets the transform used for conversions between XYB and RGB in both directions.
+    /// Gets the matrices, biases and intensity used for XYB conversion.
     /// The default is <see cref="KnownXybTransforms.Iso18181"/>, with the standard JPEG XL coefficients and an intensity target of 255 nits.
     /// </summary>
     /// <remarks>
@@ -63,15 +69,13 @@ public class ColorConversionOptions
     /// <exception cref="ArgumentOutOfRangeException">The value is an uninitialized transform with a zero intensity target.</exception>
     public XybTransform XybTransform
     {
-        get => this.xybTransform;
+        get => this.xybTransform ?? KnownXybTransforms.Iso18181;
         init
         {
             // A default struct bypasses the transform constructor. Reject its zero intensity before scaling matrices.
             Guard.MustBeGreaterThan(value.IntensityTarget, 0F, nameof(value));
 
             this.xybTransform = value;
-
-            this.TransposedXybTransform = value.Transpose();
         }
     }
 
@@ -121,9 +125,9 @@ public class ColorConversionOptions
     internal YCbCrTransform TransposedYCbCrTransform { get; private set; }
 
     /// <summary>
-    /// Gets the XYB matrices in the row-vector layout and intensity scale used by conversion.
+    /// Gets the intensity-scaled XYB-to-XYZ and XYZ-to-XYB matrices, prepared on first XYB conversion.
     /// </summary>
-    internal XybTransform TransposedXybTransform { get; private set; }
+    internal XybTransform PreparedXybTransform => this.preparedXybTransform.Value;
 
     internal Matrix4x4 InverseAdaptationMatrix { get; private set; }
 }

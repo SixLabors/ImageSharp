@@ -37,22 +37,34 @@ internal sealed class JxlFrame : IDisposable
     private Buffer2D<float>[] modularColors = [];
 
     /// <summary>
+    /// The expanded display alpha owner, or null when no expansion is required.
+    /// </summary>
+    private Buffer2D<float>? upsampledAlpha;
+
+    /// <summary>
+    /// The expanded display black owner, or null when no expansion is required.
+    /// </summary>
+    private Buffer2D<float>? upsampledBlack;
+
+    /// <summary>
     /// Indicates whether the frame's retained owners have been released.
     /// </summary>
     private bool isDisposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlFrame"/> class with completed native component owners.
+    /// Initializes a new instance of the <see cref="JxlFrame"/> class with prepared native component owners.
     /// </summary>
     /// <param name="image">The image's color and sample declarations.</param>
     /// <param name="header">The serialized frame geometry and reconstruction parameters.</param>
-    /// <param name="modular">The completed modular color or extra-channel owner transferred to this frame.</param>
-    /// <param name="varDct">The completed VarDCT owner transferred to this frame, or null for modular color.</param>
+    /// <param name="modular">The modular color or extra-channel owner transferred to this frame.</param>
+    /// <param name="varDct">The prepared VarDCT owner transferred to this frame, or null for modular color.</param>
     /// <param name="dcFactors">The factors that restore modular XYB integer samples to native float units.</param>
     /// <param name="splines">The complete parsed spline owner transferred to this frame, or null when absent.</param>
     /// <param name="noise">The complete decoded noise strengths, or the inactive default when absent.</param>
     /// <remarks>
     /// The caller retains ownership if construction fails. A successful constructor transfers the component and spline owners.
+    /// The decoder then completes AC groups and modular inverses. Retained spatial reconstruction follows group decoding;
+    /// sequential output instead consumes completed group rows while this frame retains their owners.
     /// </remarks>
     public JxlFrame(
         JxlHeader image, JxlFrameHeader header, JxlModularDecoder modular, JxlVarDctDecoder? varDct, Vector3 dcFactors, JxlSplines? splines, JxlNoise noise)
@@ -64,6 +76,7 @@ internal sealed class JxlFrame : IDisposable
         this.dcFactors = dcFactors;
         this.splines = splines;
         this.noise = noise;
+
         this.AlphaExtra = -1;
         this.BlackExtra = -1;
 
@@ -131,12 +144,12 @@ internal sealed class JxlFrame : IDisposable
     /// <summary>
     /// Gets the borrowed expanded alpha plane, or null when the pixel converter reads the original modular channel.
     /// </summary>
-    public Buffer2D<float>? UpsampledAlpha { get; private set; }
+    public Buffer2D<float>? UpsampledAlpha => this.upsampledAlpha;
 
     /// <summary>
     /// Gets the borrowed expanded black plane, or null when the pixel converter reads the original modular channel.
     /// </summary>
-    public Buffer2D<float>? UpsampledBlack { get; private set; }
+    public Buffer2D<float>? UpsampledBlack => this.upsampledBlack;
 
     /// <summary>
     /// Completes chroma expansion, restoration, native image features and upsampling before LF storage or displayed output.
@@ -158,6 +171,13 @@ internal sealed class JxlFrame : IDisposable
         int alphaFactor = this.AlphaExtra < 0 ? 1 : frame.ExtraChannelUpsampling[this.AlphaExtra];
         int blackFactor = this.BlackExtra < 0 ? 1 : frame.ExtraChannelUpsampling[this.BlackExtra];
         int maximumFactor = Math.Max(colorFactor, Math.Max(alphaFactor, blackFactor));
+        bool lateExtraUpsampling = colorFactor > 1;
+
+        foreach (byte factor in frame.ExtraChannelUpsampling)
+        {
+            lateExtraUpsampling &= factor == colorFactor;
+        }
+
         bool restore = frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0;
         bool subsampled = false;
         for (int component = 0; component < frame.HorizontalSamplingShifts.Length; component++)
@@ -172,7 +192,7 @@ internal sealed class JxlFrame : IDisposable
         else if (this.image.UsesXybTransform || colorFactor > 1 || subsampled || restore || this.splines is not null || this.noise.HasAny
             || frame.Type == JxlFrameHeader.FrameType.LowFrequency)
         {
-            // Native modular RGB stays integer unless a spatial operation or LF storage requires float planes.
+            // Native modular RGB stays integer unless spatial operations or LF storage require float planes.
             // Assign completed allocations before filtering, so a failed filter remains covered by frame disposal.
             Buffer2D<float>[] colors = this.image.UsesXybTransform
                 ? modular.ReconstructXyb(frame, this.dcFactors, cancellationToken)
@@ -182,68 +202,79 @@ internal sealed class JxlFrame : IDisposable
             this.RestoreModularColors(colors, allocator, cancellationToken);
         }
 
-        if (this.splines is JxlSplines splines)
+        // One workspace spans early extra expansion, spline reconstruction and late color/extra expansion.
+        // If every extra has the color factor, native applies splines before expanding color and the selected extras.
+        // Otherwise selected extras expand first. No alpha or pixel bounds apply to these native samples.
+        JxlUpsampler? upsampler = null;
+        try
         {
-            // Splines modify restored native components at coding resolution. Common upsampling and
-            // the color transform must see these contributions. VarDCT supplies its parsed base correlation;
-            // modular frames retain the default X=0 and B=1 ratios because they have no VarDCT map,
-            // even when their stored components use native RGB instead of XYB.
-            ReadOnlySpan<Buffer2D<float>> colors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
-            Vector2 correlation = varDct is null
-                ? Vector2.UnitY
-                : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
-
-            splines.Apply(colors, correlation, cancellationToken);
-
-            // Every curve has reached its last consumer. Return its tracked storage before upsampling
-            // or pixel conversion. On failure, the attached owner remains covered by frame disposal.
-            splines.Dispose();
-            this.splines = null;
-        }
-
-        if (maximumFactor > 1)
-        {
-            // One kernel and row window serves color and selected display extras. The extra-channel parser
-            // requires their factors to be at least the color factor. Without color expansion, use the largest
-            // actual extra-channel source instead. LF frames select no display extras and expand only color.
-            Size maximumSourceSize = colorFactor > 1 ? frame.CodingSize : default;
-            if (alphaFactor > 1)
+            if (maximumFactor > 1)
             {
-                Size size = modular.GetChannel(modular.ColorChannelCount + this.AlphaExtra).Size;
-                maximumSourceSize = new Size(Math.Max(maximumSourceSize.Width, size.Width), Math.Max(maximumSourceSize.Height, size.Height));
-            }
-
-            if (blackFactor > 1)
-            {
-                Size size = modular.GetChannel(modular.ColorChannelCount + this.BlackExtra).Size;
-                maximumSourceSize = new Size(Math.Max(maximumSourceSize.Width, size.Width), Math.Max(maximumSourceSize.Height, size.Height));
-            }
-
-            using JxlUpsampler upsampler = new(this.image, frame.OutputSize, maximumSourceSize, maximumFactor, allocator);
-            if (colorFactor > 1)
-            {
-                if (varDct is not null)
+                Size maximumSourceSize = colorFactor > 1 ? frame.CodingSize : default;
+                if (alphaFactor > 1)
                 {
-                    varDct.ApplyUpsampling(upsampler, colorFactor, cancellationToken);
+                    Size size = modular.GetChannel(modular.ColorChannelCount + this.AlphaExtra).Size;
+                    maximumSourceSize = new Size(Math.Max(maximumSourceSize.Width, size.Width), Math.Max(maximumSourceSize.Height, size.Height));
                 }
-                else
+
+                if (blackFactor > 1)
                 {
-                    foreach (Buffer2D<float> plane in this.modularColors)
+                    Size size = modular.GetChannel(modular.ColorChannelCount + this.BlackExtra).Size;
+                    maximumSourceSize = new Size(Math.Max(maximumSourceSize.Width, size.Width), Math.Max(maximumSourceSize.Height, size.Height));
+                }
+
+                upsampler = new JxlUpsampler(this.image, frame.OutputSize, maximumSourceSize, maximumFactor, allocator);
+                if (!lateExtraUpsampling)
+                {
+                    this.UpsampleExtraChannels(upsampler, allocator, cancellationToken);
+                }
+            }
+
+            if (this.splines is JxlSplines splines)
+            {
+                // Splines modify restored native components at coding resolution. Common upsampling and
+                // the color transform must see these contributions. VarDCT supplies its parsed base correlation;
+                // modular frames retain the default X=0 and B=1 ratios because they have no VarDCT map,
+                // even when their stored components use native RGB instead of XYB.
+                ReadOnlySpan<Buffer2D<float>> colors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
+                Vector2 correlation = varDct is null
+                    ? Vector2.UnitY
+                    : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
+
+                splines.Apply(colors, correlation, cancellationToken);
+
+                // Every curve has reached its last consumer. Return its tracked storage before upsampling
+                // or pixel conversion. On failure, the attached owner remains covered by frame disposal.
+                splines.Dispose();
+                this.splines = null;
+            }
+
+            if (upsampler is not null)
+            {
+                if (colorFactor > 1)
+                {
+                    if (varDct is not null)
                     {
-                        upsampler.Apply(plane, frame.CodingSize, colorFactor, cancellationToken);
+                        varDct.ApplyUpsampling(upsampler, colorFactor, cancellationToken);
+                    }
+                    else
+                    {
+                        foreach (Buffer2D<float> plane in this.modularColors)
+                        {
+                            upsampler.Apply(plane, frame.CodingSize, colorFactor, cancellationToken);
+                        }
                     }
                 }
-            }
 
-            if (alphaFactor > 1)
-            {
-                this.UpsampledAlpha = this.UpsampleExtraChannel(this.AlphaExtra, upsampler, alphaFactor, allocator, cancellationToken);
+                if (lateExtraUpsampling)
+                {
+                    this.UpsampleExtraChannels(upsampler, allocator, cancellationToken);
+                }
             }
-
-            if (blackFactor > 1)
-            {
-                this.UpsampledBlack = this.UpsampleExtraChannel(this.BlackExtra, upsampler, blackFactor, allocator, cancellationToken);
-            }
+        }
+        finally
+        {
+            upsampler?.Dispose();
         }
 
         // Noise uses final-resolution native components. Applying it before upsampling changes its spatial
@@ -282,8 +313,9 @@ internal sealed class JxlFrame : IDisposable
             return;
         }
 
-        this.UpsampledBlack?.Dispose();
-        this.UpsampledAlpha?.Dispose();
+        this.upsampledBlack?.Dispose();
+        this.upsampledAlpha?.Dispose();
+
         this.splines?.Dispose();
         foreach (Buffer2D<float> plane in this.modularColors)
         {
@@ -293,6 +325,37 @@ internal sealed class JxlFrame : IDisposable
         this.VarDct?.Dispose();
         this.Modular.Dispose();
         this.isDisposed = true;
+    }
+
+    /// <summary>
+    /// Normalizes a retained color or extra plane using its declared modular storage width.
+    /// </summary>
+    /// <param name="source">The borrowed reconstructed samples.</param>
+    /// <param name="destination">The float plane with room for the coded rectangle.</param>
+    /// <param name="bitDepth">The component's integer or floating-point sample representation.</param>
+    /// <param name="cancellationToken">The token checked between rows.</param>
+    private static void NormalizeChannel(JxlModularChannel source, Buffer2D<float> destination, JxlBitDepth bitDepth, CancellationToken cancellationToken)
+    {
+        // The image selects its carrier width before decoding. Keep that choice outside the row loop;
+        // both branches use the same sample operators and write only the original coded rectangle.
+        if (source.Uses16BitStorage)
+        {
+            Buffer2DRegion<short> region = source.Region16;
+            for (int y = 0; y < source.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                JxlSampleConverter.Convert(region.DangerousGetRowSpan(y), destination.DangerousGetRowSpan(y)[..source.Width], bitDepth);
+            }
+        }
+        else
+        {
+            Buffer2DRegion<int> region = source.Region;
+            for (int y = 0; y < source.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                JxlSampleConverter.Convert(region.DangerousGetRowSpan(y), destination.DangerousGetRowSpan(y)[..source.Width], bitDepth);
+            }
+        }
     }
 
     /// <summary>
@@ -322,12 +385,8 @@ internal sealed class JxlFrame : IDisposable
                 Buffer2D<float> plane = allocator.Allocate2D<float>(frame.OutputSize);
                 planes[component] = plane;
                 allocated++;
-                Buffer2DRegion<int> source = modular.GetChannel(colorCount == 1 ? 0 : component);
-                for (int y = 0; y < source.Height; y++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    JxlSampleConverter.Convert(source.DangerousGetRowSpan(y), plane.DangerousGetRowSpan(y)[..source.Width], header.Metadata.BitDepth);
-                }
+                JxlModularChannel source = modular.GetChannel(colorCount == 1 ? 0 : component);
+                NormalizeChannel(source, plane, header.Metadata.BitDepth, cancellationToken);
             }
 
             return planes;
@@ -378,6 +437,27 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
+    /// Expands the selected display alpha and black channels with one shared workspace.
+    /// </summary>
+    /// <param name="upsampler">The ready workspace covering every selected source and factor.</param>
+    /// <param name="allocator">The tracked allocator for display-only planes that have not been normalized.</param>
+    /// <param name="cancellationToken">The token checked between source and output rows.</param>
+    private void UpsampleExtraChannels(JxlUpsampler upsampler, MemoryAllocator allocator, CancellationToken cancellationToken)
+    {
+        if (this.AlphaExtra >= 0 && this.Header.ExtraChannelUpsampling[this.AlphaExtra] > 1)
+        {
+            this.upsampledAlpha = this.UpsampleExtraChannel(
+                this.AlphaExtra, upsampler, this.Header.ExtraChannelUpsampling[this.AlphaExtra], allocator, cancellationToken);
+        }
+
+        if (this.BlackExtra >= 0 && this.Header.ExtraChannelUpsampling[this.BlackExtra] > 1)
+        {
+            this.upsampledBlack = this.UpsampleExtraChannel(
+                this.BlackExtra, upsampler, this.Header.ExtraChannelUpsampling[this.BlackExtra], allocator, cancellationToken);
+        }
+    }
+
+    /// <summary>
     /// Normalizes and expands one required extra channel with the shared color and extra-channel workspace.
     /// </summary>
     /// <param name="extraIndex">The image-wide extra-channel index.</param>
@@ -393,16 +473,11 @@ internal sealed class JxlFrame : IDisposable
         MemoryAllocator allocator,
         CancellationToken cancellationToken)
     {
-        Buffer2DRegion<int> source = this.Modular.GetChannel(this.Modular.ColorChannelCount + extraIndex);
+        JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + extraIndex);
         Buffer2D<float> plane = allocator.Allocate2D<float>(upsampler.TargetSize);
         try
         {
-            JxlBitDepth bitDepth = this.image.Metadata.ExtraChannels[extraIndex].BitDepth;
-            for (int y = 0; y < source.Height; y++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                JxlSampleConverter.Convert(source.DangerousGetRowSpan(y), plane.DangerousGetRowSpan(y)[..source.Width], bitDepth);
-            }
+            NormalizeChannel(source, plane, this.image.Metadata.ExtraChannels[extraIndex].BitDepth, cancellationToken);
 
             // Reconstruction and interpolation can retain values outside zero through one. Extra channels
             // use their own precision; the destination pixel API applies alpha bounds after color conversion.

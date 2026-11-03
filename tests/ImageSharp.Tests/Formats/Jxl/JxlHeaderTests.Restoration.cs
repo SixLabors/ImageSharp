@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats;
@@ -164,6 +165,49 @@ public partial class JxlHeaderTests
             }
         }
 
+        // Feed the same original planes in physical row order. The row processor must retain the
+        // pending neighborhoods until Complete supplies the mirrored bottom rows. Compare each borrowed
+        // result before the next read can reuse its storage, using the original independent reference bounds.
+        JxlVarDctDecoder.VarDctSigmaSource sigma = new(varDct, frame.RestorationFilter);
+        int workspaceLength = JxlRestoration.GetWorkspaceLength(frame.CodingSize, frame.RestorationFilter, sigma.BlockColumns, sigma.RetainedLength);
+        using IMemoryOwner<float> workspace = allocator.Allocate<float>(workspaceLength);
+        JxlRestoration.RowProcessor<JxlVarDctDecoder.VarDctSigmaSource> restoration = new(
+            frame.CodingSize, frame.RestorationFilter, sigma, workspace.Memory.Span);
+
+        int outputRows = 0;
+        for (int y = 0; y <= frame.CodingSize.Height; y++)
+        {
+            if (y < frame.CodingSize.Height)
+            {
+                restoration.AppendRows(
+                    varDct.GetReconstructedChannel(0).DangerousGetRowSpan(y),
+                    varDct.GetReconstructedChannel(1).DangerousGetRowSpan(y),
+                    varDct.GetReconstructedChannel(2).DangerousGetRowSpan(y));
+            }
+            else
+            {
+                restoration.Complete();
+            }
+
+            while (restoration.TryReadRow(out int outputY, out ReadOnlySpan<float> x, out ReadOnlySpan<float> luma, out ReadOnlySpan<float> b))
+            {
+                Assert.Equal(outputRows++, outputY);
+                for (int component = 0; component < 3; component++)
+                {
+                    ReadOnlySpan<float> row = component == 0 ? x : component == 1 ? luma : b;
+                    int referenceOffset = ((component * frame.CodingSize.Height) + outputY) * frame.CodingSize.Width * sizeof(float);
+                    for (int column = 0; column < row.Length; column++, referenceOffset += sizeof(float))
+                    {
+                        float nativeValue = BinaryPrimitives.ReadSingleLittleEndian(native[referenceOffset..]);
+                        float rustValue = BinaryPrimitives.ReadSingleLittleEndian(rust[referenceOffset..]);
+                        Assert.InRange(MathF.Abs(row[column] - nativeValue), 0F, 0.0000000003F);
+                        Assert.InRange(MathF.Abs(row[column] - rustValue), 0F, 0.0000000003F);
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(frame.CodingSize.Height, outputRows);
         varDct.ApplyRestoration(frame, allocator, default);
 
         // Both references include Gaborish followed by EPF0, EPF1 and EPF2, with mirrored image borders.

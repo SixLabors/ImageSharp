@@ -12,6 +12,18 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal sealed partial class JxlVarDctDecoder
 {
     private readonly List<Buffer2D<float>> reconstructedChannels = new(3);
+
+    // Sequential output owns one [X | Y | B] group-row buffer. The region borrows the same allocation;
+    // it lets the transform kernels address its rows without a second owner or nullable hot-path access.
+    private Buffer2D<float>? reconstructedGroupRow;
+    private Buffer2DRegion<float> reconstructedGroupRegion;
+
+    // Restoration retains only its filter neighborhoods. The row processor borrows this memory once
+    // before group traversal; the decoder releases it with the other reconstruction storage.
+    private IMemoryOwner<float>? restorationWorkspace;
+    private Memory<float> restorationMemory;
+    private int reconstructedGroupTop;
+    private int reconstructedGroupWidth;
     private IMemoryOwner<float>? reconstructionWorkspace;
     private Memory<float> reconstructionMemory;
     private InlineArray4<Size> reconstructedSizes;
@@ -30,12 +42,32 @@ internal sealed partial class JxlVarDctDecoder
     public ReadOnlySpan<Buffer2D<float>> ReconstructedChannels => CollectionsMarshal.AsSpan(this.reconstructedChannels);
 
     /// <summary>
+    /// Gets a value indicating whether completed group rows supply pixels without retaining full native color planes.
+    /// </summary>
+    public bool UsesGroupRows => this.reconstructedGroupRow is not null;
+
+    /// <summary>
+    /// Gets the padded component width in the combined group-row storage.
+    /// </summary>
+    public int GroupRowWidth => this.reconstructedGroupWidth;
+
+    /// <summary>
     /// Allocates the component planes and one reusable transform workspace after AC metadata establishes the used strategies.
     /// </summary>
     /// <param name="allocator">The tracked frame allocator.</param>
     /// <param name="image">The image's coefficient biases.</param>
     /// <param name="frame">The coding dimensions, sampling shifts and component matrix scales.</param>
     public void PrepareReconstruction(MemoryAllocator allocator, JxlHeader image, JxlFrameHeader frame)
+        => this.PrepareReconstruction(allocator, image, frame, false);
+
+    /// <summary>
+    /// Prepares transform scratch and either retained native planes or one reusable horizontal group row.
+    /// </summary>
+    /// <param name="allocator">The tracked frame allocator.</param>
+    /// <param name="image">The image's coefficient biases.</param>
+    /// <param name="frame">The coding geometry and reconstruction parameters.</param>
+    /// <param name="useGroupRows">Whether the caller consumes restored rows before the next group row is decoded.</param>
+    public void PrepareReconstruction(MemoryAllocator allocator, JxlHeader image, JxlFrameHeader frame, bool useGroupRows)
     {
         this.quantizationBias = image.QuantizationBias;
 
@@ -61,6 +93,28 @@ internal sealed partial class JxlVarDctDecoder
         this.reconstructionWorkspace = allocator.Allocate<float>((4 * this.reconstructionBlockArea) + this.inverseScratchLength);
         this.reconstructionMemory = this.reconstructionWorkspace.Memory;
         Size size = frame.CodingSize;
+        if (useGroupRows && 3L * this.dcSize.Width * BlockSize <= int.MaxValue)
+        {
+            // Each physical row contains [X | Y | B]. One allocation avoids rounding three separate planes
+            // to pool blocks. Pad to complete transform blocks; only visible samples reach pixel conversion.
+            // Eight-row alignment keeps ordinary 8-by-8 transforms within one backing block. Very wide
+            // rows use ordinary row alignment; transforms crossing a backing block use the spatial scratch.
+            this.reconstructedGroupWidth = this.dcSize.Width * BlockSize;
+            int height = Math.Min(frame.GroupSize, this.dcSize.Height * BlockSize);
+            int stride = 3 * this.reconstructedGroupWidth;
+            int alignment = (long)stride * BlockSize * sizeof(float) <= allocator.GetBufferCapacityInBytes() ? BlockSize : 1;
+            this.reconstructedGroupRow = allocator.Allocate2DOveraligned<float>(stride, height, alignment);
+            this.reconstructedGroupRegion = this.reconstructedGroupRow.GetRegion();
+            if (frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)
+            {
+                int restorationLength = JxlRestoration.GetWorkspaceLength(size, frame.RestorationFilter, this.dcSize.Width, this.dcSize.Width);
+                this.restorationWorkspace = allocator.Allocate<float>(restorationLength);
+                this.restorationMemory = this.restorationWorkspace.Memory;
+            }
+
+            return;
+        }
+
         for (int component = 0; component < 3; component++)
         {
             int horizontal = this.horizontalShifts[component];
@@ -82,6 +136,20 @@ internal sealed partial class JxlVarDctDecoder
     /// <returns>The visible component plane. Reconstruction samples retain their float precision.</returns>
     public Buffer2DRegion<float> GetReconstructedChannel(int component)
         => this.reconstructedChannels[component].GetRegion(new Rectangle(Point.Empty, this.reconstructedSizes[component]));
+
+    /// <summary>
+    /// Selects the global top row whose transforms will next populate the reusable group-row storage.
+    /// </summary>
+    /// <param name="top">The group row's top in full coding-resolution pixels.</param>
+    public void BeginGroupRow(int top) => this.reconstructedGroupTop = top;
+
+    /// <summary>
+    /// Borrows one completed native row from the current group row.
+    /// </summary>
+    /// <param name="row">The global coding-resolution row.</param>
+    /// <returns>The physical row, laid out as equally sized padded X, Y and B spans.</returns>
+    public Span<float> GetGroupRow(int row)
+        => this.reconstructedGroupRegion.DangerousGetRowSpan(row - this.reconstructedGroupTop);
 
     /// <summary>
     /// Transfers the three completed native float planes to the decoder's saved LF slot without copying samples.
@@ -162,8 +230,20 @@ internal sealed partial class JxlVarDctDecoder
 
             int x = bx >> this.horizontalShifts[component];
             int y = by >> this.verticalShifts[component];
-            Buffer2D<float> output = this.reconstructedChannels[component];
-            Size outputSize = this.reconstructedSizes[component];
+            Buffer2DRegion<float> output;
+            Size outputSize;
+            if (this.UsesGroupRows)
+            {
+                Rectangle bounds = new(component * this.reconstructedGroupWidth, 0, this.reconstructedGroupWidth, this.reconstructedGroupRegion.Height);
+                output = this.reconstructedGroupRegion.GetSubRegion(bounds);
+                outputSize = new Size(this.dcSize.Width * BlockSize, this.dcSize.Height * BlockSize);
+            }
+            else
+            {
+                output = this.reconstructedChannels[component].GetRegion();
+                outputSize = this.reconstructedSizes[component];
+            }
+
             int left = x * BlockSize;
             int top = y * BlockSize;
 
@@ -175,6 +255,7 @@ internal sealed partial class JxlVarDctDecoder
             }
 
             Buffer2DRegion<float> dc = this.GetDcChannel(component).GetSubRegion(new Rectangle(x, y, blockWidth, blockHeight));
+            int outputTop = this.UsesGroupRows ? top - this.reconstructedGroupTop : top;
             if ((dcOnly & (1 << component)) != 0)
             {
                 // Fill visible rows through the existing buffer API. Partial edge blocks and split
@@ -184,23 +265,33 @@ internal sealed partial class JxlVarDctDecoder
                 float value = dc.DangerousGetRowSpan(0)[0];
                 for (int row = 0; row < dcHeight; row++)
                 {
-                    output.DangerousGetRowSpan(top + row).Slice(left, dcWidth).Fill(value);
+                    output.DangerousGetRowSpan(outputTop + row).Slice(left, dcWidth).Fill(value);
                 }
 
                 continue;
             }
 
+            int width = Math.Min(blockWidth * BlockSize, outputSize.Width - left);
+            int height = Math.Min(blockHeight * BlockSize, outputSize.Height - top);
+            int outputLeft = output.Bounds.X + left;
+            long footprint = ((long)(height - 1) * output.Stride) + outputLeft + width;
+            if (width == blockWidth * BlockSize && height == blockHeight * BlockSize && footprint <= int.MaxValue
+                && output.Buffer.DangerousTryGetPaddedRowSpan(outputTop + output.Bounds.Y, (int)footprint - output.Buffer.Width, out Span<float> direct))
+            {
+                // The inverse kernel already accepts a physical row stride. Write a complete block directly
+                // when all its rows share one backing allocation. Padding in the group strip includes edge blocks.
+                JxlInverseTransform.Transform(strategy, coefficients.Slice(component * area, area), dc, direct[outputLeft..], output.Stride, scratch);
+                continue;
+            }
+
+            // Partial retained-image edges and blocks crossing allocation boundaries still need contiguous
+            // transform scratch. Copy only visible samples; keep the complete padded inverse arithmetic.
             JxlInverseTransform.Transform(
                 strategy, coefficients.Slice(component * area, area), dc, spatial[..area], blockWidth * BlockSize, scratch);
 
-            // The allocator can split a frame plane across backing buffers. Reconstruct into the reusable
-            // contiguous spatial block, then copy each visible row through the existing Buffer2D API.
-            // Clip only storage at partial image edges; transform arithmetic uses the complete padded block.
-            int width = Math.Min(blockWidth * BlockSize, outputSize.Width - left);
-            int height = Math.Min(blockHeight * BlockSize, outputSize.Height - top);
             for (int row = 0; row < height; row++)
             {
-                spatial.Slice(row * blockWidth * BlockSize, width).CopyTo(output.DangerousGetRowSpan(top + row).Slice(left, width));
+                spatial.Slice(row * blockWidth * BlockSize, width).CopyTo(output.DangerousGetRowSpan(outputTop + row).Slice(left, width));
             }
         }
     }
@@ -210,6 +301,8 @@ internal sealed partial class JxlVarDctDecoder
     /// </summary>
     private void DisposeReconstruction()
     {
+        this.reconstructedGroupRow?.Dispose();
+        this.restorationWorkspace?.Dispose();
         this.reconstructionWorkspace?.Dispose();
         foreach (Buffer2D<float> channel in this.reconstructedChannels)
         {

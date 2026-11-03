@@ -14,6 +14,7 @@ internal sealed class JxlModularWorkspace : IDisposable
     private readonly MemoryAllocator allocator;
     private IMemoryOwner<uint>? history;
     private IMemoryOwner<int>? integerScratch;
+    private IMemoryOwner<int>? predictionRows;
     private IMemoryOwner<int>? references;
     private IMemoryOwner<JxlModularTree.Node>? channelTree;
     private IMemoryOwner<ulong>? treeLookup;
@@ -45,6 +46,13 @@ internal sealed class JxlModularWorkspace : IDisposable
     public Span<int> PrepareErrors(int width) => Prepare(ref this.integerScratch, JxlWeightedPredictor.GetStorageLength(width), this.allocator);
 
     /// <summary>
+    /// Prepares three wide prediction rows for signed 16-bit channel storage.
+    /// </summary>
+    /// <param name="width">The largest channel width used by this sequential operation.</param>
+    /// <returns>Three int rows, reused by every short channel and inverse palette operation.</returns>
+    public Span<int> PreparePredictionRows(int width) => Prepare(ref this.predictionRows, 3 * width, this.allocator);
+
+    /// <summary>
     /// Borrows one integer row after modular decoding, reusing predictor storage when its capacity is sufficient.
     /// </summary>
     /// <param name="width">The validated coded row width.</param>
@@ -61,9 +69,10 @@ internal sealed class JxlModularWorkspace : IDisposable
     /// <summary>
     /// Borrows one implicit-palette component table after modular sample decoding.
     /// </summary>
+    /// <param name="explicitEntries">Space for widening one short explicit palette component, or zero for int storage.</param>
     /// <returns>The reusable table span. No reference-property operation can overlap its palette use.</returns>
-    public Span<int> PrepareImplicitPalette()
-        => Prepare(ref this.references, JxlModularPalette.ImplicitEntryCount, this.allocator);
+    public Span<int> PrepareImplicitPalette(int explicitEntries)
+        => Prepare(ref this.references, JxlModularPalette.ImplicitEntryCount + explicitEntries, this.allocator);
 
     /// <summary>
     /// Prepares reusable nodes for the current channel's statically reduced prediction tree.
@@ -98,6 +107,7 @@ internal sealed class JxlModularWorkspace : IDisposable
         this.treeLookup?.Dispose();
         this.channelTree?.Dispose();
         this.references?.Dispose();
+        this.predictionRows?.Dispose();
         this.integerScratch?.Dispose();
         this.history?.Dispose();
         this.isDisposed = true;

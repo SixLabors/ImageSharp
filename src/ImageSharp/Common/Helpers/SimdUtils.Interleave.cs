@@ -1216,15 +1216,15 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Transforms four triples by a matrix using the same multiplication order as <see cref="Vector3.Transform(Vector3, Matrix4x4)"/>.
+    /// Transforms four triples by an affine matrix in first, second, third, then translation order.
     /// </summary>
-    /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="x">The four first components.</param>
-    /// <param name="y">The four second components.</param>
-    /// <param name="z">The four third components.</param>
-    /// <param name="resultX">The transformed first components.</param>
-    /// <param name="resultY">The transformed second components.</param>
-    /// <param name="resultZ">The transformed third components.</param>
+    /// <param name="matrix">The row-vector matrix. Its fourth row contains the translation.</param>
+    /// <param name="x">The first component lanes.</param>
+    /// <param name="y">The second component lanes.</param>
+    /// <param name="z">The third component lanes.</param>
+    /// <param name="resultX">The transformed first component lanes.</param>
+    /// <param name="resultY">The transformed second component lanes.</param>
+    /// <param name="resultZ">The transformed third component lanes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform3(
         in Matrix4x4 matrix,
@@ -1235,27 +1235,61 @@ internal static partial class SimdUtils
         out Vector128<float> resultY,
         out Vector128<float> resultZ)
     {
-        // Vector3.Transform starts with X, multiply-adds Y and Z in that order, then adds the translation row.
-        resultX = Vector128.MultiplyAddEstimate(y, Vector128.Create(matrix.M21), x * Vector128.Create(matrix.M11));
-        resultX = Vector128.MultiplyAddEstimate(z, Vector128.Create(matrix.M31), resultX) + Vector128.Create(matrix.M41);
-
-        resultY = Vector128.MultiplyAddEstimate(y, Vector128.Create(matrix.M22), x * Vector128.Create(matrix.M12));
-        resultY = Vector128.MultiplyAddEstimate(z, Vector128.Create(matrix.M32), resultY) + Vector128.Create(matrix.M42);
-
-        resultZ = Vector128.MultiplyAddEstimate(y, Vector128.Create(matrix.M23), x * Vector128.Create(matrix.M13));
-        resultZ = Vector128.MultiplyAddEstimate(z, Vector128.Create(matrix.M33), resultZ) + Vector128.Create(matrix.M43);
+        // A fourth input of one adds the translation last. Its exact product preserves the affine
+        // addition's rounding, signed zeros and infinities while all widths share the homogeneous core.
+        Transform3(in matrix, x, y, z, Vector128.Create(1F), out resultX, out resultY, out resultZ);
     }
 
     /// <summary>
-    /// Transforms eight triples by a matrix using the multiplication order of <see cref="Vector3.Transform(Vector3, Matrix4x4)"/>.
+    /// Transforms four homogeneous component registers to three outputs in argument order.
     /// </summary>
-    /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="x">The eight first components.</param>
-    /// <param name="y">The eight second components.</param>
-    /// <param name="z">The eight third components.</param>
-    /// <param name="resultX">The transformed first components.</param>
-    /// <param name="resultY">The transformed second components.</param>
-    /// <param name="resultZ">The transformed third components.</param>
+    /// <param name="matrix">The four coefficient rows applied to x, y, z and w in that order.</param>
+    /// <param name="x">The first input lanes.</param>
+    /// <param name="y">The second input lanes.</param>
+    /// <param name="z">The third input lanes.</param>
+    /// <param name="w">The fourth input lanes. This is a matrix coordinate, not pixel alpha.</param>
+    /// <param name="resultX">The transformed first component lanes.</param>
+    /// <param name="resultY">The transformed second component lanes.</param>
+    /// <param name="resultZ">The transformed third component lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Transform3(
+        in Matrix4x4 matrix,
+        Vector128<float> x,
+        Vector128<float> y,
+        Vector128<float> z,
+        Vector128<float> w,
+        out Vector128<float> resultX,
+        out Vector128<float> resultY,
+        out Vector128<float> resultZ)
+    {
+        // Each lane remains one independent sample. Accumulate coefficient rows in argument order,
+        // with one initial product and three multiply-adds, exactly as the scalar output-channel vector.
+        resultX = x * Vector128.Create(matrix.M11);
+        resultX = Vector128.MultiplyAddEstimate(y, Vector128.Create(matrix.M21), resultX);
+        resultX = Vector128.MultiplyAddEstimate(z, Vector128.Create(matrix.M31), resultX);
+        resultX = Vector128.MultiplyAddEstimate(w, Vector128.Create(matrix.M41), resultX);
+
+        resultY = x * Vector128.Create(matrix.M12);
+        resultY = Vector128.MultiplyAddEstimate(y, Vector128.Create(matrix.M22), resultY);
+        resultY = Vector128.MultiplyAddEstimate(z, Vector128.Create(matrix.M32), resultY);
+        resultY = Vector128.MultiplyAddEstimate(w, Vector128.Create(matrix.M42), resultY);
+
+        resultZ = x * Vector128.Create(matrix.M13);
+        resultZ = Vector128.MultiplyAddEstimate(y, Vector128.Create(matrix.M23), resultZ);
+        resultZ = Vector128.MultiplyAddEstimate(z, Vector128.Create(matrix.M33), resultZ);
+        resultZ = Vector128.MultiplyAddEstimate(w, Vector128.Create(matrix.M43), resultZ);
+    }
+
+    /// <summary>
+    /// Transforms eight triples by an affine matrix in first, second, third, then translation order.
+    /// </summary>
+    /// <param name="matrix">The row-vector matrix. Its fourth row contains the translation.</param>
+    /// <param name="x">The first component lanes.</param>
+    /// <param name="y">The second component lanes.</param>
+    /// <param name="z">The third component lanes.</param>
+    /// <param name="resultX">The transformed first component lanes.</param>
+    /// <param name="resultY">The transformed second component lanes.</param>
+    /// <param name="resultZ">The transformed third component lanes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform3(
         in Matrix4x4 matrix,
@@ -1266,27 +1300,61 @@ internal static partial class SimdUtils
         out Vector256<float> resultY,
         out Vector256<float> resultZ)
     {
-        // Keep X, Y, Z, then translation as separate stages at native 256-bit width.
-        resultX = Vector256.MultiplyAddEstimate(y, Vector256.Create(matrix.M21), x * Vector256.Create(matrix.M11));
-        resultX = Vector256.MultiplyAddEstimate(z, Vector256.Create(matrix.M31), resultX) + Vector256.Create(matrix.M41);
-
-        resultY = Vector256.MultiplyAddEstimate(y, Vector256.Create(matrix.M22), x * Vector256.Create(matrix.M12));
-        resultY = Vector256.MultiplyAddEstimate(z, Vector256.Create(matrix.M32), resultY) + Vector256.Create(matrix.M42);
-
-        resultZ = Vector256.MultiplyAddEstimate(y, Vector256.Create(matrix.M23), x * Vector256.Create(matrix.M13));
-        resultZ = Vector256.MultiplyAddEstimate(z, Vector256.Create(matrix.M33), resultZ) + Vector256.Create(matrix.M43);
+        // A fourth input of one adds the translation last. Its exact product preserves the affine
+        // addition's rounding, signed zeros and infinities while all widths share the homogeneous core.
+        Transform3(in matrix, x, y, z, Vector256.Create(1F), out resultX, out resultY, out resultZ);
     }
 
     /// <summary>
-    /// Transforms sixteen triples by a matrix using the multiplication order of <see cref="Vector3.Transform(Vector3, Matrix4x4)"/>.
+    /// Transforms four homogeneous component registers to three outputs in argument order.
     /// </summary>
-    /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="x">The sixteen first components.</param>
-    /// <param name="y">The sixteen second components.</param>
-    /// <param name="z">The sixteen third components.</param>
-    /// <param name="resultX">The transformed first components.</param>
-    /// <param name="resultY">The transformed second components.</param>
-    /// <param name="resultZ">The transformed third components.</param>
+    /// <param name="matrix">The four coefficient rows applied to x, y, z and w in that order.</param>
+    /// <param name="x">The first input lanes.</param>
+    /// <param name="y">The second input lanes.</param>
+    /// <param name="z">The third input lanes.</param>
+    /// <param name="w">The fourth input lanes. This is a matrix coordinate, not pixel alpha.</param>
+    /// <param name="resultX">The transformed first component lanes.</param>
+    /// <param name="resultY">The transformed second component lanes.</param>
+    /// <param name="resultZ">The transformed third component lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Transform3(
+        in Matrix4x4 matrix,
+        Vector256<float> x,
+        Vector256<float> y,
+        Vector256<float> z,
+        Vector256<float> w,
+        out Vector256<float> resultX,
+        out Vector256<float> resultY,
+        out Vector256<float> resultZ)
+    {
+        // Each lane remains one independent sample. Accumulate coefficient rows in argument order,
+        // with one initial product and three multiply-adds, exactly as the scalar output-channel vector.
+        resultX = x * Vector256.Create(matrix.M11);
+        resultX = Vector256.MultiplyAddEstimate(y, Vector256.Create(matrix.M21), resultX);
+        resultX = Vector256.MultiplyAddEstimate(z, Vector256.Create(matrix.M31), resultX);
+        resultX = Vector256.MultiplyAddEstimate(w, Vector256.Create(matrix.M41), resultX);
+
+        resultY = x * Vector256.Create(matrix.M12);
+        resultY = Vector256.MultiplyAddEstimate(y, Vector256.Create(matrix.M22), resultY);
+        resultY = Vector256.MultiplyAddEstimate(z, Vector256.Create(matrix.M32), resultY);
+        resultY = Vector256.MultiplyAddEstimate(w, Vector256.Create(matrix.M42), resultY);
+
+        resultZ = x * Vector256.Create(matrix.M13);
+        resultZ = Vector256.MultiplyAddEstimate(y, Vector256.Create(matrix.M23), resultZ);
+        resultZ = Vector256.MultiplyAddEstimate(z, Vector256.Create(matrix.M33), resultZ);
+        resultZ = Vector256.MultiplyAddEstimate(w, Vector256.Create(matrix.M43), resultZ);
+    }
+
+    /// <summary>
+    /// Transforms sixteen triples by an affine matrix in first, second, third, then translation order.
+    /// </summary>
+    /// <param name="matrix">The row-vector matrix. Its fourth row contains the translation.</param>
+    /// <param name="x">The first component lanes.</param>
+    /// <param name="y">The second component lanes.</param>
+    /// <param name="z">The third component lanes.</param>
+    /// <param name="resultX">The transformed first component lanes.</param>
+    /// <param name="resultY">The transformed second component lanes.</param>
+    /// <param name="resultZ">The transformed third component lanes.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform3(
         in Matrix4x4 matrix,
@@ -1297,15 +1365,49 @@ internal static partial class SimdUtils
         out Vector512<float> resultY,
         out Vector512<float> resultZ)
     {
-        // Keep X, Y, Z, then translation as separate stages at native 512-bit width.
-        resultX = Vector512.MultiplyAddEstimate(y, Vector512.Create(matrix.M21), x * Vector512.Create(matrix.M11));
-        resultX = Vector512.MultiplyAddEstimate(z, Vector512.Create(matrix.M31), resultX) + Vector512.Create(matrix.M41);
+        // A fourth input of one adds the translation last. Its exact product preserves the affine
+        // addition's rounding, signed zeros and infinities while all widths share the homogeneous core.
+        Transform3(in matrix, x, y, z, Vector512.Create(1F), out resultX, out resultY, out resultZ);
+    }
 
-        resultY = Vector512.MultiplyAddEstimate(y, Vector512.Create(matrix.M22), x * Vector512.Create(matrix.M12));
-        resultY = Vector512.MultiplyAddEstimate(z, Vector512.Create(matrix.M32), resultY) + Vector512.Create(matrix.M42);
+    /// <summary>
+    /// Transforms four homogeneous component registers to three outputs in argument order.
+    /// </summary>
+    /// <param name="matrix">The four coefficient rows applied to x, y, z and w in that order.</param>
+    /// <param name="x">The first input lanes.</param>
+    /// <param name="y">The second input lanes.</param>
+    /// <param name="z">The third input lanes.</param>
+    /// <param name="w">The fourth input lanes. This is a matrix coordinate, not pixel alpha.</param>
+    /// <param name="resultX">The transformed first component lanes.</param>
+    /// <param name="resultY">The transformed second component lanes.</param>
+    /// <param name="resultZ">The transformed third component lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Transform3(
+        in Matrix4x4 matrix,
+        Vector512<float> x,
+        Vector512<float> y,
+        Vector512<float> z,
+        Vector512<float> w,
+        out Vector512<float> resultX,
+        out Vector512<float> resultY,
+        out Vector512<float> resultZ)
+    {
+        // Each lane remains one independent sample. Accumulate coefficient rows in argument order,
+        // with one initial product and three multiply-adds, exactly as the scalar output-channel vector.
+        resultX = x * Vector512.Create(matrix.M11);
+        resultX = Vector512.MultiplyAddEstimate(y, Vector512.Create(matrix.M21), resultX);
+        resultX = Vector512.MultiplyAddEstimate(z, Vector512.Create(matrix.M31), resultX);
+        resultX = Vector512.MultiplyAddEstimate(w, Vector512.Create(matrix.M41), resultX);
 
-        resultZ = Vector512.MultiplyAddEstimate(y, Vector512.Create(matrix.M23), x * Vector512.Create(matrix.M13));
-        resultZ = Vector512.MultiplyAddEstimate(z, Vector512.Create(matrix.M33), resultZ) + Vector512.Create(matrix.M43);
+        resultY = x * Vector512.Create(matrix.M12);
+        resultY = Vector512.MultiplyAddEstimate(y, Vector512.Create(matrix.M22), resultY);
+        resultY = Vector512.MultiplyAddEstimate(z, Vector512.Create(matrix.M32), resultY);
+        resultY = Vector512.MultiplyAddEstimate(w, Vector512.Create(matrix.M42), resultY);
+
+        resultZ = x * Vector512.Create(matrix.M13);
+        resultZ = Vector512.MultiplyAddEstimate(y, Vector512.Create(matrix.M23), resultZ);
+        resultZ = Vector512.MultiplyAddEstimate(z, Vector512.Create(matrix.M33), resultZ);
+        resultZ = Vector512.MultiplyAddEstimate(w, Vector512.Create(matrix.M43), resultZ);
     }
 
     /// <summary>

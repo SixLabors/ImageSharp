@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -34,6 +35,51 @@ internal static class JxlModularSqueeze
         Buffer2DRegion<int> destination,
         bool horizontal,
         CancellationToken cancellationToken)
+        => Apply<int>(averages, residuals, destination, horizontal, cancellationToken);
+
+    /// <summary>
+    /// Reverses a squeeze using the common signed storage selected for its channels.
+    /// </summary>
+    /// <param name="averages">The ceiling-sized average channel.</param>
+    /// <param name="residuals">The floor-sized residual channel.</param>
+    /// <param name="destination">The separate complete output channel with the same storage width.</param>
+    /// <param name="horizontal">Whether pairs occupy adjacent columns instead of adjacent rows.</param>
+    /// <param name="cancellationToken">The token checked before each row or row batch.</param>
+    public static void Apply(
+        JxlModularChannel averages,
+        JxlModularChannel residuals,
+        JxlModularChannel destination,
+        bool horizontal,
+        CancellationToken cancellationToken)
+    {
+        // The transform owner allocates outputs in the same storage representation as their inputs.
+        // Select that representation once; arithmetic and tiling remain shared by short and int samples.
+        if (averages.Uses16BitStorage)
+        {
+            Apply<short>(averages.Region16, residuals.Region16, destination.Region16, horizontal, cancellationToken);
+        }
+        else
+        {
+            Apply<int>(averages.Region, residuals.Region, destination.Region, horizontal, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Reverses one squeeze with wide arithmetic and the stream's selected signed storage.
+    /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
+    /// <param name="averages">The ceiling-sized average plane.</param>
+    /// <param name="residuals">The floor-sized residual plane.</param>
+    /// <param name="destination">The separate complete output plane.</param>
+    /// <param name="horizontal">Whether pairs occupy adjacent columns instead of adjacent rows.</param>
+    /// <param name="cancellationToken">The token checked before each row or row batch.</param>
+    public static void Apply<TSample>(
+        Buffer2DRegion<TSample> averages,
+        Buffer2DRegion<TSample> residuals,
+        Buffer2DRegion<TSample> destination,
+        bool horizontal,
+        CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         // Squeezing a one-sample dimension produces only an average. The empty residual channel has no backing buffer.
         // Copy the unpaired samples without borrowing a row from that empty channel.
@@ -61,31 +107,27 @@ internal static class JxlModularSqueeze
     /// <summary>
     /// Reconstructs vertical pairs with independent columns in SIMD lanes.
     /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">The average plane.</param>
     /// <param name="residuals">The residual plane.</param>
     /// <param name="destination">The nonoverlapping output plane.</param>
     /// <param name="cancellationToken">The token checked before each reconstructed row pair.</param>
-    private static void ApplyVertical(
-        Buffer2DRegion<int> averages,
-        Buffer2DRegion<int> residuals,
-        Buffer2DRegion<int> destination,
+    private static void ApplyVertical<TSample>(
+        Buffer2DRegion<TSample> averages,
+        Buffer2DRegion<TSample> residuals,
+        Buffer2DRegion<TSample> destination,
         CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         for (int y = 0; y < residuals.Height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Span<int> average = averages.DangerousGetRowSpan(y);
-            Span<int> next = averages.DangerousGetRowSpan(Math.Min(y + 1, averages.Height - 1));
-            Span<int> residual = residuals.DangerousGetRowSpan(y);
-            Span<int> first = destination.DangerousGetRowSpan(2 * y);
-            Span<int> second = destination.DangerousGetRowSpan((2 * y) + 1);
-            Span<int> previous = y == 0 ? average : destination.DangerousGetRowSpan((2 * y) - 1);
-            ref int averageRef = ref MemoryMarshal.GetReference(average);
-            ref int nextRef = ref MemoryMarshal.GetReference(next);
-            ref int residualRef = ref MemoryMarshal.GetReference(residual);
-            ref int previousRef = ref MemoryMarshal.GetReference(previous);
-            ref int firstRef = ref MemoryMarshal.GetReference(first);
-            ref int secondRef = ref MemoryMarshal.GetReference(second);
+            Span<TSample> average = averages.DangerousGetRowSpan(y);
+            Span<TSample> next = averages.DangerousGetRowSpan(Math.Min(y + 1, averages.Height - 1));
+            Span<TSample> residual = residuals.DangerousGetRowSpan(y);
+            Span<TSample> first = destination.DangerousGetRowSpan(2 * y);
+            Span<TSample> second = destination.DangerousGetRowSpan((2 * y) + 1);
+            Span<TSample> previous = y == 0 ? average : destination.DangerousGetRowSpan((2 * y) - 1);
             int x = 0;
 
             // A lane follows one column. Every vector reads the preceding reconstructed row, not an earlier lane.
@@ -96,15 +138,15 @@ internal static class JxlModularSqueeze
                 for (nuint block = 0; block < count; block++, x += Vector512<int>.Count)
                 {
                     SqueezeOperator.Apply(
-                        Vector512.LoadUnsafe(ref averageRef, (nuint)x),
-                        Vector512.LoadUnsafe(ref residualRef, (nuint)x),
-                        Vector512.LoadUnsafe(ref nextRef, (nuint)x),
-                        Vector512.LoadUnsafe(ref previousRef, (nuint)x),
+                        JxlModularChannel.Load512<TSample>(average, x),
+                        JxlModularChannel.Load512<TSample>(residual, x),
+                        JxlModularChannel.Load512<TSample>(next, x),
+                        JxlModularChannel.Load512<TSample>(previous, x),
                         out Vector512<int> a,
                         out Vector512<int> b);
 
-                    a.StoreUnsafe(ref firstRef, (nuint)x);
-                    b.StoreUnsafe(ref secondRef, (nuint)x);
+                    JxlModularChannel.Store512(first, x, a);
+                    JxlModularChannel.Store512(second, x, b);
                 }
             }
 
@@ -114,15 +156,15 @@ internal static class JxlModularSqueeze
                 for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
                 {
                     SqueezeOperator.Apply(
-                        Vector256.LoadUnsafe(ref averageRef, (nuint)x),
-                        Vector256.LoadUnsafe(ref residualRef, (nuint)x),
-                        Vector256.LoadUnsafe(ref nextRef, (nuint)x),
-                        Vector256.LoadUnsafe(ref previousRef, (nuint)x),
+                        JxlModularChannel.Load256<TSample>(average, x),
+                        JxlModularChannel.Load256<TSample>(residual, x),
+                        JxlModularChannel.Load256<TSample>(next, x),
+                        JxlModularChannel.Load256<TSample>(previous, x),
                         out Vector256<int> a,
                         out Vector256<int> b);
 
-                    a.StoreUnsafe(ref firstRef, (nuint)x);
-                    b.StoreUnsafe(ref secondRef, (nuint)x);
+                    JxlModularChannel.Store256(first, x, a);
+                    JxlModularChannel.Store256(second, x, b);
                 }
             }
 
@@ -132,21 +174,30 @@ internal static class JxlModularSqueeze
                 for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
                 {
                     SqueezeOperator.Apply(
-                        Vector128.LoadUnsafe(ref averageRef, (nuint)x),
-                        Vector128.LoadUnsafe(ref residualRef, (nuint)x),
-                        Vector128.LoadUnsafe(ref nextRef, (nuint)x),
-                        Vector128.LoadUnsafe(ref previousRef, (nuint)x),
+                        JxlModularChannel.Load128<TSample>(average, x),
+                        JxlModularChannel.Load128<TSample>(residual, x),
+                        JxlModularChannel.Load128<TSample>(next, x),
+                        JxlModularChannel.Load128<TSample>(previous, x),
                         out Vector128<int> a,
                         out Vector128<int> b);
 
-                    a.StoreUnsafe(ref firstRef, (nuint)x);
-                    b.StoreUnsafe(ref secondRef, (nuint)x);
+                    JxlModularChannel.Store128(first, x, a);
+                    JxlModularChannel.Store128(second, x, b);
                 }
             }
 
             for (; x < average.Length; x++)
             {
-                SqueezeOperator.Apply(average[x], residual[x], next[x], previous[x], out first[x], out second[x]);
+                SqueezeOperator.Apply(
+                    int.CreateTruncating(average[x]),
+                    int.CreateTruncating(residual[x]),
+                    int.CreateTruncating(next[x]),
+                    int.CreateTruncating(previous[x]),
+                    out int a,
+                    out int b);
+
+                first[x] = TSample.CreateTruncating(a);
+                second[x] = TSample.CreateTruncating(b);
             }
         }
 
@@ -160,15 +211,17 @@ internal static class JxlModularSqueeze
     /// <summary>
     /// Reconstructs horizontal pairs with independent rows in SIMD lanes.
     /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">The average plane.</param>
     /// <param name="residuals">The residual plane.</param>
     /// <param name="destination">The nonoverlapping output plane.</param>
     /// <param name="cancellationToken">The token checked before each reconstructed row batch.</param>
-    private static void ApplyHorizontal(
-        Buffer2DRegion<int> averages,
-        Buffer2DRegion<int> residuals,
-        Buffer2DRegion<int> destination,
+    private static void ApplyHorizontal<TSample>(
+        Buffer2DRegion<TSample> averages,
+        Buffer2DRegion<TSample> residuals,
+        Buffer2DRegion<TSample> destination,
         CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         // Rows can belong to separate allocator segments. Stage only a bounded tile, then use the shared transpose kernel.
         // These four inline buffers occupy 4 KiB on the stack. They are reused across the entire plane.
@@ -194,17 +247,26 @@ internal static class JxlModularSqueeze
 
             if (rows == 1)
             {
-                Span<int> average = averages.DangerousGetRowSpan(y);
-                Span<int> residual = residuals.DangerousGetRowSpan(y);
-                Span<int> output = destination.DangerousGetRowSpan(y);
-                int left = average[0];
+                Span<TSample> average = averages.DangerousGetRowSpan(y);
+                Span<TSample> residual = residuals.DangerousGetRowSpan(y);
+                Span<TSample> output = destination.DangerousGetRowSpan(y);
+                int left = int.CreateTruncating(average[0]);
 
                 for (int x = 0; x < residual.Length; x++)
                 {
-                    SqueezeOperator.Apply(average[x], residual[x], average[Math.Min(x + 1, average.Length - 1)], left, out int a, out int b);
-                    output[2 * x] = a;
-                    output[(2 * x) + 1] = b;
-                    left = b;
+                    SqueezeOperator.Apply(
+                        int.CreateTruncating(average[x]),
+                        int.CreateTruncating(residual[x]),
+                        int.CreateTruncating(average[Math.Min(x + 1, average.Length - 1)]),
+                        left,
+                        out int a,
+                        out int b);
+
+                    output[2 * x] = TSample.CreateTruncating(a);
+                    output[(2 * x) + 1] = TSample.CreateTruncating(b);
+
+                    // Retain the stored short value for the next pair without reading the output row again.
+                    left = typeof(TSample) == typeof(short) ? unchecked((short)b) : b;
                 }
 
                 if ((destination.Width & 1) != 0)
@@ -218,7 +280,7 @@ internal static class JxlModularSqueeze
 
             for (int row = 0; row < rows; row++)
             {
-                previous[row] = averages.DangerousGetRowSpan(y + row)[0];
+                previous[row] = int.CreateTruncating(averages.DangerousGetRowSpan(y + row)[0]);
             }
 
             for (int x = 0; x < residuals.Width; x += TileColumns)
@@ -229,17 +291,17 @@ internal static class JxlModularSqueeze
                 // Include one lookahead average. The last pair repeats its average when the source width is even.
                 for (int row = 0; row < rows; row++)
                 {
-                    Span<int> average = averages.DangerousGetRowSpan(y + row);
+                    Span<TSample> average = averages.DangerousGetRowSpan(y + row);
                     Span<int> target = tile.Slice(row * averageColumns, averageColumns);
-                    average.Slice(x, columns).CopyTo(target);
-                    target[columns] = average[Math.Min(x + columns, average.Length - 1)];
+                    CopyToInt32<TSample>(average.Slice(x, columns), target);
+                    target[columns] = int.CreateTruncating(average[Math.Min(x + columns, average.Length - 1)]);
                 }
 
                 SimdUtils.Transpose(tile, averageColumns, averageTile, rows, rows, averageColumns);
 
                 for (int row = 0; row < rows; row++)
                 {
-                    residuals.DangerousGetRowSpan(y + row).Slice(x, columns).CopyTo(tile.Slice(row * columns, columns));
+                    CopyToInt32<TSample>(residuals.DangerousGetRowSpan(y + row).Slice(x, columns), tile.Slice(row * columns, columns));
                 }
 
                 SimdUtils.Transpose(tile, columns, residualTile, rows, rows, columns);
@@ -248,22 +310,22 @@ internal static class JxlModularSqueeze
                 // across tiles because the next column's tendency depends on it. Dispatch once for the complete tile.
                 if (rows == Vector512<int>.Count)
                 {
-                    ReconstructColumns512(averageTile, residualTile, outputTile, previous, columns);
+                    ReconstructColumns512<TSample>(averageTile, residualTile, outputTile, previous, columns);
                 }
                 else if (rows == Vector256<int>.Count)
                 {
-                    ReconstructColumns256(averageTile, residualTile, outputTile, previous, columns);
+                    ReconstructColumns256<TSample>(averageTile, residualTile, outputTile, previous, columns);
                 }
                 else
                 {
-                    ReconstructColumns128(averageTile, residualTile, outputTile, previous, columns);
+                    ReconstructColumns128<TSample>(averageTile, residualTile, outputTile, previous, columns);
                 }
 
                 SimdUtils.Transpose(outputTile, rows, tile, 2 * columns, 2 * columns, rows);
 
                 for (int row = 0; row < rows; row++)
                 {
-                    tile.Slice(row * 2 * columns, 2 * columns).CopyTo(destination.DangerousGetRowSpan(y + row).Slice(2 * x));
+                    CopyFromInt32<TSample>(tile.Slice(row * 2 * columns, 2 * columns), destination.DangerousGetRowSpan(y + row).Slice(2 * x));
                 }
             }
 
@@ -282,12 +344,19 @@ internal static class JxlModularSqueeze
     /// <summary>
     /// Restores dependent columns for 4 independent rows and retains the final odd outputs for the next tile.
     /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">Column-major average lanes, including one lookahead column.</param>
     /// <param name="residuals">Column-major residual lanes.</param>
     /// <param name="output">The alternating first and second output columns.</param>
     /// <param name="previous">The preceding odd output from each row.</param>
     /// <param name="columns">The number of pairs in the tile.</param>
-    private static void ReconstructColumns128(ReadOnlySpan<int> averages, ReadOnlySpan<int> residuals, Span<int> output, Span<int> previous, int columns)
+    private static void ReconstructColumns128<TSample>(
+        ReadOnlySpan<int> averages,
+        ReadOnlySpan<int> residuals,
+        Span<int> output,
+        Span<int> previous,
+        int columns)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         ref int averageRef = ref MemoryMarshal.GetReference(averages);
         ref int residualRef = ref MemoryMarshal.GetReference(residuals);
@@ -309,7 +378,9 @@ internal static class JxlModularSqueeze
             // The following transpose restores rows. Keep pair members in separate contiguous column vectors here.
             a.StoreUnsafe(ref outputRef, 2 * offset);
             b.StoreUnsafe(ref outputRef, (2 * offset) + (nuint)Vector128<int>.Count);
-            left = b;
+
+            // The next pair sees the value stored in the short plane, not an unbounded int temporary.
+            left = typeof(TSample) == typeof(short) ? (b << 16) >> 16 : b;
         }
 
         left.StoreUnsafe(ref previousRef);
@@ -318,12 +389,19 @@ internal static class JxlModularSqueeze
     /// <summary>
     /// Restores dependent columns for 8 independent rows and retains the final odd outputs for the next tile.
     /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">Column-major average lanes, including one lookahead column.</param>
     /// <param name="residuals">Column-major residual lanes.</param>
     /// <param name="output">The alternating first and second output columns.</param>
     /// <param name="previous">The preceding odd output from each row.</param>
     /// <param name="columns">The number of pairs in the tile.</param>
-    private static void ReconstructColumns256(ReadOnlySpan<int> averages, ReadOnlySpan<int> residuals, Span<int> output, Span<int> previous, int columns)
+    private static void ReconstructColumns256<TSample>(
+        ReadOnlySpan<int> averages,
+        ReadOnlySpan<int> residuals,
+        Span<int> output,
+        Span<int> previous,
+        int columns)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         ref int averageRef = ref MemoryMarshal.GetReference(averages);
         ref int residualRef = ref MemoryMarshal.GetReference(residuals);
@@ -345,7 +423,9 @@ internal static class JxlModularSqueeze
             // The following transpose restores rows. Keep pair members in separate contiguous column vectors here.
             a.StoreUnsafe(ref outputRef, 2 * offset);
             b.StoreUnsafe(ref outputRef, (2 * offset) + (nuint)Vector256<int>.Count);
-            left = b;
+
+            // The next pair sees the value stored in the short plane, not an unbounded int temporary.
+            left = typeof(TSample) == typeof(short) ? (b << 16) >> 16 : b;
         }
 
         left.StoreUnsafe(ref previousRef);
@@ -354,12 +434,19 @@ internal static class JxlModularSqueeze
     /// <summary>
     /// Restores dependent columns for 16 independent rows and retains the final odd outputs for the next tile.
     /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">Column-major average lanes, including one lookahead column.</param>
     /// <param name="residuals">Column-major residual lanes.</param>
     /// <param name="output">The alternating first and second output columns.</param>
     /// <param name="previous">The preceding odd output from each row.</param>
     /// <param name="columns">The number of pairs in the tile.</param>
-    private static void ReconstructColumns512(ReadOnlySpan<int> averages, ReadOnlySpan<int> residuals, Span<int> output, Span<int> previous, int columns)
+    private static void ReconstructColumns512<TSample>(
+        ReadOnlySpan<int> averages,
+        ReadOnlySpan<int> residuals,
+        Span<int> output,
+        Span<int> previous,
+        int columns)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         ref int averageRef = ref MemoryMarshal.GetReference(averages);
         ref int residualRef = ref MemoryMarshal.GetReference(residuals);
@@ -381,10 +468,107 @@ internal static class JxlModularSqueeze
             // The following transpose restores rows. Keep pair members in separate contiguous column vectors here.
             a.StoreUnsafe(ref outputRef, 2 * offset);
             b.StoreUnsafe(ref outputRef, (2 * offset) + (nuint)Vector512<int>.Count);
-            left = b;
+
+            // The next pair sees the value stored in the short plane, not an unbounded int temporary.
+            left = typeof(TSample) == typeof(short) ? (b << 16) >> 16 : b;
         }
 
         left.StoreUnsafe(ref previousRef);
+    }
+
+    /// <summary>
+    /// Widens one bounded input tile row into the existing integer transpose storage.
+    /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
+    /// <param name="source">At most eight samples from one stored input row.</param>
+    /// <param name="destination">The corresponding integer tile slice, which can include a following lookahead slot.</param>
+    private static void CopyToInt32<TSample>(ReadOnlySpan<TSample> source, Span<int> destination)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        if (typeof(TSample) == typeof(int))
+        {
+            MemoryMarshal.Cast<TSample, int>(source).CopyTo(destination);
+            return;
+        }
+
+        // Input tiles contain at most eight columns. One 256-bit int result widens the whole ordinary tile;
+        // 128-bit and scalar tails handle partial tiles without reading an unpopulated lookahead sample.
+        ref int target = ref MemoryMarshal.GetReference(destination);
+        int x = 0;
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - x).Vector256Count<int>();
+            for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
+            {
+                JxlModularChannel.Load256(source, x).StoreUnsafe(ref target, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - x).Vector128Count<int>();
+            for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
+            {
+                JxlModularChannel.Load128(source, x).StoreUnsafe(ref target, (nuint)x);
+            }
+        }
+
+        for (; x < source.Length; x++)
+        {
+            destination[x] = int.CreateTruncating(source[x]);
+        }
+    }
+
+    /// <summary>
+    /// Stores one reconstructed tile row in its selected integer representation.
+    /// </summary>
+    /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
+    /// <param name="source">At most sixteen widened reconstructed samples.</param>
+    /// <param name="destination">The corresponding stored output slice.</param>
+    private static void CopyFromInt32<TSample>(ReadOnlySpan<int> source, Span<TSample> destination)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        if (typeof(TSample) == typeof(int))
+        {
+            source.CopyTo(MemoryMarshal.Cast<TSample, int>(destination));
+            return;
+        }
+
+        // Short stores retain the low sixteen bits. This is storage wrapping, not saturation.
+        // The selected width writes only the samples in this tile; partial image edges need no padding.
+        ref int first = ref MemoryMarshal.GetReference(source);
+        int x = 0;
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - x).Vector512Count<int>();
+            for (nuint block = 0; block < count; block++, x += Vector512<int>.Count)
+            {
+                JxlModularChannel.Store512(destination, x, Vector512.LoadUnsafe(ref first, (nuint)x));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - x).Vector256Count<int>();
+            for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
+            {
+                JxlModularChannel.Store256(destination, x, Vector256.LoadUnsafe(ref first, (nuint)x));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - x).Vector128Count<int>();
+            for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
+            {
+                JxlModularChannel.Store128(destination, x, Vector128.LoadUnsafe(ref first, (nuint)x));
+            }
+        }
+
+        for (; x < source.Length; x++)
+        {
+            destination[x] = TSample.CreateTruncating(source[x]);
+        }
     }
 
     /// <summary>

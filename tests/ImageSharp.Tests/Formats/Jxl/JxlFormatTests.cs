@@ -1167,6 +1167,77 @@ public class JxlFormatTests
                 Assert.Equal(expected[offset + (2 * sampleCount) + sample], third[i]);
             }
         }
+
+        // jxl-rs rct_impl_i16 stores wrapping signed 16-bit results. Operation five wraps the
+        // restored third value before averaging it with the first. Its second sample distinguishes
+        // that rule from retaining the wide third value until the final store.
+        ReadOnlySpan<short> shortFirst = [-7, short.MaxValue, short.MinValue, 9, 0, -1, 42];
+        ReadOnlySpan<short> shortSecond = [10, 2, -3, -5, short.MinValue, -1, 17];
+        ReadOnlySpan<short> shortThird = [2, 2, -1, -7, short.MaxValue, -1, -103];
+        ReadOnlySpan<short> shortExpected =
+        [
+
+            // Operation 0.
+            -7, 32767, -32768, 9, 0, -1, 42,
+            10, 2, -3, -5, -32768, -1, 17,
+            2, 2, -1, -7, 32767, -1, -103,
+
+            // Operation 1.
+            -7, 32767, -32768, 9, 0, -1, 42,
+            10, 2, -3, -5, -32768, -1, 17,
+            -5, -32767, 32767, 2, 32767, -2, -61,
+
+            // Operation 2.
+            -7, 32767, -32768, 9, 0, -1, 42,
+            3, -32767, 32765, 4, -32768, -2, 59,
+            2, 2, -1, -7, 32767, -1, -103,
+
+            // Operation 3.
+            -7, 32767, -32768, 9, 0, -1, 42,
+            3, -32767, 32765, 4, -32768, -2, 59,
+            -5, -32767, 32767, 2, 32767, -2, -61,
+
+            // Operation 4.
+            -7, 32767, -32768, 9, 0, -1, 42,
+            7, 16386, -16388, -4, -16385, -2, -14,
+            2, 2, -1, -7, 32767, -1, -103,
+
+            // Operation 5.
+            -7, 32767, -32768, 9, 0, -1, 42,
+            4, 2, -4, 0, -16385, -3, 7,
+            -5, -32767, 32767, 2, 32767, -2, -61,
+
+            // Operation 6.
+            -3, 32767, -32768, 11, -32767, 0, 103,
+            -6, -32768, -32768, 6, 16384, -1, -9,
+            -13, 32765, -32765, 16, 1, 1, 86
+        ];
+
+        short[] first16 = new short[length];
+        short[] second16 = new short[length];
+        short[] third16 = new short[length];
+        for (int operation = 0; operation <= 6; operation++)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                int sample = i % sampleCount;
+                first16[i] = shortFirst[sample];
+                second16[i] = shortSecond[sample];
+                third16[i] = shortThird[sample];
+            }
+
+            JxlModularColorTransform.Apply<short>(operation, first16, second16, third16);
+
+            int offset = operation * 3 * sampleCount;
+            for (int i = 0; i < length; i++)
+            {
+                int sample = i % sampleCount;
+
+                Assert.Equal(shortExpected[offset + sample], first16[i]);
+                Assert.Equal(shortExpected[offset + sampleCount + sample], second16[i]);
+                Assert.Equal(shortExpected[offset + (2 * sampleCount) + sample], third16[i]);
+            }
+        }
     }
 
     /// <summary>
@@ -1187,10 +1258,17 @@ public class JxlFormatTests
             0, 7, 13, 24, 31, 22, 12, 5, -9, -22, -23, -19, -8, -9, -3, 4, 12, 22, 31, 26, 13, 11, -1, -8, -8, -11, 0, 13, 13, 16
         ];
 
-        ValidateSqueezeLayout(averages, residuals, expected, true, false, true);
-        ValidateSqueezeLayout(averages, residuals, expected, true, true, true);
-        ValidateSqueezeLayout(averages, residuals, expected, false, false, true);
-        ValidateSqueezeLayout(averages, residuals, expected, false, true, true);
+        ValidateSqueezeLayout<int>(averages, residuals, expected, true, false, true);
+        ValidateSqueezeLayout<int>(averages, residuals, expected, true, true, true);
+        ValidateSqueezeLayout<int>(averages, residuals, expected, false, false, true);
+        ValidateSqueezeLayout<int>(averages, residuals, expected, false, true, true);
+
+        // The same bounded sequences have the same exact reconstruction in signed 16-bit storage.
+        // Keep the full-width extreme cases below on int storage; they do not fit short samples.
+        ValidateSqueezeLayout<short>(averages, residuals, expected, true, false, true);
+        ValidateSqueezeLayout<short>(averages, residuals, expected, true, true, true);
+        ValidateSqueezeLayout<short>(averages, residuals, expected, false, false, true);
+        ValidateSqueezeLayout<short>(averages, residuals, expected, false, true, true);
 
         ReadOnlySpan<int> extremes =
         [
@@ -1212,25 +1290,29 @@ public class JxlFormatTests
             -2147483647, 2147483646, 2147483645, -2147483646, -1, 2
         ];
 
-        ValidateSqueezeLayout(extremes, residuals, extremeExpected, true, true, false);
-        ValidateSqueezeLayout(extremes, residuals, extremeExpected, false, true, false);
+        ValidateSqueezeLayout<int>(extremes, residuals, extremeExpected, true, true, false);
+        ValidateSqueezeLayout<int>(extremes, residuals, extremeExpected, false, true, false);
 
         // Squeezing a one-sample dimension produces a valid empty residual plane. Reconstruction copies the sole average.
-        ValidateSqueezeLayout([7], [], [], true, true, true);
-        ValidateSqueezeLayout([7], [], [], false, true, true);
+        ValidateSqueezeLayout<int>([7], [], [], true, true, true);
+        ValidateSqueezeLayout<int>([7], [], [], false, true, true);
+        ValidateSqueezeLayout<short>([7], [], [], true, true, true);
+        ValidateSqueezeLayout<short>([7], [], [], false, true, true);
     }
 
     /// <summary>
     /// Places an independently specified sequence in either orientation and verifies every output sample.
     /// </summary>
+    /// <typeparam name="TSample">The signed int or short channel storage tested with the same fixed sequences.</typeparam>
     /// <param name="averageValues">The average sequence. An odd edge repeats its last value.</param>
     /// <param name="residualValues">The residual sequence.</param>
     /// <param name="expected">The fixed reconstructed pairs.</param>
     /// <param name="horizontal">Whether the sequence runs across columns instead of rows.</param>
     /// <param name="oddEdge">Whether one unpaired average follows the reconstructed pairs.</param>
     /// <param name="varyRows">Whether independent sequences receive distinct finite offsets.</param>
-    private static void ValidateSqueezeLayout(
+    private static void ValidateSqueezeLayout<TSample>(
         ReadOnlySpan<int> averageValues, ReadOnlySpan<int> residualValues, ReadOnlySpan<int> expected, bool horizontal, bool oddEdge, bool varyRows)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         // Thirty-one independent sequences exercise horizontal row batches of 16, 8 and 4, then three scalar rows.
         // Transposing this setup exercises vertical SIMD blocks of the same widths and a three-column scalar tail.
@@ -1241,10 +1323,10 @@ public class JxlFormatTests
         Size averageSize = horizontal ? new(averageCount, independentCount) : new(independentCount, averageCount);
         Size residualSize = horizontal ? new(pairCount, independentCount) : new(independentCount, pairCount);
         Size outputSize = horizontal ? new(outputCount, independentCount) : new(independentCount, outputCount);
-        using Buffer2D<int> averages = MemoryAllocator.Default.Allocate2D<int>(averageSize);
-        using Buffer2D<int>? residuals = pairCount == 0 ? null : MemoryAllocator.Default.Allocate2D<int>(residualSize);
-        using Buffer2D<int> output = MemoryAllocator.Default.Allocate2D<int>(outputSize);
-        Buffer2DRegion<int> residualRegion = residuals is null ? default : residuals.GetRegion();
+        using Buffer2D<TSample> averages = MemoryAllocator.Default.Allocate2D<TSample>(averageSize);
+        using Buffer2D<TSample> residuals = pairCount == 0 ? null : MemoryAllocator.Default.Allocate2D<TSample>(residualSize);
+        using Buffer2D<TSample> output = MemoryAllocator.Default.Allocate2D<TSample>(outputSize);
+        Buffer2DRegion<TSample> residualRegion = residuals is null ? default : residuals.GetRegion();
 
         for (int sequence = 0; sequence < independentCount; sequence++)
         {
@@ -1253,16 +1335,16 @@ public class JxlFormatTests
             for (int i = 0; i < averageCount; i++)
             {
                 int value = averageValues[Math.Min(i, averageValues.Length - 1)] + offset;
-                averages[horizontal ? i : sequence, horizontal ? sequence : i] = value;
+                averages[horizontal ? i : sequence, horizontal ? sequence : i] = TSample.CreateTruncating(value);
             }
 
             for (int i = 0; i < pairCount; i++)
             {
-                residualRegion[horizontal ? i : sequence, horizontal ? sequence : i] = residualValues[i];
+                residualRegion[horizontal ? i : sequence, horizontal ? sequence : i] = TSample.CreateTruncating(residualValues[i]);
             }
         }
 
-        JxlModularSqueeze.Apply(averages.GetRegion(), residualRegion, output.GetRegion(), horizontal, CancellationToken.None);
+        JxlModularSqueeze.Apply<TSample>(averages.GetRegion(), residualRegion, output.GetRegion(), horizontal, CancellationToken.None);
 
         for (int sequence = 0; sequence < independentCount; sequence++)
         {
@@ -1270,12 +1352,14 @@ public class JxlFormatTests
 
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.Equal(expected[i] + offset, output[horizontal ? i : sequence, horizontal ? sequence : i]);
+                Assert.Equal(TSample.CreateTruncating(expected[i] + offset), output[horizontal ? i : sequence, horizontal ? sequence : i]);
             }
 
             if (oddEdge)
             {
-                Assert.Equal(averageValues[^1] + offset, output[horizontal ? outputCount - 1 : sequence, horizontal ? sequence : outputCount - 1]);
+                Assert.Equal(
+                    TSample.CreateTruncating(averageValues[^1] + offset),
+                    output[horizontal ? outputCount - 1 : sequence, horizontal ? sequence : outputCount - 1]);
             }
         }
     }

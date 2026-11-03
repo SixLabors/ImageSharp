@@ -138,6 +138,28 @@ public partial class JxlHeaderTests
 
         Assert.Equal(1.25F, storage[0]);
         Assert.Equal(1.25F, storage[^1]);
+
+        // Short carriers preserve signed integers and the low bits of floating-point encodings.
+        // Reuse the independent float-bit expectations above, including negative zero, NaN payloads
+        // and subnormals. Thirty-three samples also check every vector width and its scalar tail.
+        if (bitDepth.BitsPerSample < 16 || (bitDepth.BitsPerSample == 16 && bitDepth.ExponentBits != 0))
+        {
+            short[] shortSource = new short[source.Length];
+            for (int i = 0; i < shortSource.Length; i++)
+            {
+                shortSource[i] = unchecked((short)source[i]);
+            }
+
+            storage.AsSpan().Fill(1.25F);
+            JxlSampleConverter.Convert(shortSource, storage.AsSpan(1), bitDepth);
+            for (int i = 0; i < shortSource.Length; i++)
+            {
+                Assert.Equal(expected[i % expected.Length], BitConverter.SingleToUInt32Bits(storage[i + 1]));
+            }
+
+            Assert.Equal(1.25F, storage[0]);
+            Assert.Equal(1.25F, storage[^1]);
+        }
     }
 
     /// <summary>

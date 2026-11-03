@@ -31,11 +31,25 @@ internal sealed partial class JxlModularDecoder
     /// MultiplySum restores B with signed integer addition before its float conversion at every precision.
     /// </remarks>
     public Buffer2D<float>[] ReconstructXyb(JxlFrameHeader frame, Vector3 dcQuants, CancellationToken cancellationToken)
+        => this.Uses16BitStorage
+            ? this.ReconstructXyb<short>(frame, dcQuants, cancellationToken)
+            : this.ReconstructXyb<int>(frame, dcQuants, cancellationToken);
+
+    /// <summary>
+    /// Restores float XYB planes from the modular storage selected by the image header.
+    /// </summary>
+    /// <typeparam name="TSample">The active signed modular storage type.</typeparam>
+    /// <param name="frame">The coded and final plane sizes.</param>
+    /// <param name="dcQuants">The X, Y and B scale factors.</param>
+    /// <param name="cancellationToken">The token checked before each row.</param>
+    /// <returns>Owned float planes in X, Y and B order.</returns>
+    private Buffer2D<float>[] ReconstructXyb<TSample>(JxlFrameHeader frame, Vector3 dcQuants, CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         Size codingSize = frame.CodingSize;
-        Buffer2DRegion<int> sourceY = this.GetChannel(0);
-        Buffer2DRegion<int> sourceX = this.GetChannel(1);
-        Buffer2DRegion<int> sourceB = this.GetChannel(2);
+        JxlModularChannel sourceY = this.GetChannel(0);
+        JxlModularChannel sourceX = this.GetChannel(1);
+        JxlModularChannel sourceB = this.GetChannel(2);
         Span<int> sum = this.workspace.PrepareReconstructionRow(codingSize.Width);
         Buffer2D<float>? x = null;
         Buffer2D<float>? y = null;
@@ -52,26 +66,26 @@ internal sealed partial class JxlModularDecoder
             // Keep that decision outside row traversal. All stored planes remain float; widened products round only at their final store.
             if (this.bitDepth >= 23)
             {
-                ReconstructAccurateXybPlane(sourceX, x, dcQuants.X, cancellationToken);
-                ReconstructAccurateXybPlane(sourceY, y, dcQuants.Y, cancellationToken);
+                ReconstructAccurateXybPlane<TSample>(sourceX, x, dcQuants.X, cancellationToken);
+                ReconstructAccurateXybPlane<TSample>(sourceY, y, dcQuants.Y, cancellationToken);
             }
             else
             {
-                ReconstructXybPlane(sourceX, x, dcQuants.X, cancellationToken);
-                ReconstructXybPlane(sourceY, y, dcQuants.Y, cancellationToken);
+                ReconstructXybPlane<TSample>(sourceX, x, dcQuants.X, cancellationToken);
+                ReconstructXybPlane<TSample>(sourceY, y, dcQuants.Y, cancellationToken);
             }
 
             for (int row = 0; row < codingSize.Height; row++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ReadOnlySpan<int> rawY = sourceY.DangerousGetRowSpan(row);
-                ReadOnlySpan<int> rawB = sourceB.DangerousGetRowSpan(row);
+                ReadOnlySpan<TSample> rawY = sourceY.GetRow<TSample>(row);
+                ReadOnlySpan<TSample> rawB = sourceB.GetRow<TSample>(row);
                 Span<float> outputB = b.DangerousGetRowSpan(row)[..codingSize.Width];
 
                 // Modular XYB stores Y, X and B-Y. Native MultiplySum adds signed integer lanes before conversion,
                 // including their 32-bit wrap. Converting the two operands first would lose canceling low bits above 2^24.
                 // Apply B's own factor after that sum: it need not equal the factor already applied to Y.
-                TensorPrimitives.Add(rawB, rawY, sum);
+                AddXybRows(rawB, rawY, sum);
                 TensorPrimitives.ConvertChecked(sum, outputB);
                 TensorPrimitives.Multiply(outputB, dcQuants.Z, outputB);
             }
@@ -90,17 +104,19 @@ internal sealed partial class JxlModularDecoder
     /// <summary>
     /// Converts one original integer component with the native below-23-bit float multiplication rule.
     /// </summary>
+    /// <typeparam name="TSample">The active signed modular storage type.</typeparam>
     /// <param name="source">The completed original integer plane.</param>
     /// <param name="destination">The final-capacity float plane.</param>
     /// <param name="factor">The component's DC factor.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
-    private static void ReconstructXybPlane(Buffer2DRegion<int> source, Buffer2D<float> destination, float factor, CancellationToken cancellationToken)
+    private static void ReconstructXybPlane<TSample>(JxlModularChannel source, Buffer2D<float> destination, float factor, CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         for (int row = 0; row < source.Height; row++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Span<float> output = destination.DangerousGetRowSpan(row)[..source.Width];
-            TensorPrimitives.ConvertChecked(source.DangerousGetRowSpan(row), output);
+            TensorPrimitives.ConvertChecked(source.GetRow<TSample>(row), output);
             TensorPrimitives.Multiply(output, factor, output);
         }
     }
@@ -108,11 +124,14 @@ internal sealed partial class JxlModularDecoder
     /// <summary>
     /// Converts one original component with the native metadata-precision rule for 23 or more bits.
     /// </summary>
+    /// <typeparam name="TSample">The active signed modular storage type.</typeparam>
     /// <param name="source">The completed original integer plane.</param>
     /// <param name="destination">The final-capacity float plane.</param>
     /// <param name="factor">The component's DC factor, widened exactly before multiplication.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
-    private static void ReconstructAccurateXybPlane(Buffer2DRegion<int> source, Buffer2D<float> destination, float factor, CancellationToken cancellationToken)
+    private static void ReconstructAccurateXybPlane<TSample>(
+        JxlModularChannel source, Buffer2D<float> destination, float factor, CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         // Native dec_modular.cc SingleFromSingleAccurate multiplies an exact integer by a widened DC factor,
         // then rounds only the product to float. Casting the integer to float first can cross a final rounding midpoint.
@@ -120,19 +139,20 @@ internal sealed partial class JxlModularDecoder
         for (int row = 0; row < source.Height; row++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ScaleAccurateXybRow(source.DangerousGetRowSpan(row), destination.DangerousGetRowSpan(row)[..source.Width], in operation);
+            ScaleAccurateXybRow(source.GetRow<TSample>(row), destination.DangerousGetRowSpan(row)[..source.Width], in operation);
         }
     }
 
     /// <summary>
     /// Scales signed integers directly into float output with one final rounding and no intermediate row.
     /// </summary>
+    /// <typeparam name="TSample">The active signed modular storage type.</typeparam>
     /// <param name="source">The original integer component row.</param>
     /// <param name="destination">The matching float row.</param>
     /// <param name="operation">The component's prepared exact multiplier.</param>
-    private static void ScaleAccurateXybRow(ReadOnlySpan<int> source, Span<float> destination, in AccurateScaleOperator operation)
+    private static void ScaleAccurateXybRow<TSample>(ReadOnlySpan<TSample> source, Span<float> destination, in AccurateScaleOperator operation)
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
-        ref int input = ref MemoryMarshal.GetReference(source);
         ref float output = ref MemoryMarshal.GetReference(destination);
         int i = 0;
 
@@ -143,7 +163,7 @@ internal sealed partial class JxlModularDecoder
             nuint count = source.Length.Vector512Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
             {
-                operation.Invoke(Vector512.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                operation.Invoke(JxlModularChannel.Load512(source, i)).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
@@ -152,7 +172,7 @@ internal sealed partial class JxlModularDecoder
             nuint count = (source.Length - i).Vector256Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
             {
-                operation.Invoke(Vector256.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                operation.Invoke(JxlModularChannel.Load256(source, i)).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
@@ -161,14 +181,62 @@ internal sealed partial class JxlModularDecoder
             nuint count = (source.Length - i).Vector128Count<int>();
             for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
             {
-                operation.Invoke(Vector128.LoadUnsafe(ref input, (nuint)i)).StoreUnsafe(ref output, (nuint)i);
+                operation.Invoke(JxlModularChannel.Load128(source, i)).StoreUnsafe(ref output, (nuint)i);
             }
         }
 
         // The remainder uses the same exact integer product and one final float rounding.
         for (; i < source.Length; i++)
         {
-            destination[i] = operation.Invoke(source[i]);
+            destination[i] = operation.Invoke(int.CreateTruncating(source[i]));
+        }
+    }
+
+    /// <summary>
+    /// Adds native B-minus-Y and Y samples in signed 32-bit units before float conversion.
+    /// </summary>
+    /// <typeparam name="TSample">The active signed modular storage type.</typeparam>
+    /// <param name="first">The B-minus-Y row.</param>
+    /// <param name="second">The Y row.</param>
+    /// <param name="destination">The existing integer reconstruction row.</param>
+    private static void AddXybRows<TSample>(ReadOnlySpan<TSample> first, ReadOnlySpan<TSample> second, Span<int> destination)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        ref int output = ref MemoryMarshal.GetReference(destination);
+        int i = 0;
+
+        // Loads sign-extend 16-bit samples. Every register then adds 4, 8 or 16 integer samples,
+        // with the same 32-bit wrap as the scalar remainder. No sample is rounded to float before addition.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = first.Length.Vector512Count<int>();
+            for (nuint block = 0; block < count; block++, i += Vector512<int>.Count)
+            {
+                (JxlModularChannel.Load512(first, i) + JxlModularChannel.Load512(second, i)).StoreUnsafe(ref output, (nuint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (first.Length - i).Vector256Count<int>();
+            for (nuint block = 0; block < count; block++, i += Vector256<int>.Count)
+            {
+                (JxlModularChannel.Load256(first, i) + JxlModularChannel.Load256(second, i)).StoreUnsafe(ref output, (nuint)i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (first.Length - i).Vector128Count<int>();
+            for (nuint block = 0; block < count; block++, i += Vector128<int>.Count)
+            {
+                (JxlModularChannel.Load128(first, i) + JxlModularChannel.Load128(second, i)).StoreUnsafe(ref output, (nuint)i);
+            }
+        }
+
+        for (; i < first.Length; i++)
+        {
+            destination[i] = unchecked(int.CreateTruncating(first[i]) + int.CreateTruncating(second[i]));
         }
     }
 

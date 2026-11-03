@@ -2,8 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.IO;
@@ -14,6 +16,97 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 
 public partial class JxlHeaderTests
 {
+    /// <summary>
+    /// Verifies declared XYB device samples restore native linear RGB without clipping HDR or negative components.
+    /// </summary>
+    [Fact]
+    public void ConvertDeclaredXybDeviceMatchesNativeLinearRgb()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateDeclaredXybDeviceConversion,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks each component overload against independently recorded native RGB and XYB pairs.
+    /// </summary>
+    /// <remarks>
+    /// The native pairs are recorded in RgbAndXybConversionTest.VerifyNativeLinearForward. Original libjxl revision
+    /// 91837342b24034078780b687f57f670a7def8153, lib/jxl/enc_xyb.cc, ToXYB, produced the XYB values at 255 nits.
+    /// ScaleXYBRow in the same source converts those values to the fixed device samples below.
+    /// The expected values are the original linear RGB inputs, not results from the decoder or profile converter.
+    /// </remarks>
+    private static void ValidateDeclaredXybDeviceConversion()
+    {
+        ReadOnlySpan<Vector3> device =
+        [
+            new(.353816301F, -1.46541899E-08F, .41715157F),
+            new(.999999285F, .577526689F, .392322272F),
+            new(.103198044F, .786984801F, .26070255F),
+            new(.839155912F, .798765421F, .352154642F),
+            new(.111198567F, .626465797F, .59617871F)
+        ];
+
+        ReadOnlySpan<Vector3> expected =
+        [
+            new(0F, 0F, 0F),
+            new(1F, 0F, 0F),
+            new(.12F, .75F, .33F),
+            new(1.5F, .25F, .125F),
+            new(-.025F, .4F, .8F)
+        ];
+
+        JxlColorConverterBase.XybDeviceOperator<JxlColorConverterBase.RgbOperator> operation = new(default);
+        for (int i = 0; i < device.Length; i++)
+        {
+            float r = device[i].X;
+            float g = device[i].Y;
+            float b = device[i].Z;
+            float unused = 0F;
+            operation.Invoke(ref r, ref g, ref b, ref unused);
+            Assert.Equal(expected[i], new Vector3(r, g, b), ApproximateFloatComparer.FromPrecision(4));
+
+            // Each register holds one component from independent pixels. Check every lane, including
+            // software execution when FeatureTestRunner disables the corresponding hardware instructions.
+            Vector128<float> r128 = Vector128.Create(device[i].X);
+            Vector128<float> g128 = Vector128.Create(device[i].Y);
+            Vector128<float> b128 = Vector128.Create(device[i].Z);
+            Vector128<float> unused128 = Vector128<float>.Zero;
+            operation.Invoke(ref r128, ref g128, ref b128, ref unused128);
+            for (int lane = 0; lane < Vector128<float>.Count; lane++)
+            {
+                Assert.Equal(
+                    expected[i],
+                    new Vector3(r128.GetElement(lane), g128.GetElement(lane), b128.GetElement(lane)),
+                    ApproximateFloatComparer.FromPrecision(4));
+            }
+
+            Vector256<float> r256 = Vector256.Create(device[i].X);
+            Vector256<float> g256 = Vector256.Create(device[i].Y);
+            Vector256<float> b256 = Vector256.Create(device[i].Z);
+            Vector256<float> unused256 = Vector256<float>.Zero;
+            operation.Invoke(ref r256, ref g256, ref b256, ref unused256);
+            for (int lane = 0; lane < Vector256<float>.Count; lane++)
+            {
+                Assert.Equal(
+                    expected[i],
+                    new Vector3(r256.GetElement(lane), g256.GetElement(lane), b256.GetElement(lane)),
+                    ApproximateFloatComparer.FromPrecision(4));
+            }
+
+            Vector512<float> r512 = Vector512.Create(device[i].X);
+            Vector512<float> g512 = Vector512.Create(device[i].Y);
+            Vector512<float> b512 = Vector512.Create(device[i].Z);
+            Vector512<float> unused512 = Vector512<float>.Zero;
+            operation.Invoke(ref r512, ref g512, ref b512, ref unused512);
+            for (int lane = 0; lane < Vector512<float>.Count; lane++)
+            {
+                Assert.Equal(
+                    expected[i],
+                    new Vector3(r512.GetElement(lane), g512.GetElement(lane), b512.GetElement(lane)),
+                    ApproximateFloatComparer.FromPrecision(4));
+            }
+        }
+    }
+
     /// <summary>
     /// Verifies modular XYB integer reconstruction and metadata-dependent float rounding at all SIMD widths and scalar fallback.
     /// </summary>
@@ -70,9 +163,9 @@ public partial class JxlHeaderTests
 
         // These assertions prove the actual entropy and inverse-transform path delivered the native numeric input.
         // Thirty-one columns leave a remainder at each 16-, 8- and 4-lane width. Scalar runs process the same original integers.
-        ReadOnlySpan<int> sourceY = modular.GetChannel(0).DangerousGetRowSpan(0);
-        ReadOnlySpan<int> sourceX = modular.GetChannel(1).DangerousGetRowSpan(0);
-        ReadOnlySpan<int> sourceB = modular.GetChannel(2).DangerousGetRowSpan(0);
+        ReadOnlySpan<int> sourceY = modular.GetChannel(0).GetRow<int>(0);
+        ReadOnlySpan<int> sourceX = modular.GetChannel(1).GetRow<int>(0);
+        ReadOnlySpan<int> sourceB = modular.GetChannel(2).GetRow<int>(0);
         for (int x = 0; x < sourceY.Length; x++)
         {
             Assert.Equal(yPeriod[x % yPeriod.Length], sourceY[x]);

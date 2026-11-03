@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 
@@ -12,83 +11,94 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 internal abstract partial class JxlColorConverterBase
 {
     /// <summary>
-    /// Reorders JPEG XL chroma and luma for the shared YCbCr matrix and subsequent profile conversion.
+    /// Restores native JPEG XL YCbCr to RGB with the shared BT.601 coefficients.
     /// </summary>
     internal readonly struct YCbCrOperator : IJxlColorConverterOperator
     {
+        /// <summary>
+        /// The normalized luma offset removed by JPEG XL's reversible YCbCr transform.
+        /// </summary>
+        private const float LumaOffset = 128F / 255F;
+
+        // Only four BT.601 coefficients are nontrivial. Retain them instead of a general 4x4 matrix.
+        private readonly float redCr;
+        private readonly float greenCb;
+        private readonly float greenCr;
+        private readonly float blueCb;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="YCbCrOperator"/> struct.
+        /// </summary>
+        public YCbCrOperator()
+        {
+            Matrix4x4 inverse = KnownYCbCrMatrices.BT601.Inverse;
+            this.redCr = inverse.M13;
+            this.greenCb = inverse.M22;
+            this.greenCr = inverse.M23;
+            this.blueCb = inverse.M32;
+        }
+
         /// <inheritdoc/>
         public static int ComponentCount => 3;
 
         /// <inheritdoc/>
-        public static int PackedComponentCount => 3;
-
-        /// <inheritdoc/>
-        public static int ScratchComponentCount => 3;
-
-        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref float c0, ref float c1, ref float c2, ref float c3)
+        public void Invoke(ref float c0, ref float c1, ref float c2, ref float c3)
         {
-            // Native reconstruction supplies [Cb,Y,Cr]. The shared color model consumes [Y,Cb,Cr].
+            // Native planes contain [Cb,Y,Cr]. Restore the normalized luma offset; chroma is already centered.
+            // Registers contain independent pixels. Only green depends on both chroma components.
             float cb = c0;
-            c0 = c1;
-            c1 = cb;
+            float y = c1 + LumaOffset;
+            float cr = c2;
+
+            c0 = float.MultiplyAddEstimate(cr, this.redCr, y);
+            c1 = float.MultiplyAddEstimate(cr, this.greenCr, float.MultiplyAddEstimate(cb, this.greenCb, y));
+            c2 = float.MultiplyAddEstimate(cb, this.blueCb, y);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, ref Vector128<float> c3)
+        public void Invoke(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, ref Vector128<float> c3)
         {
-            // Registers contain one component across four pixels. Swap whole registers without changing lane order.
+            // Native planes contain [Cb,Y,Cr]. Restore the normalized luma offset; chroma is already centered.
+            // Registers contain independent pixels. Only green depends on both chroma components.
             Vector128<float> cb = c0;
-            c0 = c1;
-            c1 = cb;
+            Vector128<float> y = c1 + Vector128.Create(LumaOffset);
+            Vector128<float> cr = c2;
+
+            c0 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(this.redCr), y);
+            c1 = Vector128.MultiplyAddEstimate(cr, Vector128.Create(this.greenCr), Vector128.MultiplyAddEstimate(cb, Vector128.Create(this.greenCb), y));
+            c2 = Vector128.MultiplyAddEstimate(cb, Vector128.Create(this.blueCb), y);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, ref Vector256<float> c3)
+        public void Invoke(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, ref Vector256<float> c3)
         {
-            // The eight-pixel path applies the same component swap and retains every sample bit.
+            // Native planes contain [Cb,Y,Cr]. Restore the normalized luma offset; chroma is already centered.
+            // Registers contain independent pixels. Only green depends on both chroma components.
             Vector256<float> cb = c0;
-            c0 = c1;
-            c1 = cb;
+            Vector256<float> y = c1 + Vector256.Create(LumaOffset);
+            Vector256<float> cr = c2;
+
+            c0 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(this.redCr), y);
+            c1 = Vector256.MultiplyAddEstimate(cr, Vector256.Create(this.greenCr), Vector256.MultiplyAddEstimate(cb, Vector256.Create(this.greenCb), y));
+            c2 = Vector256.MultiplyAddEstimate(cb, Vector256.Create(this.blueCb), y);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToProfile(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, ref Vector512<float> c3)
+        public void Invoke(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, ref Vector512<float> c3)
         {
-            // The sixteen-pixel path applies the same component swap and retains every sample bit.
+            // Native planes contain [Cb,Y,Cr]. Restore the normalized luma offset; chroma is already centered.
+            // Registers contain independent pixels. Only green depends on both chroma components.
             Vector512<float> cb = c0;
-            c0 = c1;
-            c1 = cb;
-        }
+            Vector512<float> y = c1 + Vector512.Create(LumaOffset);
+            Vector512<float> cr = c2;
 
-        /// <inheritdoc/>
-        public static void ConvertToRgb(Span<float> packed, Span<Vector4> destination, Span<float> scratch, ColorProfileConverter converter)
-        {
-            // The factory supplies BT.601 with the native luma offset. The shared matrix converts
-            // the complete three-float block before overwriting it with RGB, so exact overlap is safe.
-            Span<YCbCr> yCbCr = MemoryMarshal.Cast<float, YCbCr>(packed);
-            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packed);
-            YCbCr.ToProfileConnectionSpace(converter.Options, yCbCr, rgb);
-            if (converter.Options.SourceIccProfile is not null)
-            {
-                // Device RGB remains in ICC component units. Alpha is separate from these three color channels.
-                Rgb.ToScaledVector4(rgb, destination);
-                converter.ConvertUsingIccProfile(destination, destination);
-            }
-            else if (converter.Options.SourceRgbWorkingSpace.Equals(converter.Options.TargetRgbWorkingSpace))
-            {
-                RgbOperator.ConvertToRgb(packed, destination, scratch, converter);
-            }
-            else
-            {
-                // Matrix conversion restores source RGB. A different compact working space still needs
-                // its own shared transfer and primary conversion before the final output is packed.
-                RgbWorkingSpaceOperator.ConvertToRgb(packed, destination, scratch, converter);
-            }
+            c0 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(this.redCr), y);
+            c1 = Vector512.MultiplyAddEstimate(cr, Vector512.Create(this.greenCr), Vector512.MultiplyAddEstimate(cb, Vector512.Create(this.greenCb), y));
+            c2 = Vector512.MultiplyAddEstimate(cb, Vector512.Create(this.blueCb), y);
         }
     }
 }

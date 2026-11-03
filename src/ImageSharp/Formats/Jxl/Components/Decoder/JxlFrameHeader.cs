@@ -14,6 +14,11 @@ internal sealed class JxlFrameHeader
     public const ulong Noise = 1;
 
     /// <summary>
+    /// The flag selecting patch reconstruction before splines and color upsampling.
+    /// </summary>
+    public const ulong Patches = 2;
+
+    /// <summary>
     /// The flag selecting spline reconstruction after restoration and before color upsampling.
     /// </summary>
     public const ulong Splines = 0x10;
@@ -226,6 +231,42 @@ internal sealed class JxlFrameHeader
     /// Gets the saved reference slot, from zero to three. Zero-duration frames can also use slot zero.
     /// </summary>
     public byte ReferenceSlot { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether later frames can use this frame's selected reference slot.
+    /// </summary>
+    public bool CanBeReferenced => !this.IsLast && this.Type != FrameType.LowFrequency && (this.Duration == 0 || this.ReferenceSlot != 0);
+
+    /// <summary>
+    /// Gets a value indicating whether canvas placement or a channel's blend mode requires a reference background.
+    /// </summary>
+    public bool NeedsBlending
+    {
+        get
+        {
+            if (this.Type is not (FrameType.Regular or FrameType.SkipProgressive))
+            {
+                return false;
+            }
+
+            // An explicitly placed frame still needs canvas extension, even when every covered sample replaces its background.
+            // Each extra channel selects its own mode; color replacement alone does not remove those dependencies.
+            if (this.HasCrop || this.Blending.Mode != 0)
+            {
+                return true;
+            }
+
+            foreach (BlendingInfo extra in this.ExtraChannelBlending)
+            {
+                if (extra.Mode != 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
 
     /// <summary>
     /// Gets a value indicating whether the saved reference contains native samples before the frame color transform.
@@ -471,13 +512,12 @@ internal sealed class JxlFrameHeader
             frame.ReferenceSlot = (byte)reader.ReadBits(2);
         }
 
-        bool referenced = !frame.IsLast && frame.Type != FrameType.LowFrequency && (frame.Duration == 0 || frame.ReferenceSlot != 0);
         if (frame.Type == FrameType.LowFrequency)
         {
             // LF reconstruction consumes samples before the color transform; there is no selector bit for this case.
             frame.SaveBeforeColorTransform = true;
         }
-        else if (frame.Type == FrameType.ReferenceOnly || (referenced && regular && frame.Blending.Mode == 0 && frame.CoversImage))
+        else if (frame.Type == FrameType.ReferenceOnly || (frame.CanBeReferenced && regular && frame.Blending.Mode == 0 && frame.CoversImage))
         {
             // A complete replacement can be saved before or after color conversion. A partial or blended
             // display frame already contains post-transform background samples and cannot select the earlier stage.

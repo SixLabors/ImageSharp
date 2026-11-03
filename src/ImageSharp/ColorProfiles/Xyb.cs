@@ -21,14 +21,9 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// See the <see href="https://jpeg.org/jpegxl/workplan.html">JPEG XL specifications</see> and
 /// <see href="https://arxiv.org/html/2506.05987v1">JPEG XL design paper</see>, sections 1.1.12 and 4.2.1.
 /// </para>
-/// <para>
-/// Select matching matrices and RGB working-space primaries with <see cref="ColorConversionOptions"/>.
-/// The ISO/IEC 18181-1 transform requires sRGB primaries and D65 for the source working space when converting from XYB,
-/// or for the target working space when converting to XYB. The other working space can use different primaries.
-/// </para>
 /// </remarks>
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Xyb : IColorProfile<Xyb, Rgb>
+public readonly struct Xyb : IColorProfile<Xyb, CieXyz>
 {
     /// <summary>
     /// The IEEE single-precision mask that removes the sign bit before root normalization.
@@ -173,7 +168,7 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Xyb> source, Span<Vector4> destination)
     {
-        // XYB and RGB are both three unbounded floats. Reuse the existing bit-preserving layout conversion.
+        // Both models store three consecutive floats. Reuse the existing bit-preserving layout conversion.
         Rgb.ToScaledVector4(MemoryMarshal.Cast<Xyb, Rgb>(source), destination);
     }
 
@@ -182,85 +177,47 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
         => Rgb.FromScaledVector4(source, MemoryMarshal.Cast<Xyb, Rgb>(destination));
 
     /// <inheritdoc/>
-    public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
+    public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
     {
-        Rgb linear = this.ToLinearRgb(options);
+        XybTransform transform = options.PreparedXybTransform;
+        InverseOperator operation = new(transform.Inverse, transform.Biases, transform.CubeRootBiases);
+        operation.Invoke(this.X, this.Y, this.B, out float x, out float y, out float z);
 
-        // The RGB connection space uses the selected working space's transfer function, not raw linear samples.
-        return Rgb.FromScaledVector4(options.SourceRgbWorkingSpace.Compress(linear.ToScaledVector4()));
-    }
-
-    /// <summary>
-    /// Converts this XYB color to linear RGB with the configured XYB transform.
-    /// </summary>
-    /// <param name="options">The conversion options that select <see cref="ColorConversionOptions.XybTransform"/>.</param>
-    /// <returns>The linear RGB components in the primaries defined by the configured transform.</returns>
-    /// <remarks>
-    /// The transform includes its signed biases and intensity scale. This method applies no transfer function or pixel bounds.
-    /// It does not use <see cref="ColorConversionOptions.SourceRgbWorkingSpace"/> to encode or limit the result.
-    /// </remarks>
-    public Rgb ToLinearRgb(ColorConversionOptions options)
-    {
-        XybTransform transform = options.TransposedXybTransform;
-        Matrix4x4 matrix = transform.Inverse;
-        ConvertToRgb(this.X, this.Y, this.B, in matrix, transform.Biases, transform.CubeRootBiases, out float r, out float g, out float b);
-
-        return new Rgb(r, g, b);
+        return new CieXyz(x, y, z);
     }
 
     /// <inheritdoc/>
-    public static Xyb FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
+    public static Xyb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
-        XybTransform transform = options.TransposedXybTransform;
-        Matrix4x4 matrix = transform.Forward;
-        Vector4 linear = options.TargetRgbWorkingSpace.Expand(source.ToScaledVector4());
-        ConvertFromRgb(linear.X, linear.Y, linear.Z, in matrix, transform.Biases, transform.CubeRootBiases, out float x, out float y, out float b);
+        XybTransform transform = options.PreparedXybTransform;
+        ForwardOperator operation = new(transform.Forward, transform.CubeRootBiases);
+        operation.Invoke(source.X, source.Y, source.Z, out float x, out float y, out float b);
 
-        return new(x, y, b);
+        return new Xyb(x, y, b);
     }
 
     /// <inheritdoc/>
-    public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Xyb> source, Span<Rgb> destination)
-    {
-        ToLinearRgb(options, source, destination);
-
-        // The working space encodes the complete packed RGB span. No opacity lane is introduced or evaluated by its transfer curve.
-        options.SourceRgbWorkingSpace.Compress(MemoryMarshal.Cast<Rgb, Vector3>(destination[..source.Length]));
-    }
-
-    /// <summary>
-    /// Converts XYB colors to linear RGB with the configured XYB transform.
-    /// </summary>
-    /// <param name="options">The conversion options that select <see cref="ColorConversionOptions.XybTransform"/>.</param>
-    /// <param name="source">The XYB colors to convert.</param>
-    /// <param name="destination">The linear RGB output. Its length must be at least the source length.</param>
-    /// <remarks>
-    /// The output uses the primaries, signed biases and intensity scale defined by the configured transform.
-    /// This method applies no transfer function or pixel bounds. Source and destination can start at the same address.
-    /// Other overlap is not supported. Destination elements after the source length remain unchanged.
-    /// </remarks>
-    public static void ToLinearRgb(ColorConversionOptions options, ReadOnlySpan<Xyb> source, Span<Rgb> destination)
+    public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Xyb> source, Span<CieXyz> destination)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        XybTransform transform = options.TransposedXybTransform;
-        Matrix4x4 matrix = transform.Inverse;
-        Vector3 biases = transform.Biases;
-        Vector3 cubeRootBiases = transform.CubeRootBiases;
+        XybTransform transform = options.PreparedXybTransform;
+        InverseOperator operation = new(transform.Inverse, transform.Biases, transform.CubeRootBiases);
         ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Xyb, Vector3>(source);
         int i = 0;
 
-        // Each SIMD lane carries the same component from consecutive colors. Store the reconstructed linear RGB
-        // directly as three adjacent components per color. All input components load before their matching output stores.
+        // Each register holds one component from consecutive colors. The composed matrix includes the
+        // linear RGB/XYZ change of coordinates; no component transfer curve or synthetic alpha is applied.
+        // Load all three inputs before storing the matching block, including exact in-place conversion.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint vectorCount = (source.Length - i).Vector512Count<float>();
 
             for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
             {
-                SimdUtils.Deinterleave3(packed, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> b);
-                ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector512<float> r, out Vector512<float> g, out Vector512<float> blue);
-                SimdUtils.Interleave3(r, g, blue, ref Unsafe.As<Rgb, float>(ref destination[i]));
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2);
+                operation.Invoke(c0, c1, c2, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
+                SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[i]));
             }
         }
 
@@ -270,9 +227,9 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
 
             for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
             {
-                SimdUtils.Deinterleave3(packed, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> b);
-                ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector256<float> r, out Vector256<float> g, out Vector256<float> blue);
-                SimdUtils.Interleave3(r, g, blue, ref Unsafe.As<Rgb, float>(ref destination[i]));
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2);
+                operation.Invoke(c0, c1, c2, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
+                SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[i]));
             }
         }
 
@@ -282,90 +239,78 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
 
             for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
             {
-                SimdUtils.Deinterleave3(packed, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> b);
-                ConvertToRgb(x, y, b, in matrix, biases, cubeRootBiases, out Vector128<float> r, out Vector128<float> g, out Vector128<float> blue);
-                SimdUtils.Interleave3(r, g, blue, ref Unsafe.As<Rgb, float>(ref destination[i]));
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2);
+                operation.Invoke(c0, c1, c2, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
+                SimdUtils.Interleave3(x, y, z, ref Unsafe.As<CieXyz, float>(ref destination[i]));
             }
         }
 
-        // Scalar colors use the same equations without reading padding. Each color is loaded before its
-        // output is stored, retaining the same exact-overlap contract as the complete SIMD batches.
+        // The remaining colors use the same equations and matrix. Read one complete triple before its
+        // store so the scalar fallback preserves the SIMD path's layout and in-place behavior.
         for (; i < source.Length; i++)
         {
             Vector3 value = packed[i];
-            ConvertToRgb(value.X, value.Y, value.Z, in matrix, biases, cubeRootBiases, out float r, out float g, out float b);
-            destination[i] = new Rgb(r, g, b);
+            operation.Invoke(value.X, value.Y, value.Z, out float x, out float y, out float z);
+            destination[i] = new CieXyz(x, y, z);
         }
     }
 
     /// <inheritdoc/>
-    public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Rgb> source, Span<Xyb> destination)
+    public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<CieXyz> source, Span<Xyb> destination)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        XybTransform transform = options.TransposedXybTransform;
-        Matrix4x4 matrix = transform.Forward;
-        Vector3 biases = transform.Biases;
-        Vector3 cubeRootBiases = transform.CubeRootBiases;
-        InlineArray16<Vector4> storage = default;
-        Span<Vector4> buffer = storage;
+        XybTransform transform = options.PreparedXybTransform;
+        ForwardOperator operation = new(transform.Forward, transform.CubeRootBiases);
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<CieXyz, Vector3>(source);
+        int i = 0;
 
-        // Expand each RGB batch in the same reusable stack block before applying the XYB equations.
-        // The buffer holds one full Vector512<float> group as Vector4 pixel vectors; its fourth component is unused by XYB.
-        // Deinterleaving gives one component per register. The output is packed as adjacent X, Y and B floats.
-        for (int offset = 0; offset < source.Length; offset += buffer.Length)
+        // Each register holds one component from consecutive colors. The composed matrix includes the
+        // linear RGB/XYZ change of coordinates; no component transfer curve or synthetic alpha is applied.
+        // Load all three inputs before storing the matching block, including exact in-place conversion.
+        if (Vector512.IsHardwareAccelerated)
         {
-            int count = Math.Min(buffer.Length, source.Length - offset);
-            Span<Vector4> colors = buffer[..count];
-            Rgb.ToScaledVector4(source.Slice(offset, count), colors);
-            options.TargetRgbWorkingSpace.Expand(colors);
+            nuint vectorCount = (source.Length - i).Vector512Count<float>();
 
-            ReadOnlySpan<float> components = MemoryMarshal.Cast<Vector4, float>(colors);
-            int i = 0;
-
-            if (Vector512.IsHardwareAccelerated)
+            for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
             {
-                nuint vectorCount = components[(i * 4)..].Vector512Count<float>() / 4;
-
-                for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
-                {
-                    SimdUtils.Deinterleave4(colors, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b, out _);
-                    ConvertFromRgb(r, g, b, in matrix, biases, cubeRootBiases, out Vector512<float> x, out Vector512<float> y, out Vector512<float> blue);
-                    SimdUtils.Interleave3(x, y, blue, ref Unsafe.As<Xyb, float>(ref destination[offset + i]));
-                }
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2);
+                operation.Invoke(c0, c1, c2, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
+                SimdUtils.Interleave3(x, y, z, ref Unsafe.As<Xyb, float>(ref destination[i]));
             }
+        }
 
-            if (Vector256.IsHardwareAccelerated)
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (source.Length - i).Vector256Count<float>();
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
             {
-                nuint vectorCount = components[(i * 4)..].Vector256Count<float>() / 4;
-
-                for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
-                {
-                    SimdUtils.Deinterleave4(colors, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b, out _);
-                    ConvertFromRgb(r, g, b, in matrix, biases, cubeRootBiases, out Vector256<float> x, out Vector256<float> y, out Vector256<float> blue);
-                    SimdUtils.Interleave3(x, y, blue, ref Unsafe.As<Xyb, float>(ref destination[offset + i]));
-                }
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> c0, out Vector256<float> c1, out Vector256<float> c2);
+                operation.Invoke(c0, c1, c2, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
+                SimdUtils.Interleave3(x, y, z, ref Unsafe.As<Xyb, float>(ref destination[i]));
             }
+        }
 
-            if (Vector128.IsHardwareAccelerated)
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (source.Length - i).Vector128Count<float>();
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
             {
-                nuint vectorCount = components[(i * 4)..].Vector128Count<float>() / 4;
-
-                for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
-                {
-                    SimdUtils.Deinterleave4(colors, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out _);
-                    ConvertFromRgb(r, g, b, in matrix, biases, cubeRootBiases, out Vector128<float> x, out Vector128<float> y, out Vector128<float> blue);
-                    SimdUtils.Interleave3(x, y, blue, ref Unsafe.As<Xyb, float>(ref destination[offset + i]));
-                }
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> c0, out Vector128<float> c1, out Vector128<float> c2);
+                operation.Invoke(c0, c1, c2, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
+                SimdUtils.Interleave3(x, y, z, ref Unsafe.As<Xyb, float>(ref destination[i]));
             }
+        }
 
-            // The scalar path handles the tail, or the whole batch without SIMD. It uses the same equations and reads no padding.
-            for (; i < count; i++)
-            {
-                Vector4 linear = colors[i];
-                ConvertFromRgb(linear.X, linear.Y, linear.Z, in matrix, biases, cubeRootBiases, out float x, out float y, out float b);
-                destination[offset + i] = new(x, y, b);
-            }
+        // The remaining colors use the same equations and matrix. Read one complete triple before its
+        // store so the scalar fallback preserves the SIMD path's layout and in-place behavior.
+        for (; i < source.Length; i++)
+        {
+            Vector3 value = packed[i];
+            operation.Invoke(value.X, value.Y, value.Z, out float x, out float y, out float z);
+            destination[i] = new Xyb(x, y, z);
         }
     }
 
@@ -384,356 +329,6 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
 
     /// <inheritdoc/>
     public override string ToString() => FormattableString.Invariant($"Xyb({this.X}, {this.Y}, {this.B})");
-
-    /// <summary>
-    /// Applies the biased absorbance transform and opponent mix to one linear RGB sample.
-    /// </summary>
-    /// <param name="r">The finite red component in the pixel range.</param>
-    /// <param name="g">The corresponding green component.</param>
-    /// <param name="b">The corresponding blue component.</param>
-    /// <param name="matrix">The intensity-scaled forward matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed inverse biases, subtracted before root evaluation.</param>
-    /// <param name="cubeRootBiases">The signed cube roots added after root evaluation.</param>
-    /// <param name="x">The X result.</param>
-    /// <param name="y">The Y result.</param>
-    /// <param name="blue">The B result.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertFromRgb(
-        float r,
-        float g,
-        float b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out float x,
-        out float y,
-        out float blue)
-    {
-        // Preserve native B+bias, then G, then R multiply-add order. Moving bias outside that chain changes rounding near black.
-        float mixed0 = float.MultiplyAddEstimate(matrix.M31, b, -biases.X);
-        mixed0 = float.MultiplyAddEstimate(matrix.M21, g, mixed0);
-        mixed0 = float.MultiplyAddEstimate(matrix.M11, r, mixed0);
-
-        float mixed1 = float.MultiplyAddEstimate(matrix.M32, b, -biases.Y);
-        mixed1 = float.MultiplyAddEstimate(matrix.M22, g, mixed1);
-        mixed1 = float.MultiplyAddEstimate(matrix.M12, r, mixed1);
-
-        float mixed2 = float.MultiplyAddEstimate(matrix.M33, b, -biases.Z);
-        mixed2 = float.MultiplyAddEstimate(matrix.M23, g, mixed2);
-        mixed2 = float.MultiplyAddEstimate(matrix.M13, r, mixed2);
-
-        // Cube-root inputs must be nonnegative. Apply the signed root biases after evaluating the nonlinear response.
-        mixed0 = CubeRootAndAdd(MathF.Max(0F, mixed0), cubeRootBiases.X);
-        mixed1 = CubeRootAndAdd(MathF.Max(0F, mixed1), cubeRootBiases.Y);
-        mixed2 = CubeRootAndAdd(MathF.Max(0F, mixed2), cubeRootBiases.Z);
-
-        // Half the difference gives X; half the sum gives Y. B retains the short-wavelength response.
-        x = 0.5F * (mixed0 - mixed1);
-        y = 0.5F * (mixed0 + mixed1);
-        blue = mixed2;
-    }
-
-    /// <summary>
-    /// Transforms 4 independent RGB samples with the same scalar coefficients and native evaluation order.
-    /// </summary>
-    /// <param name="r">The linear red lanes.</param>
-    /// <param name="g">The linear green lanes.</param>
-    /// <param name="b">The linear blue lanes.</param>
-    /// <param name="matrix">The intensity-scaled forward matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed inverse biases, subtracted before root evaluation.</param>
-    /// <param name="cubeRootBiases">The signed cube roots added after root evaluation.</param>
-    /// <param name="x">The X lanes.</param>
-    /// <param name="y">The Y lanes.</param>
-    /// <param name="blue">The B lanes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertFromRgb(
-        Vector128<float> r,
-        Vector128<float> g,
-        Vector128<float> b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out Vector128<float> x,
-        out Vector128<float> y,
-        out Vector128<float> blue)
-    {
-        // Each lane is one color. Keep bias, B, G and R in the scalar path's multiply-add order for every absorbance response.
-        Vector128<float> mixed0 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M31), b, Vector128.Create(-biases.X));
-        mixed0 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M21), g, mixed0);
-        mixed0 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M11), r, mixed0);
-
-        Vector128<float> mixed1 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M32), b, Vector128.Create(-biases.Y));
-        mixed1 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M22), g, mixed1);
-        mixed1 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M12), r, mixed1);
-
-        Vector128<float> mixed2 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M33), b, Vector128.Create(-biases.Z));
-        mixed2 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M23), g, mixed2);
-        mixed2 = Vector128.MultiplyAddEstimate(Vector128.Create(matrix.M13), r, mixed2);
-
-        // Bound absorbance before its cube root; these are transformed responses, not stored pixel components.
-        mixed0 = CubeRootAndAdd(Vector128.Max(Vector128<float>.Zero, mixed0), Vector128.Create(cubeRootBiases.X));
-        mixed1 = CubeRootAndAdd(Vector128.Max(Vector128<float>.Zero, mixed1), Vector128.Create(cubeRootBiases.Y));
-        mixed2 = CubeRootAndAdd(Vector128.Max(Vector128<float>.Zero, mixed2), Vector128.Create(cubeRootBiases.Z));
-
-        // The opponent mix is independent in each lane. B needs no sum or difference.
-        Vector128<float> half = Vector128.Create(0.5F);
-        x = half * (mixed0 - mixed1);
-        y = half * (mixed0 + mixed1);
-        blue = mixed2;
-    }
-
-    /// <summary>
-    /// Transforms 8 independent RGB samples with the same scalar coefficients and native evaluation order.
-    /// </summary>
-    /// <param name="r">The linear red lanes.</param>
-    /// <param name="g">The linear green lanes.</param>
-    /// <param name="b">The linear blue lanes.</param>
-    /// <param name="matrix">The intensity-scaled forward matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed inverse biases, subtracted before root evaluation.</param>
-    /// <param name="cubeRootBiases">The signed cube roots added after root evaluation.</param>
-    /// <param name="x">The X lanes.</param>
-    /// <param name="y">The Y lanes.</param>
-    /// <param name="blue">The B lanes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertFromRgb(
-        Vector256<float> r,
-        Vector256<float> g,
-        Vector256<float> b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out Vector256<float> x,
-        out Vector256<float> y,
-        out Vector256<float> blue)
-    {
-        // Each lane is one color. Keep bias, B, G and R in the scalar path's multiply-add order for every absorbance response.
-        Vector256<float> mixed0 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M31), b, Vector256.Create(-biases.X));
-        mixed0 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M21), g, mixed0);
-        mixed0 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M11), r, mixed0);
-
-        Vector256<float> mixed1 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M32), b, Vector256.Create(-biases.Y));
-        mixed1 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M22), g, mixed1);
-        mixed1 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M12), r, mixed1);
-
-        Vector256<float> mixed2 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M33), b, Vector256.Create(-biases.Z));
-        mixed2 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M23), g, mixed2);
-        mixed2 = Vector256.MultiplyAddEstimate(Vector256.Create(matrix.M13), r, mixed2);
-
-        // Bound absorbance before its cube root; these are transformed responses, not stored pixel components.
-        mixed0 = CubeRootAndAdd(Vector256.Max(Vector256<float>.Zero, mixed0), Vector256.Create(cubeRootBiases.X));
-        mixed1 = CubeRootAndAdd(Vector256.Max(Vector256<float>.Zero, mixed1), Vector256.Create(cubeRootBiases.Y));
-        mixed2 = CubeRootAndAdd(Vector256.Max(Vector256<float>.Zero, mixed2), Vector256.Create(cubeRootBiases.Z));
-
-        // The opponent mix is independent in each lane. B needs no sum or difference.
-        Vector256<float> half = Vector256.Create(0.5F);
-        x = half * (mixed0 - mixed1);
-        y = half * (mixed0 + mixed1);
-        blue = mixed2;
-    }
-
-    /// <summary>
-    /// Transforms 16 independent RGB samples with the same scalar coefficients and native evaluation order.
-    /// </summary>
-    /// <param name="r">The linear red lanes.</param>
-    /// <param name="g">The linear green lanes.</param>
-    /// <param name="b">The linear blue lanes.</param>
-    /// <param name="matrix">The intensity-scaled forward matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed inverse biases, subtracted before root evaluation.</param>
-    /// <param name="cubeRootBiases">The signed cube roots added after root evaluation.</param>
-    /// <param name="x">The X lanes.</param>
-    /// <param name="y">The Y lanes.</param>
-    /// <param name="blue">The B lanes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertFromRgb(
-        Vector512<float> r,
-        Vector512<float> g,
-        Vector512<float> b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out Vector512<float> x,
-        out Vector512<float> y,
-        out Vector512<float> blue)
-    {
-        // Each lane is one color. Keep bias, B, G and R in the scalar path's multiply-add order for every absorbance response.
-        Vector512<float> mixed0 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M31), b, Vector512.Create(-biases.X));
-        mixed0 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M21), g, mixed0);
-        mixed0 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M11), r, mixed0);
-
-        Vector512<float> mixed1 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M32), b, Vector512.Create(-biases.Y));
-        mixed1 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M22), g, mixed1);
-        mixed1 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M12), r, mixed1);
-
-        Vector512<float> mixed2 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M33), b, Vector512.Create(-biases.Z));
-        mixed2 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M23), g, mixed2);
-        mixed2 = Vector512.MultiplyAddEstimate(Vector512.Create(matrix.M13), r, mixed2);
-
-        // Bound absorbance before its cube root; these are transformed responses, not stored pixel components.
-        mixed0 = CubeRootAndAdd(Vector512.Max(Vector512<float>.Zero, mixed0), Vector512.Create(cubeRootBiases.X));
-        mixed1 = CubeRootAndAdd(Vector512.Max(Vector512<float>.Zero, mixed1), Vector512.Create(cubeRootBiases.Y));
-        mixed2 = CubeRootAndAdd(Vector512.Max(Vector512<float>.Zero, mixed2), Vector512.Create(cubeRootBiases.Z));
-
-        // The opponent mix is independent in each lane. B needs no sum or difference.
-        Vector512<float> half = Vector512.Create(0.5F);
-        x = half * (mixed0 - mixed1);
-        y = half * (mixed0 + mixed1);
-        blue = mixed2;
-    }
-
-    /// <summary>
-    /// Applies the inverse opsin equations to one pixel in the same order as each SIMD lane.
-    /// </summary>
-    /// <param name="x">The X sample.</param>
-    /// <param name="y">The Y sample.</param>
-    /// <param name="b">The B sample.</param>
-    /// <param name="matrix">The intensity-scaled inverse matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed absorbance biases.</param>
-    /// <param name="cubeRootBiases">The signed cube roots of the stored absorbance biases.</param>
-    /// <param name="r">The reconstructed red sample.</param>
-    /// <param name="g">The reconstructed green sample.</param>
-    /// <param name="blue">The reconstructed blue sample.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertToRgb(
-        float x,
-        float y,
-        float b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out float r,
-        out float g,
-        out float blue)
-    {
-        // Undo the opponent mix and the forward transform's cube-root offset before cubing.
-        float gammaR = (y + x) - cubeRootBiases.X;
-        float gammaG = (y - x) - cubeRootBiases.Y;
-        float gammaB = b - cubeRootBiases.Z;
-
-        // Cubing restores linear absorbance. The signed biases remove the forward transform's positive offsets.
-        float mixedR = float.MultiplyAddEstimate(gammaR * gammaR, gammaR, biases.X);
-        float mixedG = float.MultiplyAddEstimate(gammaG * gammaG, gammaG, biases.Y);
-        float mixedB = float.MultiplyAddEstimate(gammaB * gammaB, gammaB, biases.Z);
-
-        // Apply the intensity-scaled inverse matrix. Vector3.Transform and the SIMD Transform3 use the same component order.
-        Vector3 linear = Vector3.Transform(new Vector3(mixedR, mixedG, mixedB), matrix);
-        r = linear.X;
-        g = linear.Y;
-        blue = linear.Z;
-    }
-
-    /// <summary>
-    /// Reconstructs 4 independent pixels; each register holds one component in pixel order.
-    /// </summary>
-    /// <param name="x">The X samples.</param>
-    /// <param name="y">The Y samples.</param>
-    /// <param name="b">The B samples.</param>
-    /// <param name="matrix">The intensity-scaled inverse matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed absorbance biases, broadcast uniformly to all lanes.</param>
-    /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
-    /// <param name="r">The reconstructed red samples.</param>
-    /// <param name="g">The reconstructed green samples.</param>
-    /// <param name="blue">The reconstructed blue samples.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertToRgb(
-        Vector128<float> x,
-        Vector128<float> y,
-        Vector128<float> b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out Vector128<float> r,
-        out Vector128<float> g,
-        out Vector128<float> blue)
-    {
-        // Undo X=(L-M)/2 and Y=(L+M)/2, then remove the cube-root biases in the same order as the scalar path.
-        Vector128<float> gammaR = (y + x) - Vector128.Create(cubeRootBiases.X);
-        Vector128<float> gammaG = (y - x) - Vector128.Create(cubeRootBiases.Y);
-        Vector128<float> gammaB = b - Vector128.Create(cubeRootBiases.Z);
-
-        // Cubing restores linear absorbance. The signed biases remove the forward transform's positive offsets.
-        Vector128<float> mixedR = Vector128.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector128.Create(biases.X));
-        Vector128<float> mixedG = Vector128.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector128.Create(biases.Y));
-        Vector128<float> mixedB = Vector128.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector128.Create(biases.Z));
-
-        // The matrix is in Vector3.Transform order and includes intensity scaling. Each output register retains pixel order.
-        SimdUtils.Transform3(in matrix, mixedR, mixedG, mixedB, out r, out g, out blue);
-    }
-
-    /// <summary>
-    /// Reconstructs 8 independent pixels; each register holds one component in pixel order.
-    /// </summary>
-    /// <param name="x">The X samples.</param>
-    /// <param name="y">The Y samples.</param>
-    /// <param name="b">The B samples.</param>
-    /// <param name="matrix">The intensity-scaled inverse matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed absorbance biases, broadcast uniformly to all lanes.</param>
-    /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
-    /// <param name="r">The reconstructed red samples.</param>
-    /// <param name="g">The reconstructed green samples.</param>
-    /// <param name="blue">The reconstructed blue samples.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertToRgb(
-        Vector256<float> x,
-        Vector256<float> y,
-        Vector256<float> b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out Vector256<float> r,
-        out Vector256<float> g,
-        out Vector256<float> blue)
-    {
-        // Undo X=(L-M)/2 and Y=(L+M)/2, then remove the cube-root biases in the same order as the scalar path.
-        Vector256<float> gammaR = (y + x) - Vector256.Create(cubeRootBiases.X);
-        Vector256<float> gammaG = (y - x) - Vector256.Create(cubeRootBiases.Y);
-        Vector256<float> gammaB = b - Vector256.Create(cubeRootBiases.Z);
-
-        // Cubing restores linear absorbance. The signed biases remove the forward transform's positive offsets.
-        Vector256<float> mixedR = Vector256.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector256.Create(biases.X));
-        Vector256<float> mixedG = Vector256.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector256.Create(biases.Y));
-        Vector256<float> mixedB = Vector256.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector256.Create(biases.Z));
-
-        // The matrix is in Vector3.Transform order and includes intensity scaling. Each output register retains pixel order.
-        SimdUtils.Transform3(in matrix, mixedR, mixedG, mixedB, out r, out g, out blue);
-    }
-
-    /// <summary>
-    /// Reconstructs 16 independent pixels; each register holds one component in pixel order.
-    /// </summary>
-    /// <param name="x">The X samples.</param>
-    /// <param name="y">The Y samples.</param>
-    /// <param name="b">The B samples.</param>
-    /// <param name="matrix">The intensity-scaled inverse matrix in Vector3.Transform order.</param>
-    /// <param name="biases">The signed absorbance biases, broadcast uniformly to all lanes.</param>
-    /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
-    /// <param name="r">The reconstructed red samples.</param>
-    /// <param name="g">The reconstructed green samples.</param>
-    /// <param name="blue">The reconstructed blue samples.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertToRgb(
-        Vector512<float> x,
-        Vector512<float> y,
-        Vector512<float> b,
-        in Matrix4x4 matrix,
-        Vector3 biases,
-        Vector3 cubeRootBiases,
-        out Vector512<float> r,
-        out Vector512<float> g,
-        out Vector512<float> blue)
-    {
-        // Undo X=(L-M)/2 and Y=(L+M)/2, then remove the cube-root biases in the same order as the scalar path.
-        Vector512<float> gammaR = (y + x) - Vector512.Create(cubeRootBiases.X);
-        Vector512<float> gammaG = (y - x) - Vector512.Create(cubeRootBiases.Y);
-        Vector512<float> gammaB = b - Vector512.Create(cubeRootBiases.Z);
-
-        // Cubing restores linear absorbance. The signed biases remove the forward transform's positive offsets.
-        Vector512<float> mixedR = Vector512.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector512.Create(biases.X));
-        Vector512<float> mixedG = Vector512.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector512.Create(biases.Y));
-        Vector512<float> mixedB = Vector512.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector512.Create(biases.Z));
-
-        // The matrix is in Vector3.Transform order and includes intensity scaling. Each output register retains pixel order.
-        SimdUtils.Transform3(in matrix, mixedR, mixedG, mixedB, out r, out g, out blue);
-    }
 
     /// <summary>
     /// Computes a nonnegative finite cube root plus its bias without overflowing reciprocal-root intermediates.
@@ -959,5 +554,421 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
         squaredRoot = reciprocalRoot * reciprocalRoot;
 
         return Vector512.MultiplyAddEstimate(squaredRoot * scale, z, add);
+    }
+
+    /// <summary>
+    /// Applies the prepared XYZ-to-absorbance matrix, roots and opponent mix.
+    /// </summary>
+    /// <remarks>
+    /// The prepared rows contain negative bias, Z, Y and X coefficients. Input [1,Z,Y,X]
+    /// retains the native bias-first order through the same homogeneous matrix operation used elsewhere.
+    /// </remarks>
+    internal readonly struct ForwardOperator
+    {
+        private readonly Matrix4x4 matrix;
+        private readonly Vector3 cubeRootBiases;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ForwardOperator"/> struct.
+        /// </summary>
+        /// <param name="matrix">The prepared homogeneous coefficient rows for input [1,Z,Y,X].</param>
+        /// <param name="cubeRootBiases">The signed roots added after the absorbance cube roots.</param>
+        public ForwardOperator(in Matrix4x4 matrix, Vector3 cubeRootBiases)
+        {
+            this.matrix = matrix;
+            this.cubeRootBiases = cubeRootBiases;
+        }
+
+        /// <summary>
+        /// Converts one XYZ sample with the same absorbance, root and opponent order.
+        /// </summary>
+        /// <param name="cieX">The CIE X component.</param>
+        /// <param name="cieY">The CIE Y component.</param>
+        /// <param name="cieZ">The CIE Z component.</param>
+        /// <param name="x">The X result.</param>
+        /// <param name="y">The Y result.</param>
+        /// <param name="blue">The B result.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            float cieX,
+            float cieY,
+            float cieZ,
+            out float x,
+            out float y,
+            out float blue)
+        {
+            // The leading one selects the embedded negative bias. Z, Y and X then enter in native order.
+            // Coefficient rows were permuted during preparation, not during sample traversal.
+            Vector4 mixed = Vector4.Transform(new Vector4(1F, cieZ, cieY, cieX), this.matrix);
+            float mixed0 = mixed.X;
+            float mixed1 = mixed.Y;
+            float mixed2 = mixed.Z;
+
+            // Absorbance must be nonnegative before its cube root. Signed root biases follow the root;
+            // they are part of XYB's response curve, not a clamp on stored pixel components.
+            mixed0 = CubeRootAndAdd(MathF.Max(0F, mixed0), this.cubeRootBiases.X);
+            mixed1 = CubeRootAndAdd(MathF.Max(0F, mixed1), this.cubeRootBiases.Y);
+            mixed2 = CubeRootAndAdd(MathF.Max(0F, mixed2), this.cubeRootBiases.Z);
+
+            // X is half the long/medium response difference; Y is their average. B retains its response.
+            x = 0.5F * (mixed0 - mixed1);
+            y = 0.5F * (mixed0 + mixed1);
+            blue = mixed2;
+        }
+
+        /// <summary>
+        /// Converts four XYZ samples with the same absorbance, root and opponent order.
+        /// </summary>
+        /// <param name="cieX">The CIE X component lanes.</param>
+        /// <param name="cieY">The CIE Y component lanes.</param>
+        /// <param name="cieZ">The CIE Z component lanes.</param>
+        /// <param name="x">The X result lanes.</param>
+        /// <param name="y">The Y result lanes.</param>
+        /// <param name="blue">The B result lanes.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            Vector128<float> cieX,
+            Vector128<float> cieY,
+            Vector128<float> cieZ,
+            out Vector128<float> x,
+            out Vector128<float> y,
+            out Vector128<float> blue)
+        {
+            // The leading one selects the embedded negative bias. Z, Y and X then enter in native order.
+            // Coefficient rows were permuted during preparation, not during sample traversal.
+            SimdUtils.Transform3(
+                in this.matrix,
+                Vector128.Create(1F),
+                cieZ,
+                cieY,
+                cieX,
+                out Vector128<float> mixed0,
+                out Vector128<float> mixed1,
+                out Vector128<float> mixed2);
+
+            // Absorbance must be nonnegative before its cube root. Signed root biases follow the root;
+            // they are part of XYB's response curve, not a clamp on stored pixel components.
+            mixed0 = CubeRootAndAdd(Vector128.Max(Vector128<float>.Zero, mixed0), Vector128.Create(this.cubeRootBiases.X));
+            mixed1 = CubeRootAndAdd(Vector128.Max(Vector128<float>.Zero, mixed1), Vector128.Create(this.cubeRootBiases.Y));
+            mixed2 = CubeRootAndAdd(Vector128.Max(Vector128<float>.Zero, mixed2), Vector128.Create(this.cubeRootBiases.Z));
+
+            // X is half the long/medium response difference; Y is their average. B retains its response.
+            Vector128<float> half = Vector128.Create(0.5F);
+            x = half * (mixed0 - mixed1);
+            y = half * (mixed0 + mixed1);
+            blue = mixed2;
+        }
+
+        /// <summary>
+        /// Converts eight XYZ samples with the same absorbance, root and opponent order.
+        /// </summary>
+        /// <param name="cieX">The CIE X component lanes.</param>
+        /// <param name="cieY">The CIE Y component lanes.</param>
+        /// <param name="cieZ">The CIE Z component lanes.</param>
+        /// <param name="x">The X result lanes.</param>
+        /// <param name="y">The Y result lanes.</param>
+        /// <param name="blue">The B result lanes.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            Vector256<float> cieX,
+            Vector256<float> cieY,
+            Vector256<float> cieZ,
+            out Vector256<float> x,
+            out Vector256<float> y,
+            out Vector256<float> blue)
+        {
+            // The leading one selects the embedded negative bias. Z, Y and X then enter in native order.
+            // Coefficient rows were permuted during preparation, not during sample traversal.
+            SimdUtils.Transform3(
+                in this.matrix,
+                Vector256.Create(1F),
+                cieZ,
+                cieY,
+                cieX,
+                out Vector256<float> mixed0,
+                out Vector256<float> mixed1,
+                out Vector256<float> mixed2);
+
+            // Absorbance must be nonnegative before its cube root. Signed root biases follow the root;
+            // they are part of XYB's response curve, not a clamp on stored pixel components.
+            mixed0 = CubeRootAndAdd(Vector256.Max(Vector256<float>.Zero, mixed0), Vector256.Create(this.cubeRootBiases.X));
+            mixed1 = CubeRootAndAdd(Vector256.Max(Vector256<float>.Zero, mixed1), Vector256.Create(this.cubeRootBiases.Y));
+            mixed2 = CubeRootAndAdd(Vector256.Max(Vector256<float>.Zero, mixed2), Vector256.Create(this.cubeRootBiases.Z));
+
+            // X is half the long/medium response difference; Y is their average. B retains its response.
+            Vector256<float> half = Vector256.Create(0.5F);
+            x = half * (mixed0 - mixed1);
+            y = half * (mixed0 + mixed1);
+            blue = mixed2;
+        }
+
+        /// <summary>
+        /// Converts sixteen XYZ samples with the same absorbance, root and opponent order.
+        /// </summary>
+        /// <param name="cieX">The CIE X component lanes.</param>
+        /// <param name="cieY">The CIE Y component lanes.</param>
+        /// <param name="cieZ">The CIE Z component lanes.</param>
+        /// <param name="x">The X result lanes.</param>
+        /// <param name="y">The Y result lanes.</param>
+        /// <param name="blue">The B result lanes.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            Vector512<float> cieX,
+            Vector512<float> cieY,
+            Vector512<float> cieZ,
+            out Vector512<float> x,
+            out Vector512<float> y,
+            out Vector512<float> blue)
+        {
+            // The leading one selects the embedded negative bias. Z, Y and X then enter in native order.
+            // Coefficient rows were permuted during preparation, not during sample traversal.
+            SimdUtils.Transform3(
+                in this.matrix,
+                Vector512.Create(1F),
+                cieZ,
+                cieY,
+                cieX,
+                out Vector512<float> mixed0,
+                out Vector512<float> mixed1,
+                out Vector512<float> mixed2);
+
+            // Absorbance must be nonnegative before its cube root. Signed root biases follow the root;
+            // they are part of XYB's response curve, not a clamp on stored pixel components.
+            mixed0 = CubeRootAndAdd(Vector512.Max(Vector512<float>.Zero, mixed0), Vector512.Create(this.cubeRootBiases.X));
+            mixed1 = CubeRootAndAdd(Vector512.Max(Vector512<float>.Zero, mixed1), Vector512.Create(this.cubeRootBiases.Y));
+            mixed2 = CubeRootAndAdd(Vector512.Max(Vector512<float>.Zero, mixed2), Vector512.Create(this.cubeRootBiases.Z));
+
+            // X is half the long/medium response difference; Y is their average. B retains its response.
+            Vector512<float> half = Vector512.Create(0.5F);
+            x = half * (mixed0 - mixed1);
+            y = half * (mixed0 + mixed1);
+            blue = mixed2;
+        }
+    }
+
+    /// <summary>
+    /// Restores linear components from XYB with a prepared absorbance matrix.
+    /// </summary>
+    /// <remarks>
+    /// The matrix determines the output coordinates. Model conversion supplies its composed XYZ matrix;
+    /// codec reconstruction supplies the intensity-scaled linear RGB matrix. Both use the same inverse equations.
+    /// </remarks>
+    internal readonly struct InverseOperator
+    {
+        private readonly Matrix4x4 matrix;
+        private readonly Vector3 biases;
+        private readonly Vector3 cubeRootBiases;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InverseOperator"/> struct.
+        /// </summary>
+        /// <param name="matrix">The intensity-scaled absorbance matrix in System.Numerics row-vector order.</param>
+        /// <param name="biases">The signed biases added after cubing.</param>
+        /// <param name="cubeRootBiases">The signed cube roots subtracted before cubing.</param>
+        public InverseOperator(in Matrix4x4 matrix, Vector3 biases, Vector3 cubeRootBiases)
+        {
+            this.matrix = matrix;
+            this.biases = biases;
+            this.cubeRootBiases = cubeRootBiases;
+        }
+
+        /// <summary>
+        /// Applies the inverse opsin equations to one pixel in the same order as each SIMD lane.
+        /// </summary>
+        /// <param name="x">The X sample.</param>
+        /// <param name="y">The Y sample.</param>
+        /// <param name="b">The B sample.</param>
+        /// <param name="result0">The first transformed component.</param>
+        /// <param name="result1">The second transformed component.</param>
+        /// <param name="result2">The third transformed component.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            float x,
+            float y,
+            float b,
+            out float result0,
+            out float result1,
+            out float result2)
+        {
+            // Undo the opponent mix and the forward transform's cube-root offset before cubing.
+            float gammaR = (y + x) - this.cubeRootBiases.X;
+            float gammaG = (y - x) - this.cubeRootBiases.Y;
+            float gammaB = b - this.cubeRootBiases.Z;
+
+            Vector3 result = this.CubeAndTransform(new Vector3(gammaR, gammaG, gammaB));
+            result0 = result.X;
+            result1 = result.Y;
+            result2 = result.Z;
+        }
+
+        /// <summary>
+        /// Reconstructs 4 independent pixels; each register holds one component in pixel order.
+        /// </summary>
+        /// <param name="x">The X samples.</param>
+        /// <param name="y">The Y samples.</param>
+        /// <param name="b">The B samples.</param>
+        /// <param name="result0">The first transformed components.</param>
+        /// <param name="result1">The second transformed components.</param>
+        /// <param name="result2">The third transformed components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            Vector128<float> x,
+            Vector128<float> y,
+            Vector128<float> b,
+            out Vector128<float> result0,
+            out Vector128<float> result1,
+            out Vector128<float> result2)
+        {
+            // Undo X=(L-M)/2 and Y=(L+M)/2, then remove the cube-root biases in the same order as the scalar path.
+            Vector128<float> gammaR = (y + x) - Vector128.Create(this.cubeRootBiases.X);
+            Vector128<float> gammaG = (y - x) - Vector128.Create(this.cubeRootBiases.Y);
+            Vector128<float> gammaB = b - Vector128.Create(this.cubeRootBiases.Z);
+
+            this.CubeAndTransform(gammaR, gammaG, gammaB, out result0, out result1, out result2);
+        }
+
+        /// <summary>
+        /// Reconstructs 8 independent pixels; each register holds one component in pixel order.
+        /// </summary>
+        /// <param name="x">The X samples.</param>
+        /// <param name="y">The Y samples.</param>
+        /// <param name="b">The B samples.</param>
+        /// <param name="result0">The first transformed components.</param>
+        /// <param name="result1">The second transformed components.</param>
+        /// <param name="result2">The third transformed components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            Vector256<float> x,
+            Vector256<float> y,
+            Vector256<float> b,
+            out Vector256<float> result0,
+            out Vector256<float> result1,
+            out Vector256<float> result2)
+        {
+            // Undo X=(L-M)/2 and Y=(L+M)/2, then remove the cube-root biases in the same order as the scalar path.
+            Vector256<float> gammaR = (y + x) - Vector256.Create(this.cubeRootBiases.X);
+            Vector256<float> gammaG = (y - x) - Vector256.Create(this.cubeRootBiases.Y);
+            Vector256<float> gammaB = b - Vector256.Create(this.cubeRootBiases.Z);
+
+            this.CubeAndTransform(gammaR, gammaG, gammaB, out result0, out result1, out result2);
+        }
+
+        /// <summary>
+        /// Reconstructs 16 independent pixels; each register holds one component in pixel order.
+        /// </summary>
+        /// <param name="x">The X samples.</param>
+        /// <param name="y">The Y samples.</param>
+        /// <param name="b">The B samples.</param>
+        /// <param name="result0">The first transformed components.</param>
+        /// <param name="result1">The second transformed components.</param>
+        /// <param name="result2">The third transformed components.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(
+            Vector512<float> x,
+            Vector512<float> y,
+            Vector512<float> b,
+            out Vector512<float> result0,
+            out Vector512<float> result1,
+            out Vector512<float> result2)
+        {
+            // Undo X=(L-M)/2 and Y=(L+M)/2, then remove the cube-root biases in the same order as the scalar path.
+            Vector512<float> gammaR = (y + x) - Vector512.Create(this.cubeRootBiases.X);
+            Vector512<float> gammaG = (y - x) - Vector512.Create(this.cubeRootBiases.Y);
+            Vector512<float> gammaB = b - Vector512.Create(this.cubeRootBiases.Z);
+
+            this.CubeAndTransform(gammaR, gammaG, gammaB, out result0, out result1, out result2);
+        }
+
+        /// <summary>
+        /// Restores linear components from the three cube-root absorbance components of one pixel.
+        /// </summary>
+        /// <param name="gamma">The cube-root absorbance components after the input encoding's offsets and domain rules.</param>
+        /// <returns>The linear components in the coordinates selected by this operator's matrix.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 CubeAndTransform(Vector3 gamma)
+        {
+            // Cubing restores absorbance. The signed biases remove the forward transform's offsets.
+            // Coding XYB retains signed roots; scaled device XYB applies its zero cutoff before this shared stage.
+            Vector3 mixed = Vector3.MultiplyAddEstimate(gamma * gamma, gamma, this.biases);
+            return Vector3.Transform(mixed, this.matrix);
+        }
+
+        /// <summary>
+        /// Restores linear components from cube-root absorbance for 4 independent pixels.
+        /// </summary>
+        /// <param name="gammaR">The first cube-root absorbance components in pixel order.</param>
+        /// <param name="gammaG">The second cube-root absorbance components in pixel order.</param>
+        /// <param name="gammaB">The third cube-root absorbance components in pixel order.</param>
+        /// <param name="result0">The first linear components in pixel order.</param>
+        /// <param name="result1">The second linear components in pixel order.</param>
+        /// <param name="result2">The third linear components in pixel order.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CubeAndTransform(
+            Vector128<float> gammaR,
+            Vector128<float> gammaG,
+            Vector128<float> gammaB,
+            out Vector128<float> result0,
+            out Vector128<float> result1,
+            out Vector128<float> result2)
+        {
+            // Each register holds one component from consecutive pixels. Cube, remove the signed biases,
+            // then apply the prepared row-vector matrix in the same order as the scalar pixel operation.
+            Vector128<float> mixedR = Vector128.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector128.Create(this.biases.X));
+            Vector128<float> mixedG = Vector128.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector128.Create(this.biases.Y));
+            Vector128<float> mixedB = Vector128.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector128.Create(this.biases.Z));
+            SimdUtils.Transform3(in this.matrix, mixedR, mixedG, mixedB, out result0, out result1, out result2);
+        }
+
+        /// <summary>
+        /// Restores linear components from cube-root absorbance for 8 independent pixels.
+        /// </summary>
+        /// <param name="gammaR">The first cube-root absorbance components in pixel order.</param>
+        /// <param name="gammaG">The second cube-root absorbance components in pixel order.</param>
+        /// <param name="gammaB">The third cube-root absorbance components in pixel order.</param>
+        /// <param name="result0">The first linear components in pixel order.</param>
+        /// <param name="result1">The second linear components in pixel order.</param>
+        /// <param name="result2">The third linear components in pixel order.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CubeAndTransform(
+            Vector256<float> gammaR,
+            Vector256<float> gammaG,
+            Vector256<float> gammaB,
+            out Vector256<float> result0,
+            out Vector256<float> result1,
+            out Vector256<float> result2)
+        {
+            // Each register holds one component from consecutive pixels. Cube, remove the signed biases,
+            // then apply the prepared row-vector matrix in the same order as the scalar pixel operation.
+            Vector256<float> mixedR = Vector256.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector256.Create(this.biases.X));
+            Vector256<float> mixedG = Vector256.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector256.Create(this.biases.Y));
+            Vector256<float> mixedB = Vector256.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector256.Create(this.biases.Z));
+            SimdUtils.Transform3(in this.matrix, mixedR, mixedG, mixedB, out result0, out result1, out result2);
+        }
+
+        /// <summary>
+        /// Restores linear components from cube-root absorbance for 16 independent pixels.
+        /// </summary>
+        /// <param name="gammaR">The first cube-root absorbance components in pixel order.</param>
+        /// <param name="gammaG">The second cube-root absorbance components in pixel order.</param>
+        /// <param name="gammaB">The third cube-root absorbance components in pixel order.</param>
+        /// <param name="result0">The first linear components in pixel order.</param>
+        /// <param name="result1">The second linear components in pixel order.</param>
+        /// <param name="result2">The third linear components in pixel order.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CubeAndTransform(
+            Vector512<float> gammaR,
+            Vector512<float> gammaG,
+            Vector512<float> gammaB,
+            out Vector512<float> result0,
+            out Vector512<float> result1,
+            out Vector512<float> result2)
+        {
+            // Each register holds one component from consecutive pixels. Cube, remove the signed biases,
+            // then apply the prepared row-vector matrix in the same order as the scalar pixel operation.
+            Vector512<float> mixedR = Vector512.MultiplyAddEstimate(gammaR * gammaR, gammaR, Vector512.Create(this.biases.X));
+            Vector512<float> mixedG = Vector512.MultiplyAddEstimate(gammaG * gammaG, gammaG, Vector512.Create(this.biases.Y));
+            Vector512<float> mixedB = Vector512.MultiplyAddEstimate(gammaB * gammaB, gammaB, Vector512.Create(this.biases.Z));
+            SimdUtils.Transform3(in this.matrix, mixedR, mixedG, mixedB, out result0, out result1, out result2);
+        }
     }
 }

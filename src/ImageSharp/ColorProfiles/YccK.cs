@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -159,8 +160,87 @@ public readonly struct YccK : IColorProfile<YccK, Rgb>
     /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<YccK> source, Span<Rgb> destination)
     {
-        // TODO: We can possibly optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        Matrix4x4 matrix = options.TransposedYCbCrTransform.Inverse;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
+        ReadOnlySpan<Vector4> packed = MemoryMarshal.Cast<YccK, Vector4>(source);
+        int i = 0;
+
+        // Each register holds Y, Cb, Cr or K from independent colors. Remove the configured offsets,
+        // restore RGB, then apply the black scale. K is a device component and never acts as pixel alpha.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> offsetY = Vector512.Create(offset.X);
+            Vector512<float> offsetCb = Vector512.Create(offset.Y);
+            Vector512<float> offsetCr = Vector512.Create(offset.Z);
+            nuint count = (source.Length - i).Vector512Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr, out Vector512<float> k);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector512<float> r,
+                    out Vector512<float> g,
+                    out Vector512<float> b);
+
+                Vector512<float> scale = Vector512<float>.One - k;
+                SimdUtils.Interleave3(r * scale, g * scale, b * scale, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> offsetY = Vector256.Create(offset.X);
+            Vector256<float> offsetCb = Vector256.Create(offset.Y);
+            Vector256<float> offsetCr = Vector256.Create(offset.Z);
+            nuint count = (source.Length - i).Vector256Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr, out Vector256<float> k);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector256<float> r,
+                    out Vector256<float> g,
+                    out Vector256<float> b);
+
+                Vector256<float> scale = Vector256<float>.One - k;
+                SimdUtils.Interleave3(r * scale, g * scale, b * scale, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> offsetY = Vector128.Create(offset.X);
+            Vector128<float> offsetCb = Vector128.Create(offset.Y);
+            Vector128<float> offsetCr = Vector128.Create(offset.Z);
+            nuint count = (source.Length - i).Vector128Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+            {
+                SimdUtils.Deinterleave4(packed, i, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr, out Vector128<float> k);
+                SimdUtils.Transform3(
+                    in matrix,
+                    y - offsetY,
+                    cb - offsetCb,
+                    cr - offsetCr,
+                    out Vector128<float> r,
+                    out Vector128<float> g,
+                    out Vector128<float> b);
+
+                Vector128<float> scale = Vector128<float>.One - k;
+                SimdUtils.Interleave3(r * scale, g * scale, b * scale, ref Unsafe.As<Rgb, float>(ref destination[i]));
+            }
+        }
+
+        // The scalar remainder preserves the same subtraction, matrix and black multiplication order.
+        // RGB remains unbounded, as in the scalar model conversion.
+        for (; i < source.Length; i++)
         {
             destination[i] = source[i].ToProfileConnectingSpace(options);
         }
@@ -171,11 +251,95 @@ public readonly struct YccK : IColorProfile<YccK, Rgb>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
+        Matrix4x4 matrix = options.TransposedYCbCrTransform.Forward;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
+        ReadOnlySpan<Vector3> packed = MemoryMarshal.Cast<Rgb, Vector3>(source);
+        int i = 0;
+
+        // K uses the scalar model's nested maximum. Near-black lanes use the raw constructor's exact
+        // [0,0.5,0.5,1] result. Other lanes divide by 1-K, transform RGB, add offsets, then clamp all four components.
+        if (Vector512.IsHardwareAccelerated)
         {
-            Rgb rgb = source[i];
-            destination[i] = FromProfileConnectingSpace(options, in rgb);
+            Vector512<float> offsetY = Vector512.Create(offset.X);
+            Vector512<float> offsetCb = Vector512.Create(offset.Y);
+            Vector512<float> offsetCr = Vector512.Create(offset.Z);
+            Vector512<float> blackThreshold = Vector512.Create(1F - Constants.Epsilon);
+            Vector512<float> half = Vector512.Create(0.5F);
+            nuint count = (source.Length - i).Vector512Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            {
+                SimdUtils.Deinterleave3(packed, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b);
+                Vector512<float> k = Vector512<float>.One - Vector512.Max(r, Vector512.Max(g, b));
+                Vector512<float> black = Vector512.GreaterThanOrEqual(k, blackThreshold);
+                Vector512<float> scale = Vector512<float>.One - k;
+                SimdUtils.Transform3(in matrix, r / scale, g / scale, b / scale, out Vector512<float> y, out Vector512<float> cb, out Vector512<float> cr);
+
+                // Selection preserves the near-black branch even if its unused division produced NaN.
+                // Vector Clamp has the public constructor's NaN behavior; do not substitute finite-value clamping.
+                y = Vector512.ConditionalSelect(black, Vector512<float>.Zero, Vector512.Clamp(y + offsetY, Vector512<float>.Zero, Vector512<float>.One));
+                cb = Vector512.ConditionalSelect(black, half, Vector512.Clamp(cb + offsetCb, Vector512<float>.Zero, Vector512<float>.One));
+                cr = Vector512.ConditionalSelect(black, half, Vector512.Clamp(cr + offsetCr, Vector512<float>.Zero, Vector512<float>.One));
+                k = Vector512.ConditionalSelect(black, Vector512<float>.One, Vector512.Clamp(k, Vector512<float>.Zero, Vector512<float>.One));
+                SimdUtils.Interleave4(y, cb, cr, k, ref Unsafe.As<YccK, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> offsetY = Vector256.Create(offset.X);
+            Vector256<float> offsetCb = Vector256.Create(offset.Y);
+            Vector256<float> offsetCr = Vector256.Create(offset.Z);
+            Vector256<float> blackThreshold = Vector256.Create(1F - Constants.Epsilon);
+            Vector256<float> half = Vector256.Create(0.5F);
+            nuint count = (source.Length - i).Vector256Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
+            {
+                SimdUtils.Deinterleave3(packed, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b);
+                Vector256<float> k = Vector256<float>.One - Vector256.Max(r, Vector256.Max(g, b));
+                Vector256<float> black = Vector256.GreaterThanOrEqual(k, blackThreshold);
+                Vector256<float> scale = Vector256<float>.One - k;
+                SimdUtils.Transform3(in matrix, r / scale, g / scale, b / scale, out Vector256<float> y, out Vector256<float> cb, out Vector256<float> cr);
+
+                // Selection preserves the near-black branch even if its unused division produced NaN.
+                // Vector Clamp has the public constructor's NaN behavior; do not substitute finite-value clamping.
+                y = Vector256.ConditionalSelect(black, Vector256<float>.Zero, Vector256.Clamp(y + offsetY, Vector256<float>.Zero, Vector256<float>.One));
+                cb = Vector256.ConditionalSelect(black, half, Vector256.Clamp(cb + offsetCb, Vector256<float>.Zero, Vector256<float>.One));
+                cr = Vector256.ConditionalSelect(black, half, Vector256.Clamp(cr + offsetCr, Vector256<float>.Zero, Vector256<float>.One));
+                k = Vector256.ConditionalSelect(black, Vector256<float>.One, Vector256.Clamp(k, Vector256<float>.Zero, Vector256<float>.One));
+                SimdUtils.Interleave4(y, cb, cr, k, ref Unsafe.As<YccK, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> offsetY = Vector128.Create(offset.X);
+            Vector128<float> offsetCb = Vector128.Create(offset.Y);
+            Vector128<float> offsetCr = Vector128.Create(offset.Z);
+            Vector128<float> blackThreshold = Vector128.Create(1F - Constants.Epsilon);
+            Vector128<float> half = Vector128.Create(0.5F);
+            nuint count = (source.Length - i).Vector128Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+            {
+                SimdUtils.Deinterleave3(packed, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b);
+                Vector128<float> k = Vector128<float>.One - Vector128.Max(r, Vector128.Max(g, b));
+                Vector128<float> black = Vector128.GreaterThanOrEqual(k, blackThreshold);
+                Vector128<float> scale = Vector128<float>.One - k;
+                SimdUtils.Transform3(in matrix, r / scale, g / scale, b / scale, out Vector128<float> y, out Vector128<float> cb, out Vector128<float> cr);
+
+                // Selection preserves the near-black branch even if its unused division produced NaN.
+                // Vector Clamp has the public constructor's NaN behavior; do not substitute finite-value clamping.
+                y = Vector128.ConditionalSelect(black, Vector128<float>.Zero, Vector128.Clamp(y + offsetY, Vector128<float>.Zero, Vector128<float>.One));
+                cb = Vector128.ConditionalSelect(black, half, Vector128.Clamp(cb + offsetCb, Vector128<float>.Zero, Vector128<float>.One));
+                cr = Vector128.ConditionalSelect(black, half, Vector128.Clamp(cr + offsetCr, Vector128<float>.Zero, Vector128<float>.One));
+                k = Vector128.ConditionalSelect(black, Vector128<float>.One, Vector128.Clamp(k, Vector128<float>.Zero, Vector128<float>.One));
+                SimdUtils.Interleave4(y, cb, cr, k, ref Unsafe.As<YccK, float>(ref destination[i]));
+            }
+        }
+
+        // Narrower widths and the final tail retain the same scalar branch and constructor clamping.
+        for (; i < source.Length; i++)
+        {
+            destination[i] = FromProfileConnectingSpace(options, in source[i]);
         }
     }
 

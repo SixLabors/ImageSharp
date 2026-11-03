@@ -11,8 +11,9 @@ namespace SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 /// Represents an RGB working space with the SMPTE ST 2084 perceptual-quantizer transfer curve.
 /// </summary>
 /// <remarks>
-/// A linear component of one represents <see cref="PeakLuminance"/> cd/m².
-/// The peak must be positive and finite, and 10000 divided by that peak must be representable as a finite float.
+/// A linear component of one represents <see cref="PeakLuminance"/> cd/m². This value sets normalization, not an output limit.
+/// A nonlinear component of one represents 10000 cd/m² before normalization.
+/// The normalization luminance must be positive and finite. Dividing 10000 by it must produce a finite float.
 /// Negative components use the magnitude curve with their original sign. Components can exceed one within the PQ curve's mathematical domain.
 /// Converted RGB is bounded to the normalized range [-65504,65504]. Alpha remains unchanged.
 /// </remarks>
@@ -37,7 +38,7 @@ public sealed class PqWorkingSpace : RgbWorkingSpace
     }
 
     /// <summary>
-    /// Gets the luminance represented by linear one, in cd/m².
+    /// Gets the normalization luminance represented by linear one, in cd/m². This value does not limit the output.
     /// </summary>
     public float PeakLuminance { get; }
 

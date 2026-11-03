@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -17,9 +19,91 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <param name="testOutputHelper">Receives table precision measurements.</param>
 public partial class CompandingTests(ITestOutputHelper testOutputHelper)
 {
-    private static readonly string[] CompandingCurves =
+    private static readonly string[] PrecisionCompandingCurves =
     [
         nameof(SRgbCompanding), nameof(GammaCompanding), nameof(Rec709Companding), nameof(Rec2020Companding), nameof(LCompanding)
+    ];
+
+    // PQ and HLG expose extended component conversion, but not the precision-selected SDR table APIs above.
+    private static readonly string[] CompandingCurves = [.. PrecisionCompandingCurves, nameof(PqCompanding), nameof(HlgCompanding)];
+
+    // Original libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153.
+    // TF_PQ_Base and TF_HLG_Base supply these independent fixed component equations and samples.
+    private static readonly Vector3[] NativeTransferInputs =
+    [
+        new(-0F, 0F, 9.999999747e-05F),
+        new(-0.25F, 0.1000000015F, 0.5F),
+        new(1F, 1.100000024F, 1.25F),
+        new(0.01999999955F, 0.400000006F, 0.8000000119F),
+        new(-0.05000000075F, 0.3000000119F, 1.200000048F),
+    ];
+
+    private static readonly Vector3[][] NativePqExpanded =
+    [
+        [
+            new(0F, 0F, 2.798862697e-09F),
+            new(-0.02021245472F, 0.001272806316F, 0.3617478907F),
+            new(39.2156868F, 104.1421967F, 504.5805664F),
+            new(3.400606874e-05F, 0.1272467524F, 6.098739624F),
+            new(-0.0002353005402F, 0.03936560079F, 292.5645752F),
+        ],
+        [
+            new(0F, 0F, 7.1370998e-10F),
+            new(-0.00515417615F, 0.0003245655971F, 0.09224570543F),
+            new(10F, 26.55625916F, 128.668045F),
+            new(8.671547221e-06F, 0.03244791925F, 1.555178523F),
+            new(-6.000163921e-05F, 0.01003822777F, 74.60396576F),
+        ],
+        [
+            new(0F, 0F, 7.137099939e-11F),
+            new(-0.0005154176033F, 3.245655898e-05F, 0.009224571288F),
+            new(1F, 2.65562582F, 12.86680412F),
+            new(8.671547107e-07F, 0.003244792111F, 0.1555178463F),
+            new(-6.000163921e-06F, 0.001003822777F, 7.46039629F),
+        ],
+    ];
+
+    private static readonly Vector3[][] NativePqCompressed =
+    [
+        [
+            new(0F, 0F, 0.0338553898F),
+            new(-0.4636211991F, 0.3783048391F, 0.5326556563F),
+            new(0.6046490669F, 0.6147310734F, 0.628311038F),
+            new(0.2492498606F, 0.5100672245F, 0.5812025666F),
+            new(-0.3191877306F, 0.4814449251F, 0.6239675879F),
+        ],
+        [
+            new(0F, 0F, 0.06233686209F),
+            new(-0.6025591493F, 0.5080783963F, 0.6765847802F),
+            new(0.7518270612F, 0.7622197866F, 0.7761653662F),
+            new(0.3570123911F, 0.6525785923F, 0.7275251746F),
+            new(-0.44028157F, 0.6218628287F, 0.7717114687F),
+        ],
+        [
+            new(0F, 0F, 0.1499457359F),
+            new(-0.8517026305F, 0.7518271208F, 0.9265466928F),
+            new(1F, 1.009956598F, 1.023248911F),
+            new(0.5791332722F, 0.9025723934F, 0.9765438437F),
+            new(-0.6765848398F, 0.8714864254F, 1.019012094F),
+        ],
+    ];
+
+    private static readonly Vector3[] NativeHlgExpanded =
+    [
+        new(0F, 0F, 3.333333165e-09F),
+        new(-0.02083333395F, 0.003333333414F, 0.08333333582F),
+        new(1F, 1.731466889F, 3.974631786F),
+        new(0.0001333333203F, 0.05333333462F, 0.3427838981F),
+        new(-0.0008333333535F, 0.03000000305F, 3.01097846F),
+    ];
+
+    private static readonly Vector3[] NativeHlgCompressed =
+    [
+        new(0F, 0F, 0.01732050814F),
+        new(-0.7385492921F, 0.5440894961F, 0.8716434836F),
+        new(1F, 1.017439127F, 1.040772319F),
+        new(0.2449489683F, 0.8294972777F, 0.9590049386F),
+        new(-0.3872983456F, 0.7742521167F, 1.033327818F),
     ];
 
     /// <summary>
@@ -177,7 +261,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         // Gamma and Rec.709 retain the eight-bit table limit. The other curves also support sixteen-bit SDR tables.
         // Keep the existing eight-bit error bound and the existing one-millionth bound for higher precision.
         ReadOnlySpan<string> curves = bitDepth == 8
-            ? CompandingCurves
+            ? PrecisionCompandingCurves
             : [nameof(SRgbCompanding), nameof(Rec2020Companding), nameof(LCompanding)];
 
         ApproximateFloatComparer comparer = bitDepth == 8 ? new(0.5F / byte.MaxValue) : Comparer;
@@ -239,7 +323,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         // Eight-bit tables clip RGB to their input range and leave alpha unchanged.
         source[^1] = new Vector4(-1F, 2F, 0.5F, -0.25F);
 
-        foreach (string curve in CompandingCurves)
+        foreach (string curve in PrecisionCompandingCurves)
         {
             foreach (bool compress in new[] { false, true })
             {
@@ -390,7 +474,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         ReadOnlySpan<int> bitDepths = [8, 10, 12, 16, 32];
         foreach (int bitDepth in bitDepths)
         {
-            foreach (string curve in CompandingCurves)
+            foreach (string curve in PrecisionCompandingCurves)
             {
                 foreach (bool compress in new[] { false, true })
                 {
@@ -613,6 +697,18 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
             case (nameof(LCompanding), true):
                 LCompanding.Compress(values);
                 break;
+            case (nameof(PqCompanding), false):
+                PqCompanding.Expand(values, 255F);
+                break;
+            case (nameof(PqCompanding), true):
+                PqCompanding.Compress(values, 255F);
+                break;
+            case (nameof(HlgCompanding), false):
+                HlgCompanding.Expand(values);
+                break;
+            case (nameof(HlgCompanding), true):
+                HlgCompanding.Compress(values);
+                break;
         }
     }
 
@@ -676,6 +772,32 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
                     ? input < beta ? input * 4.5 : (alpha * Math.Pow(input, 0.45)) - (alpha - 1)
                     : input < beta * 4.5 ? input / 4.5 : Math.Pow((input + (alpha - 1)) / alpha, 1 / 0.45);
                 return (float)result;
+            case nameof(PqCompanding):
+                // ST 2084 uses absolute light relative to 10000 cd/m². These packed cases normalize linear one to 255 cd/m².
+                const double pqM = 2523D / 32D;
+                const double pqN = 2610D / 16384D;
+                const double pqC1 = 3424D / 4096D;
+                const double pqC2 = 2413D / 128D;
+                const double pqC3 = 2392D / 128D;
+                if (magnitude == 0D)
+                {
+                    return value;
+                }
+
+                double power = Math.Pow(compress ? magnitude * (255D / 10000D) : magnitude, compress ? pqN : 1D / pqM);
+                result = compress
+                    ? Math.Pow((pqC1 + (pqC2 * power)) / (1D + (pqC3 * power)), pqM)
+                    : Math.Pow(Math.Max(power - pqC1, 0D) / (pqC2 - (pqC3 * power)), 1D / pqN) * (10000D / 255D);
+                return (float)Math.CopySign(result, input);
+            case nameof(HlgCompanding):
+                // ARIB STD-B67 is scene-linear here. Display luminance is a separate coupled working-space operation.
+                const double hlgA = 0.17883277D;
+                const double hlgB = 0.28466892D;
+                const double hlgC = 0.55991073D;
+                result = compress
+                    ? magnitude <= 1D / 12D ? Math.Sqrt(3D * magnitude) : (hlgA * Math.Log((12D * magnitude) - hlgB)) + hlgC
+                    : magnitude <= 0.5D ? (magnitude * magnitude) / 3D : (Math.Exp((magnitude - hlgC) / hlgA) + hlgB) / 12D;
+                return (float)Math.CopySign(result, input);
             default:
                 result = compress
                     ? input <= CieConstants.Epsilon ? (input * CieConstants.Kappa) / 100 : (1.16 * Math.Pow(input, 0.3333333)) - 0.16
@@ -683,4 +805,183 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
                 return (float)result;
         }
     }
+
+    /// <summary>
+    /// Checks scalar colors, packed triples and complete SIMD groups with narrower and scalar tails against native component equations.
+    /// </summary>
+    [Fact]
+    public void ComponentCompanding_MatchesNative() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckNativeComponentCompanding,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the component APIs against original native equations without fitting native SIMD approximations outside their unit domain.
+    /// </summary>
+    private static void CheckNativeComponentCompanding()
+    {
+        ReadOnlySpan<float> peaks = [255F, 1000F, 10000F];
+        ReadOnlySpan<int> lengths = [0, 1, 2, 3, 17, 33];
+        Vector3 sentinel = new(-123F, 456F, -789F);
+
+        for (int curve = 0; curve < 2; curve++)
+        {
+            int peakCount = curve == 0 ? peaks.Length : 1;
+            for (int peakIndex = 0; peakIndex < peakCount; peakIndex++)
+            {
+                for (int direction = 0; direction < 2; direction++)
+                {
+                    bool compress = direction != 0;
+                    Vector3[] expected = curve == 0
+                        ? (compress ? NativePqCompressed[peakIndex] : NativePqExpanded[peakIndex])
+                        : (compress ? NativeHlgCompressed : NativeHlgExpanded);
+
+                    foreach (int length in lengths)
+                    {
+                        Vector3[] packed = new Vector3[length + 1];
+                        Vector4[] rgba = new Vector4[length + 1];
+                        for (int i = 0; i < length; i++)
+                        {
+                            Vector3 input = NativeTransferInputs[i % NativeTransferInputs.Length];
+                            packed[i] = input;
+                            rgba[i] = new Vector4(input, TransferAlpha(i));
+                            Vector4 scalar = ApplyNativeCurve(curve, compress, rgba[i], peaks[peakIndex]);
+                            AssertNativeComponents(expected[i % expected.Length], scalar,
+                                $"curve={curve}, compress={compress}, peak={peaks[peakIndex]}, input={input}, scalar");
+                            Assert.Equal(BitConverter.SingleToInt32Bits(rgba[i].W), BitConverter.SingleToInt32Bits(scalar.W));
+                        }
+
+                        packed[^1] = sentinel;
+                        rgba[^1] = new Vector4(sentinel, -17F);
+                        ApplyNativeCurve(curve, compress, packed.AsSpan(0, length), peaks[peakIndex]);
+                        ApplyNativeCurve(curve, compress, rgba.AsSpan(0, length), peaks[peakIndex]);
+
+                        for (int i = 0; i < length; i++)
+                        {
+                            Vector3 reference = expected[i % expected.Length];
+                            Vector3 input = NativeTransferInputs[i % NativeTransferInputs.Length];
+                            AssertNativeComponents(reference, new Vector4(packed[i], 0F),
+                                $"curve={curve}, compress={compress}, peak={peaks[peakIndex]}, input={input}, RGB");
+                            AssertNativeComponents(reference, rgba[i],
+                                $"curve={curve}, compress={compress}, peak={peaks[peakIndex]}, input={input}, RGBA");
+                            Assert.Equal(BitConverter.SingleToInt32Bits(TransferAlpha(i)), BitConverter.SingleToInt32Bits(rgba[i].W));
+                        }
+
+                        Assert.Equal(sentinel, packed[^1]);
+                        Assert.Equal(new Vector4(sentinel, -17F), rgba[^1]);
+                    }
+
+                    // The public signed extension retains both zero signs. Native scalar helpers return positive zero for both inputs.
+                    Vector4 zero = ApplyNativeCurve(curve, compress, new Vector4(-0F, 0F, -0F, .375F), peaks[peakIndex]);
+                    Assert.Equal(unchecked((int)0x80000000), BitConverter.SingleToInt32Bits(zero.X));
+                    Assert.Equal(0, BitConverter.SingleToInt32Bits(zero.Y));
+                    Assert.Equal(unchecked((int)0x80000000), BitConverter.SingleToInt32Bits(zero.Z));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies one public PQ or HLG component curve to a color.
+    /// </summary>
+    /// <param name="curve">Zero selects PQ; one selects HLG.</param>
+    /// <param name="compress">Whether to encode linear input.</param>
+    /// <param name="value">The input color.</param>
+    /// <param name="peak">The linear PQ normalization luminance.</param>
+    /// <returns>The converted color with unchanged alpha.</returns>
+    private static Vector4 ApplyNativeCurve(int curve, bool compress, Vector4 value, float peak)
+        => curve == 0
+            ? (compress ? PqCompanding.Compress(value, peak) : PqCompanding.Expand(value, peak))
+            : (compress ? HlgCompanding.Compress(value) : HlgCompanding.Expand(value));
+
+    /// <summary>
+    /// Applies one public PQ or HLG component curve to packed RGB colors.
+    /// </summary>
+    /// <param name="curve">Zero selects PQ; one selects HLG.</param>
+    /// <param name="compress">Whether to encode linear input.</param>
+    /// <param name="values">The input and output colors.</param>
+    /// <param name="peak">The linear PQ normalization luminance.</param>
+    private static void ApplyNativeCurve(int curve, bool compress, Span<Vector3> values, float peak)
+    {
+        if (curve == 0)
+        {
+            if (compress)
+            {
+                PqCompanding.Compress(values, peak);
+            }
+            else
+            {
+                PqCompanding.Expand(values, peak);
+            }
+        }
+        else if (compress)
+        {
+            HlgCompanding.Compress(values);
+        }
+        else
+        {
+            HlgCompanding.Expand(values);
+        }
+    }
+
+    /// <summary>
+    /// Applies one public PQ or HLG component curve to RGB colors with alpha.
+    /// </summary>
+    /// <param name="curve">Zero selects PQ; one selects HLG.</param>
+    /// <param name="compress">Whether to encode linear input.</param>
+    /// <param name="values">The input and output colors.</param>
+    /// <param name="peak">The linear PQ normalization luminance.</param>
+    private static void ApplyNativeCurve(int curve, bool compress, Span<Vector4> values, float peak)
+    {
+        if (curve == 0)
+        {
+            if (compress)
+            {
+                PqCompanding.Compress(values, peak);
+            }
+            else
+            {
+                PqCompanding.Expand(values, peak);
+            }
+        }
+        else if (compress)
+        {
+            HlgCompanding.Compress(values);
+        }
+        else
+        {
+            HlgCompanding.Expand(values);
+        }
+    }
+
+    /// <summary>
+    /// Compares native RGB values with the existing power-approximation bound in normalized component units.
+    /// </summary>
+    /// <param name="expected">The original native result.</param>
+    /// <param name="actual">The converted RGB color. Alpha is checked separately.</param>
+    /// <param name="context">The curve, peak, input and public API layout.</param>
+    private static void AssertNativeComponents(Vector3 expected, Vector4 actual, string context)
+    {
+        for (int component = 0; component < 3; component++)
+        {
+            float scale = MathF.Max(1F, MathF.Abs(expected[component]));
+            string message = $"{context}, component={component}, expected={expected[component]:R}, actual={actual[component]:R}, "
+                + $"Vector128={Vector128.IsHardwareAccelerated}, Vector256={Vector256.IsHardwareAccelerated}, "
+                + $"Vector512={Vector512.IsHardwareAccelerated}, FMA={Fma.IsSupported}";
+
+            Assert.True(DirectComparer.Equals(expected[component] / scale, actual[component] / scale), message);
+        }
+    }
+
+    /// <summary>
+    /// Supplies alpha values whose exact bits must survive each color transfer.
+    /// </summary>
+    /// <param name="index">The input color index.</param>
+    /// <returns>Signed zero, fractional alpha or a NaN with a fixed payload.</returns>
+    private static float TransferAlpha(int index)
+        => (index % 3) switch
+        {
+            0 => -0F,
+            1 => .375F,
+            _ => BitConverter.Int32BitsToSingle(unchecked((int)0xFFC12345))
+        };
 }

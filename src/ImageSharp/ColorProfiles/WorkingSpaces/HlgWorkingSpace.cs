@@ -15,9 +15,14 @@ namespace SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 /// Represents an RGB working space with the hybrid log-gamma transfer curve and display-luminance adjustment.
 /// </summary>
 /// <remarks>
+/// HLG names the hybrid log-gamma system. ITU-R BT.2100 defines its display-luminance adjustment.
+/// See <see href="https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2100-2-201807-S!!PDF-E.pdf">ITU-R BT.2100-2</see>, Table 5 and Note 5f.
 /// A linear component of one represents <see cref="PeakLuminance"/> cd/m².
 /// The component curve extends negative values with their original sign. Display-luminance adjustment requires nonnegative physical luminance.
-/// Expansion applies the inverse component curve, then the luminance adjustment. Compression reverses these operations.
+/// Expansion accepts nonlinear HLG RGB and produces display-linear RGB relative to the selected display peak.
+/// Compression accepts that display-linear RGB and produces nonlinear HLG RGB.
+/// Luminance adjustment is identity when its gamma differs from one by at most 0.01. Its RGB scale is limited to 1,000,000,000.
+/// Compression applies the same limits to the inverse gamma. These limits bound luminance adjustment, not the component-curve input.
 /// Converted RGB is bounded to the normalized range [-65504,65504]. Alpha remains unchanged.
 /// </remarks>
 public sealed partial class HlgWorkingSpace : RgbWorkingSpace
@@ -34,10 +39,8 @@ public sealed partial class HlgWorkingSpace : RgbWorkingSpace
     public HlgWorkingSpace(float peakLuminance, CieXyz referenceWhite, RgbPrimariesChromaticityCoordinates chromaticityCoordinates)
         : base(referenceWhite, chromaticityCoordinates)
     {
-        if (!(peakLuminance > 0F && float.IsFinite(peakLuminance)))
-        {
-            throw new ArgumentOutOfRangeException(nameof(peakLuminance), "The peak luminance must be positive and finite.");
-        }
+        Guard.MustBeGreaterThan(peakLuminance, 0F, nameof(peakLuminance));
+        Guard.MustBeLessThanOrEqualTo(peakLuminance, float.MaxValue, nameof(peakLuminance));
 
         this.PeakLuminance = peakLuminance;
 
@@ -63,6 +66,7 @@ public sealed partial class HlgWorkingSpace : RgbWorkingSpace
 
     /// <summary>
     /// Gets the display system gamma: 1.2 × 1.111 raised to log2(PeakLuminance / 1000).
+    /// Luminance adjustment is identity when this value differs from one by at most 0.01.
     /// </summary>
     public float SystemGamma { get; }
 

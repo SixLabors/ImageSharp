@@ -645,7 +645,7 @@ internal static class PixelBlenders
             pixel.W);
 
     /// <summary>
-    /// Expands and clamps two per-pixel scalar values for two packed RGBA pixels.
+    /// Expands and clamps two per-pixel scalar values for two pixel vectors.
     /// </summary>
     /// <param name="values">The first of two contiguous scalar values.</param>
     /// <returns>Two consecutive groups containing one clamped value in each group's four lanes.</returns>
@@ -659,7 +659,7 @@ internal static class PixelBlenders
     }
 
     /// <summary>
-    /// Expands and clamps four per-pixel scalar values for four packed RGBA pixels.
+    /// Expands and clamps four per-pixel scalar values for four pixel vectors.
     /// </summary>
     /// <param name="values">The first of four contiguous scalar values.</param>
     /// <returns>Four consecutive groups containing one clamped value in each group's four lanes.</returns>

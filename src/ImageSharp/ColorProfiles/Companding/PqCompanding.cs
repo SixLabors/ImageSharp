@@ -11,8 +11,9 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// </summary>
 /// <remarks>
 /// RGB components use normalized units. Negative components use the magnitude curve with their original sign.
-/// A linear value of one represents the selected peak luminance in cd/m². PQ uses a reference peak of 10000 cd/m².
-/// The peak must be positive and finite, and 10000 divided by that peak must be representable as a finite float.
+/// A linear value of one represents the selected normalization luminance in cd/m². It is not an output limit.
+/// A nonlinear value of one represents 10000 cd/m² before normalization.
+/// The normalization luminance must be positive and finite. Dividing 10000 by it must produce a finite float.
 /// The signal can exceed one within the mathematical domain of the PQ curve.
 /// RGB results are bounded to [-65504,65504]. NaN maps to the lower bound; infinities map to the corresponding bounds.
 /// Alpha remains unchanged.
@@ -93,15 +94,15 @@ public static partial class PqCompanding
     }
 
     /// <summary>
-    /// Validates the display peak before preparing the float normalization factors.
+    /// Validates the luminance represented by linear one before preparing the float normalization factors.
     /// </summary>
     /// <param name="peakLuminance">The luminance represented by linear one, in cd/m².</param>
     internal static void ValidatePeakLuminance(float peakLuminance)
     {
-        // A positive finite peak can still yield an infinite normalization factor. Reject that value before black can become 0 × infinity.
-        if (!(peakLuminance > 0F && float.IsFinite(peakLuminance) && float.IsFinite(ReferenceLuminance / peakLuminance)))
-        {
-            throw new ArgumentOutOfRangeException(nameof(peakLuminance), "The peak luminance must be positive and permit finite PQ normalization.");
-        }
+        Guard.MustBeGreaterThan(peakLuminance, 0F, nameof(peakLuminance));
+        Guard.MustBeLessThanOrEqualTo(peakLuminance, float.MaxValue, nameof(peakLuminance));
+
+        // A positive finite luminance can still yield an infinite factor. Reject it before black can become 0 × infinity.
+        Guard.MustBeLessThanOrEqualTo(ReferenceLuminance / peakLuminance, float.MaxValue, nameof(peakLuminance));
     }
 }

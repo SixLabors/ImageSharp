@@ -181,6 +181,16 @@ public sealed partial class HlgWorkingSpace
     /// </summary>
     private readonly struct OotfOperator : IColorOperator
     {
+        /// <summary>
+        /// The largest gamma distance from one that retains identity luminance adjustment.
+        /// </summary>
+        private const float IdentityGammaTolerance = 0.01F;
+
+        /// <summary>
+        /// The maximum RGB scale used by the luminance adjustment.
+        /// </summary>
+        private const float MaximumLuminanceRatio = 1E9F;
+
         private readonly TensorPrimitives_.PowOperator power;
         private readonly Vector3 luminance;
         private readonly bool apply;
@@ -196,8 +206,9 @@ public sealed partial class HlgWorkingSpace
             this.power = new(exponent);
             this.luminance = luminance;
 
-            // libjxl HlgOOTF_Base treats gamma within 0.01 of one as an identity luminance adjustment.
-            this.apply = MathF.Abs(exponent) > 0.01F;
+            // The shared contract retains the identity tolerance and scale limit used by libjxl HlgOOTF_Base.
+            // Prepare this decision once; every RGB layout then applies the same luminance policy.
+            this.apply = MathF.Abs(exponent) > IdentityGammaTolerance;
         }
 
         /// <inheritdoc/>
@@ -213,7 +224,7 @@ public sealed partial class HlgWorkingSpace
             float light = this.luminance.Z * blue;
             light = float.MultiplyAddEstimate(this.luminance.Y, green, light);
             light = float.MultiplyAddEstimate(this.luminance.X, red, light);
-            float ratio = MathF.Min(this.power.Invoke(light), 1E9F);
+            float ratio = MathF.Min(this.power.Invoke(light), MaximumLuminanceRatio);
             red *= ratio;
             green *= ratio;
             blue *= ratio;
@@ -232,7 +243,7 @@ public sealed partial class HlgWorkingSpace
             Vector128<float> light = Vector128.Multiply(Vector128.Create(this.luminance.Z), blue);
             light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.Y), green, light);
             light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.X), red, light);
-            Vector128<float> ratio = Vector128.Min(this.power.Invoke(light), Vector128.Create(1E9F));
+            Vector128<float> ratio = Vector128.Min(this.power.Invoke(light), Vector128.Create(MaximumLuminanceRatio));
             red = Vector128.Multiply(red, ratio);
             green = Vector128.Multiply(green, ratio);
             blue = Vector128.Multiply(blue, ratio);
@@ -251,7 +262,7 @@ public sealed partial class HlgWorkingSpace
             Vector256<float> light = Vector256.Multiply(Vector256.Create(this.luminance.Z), blue);
             light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.Y), green, light);
             light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.X), red, light);
-            Vector256<float> ratio = Vector256.Min(this.power.Invoke(light), Vector256.Create(1E9F));
+            Vector256<float> ratio = Vector256.Min(this.power.Invoke(light), Vector256.Create(MaximumLuminanceRatio));
             red = Vector256.Multiply(red, ratio);
             green = Vector256.Multiply(green, ratio);
             blue = Vector256.Multiply(blue, ratio);
@@ -270,7 +281,7 @@ public sealed partial class HlgWorkingSpace
             Vector512<float> light = Vector512.Multiply(Vector512.Create(this.luminance.Z), blue);
             light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.Y), green, light);
             light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.X), red, light);
-            Vector512<float> ratio = Vector512.Min(this.power.Invoke(light), Vector512.Create(1E9F));
+            Vector512<float> ratio = Vector512.Min(this.power.Invoke(light), Vector512.Create(MaximumLuminanceRatio));
             red = Vector512.Multiply(red, ratio);
             green = Vector512.Multiply(green, ratio);
             blue = Vector512.Multiply(blue, ratio);

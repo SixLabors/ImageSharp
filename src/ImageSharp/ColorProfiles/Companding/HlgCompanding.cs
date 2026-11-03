@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// RGB components use normalized units. Negative components use the magnitude curve with their original sign.
 /// Expand produces normalized scene-linear RGB. Compress accepts scene-linear RGB.
 /// Display-luminance adjustment is separate from this component transfer curve.
+/// See <see href="https://www.arib.or.jp/english/html/overview/doc/2-STD-B67v2_0.pdf">ARIB STD-B67</see>, Table 2-3.
 /// RGB results are bounded to [-65504,65504]. NaN maps to the lower bound; infinities map to the corresponding bounds.
 /// Alpha remains unchanged.
 /// </remarks>

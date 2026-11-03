@@ -554,6 +554,205 @@ internal static class Numerics
     }
 
     /// <summary>
+    /// Replaces the fourth component of each destination vector with the corresponding source value.
+    /// All other component bits remain unchanged.
+    /// </summary>
+    /// <param name="w">The fourth components. The span must contain at least one value per destination vector.</param>
+    /// <param name="destination">The vectors to update. Their storage must not overlap <paramref name="w"/>.</param>
+    public static void WithW(ReadOnlySpan<float> w, Span<Vector4> destination)
+    {
+        Guard.MustBeGreaterThanOrEqualTo(w.Length, destination.Length, nameof(w));
+        ref float weights = ref MemoryMarshal.GetReference(w);
+        ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int vectorsPerRegister = Vector512<float>.Count / Vector128<float>.Count;
+            int count = destination.Length / vectorsPerRegister;
+            Vector512<int> repeatWeights = Vector512.Create(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3);
+            for (int block = 0; block < count; block++, i += vectorsPerRegister)
+            {
+                // Four source values describe four consecutive [X,Y,Z,W] groups. Repeat each value
+                // across its group, then let WithW select only lanes 3, 7, 11 and 15. No arithmetic touches RGB.
+                Vector128<float> input = Vector128.LoadUnsafe(ref weights, (nuint)i);
+                Vector256<float> pair = Vector256.Create(input, input);
+                Vector512<float> expanded = Vector512.ShuffleNative(Vector512.Create(pair, pair), repeatWeights);
+                nuint offset = (nuint)(uint)i * (nuint)Vector128<float>.Count;
+                Vector512<float> value = Vector512.LoadUnsafe(ref output, offset);
+                WithW(value, expanded).StoreUnsafe(ref output, offset);
+            }
+        }
+
+        // WithW's 256-bit overload uses the existing AVX blend. Keep this gate at its actual instruction requirement.
+        if (Avx.IsSupported)
+        {
+            int vectorsPerRegister = Vector256<float>.Count / Vector128<float>.Count;
+            int count = (destination.Length - i) / vectorsPerRegister;
+            const byte repeatFirst = 0b_00_00_00_00;
+            const byte repeatSecond = 0b_01_01_01_01;
+            for (int block = 0; block < count; block++, i += vectorsPerRegister)
+            {
+                // Read exactly two W values. Place W0 in the low half and W1 in the high half,
+                // then repeat each half's first lane. This needs AVX, without an AVX2 permutation dependency.
+                Vector128<float> input = Vector64.LoadUnsafe(ref weights, (nuint)i).ToVector128();
+                Vector256<float> pair = Vector256.Create(input, Vector128_.ShuffleNative(input, repeatSecond));
+                Vector256<float> expanded = Vector256_.ShuffleNative(pair, repeatFirst);
+                nuint offset = (nuint)(uint)i * (nuint)Vector128<float>.Count;
+                Vector256<float> value = Vector256.LoadUnsafe(ref output, offset);
+                WithW(value, expanded).StoreUnsafe(ref output, offset);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; i < destination.Length; i++)
+            {
+                // One source value supplies lane 3 of one complete vector. Unaligned access needs no row padding.
+                nuint offset = (nuint)(uint)i * (nuint)Vector128<float>.Count;
+                Vector128<float> value = Vector128.LoadUnsafe(ref output, offset);
+                WithW(value, Vector128.Create(Unsafe.Add(ref weights, i))).StoreUnsafe(ref output, offset);
+            }
+        }
+
+        // Scalar assignment has the same bit-preserving contract, including NaN payloads and signed zero.
+        for (; i < destination.Length; i++)
+        {
+            destination[i].W = w[i];
+        }
+    }
+
+    /// <summary>
+    /// Replaces the fourth component of every destination vector with one value.
+    /// All other component bits remain unchanged.
+    /// </summary>
+    /// <param name="w">The fourth component to store in every vector.</param>
+    /// <param name="destination">The vectors to update.</param>
+    public static void WithW(float w, Span<Vector4> destination)
+    {
+        ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int vectorsPerRegister = Vector512<float>.Count / Vector128<float>.Count;
+            int count = destination.Length / vectorsPerRegister;
+            Vector512<float> expanded = Vector512.Create(w);
+            for (int block = 0; block < count; block++, i += vectorsPerRegister)
+            {
+                // Four complete vectors share the same W. The shared selector retains all twelve other component bit patterns.
+                nuint offset = (nuint)(uint)i * (nuint)Vector128<float>.Count;
+                Vector512<float> value = Vector512.LoadUnsafe(ref output, offset);
+                WithW(value, expanded).StoreUnsafe(ref output, offset);
+            }
+        }
+
+        if (Avx.IsSupported)
+        {
+            int vectorsPerRegister = Vector256<float>.Count / Vector128<float>.Count;
+            int count = (destination.Length - i) / vectorsPerRegister;
+            Vector256<float> expanded = Vector256.Create(w);
+            for (int block = 0; block < count; block++, i += vectorsPerRegister)
+            {
+                // Two complete vectors share W in lanes 3 and 7. Only the selected components are written.
+                nuint offset = (nuint)(uint)i * (nuint)Vector128<float>.Count;
+                Vector256<float> value = Vector256.LoadUnsafe(ref output, offset);
+                WithW(value, expanded).StoreUnsafe(ref output, offset);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> expanded = Vector128.Create(w);
+            for (; i < destination.Length; i++)
+            {
+                nuint offset = (nuint)(uint)i * (nuint)Vector128<float>.Count;
+                Vector128<float> value = Vector128.LoadUnsafe(ref output, offset);
+                WithW(value, expanded).StoreUnsafe(ref output, offset);
+            }
+        }
+
+        // Fewer complete SIMD groups, or all vectors without SIMD, retain the same scalar assignment rule.
+        for (; i < destination.Length; i++)
+        {
+            destination[i].W = w;
+        }
+    }
+
+    /// <summary>
+    /// Replaces the first three components of each destination vector with the corresponding source vector.
+    /// All fourth-component bits remain unchanged.
+    /// </summary>
+    /// <param name="xyz">The first three components to copy, without arithmetic or range conversion.</param>
+    /// <param name="destination">The vectors to update. Its length must cover the source, and its storage must not overlap the source.</param>
+    public static void WithXYZ(ReadOnlySpan<Vector3> xyz, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(xyz, destination, nameof(destination));
+        ref float input = ref Unsafe.As<Vector3, float>(ref MemoryMarshal.GetReference(xyz));
+        ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+        int count = xyz.Length;
+        int i = 0;
+
+        if (Avx512F.IsSupported)
+        {
+            // Four source vectors occupy twelve floats. A sixteen-float load includes the next source vectors,
+            // so retain the last complete group for smaller widths. The permutation inserts unused W positions;
+            // WithW replaces those positions with the destination's original W bits after loading both inputs.
+            Vector512<int> insertW = Vector512.Create(0, 1, 2, 0, 3, 4, 5, 0, 6, 7, 8, 0, 9, 10, 11, 0);
+            int groups = (count >> 2) - 1;
+            for (int block = 0; block < groups; block++)
+            {
+                Vector512<float> current = Vector512.LoadUnsafe(ref output);
+                Vector512<float> source = Vector512.LoadUnsafe(ref input);
+                Vector512<float> expanded = Avx512F.PermuteVar16x32(source, insertW);
+                WithW(expanded, current).StoreUnsafe(ref output);
+                input = ref Unsafe.Add(ref input, 12U);
+                output = ref Unsafe.Add(ref output, 16U);
+                i += 4;
+            }
+        }
+        else if (Avx2.IsSupported)
+        {
+            // Two source vectors occupy six floats. Keep the last pair for smaller widths because the
+            // eight-float load also reads the next vector. The immediate W selector preserves lanes 3 and 7.
+            Vector256<int> insertW = Vector256.Create(0, 1, 2, 0, 3, 4, 5, 0);
+            int groups = (count >> 1) - 1;
+            for (int block = 0; block < groups; block++)
+            {
+                Vector256<float> current = Vector256.LoadUnsafe(ref output);
+                Vector256<float> source = Vector256.LoadUnsafe(ref input);
+                Vector256<float> expanded = Avx2.PermuteVar8x32(source, insertW);
+                WithW(expanded, current).StoreUnsafe(ref output);
+                input = ref Unsafe.Add(ref input, 6U);
+                output = ref Unsafe.Add(ref output, 8U);
+                i += 2;
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            // A four-float load reads [X,Y,Z,next X]. At least two source vectors remain at each load,
+            // so the extra float is within the source span. Replace it with the existing W and leave one scalar vector.
+            for (; i < count - 1; i++)
+            {
+                Vector128<float> current = Vector128.LoadUnsafe(ref output);
+                Vector128<float> source = Vector128.LoadUnsafe(ref input);
+                WithW(source, current).StoreUnsafe(ref output);
+                input = ref Unsafe.Add(ref input, 3U);
+                output = ref Unsafe.Add(ref output, 4U);
+            }
+        }
+
+        // A three-float assignment cannot overwrite W or read a fourth source float. It retains NaN payloads
+        // and signed zeros exactly, including the complete fallback when hardware intrinsics are disabled.
+        ref Vector4 destinationStart = ref MemoryMarshal.GetReference(destination);
+        for (; i < count; i++)
+        {
+            Unsafe.As<Vector4, Vector3>(ref Unsafe.Add(ref destinationStart, (uint)i)) = xyz[i];
+        }
+    }
+
+    /// <summary>
     /// Calculates the cube pow of all the XYZ channels of the input vectors.
     /// </summary>
     /// <param name="vectors">The span of vectors</param>

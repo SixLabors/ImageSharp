@@ -3,10 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -150,91 +147,6 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         Rgb.FromScaledVector4(row, rgbSpan);
         converter.ConvertUsingIccProfile<Rgb, Rgb>(rgbSpan, rgbSpan);
 
-        ref float srcRgb = ref Unsafe.As<Rgb, float>(ref MemoryMarshal.GetReference(rgbSpan));
-        ref float dstRow = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(row));
-        int count = rgbSpan.Length;
-        int i = 0;
-
-        if (Avx512F.IsSupported)
-        {
-            // Four RGB pixels occupy 12 floats: r0 g0 b0, continuing through r3 g3 b3.
-            // The 16-float load also reads four floats from the following pixels.
-            // The permutation inserts a placeholder after each RGB triple to match the Vector4 destination.
-            // The blend replaces RGB and retains the destination alpha in lanes 3, 7, 11 and 15.
-            Vector512<int> rgbPerm = Vector512.Create(0, 1, 2, 0, 3, 4, 5, 0, 6, 7, 8, 0, 9, 10, 11, 0);
-
-            // Negative zero sets the mask's sign bit, so BlendVariable selects the converted RGB in those lanes.
-            Vector512<float> rgbSelect = Vector512.Create(-0F, -0F, -0F, 0F, -0F, -0F, -0F, 0F, -0F, -0F, -0F, 0F, -0F, -0F, -0F, 0F);
-
-            int quads = count >> 2;
-
-            // Leave the final group for the scalar loop because its 16-float load could exceed the RGB span.
-            int simdQuads = quads - 1;
-
-            for (int q = 0; q < simdQuads; q++)
-            {
-                Vector512<float> dst = Vector512.LoadUnsafe(ref dstRow);
-                Vector512<float> src = Vector512.LoadUnsafe(ref srcRgb);
-
-                Vector512<float> rgbx = Avx512F.PermuteVar16x32(src, rgbPerm);
-                Vector512<float> merged = Avx512F.BlendVariable(dst, rgbx, rgbSelect);
-
-                merged.StoreUnsafe(ref dstRow);
-
-                // Advance input by 4 pixels (4 * 3 = 12 floats)
-                srcRgb = ref Unsafe.Add(ref srcRgb, 12U);
-
-                // Advance output by 4 pixels (4 * 4 = 16 floats)
-                dstRow = ref Unsafe.Add(ref dstRow, 16U);
-
-                i += 4;
-            }
-        }
-        else if (Avx2.IsSupported)
-        {
-            // 2 pixels per iteration.
-            //
-            // Same idea as AVX-512, but on 256-bit vectors.
-            // We permute packed RGB into rgbx layout and blend into the existing destination,
-            // preserving alpha lanes.
-            Vector256<int> rgbPerm = Vector256.Create(0, 1, 2, 0, 3, 4, 5, 0);
-
-            Vector256<float> rgbSelect = Vector256.Create(-0F, -0F, -0F, 0F, -0F, -0F, -0F, 0F);
-
-            int pairs = count >> 1;
-            int simdPairs = pairs - 1; // Leave the last pair for the scalar tail to avoid the final overlapped load reading past the end.
-
-            for (int p = 0; p < simdPairs; p++)
-            {
-                Vector256<float> dst = Vector256.LoadUnsafe(ref dstRow);
-                Vector256<float> src = Vector256.LoadUnsafe(ref srcRgb);
-
-                Vector256<float> rgbx = Avx2.PermuteVar8x32(src, rgbPerm);
-                Vector256<float> merged = Avx.BlendVariable(dst, rgbx, rgbSelect);
-
-                merged.StoreUnsafe(ref dstRow);
-
-                // Advance input by 2 pixels (2 * 3 = 6 floats)
-                srcRgb = ref Unsafe.Add(ref srcRgb, 6U);
-
-                // Advance output by 2 pixels (2 * 4 = 8 floats)
-                dstRow = ref Unsafe.Add(ref dstRow, 8U);
-
-                i += 2;
-            }
-        }
-
-        // Scalar tail.
-        // Handles:
-        // - the last skipped SIMD block (quad or pair)
-        // - any remainder
-        //
-        // Preserve alpha by writing Vector3 into the Vector4 storage.
-        ref Vector4 rowRef = ref MemoryMarshal.GetReference(row);
-        for (; i < count; i++)
-        {
-            Vector3 rgb = rgbSpan[i].AsVector3Unsafe();
-            Unsafe.As<Vector4, Vector3>(ref Unsafe.Add(ref rowRef, (uint)i)) = rgb;
-        }
+        Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(rgbSpan), row);
     }
 }

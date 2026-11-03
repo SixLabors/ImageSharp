@@ -184,12 +184,28 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
     /// <inheritdoc/>
     public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
     {
+        Rgb linear = this.ToLinearRgb(options);
+
+        // The RGB connection space uses the selected working space's transfer function, not raw linear samples.
+        return Rgb.FromScaledVector4(options.SourceRgbWorkingSpace.Compress(linear.ToScaledVector4()));
+    }
+
+    /// <summary>
+    /// Converts this XYB color to linear RGB with the configured XYB transform.
+    /// </summary>
+    /// <param name="options">The conversion options that select <see cref="ColorConversionOptions.XybTransform"/>.</param>
+    /// <returns>The linear RGB components in the primaries defined by the configured transform.</returns>
+    /// <remarks>
+    /// The transform includes its signed biases and intensity scale. This method applies no transfer function or pixel bounds.
+    /// It does not use <see cref="ColorConversionOptions.SourceRgbWorkingSpace"/> to encode or limit the result.
+    /// </remarks>
+    public Rgb ToLinearRgb(ColorConversionOptions options)
+    {
         XybTransform transform = options.TransposedXybTransform;
         Matrix4x4 matrix = transform.Inverse;
         ConvertToRgb(this.X, this.Y, this.B, in matrix, transform.Biases, transform.CubeRootBiases, out float r, out float g, out float b);
 
-        // The RGB connection space uses the selected working space's transfer function, not raw linear samples.
-        return Rgb.FromScaledVector4(options.SourceRgbWorkingSpace.Compress(new Vector4(r, g, b, 1F)));
+        return new Rgb(r, g, b);
     }
 
     /// <inheritdoc/>
@@ -205,6 +221,25 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
 
     /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Xyb> source, Span<Rgb> destination)
+    {
+        ToLinearRgb(options, source, destination);
+
+        // The working space encodes the complete packed RGB span. No opacity lane is introduced or evaluated by its transfer curve.
+        options.SourceRgbWorkingSpace.Compress(MemoryMarshal.Cast<Rgb, Vector3>(destination[..source.Length]));
+    }
+
+    /// <summary>
+    /// Converts XYB colors to linear RGB with the configured XYB transform.
+    /// </summary>
+    /// <param name="options">The conversion options that select <see cref="ColorConversionOptions.XybTransform"/>.</param>
+    /// <param name="source">The XYB colors to convert.</param>
+    /// <param name="destination">The linear RGB output. Its length must be at least the source length.</param>
+    /// <remarks>
+    /// The output uses the primaries, signed biases and intensity scale defined by the configured transform.
+    /// This method applies no transfer function or pixel bounds. Source and destination can start at the same address.
+    /// Other overlap is not supported. Destination elements after the source length remain unchanged.
+    /// </remarks>
+    public static void ToLinearRgb(ColorConversionOptions options, ReadOnlySpan<Xyb> source, Span<Rgb> destination)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
@@ -253,16 +288,14 @@ public readonly struct Xyb : IColorProfile<Xyb, Rgb>
             }
         }
 
-        // Scalar colors use the same equations without reading padding. Companding follows only after every linear color is stored.
+        // Scalar colors use the same equations without reading padding. Each color is loaded before its
+        // output is stored, retaining the same exact-overlap contract as the complete SIMD batches.
         for (; i < source.Length; i++)
         {
             Vector3 value = packed[i];
             ConvertToRgb(value.X, value.Y, value.Z, in matrix, biases, cubeRootBiases, out float r, out float g, out float b);
             destination[i] = new Rgb(r, g, b);
         }
-
-        // The working space encodes the complete packed RGB span. No opacity lane is introduced or evaluated by its transfer curve.
-        options.SourceRgbWorkingSpace.Compress(MemoryMarshal.Cast<Rgb, Vector3>(destination[..source.Length]));
     }
 
     /// <inheritdoc/>

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -297,6 +298,21 @@ public class RgbAndXybConversionTest
         VerifyNativeInverse(iso, isoInput255, isoExpected255, isoUnfused255);
         VerifyNativeInverse(new(iso.Inverse, iso.Biases, 1000F), isoInput1000, isoExpected1000, isoUnfused1000);
         VerifyNativeInverse(new(customInverse, new(-.004F, -.002F, -.006F), 1000F), customInput, customExpected, customUnfused);
+
+        // Raw reconstruction precedes frame blending and pixel storage. With identity coefficients and
+        // zero bias, (Y+X)^3, (Y-X)^3 and B^3 are exact cubes. Their values exceed the normalized pixel
+        // range deliberately. The raw API must retain them until the later color and pixel boundaries.
+        Xyb[] extended = new Xyb[33];
+        Array.Fill(extended, new Xyb(0F, 64F, -64F));
+        ColorConversionOptions rawOptions = new() { XybTransform = new(Matrix4x4.Identity, Vector3.Zero, 255F) };
+        Rgb[] raw = new Rgb[extended.Length];
+        Xyb.ToLinearRgb(rawOptions, extended, raw);
+        Rgb exact = new(262144F, 262144F, -262144F);
+        for (int i = 0; i < extended.Length; i++)
+        {
+            Assert.Equal(exact, extended[i].ToLinearRgb(rawOptions));
+            Assert.Equal(exact, raw[i]);
+        }
     }
 
     /// <summary>
@@ -312,6 +328,9 @@ public class RgbAndXybConversionTest
         ColorConversionOptions options = new() { XybTransform = transform, SourceRgbWorkingSpace = linear, TargetRgbWorkingSpace = linear };
         Xyb[] source = new Xyb[33];
         Rgb[] destination = new Rgb[source.Length];
+        Rgb[] rawDestination = new Rgb[source.Length + 1];
+        Rgb sentinel = new(-1F, -2F, -3F);
+        rawDestination[^1] = sentinel;
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -319,6 +338,11 @@ public class RgbAndXybConversionTest
         }
 
         Xyb.ToProfileConnectionSpace(options, source, destination);
+
+        // Default sRGB transfer settings must not affect the explicitly linear API. These expectations
+        // come from native's raw inverse stage, before its separately recorded transfer operation.
+        ColorConversionOptions rawOptions = new() { XybTransform = transform };
+        Xyb.ToLinearRgb(rawOptions, source, rawDestination);
 
         for (int i = 0; i < source.Length; i++)
         {
@@ -335,6 +359,21 @@ public class RgbAndXybConversionTest
             Assert.True(ComponentComparer.Equals(expectedColor, destination[i]) || ComponentComparer.Equals(unfusedColor, destination[i]),
                 $"Intensity {transform.IntensityTarget:R}; input {source[i]}; "
                 + $"fused {expectedColor.ToScaledVector4()}; unfused {unfusedColor.ToScaledVector4()}; bulk {destination[i].ToScaledVector4()}.");
+
+            Rgb rawScalar = source[i].ToLinearRgb(rawOptions);
+            Assert.True(ComponentComparer.Equals(expectedColor, rawScalar) || ComponentComparer.Equals(unfusedColor, rawScalar));
+            Assert.True(ComponentComparer.Equals(expectedColor, rawDestination[i]) || ComponentComparer.Equals(unfusedColor, rawDestination[i]));
+        }
+
+        Assert.Equal(sentinel, rawDestination[^1]);
+
+        // Both models occupy three floats. The API must load a complete source batch before an
+        // overlapping output store. Reuse these inputs only after the separate-source checks finish.
+        Span<Rgb> inPlace = MemoryMarshal.Cast<Xyb, Rgb>(source.AsSpan());
+        Xyb.ToLinearRgb(rawOptions, source, inPlace);
+        for (int i = 0; i < inPlace.Length; i++)
+        {
+            Assert.True(ComponentComparer.Equals(expected[i % expected.Length], inPlace[i]) || ComponentComparer.Equals(unfused[i % unfused.Length], inPlace[i]));
         }
     }
 

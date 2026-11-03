@@ -30,9 +30,9 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
    Licenses are granted based upon You meeting the qualified criteria as stated. Once granted,
    You must reference the granted license only in all documentation.
 
-   Works in Source or Object form are licensed to You under the Apache License, Version 2.0 if.
+   Works in Source or Object form are licensed to You under the Apache License, Version 2.0 if:
 
-   - You are consuming the Work in for use in software licensed under an Open Source or Source Available license.
+   - You are consuming the Work for use in software licensed under an Open Source or Source Available license.
    - You are consuming the Work as a Transitive Package Dependency.
    - You are consuming the Work as a Direct Package Dependency in the capacity of a For-profit company/individual with
      less than 1M USD annual gross revenue.

@@ -781,51 +781,74 @@ public class JxlFormatTests
     }
 
     /// <summary>
-    /// Verifies required ICC conversion, profile retention and straight alpha through the public decoder.
+    /// Verifies native color conversion, profile retention and straight alpha through the public decoder.
     /// </summary>
-    /// <param name="file">The stored ICC-bearing input.</param>
+    /// <param name="file">The stored profiled or compact-color input.</param>
     [Theory]
     [InlineData(TestImages.Jxl.WithIcc)]
     [InlineData(TestImages.Jxl.LinearRgbaWithIcc)]
     [InlineData(TestImages.Jxl.CmykFirstFrame)]
     [InlineData(TestImages.Jxl.CmykFourthFrame)]
-    public void DecodeIccMatchesNativeSrgb(string file)
+    [InlineData(TestImages.Jxl.HdrPq)]
+    [InlineData(TestImages.Jxl.HdrHlg)]
+    public void DecodeColorMatchesNativeSrgb(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateIccPixels,
+            ValidateDecodedColors,
             file,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks independently converted float samples with each profile-retention and optional-metadata setting.
     /// </summary>
-    /// <param name="file">The stored ICC-bearing input.</param>
+    /// <param name="file">The stored profiled or compact-color input.</param>
     /// <remarks>
     /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153 decoded the source samples and profiles.
-    /// Its default CMS generated the RGB and grayscale results with relative-colorimetric sRGB output.
+    /// Its default CMS generated the RGB and grayscale ICC results with relative-colorimetric sRGB output.
+    /// Compact PQ/HLG results use native linear-sRGB output, then the original GetFromLinearStage sRGB operation.
+    /// That operation uses the signed curve required by the shared working space. A direct CMS sRGB target instead
+    /// applies its ICC curve's linear branch to all negative components when the source primaries differ.
     /// The CMYK results use LittleCMS 2.17, relative-colorimetric intent and the exact CompactSrgbV4 target profile.
     /// Black-point compensation is disabled to match the shared converter. Libjxl enables it by default.
     /// LittleCMS flags 0 and NOOPTIMIZE produce identical CMYK results across both complete images.
-    /// All inputs retain their original orientation. Native and jxl-rs independently agree on their source samples and profiles.
+    /// All inputs retain their original orientation. Native and jxl-rs independently agree on the ICC inputs' source samples and profiles.
     /// </remarks>
-    private static void ValidateIccPixels(string file)
+    private static void ValidateDecodedColors(string file)
     {
         Size size = file switch
         {
             TestImages.Jxl.LinearRgbaWithIcc => new Size(4, 1),
+            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg => new Size(1024, 1024),
             TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
             TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
             _ => new Size(169, 118)
         };
 
-        string profileHash = file switch
+        string? profileHash = file switch
         {
             TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
+            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg => null,
             TestImages.Jxl.CmykFirstFrame or TestImages.Jxl.CmykFourthFrame => "4855B8FABB96BDC6495D45D089BB8C8EFB1AE18389E0DC9E75A5F701A9C0B662",
             _ => "92AAEE40521D7671DBC901DFC88CC36CB83D41766B2C466FF97268EE5AB0C577"
         };
 
         ReadOnlySpan<(int X, int Y, uint R, uint G, uint B, uint A)> points = file switch
         {
+            TestImages.Jxl.HdrPq => [
+                (0, 0, 0x3A449D9CU, 0x3A4497BCU, 0x3A449A30U, 0x3F800000U),
+                (512, 128, 0x3E450C0BU, 0x3E4508E2U, 0x3E450A34U, 0x3F800000U),
+                (1023, 1023, 0x3F800107U, 0x3F7FFEB0U, 0x3F80000DU, 0x3F800000U),
+                (1023, 704, 0xBF55223CU, 0x3F86C4BAU, 0x3F8103D9U, 0x3F800000U),
+                (1023, 768, 0x3F9FC5D0U, 0xBEC6A300U, 0xBE12DDD4U, 0x3F800000U),
+                (1023, 896, 0x3F8404B9U, 0x3F807768U, 0xBEC21DA3U, 0x3F800000U)
+            ],
+            TestImages.Jxl.HdrHlg => [
+                (0, 0, 0x3CBD7B26U, 0x3CBD757DU, 0x3CBD77DBU, 0x3F800000U),
+                (512, 128, 0x3EB06458U, 0x3EB061CDU, 0x3EB062DDU, 0x3F800000U),
+                (1023, 1023, 0x3F80010AU, 0x3F7FFEB6U, 0x3F80000FU, 0x3F800000U),
+                (1023, 704, 0xBF4F6FA6U, 0x3F833664U, 0x3F7B34DEU, 0x3F800000U),
+                (1023, 768, 0x3F8E3095U, 0xBEAEBAC4U, 0xBDFAE69BU, 0x3F800000U),
+                (1023, 896, 0x3F834FDAU, 0x3F7F8E4AU, 0xBEC0FCA8U, 0x3F800000U)
+            ],
             TestImages.Jxl.LinearRgbaWithIcc => [
                 (0, 0, 0x3EC757B7U, 0x3F09BE2EU, 0x3F3C8B7DU, 0x3F800000U),
                 (1, 0, 0x3F3C983AU, 0x3F505365U, 0x3F61D67BU, 0x3F800000U),
@@ -869,9 +892,9 @@ public class JxlFormatTests
                 using Image<RgbaVector> image = Image.Load<RgbaVector>(options, input);
                 Assert.Equal(size, image.Size);
 
-                // All policies convert pixels. Only Convert removes these noncanonical original profiles;
-                // SkipMetadata must not remove the ICC data needed to interpret the coded samples.
-                if (handling == ColorProfileHandling.Convert)
+                // All policies convert pixels. Compact color descriptions have no embedded ICC profile.
+                // Convert removes noncanonical embedded profiles; SkipMetadata must retain required color information.
+                if (handling == ColorProfileHandling.Convert || profileHash is null)
                 {
                     Assert.Null(image.Metadata.IccProfile);
                 }

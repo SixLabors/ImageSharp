@@ -1818,6 +1818,10 @@ public static class TestImages
         public const string CmykFirstFrame = "Jxl/cmyk_layers_first_frame.jxl";
         public const string CmykFourthFrame = "Jxl/cmyk_layers_fourth_frame.jxl";
 
+        // Original jxl-rs HDR inputs use compact BT.2020 color descriptions and ten-bit native samples.
+        public const string HdrPq = "Jxl/hdr_pq_test.jxl";
+        public const string HdrHlg = "Jxl/hdr_hlg_test.jxl";
+
         // Additional original fixtures come from jxl-rs jxl/resources/test at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
         public const string WithIcc = "Jxl/with_icc.jxl";
         public const string LossyWithIcc = "Jxl/lossy_with_icc.jxl";

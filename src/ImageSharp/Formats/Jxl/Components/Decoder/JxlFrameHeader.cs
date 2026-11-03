@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 internal sealed class JxlFrameHeader
 {
     /// <summary>
+    /// The flag selecting noise reconstruction after frame upsampling and before color conversion.
+    /// </summary>
+    public const ulong Noise = 1;
+
+    /// <summary>
     /// The flag selecting spline reconstruction after restoration and before color upsampling.
     /// </summary>
     public const ulong Splines = 0x10;

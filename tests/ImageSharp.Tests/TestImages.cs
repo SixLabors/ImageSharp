@@ -1769,6 +1769,10 @@ public static class TestImages
         public const string AcMetadataInvalidStrategy = "Jxl/ac-metadata-invalid-strategy-partial.jxl";
         public const string AcMetadataStrategyOverflow = "Jxl/ac-metadata-overflow-strategy-partial.jxl";
 
+        // Unchanged jxl-rs fixtures at d7a831fae15b903f1b56a76668030c19ac07bb6f cover tiny mirrored edges and noise group boundaries.
+        public const string Noise8x8 = "Jxl/noise-8x8.jxl";
+        public const string Noise = "Jxl/noise.jxl";
+
         // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
         // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
         public const string Splines = "Jxl/splines.jxl";

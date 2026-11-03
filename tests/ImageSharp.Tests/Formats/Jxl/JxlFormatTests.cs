@@ -792,6 +792,8 @@ public class JxlFormatTests
     [InlineData(TestImages.Jxl.HdrPq)]
     [InlineData(TestImages.Jxl.HdrHlg)]
     [InlineData(TestImages.Jxl.Splines)]
+    [InlineData(TestImages.Jxl.Noise8x8)]
+    [InlineData(TestImages.Jxl.Noise)]
     public void DecodeColorMatchesNativeSrgb(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateDecodedColors,
@@ -805,6 +807,8 @@ public class JxlFormatTests
     /// <remarks>
     /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153 decoded the source samples and profiles.
     /// Its default CMS generated the RGB and grayscale ICC results with relative-colorimetric sRGB output.
+    /// The spline and noise results use the same native public decoder with float sRGB output.
+    /// Noise retains native's 23 random mantissa bits. Selected coordinates cover mirrored edges, group boundaries and SIMD tails.
     /// Compact PQ/HLG results use native linear-sRGB output, then the original GetFromLinearStage sRGB operation.
     /// That operation uses the signed curve required by the shared working space. A direct CMS sRGB target instead
     /// applies its ICC curve's linear branch to all negative components when the source primaries differ.
@@ -820,6 +824,8 @@ public class JxlFormatTests
             TestImages.Jxl.LinearRgbaWithIcc => new Size(4, 1),
             TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg => new Size(1024, 1024),
             TestImages.Jxl.Splines => new Size(2048, 2048),
+            TestImages.Jxl.Noise8x8 => new Size(8, 8),
+            TestImages.Jxl.Noise => new Size(500, 606),
             TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
             TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
             _ => new Size(169, 118)
@@ -828,13 +834,32 @@ public class JxlFormatTests
         string? profileHash = file switch
         {
             TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
-            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg or TestImages.Jxl.Splines => null,
+            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg or TestImages.Jxl.Splines
+                or TestImages.Jxl.Noise8x8 or TestImages.Jxl.Noise => null,
             TestImages.Jxl.CmykFirstFrame or TestImages.Jxl.CmykFourthFrame => "4855B8FABB96BDC6495D45D089BB8C8EFB1AE18389E0DC9E75A5F701A9C0B662",
             _ => "92AAEE40521D7671DBC901DFC88CC36CB83D41766B2C466FF97268EE5AB0C577"
         };
 
         ReadOnlySpan<(int X, int Y, uint R, uint G, uint B, uint A)> points = file switch
         {
+            TestImages.Jxl.Noise8x8 => [
+                (0, 0, 0x3F82FF75U, 0x3F82EB9DU, 0x3F82EC83U, 0x3F800000U),
+                (7, 0, 0x3F823A09U, 0x3F824D13U, 0x3F824C36U, 0x3F800000U),
+                (4, 4, 0x3F82DB47U, 0x3F82D8C4U, 0x3F82D8E1U, 0x3F800000U),
+                (0, 7, 0x3F82891AU, 0x3F828FDAU, 0x3F828F8AU, 0x3F800000U),
+                (7, 7, 0x3F82B2CAU, 0x3F82B42EU, 0x3F82B41FU, 0x3F800000U)
+            ],
+            TestImages.Jxl.Noise => [
+                (0, 0, 0x3F15824BU, 0x3F16D985U, 0x3F030E73U, 0x3F800000U),
+                (255, 255, 0x3F189654U, 0x3F04BEF6U, 0x3F063E41U, 0x3F800000U),
+                (256, 255, 0x3F2C1315U, 0x3F1A6AF7U, 0x3F1D01A6U, 0x3F800000U),
+                (255, 256, 0x3F7E525EU, 0x3F47E5BDU, 0x3F4BDA6FU, 0x3F800000U),
+                (256, 256, 0x3F3CC344U, 0x3F1BF198U, 0x3F1D9D0EU, 0x3F800000U),
+                (499, 256, 0x3EF084D6U, 0x3EFA0EC0U, 0x3EF802ADU, 0x3F800000U),
+                (255, 511, 0x3EE863C8U, 0x3EEF003EU, 0x3EF7475AU, 0x3F800000U),
+                (256, 512, 0x3EE59B8DU, 0x3EE6FB6DU, 0x3EF2CFDEU, 0x3F800000U),
+                (499, 605, 0x3EA0B155U, 0x3E99CF14U, 0x3E9BD20AU, 0x3F800000U)
+            ],
             TestImages.Jxl.Splines => [
                 (0, 0, 0x00000000U, 0x00000000U, 0x00000000U, 0x3F800000U),
                 (64, 378, 0x3E85E841U, 0x3E424F2CU, 0x3E8C2359U, 0x3F800000U),

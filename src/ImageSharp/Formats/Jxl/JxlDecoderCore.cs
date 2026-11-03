@@ -154,6 +154,8 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         // Slots hold native float planes, not displayed pixel images. LF producers replace one slot after success;
         // their dependent frames borrow it without a copy. The whole decode call owns all four slot lifetimes.
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
+        uint visibleFrame = 0;
+        uint nonvisibleFrame = 0;
         try
         {
             while (true)
@@ -163,7 +165,8 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
                 if ((!lowFrequency && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
                     || frame.HasCrop || frame.Size != header.Size
-                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame | JxlFrameHeader.Splines)) != 0)
+                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
+                        | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
                 {
                     throw new NotSupportedException(
                         "JPEG XL decoding currently requires full-canvas LF dependencies followed by a final frame with supported reconstruction flags.");
@@ -182,9 +185,21 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                     dcReference = lowFrequencyFrames[frame.LowFrequencyLevel];
                 }
 
+                // The first displayed frame uses visible seed one. Hidden frames advance the other counter;
+                // a displayed frame resets it. Native noise generation consumes the low 32 bits of each counter.
+                if (frame.IsDisplayed)
+                {
+                    visibleFrame = unchecked(visibleFrame + 1);
+                    nonvisibleFrame = 0;
+                }
+                else
+                {
+                    nonvisibleFrame = unchecked(nonvisibleFrame + 1);
+                }
+
                 using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
                 using JxlFrame reconstructed = this.DecodeFrameData(ref reader, header, frame, sections, dcReference, cancellationToken);
-                reconstructed.Reconstruct(allocator, cancellationToken);
+                reconstructed.Reconstruct(allocator, visibleFrame, nonvisibleFrame, cancellationToken);
 
                 if (lowFrequency)
                 {
@@ -303,6 +318,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 splines = JxlSplines.Read(ref reader, frame, allocator, cancellationToken);
             }
 
+            JxlNoise noise = (frame.Flags & JxlFrameHeader.Noise) != 0 ? JxlNoise.Read(ref reader) : default;
             Vector3 dcFactors = ReadDcQuantization(ref reader);
             varDct = frame.Modular ? null : JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors, dcReference);
             modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, cancellationToken);
@@ -438,7 +454,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
             // The constructor transfers ready owners only after it succeeds. Until then this catch retains
             // all parsed resources, including a failed final validation or allocation of the runtime frame object.
-            return new JxlFrame(header, frame, modular, varDct, dcFactors, splines);
+            return new JxlFrame(header, frame, modular, varDct, dcFactors, splines, noise);
         }
         catch
         {

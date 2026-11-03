@@ -23,6 +23,11 @@ internal sealed class JxlFrame : IDisposable
     private readonly Vector3 dcFactors;
 
     /// <summary>
+    /// The decoded noise strengths. A default value has no active noise and needs no workspace.
+    /// </summary>
+    private readonly JxlNoise noise;
+
+    /// <summary>
     /// The parsed curves retained until native spline reconstruction completes, or null when absent.
     /// </summary>
     private JxlSplines? splines;
@@ -45,10 +50,12 @@ internal sealed class JxlFrame : IDisposable
     /// <param name="varDct">The completed VarDCT owner transferred to this frame, or null for modular color.</param>
     /// <param name="dcFactors">The factors that restore modular XYB integer samples to native float units.</param>
     /// <param name="splines">The complete parsed spline owner transferred to this frame, or null when absent.</param>
+    /// <param name="noise">The complete decoded noise strengths, or the inactive default when absent.</param>
     /// <remarks>
     /// The caller retains ownership if construction fails. A successful constructor transfers the component and spline owners.
     /// </remarks>
-    public JxlFrame(JxlHeader image, JxlFrameHeader header, JxlModularDecoder modular, JxlVarDctDecoder? varDct, Vector3 dcFactors, JxlSplines? splines)
+    public JxlFrame(
+        JxlHeader image, JxlFrameHeader header, JxlModularDecoder modular, JxlVarDctDecoder? varDct, Vector3 dcFactors, JxlSplines? splines, JxlNoise noise)
     {
         this.image = image;
         this.Header = header;
@@ -56,6 +63,7 @@ internal sealed class JxlFrame : IDisposable
         this.VarDct = varDct;
         this.dcFactors = dcFactors;
         this.splines = splines;
+        this.noise = noise;
         this.AlphaExtra = -1;
         this.BlackExtra = -1;
 
@@ -134,12 +142,14 @@ internal sealed class JxlFrame : IDisposable
     /// Completes chroma expansion, restoration, native image features and upsampling before LF storage or displayed output.
     /// </summary>
     /// <param name="allocator">The tracked allocator for the same component planes and row workspaces used by both outputs.</param>
+    /// <param name="visibleFrame">The visible-frame noise seed counter, advanced before this frame.</param>
+    /// <param name="nonvisibleFrame">The nonvisible-frame noise seed counter, advanced or reset before this frame.</param>
     /// <param name="cancellationToken">The token checked between converted rows and reconstruction passes.</param>
     /// <remarks>
     /// Call once after section decoding. Failure leaves every acquired owner attached to this frame for disposal.
     /// No pixel bounds, color conversion or alpha unassociation apply to these native component samples.
     /// </remarks>
-    public void Reconstruct(MemoryAllocator allocator, CancellationToken cancellationToken)
+    public void Reconstruct(MemoryAllocator allocator, uint visibleFrame, uint nonvisibleFrame, CancellationToken cancellationToken)
     {
         JxlFrameHeader frame = this.Header;
         JxlModularDecoder modular = this.Modular;
@@ -159,7 +169,7 @@ internal sealed class JxlFrame : IDisposable
         {
             varDct.ApplyRestoration(frame, allocator, cancellationToken);
         }
-        else if (this.image.UsesXybTransform || colorFactor > 1 || subsampled || restore || this.splines is not null
+        else if (this.image.UsesXybTransform || colorFactor > 1 || subsampled || restore || this.splines is not null || this.noise.HasAny
             || frame.Type == JxlFrameHeader.FrameType.LowFrequency)
         {
             // Native modular RGB stays integer unless a spatial operation or LF storage requires float planes.
@@ -235,6 +245,13 @@ internal sealed class JxlFrame : IDisposable
                 this.UpsampledBlack = this.UpsampleExtraChannel(this.BlackExtra, upsampler, blackFactor, allocator, cancellationToken);
             }
         }
+
+        // Noise uses final-resolution native components. Applying it before upsampling changes its spatial
+        // spectrum; applying it after color conversion changes its channel correlation and strength lookup.
+        // The generator uses frame counters and output-space group origins, as native Random3Planes does.
+        ReadOnlySpan<Buffer2D<float>> noiseColors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
+        Vector2 noiseCorrelation = varDct is null ? Vector2.UnitY : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
+        this.noise.Apply(noiseColors, frame.OutputSize, frame.GroupSize, noiseCorrelation, visibleFrame, nonvisibleFrame, allocator, cancellationToken);
     }
 
     /// <summary>
@@ -291,11 +308,11 @@ internal sealed class JxlFrame : IDisposable
         JxlModularDecoder modular = this.Modular;
         int colorCount = modular.ColorChannelCount;
 
-        // LF slots, restoration and spline reconstruction require three distinct component planes.
-        // Native modular gray initializes all three before component-specific filtering or spline additions.
+        // LF slots, restoration, splines and noise require three distinct component planes.
+        // Native modular gray initializes all three before component-specific filtering or additions.
         // Unfiltered ordinary gray needs one owner; the color converter borrows that row three times.
         bool restore = frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0;
-        int planeCount = restore || this.splines is not null || frame.Type == JxlFrameHeader.FrameType.LowFrequency ? 3 : colorCount;
+        int planeCount = restore || this.splines is not null || this.noise.HasAny || frame.Type == JxlFrameHeader.FrameType.LowFrequency ? 3 : colorCount;
         Buffer2D<float>[] planes = new Buffer2D<float>[planeCount];
         int allocated = 0;
         try

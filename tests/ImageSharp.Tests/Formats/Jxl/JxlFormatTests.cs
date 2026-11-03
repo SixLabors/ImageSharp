@@ -781,6 +781,131 @@ public class JxlFormatTests
     }
 
     /// <summary>
+    /// Verifies required ICC conversion, profile retention and straight alpha through the public decoder.
+    /// </summary>
+    /// <param name="file">The stored ICC-bearing input.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.WithIcc)]
+    [InlineData(TestImages.Jxl.LinearRgbaWithIcc)]
+    [InlineData(TestImages.Jxl.CmykFirstFrame)]
+    [InlineData(TestImages.Jxl.CmykFourthFrame)]
+    public void DecodeIccMatchesNativeSrgb(string file)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateIccPixels,
+            file,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks independently converted float samples with each profile-retention and optional-metadata setting.
+    /// </summary>
+    /// <param name="file">The stored ICC-bearing input.</param>
+    /// <remarks>
+    /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153 decoded the source samples and profiles.
+    /// Its default CMS generated the RGB and grayscale results with relative-colorimetric sRGB output.
+    /// The CMYK results use LittleCMS 2.17, relative-colorimetric intent and the exact CompactSrgbV4 target profile.
+    /// Black-point compensation is disabled to match the shared converter. Libjxl enables it by default.
+    /// LittleCMS flags 0 and NOOPTIMIZE produce identical CMYK results across both complete images.
+    /// All inputs retain their original orientation. Native and jxl-rs independently agree on their source samples and profiles.
+    /// </remarks>
+    private static void ValidateIccPixels(string file)
+    {
+        Size size = file switch
+        {
+            TestImages.Jxl.LinearRgbaWithIcc => new Size(4, 1),
+            TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
+            TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
+            _ => new Size(169, 118)
+        };
+
+        string profileHash = file switch
+        {
+            TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
+            TestImages.Jxl.CmykFirstFrame or TestImages.Jxl.CmykFourthFrame => "4855B8FABB96BDC6495D45D089BB8C8EFB1AE18389E0DC9E75A5F701A9C0B662",
+            _ => "92AAEE40521D7671DBC901DFC88CC36CB83D41766B2C466FF97268EE5AB0C577"
+        };
+
+        ReadOnlySpan<(int X, int Y, uint R, uint G, uint B, uint A)> points = file switch
+        {
+            TestImages.Jxl.LinearRgbaWithIcc => [
+                (0, 0, 0x3EC757B7U, 0x3F09BE2EU, 0x3F3C8B7DU, 0x3F800000U),
+                (1, 0, 0x3F3C983AU, 0x3F505365U, 0x3F61D67BU, 0x3F800000U),
+                (2, 0, 0x3F71CF19U, 0x3F25AF24U, 0x3EF121B2U, 0x3F008081U),
+                (3, 0, 0x3E8E478BU, 0x3EF12F54U, 0x3F1881C6U, 0x00000000U)
+            ],
+            TestImages.Jxl.CmykFirstFrame => [
+                (0, 0, 0x3F7FFFD0U, 0x3F80000AU, 0x3F7FFFC7U, 0x3F800000U),
+                (196, 134, 0xBE714484U, 0x3F38FA64U, 0x3F3502D5U, 0x3F800000U),
+                (104, 138, 0xBE6BB4AEU, 0x3F38F04DU, 0x3F3461A7U, 0x3F800000U),
+                (124, 150, 0x3EF20B0CU, 0x3F4D10C4U, 0x3F4C6D60U, 0x3F800000U),
+                (123, 146, 0x3F06D734U, 0x3F513A30U, 0x3F50CF97U, 0x3F800000U),
+                (237, 160, 0x3F3D9024U, 0x3F64E016U, 0x3F657F4EU, 0x3F800000U)
+            ],
+            TestImages.Jxl.CmykFourthFrame => [
+                (6, 0, 0x3F7FFFD0U, 0x3F80000AU, 0x3F7FFFC7U, 0x00000000U),
+                (0, 0, 0x3E5D33BCU, 0x3E546DF1U, 0x3E5655B9U, 0x3E40C0C2U),
+                (1, 1, 0x3E5D33BCU, 0x3E546DF1U, 0x3E5655B9U, 0x3F800000U),
+                (1, 0, 0x3E5D33BCU, 0x3E546DF1U, 0x3E5655B9U, 0x3E808081U),
+                (105, 21, 0x3E5D33BCU, 0x3E546DF1U, 0x3E5655B9U, 0x3F008081U),
+                (0, 1, 0x3E5D33BCU, 0x3E546DF1U, 0x3E5655B9U, 0x3F40C0C2U)
+            ],
+            _ => [
+                (0, 0, 0x00000000U, 0x00000000U, 0x00000000U, 0x3F800000U),
+                (167, 9, 0x3D70F0F2U, 0x3D70F0F2U, 0x3D70F0F2U, 0x3F018182U),
+                (168, 9, 0x3E24A4A5U, 0x3E24A4A5U, 0x3E24A4A5U, 0x3F018182U),
+                (168, 8, 0x3EEAEAECU, 0x3EEAEAECU, 0x3EEAEAECU, 0x3DC0C0C2U),
+                (165, 6, 0x00000000U, 0x00000000U, 0x00000000U, 0x3DB8B8B9U),
+                (163, 2, 0x00000000U, 0x00000000U, 0x00000000U, 0x3F018182U)
+            ]
+        };
+
+        Configuration configuration = new(new JxlConfigurationModule());
+        byte[] data = TestFile.Create(file).Bytes;
+        foreach (ColorProfileHandling handling in new[] { ColorProfileHandling.Preserve, ColorProfileHandling.Compact, ColorProfileHandling.Convert })
+        {
+            foreach (bool skipMetadata in new[] { false, true })
+            {
+                DecoderOptions options = new(configuration) { ColorProfileHandling = handling, SkipMetadata = skipMetadata };
+                using MemoryStream input = new(data, false);
+                using Image<RgbaVector> image = Image.Load<RgbaVector>(options, input);
+                Assert.Equal(size, image.Size);
+
+                // All policies convert pixels. Only Convert removes these noncanonical original profiles;
+                // SkipMetadata must not remove the ICC data needed to interpret the coded samples.
+                if (handling == ColorProfileHandling.Convert)
+                {
+                    Assert.Null(image.Metadata.IccProfile);
+                }
+                else
+                {
+                    Assert.NotNull(image.Metadata.IccProfile);
+                    Assert.Equal(profileHash, Convert.ToHexString(SHA256.HashData(image.Metadata.IccProfile.ToByteArray())));
+                }
+
+                foreach ((int x, int y, uint r, uint g, uint b, uint a) in points)
+                {
+                    Vector4 actual = image[x, y].ToVector4();
+                    Vector4 expected = new(
+                        BitConverter.UInt32BitsToSingle(r), BitConverter.UInt32BitsToSingle(g),
+                        BitConverter.UInt32BitsToSingle(b), BitConverter.UInt32BitsToSingle(a));
+
+                    // CompandingTests establishes the shared power bound. The linear RGB input changes
+                    // by up to 0.287 during native ICC conversion, so omitting that conversion fails this check.
+                    for (int component = 0; component < 3; component++)
+                    {
+                        float bound = .0005F * MathF.Max(1F, MathF.Abs(expected[component]));
+                        Assert.True(MathF.Abs(actual[component] - expected[component]) <= bound,
+                            $"{file}, ({x},{y}), component {component}: {actual[component]:R}, native {expected[component]:R}.");
+                    }
+
+                    // Alpha bypasses ICC. Permit only its existing integer-to-float normalization rounding,
+                    // including retention of straight RGB at zero alpha in the final linear-RGB sample.
+                    Assert.InRange(MathF.Abs(actual.W - expected.W), 0F, .0000001F);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Verifies the public format identifiers.
     /// </summary>
     [Fact]

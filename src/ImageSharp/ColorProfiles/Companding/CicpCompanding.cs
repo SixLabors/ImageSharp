@@ -66,49 +66,9 @@ internal static partial class CicpCompanding
     private const float SrgbBeta = 0.0030412825601275209F;
 
     /// <summary>
-    /// The SMPTE ST 2084 first rational constant.
-    /// </summary>
-    private const float PqC1 = 0.8359375F;
-
-    /// <summary>
-    /// The SMPTE ST 2084 numerator scale.
-    /// </summary>
-    private const float PqC2 = 18.8515625F;
-
-    /// <summary>
-    /// The SMPTE ST 2084 denominator scale.
-    /// </summary>
-    private const float PqC3 = 18.6875F;
-
-    /// <summary>
-    /// The SMPTE ST 2084 outer exponent.
-    /// </summary>
-    private const float PqM = 78.84375F;
-
-    /// <summary>
-    /// The SMPTE ST 2084 inner exponent.
-    /// </summary>
-    private const float PqN = 0.1593017578125F;
-
-    /// <summary>
     /// The SMPTE ST 428 luminance normalization factor.
     /// </summary>
     private const float Smpte428Scale = 0.91655527974030934F;
-
-    /// <summary>
-    /// The HLG logarithmic scale.
-    /// </summary>
-    private const float HlgA = 0.17883277F;
-
-    /// <summary>
-    /// The HLG logarithmic offset.
-    /// </summary>
-    private const float HlgB = 0.28466892F;
-
-    /// <summary>
-    /// The HLG output offset.
-    /// </summary>
-    private const float HlgC = 0.55991073F;
 
     /// <summary>
     /// Expands RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.

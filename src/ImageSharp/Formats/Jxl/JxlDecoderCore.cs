@@ -3,16 +3,12 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -167,50 +163,10 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
                 if ((!lowFrequency && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
                     || frame.HasCrop || frame.Size != header.Size
-                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame)) != 0
-                    || (frame.Upsampling != 1 && frame.Modular && !lowFrequency)
-                    || (frame.Modular && (frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0)))
+                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame)) != 0)
                 {
                     throw new NotSupportedException(
-                        "JPEG XL decoding currently requires full-canvas LF dependencies followed by a final frame without image features. "
-                        + "Upsampling of modular frames is not yet supported.");
-                }
-
-                // Native compact RGB must already use sRGB primaries and D65. A compact gamma changes only
-                // the transfer curve, so shared companders can convert it without a matrix or another image buffer.
-                // XYB has its own transform to sRGB, independent of the original profile's suggested output space.
-                // Native RGB with other primaries, ICC, floating representations and YCbCr need their own output conversion.
-                if ((frame.Modular && header.UsesXybTransform && !lowFrequency) || frame.YCbCr
-                    || (lowFrequency && frame.Modular && !header.UsesXybTransform)
-                    || (!header.UsesXybTransform && (header.HasIccProfile || header.Metadata.BitDepth.ExponentBits != 0
-                    || (!header.Gamma.HasValue && header.TransferCharacteristics != CicpTransferCharacteristics.Iec61966_2_1)
-                    || header.WhitePoint != KnownIlluminants.D65Chromaticity
-                    || !header.Primaries.Equals(KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates))))
-                {
-                    throw new NotSupportedException("JPEG XL color transformation and floating-point reconstruction are not yet supported.");
-                }
-
-                int colorCount = !header.UsesXybTransform && header.ProfileColorType == JxlColorType.Luminance ? 1 : 3;
-                int alphaChannel = -1;
-                JxlBitDepth alphaDepth = header.Metadata.BitDepth;
-                PixelAlphaRepresentation alphaRepresentation = PixelAlphaRepresentation.Unassociated;
-                if (header.Metadata.ExtraChannels.Count > 1)
-                {
-                    throw new NotSupportedException("JPEG XL reconstruction of multiple extra channels is not yet supported.");
-                }
-
-                if (header.Metadata.ExtraChannels.Count == 1)
-                {
-                    JxlExtraChannelMetadata alpha = header.Metadata.ExtraChannels[0];
-                    if (alpha.Type != JxlExtraChannelType.Alpha || alpha.BitDepth.ExponentBits != 0
-                        || (frame.Modular && frame.ExtraChannelUpsampling[0] != 1))
-                    {
-                        throw new NotSupportedException("JPEG XL reconstruction requires integer alpha. Modular alpha must have full resolution.");
-                    }
-
-                    alphaChannel = frame.Modular ? colorCount : 0;
-                    alphaDepth = alpha.BitDepth;
-                    alphaRepresentation = alpha.AlphaRepresentation;
+                        "JPEG XL decoding currently requires full-canvas LF dependencies followed by a final frame without image features.");
                 }
 
                 Buffer2D<float>[]? dcReference = null;
@@ -232,20 +188,29 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
 
                 using JxlModularDecoder modular = reconstructed.Modular;
                 using JxlVarDctDecoder? varDct = reconstructed.VarDct;
-                using Buffer2D<float>? upsampledAlpha = varDct is null
-                    ? null
-                    : this.UpsampleVarDctFrame(header, frame, varDct, modular, lowFrequency ? -1 : alphaChannel, cancellationToken);
-
                 if (lowFrequency)
                 {
                     // Native LF slots contain restored component samples before color conversion, alpha unassociation or pixel packing.
                     // Transfer the VarDCT planes directly. Modular XYB first restores its signed integer channels to these same float units.
+                    if (varDct is not null && frame.Upsampling > 1)
+                    {
+                        using JxlUpsampler upsampler = new(header, frame.OutputSize, frame.CodingSize, frame.Upsampling, allocator);
+                        varDct.ApplyUpsampling(upsampler, frame.Upsampling, cancellationToken);
+                    }
+
                     Buffer2D<float>[] planes = varDct is not null
                         ? varDct.TakeReconstructedChannels()
-                        : modular.ReconstructXyb(frame, reconstructed.DcFactors, cancellationToken);
+                        : header.UsesXybTransform
+                            ? modular.ReconstructXyb(frame, reconstructed.DcFactors, cancellationToken)
+                            : this.ReconstructNativeModularColors(header, frame, modular, cancellationToken);
 
                     try
                     {
+                        if (varDct is null)
+                        {
+                            this.RestoreModularColors(frame, modular, planes, cancellationToken);
+                        }
+
                         if (varDct is null && frame.Upsampling > 1)
                         {
                             using JxlUpsampler upsampler = new(header, frame.OutputSize, frame.CodingSize, frame.Upsampling, allocator);
@@ -295,72 +260,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                         frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
                     }
 
-                    if (varDct is not null)
-                    {
-                        this.PackVarDctFrame(
-                            header,
-                            varDct,
-                            modular,
-                            destination,
-                            upsampledAlpha?.GetRegion(),
-                            alphaChannel,
-                            alphaDepth,
-                            alphaRepresentation,
-                            cancellationToken);
-
-                        this.CompleteMetadata(codestream, header, metadata, cancellationToken);
-                        return image;
-                    }
-
-                    // Integer channels retain their native precision through prediction and inverse transforms.
-                    // Convert and normalize once into a reusable vector row, then let the pixel API own storage bounds and rounding.
-                    float colorMaximum = (1U << header.Metadata.BitDepth.BitsPerSample) - 1;
-                    float alphaMaximum = (1U << alphaDepth.BitsPerSample) - 1;
-                    Vector4 maximum = new(colorMaximum, colorMaximum, colorMaximum, alphaMaximum);
-                    bool convertGamma = header.Gamma.HasValue;
-                    double expansionGamma = 1D;
-                    if (header.Gamma is Rational compressionGamma)
-                    {
-                        // JPEG XL stores the compression exponent. GammaCompanding.Expand takes its reciprocal,
-                        // the exponent that restores linear RGB. Keep the encoded ratio until this shared API boundary.
-                        expansionGamma = (double)compressionGamma.Denominator / compressionGamma.Numerator;
-                    }
-
-                    using IMemoryOwner<Vector4> rowOwner = allocator.Allocate<Vector4>(header.Size.Width);
-                    Span<Vector4> vectors = rowOwner.Memory.Span;
-                    PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
-                    for (int y = 0; y < image.Height; y++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        ReadOnlySpan<int> red = modular.GetChannel(0).DangerousGetRowSpan(y);
-                        ReadOnlySpan<int> green = colorCount == 1 ? red : modular.GetChannel(1).DangerousGetRowSpan(y);
-                        ReadOnlySpan<int> blue = colorCount == 1 ? red : modular.GetChannel(2).DangerousGetRowSpan(y);
-                        ReadOnlySpan<int> alpha = alphaChannel == -1 ? [] : modular.GetChannel(alphaChannel).DangerousGetRowSpan(y);
-                        SimdUtils.PackedNormalizeInterleave4(red, green, blue, alpha, MemoryMarshal.Cast<Vector4, float>(vectors), maximum);
-
-                        if (convertGamma)
-                        {
-                            // Transfer curves act on straight RGB. The shared alpha operation handles zero alpha
-                            // and finite result bounds; both companders leave alpha unchanged in the same vector row.
-                            if (alphaRepresentation == PixelAlphaRepresentation.Associated)
-                            {
-                                PixelOperations.UnPremultiply(vectors, vectors);
-                            }
-
-                            GammaCompanding.Expand(vectors, expansionGamma);
-                            SRgbCompanding.Compress(vectors);
-                        }
-
-                        Span<TPixel> pixels = destination.PixelBuffer.DangerousGetRowSpan(y);
-                        if (!convertGamma && alphaRepresentation == PixelAlphaRepresentation.Associated)
-                        {
-                            operations.FromAssociatedScaledVector4Destructive(this.Options.Configuration, vectors, pixels);
-                        }
-                        else
-                        {
-                            operations.FromUnassociatedScaledVector4Destructive(this.Options.Configuration, vectors, pixels);
-                        }
-                    }
+                    this.PackFrame(header, frame, modular, varDct, reconstructed.DcFactors, destination, cancellationToken);
 
                     this.CompleteMetadata(codestream, header, metadata, cancellationToken);
                     return image;

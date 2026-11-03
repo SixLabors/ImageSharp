@@ -4,11 +4,63 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
-internal sealed partial class JxlVarDctDecoder
+internal sealed partial class JxlUpsampler
 {
+    /// <summary>
+    /// Expands one subsampled color plane in place to the coding-resolution rectangle.
+    /// </summary>
+    /// <param name="plane">The final-capacity plane, with source samples in its top-left rectangle.</param>
+    /// <param name="sourceSize">The positive original sample dimensions.</param>
+    /// <param name="targetSize">The positive coding dimensions after chroma expansion.</param>
+    /// <param name="horizontalShift">The validated horizontal subsampling shift, zero or one.</param>
+    /// <param name="verticalShift">The validated vertical subsampling shift, zero or one.</param>
+    /// <param name="cancellationToken">The token checked between physical rows.</param>
+    /// <remarks>
+    /// Cached shifts select the operations even when a one-sample source and its output have equal extents.
+    /// Each axis uses the format's three-tap quarter/three-quarter weights before restoration and color conversion.
+    /// The kernels read every contributing input before overlapping output stores. No extra plane or row allocation is needed.
+    /// </remarks>
+    public static void ExpandChroma(
+        Buffer2D<float> plane,
+        Size sourceSize,
+        Size targetSize,
+        int horizontalShift,
+        int verticalShift,
+        CancellationToken cancellationToken)
+    {
+        Size current = sourceSize;
+        if (horizontalShift != 0)
+        {
+            for (int y = 0; y < current.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                ExpandChromaHorizontal(plane.DangerousGetRowSpan(y)[..targetSize.Width], current.Width);
+            }
+
+            current = new Size(targetSize.Width, current.Height);
+        }
+
+        if (verticalShift != 0)
+        {
+            // Reverse expansion preserves all source rows until their last use. The vertical kernel
+            // loads its three input values before either store, including aliases at the upper border.
+            for (int y = current.Height - 1; y >= 0; y--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                ReadOnlySpan<float> top = plane.DangerousGetRowSpan(Math.Max(y - 1, 0))[..current.Width];
+                ReadOnlySpan<float> middle = plane.DangerousGetRowSpan(y)[..current.Width];
+                ReadOnlySpan<float> bottom = plane.DangerousGetRowSpan(Math.Min(y + 1, current.Height - 1))[..current.Width];
+                Span<float> first = plane.DangerousGetRowSpan(2 * y)[..current.Width];
+                Span<float> second = (2 * y) + 1 < targetSize.Height ? plane.DangerousGetRowSpan((2 * y) + 1)[..current.Width] : [];
+                ExpandChromaVertical(top, middle, bottom, first, second);
+            }
+        }
+    }
+
     /// <summary>
     /// Expands a subsampled row in place using the native three-quarter center and one-quarter adjacent weights.
     /// </summary>

@@ -1809,6 +1809,15 @@ public static class TestImages
 
         public const string WidthExceedsInt32 = "Jxl/width-exceeds-int32.jxl";
 
+        // Original libjxl 91837342b24034078780b687f57f670a7def8153 encoded Png/icc-profiles/issue-3216-linear.png
+        // with lossless modular coding at effort one. The four source pixels and their embedded linear RGB profile are unchanged.
+        public const string LinearRgbaWithIcc = "Jxl/linear_rgba_with_icc.jxl";
+
+        // Original libjxl writers retain the first and fourth CmykLayers frames as separate final images.
+        // The fourth frame's 110-by-68 source rectangle has origin zero. Every coded section and ICC byte is unchanged.
+        public const string CmykFirstFrame = "Jxl/cmyk_layers_first_frame.jxl";
+        public const string CmykFourthFrame = "Jxl/cmyk_layers_fourth_frame.jxl";
+
         // Additional original fixtures come from jxl-rs jxl/resources/test at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
         public const string WithIcc = "Jxl/with_icc.jxl";
         public const string LossyWithIcc = "Jxl/lossy_with_icc.jxl";

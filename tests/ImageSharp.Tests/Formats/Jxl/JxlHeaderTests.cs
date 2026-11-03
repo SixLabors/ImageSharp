@@ -8,6 +8,7 @@ using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
+using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
@@ -26,6 +27,119 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public partial class JxlHeaderTests
 {
+    /// <summary>
+    /// Verifies native integer rounding and exact IEEE floating layouts before color conversion or pixel packing.
+    /// </summary>
+    [Fact]
+    public void SampleConversionPreservesNativePrecisionAndFloatingEncodings()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSampleConversion,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks independent native arithmetic and IEEE encodings for every conversion mode and SIMD remainder.
+    /// </summary>
+    /// <remarks>
+    /// Integer normalization follows libjxl revision 91837342b24034078780b687f57f670a7def8153,
+    /// lib/jxl/dec_modular.cc, SingleFromSingle and SingleFromSingleAccurate. From 23 bits, the exact integer
+    /// multiplies the double factor before one final float rounding. In particular, 16777217 at 31-bit depth
+    /// rounds to 0x3C000001; converting that integer to float first loses one level and produces 0x3C000000.
+    /// Floating expectations are literal IEEE bits for signed zero, powers of two, endpoint mantissas, infinity and NaN payloads.
+    /// They also follow the original int_to_float layout and jxl-rs render/stages/convert.rs custom_float_sample_to_f32.
+    /// No expected value uses the ImageSharp conversion or a round trip through another color model.
+    /// </remarks>
+    private static void ValidateSampleConversion()
+    {
+        ValidateSampleConversionPeriod(new(1, 0), [0U, 1U, uint.MaxValue], [0x00000000U, 0x3F800000U, 0xBF800000U]);
+        ValidateSampleConversionPeriod(new(8, 0), [0U, 1U, 255U, uint.MaxValue], [0x00000000U, 0x3B808081U, 0x3F800000U, 0xBB808081U]);
+        ValidateSampleConversionPeriod(new(22, 0), [0U, 1U, 4194303U, uint.MaxValue], [0x00000000U, 0x34800002U, 0x3F800000U, 0xB4800002U]);
+        ValidateSampleConversionPeriod(new(23, 0), [0U, 1U, 8388607U, uint.MaxValue], [0x00000000U, 0x34000001U, 0x3F800000U, 0xB4000001U]);
+        ValidateSampleConversionPeriod(
+            new(31, 0),
+            [0U, 1U, 16777217U, 1073741889U, 0x7FFFFFFFU, 0x80000000U, 0xFEFFFFFFU],
+            [0x00000000U, 0x30000000U, 0x3C000001U, 0x3F000001U, 0x3F800000U, 0xBF800000U, 0xBC000001U]);
+
+        // Full binary32 values are bit carriers. Include a subnormal, HDR value and signed NaN payloads;
+        // the conversion must not perform arithmetic or apply the destination pixel's finite range.
+        ReadOnlySpan<uint> binary32 =
+        [
+            0x00000000U, 0x80000000U, 0x00000001U, 0x007FFFFFU, 0x00800000U, 0x3F800000U,
+            0xBF800000U, 0x47800000U, 0x7F800000U, 0xFF800000U, 0x7FC12345U, 0xFFC54321U
+        ];
+
+        ValidateSampleConversionPeriod(new(32, 8), binary32, binary32);
+        ValidateSampleConversionPeriod(
+            new(16, 5),
+            [0x0000U, 0x8000U, 0x0001U, 0x03FFU, 0x0400U, 0x3C00U, 0xBC00U, 0x7BFFU, 0x7C00U, 0xFC00U, 0x7E55U],
+            [0x00000000U, 0x80000000U, 0x33800000U, 0x387FC000U, 0x38800000U, 0x3F800000U,
+             0xBF800000U, 0x477FE000U, 0x7F800000U, 0xFF800000U, 0x7FCAA000U]);
+
+        // An eight-bit exponent retains binary32's bias and subnormal exponent. Only the two mantissa bits expand.
+        ValidateSampleConversionPeriod(
+            new(11, 8),
+            [0x000U, 0x400U, 0x001U, 0x003U, 0x004U, 0x1FCU, 0x5FCU, 0x3FBU, 0x3FCU, 0x7FCU, 0x3FFU],
+            [0x00000000U, 0x80000000U, 0x00200000U, 0x00600000U, 0x00800000U, 0x3F800000U,
+             0xBF800000U, 0x7F600000U, 0x7F800000U, 0xFF800000U, 0x7FE00000U]);
+
+        // Two-bit mantissas make the custom bias cases exact binary fractions. The columns below are
+        // the smallest and largest subnormal, the smallest normal, and the largest finite value, in that order.
+        ReadOnlySpan<(byte Exponent, uint SmallestSubnormal, uint LargestSubnormal, uint SmallestNormal, uint LargestFinite)> custom =
+        [
+            (2, 0x3E800000U, 0x3F400000U, 0x3F800000U, 0x40600000U),
+            (3, 0x3D800000U, 0x3E400000U, 0x3E800000U, 0x41600000U),
+            (4, 0x3B800000U, 0x3C400000U, 0x3C800000U, 0x43600000U),
+            (5, 0x37800000U, 0x38400000U, 0x38800000U, 0x47600000U),
+            (6, 0x2F800000U, 0x30400000U, 0x30800000U, 0x4F600000U),
+            (7, 0x1F800000U, 0x20400000U, 0x20800000U, 0x5F600000U)
+        ];
+
+        foreach (var sample in custom)
+        {
+            // Construct encoded input fields only. Expected float bits above are independent powers-of-two values.
+            uint sign = 1U << (sample.Exponent + 2);
+            uint exponent = (1U << sample.Exponent) - 1U;
+            uint one = ((1U << (sample.Exponent - 1)) - 1U) << 2;
+            ValidateSampleConversionPeriod(
+                new((byte)(sample.Exponent + 3), sample.Exponent),
+                [0U, sign, 1U, 3U, 4U, one, sign | one, ((exponent - 1) << 2) | 3U, exponent << 2, sign | (exponent << 2), (exponent << 2) | 3U],
+                [0x00000000U, 0x80000000U, sample.SmallestSubnormal, sample.LargestSubnormal, sample.SmallestNormal, 0x3F800000U,
+                 0xBF800000U, sample.LargestFinite, 0x7F800000U, 0xFF800000U, 0x7FE00000U]);
+        }
+
+        // The widest custom mantissa needs no left shift. Its smallest nonzero value is exactly 2^-85.
+        ValidateSampleConversionPeriod(
+            new(31, 7),
+            [0U, 0x40000000U, 1U, 0x007FFFFFU, 0x00800000U, 0x1F800000U, 0x5F800000U, 0x3F7FFFFFU, 0x3F800000U, 0x3FC00001U],
+            [0x00000000U, 0x80000000U, 0x15000000U, 0x207FFFFEU, 0x20800000U,
+             0x3F800000U, 0xBF800000U, 0x5F7FFFFFU, 0x7F800000U, 0x7FC00001U]);
+    }
+
+    /// <summary>
+    /// Checks one sample period over a full row with vector tails and untouched destination guards.
+    /// </summary>
+    /// <param name="bitDepth">The validated source layout.</param>
+    /// <param name="samples">The independently constructed integer carriers or floating-point encodings.</param>
+    /// <param name="expected">The corresponding exact float representations.</param>
+    private static void ValidateSampleConversionPeriod(JxlBitDepth bitDepth, ReadOnlySpan<uint> samples, ReadOnlySpan<uint> expected)
+    {
+        int[] source = new int[33];
+        float[] storage = new float[35];
+        storage.AsSpan().Fill(1.25F);
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = unchecked((int)samples[i % samples.Length]);
+        }
+
+        JxlSampleConverter.Convert(source, storage.AsSpan(1), bitDepth);
+        for (int i = 0; i < source.Length; i++)
+        {
+            Assert.Equal(expected[i % expected.Length], BitConverter.SingleToUInt32Bits(storage[i + 1]));
+        }
+
+        Assert.Equal(1.25F, storage[0]);
+        Assert.Equal(1.25F, storage[^1]);
+    }
+
     /// <summary>
     /// Verifies exact predictor weights and signed error properties at magnitude boundaries on every SIMD path.
     /// </summary>

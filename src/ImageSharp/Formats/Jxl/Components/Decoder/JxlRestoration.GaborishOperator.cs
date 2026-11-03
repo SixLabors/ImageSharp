@@ -5,9 +5,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
-internal sealed partial class JxlVarDctDecoder
+internal static partial class JxlRestoration
 {
     /// <summary>
     /// Applies one normalized Gaborish row to logical source rows with mirrored horizontal borders.

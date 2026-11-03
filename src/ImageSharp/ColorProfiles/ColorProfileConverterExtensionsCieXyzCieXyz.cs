@@ -74,7 +74,39 @@ public static class ColorProfileConverterExtensionsCieXyzCieXyz
 
         // Convert to input PCS.
         using IMemoryOwner<CieXyz> pcsFromOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-        Span<CieXyz> pcsFrom = pcsFromOwner.GetSpan();
+        converter.Convert(source, destination, pcsFromOwner.GetSpan());
+    }
+
+    /// <summary>
+    /// Converts color values with caller-owned CIE XYZ scratch storage.
+    /// </summary>
+    /// <remarks>
+    /// The source and destination spans can overlap. The scratch span must not overlap either span.
+    /// This method does not retain the scratch storage. ICC conversion does not use the scratch span.
+    /// </remarks>
+    /// <typeparam name="TFrom">The source profile type, which connects through CIE XYZ.</typeparam>
+    /// <typeparam name="TTo">The destination profile type, which connects through CIE XYZ.</typeparam>
+    /// <param name="converter">The converter with the source and destination color settings.</param>
+    /// <param name="source">The source color values.</param>
+    /// <param name="destination">Storage for at least as many colors as the source.</param>
+    /// <param name="scratch">Temporary XYZ storage for at least as many colors as the source. Ignored for ICC conversion.</param>
+    public static void Convert<TFrom, TTo>(
+        this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination, Span<CieXyz> scratch)
+        where TFrom : struct, IColorProfile<TFrom, CieXyz>
+        where TTo : struct, IColorProfile<TTo, CieXyz>
+    {
+        if (converter.ShouldUseIccProfiles())
+        {
+            converter.ConvertUsingIccProfile(source, destination);
+            return;
+        }
+
+        Guard.DestinationShouldNotBeTooShort(source, scratch, nameof(scratch));
+        ColorConversionOptions options = converter.Options;
+        Span<CieXyz> pcsFrom = scratch[..source.Length];
+
+        // Convert the complete source before writing destination colors. This preserves source/destination
+        // overlap behavior and lets callers reuse one independent XYZ row across successive conversions.
         TFrom.ToProfileConnectionSpace(options, source, pcsFrom);
 
         // Adapt to target white point

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// <remarks>
 /// Retains one kernel and row workspace for all color and extra-channel planes in a frame.
 /// </remarks>
-internal sealed class JxlUpsampler : IDisposable
+internal sealed partial class JxlUpsampler : IDisposable
 {
     private const int UpsamplingRadius = 2;
     private const int UpsamplingDiameter = 5;

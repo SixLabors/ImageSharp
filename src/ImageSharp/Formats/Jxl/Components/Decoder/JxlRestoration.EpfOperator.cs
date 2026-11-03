@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
+namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
-internal sealed partial class JxlVarDctDecoder
+internal static partial class JxlRestoration
 {
     /// <summary>
     /// Defines one EPF pass's neighbor accumulation independently of shared row traversal and normalization.

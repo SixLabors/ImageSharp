@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
@@ -88,6 +89,73 @@ public class RgbWorkingSpaceTests
 
         Assert.NotEqual(x, y);
         Assert.NotEqual(x.GetHashCode(), y.GetHashCode());
+    }
+
+    /// <summary>
+    /// Checks that HDR working-space identity includes the display peak.
+    /// </summary>
+    [Fact]
+    public void HdrWorkingSpaceEqualityIncludesPeakLuminance()
+    {
+        RgbWorkingSpace primaries = KnownRgbWorkingSpaces.SRgb;
+        PqWorkingSpace pq = new(255F, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        PqWorkingSpace samePq = new(255F, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        PqWorkingSpace otherPq = new(1000F, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        HlgWorkingSpace hlg = new(255F, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        HlgWorkingSpace sameHlg = new(255F, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        HlgWorkingSpace otherHlg = new(1000F, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+
+        Assert.Equal(pq, samePq);
+        Assert.Equal(pq.GetHashCode(), samePq.GetHashCode());
+        Assert.NotEqual(pq, otherPq);
+        Assert.Equal(hlg, sameHlg);
+        Assert.Equal(hlg.GetHashCode(), sameHlg.GetHashCode());
+        Assert.NotEqual(hlg, otherHlg);
+        Assert.NotEqual<RgbWorkingSpace>(pq, hlg);
+    }
+
+    /// <summary>
+    /// Checks invalid luminance at the public HDR construction and companding boundaries.
+    /// </summary>
+    /// <param name="peak">The invalid display peak.</param>
+    [Theory]
+    [InlineData(0F)]
+    [InlineData(-1F)]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    public void HdrWorkingSpacesRejectInvalidPeakLuminance(float peak)
+    {
+        RgbWorkingSpace primaries = KnownRgbWorkingSpaces.SRgb;
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PqWorkingSpace(peak, primaries.WhitePoint, primaries.ChromaticityCoordinates));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new HlgWorkingSpace(peak, primaries.WhitePoint, primaries.ChromaticityCoordinates));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PqCompanding.Expand(Vector4.Zero, peak));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PqCompanding.Compress(Vector4.Zero, peak));
+    }
+
+    /// <summary>
+    /// Checks the float normalization limit before an infinite PQ factor can turn black into NaN.
+    /// </summary>
+    [Fact]
+    public void PqWorkingSpaceRejectsUnrepresentableNormalization()
+    {
+        RgbWorkingSpace primaries = KnownRgbWorkingSpaces.SRgb;
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PqWorkingSpace(float.Epsilon, primaries.WhitePoint, primaries.ChromaticityCoordinates));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PqCompanding.Expand(Vector4.Zero, float.Epsilon));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PqCompanding.Compress(Vector4.Zero, float.Epsilon));
+    }
+
+    /// <summary>
+    /// Checks the positive finite HLG peak domain when division by 1000 would underflow before the prepared logarithm.
+    /// </summary>
+    [Fact]
+    public void HlgWorkingSpaceSupportsSubnormalPeakLuminance()
+    {
+        RgbWorkingSpace primaries = KnownRgbWorkingSpaces.SRgb;
+        HlgWorkingSpace workingSpace = new(float.Epsilon, primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        Assert.True(float.IsFinite(workingSpace.SystemGamma));
+        Assert.True(workingSpace.SystemGamma > 0F);
+        Assert.Equal(Vector4.Zero, workingSpace.Expand(Vector4.Zero));
+        Assert.Equal(Vector4.Zero, workingSpace.Compress(Vector4.Zero));
     }
 
     [Theory]

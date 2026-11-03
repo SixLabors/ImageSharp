@@ -77,6 +77,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             colorCount = 0;
         }
 
+        this.ColorChannelCount = colorCount;
         this.channels = new List<JxlModularChannel>(colorCount + image.Metadata.ExtraChannels.Count);
         Size size = frame.CodingSize;
         ReadOnlySpan<byte> horizontalShifts = frame.HorizontalSamplingShifts;
@@ -104,6 +105,15 @@ internal sealed partial class JxlModularDecoder : IDisposable
         this.originalLayouts = this.layouts.ToArray();
         this.layouts.Clear();
     }
+
+    /// <summary>
+    /// Gets the number of original color channels before the extra-channel suffix.
+    /// </summary>
+    /// <remarks>
+    /// Modular frames have one luminance channel or three color channels, including XYB and YCbCr.
+    /// VarDCT frame-wide modular storage has zero color channels and starts directly with extra channels.
+    /// </remarks>
+    public int ColorChannelCount { get; }
 
     /// <summary>
     /// Gets one completed native output channel. Complete must run before the caller borrows these samples.

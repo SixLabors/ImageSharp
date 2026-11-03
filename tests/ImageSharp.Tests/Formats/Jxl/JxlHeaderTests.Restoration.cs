@@ -46,7 +46,7 @@ public partial class JxlHeaderTests
                 storage.AsSpan().Fill(guard);
                 Span<float> destination = storage.AsSpan(1, width);
                 source.CopyTo(destination);
-                JxlVarDctDecoder.ExpandChromaHorizontal(destination, count);
+                JxlUpsampler.ExpandChromaHorizontal(destination, count);
 
                 // Native chroma upsampling uses 3/4 of the center plus 1/4 of the adjacent input.
                 // The even output takes its left neighbor; the odd output takes its right neighbor.
@@ -82,7 +82,7 @@ public partial class JxlHeaderTests
             second.AsSpan().Fill(guard);
             middle.CopyTo(first.AsSpan(1));
             bottom.CopyTo(second.AsSpan(1));
-            JxlVarDctDecoder.ExpandChromaVertical(top, first.AsSpan(1, width), second.AsSpan(1, width), first.AsSpan(1, width), second.AsSpan(1, width));
+            JxlUpsampler.ExpandChromaVertical(top, first.AsSpan(1, width), second.AsSpan(1, width), first.AsSpan(1, width), second.AsSpan(1, width));
 
             for (int x = 0; x < width; x++)
             {
@@ -97,7 +97,7 @@ public partial class JxlHeaderTests
 
             // An odd output height retains only the upper row of the final pair.
             middle.CopyTo(first.AsSpan(1));
-            JxlVarDctDecoder.ExpandChromaVertical(top, first.AsSpan(1, width), bottom, first.AsSpan(1, width), []);
+            JxlUpsampler.ExpandChromaVertical(top, first.AsSpan(1, width), bottom, first.AsSpan(1, width), []);
             for (int x = 0; x < width; x++)
             {
                 Assert.Equal(((3F * middle[x]) + top[x]) / 4F, first[x + 1]);

@@ -146,6 +146,29 @@ public partial class JxlHeaderTests
     }
 
     /// <summary>
+    /// Verifies that repeated workspace disposal returns every tracked allocation exactly once.
+    /// </summary>
+    [Fact]
+    public void ModularWorkspaceDisposeReturnsEachAllocationOnce()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        using JxlModularWorkspace workspace = new(allocator);
+        workspace.PrepareHistory(32);
+        workspace.PrepareErrors(8);
+        workspace.PrepareFlatTree(4);
+
+        workspace.Dispose();
+        workspace.Dispose();
+
+        // Compare allocation identities: a missing return or a second return must fail independently of allocation sizes.
+        Assert.NotEmpty(allocator.AllocationLog);
+        Assert.Equal(
+            allocator.AllocationLog.Select(x => x.AllocationId).Order(),
+            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+    }
+
+    /// <summary>
     /// Verifies output and coding dimensions across the original reference file's two LF levels and displayed frame.
     /// </summary>
     [Fact]

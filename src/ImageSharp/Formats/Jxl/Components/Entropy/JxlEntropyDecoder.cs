@@ -40,6 +40,11 @@ internal sealed class JxlEntropyDecoder : IDisposable
     private readonly HybridUint copyLength;
 
     /// <summary>
+    /// Indicates whether this owner has released its entropy tables.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlEntropyDecoder"/> class with its completed tables.
     /// </summary>
     /// <param name="contextMap">The validated context-to-cluster map.</param>
@@ -344,10 +349,16 @@ internal sealed class JxlEntropyDecoder : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
         this.prefixCodes?.Dispose();
         this.ansBuckets?.Dispose();
         this.clusters.Dispose();
         this.contextMap.Dispose();
+        this.isDisposed = true;
     }
 
     /// <summary>

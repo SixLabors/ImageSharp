@@ -101,6 +101,11 @@ internal sealed class JxlModularTree : IDisposable
     private readonly int nodeCount;
 
     /// <summary>
+    /// Indicates whether this owner has released its nodes and sample entropy tables.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlModularTree"/> class and takes ownership of its completed storage.
     /// </summary>
     /// <param name="nodes">The allocator-owned nodes in breadth-first order.</param>
@@ -603,8 +608,14 @@ internal sealed class JxlModularTree : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
         this.Codes.Dispose();
         this.nodes.Dispose();
+        this.isDisposed = true;
     }
 
     /// <summary>

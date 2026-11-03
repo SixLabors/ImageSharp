@@ -33,6 +33,11 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     private IMemoryOwner<byte>? blockContextMap;
 
     /// <summary>
+    /// Indicates whether the frame's owned buffers and pass tables have been released.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlVarDctDecoder"/> class with the frame's preceding DC factors.
     /// </summary>
     /// <param name="dcFactors">The validated DC matrix factors in X, Y, B component order.</param>
@@ -259,6 +264,11 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
         foreach (AcPass pass in this.acPasses)
         {
             pass.Dispose();
@@ -286,6 +296,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
         this.quantization?.Dispose();
         this.sharpness?.Dispose();
         this.blockContextMap?.Dispose();
+        this.isDisposed = true;
     }
 
     /// <summary>

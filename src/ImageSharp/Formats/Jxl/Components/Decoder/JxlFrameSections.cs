@@ -31,6 +31,11 @@ internal sealed class JxlFrameSections : IDisposable
     private readonly IMemoryOwner<uint>? order;
 
     /// <summary>
+    /// Indicates whether this owner has released its section tables.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlFrameSections"/> class and takes ownership of its completed arrays.
     /// </summary>
     /// <param name="sizes">The physical section sizes.</param>
@@ -122,8 +127,14 @@ internal sealed class JxlFrameSections : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
         this.order?.Dispose();
         this.sizes.Dispose();
+        this.isDisposed = true;
     }
 
     /// <summary>

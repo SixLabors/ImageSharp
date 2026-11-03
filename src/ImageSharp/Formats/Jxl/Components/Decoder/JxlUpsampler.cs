@@ -29,6 +29,11 @@ internal sealed class JxlUpsampler : IDisposable
     private int preparedFactor;
 
     /// <summary>
+    /// Indicates whether the combined kernel and row storage has been released.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlUpsampler"/> class for validated frame geometry and factors.
     /// </summary>
     /// <param name="image">The custom compact weights, or empty arrays that select the format defaults.</param>
@@ -167,7 +172,16 @@ internal sealed class JxlUpsampler : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => this.workspaceOwner.Dispose();
+    public void Dispose()
+    {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
+        this.workspaceOwner.Dispose();
+        this.isDisposed = true;
+    }
 
     /// <summary>
     /// Copies one untouched physical source row and fills its two mirrored horizontal neighbors.

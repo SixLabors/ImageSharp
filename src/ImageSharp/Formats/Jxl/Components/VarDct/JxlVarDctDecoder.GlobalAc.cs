@@ -139,6 +139,11 @@ internal sealed partial class JxlVarDctDecoder
         private InlineArray64<int> offsets;
 
         /// <summary>
+        /// Indicates whether this pass's owned orders and entropy tables have been released.
+        /// </summary>
+        private bool isDisposed;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="AcPass"/> class and takes ownership of its completed tables.
         /// </summary>
         /// <param name="orders">The retained natural or encoded orders.</param>
@@ -176,8 +181,14 @@ internal sealed partial class JxlVarDctDecoder
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
             this.Entropy.Dispose();
             this.Orders.Dispose();
+            this.isDisposed = true;
         }
     }
 }

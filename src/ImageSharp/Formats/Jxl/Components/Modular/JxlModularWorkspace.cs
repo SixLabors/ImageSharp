@@ -20,6 +20,11 @@ internal sealed class JxlModularWorkspace : IDisposable
     private IMemoryOwner<JxlModularTree.FlatNode>? flatTree;
 
     /// <summary>
+    /// Indicates whether the retained allocations have been released.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlModularWorkspace"/> class without renting unused buffers.
     /// </summary>
     /// <param name="allocator">The decoder's tracked allocator.</param>
@@ -84,12 +89,18 @@ internal sealed class JxlModularWorkspace : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
         this.flatTree?.Dispose();
         this.treeLookup?.Dispose();
         this.channelTree?.Dispose();
         this.references?.Dispose();
         this.integerScratch?.Dispose();
         this.history?.Dispose();
+        this.isDisposed = true;
     }
 
     /// <summary>

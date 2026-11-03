@@ -51,6 +51,11 @@ internal sealed partial class JxlModularDecoder : IDisposable
     private int globalPrefixCount;
 
     /// <summary>
+    /// Indicates whether the owned channels, tree and workspace have been released.
+    /// </summary>
+    private bool isDisposed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlModularDecoder"/> class with original channel layouts and no sample allocations.
     /// </summary>
     /// <param name="image">The image-wide sample and extra-channel declarations.</param>
@@ -296,10 +301,16 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (this.isDisposed)
+        {
+            return;
+        }
+
         DisposeChannels(this.groupChannels);
         DisposeChannels(this.channels);
         this.globalTree?.Dispose();
         this.workspace.Dispose();
+        this.isDisposed = true;
     }
 
     /// <summary>

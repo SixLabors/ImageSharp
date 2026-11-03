@@ -310,6 +310,9 @@ internal sealed class JxlCodestreamReader
     {
         if (box.Type is not (JxlConstants.ExifBox or JxlConstants.XmlBox or JxlConstants.CompressedMetadataBox))
         {
+            // A jbrd box is a recipe for byte-exact JPEG reconstruction, not metadata for decoded pixels.
+            // Its offsets and tables depend on the original coefficients and exact metadata bytes. Pixel edits
+            // invalidate that recipe. Container traversal validates its range; pixel decoding skips its contents.
             return;
         }
 

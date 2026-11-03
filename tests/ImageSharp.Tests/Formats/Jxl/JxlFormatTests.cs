@@ -763,6 +763,38 @@ public class JxlFormatTests
     }
 
     /// <summary>
+    /// Verifies pixel decoding and optional metadata in JPEG-reconstruction containers with either box order.
+    /// </summary>
+    /// <param name="file">The stored container with a jbrd recipe and separate EXIF and XMP boxes.</param>
+    /// <param name="skipMetadata">Whether optional EXIF and XMP profiles are omitted.</param>
+    [Theory]
+    [InlineData(TestImages.Jxl.ExifXmp, false)]
+    [InlineData(TestImages.Jxl.ExifXmp, true)]
+    [InlineData(TestImages.Jxl.ExifXmpAfterCodestream, false)]
+    [InlineData(TestImages.Jxl.ExifXmpAfterCodestream, true)]
+    public void DecodeReadsOptionalMetadata(string file, bool skipMetadata)
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration) { SkipMetadata = skipMetadata };
+        using MemoryStream data = new(TestFile.Create(file).Bytes, false);
+        using NonSeekableStream stream = new(data);
+        using Image<RgbaVector> image = Image.Load<RgbaVector>(options, stream);
+
+        Assert.Equal(new Size(1, 1), image.Size);
+        Assert.Equal(!skipMetadata, image.Metadata.ExifProfile is not null);
+        Assert.Equal(!skipMetadata, image.Metadata.XmpProfile is not null);
+
+        // Libjxl's public decoder produces this float sRGB value in each RGB component. The jbrd
+        // recipe is not requested: pixels come from the codestream, regardless of optional box order.
+        float expected = BitConverter.UInt32BitsToSingle(0x3F800FD0U);
+        Vector4 actual = image[0, 0].ToVector4();
+        Assert.InRange(MathF.Abs(actual.X - expected), 0F, .0005F);
+        Assert.InRange(MathF.Abs(actual.Y - expected), 0F, .0005F);
+        Assert.InRange(MathF.Abs(actual.Z - expected), 0F, .0005F);
+        Assert.Equal(1F, actual.W);
+    }
+
+    /// <summary>
     /// Verifies that SkipMetadata keeps required ICC color data when the caller selects Preserve.
     /// </summary>
     [Fact]

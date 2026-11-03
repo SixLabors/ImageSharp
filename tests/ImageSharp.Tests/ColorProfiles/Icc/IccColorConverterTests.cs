@@ -287,8 +287,8 @@ public class IccColorConverterTests
                 for (int i = 0; i < source.Length; i++)
                 {
                     Vector4 expected = identityOperator.Convert(source[i]);
-                    VectorAssert.Equal(expected, actual[i], 4);
-                    VectorAssert.Equal(expected, actualOperator.Convert(source[i]), 4);
+                    Assert.Equal(expected, actual[i], ApproximateFloatComparer.FromPrecision(4));
+                    Assert.Equal(expected, actualOperator.Convert(source[i]), ApproximateFloatComparer.FromPrecision(4));
                 }
             }
         }
@@ -416,7 +416,7 @@ public class IccColorConverterTests
                     Vector3 fractions = dimensions == 3 ? new(bounded.X, bounded.Y, bounded.Z) : new(bounded.Y, bounded.Z, bounded.W);
                     float weight = trilinear ? fractions.X * fractions.Y * fractions.Z : MathF.Min(fractions.X, MathF.Min(fractions.Y, fractions.Z));
                     float expected = dimensions == 3 ? weight : weight + (((0.25F + (0.5F * weight)) - weight) * bounded.X);
-                    VectorAssert.Equal(new Vector4(expected, 0F, 0F, 0F), actual[i], 5);
+                    Assert.Equal(new Vector4(expected, 0F, 0F, 0F), actual[i], ApproximateFloatComparer.FromPrecision(5));
                 }
             }
         }
@@ -457,7 +457,7 @@ public class IccColorConverterTests
             {
                 // The identity ramp returns bounded X; NaN follows the existing clamp rule and becomes zero.
                 float expected = ColorNumerics.ClampToFinite(source[i].X, 0F, 1F);
-                VectorAssert.Equal(new Vector4(expected, 0F, 0F, 0F), actual[i], 5);
+                Assert.Equal(new Vector4(expected, 0F, 0F, 0F), actual[i], ApproximateFloatComparer.FromPrecision(5));
             }
         }
     }
@@ -709,7 +709,7 @@ public class IccColorConverterTests
             converter.Convert(source, actual);
             for (int i = 0; i < source.Length; i++)
             {
-                VectorAssert.Equal((Vector4)cases[i % cases.Length][2], actual[i], 4);
+                Assert.Equal((Vector4)cases[i % cases.Length][2], actual[i], ApproximateFloatComparer.FromPrecision(4));
             }
 
             // ICC callers reuse their PCS row in place. Conversion must also leave storage beyond that row untouched.
@@ -717,7 +717,7 @@ public class IccColorConverterTests
             converter.Convert(source, source);
             for (int i = 0; i < source.Length; i++)
             {
-                VectorAssert.Equal((Vector4)cases[i % cases.Length][2], source[i], 4);
+                Assert.Equal((Vector4)cases[i % cases.Length][2], source[i], ApproximateFloatComparer.FromPrecision(4));
             }
         }
     }

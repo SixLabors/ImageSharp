@@ -42,7 +42,7 @@ public partial class ColorProfileConverterTests
         Assert.Equal(sentinel, actual[^1]);
         foreach (Rgb value in actual.AsSpan(0, source.Length))
         {
-            VectorAssert.Equal(expected.ToScaledVector4(), value.ToScaledVector4(), 5);
+            Assert.Equal(expected.ToScaledVector4(), value.ToScaledVector4(), ApproximateFloatComparer.FromPrecision(5));
         }
     }
 
@@ -68,7 +68,7 @@ public partial class ColorProfileConverterTests
             for (int i = 0; i < inputs.Count; i++)
             {
                 Vector4 expected = GetActualTargetValues(inputs[i], source, target, IccInterpolationMethod.Trilinear);
-                VectorAssert.Equal(expected, actual[i], 5);
+                Assert.Equal(expected, actual[i], ApproximateFloatComparer.FromPrecision(5));
             }
         }
     }

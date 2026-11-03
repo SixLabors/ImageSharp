@@ -22,7 +22,7 @@ public class IccLutABOperatorTests
 
         Vector4 result = calculator.Convert(input);
 
-        VectorAssert.Equal(expected, result, 4);
+        Assert.Equal(expected, result, ApproximateFloatComparer.FromPrecision(4));
     }
 
     [Theory]
@@ -33,6 +33,6 @@ public class IccLutABOperatorTests
 
         Vector4 result = calculator.Convert(input);
 
-        VectorAssert.Equal(expected, result, 4);
+        Assert.Equal(expected, result, ApproximateFloatComparer.FromPrecision(4));
     }
 }

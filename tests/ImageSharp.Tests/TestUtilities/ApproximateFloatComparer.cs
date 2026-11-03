@@ -8,11 +8,12 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Tests;
 
 /// <summary>
-/// Allows the approximate comparison of single precision floating point values.
+/// Compares floating-point components with an absolute error bound or decimal rounding.
 /// </summary>
 internal readonly struct ApproximateFloatComparer :
     IEqualityComparer<float>,
     IEqualityComparer<Vector2>,
+    IEqualityComparer<Vector3>,
     IEqualityComparer<Vector4>,
     IEqualityComparer<ColorMatrix>,
     IEqualityComparer<Vector256<float>>,
@@ -20,15 +21,47 @@ internal readonly struct ApproximateFloatComparer :
 {
     private readonly float epsilon;
 
+    // Zero selects absolute differences, including the default struct's exact comparison.
+    // Decimal comparisons store one more than the number of decimal places, so zero places remain distinct.
+    private readonly int decimalPrecision;
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="ApproximateFloatComparer"/> class.
+    /// Initializes a comparer with an absolute error bound.
     /// </summary>
-    /// <param name="epsilon">The comparison error difference epsilon to use.</param>
-    public ApproximateFloatComparer(float epsilon = 1F) => this.epsilon = epsilon;
+    /// <param name="epsilon">The maximum allowed absolute difference between components.</param>
+    public ApproximateFloatComparer(float epsilon = 1F)
+        : this(epsilon, 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a comparer with an absolute error bound or an encoded decimal precision.
+    /// </summary>
+    /// <param name="epsilon">The absolute error bound when decimal precision is zero.</param>
+    /// <param name="decimalPrecision">Zero for absolute differences; otherwise one more than the number of decimal places.</param>
+    private ApproximateFloatComparer(float epsilon, int decimalPrecision)
+    {
+        this.epsilon = epsilon;
+        this.decimalPrecision = decimalPrecision;
+    }
+
+    /// <summary>
+    /// Creates a comparer that rounds each component to the specified decimal places before checking equality.
+    /// </summary>
+    /// <param name="precision">The number of decimal places, from zero through fifteen.</param>
+    /// <returns>A comparer that uses <see cref="Math.Round(double, int)"/> with midpoint rounding to even.</returns>
+    public static ApproximateFloatComparer FromPrecision(int precision) => new(0F, precision + 1);
 
     /// <inheritdoc/>
     public bool Equals(float x, float y)
     {
+        if (this.decimalPrecision != 0)
+        {
+            // Keep decimal equality separate from an absolute error bound. Two values can cross a decimal
+            // rounding midpoint even when their difference is smaller than one unit at that precision.
+            return Math.Round(x, this.decimalPrecision - 1) == Math.Round(y, this.decimalPrecision - 1);
+        }
+
         // Equal infinities and matching NaNs have no finite difference to compare with epsilon.
         if (x == y || (float.IsNaN(x) && float.IsNaN(y)))
         {
@@ -50,6 +83,16 @@ internal readonly struct ApproximateFloatComparer :
 
     /// <inheritdoc/>
     public int GetHashCode(Vector2 obj)
+        => obj.GetHashCode();
+
+    /// <inheritdoc/>
+    public bool Equals(Vector3 x, Vector3 y)
+        => this.Equals(x.X, y.X)
+        && this.Equals(x.Y, y.Y)
+        && this.Equals(x.Z, y.Z);
+
+    /// <inheritdoc/>
+    public int GetHashCode(Vector3 obj)
         => obj.GetHashCode();
 
     /// <inheritdoc/>

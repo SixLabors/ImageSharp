@@ -32,7 +32,7 @@ public class NumericsTests
     [Fact]
     public void BulkComponentReplacementRequiresEnoughStorage()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Numerics.WithW(new float[32], new Vector4[33]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Numerics.WithW(new Vector4[33], new float[32]));
         Assert.Throws<ArgumentException>(() => Numerics.WithXYZ(new Vector3[33], new Vector4[32]));
     }
 
@@ -73,7 +73,7 @@ public class NumericsTests
         }
 
         // Surplus W input is legal. Only the destination count determines the replacement count.
-        Numerics.WithW(w, destination);
+        Numerics.WithW(destination, w);
         Assert.Equal(expected, MemoryMarshal.Cast<Vector4, uint>(destination).ToArray());
 
         ReadOnlySpan<uint> constantBits = [0x3F800000U, 0x80000000U, 0x7FC12345U];
@@ -84,7 +84,7 @@ public class NumericsTests
                 expected[(i * 4) + 3] = bits;
             }
 
-            Numerics.WithW(BitConverter.UInt32BitsToSingle(bits), destination);
+            Numerics.WithW(destination, BitConverter.UInt32BitsToSingle(bits));
             Assert.Equal(expected, MemoryMarshal.Cast<Vector4, uint>(destination).ToArray());
         }
 

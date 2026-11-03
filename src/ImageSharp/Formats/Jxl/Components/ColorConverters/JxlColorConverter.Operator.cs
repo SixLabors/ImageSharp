@@ -109,8 +109,8 @@ internal abstract partial class JxlColorConverterBase
             int count = source.Component0.Length;
             int channels = TOperator.PackedComponentCount;
 
-            // Three-component models use the separate RGB row. Their color conversion can then reuse
-            // the destination vector row as XYZ scratch. ICC consumes four-component vectors directly.
+            // Three-component models use the separate packed row. Keep it distinct from the four-component
+            // destination while the shared converter reads the source. ICC consumes the destination vectors directly.
             Span<float> packed = channels == 4 ? MemoryMarshal.Cast<Vector4, float>(destination) : scratch[..(count * channels)];
             ref TSample c0 = ref MemoryMarshal.GetReference(source.Component0);
             ref TSample c1 = ref MemoryMarshal.GetReference(source.Component1);
@@ -124,7 +124,7 @@ internal abstract partial class JxlColorConverterBase
             // component counts, so the JIT removes unused black loads and unused packing alternatives.
             if (Vector512.IsHardwareAccelerated)
             {
-                nuint vectorCount = source.Component0[i..].Vector512Count<TSample>();
+                nuint vectorCount = source.Component0[i..].Vector512Count();
                 for (nuint block = 0; block < vectorCount; block++, i += Vector512<TSample>.Count)
                 {
                     Vector512<float> x = sampleOperator.Invoke(Vector512.LoadUnsafe(ref c0, (nuint)i));
@@ -147,7 +147,7 @@ internal abstract partial class JxlColorConverterBase
 
             if (Vector256.IsHardwareAccelerated)
             {
-                nuint vectorCount = source.Component0[i..].Vector256Count<TSample>();
+                nuint vectorCount = source.Component0[i..].Vector256Count();
                 for (nuint block = 0; block < vectorCount; block++, i += Vector256<TSample>.Count)
                 {
                     Vector256<float> x = sampleOperator.Invoke(Vector256.LoadUnsafe(ref c0, (nuint)i));
@@ -170,7 +170,7 @@ internal abstract partial class JxlColorConverterBase
 
             if (Vector128.IsHardwareAccelerated)
             {
-                nuint vectorCount = source.Component0[i..].Vector128Count<TSample>();
+                nuint vectorCount = source.Component0[i..].Vector128Count();
                 for (nuint block = 0; block < vectorCount; block++, i += Vector128<TSample>.Count)
                 {
                     Vector128<float> x = sampleOperator.Invoke(Vector128.LoadUnsafe(ref c0, (nuint)i));
@@ -217,11 +217,11 @@ internal abstract partial class JxlColorConverterBase
             // the color operation. PixelOperations applies association and destination bounds afterward.
             if (source.Alpha.IsEmpty)
             {
-                Numerics.WithW(1F, destination);
+                Numerics.WithW(destination, 1F);
             }
             else
             {
-                Numerics.WithW(source.Alpha, destination);
+                Numerics.WithW(destination, source.Alpha);
             }
         }
     }

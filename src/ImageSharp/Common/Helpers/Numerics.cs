@@ -165,18 +165,6 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Computes the natural logarithm of one plus a finite nonnegative value.
-    /// </summary>
-    /// <param name="value">The value to add to one.</param>
-    /// <returns>The natural logarithm of one plus <paramref name="value"/>.</returns>
-    public static float Log1P(float value)
-    {
-        // Retain the same correction as the double overload in the caller's component precision.
-        float sum = 1.0f + value;
-        return MathF.Log(sum) + ((value - (sum - 1.0f)) / sum);
-    }
-
-    /// <summary>
     /// Implementation of 1D Gaussian G(x) function
     /// </summary>
     /// <param name="x">The x provided to G(x).</param>
@@ -557,9 +545,9 @@ internal static class Numerics
     /// Replaces the fourth component of each destination vector with the corresponding source value.
     /// All other component bits remain unchanged.
     /// </summary>
-    /// <param name="w">The fourth components. The span must contain at least one value per destination vector.</param>
     /// <param name="destination">The vectors to update. Their storage must not overlap <paramref name="w"/>.</param>
-    public static void WithW(ReadOnlySpan<float> w, Span<Vector4> destination)
+    /// <param name="w">The fourth components. The span must contain at least one value per destination vector.</param>
+    public static void WithW(Span<Vector4> destination, ReadOnlySpan<float> w)
     {
         Guard.MustBeGreaterThanOrEqualTo(w.Length, destination.Length, nameof(w));
         ref float weights = ref MemoryMarshal.GetReference(w);
@@ -626,9 +614,9 @@ internal static class Numerics
     /// Replaces the fourth component of every destination vector with one value.
     /// All other component bits remain unchanged.
     /// </summary>
-    /// <param name="w">The fourth component to store in every vector.</param>
     /// <param name="destination">The vectors to update.</param>
-    public static void WithW(float w, Span<Vector4> destination)
+    /// <param name="w">The fourth component to store in every vector.</param>
+    public static void WithW(Span<Vector4> destination, float w)
     {
         ref float output = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
         int i = 0;

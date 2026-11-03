@@ -96,7 +96,6 @@ internal static class HuffmanTableBuilder
         int low = -1;     // low bits for current root entry
         int mask = totalSize - 1;    // mask for low bits
         int key = 0;      // reversed prefix code
-        int numNodes = 1;     // number of Huffman tree nodes
         int numOpen = 1;      // number of open branches in current tree level
         int tableBits = rootBits;        // key length of current table
         int tableSize = 1 << tableBits;  // size of current table
@@ -107,7 +106,6 @@ internal static class HuffmanTableBuilder
         {
             int countsLen = counts[len];
             numOpen <<= 1;
-            numNodes += numOpen;
             numOpen -= counts[len];
             if (numOpen < 0)
             {
@@ -138,7 +136,6 @@ internal static class HuffmanTableBuilder
         for (len = rootBits + 1, step = 2; len <= MaximumCodeLength; ++len, step <<= 1)
         {
             numOpen <<= 1;
-            numNodes += numOpen;
             numOpen -= counts[len];
             if (numOpen < 0)
             {

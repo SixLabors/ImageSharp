@@ -791,6 +791,7 @@ public class JxlFormatTests
     [InlineData(TestImages.Jxl.CmykFourthFrame)]
     [InlineData(TestImages.Jxl.HdrPq)]
     [InlineData(TestImages.Jxl.HdrHlg)]
+    [InlineData(TestImages.Jxl.Splines)]
     public void DecodeColorMatchesNativeSrgb(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateDecodedColors,
@@ -818,6 +819,7 @@ public class JxlFormatTests
         {
             TestImages.Jxl.LinearRgbaWithIcc => new Size(4, 1),
             TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg => new Size(1024, 1024),
+            TestImages.Jxl.Splines => new Size(2048, 2048),
             TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
             TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
             _ => new Size(169, 118)
@@ -826,13 +828,21 @@ public class JxlFormatTests
         string? profileHash = file switch
         {
             TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
-            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg => null,
+            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg or TestImages.Jxl.Splines => null,
             TestImages.Jxl.CmykFirstFrame or TestImages.Jxl.CmykFourthFrame => "4855B8FABB96BDC6495D45D089BB8C8EFB1AE18389E0DC9E75A5F701A9C0B662",
             _ => "92AAEE40521D7671DBC901DFC88CC36CB83D41766B2C466FF97268EE5AB0C577"
         };
 
         ReadOnlySpan<(int X, int Y, uint R, uint G, uint B, uint A)> points = file switch
         {
+            TestImages.Jxl.Splines => [
+                (0, 0, 0x00000000U, 0x00000000U, 0x00000000U, 0x3F800000U),
+                (64, 378, 0x3E85E841U, 0x3E424F2CU, 0x3E8C2359U, 0x3F800000U),
+                (737, 129, 0x3F4678EAU, 0x3F66DB15U, 0xBE41769FU, 0x3F800000U),
+                (112, 426, 0x3F139634U, 0x3EB1CD19U, 0x3F18D3BEU, 0x3F800000U),
+                (1540, 1920, 0x3D22EB93U, 0x3EA17B17U, 0xBDC38580U, 0x3F800000U),
+                (420, 1540, 0xB841074AU, 0x3E752E6CU, 0x3CB2CDA8U, 0x3F800000U)
+            ],
             TestImages.Jxl.HdrPq => [
                 (0, 0, 0x3A449D9CU, 0x3A4497BCU, 0x3A449A30U, 0x3F800000U),
                 (512, 128, 0x3E450C0BU, 0x3E4508E2U, 0x3E450A34U, 0x3F800000U),
@@ -883,9 +893,16 @@ public class JxlFormatTests
 
         Configuration configuration = new(new JxlConfigurationModule());
         byte[] data = TestFile.Create(file).Bytes;
-        foreach (ColorProfileHandling handling in new[] { ColorProfileHandling.Preserve, ColorProfileHandling.Compact, ColorProfileHandling.Convert })
+        // Embedded ICC inputs need every retention/metadata combination. Compact inputs have no
+        // optional profile to retain; Convert with metadata skipped proves that mandatory color and feature data remain active.
+        ReadOnlySpan<ColorProfileHandling> policies = profileHash is null
+            ? [ColorProfileHandling.Convert]
+            : [ColorProfileHandling.Preserve, ColorProfileHandling.Compact, ColorProfileHandling.Convert];
+
+        ReadOnlySpan<bool> metadataModes = profileHash is null ? [true] : [false, true];
+        foreach (ColorProfileHandling handling in policies)
         {
-            foreach (bool skipMetadata in new[] { false, true })
+            foreach (bool skipMetadata in metadataModes)
             {
                 DecoderOptions options = new(configuration) { ColorProfileHandling = handling, SkipMetadata = skipMetadata };
                 using MemoryStream input = new(data, false);

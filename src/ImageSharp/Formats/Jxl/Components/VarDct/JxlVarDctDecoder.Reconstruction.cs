@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
@@ -18,6 +19,15 @@ internal sealed partial class JxlVarDctDecoder
     private int inverseScratchLength;
     private Vector4 quantizationBias;
     private Vector3 quantizationScale;
+
+    /// <summary>
+    /// Gets the borrowed final-capacity color planes for native frame features.
+    /// </summary>
+    /// <remarks>
+    /// Only the current reconstructed rectangle contains completed samples. Borrow these owners until
+    /// the frame is disposed or transfers them to an LF slot. This view does not copy or transfer ownership.
+    /// </remarks>
+    public ReadOnlySpan<Buffer2D<float>> ReconstructedChannels => CollectionsMarshal.AsSpan(this.reconstructedChannels);
 
     /// <summary>
     /// Allocates the component planes and one reusable transform workspace after AC metadata establishes the used strategies.

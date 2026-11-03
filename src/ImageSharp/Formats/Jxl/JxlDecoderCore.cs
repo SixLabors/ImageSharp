@@ -163,10 +163,10 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
                 if ((!lowFrequency && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
                     || frame.HasCrop || frame.Size != header.Size
-                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame)) != 0)
+                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame | JxlFrameHeader.Splines)) != 0)
                 {
                     throw new NotSupportedException(
-                        "JPEG XL decoding currently requires full-canvas LF dependencies followed by a final frame without image features.");
+                        "JPEG XL decoding currently requires full-canvas LF dependencies followed by a final frame with supported reconstruction flags.");
                 }
 
                 Buffer2D<float>[]? dcReference = null;
@@ -290,14 +290,21 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             SelectSection(ref reader, sizes, order, offsets, 0);
         }
 
-        // Transform-coded color and modular extra channels share the global tree. Read the VarDCT fields
-        // before that tree; its owner also supplies the quantization matrices and reusable group storage.
-        Vector3 dcFactors = ReadDcQuantization(ref reader);
         MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
-        JxlVarDctDecoder? varDct = frame.Modular ? null : JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors, dcReference);
+        JxlSplines? splines = null;
+        JxlVarDctDecoder? varDct = null;
         JxlModularDecoder? modular = null;
         try
         {
+            // Frame features precede DC factors in the DC-global section. Their entropy state ends
+            // before VarDCT metadata and the shared modular tree, including in a combined single-group section.
+            if ((frame.Flags & JxlFrameHeader.Splines) != 0)
+            {
+                splines = JxlSplines.Read(ref reader, frame, allocator, cancellationToken);
+            }
+
+            Vector3 dcFactors = ReadDcQuantization(ref reader);
+            varDct = frame.Modular ? null : JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, dcFactors, dcReference);
             modular = JxlModularDecoder.Read(ref reader, header, frame, allocator, cancellationToken);
             if (!combined)
             {
@@ -430,13 +437,14 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);
 
             // The constructor transfers ready owners only after it succeeds. Until then this catch retains
-            // both resources, including a failed final validation or allocation of the runtime frame object.
-            return new JxlFrame(header, frame, modular, varDct, dcFactors);
+            // all parsed resources, including a failed final validation or allocation of the runtime frame object.
+            return new JxlFrame(header, frame, modular, varDct, dcFactors, splines);
         }
         catch
         {
             modular?.Dispose();
             varDct?.Dispose();
+            splines?.Dispose();
             throw;
         }
     }

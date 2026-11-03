@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 internal sealed class JxlFrameHeader
 {
     /// <summary>
+    /// The flag selecting spline reconstruction after restoration and before color upsampling.
+    /// </summary>
+    public const ulong Splines = 0x10;
+
+    /// <summary>
     /// The flag selecting a saved low-frequency frame instead of independently coded low-frequency data.
     /// </summary>
     public const ulong UseLowFrequencyFrame = 0x20;

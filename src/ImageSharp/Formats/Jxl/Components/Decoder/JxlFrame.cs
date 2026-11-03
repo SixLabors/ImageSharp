@@ -22,6 +22,11 @@ internal sealed class JxlFrame : IDisposable
     private readonly JxlHeader image;
     private readonly Vector3 dcFactors;
 
+    /// <summary>
+    /// The parsed curves retained until native spline reconstruction completes, or null when absent.
+    /// </summary>
+    private JxlSplines? splines;
+
     // Empty storage means the modular integer channels need no spatial reconstruction. VarDCT keeps its float
     // planes in its own component owner, so ordinary output does not allocate an additional plane-owner array.
     private Buffer2D<float>[] modularColors = [];
@@ -39,16 +44,18 @@ internal sealed class JxlFrame : IDisposable
     /// <param name="modular">The completed modular color or extra-channel owner transferred to this frame.</param>
     /// <param name="varDct">The completed VarDCT owner transferred to this frame, or null for modular color.</param>
     /// <param name="dcFactors">The factors that restore modular XYB integer samples to native float units.</param>
+    /// <param name="splines">The complete parsed spline owner transferred to this frame, or null when absent.</param>
     /// <remarks>
-    /// The caller retains ownership if construction fails. A successful constructor transfers both component owners.
+    /// The caller retains ownership if construction fails. A successful constructor transfers the component and spline owners.
     /// </remarks>
-    public JxlFrame(JxlHeader image, JxlFrameHeader header, JxlModularDecoder modular, JxlVarDctDecoder? varDct, Vector3 dcFactors)
+    public JxlFrame(JxlHeader image, JxlFrameHeader header, JxlModularDecoder modular, JxlVarDctDecoder? varDct, Vector3 dcFactors, JxlSplines? splines)
     {
         this.image = image;
         this.Header = header;
         this.Modular = modular;
         this.VarDct = varDct;
         this.dcFactors = dcFactors;
+        this.splines = splines;
         this.AlphaExtra = -1;
         this.BlackExtra = -1;
 
@@ -124,7 +131,7 @@ internal sealed class JxlFrame : IDisposable
     public Buffer2D<float>? UpsampledBlack { get; private set; }
 
     /// <summary>
-    /// Completes chroma expansion, restoration and frame upsampling before LF storage or displayed output.
+    /// Completes chroma expansion, restoration, native image features and upsampling before LF storage or displayed output.
     /// </summary>
     /// <param name="allocator">The tracked allocator for the same component planes and row workspaces used by both outputs.</param>
     /// <param name="cancellationToken">The token checked between converted rows and reconstruction passes.</param>
@@ -152,7 +159,8 @@ internal sealed class JxlFrame : IDisposable
         {
             varDct.ApplyRestoration(frame, allocator, cancellationToken);
         }
-        else if (this.image.UsesXybTransform || colorFactor > 1 || subsampled || restore || frame.Type == JxlFrameHeader.FrameType.LowFrequency)
+        else if (this.image.UsesXybTransform || colorFactor > 1 || subsampled || restore || this.splines is not null
+            || frame.Type == JxlFrameHeader.FrameType.LowFrequency)
         {
             // Native modular RGB stays integer unless a spatial operation or LF storage requires float planes.
             // Assign completed allocations before filtering, so a failed filter remains covered by frame disposal.
@@ -162,6 +170,25 @@ internal sealed class JxlFrame : IDisposable
 
             this.modularColors = colors;
             this.RestoreModularColors(colors, allocator, cancellationToken);
+        }
+
+        if (this.splines is JxlSplines splines)
+        {
+            // Splines modify restored native components at coding resolution. Common upsampling and
+            // the color transform must see these contributions. VarDCT supplies its parsed base correlation;
+            // modular frames retain the default X=0 and B=1 ratios because they have no VarDCT map,
+            // even when their stored components use native RGB instead of XYB.
+            ReadOnlySpan<Buffer2D<float>> colors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
+            Vector2 correlation = varDct is null
+                ? Vector2.UnitY
+                : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
+
+            splines.Apply(colors, correlation, cancellationToken);
+
+            // Every curve has reached its last consumer. Return its tracked storage before upsampling
+            // or pixel conversion. On failure, the attached owner remains covered by frame disposal.
+            splines.Dispose();
+            this.splines = null;
         }
 
         if (maximumFactor > 1)
@@ -240,6 +267,7 @@ internal sealed class JxlFrame : IDisposable
 
         this.UpsampledBlack?.Dispose();
         this.UpsampledAlpha?.Dispose();
+        this.splines?.Dispose();
         foreach (Buffer2D<float> plane in this.modularColors)
         {
             plane.Dispose();
@@ -263,11 +291,11 @@ internal sealed class JxlFrame : IDisposable
         JxlModularDecoder modular = this.Modular;
         int colorCount = modular.ColorChannelCount;
 
-        // LF slots and restoration require three distinct component planes. Native modular gray
-        // initializes all three from its single channel before component-specific Gaborish filtering.
+        // LF slots, restoration and spline reconstruction require three distinct component planes.
+        // Native modular gray initializes all three before component-specific filtering or spline additions.
         // Unfiltered ordinary gray needs one owner; the color converter borrows that row three times.
         bool restore = frame.RestorationFilter.Gaborish || frame.RestorationFilter.Iterations != 0;
-        int planeCount = restore || frame.Type == JxlFrameHeader.FrameType.LowFrequency ? 3 : colorCount;
+        int planeCount = restore || this.splines is not null || frame.Type == JxlFrameHeader.FrameType.LowFrequency ? 3 : colorCount;
         Buffer2D<float>[] planes = new Buffer2D<float>[planeCount];
         int allocated = 0;
         try

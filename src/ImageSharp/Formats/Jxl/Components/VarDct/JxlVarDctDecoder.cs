@@ -113,9 +113,9 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     public float BaseCorrelationX { get; private set; }
 
     /// <summary>
-    /// Gets the base ratio used to restore B from Y and its coded residual.
+    /// Gets the base ratio used to restore B from Y and its coded residual. The serialized default is one.
     /// </summary>
-    public float BaseCorrelationB { get; private set; }
+    public float BaseCorrelationB { get; private set; } = 1F;
 
     /// <summary>
     /// Gets the complete Y-to-X ratio for DC reconstruction.
@@ -217,12 +217,11 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
                 result.BlockContextCount = contexts;
             }
 
-            // Correlation syntax follows the block map. Only XYB's default B residual needs an added Y component.
-            // Explicit fields replace both base ratios, regardless of the frame's color representation.
+            // Correlation syntax follows the block map. Its default ratios are X=0 and B=1,
+            // independent of the color transform. Explicit fields replace both base ratios.
             int colorFactor = DefaultColorFactor;
             int dcX = 0;
             int dcB = 0;
-            result.BaseCorrelationB = image.UsesXybTransform ? 1F : 0F;
             if (!reader.ReadBoolean())
             {
                 colorFactor = (int)reader.ReadU32((0, DefaultColorFactor), (0, 256), (8, 2), (16, 258));

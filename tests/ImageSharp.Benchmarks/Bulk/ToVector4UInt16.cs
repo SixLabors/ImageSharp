@@ -14,11 +14,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 /// </summary>
 /// <typeparam name="TPixel">The unsigned sixteen-bit source pixel format.</typeparam>
 [Config(typeof(Config.Short))]
-[GenericTypeArguments(typeof(Rgb48))]
-[GenericTypeArguments(typeof(Rgba64))]
 [GenericTypeArguments(typeof(L16))]
 [GenericTypeArguments(typeof(La32))]
 [GenericTypeArguments(typeof(Rg32))]
+[GenericTypeArguments(typeof(Rgb48))]
+[GenericTypeArguments(typeof(Rgba64))]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
 public class ToVector4UInt16<TPixel>

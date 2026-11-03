@@ -292,7 +292,7 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
-        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         Assert.Equal(new Size(64, 64), header.Size);
 
         // Original libjxl ToFrameDimensions and jxl-rs size_upsampled agree on this existing three-frame pyramid.
@@ -328,7 +328,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         Assert.False(frame.Modular);
@@ -520,7 +520,7 @@ public partial class JxlHeaderTests
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctProgressiveLzOwner).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal((byte)2, frame.PassCount);
         Assert.Equal((ReadOnlySpan<byte>)[2, 0], frame.PassShifts);
@@ -568,7 +568,7 @@ public partial class JxlHeaderTests
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctWideCoefficientsOwner).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, Configuration.Default.MemoryAllocator, factors, []);
@@ -607,7 +607,7 @@ public partial class JxlHeaderTests
         using MemoryStream input = new(TestFile.Create(TestImages.Jxl.VarDctSubsampledQfOwner).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, input);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal(new Size(32, 8), frame.CodingSize);
         Assert.Equal(79, reader.Position);
@@ -687,7 +687,7 @@ public partial class JxlHeaderTests
         using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
         JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
-        JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         frameReader.BeginSection(sections.Sizes.Span[0]);
@@ -840,7 +840,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.PermutedSections).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref reader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
 
@@ -882,7 +882,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.CmykLayers).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         Assert.Equal(new Size(512, 512), header.Size);
         Assert.Equal(2, header.Metadata.ExtraChannels.Count);
@@ -909,7 +909,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.LosslessFloat).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         Assert.Equal(new Size(500, 500), header.Size);
         Assert.Equal(new JxlBitDepth(32, 8), header.Metadata.BitDepth);
@@ -927,7 +927,8 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
 
-        Assert.Throws<InvalidImageContentException>(() => JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict));
+        Assert.Throws<InvalidImageContentException>(
+            () => JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None));
     }
 
     /// <summary>
@@ -947,7 +948,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.SpotColor).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         Assert.Equal(new Size(600, 400), header.Size);
         Assert.Equal(new JxlBitDepth(16, 0), header.Metadata.BitDepth);
@@ -980,7 +981,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         Assert.Equal(new Size(width, height), header.Size);
         Assert.Equal(colorType, header.Metadata.ColorType);
@@ -1009,7 +1010,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(configuration, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, configuration.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, configuration.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         // jxl_cli --original-icc-out extracts the embedded bytes before color conversion.
         // These hashes cover the full profile, including its header, directory, curves and text tags.
@@ -1032,7 +1033,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.CroppedTrafficLight).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         Assert.Equal(new Rational(100, 1), header.TicksPerSecond);
         Assert.Equal(0U, header.Metadata.RepeatCount);
@@ -1050,7 +1051,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Orientation6).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         // The reference inspector reports the displayed 256-by-100 size after applying orientation 6.
         // The encoded raster remains 100 by 256 until orientation is applied to the reconstructed image.
@@ -1067,7 +1068,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.WithPreview).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
         Assert.Equal(new Size(64, 64), header.Size);
         Assert.Equal(new Size(16, 16), header.PreviewSize);

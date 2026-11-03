@@ -35,8 +35,10 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
     /// <returns>The finite positive factors in X, Y, B component order.</returns>
     public static Vector3 ReadDcQuantization(ref JxlBitReader reader)
     {
-        const float EncodedFactorScale = 1F / 128F;
-        const float MinimumFactor = 1E-8F;
+        // Explicit half values store DC factors in units of 1/128. DecodeDC in libjxl quant_weights.cc
+        // rejects factors below 1E-8 after this normalization; it is a format validity bound, not a rounding tolerance.
+        const float encodedFactorScale = 1F / 128F;
+        const float minimumFactor = 1E-8F;
 
         // DC factors precede both coding modes. Defaults are exact powers of two; explicit half values
         // use units of 1/128. Retain those fractions until coefficient dequantization.
@@ -45,8 +47,8 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             return new Vector3(1F / 4096F, 1F / 512F, 1F / 256F);
         }
 
-        Vector3 factors = new Vector3(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf()) * EncodedFactorScale;
-        if (factors.X < MinimumFactor || factors.Y < MinimumFactor || factors.Z < MinimumFactor)
+        Vector3 factors = new Vector3(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf()) * encodedFactorScale;
+        if (factors.X < minimumFactor || factors.Y < minimumFactor || factors.Z < minimumFactor)
         {
             throw new InvalidImageContentException("The JPEG XL DC dequantization factor is invalid.");
         }
@@ -63,7 +65,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         // container fragments without copying their payloads. The header owns the decoded ICC profile.
         JxlCodestreamReader codestream = new(stream);
         JxlBitReader reader = new(codestream);
-        JxlHeader header = this.ReadHeader(ref reader);
+        JxlHeader header = this.ReadHeader(ref reader, cancellationToken);
 
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
@@ -111,7 +113,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
         cancellationToken.ThrowIfCancellationRequested();
         JxlCodestreamReader codestream = new(stream);
         JxlBitReader reader = new(codestream);
-        JxlHeader header = this.ReadHeader(ref reader);
+        JxlHeader header = this.ReadHeader(ref reader, cancellationToken);
 
         return this.DecodeFrame<TPixel>(ref reader, codestream, header, cancellationToken);
     }
@@ -120,10 +122,11 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
     /// Parses the image header once and establishes the dimensions used for allocation-error reporting.
     /// </summary>
     /// <param name="reader">The reader at the codestream signature.</param>
+    /// <param name="cancellationToken">The token checked during ICC reconstruction.</param>
     /// <returns>The retained image header.</returns>
-    private JxlHeader ReadHeader(ref JxlBitReader reader)
+    private JxlHeader ReadHeader(ref JxlBitReader reader, CancellationToken cancellationToken)
     {
-        JxlHeader header = JxlHeader.Read(ref reader, this.Options.Configuration.MemoryAllocator, this.Options.SegmentIntegrityHandling);
+        JxlHeader header = JxlHeader.Read(ref reader, this.Options.Configuration.MemoryAllocator, this.Options.SegmentIntegrityHandling, cancellationToken);
         this.Dimensions = header.Size;
         return header;
     }

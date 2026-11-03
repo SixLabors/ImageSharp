@@ -164,8 +164,9 @@ internal sealed class JxlHeader
     /// <param name="reader">The codestream bit reader, passed by reference to retain prefetched bits.</param>
     /// <param name="allocator">The decoder's allocator for entropy tables and ICC scratch storage.</param>
     /// <param name="handling">The policy for recoverable label and suggested output-profile errors.</param>
+    /// <param name="cancellationToken">The token checked during ICC reconstruction.</param>
     /// <returns>The parsed header.</returns>
-    public static JxlHeader Read(ref JxlBitReader reader, MemoryAllocator allocator, SegmentIntegrityHandling handling)
+    public static JxlHeader Read(ref JxlBitReader reader, MemoryAllocator allocator, SegmentIntegrityHandling handling, CancellationToken cancellationToken)
     {
         JxlHeader header = ReadMetadata(ref reader, handling);
         header.ReadTransforms(ref reader);
@@ -173,7 +174,8 @@ internal sealed class JxlHeader
         {
             // XYB reconstruction has its own matrix and intensity fields. Its ICC profile describes
             // suggested output colors. Native-component images need the ICC profile to interpret their samples.
-            header.IccProfile = JxlIccReader.Read(ref reader, allocator, header.UsesXybTransform ? handling : SegmentIntegrityHandling.Strict);
+            header.IccProfile = JxlIccReader.Read(
+                ref reader, allocator, header.UsesXybTransform ? handling : SegmentIntegrityHandling.Strict, cancellationToken);
         }
 
         // Frame syntax starts on the next byte. The padding belongs to this header and must be zero,

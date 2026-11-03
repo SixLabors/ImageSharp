@@ -44,7 +44,7 @@ public partial class JxlHeaderTests
         using MemoryStream stream = new(TestFile.Create(file).Bytes, false);
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
-        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal(subsampled ? 87 : 78, reader.Position);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);

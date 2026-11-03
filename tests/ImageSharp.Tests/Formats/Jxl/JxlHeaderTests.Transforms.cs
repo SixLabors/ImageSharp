@@ -259,7 +259,7 @@ public partial class JxlHeaderTests
         float[] output = new float[(3 * length) + 2];
         output[0] = guard;
         output[^1] = guard;
-        JxlVarDctDecoder.DequantizeAcBlock<TCoefficient>(
+        JxlVarDctDecoder.DequantizeAcBlock(
             coefficients,
             coefficients,
             coefficients,

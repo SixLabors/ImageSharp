@@ -30,7 +30,7 @@ public partial class JxlHeaderTests
         using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.Square).Bytes, false);
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
         JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
-        JxlHeader image = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader image = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, image, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         frameReader.BeginSection(sections.Sizes.Span[0]);

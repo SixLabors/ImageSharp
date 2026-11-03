@@ -52,7 +52,7 @@ public partial class JxlHeaderTests
         using MemoryStream frameInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream frameBuffered = new(Configuration.Default, frameInput);
         JxlBitReader frameReader = new(new JxlCodestreamReader(frameBuffered));
-        JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref frameReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref frameReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref frameReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
         frameReader.BeginSection(sections.Sizes.Span[0]);
@@ -138,7 +138,7 @@ public partial class JxlHeaderTests
         using MemoryStream ownerInput = new(TestFile.Create(TestImages.Jxl.VarDctRectangularOwner).Bytes, false);
         using BufferedReadStream ownerBuffered = new(Configuration.Default, ownerInput);
         JxlBitReader ownerReader = new(new JxlCodestreamReader(ownerBuffered));
-        JxlHeader header = JxlHeader.Read(ref ownerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref ownerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref ownerReader, header, false, SegmentIntegrityHandling.Strict);
         Assert.Equal(new Size(8, 32), header.Size);
         Assert.Equal(110, ownerReader.Position);
@@ -269,10 +269,10 @@ public partial class JxlHeaderTests
 
             foreach (int width in widths)
             {
-                const int Rows = 4;
+                const int rows = 4;
                 output.AsSpan().Fill(float.NegativeInfinity);
-                JxlVarDctDecoder.GenerateRadialQuantization(parameters, Rows, width, output.AsSpan(1, Rows * width));
-                for (int y = 0; y < Rows; y++)
+                JxlVarDctDecoder.GenerateRadialQuantization(parameters, rows, width, output.AsSpan(1, rows * width));
+                for (int y = 0; y < rows; y++)
                 {
                     for (int x = 0; x < width; x++)
                     {
@@ -280,7 +280,7 @@ public partial class JxlHeaderTests
                         // measured in bands across sqrt(2)+epsilon. MathF.Pow supplies an independent interpolation reference.
                         float scale = (parameters.Length - 1) / (MathF.Sqrt(2F) + 1e-6F);
                         float dx = x * (scale / (width - 1));
-                        float dy = y * (scale / (Rows - 1));
+                        float dy = y * (scale / (rows - 1));
                         float position = MathF.Sqrt((dx * dx) + (dy * dy));
                         int band = (int)position;
                         float lower = parameters[0];
@@ -304,7 +304,7 @@ public partial class JxlHeaderTests
                 }
 
                 Assert.Equal(float.NegativeInfinity, output[0]);
-                Assert.Equal(float.NegativeInfinity, output[(Rows * width) + 1]);
+                Assert.Equal(float.NegativeInfinity, output[(rows * width) + 1]);
             }
         }
     }

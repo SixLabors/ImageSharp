@@ -125,7 +125,12 @@ internal sealed class IccReader
         return ReadTagData(reader);
     }
 
-    internal static IccProfileHeader ReadHeader(IccDataReader reader)
+    /// <summary>
+    /// Reads the fixed ICC header through the existing data reader.
+    /// </summary>
+    /// <param name="reader">The reader for the validated profile data.</param>
+    /// <returns>The decoded profile header.</returns>
+    private static IccProfileHeader ReadHeader(IccDataReader reader)
     {
         reader.SetIndex(0);
 
@@ -151,7 +156,12 @@ internal sealed class IccReader
         };
     }
 
-    internal static IccTagDataEntry[] ReadTagData(IccDataReader reader)
+    /// <summary>
+    /// Reads supported tags from the validated ICC tag table.
+    /// </summary>
+    /// <param name="reader">The reader for the validated profile data.</param>
+    /// <returns>The tags that the existing data reader can decode.</returns>
+    private static IccTagDataEntry[] ReadTagData(IccDataReader reader)
     {
         IccTagTableEntry[] tagTable = ReadTagTable(reader);
         List<IccTagDataEntry> entries = new(tagTable.Length);

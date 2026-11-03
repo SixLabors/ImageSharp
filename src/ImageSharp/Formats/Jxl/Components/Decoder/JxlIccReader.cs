@@ -21,7 +21,14 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// </remarks>
 internal static class JxlIccReader
 {
+    /// <summary>
+    /// The fixed ICC header length, in bytes, used by libjxl icc_codec_common.h kICCHeaderSize.
+    /// </summary>
     private const int HeaderSize = 128;
+
+    /// <summary>
+    /// The first-byte context plus eight preceding-byte classes times five second-byte classes in native ICC prediction.
+    /// </summary>
     private const int ContextCount = 41;
 
     // libjxl's CheckPreamble rejects a prediction stream more than 65536 bytes larger than its
@@ -38,9 +45,12 @@ internal static class JxlIccReader
     /// <param name="reader">The bit reader positioned at the compressed profile length.</param>
     /// <param name="allocator">The decoder's scratch allocator.</param>
     /// <param name="handling">The policy for prediction errors after the complete entropy stream has been validated.</param>
+    /// <param name="cancellationToken">The token checked before and after entropy expansion and between reconstruction commands.</param>
     /// <returns>The shared profile owning the reconstructed bytes, or null when an optional prediction error is ignored.</returns>
-    public static IccProfile? Read(ref JxlBitReader reader, MemoryAllocator allocator, SegmentIntegrityHandling handling)
+    public static IccProfile? Read(
+        ref JxlBitReader reader, MemoryAllocator allocator, SegmentIntegrityHandling handling, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ulong size = reader.ReadU64();
         if (size > IccProfile.MaxProfileSize + MaximumPredictionOverhead || size < 2)
         {
@@ -63,6 +73,7 @@ internal static class JxlIccReader
         }
 
         symbols.CheckFinalState();
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -78,7 +89,7 @@ internal static class JxlIccReader
                 throw new InvalidImageContentException("The JPEG XL ICC prediction preamble is invalid.");
             }
 
-            return new IccProfile(Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize));
+            return new IccProfile(Reconstruct(encoded, (int)outputLength, (int)commandLength, preambleSize, cancellationToken));
         }
         catch (InvalidImageContentException) when (handling != SegmentIntegrityHandling.Strict)
         {
@@ -95,8 +106,10 @@ internal static class JxlIccReader
     /// <param name="outputLength">The validated profile size.</param>
     /// <param name="commandLength">The validated command-stream size.</param>
     /// <param name="preambleSize">The number of bytes occupied by both size fields.</param>
+    /// <param name="cancellationToken">The token checked between complete reconstruction commands.</param>
     /// <returns>The owned profile bytes.</returns>
-    private static byte[] Reconstruct(ReadOnlySpan<byte> encoded, int outputLength, int commandLength, int preambleSize)
+    private static byte[] Reconstruct(
+        ReadOnlySpan<byte> encoded, int outputLength, int commandLength, int preambleSize, CancellationToken cancellationToken)
     {
         ReadOnlySpan<byte> commands = encoded.Slice(preambleSize, commandLength);
         ReadOnlySpan<byte> data = encoded[(preambleSize + commandLength)..];
@@ -138,7 +151,7 @@ internal static class JxlIccReader
         int written = HeaderSize;
         if (written < output.Length)
         {
-            ReadTags(ref commands, ref data, output, ref written);
+            ReadTags(ref commands, ref data, output, ref written, cancellationToken);
         }
 
         ReadOnlySpan<uint> types =
@@ -150,6 +163,7 @@ internal static class JxlIccReader
 
         while (!commands.IsEmpty)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             byte command = Take(ref commands, 1)[0];
             if (command is >= 1 and <= 4)
             {
@@ -215,6 +229,7 @@ internal static class JxlIccReader
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (written != output.Length || !data.IsEmpty)
         {
             throw new InvalidImageContentException("The JPEG XL ICC prediction stream does not match its declared size.");
@@ -230,7 +245,9 @@ internal static class JxlIccReader
     /// <param name="data">The remaining literal bytes.</param>
     /// <param name="output">The complete destination profile.</param>
     /// <param name="written">The current output position.</param>
-    private static void ReadTags(ref ReadOnlySpan<byte> commands, ref ReadOnlySpan<byte> data, Span<byte> output, ref int written)
+    /// <param name="cancellationToken">The token checked before expanding each tag command.</param>
+    private static void ReadTags(
+        ref ReadOnlySpan<byte> commands, ref ReadOnlySpan<byte> data, Span<byte> output, ref int written, CancellationToken cancellationToken)
     {
         ulong count = ReadVarUInt(ref commands);
         if (count == 0)
@@ -264,6 +281,7 @@ internal static class JxlIccReader
 
         while (!commands.IsEmpty)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             byte command = Take(ref commands, 1)[0];
             int code = command & 63;
             if (code == 0)
@@ -353,7 +371,8 @@ internal static class JxlIccReader
         // Unaligned loads are valid. CompleteColumns prevents every width from reading past a short final plane.
         if (Vector512.IsHardwareAccelerated)
         {
-            for (; column <= completeColumns - Vector512<byte>.Count; column += Vector512<byte>.Count)
+            nuint blocks = (completeColumns - column).Vector512Count<byte>();
+            for (nuint block = 0; block < blocks; block++, column += Vector512<byte>.Count)
             {
                 Vector512<byte> x = Vector512.LoadUnsafe(ref first, (uint)column);
                 Vector512<byte> y = Vector512.LoadUnsafe(ref first, (uint)(column + height));
@@ -372,7 +391,8 @@ internal static class JxlIccReader
 
         if (Vector256.IsHardwareAccelerated)
         {
-            for (; column <= completeColumns - Vector256<byte>.Count; column += Vector256<byte>.Count)
+            nuint blocks = (completeColumns - column).Vector256Count<byte>();
+            for (nuint block = 0; block < blocks; block++, column += Vector256<byte>.Count)
             {
                 Vector256<byte> x = Vector256.LoadUnsafe(ref first, (uint)column);
                 Vector256<byte> y = Vector256.LoadUnsafe(ref first, (uint)(column + height));
@@ -391,7 +411,8 @@ internal static class JxlIccReader
 
         if (Vector128.IsHardwareAccelerated)
         {
-            for (; column <= completeColumns - Vector128<byte>.Count; column += Vector128<byte>.Count)
+            nuint blocks = (completeColumns - column).Vector128Count<byte>();
+            for (nuint block = 0; block < blocks; block++, column += Vector128<byte>.Count)
             {
                 Vector128<byte> x = Vector128.LoadUnsafe(ref first, (uint)column);
                 Vector128<byte> y = Vector128.LoadUnsafe(ref first, (uint)(column + height));

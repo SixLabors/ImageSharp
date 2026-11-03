@@ -126,7 +126,7 @@ public partial class JxlHeaderTests
         using BufferedReadStream buffered = new(Configuration.Default, stream);
         JxlBitReader reader = new(new JxlCodestreamReader(buffered));
         MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
-        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref reader, allocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
         Vector3 factors = JxlDecoderCore.ReadDcQuantization(ref reader);
         using JxlVarDctDecoder varDct = JxlVarDctDecoder.ReadGlobal(ref reader, header, frame, allocator, factors, []);

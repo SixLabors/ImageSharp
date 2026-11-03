@@ -155,7 +155,7 @@ public class JxlFormatTests
         using MemoryStream headerInput = new(TestFile.Create(TestImages.Jxl.LossyRgb3x3).Bytes, false);
         using BufferedReadStream headerBuffered = new(Configuration.Default, headerInput);
         JxlBitReader headerReader = new(new JxlCodestreamReader(headerBuffered));
-        JxlHeader header = JxlHeader.Read(ref headerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict);
+        JxlHeader header = JxlHeader.Read(ref headerReader, Configuration.Default.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref headerReader, header, false, SegmentIntegrityHandling.Strict);
         using JxlFrameSections sections = JxlFrameSections.Read(ref headerReader, Configuration.Default.MemoryAllocator, frame.SectionCount, default);
 
@@ -1279,6 +1279,7 @@ public class JxlFormatTests
             }
         }
     }
+
     /// <summary>
     /// Checks fixed native cross-channel properties, including signed storage of wide residuals and absolute values.
     /// </summary>

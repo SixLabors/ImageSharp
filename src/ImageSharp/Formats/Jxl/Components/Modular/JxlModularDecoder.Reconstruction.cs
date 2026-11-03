@@ -72,7 +72,7 @@ internal sealed partial class JxlModularDecoder
                 // including their 32-bit wrap. Converting the two operands first would lose canceling low bits above 2^24.
                 // Apply B's own factor after that sum: it need not equal the factor already applied to Y.
                 TensorPrimitives.Add(rawB, rawY, sum);
-                TensorPrimitives.ConvertChecked<int, float>(sum, outputB);
+                TensorPrimitives.ConvertChecked(sum, outputB);
                 TensorPrimitives.Multiply(outputB, dcQuants.Z, outputB);
             }
 
@@ -100,7 +100,7 @@ internal sealed partial class JxlModularDecoder
         {
             cancellationToken.ThrowIfCancellationRequested();
             Span<float> output = destination.DangerousGetRowSpan(row)[..source.Width];
-            TensorPrimitives.ConvertChecked<int, float>(source.DangerousGetRowSpan(row), output);
+            TensorPrimitives.ConvertChecked(source.DangerousGetRowSpan(row), output);
             TensorPrimitives.Multiply(output, factor, output);
         }
     }

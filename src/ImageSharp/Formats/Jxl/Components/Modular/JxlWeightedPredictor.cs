@@ -262,22 +262,22 @@ internal struct JxlWeightedPredictor
 
         if (Vector128.IsHardwareAccelerated)
         {
-            const byte SwapAdjacentErrors = 0xB1;
-            const byte SwapErrorPairs = 0x4E;
+            const byte swapAdjacentErrors = 0xB1;
+            const byte swapErrorPairs = 0x4E;
 
             // Adjacent lanes compare [W,N] and [NW,NE]. Shuffle control 0xB1 selects [N,W,NE,NW].
             // Replace a signed candidate only for a strictly greater unsigned magnitude. Lane zero therefore
             // keeps W before N on ties; lane two keeps NW before NE. int.MinValue retains magnitude 2^31.
-            Vector128<uint> adjacentMagnitudes = Vector128_.ShuffleNative(magnitudes.AsInt32(), SwapAdjacentErrors).AsUInt32();
-            Vector128<int> swappedErrors = Vector128_.ShuffleNative(signedErrors, SwapAdjacentErrors);
+            Vector128<uint> adjacentMagnitudes = Vector128_.ShuffleNative(magnitudes.AsInt32(), swapAdjacentErrors).AsUInt32();
+            Vector128<int> swappedErrors = Vector128_.ShuffleNative(signedErrors, swapAdjacentErrors);
             Vector128<int> takeAdjacent = Vector128.GreaterThan(adjacentMagnitudes, magnitudes).AsInt32();
             Vector128<int> winners = Vector128.ConditionalSelect(takeAdjacent, swappedErrors, signedErrors);
             Vector128<uint> pairMagnitudes = Vector128.Max(magnitudes, adjacentMagnitudes);
 
             // Each pair now has the same maximum magnitude in both lanes. Control 0x4E selects [2,3,0,1],
             // bringing the NW/NE winner to lane zero. A strict comparison keeps W/N ahead of NW/NE on ties.
-            Vector128<uint> otherMagnitudes = Vector128_.ShuffleNative(pairMagnitudes.AsInt32(), SwapErrorPairs).AsUInt32();
-            Vector128<int> otherWinners = Vector128_.ShuffleNative(winners, SwapErrorPairs);
+            Vector128<uint> otherMagnitudes = Vector128_.ShuffleNative(pairMagnitudes.AsInt32(), swapErrorPairs).AsUInt32();
+            Vector128<int> otherWinners = Vector128_.ShuffleNative(winners, swapErrorPairs);
             Vector128<int> takeOther = Vector128.GreaterThan(otherMagnitudes, pairMagnitudes).AsInt32();
             property = Vector128.ConditionalSelect(takeOther, otherWinners, winners).ToScalar();
         }

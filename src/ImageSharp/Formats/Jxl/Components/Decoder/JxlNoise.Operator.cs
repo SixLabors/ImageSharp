@@ -511,8 +511,41 @@ internal readonly partial struct JxlNoise
     /// </summary>
     private struct Xorshift128Plus
     {
+        /// <summary>
+        /// The eight independent 64-bit generator lanes in libjxl xorshift128plus-inl.h Xorshift128Plus::N.
+        /// </summary>
         private const int GeneratorCount = 8;
+
+        /// <summary>
+        /// The SplitMix64 seed increment from the native four-seed constructor, added with unsigned wrapping arithmetic.
+        /// </summary>
         private const ulong SeedIncrement = 0x9E3779B97F4A7C15UL;
+
+        /// <summary>
+        /// The first fixed SplitMix64 multiplier from native Xorshift128Plus::SplitMix64. Products wrap to 64 bits.
+        /// </summary>
+        private const ulong FirstMixMultiplier = 0xBF58476D1CE4E5B9UL;
+
+        /// <summary>
+        /// The second fixed SplitMix64 multiplier from native Xorshift128Plus::SplitMix64. Products wrap to 64 bits.
+        /// </summary>
+        private const ulong SecondMixMultiplier = 0x94D049BB133111EBUL;
+
+        /// <summary>
+        /// The first SplitMix64 logical right shift, in bits, before its first xor and multiply.
+        /// </summary>
+        private const int FirstMixShift = 30;
+
+        /// <summary>
+        /// The second SplitMix64 logical right shift, in bits, before its second xor and multiply.
+        /// </summary>
+        private const int SecondMixShift = 27;
+
+        /// <summary>
+        /// The final SplitMix64 logical right shift, in bits, before the output xor.
+        /// </summary>
+        private const int FinalMixShift = 31;
+
         private InlineArray8<ulong> state0;
         private InlineArray8<ulong> state1;
 
@@ -616,9 +649,9 @@ internal readonly partial struct JxlNoise
         /// <returns>The mixed 64-bit state.</returns>
         private static ulong SplitMix64(ulong value)
         {
-            value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9UL;
-            value = (value ^ (value >> 27)) * 0x94D049BB133111EBUL;
-            return value ^ (value >> 31);
+            value = (value ^ (value >> FirstMixShift)) * FirstMixMultiplier;
+            value = (value ^ (value >> SecondMixShift)) * SecondMixMultiplier;
+            return value ^ (value >> FinalMixShift);
         }
     }
 }

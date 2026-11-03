@@ -39,7 +39,7 @@ internal static partial class JxlInverseTransform
         // Each lane follows the same unnormalized butterfly. The caller handles SIMD width and column remainders.
 <#
     // Emit the existing C# inverse network, including its fixed four- and eight-point leaves. Only variable names
-    // and graph connections are generated. All multipliers remain in JxlInverseTransform.Tables.cs, so this template
+    // and graph connections are generated. All multipliers and the shared RootTwo coefficient remain in JxlInverseTransform.Tables.cs. This template
     // does not calculate trigonometric constants or introduce another rounded definition of a coefficient.
     // Preserve current+preceding add order, separate sqrt(2) multiplication and the existing multiply-add operators.
     // Regenerate with: t4 JxlInverseTransform.Dct.Generated.tt -o JxlInverseTransform.Dct.Generated.cs
@@ -101,7 +101,7 @@ internal static partial class JxlInverseTransform
             string even0 = Emit("TOperator.Add(" + input[0] + ", " + input[2] + ")");
             string even1 = Emit("TOperator.Subtract(" + input[0] + ", " + input[2] + ")");
             string adjacent = Emit("TOperator.Add(" + input[3] + ", " + input[1] + ")");
-            string scaled = Emit("TOperator.Multiply(" + input[1] + ", 1.4142135623730951F)");
+            string scaled = Emit("TOperator.Multiply(" + input[1] + ", RootTwo)");
             string odd0 = Emit("TOperator.Add(" + scaled + ", " + adjacent + ")");
             string odd1 = Emit("TOperator.Subtract(" + scaled + ", " + adjacent + ")");
             return Merge(new[] { even0, even1 }, new[] { odd0, odd1 });
@@ -123,7 +123,7 @@ internal static partial class JxlInverseTransform
         if (length == 8)
         {
             // Inverse8 uses separate locals, so it scales first and emits the independent neighbor sums in increasing order.
-            adjacentOdd[0] = Emit("TOperator.Multiply(" + odd[0] + ", 1.4142135623730951F)");
+            adjacentOdd[0] = Emit("TOperator.Multiply(" + odd[0] + ", RootTwo)");
             for (int i = 1; i < half; i++)
             {
                 adjacentOdd[i] = Emit("TOperator.Add(" + odd[i] + ", " + odd[i - 1] + ")");
@@ -137,7 +137,7 @@ internal static partial class JxlInverseTransform
                 adjacentOdd[i] = Emit("TOperator.Add(" + odd[i] + ", " + odd[i - 1] + ")");
             }
 
-            adjacentOdd[0] = Emit("TOperator.Multiply(" + odd[0] + ", 1.4142135623730951F)");
+            adjacentOdd[0] = Emit("TOperator.Multiply(" + odd[0] + ", RootTwo)");
         }
 
         return Merge(even, Network(adjacentOdd));

@@ -19,8 +19,19 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// </remarks>
 internal sealed partial class JxlUpsampler : IDisposable
 {
+    /// <summary>
+    /// The two-source-pixel radius of each native frame-upsampling phase in stage_upsampling.cc.
+    /// </summary>
     private const int UpsamplingRadius = 2;
+
+    /// <summary>
+    /// The five source taps on each axis of every frame-upsampling phase.
+    /// </summary>
     private const int UpsamplingDiameter = 5;
+
+    /// <summary>
+    /// The 25 source weights for one output phase. Expanded kernels store those weights in row-major order.
+    /// </summary>
     private const int UpsamplingKernelArea = UpsamplingDiameter * UpsamplingDiameter;
     private readonly JxlHeader image;
     private readonly IMemoryOwner<float> workspaceOwner;

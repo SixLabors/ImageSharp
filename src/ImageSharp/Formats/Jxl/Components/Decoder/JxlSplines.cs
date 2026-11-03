@@ -19,19 +19,73 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// </remarks>
 internal sealed partial class JxlSplines : IDisposable
 {
+    /// <summary>
+    /// The six integer entropy contexts in libjxl splines.h SplineContexts.
+    /// </summary>
     private const int ContextCount = 6;
+
+    /// <summary>
+    /// The entropy context for the signed frame-wide spline quantization adjustment.
+    /// </summary>
     private const int QuantizationContext = 0;
+
+    /// <summary>
+    /// The entropy context for the delta-coded starting coordinates, in coding pixels.
+    /// </summary>
     private const int StartingPositionContext = 1;
+
+    /// <summary>
+    /// The entropy context for the number of curves minus one.
+    /// </summary>
     private const int SplineCountContext = 2;
+
+    /// <summary>
+    /// The entropy context for each curve's additional control-point count.
+    /// </summary>
     private const int ControlPointCountContext = 3;
+
+    /// <summary>
+    /// The entropy context for signed second differences of control-point coordinates.
+    /// </summary>
     private const int ControlPointContext = 4;
+
+    /// <summary>
+    /// The entropy context for the signed quantized DCT coefficients of X, Y, B and Gaussian width.
+    /// </summary>
     private const int CoefficientContext = 5;
+
+    /// <summary>
+    /// The 32 continuous-DCT coefficients in each field, as defined by libjxl splines.h QuantizedSpline.
+    /// </summary>
     private const int CoefficientsPerChannel = 32;
+
+    /// <summary>
+    /// The four consecutive 32-coefficient fields: X, Y, B and Gaussian width. The last field is not alpha.
+    /// </summary>
     private const int CoefficientsPerSpline = 4 * CoefficientsPerChannel;
+
+    /// <summary>
+    /// The libjxl splines.cc frame control-point cap. The coded pixel count divided by two can lower this limit.
+    /// </summary>
     private const int MaximumControlPoints = 1 << 20;
+
+    /// <summary>
+    /// The coding-coordinate bound, in pixels. The accepted interval is [-2^23, 2^23), matching jxl-rs.
+    /// This reconstruction bound keeps one-pixel steps distinct in float arithmetic; it is not an encoded field width.
+    /// </summary>
     private const int CoordinateLimit = 1 << 23;
+
+    /// <summary>
+    /// The sixteen Catmull-Rom samples per control interval in libjxl DrawCentripetalCatmullRomSpline.
+    /// </summary>
     private const int InterpolationSteps = 16;
+
+    /// <summary>
+    /// The upper reconstruction work estimate from libjxl QuantizedSpline::Dequantize.
+    /// The actual frame limit is min(1024 * outputPixels + 2^32, 2^42).
+    /// </summary>
     private const ulong MaximumEstimatedArea = 1UL << 42;
+
     private readonly MemoryAllocator allocator;
     private readonly Size codingSize;
     private readonly ulong areaLimit;

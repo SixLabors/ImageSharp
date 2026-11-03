@@ -3,28 +3,50 @@
 
 using System.Numerics;
 using System.Numerics.Tensors;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
 internal sealed partial class JxlSplines
 {
+    /// <summary>
+    /// The start of the Y field in the prepared X, Y, B and Gaussian-width coefficient block.
+    /// </summary>
     private const int YCoefficientsOffset = CoefficientsPerChannel;
+
+    /// <summary>
+    /// The start of the B field in the prepared X, Y, B and Gaussian-width coefficient block.
+    /// </summary>
     private const int BCoefficientsOffset = 2 * CoefficientsPerChannel;
+
+    /// <summary>
+    /// The start of the Gaussian-width field in the prepared coefficient block. Width is in coding pixels.
+    /// </summary>
     private const int SigmaCoefficientsOffset = 3 * CoefficientsPerChannel;
+
+    /// <summary>
+    /// The native high-precision Gaussian tail cutoff exponent: retain intensities at least 10^-5.
+    /// libjxl splines.cc ComputeSegments uses this threshold to bound the painted support.
+    /// </summary>
     private const float GaussianCutoffExponent = 5F;
+
+    /// <summary>
+    /// The square-root-of-two normalization in libjxl splines.cc ContinuousIDCT.
+    /// It also supplies the first angle-doubling offset in the reference cosine approximation.
+    /// </summary>
     private const float RootTwo = 1.4142135623730950488F;
+
+    /// <summary>
+    /// The reciprocal square-root-of-two factor applied only to each field's DC coefficient before its channel weight.
+    /// </summary>
     private const float InverseRootTwo = .7071067811865475244F;
+
+    /// <summary>
+    /// The continuous 32-point DCT frequency spacing, pi/32 radians, from libjxl ContinuousIDCT.
+    /// </summary>
     private const float CosineStep = MathF.PI / CoefficientsPerChannel;
-    private const float GaussianIntegralOffset = .353553391F;
-    private const float ErfCoefficient0 = .0777394369F;
-    private const float ErfCoefficient1 = .000205260015F;
-    private const float ErfCoefficient2 = .232120216F;
-    private const float ErfCoefficient3 = .277820801F;
 
     /// <summary>
     /// The natural-log cutoff for tails below the native high-precision threshold of 10^-5.
@@ -32,7 +54,8 @@ internal sealed partial class JxlSplines
     private static readonly float LogGaussianCutoff = MathF.Log(.1F) * GaussianCutoffExponent;
 
     /// <summary>
-    /// Gets the spline quantization weights in X, Y, B and Gaussian-width order.
+    /// Gets the libjxl splines.cc kChannelWeight values in X, Y, B and Gaussian-width order.
+    /// These factors convert quantized fields to native color components and coding-pixel width.
     /// </summary>
     private static ReadOnlySpan<float> ChannelWeights => [.0042F, .075F, .07F, .3333F];
 
@@ -81,7 +104,7 @@ internal sealed partial class JxlSplines
             Vector2 p0 = segment == 0 ? p1 + (p1 - p2) : controls[segment - 1];
             Vector2 p3 = segment + 2 == controls.Length ? p2 + (p2 - p1) : controls[segment + 2];
 
-            // The endpoint extensions replace native's copied and padded control-point array.
+            // Extend each endpoint along its adjacent segment to supply the missing outer control point.
             // Centripetal knot spacing is sqrt(distance), not distance or squared distance.
             float d0 = MathF.Sqrt(float.Hypot(p1.X - p0.X, p1.Y - p0.Y));
             float d1 = MathF.Sqrt(float.Hypot(p2.X - p1.X, p2.Y - p1.Y));
@@ -260,64 +283,6 @@ internal sealed partial class JxlSplines
     }
 
     /// <summary>
-    /// Evaluates the reference error-function approximation for Gaussian integration.
-    /// </summary>
-    /// <param name="value">The signed normalized integration endpoint.</param>
-    /// <returns>The approximate error function with the input sign.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Erf(float value)
-    {
-        // Both references use this fitted fourth-power reciprocal polynomial. The runtime and the
-        // existing shared numeric helpers have no error-function operation to reuse.
-        float absolute = MathF.Abs(value);
-        float denominator = float.MultiplyAddEstimate(absolute, ErfCoefficient0, ErfCoefficient1);
-        denominator = float.MultiplyAddEstimate(denominator, absolute, ErfCoefficient2);
-        denominator = float.MultiplyAddEstimate(denominator, absolute, ErfCoefficient3);
-        denominator = float.MultiplyAddEstimate(denominator, absolute, 1F);
-        float reciprocal = 1F / (denominator * denominator);
-        return MathF.CopySign(float.MultiplyAddEstimate(-reciprocal, reciprocal, 1F), value);
-    }
-
-    /// <inheritdoc cref="Erf(float)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<float> Erf(Vector128<float> value)
-    {
-        Vector128<float> absolute = Vector128.Abs(value);
-        Vector128<float> denominator = Vector128.MultiplyAddEstimate(absolute, Vector128.Create(ErfCoefficient0), Vector128.Create(ErfCoefficient1));
-        denominator = Vector128.MultiplyAddEstimate(denominator, absolute, Vector128.Create(ErfCoefficient2));
-        denominator = Vector128.MultiplyAddEstimate(denominator, absolute, Vector128.Create(ErfCoefficient3));
-        denominator = Vector128.MultiplyAddEstimate(denominator, absolute, Vector128<float>.One);
-        Vector128<float> reciprocal = Vector128<float>.One / (denominator * denominator);
-        return Vector128.CopySign(Vector128.MultiplyAddEstimate(-reciprocal, reciprocal, Vector128<float>.One), value);
-    }
-
-    /// <inheritdoc cref="Erf(float)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<float> Erf(Vector256<float> value)
-    {
-        Vector256<float> absolute = Vector256.Abs(value);
-        Vector256<float> denominator = Vector256.MultiplyAddEstimate(absolute, Vector256.Create(ErfCoefficient0), Vector256.Create(ErfCoefficient1));
-        denominator = Vector256.MultiplyAddEstimate(denominator, absolute, Vector256.Create(ErfCoefficient2));
-        denominator = Vector256.MultiplyAddEstimate(denominator, absolute, Vector256.Create(ErfCoefficient3));
-        denominator = Vector256.MultiplyAddEstimate(denominator, absolute, Vector256<float>.One);
-        Vector256<float> reciprocal = Vector256<float>.One / (denominator * denominator);
-        return Vector256.CopySign(Vector256.MultiplyAddEstimate(-reciprocal, reciprocal, Vector256<float>.One), value);
-    }
-
-    /// <inheritdoc cref="Erf(float)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<float> Erf(Vector512<float> value)
-    {
-        Vector512<float> absolute = Vector512.Abs(value);
-        Vector512<float> denominator = Vector512.MultiplyAddEstimate(absolute, Vector512.Create(ErfCoefficient0), Vector512.Create(ErfCoefficient1));
-        denominator = Vector512.MultiplyAddEstimate(denominator, absolute, Vector512.Create(ErfCoefficient2));
-        denominator = Vector512.MultiplyAddEstimate(denominator, absolute, Vector512.Create(ErfCoefficient3));
-        denominator = Vector512.MultiplyAddEstimate(denominator, absolute, Vector512<float>.One);
-        Vector512<float> reciprocal = Vector512<float>.One / (denominator * denominator);
-        return Vector512.CopySign(Vector512.MultiplyAddEstimate(-reciprocal, reciprocal, Vector512<float>.One), value);
-    }
-
-    /// <summary>
     /// Estimates all curve work before rasterization using the reference magnitude bounds.
     /// </summary>
     /// <param name="coefficients">The original quantized coefficient fields.</param>
@@ -389,7 +354,7 @@ internal sealed partial class JxlSplines
 
         // Progress uses the final fractional step. Count and draw share the same arc-length walk;
         // two metadata walks avoid retaining a potentially much larger array of equally spaced samples.
-        // Painting full planes also removes native's retained Gaussian and per-row index collections.
+        // Add each Gaussian directly to the native planes. Only the current curve's workspace remains live.
         float arcLength = (float)(count - 2) + lastDistance;
         if (arcLength <= 0F)
         {
@@ -519,223 +484,6 @@ internal sealed partial class JxlSplines
                 rowY[i] = float.MultiplyAddEstimate(color.Y, value, rowY[i]);
                 rowB[i] = float.MultiplyAddEstimate(color.Z, value, rowB[i]);
             }
-        }
-    }
-
-    /// <summary>
-    /// Evaluates the reference float cosine for the bounded continuous spline DCT arguments.
-    /// </summary>
-    /// <remarks>
-    /// Arguments range from zero through (31 * pi / 32) * 31.5 radians. This is the float-only
-    /// FastCosf algorithm in libjxl base/fast_math-inl.h and jxl-rs util/fast_math.rs.
-    /// The runtime cosine widens float lanes to double; this kernel retains the reference float arithmetic.
-    /// </remarks>
-    private readonly struct CosineOperator : TensorPrimitives_.IUnaryOperator
-    {
-        private const float Period = 2F * MathF.PI;
-        private const float InversePeriod = .5F / MathF.PI;
-        private const float HalfPi = MathF.PI / 2F;
-        private const float QuarterAngle = .25F;
-        private const float QuarticCoefficient = .06960438F;
-        private const float QuadraticCoefficient = -.84087373F;
-        private const float ConstantCoefficient = 1.68179268F;
-
-        /// <summary>
-        /// Evaluates one bounded angle with range folding and two angle doublings.
-        /// </summary>
-        /// <param name="value">The nonnegative spline DCT angle.</param>
-        /// <returns>The reference cosine approximation.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Invoke(float value)
-        {
-            float reduced = value - (MathF.Floor(value * InversePeriod) * Period);
-            float folded = MathF.Min(reduced, Period - reduced);
-            bool negative = folded >= HalfPi;
-            float quarter = (negative ? MathF.PI - folded : folded) * QuarterAngle;
-            float squared = quarter * quarter;
-            float fourth = squared * squared;
-            float polynomial = float.MultiplyAddEstimate(
-                fourth,
-                QuarticCoefficient,
-                float.MultiplyAddEstimate(squared, QuadraticCoefficient, ConstantCoefficient));
-
-            float doubled = float.MultiplyAddEstimate(polynomial, polynomial, -RootTwo);
-            float result = float.MultiplyAddEstimate(doubled, doubled, -1F);
-            return negative ? -result : result;
-        }
-
-        /// <inheritdoc cref="Invoke(float)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value)
-        {
-            // Each lane is one frequency. Fold it to [0, pi/2], evaluate the fitted quartic at
-            // one quarter of the angle, then double twice and restore the folded sign.
-            Vector128<float> reduced = value - (Vector128.Floor(value * Vector128.Create(InversePeriod)) * Vector128.Create(Period));
-            Vector128<float> folded = Vector128.Min(reduced, Vector128.Create(Period) - reduced);
-            Vector128<float> negative = Vector128.GreaterThanOrEqual(folded, Vector128.Create(HalfPi));
-            Vector128<float> quarter = Vector128.ConditionalSelect(negative, Vector128.Create(MathF.PI) - folded, folded) * Vector128.Create(QuarterAngle);
-            Vector128<float> squared = quarter * quarter;
-            Vector128<float> fourth = squared * squared;
-            Vector128<float> polynomial = Vector128.MultiplyAddEstimate(
-                fourth,
-                Vector128.Create(QuarticCoefficient),
-                Vector128.MultiplyAddEstimate(squared, Vector128.Create(QuadraticCoefficient), Vector128.Create(ConstantCoefficient)));
-
-            Vector128<float> doubled = Vector128.MultiplyAddEstimate(polynomial, polynomial, Vector128.Create(-RootTwo));
-            Vector128<float> result = Vector128.MultiplyAddEstimate(doubled, doubled, -Vector128<float>.One);
-            return Vector128.ConditionalSelect(negative, -result, result);
-        }
-
-        /// <inheritdoc cref="Invoke(float)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value)
-        {
-            // Each lane is one frequency. Fold it to [0, pi/2], evaluate the fitted quartic at
-            // one quarter of the angle, then double twice and restore the folded sign.
-            Vector256<float> reduced = value - (Vector256.Floor(value * Vector256.Create(InversePeriod)) * Vector256.Create(Period));
-            Vector256<float> folded = Vector256.Min(reduced, Vector256.Create(Period) - reduced);
-            Vector256<float> negative = Vector256.GreaterThanOrEqual(folded, Vector256.Create(HalfPi));
-            Vector256<float> quarter = Vector256.ConditionalSelect(negative, Vector256.Create(MathF.PI) - folded, folded) * Vector256.Create(QuarterAngle);
-            Vector256<float> squared = quarter * quarter;
-            Vector256<float> fourth = squared * squared;
-            Vector256<float> polynomial = Vector256.MultiplyAddEstimate(
-                fourth,
-                Vector256.Create(QuarticCoefficient),
-                Vector256.MultiplyAddEstimate(squared, Vector256.Create(QuadraticCoefficient), Vector256.Create(ConstantCoefficient)));
-
-            Vector256<float> doubled = Vector256.MultiplyAddEstimate(polynomial, polynomial, Vector256.Create(-RootTwo));
-            Vector256<float> result = Vector256.MultiplyAddEstimate(doubled, doubled, -Vector256<float>.One);
-            return Vector256.ConditionalSelect(negative, -result, result);
-        }
-
-        /// <inheritdoc cref="Invoke(float)"/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value)
-        {
-            // Each lane is one frequency. Fold it to [0, pi/2], evaluate the fitted quartic at
-            // one quarter of the angle, then double twice and restore the folded sign.
-            Vector512<float> reduced = value - (Vector512.Floor(value * Vector512.Create(InversePeriod)) * Vector512.Create(Period));
-            Vector512<float> folded = Vector512.Min(reduced, Vector512.Create(Period) - reduced);
-            Vector512<float> negative = Vector512.GreaterThanOrEqual(folded, Vector512.Create(HalfPi));
-            Vector512<float> quarter = Vector512.ConditionalSelect(negative, Vector512.Create(MathF.PI) - folded, folded) * Vector512.Create(QuarterAngle);
-            Vector512<float> squared = quarter * quarter;
-            Vector512<float> fourth = squared * squared;
-            Vector512<float> polynomial = Vector512.MultiplyAddEstimate(
-                fourth,
-                Vector512.Create(QuarticCoefficient),
-                Vector512.MultiplyAddEstimate(squared, Vector512.Create(QuadraticCoefficient), Vector512.Create(ConstantCoefficient)));
-
-            Vector512<float> doubled = Vector512.MultiplyAddEstimate(polynomial, polynomial, Vector512.Create(-RootTwo));
-            Vector512<float> result = Vector512.MultiplyAddEstimate(doubled, doubled, -Vector512<float>.One);
-            return Vector512.ConditionalSelect(negative, -result, result);
-        }
-    }
-
-    /// <summary>
-    /// Calculates one Gaussian's integrated intensity at independent horizontal pixel positions.
-    /// </summary>
-    /// <remarks>
-    /// The three color planes consume the same intensity register. Parameters are prepared once per
-    /// painted row; no intermediate intensity row or separate tensor traversal is required.
-    /// </remarks>
-    private readonly struct GaussianOperator : TensorPrimitives_.IUnaryOperator
-    {
-        private readonly float centerX;
-        private readonly float dySquared;
-        private readonly float inverseSigma;
-        private readonly float scaledIntensity;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GaussianOperator"/> struct for one painted row.
-        /// </summary>
-        /// <param name="centerX">The horizontal Gaussian center in coding coordinates.</param>
-        /// <param name="dySquared">The row's squared vertical distance from the center.</param>
-        /// <param name="inverseSigma">The reciprocal Gaussian width.</param>
-        /// <param name="scaledIntensity">Sigma times one quarter of the sample's arc-length weight.</param>
-        public GaussianOperator(float centerX, float dySquared, float inverseSigma, float scaledIntensity)
-        {
-            this.centerX = centerX;
-            this.dySquared = dySquared;
-            this.inverseSigma = inverseSigma;
-            this.scaledIntensity = scaledIntensity;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Invoke(float value)
-        {
-            float dx = value - this.centerX;
-            float distance = MathF.Sqrt(float.MultiplyAddEstimate(dx, dx, this.dySquared));
-            float first = float.MultiplyAddEstimate(distance, .5F, GaussianIntegralOffset) * this.inverseSigma;
-            float second = float.MultiplyAddEstimate(distance, .5F, -GaussianIntegralOffset) * this.inverseSigma;
-            float integral = Erf(first) - Erf(second);
-            return this.scaledIntensity * (integral * integral);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value)
-        {
-            // Lanes are consecutive pixels. Broadcast row parameters, evaluate the scalar integral
-            // independently, and retain its intensity for all three color-plane updates.
-            Vector128<float> dx = value - Vector128.Create(this.centerX);
-            Vector128<float> distance = Vector128.Sqrt(Vector128.MultiplyAddEstimate(dx, dx, Vector128.Create(this.dySquared)));
-            Vector128<float> first = Vector128.MultiplyAddEstimate(
-                distance,
-                Vector128.Create(.5F),
-                Vector128.Create(GaussianIntegralOffset)) * Vector128.Create(this.inverseSigma);
-
-            Vector128<float> second = Vector128.MultiplyAddEstimate(
-                distance,
-                Vector128.Create(.5F),
-                Vector128.Create(-GaussianIntegralOffset)) * Vector128.Create(this.inverseSigma);
-
-            Vector128<float> integral = Erf(first) - Erf(second);
-            return Vector128.Create(this.scaledIntensity) * (integral * integral);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value)
-        {
-            // Lanes are consecutive pixels. Broadcast row parameters, evaluate the scalar integral
-            // independently, and retain its intensity for all three color-plane updates.
-            Vector256<float> dx = value - Vector256.Create(this.centerX);
-            Vector256<float> distance = Vector256.Sqrt(Vector256.MultiplyAddEstimate(dx, dx, Vector256.Create(this.dySquared)));
-            Vector256<float> first = Vector256.MultiplyAddEstimate(
-                distance,
-                Vector256.Create(.5F),
-                Vector256.Create(GaussianIntegralOffset)) * Vector256.Create(this.inverseSigma);
-
-            Vector256<float> second = Vector256.MultiplyAddEstimate(
-                distance,
-                Vector256.Create(.5F),
-                Vector256.Create(-GaussianIntegralOffset)) * Vector256.Create(this.inverseSigma);
-
-            Vector256<float> integral = Erf(first) - Erf(second);
-            return Vector256.Create(this.scaledIntensity) * (integral * integral);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value)
-        {
-            // Lanes are consecutive pixels. Broadcast row parameters, evaluate the scalar integral
-            // independently, and retain its intensity for all three color-plane updates.
-            Vector512<float> dx = value - Vector512.Create(this.centerX);
-            Vector512<float> distance = Vector512.Sqrt(Vector512.MultiplyAddEstimate(dx, dx, Vector512.Create(this.dySquared)));
-            Vector512<float> first = Vector512.MultiplyAddEstimate(
-                distance,
-                Vector512.Create(.5F),
-                Vector512.Create(GaussianIntegralOffset)) * Vector512.Create(this.inverseSigma);
-
-            Vector512<float> second = Vector512.MultiplyAddEstimate(
-                distance,
-                Vector512.Create(.5F),
-                Vector512.Create(-GaussianIntegralOffset)) * Vector512.Create(this.inverseSigma);
-
-            Vector512<float> integral = Erf(first) - Erf(second);
-            return Vector512.Create(this.scaledIntensity) * (integral * integral);
         }
     }
 }

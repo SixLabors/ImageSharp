@@ -431,8 +431,8 @@ public partial class SimdUtilsTests
         foreach (int count in new[] { 8, 16 })
         {
             // Skip one complete triple. The last requested triple ends at the array boundary, with no readable padding.
-            const int Start = 1;
-            byte[] packed = new byte[(count + Start) * 3];
+            const int start = 1;
+            byte[] packed = new byte[(count + start) * 3];
             for (int i = 0; i < packed.Length; i++)
             {
                 packed[i] = samples[i % samples.Length];
@@ -444,7 +444,7 @@ public partial class SimdUtilsTests
 
             if (count == 8)
             {
-                SimdUtils.Deinterleave3(packed, Start, out Vector64<byte> x, out Vector64<byte> y, out Vector64<byte> z);
+                SimdUtils.Deinterleave3(packed, start, out Vector64<byte> x, out Vector64<byte> y, out Vector64<byte> z);
                 x.StoreUnsafe(ref actual[0][0]);
                 y.StoreUnsafe(ref actual[1][0]);
                 z.StoreUnsafe(ref actual[2][0]);
@@ -453,7 +453,7 @@ public partial class SimdUtilsTests
             }
             else
             {
-                SimdUtils.Deinterleave3(packed, Start, out Vector128<byte> x, out Vector128<byte> y, out Vector128<byte> z);
+                SimdUtils.Deinterleave3(packed, start, out Vector128<byte> x, out Vector128<byte> y, out Vector128<byte> z);
                 x.StoreUnsafe(ref actual[0][0]);
                 y.StoreUnsafe(ref actual[1][0]);
                 z.StoreUnsafe(ref actual[2][0]);
@@ -470,7 +470,7 @@ public partial class SimdUtilsTests
             {
                 for (int channel = 0; channel < actual.Length; channel++)
                 {
-                    Assert.Equal(packed[((i + Start) * 3) + channel], actual[channel][i]);
+                    Assert.Equal(packed[((i + start) * 3) + channel], actual[channel][i]);
                 }
 
                 if (count == 8 || Vector512.IsHardwareAccelerated)
@@ -509,8 +509,8 @@ public partial class SimdUtilsTests
             }
 
             // Three leading sentinel words also make the destination unaligned. A trailing sentinel detects an oversized store.
-            const int Start = 3;
-            ushort[] expected = new ushort[(count * 3) + Start + 1];
+            const int start = 3;
+            ushort[] expected = new ushort[(count * 3) + start + 1];
             Array.Fill(expected, ushort.MaxValue);
             ushort[] actual = expected.ToArray();
 
@@ -518,7 +518,7 @@ public partial class SimdUtilsTests
             {
                 for (int channel = 0; channel < 3; channel++)
                 {
-                    expected[Start + (i * 3) + channel] = planes[channel][i + 1];
+                    expected[start + (i * 3) + channel] = planes[channel][i + 1];
                 }
             }
 
@@ -528,7 +528,7 @@ public partial class SimdUtilsTests
                     Vector128.LoadUnsafe(ref planes[0][1]),
                     Vector128.LoadUnsafe(ref planes[1][1]),
                     Vector128.LoadUnsafe(ref planes[2][1]),
-                    ref actual[Start]);
+                    ref actual[start]);
             }
             else if (count == 16)
             {
@@ -536,7 +536,7 @@ public partial class SimdUtilsTests
                     Vector256.LoadUnsafe(ref planes[0][1]),
                     Vector256.LoadUnsafe(ref planes[1][1]),
                     Vector256.LoadUnsafe(ref planes[2][1]),
-                    ref actual[Start]);
+                    ref actual[start]);
             }
             else
             {
@@ -544,7 +544,7 @@ public partial class SimdUtilsTests
                     Vector512.LoadUnsafe(ref planes[0][1]),
                     Vector512.LoadUnsafe(ref planes[1][1]),
                     Vector512.LoadUnsafe(ref planes[2][1]),
-                    ref actual[Start]);
+                    ref actual[start]);
             }
 
             Assert.Equal(expected, actual);
@@ -554,14 +554,14 @@ public partial class SimdUtilsTests
 
             if (count == 8)
             {
-                SimdUtils.Deinterleave3(expected.AsSpan(Start), 0, out Vector128<ushort> x, out Vector128<ushort> y, out Vector128<ushort> z);
+                SimdUtils.Deinterleave3(expected.AsSpan(start), 0, out Vector128<ushort> x, out Vector128<ushort> y, out Vector128<ushort> z);
                 x.StoreUnsafe(ref components[0][0]);
                 y.StoreUnsafe(ref components[1][0]);
                 z.StoreUnsafe(ref components[2][0]);
             }
             else if (count == 16)
             {
-                SimdUtils.Deinterleave3(expected.AsSpan(Start), 0, out Vector256<ushort> x, out Vector256<ushort> y, out Vector256<ushort> z);
+                SimdUtils.Deinterleave3(expected.AsSpan(start), 0, out Vector256<ushort> x, out Vector256<ushort> y, out Vector256<ushort> z);
                 x.StoreUnsafe(ref components[0][0]);
                 y.StoreUnsafe(ref components[1][0]);
                 z.StoreUnsafe(ref components[2][0]);

@@ -230,8 +230,8 @@ internal sealed partial class JxlVarDctDecoder
         Span<float> bands = bandStorage;
         Span<float> logarithms = logarithmStorage;
         PrepareDistanceBands(special[5..], bands, logarithms);
-        const float LowFrequency = 0.8517778890324296F;
-        const float FrequencyExtent = 12.97166202570235F - LowFrequency + 1e-6F;
+        const float lowFrequency = 0.8517778890324296F;
+        const float frequencyExtent = 12.97166202570235F - lowFrequency + 1e-6F;
         RadialQuantizationOperator operation = new(bands, logarithms, 1F);
 
         // AFV's corner has five explicitly weighted coefficients. Twelve other even/even coefficients use the
@@ -248,7 +248,7 @@ internal sealed partial class JxlVarDctDecoder
             {
                 if (x >= 2 || y >= 2)
                 {
-                    float position = (frequencies[(y * 4) + x] - LowFrequency) * 3F / FrequencyExtent;
+                    float position = (frequencies[(y * 4) + x] - lowFrequency) * 3F / frequencyExtent;
                     destination[(2 * y * BlockSize) + (2 * x)] = operation.Interpolate(position);
                 }
 

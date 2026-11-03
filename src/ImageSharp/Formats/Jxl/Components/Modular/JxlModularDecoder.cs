@@ -1618,13 +1618,13 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <returns>The native maximum of four million nodes, or the smaller image-derived bound.</returns>
     private static int GetGlobalTreeLimit(Size size, int channelCount)
     {
-        const int Maximum = 1 << 22;
-        const long SampleBudget = (Maximum - 1024L) * 16;
+        const int maximum = 1 << 22;
+        const long sampleBudget = (maximum - 1024L) * 16;
 
         // Native code uses coding area times the original channel count, including reduced-resolution channels.
         // Cap the area first: the capped product times the format's channel limit fits in long.
-        long area = Math.Min((long)size.Width * size.Height, SampleBudget);
-        long samples = Math.Min(area * channelCount, SampleBudget);
+        long area = Math.Min((long)size.Width * size.Height, sampleBudget);
+        long samples = Math.Min(area * channelCount, sampleBudget);
         return 1024 + (int)(samples / 16);
     }
 
@@ -1636,13 +1636,13 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <returns>The bounded maximum number of tree nodes.</returns>
     private static int GetLocalTreeLimit(List<JxlModularChannel> channels, int count)
     {
-        const int Maximum = 1 << 20;
-        const long Budget = Maximum - 1024;
+        const int maximum = 1 << 20;
+        const long budget = maximum - 1024;
         long samples = 0;
-        for (int c = 0; c < count && samples < Budget; c++)
+        for (int c = 0; c < count && samples < budget; c++)
         {
             // One int-sized width/height product fits in long. Saturate before summing channels because only the capped tree bound is needed.
-            samples += Math.Min((long)channels[c].Width * channels[c].Height, Budget - samples);
+            samples += Math.Min((long)channels[c].Width * channels[c].Height, budget - samples);
         }
 
         return 1024 + (int)samples;

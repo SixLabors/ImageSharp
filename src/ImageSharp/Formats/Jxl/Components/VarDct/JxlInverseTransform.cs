@@ -15,6 +15,18 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal static partial class JxlInverseTransform
 {
     /// <summary>
+    /// The loaded axis and two recursive temporary batches retained by TransformColumns.
+    /// Each value reserves the maximum supported float lane count, including scalar and narrower SIMD calls.
+    /// </summary>
+    private const int AxisScratchBatches = 3;
+
+    /// <summary>
+    /// The conservative small-transform workspace: 64 staging floats, a 64-float transpose,
+    /// and three eight-element batches of sixteen float lanes. All special transforms fit within these 512 floats.
+    /// </summary>
+    private const int MinimumSpecialScratchLength = 512;
+
+    /// <summary>
     /// Gets the reusable scratch length for one validated transform strategy.
     /// </summary>
     /// <param name="strategy">The serialized strategy, from zero through 26.</param>
@@ -25,9 +37,12 @@ internal static partial class JxlInverseTransform
         int height = JxlVarDctDecoder.StrategyHeights[strategy] * 8;
         int area = width * height;
 
-        // A plane holds the transpose. Three longest-axis batches hold the loaded lanes and both levels of recursive scratch.
-        // Small special transforms also need a 64-float staging plane. LF insertion reuses this storage before spatial reconstruction.
-        return Math.Max(area + (48 * Math.Max(width, height)), 512) + (3 * (area / 64));
+        // One area-sized plane holds the transpose. Three longest-axis batches reserve the widest supported
+        // lanes for loaded values and recursive scratch. Narrower SIMD and scalar calls reuse the same storage.
+        // LF insertion first partitions three DC-grid planes, each with area/64 values, then uses the remaining axis storage.
+        // Spatial reconstruction reuses the complete workspace after those DC frequencies have been inserted.
+        int axisScratchLength = AxisScratchBatches * Vector512<float>.Count * Math.Max(width, height);
+        return Math.Max(area + axisScratchLength, MinimumSpecialScratchLength) + (3 * (area / 64));
     }
 
     /// <summary>

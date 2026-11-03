@@ -9,6 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal static partial class JxlInverseTransform
 {
     /// <summary>
+    /// The square-root-of-two coefficient in libjxl dct-inl.h B and BTranspose.
+    /// It normalizes the first odd term in each recursive DCT butterfly. Keep one float value for every fixed and recursive axis.
+    /// </summary>
+    private const float RootTwo = 1.4142135623730951F;
+
+    /// <summary>
     /// Gets the AFV basis. Each coefficient has sixteen consecutive spatial weights.
     /// </summary>
     /// <remarks>

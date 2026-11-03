@@ -16,7 +16,14 @@ internal static partial class JxlRestoration
     /// </summary>
     public const float InverseSigmaNumerator = -1.1715728752538099024F;
 
+    /// <summary>
+    /// The maximum three-pixel EPF radius. Native stage_epf.cc EPF0 combines a five-by-five cross with three-by-three cross SADs.
+    /// </summary>
     private const int RestorationRadius = 3;
+
+    /// <summary>
+    /// The eight-pixel axis length of a coefficient block. One inverse-sigma value applies to its eight-by-eight pixels.
+    /// </summary>
     private const int BlockSize = 8;
 
     // Inverse magnitudes beyond this boundary correspond to physical sigma below 0.3 and skip EPF.

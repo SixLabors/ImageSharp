@@ -128,7 +128,9 @@ internal static partial class JxlInverseTransform
     /// <param name="destinationStride">The destination row stride in floats.</param>
     /// <param name="length">The transform axis length, a power of two from one through 256.</param>
     /// <param name="columns">The number of independent columns.</param>
-    /// <param name="scratch">The caller-owned butterfly storage, at least 48 times the axis length.</param>
+    /// <param name="scratch">
+    /// The caller-owned butterfly storage: three axis-length batches, each reserving Vector512&lt;float&gt;.Count floats per value.
+    /// </param>
     /// <param name="inverse">Whether to reconstruct spatial values instead of normalized coefficients.</param>
     private static void TransformAxis(
         ReadOnlySpan<float> source,
@@ -402,7 +404,7 @@ internal static partial class JxlInverseTransform
             odd[i] = TOperator.Add(odd[i], odd[i - 1]);
         }
 
-        odd[0] = TOperator.Multiply(odd[0], 1.4142135623730951F);
+        odd[0] = TOperator.Multiply(odd[0], RootTwo);
         Inverse<TLanes, TOperator>(odd, temporary[length..]);
         ReadOnlySpan<float> multipliers = GetMultipliers(length);
         for (int i = 0; i < half; i++)
@@ -432,7 +434,7 @@ internal static partial class JxlInverseTransform
         TLanes even0 = TOperator.Add(v0, v2);
         TLanes even1 = TOperator.Subtract(v0, v2);
         TLanes adjacent = TOperator.Add(v3, v1);
-        TLanes scaled = TOperator.Multiply(v1, 1.4142135623730951F);
+        TLanes scaled = TOperator.Multiply(v1, RootTwo);
         TLanes odd0 = TOperator.Add(scaled, adjacent);
         TLanes odd1 = TOperator.Subtract(scaled, adjacent);
         ReadOnlySpan<float> multipliers = Multipliers4;
@@ -471,7 +473,7 @@ internal static partial class JxlInverseTransform
 
         // BTranspose adds each original odd coefficient to its predecessor. Separate locals retain those
         // originals without a temporary span. Each lane follows the native eight-point network independently.
-        TLanes odd0 = TOperator.Multiply(v1, 1.4142135623730951F);
+        TLanes odd0 = TOperator.Multiply(v1, RootTwo);
         TLanes odd1 = TOperator.Add(v3, v1);
         TLanes odd2 = TOperator.Add(v5, v3);
         TLanes odd3 = TOperator.Add(v7, v5);
@@ -504,15 +506,15 @@ internal static partial class JxlInverseTransform
         where TLanes : unmanaged
         where TOperator : struct, ILaneOperator<TLanes>
     {
-        const int Length = 64;
-        const int Half = Length / 2;
+        const int length = 64;
+        const int half = length / 2;
         int lanes = Unsafe.SizeOf<TLanes>() / sizeof(float);
         ref TLanes even = ref MemoryMarshal.GetReference(split);
-        ref TLanes odd = ref Unsafe.Add(ref even, Half);
+        ref TLanes odd = ref Unsafe.Add(ref even, half);
 
         // Storage is [even frequencies: 32 lane rows | odd frequencies: 32 lane rows]. Each lane is an independent
         // column. Load both halves before any output store so the complete transform also permits in-place calls.
-        for (int i = 0; i < Half; i++)
+        for (int i = 0; i < half; i++)
         {
             Unsafe.Add(ref even, i) = TOperator.Load(ref Unsafe.Add(ref source, (2 * i) * sourceStride));
             Unsafe.Add(ref odd, i) = TOperator.Load(ref Unsafe.Add(ref source, ((2 * i) + 1) * sourceStride));
@@ -523,13 +525,13 @@ internal static partial class JxlInverseTransform
 
         // Descending traversal retains each original preceding odd coefficient. BTranspose uses this addition
         // order, followed by a separate sqrt(2) multiplication of the first coefficient. Neither operation is fused.
-        for (int i = Half - 1; i > 0; i--)
+        for (int i = half - 1; i > 0; i--)
         {
             ref TLanes current = ref Unsafe.Add(ref odd, i);
             current = TOperator.Add(current, Unsafe.Add(ref odd, i - 1));
         }
 
-        odd = TOperator.Multiply(odd, 1.4142135623730951F);
+        odd = TOperator.Multiply(odd, RootTwo);
         ref float oddFloats = ref Unsafe.As<TLanes, float>(ref odd);
         Inverse32<TLanes, TOperator>(ref oddFloats, lanes, ref oddFloats, lanes);
         ReadOnlySpan<float> multipliers = Multipliers64;
@@ -537,12 +539,12 @@ internal static partial class JxlInverseTransform
         // Positive and negative multipliers form symmetric positions from the same even and odd values.
         // Store directly to the caller's row stride. The inverse has no 1/N scale. Scalar and all SIMD widths
         // use the same operator calls; the outer dispatcher supplies only complete batches and scalar remainders.
-        for (int i = 0; i < Half; i++)
+        for (int i = 0; i < half; i++)
         {
             TLanes evenValue = Unsafe.Add(ref even, i);
             TLanes oddValue = Unsafe.Add(ref odd, i);
             TOperator.Store(TOperator.MultiplyAdd(oddValue, multipliers[i], evenValue), ref Unsafe.Add(ref destination, i * destinationStride));
-            TOperator.Store(TOperator.MultiplyAdd(oddValue, -multipliers[i], evenValue), ref Unsafe.Add(ref destination, (Length - i - 1) * destinationStride));
+            TOperator.Store(TOperator.MultiplyAdd(oddValue, -multipliers[i], evenValue), ref Unsafe.Add(ref destination, (length - i - 1) * destinationStride));
         }
     }
 
@@ -585,7 +587,7 @@ internal static partial class JxlInverseTransform
         Forward<TLanes, TOperator>(odd, temporary[length..]);
 
         // Increasing traversal preserves the next coefficient until it has been used. The final odd coefficient is unchanged.
-        odd[0] = TOperator.MultiplyAdd(odd[0], 1.4142135623730951F, odd[1]);
+        odd[0] = TOperator.MultiplyAdd(odd[0], RootTwo, odd[1]);
         for (int i = 1; i < half - 1; i++)
         {
             odd[i] = TOperator.Add(odd[i], odd[i + 1]);

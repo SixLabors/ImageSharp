@@ -17,19 +17,63 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 /// </remarks>
 internal readonly partial struct JxlNoise
 {
+    /// <summary>
+    /// The two-pixel radius of the five-by-five Laplacian noise kernel in libjxl render_pipeline/stage_noise.cc.
+    /// </summary>
     private const int Radius = 2;
+
+    /// <summary>
+    /// The five taps on each axis of the native noise kernel.
+    /// </summary>
     private const int Diameter = (2 * Radius) + 1;
+
+    /// <summary>
+    /// The four raw rows retained at a tile boundary: two rows on each side of the boundary.
+    /// </summary>
     private const int BorderRows = 2 * Radius;
+
+    /// <summary>
+    /// The three native X, Y and B noise planes generated in that order for each group.
+    /// </summary>
     private const int ColorChannels = 3;
+
+    /// <summary>
+    /// The eight encoded intensity-strength samples in libjxl noise.h NoiseParams::Lut.
+    /// </summary>
     private const int StrengthCount = 8;
+
+    /// <summary>
+    /// The sixteen float samples supplied by one advance of the native eight 64-bit generators.
+    /// Each generator supplies its low and high 32-bit words, in that order.
+    /// </summary>
     private const int RandomBatchLength = 16;
+
+    /// <summary>
+    /// The maximum current, left and right groups retained for a kernel neighborhood.
+    /// The separate border strips retain vertical neighbors, so storage does not grow with image height.
+    /// </summary>
     private const int MaximumRetainedGroups = 3;
 
-    // Native convolution assigns 0.16 to 24 neighbors and -3.84 to the center, for a zero-sum kernel.
+    /// <summary>
+    /// The weight of each of the 24 noncentral taps in the native five-by-five noise convolution.
+    /// </summary>
     private const float NeighborWeight = 0.16F;
+
+    /// <summary>
+    /// The native central tap. Together with 24 neighbor weights it gives zero total kernel weight.
+    /// </summary>
     private const float CenterWeight = -3.84F;
+
+    /// <summary>
+    /// The strength denominator from libjxl noise.h kNoisePrecision. Each ten-bit integer represents units of 1/1024.
+    /// </summary>
     private const float NoisePrecision = 1024F;
+
+    /// <summary>
+    /// The strict activation threshold from libjxl NoiseParams::HasAny. Tables at or below it add no noise.
+    /// </summary>
     private const float MinimumNoiseStrength = 1e-3F;
+
     private readonly InlineArray8<float> strengths;
 
     /// <summary>

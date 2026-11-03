@@ -14,16 +14,58 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 /// </summary>
 internal sealed partial class JxlVarDctDecoder : IDisposable
 {
-    // The thirteen coefficient-order families share contexts across three color components.
+    /// <summary>
+    /// The thirteen shared coefficient-order families from libjxl coeff_order_fwd.h kNumOrders.
+    /// </summary>
     private const int OrderCount = 13;
+
+    /// <summary>
+    /// The largest threshold count encoded by a four-bit field in libjxl entropy_coder.cc DecodeBlockCtxMap.
+    /// </summary>
     private const int MaximumThresholds = 15;
+
+    /// <summary>
+    /// The per-component workspace stride: up to fifteen thresholds followed by one reserved slot.
+    /// The bucket above the final threshold is calculated; it is not stored in this span.
+    /// </summary>
     private const int ThresholdStride = MaximumThresholds + 1;
+
+    /// <summary>
+    /// The allowed product of DC buckets and quantizer buckets in native DecodeBlockCtxMap.
+    /// </summary>
     private const int MaximumContextCombinations = 64;
+
+    /// <summary>
+    /// The largest number of clustered block contexts permitted by native DecodeBlockCtxMap.
+    /// </summary>
     private const int MaximumBlockContexts = 16;
+
+    /// <summary>
+    /// The 37 predicted nonzero-count buckets from libjxl ac_context.h kNonZeroBuckets.
+    /// Each block context uses these before its separate coefficient-density contexts.
+    /// </summary>
     private const int NonzeroContextCount = 37;
+
+    /// <summary>
+    /// The 458 coefficient-density buckets from libjxl ac_context.h kZeroDensityContextCount.
+    /// This is one plus the largest valid ZeroDensityContext result when remaining nonzeros plus frequency is below 64.
+    /// </summary>
     private const int ZeroDensityContextCount = 458;
+
+    /// <summary>
+    /// The fixed 2^16 denominator of global quantization scale in libjxl quantizer.h kGlobalScaleDenom.
+    /// </summary>
     private const int GlobalScaleDenominator = 1 << 16;
+
+    /// <summary>
+    /// The default color-correlation denominator from libjxl chroma_from_luma.h kDefaultColorFactor.
+    /// An encoded signed correlation adjustment is divided by this factor before adding the base correlation.
+    /// </summary>
     private const int DefaultColorFactor = 84;
+
+    /// <summary>
+    /// The inclusive absolute limit of encoded base correlation, checked by native ColorCorrelation::DecodeDC.
+    /// </summary>
     private const float MaximumBaseCorrelation = 4F;
 
     private InlineArray64<int> dcThresholds;

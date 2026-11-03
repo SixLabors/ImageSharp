@@ -10,20 +10,80 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 internal sealed partial class JxlVarDctDecoder
 {
+    /// <summary>
+    /// The seventeen decoder quantization families in libjxl quant_weights.h QuantTable. Transposed strategies can share a family.
+    /// </summary>
     private const int QuantizationFamilyCount = 17;
+
+    /// <summary>
+    /// The X, Y and B component tables stored for each used quantization family.
+    /// </summary>
     private const int MatrixComponentCount = 3;
+
+    /// <summary>
+    /// The sixteen radial bands permitted by the four-bit count-minus-one field in native DecodeDctParams.
+    /// </summary>
     private const int MaximumDistanceBands = 16;
+
+    /// <summary>
+    /// The first secondary-band slot, after three sixteen-value primary-band regions in the reusable parameter buffer.
+    /// </summary>
     private const int SecondaryBandsOffset = MatrixComponentCount * MaximumDistanceBands;
+
+    /// <summary>
+    /// The first special-weight slot, after both three-component radial-band regions.
+    /// </summary>
     private const int SpecialWeightsOffset = 2 * SecondaryBandsOffset;
+
+    /// <summary>
+    /// The nine special values per component required by AFV: six frequency weights and three band deltas.
+    /// </summary>
     private const int SpecialWeightStride = 9;
+
+    /// <summary>
+    /// The inclusive positive weight limit, 1e-8, from native quant_weights.cc kAlmostZero.
+    /// It also bounds encoded nonzero denominators and multipliers before table generation.
+    /// </summary>
     private const float MinimumQuantizationWeight = 1e-8F;
+
+    /// <summary>
+    /// The exclusive 1e8 generated-weight limit from native ComputeQuantTable. Reciprocal decoder factors are prepared only after validation.
+    /// </summary>
     private const float MaximumQuantizationWeight = 1e8F;
+
+    /// <summary>
+    /// The serialized identity description from native QuantEncoding::Mode. It stores three special weights per component.
+    /// </summary>
     private const byte IdentityMatrixMode = 1;
+
+    /// <summary>
+    /// The serialized DCT2 description. It stores six special weights per component.
+    /// </summary>
     private const byte Dct2MatrixMode = 2;
+
+    /// <summary>
+    /// The serialized DCT4 description. It stores two multipliers per component and one radial table.
+    /// </summary>
     private const byte Dct4MatrixMode = 3;
+
+    /// <summary>
+    /// The serialized DCT4-by-8 description. It stores one multiplier per component and one radial table.
+    /// </summary>
     private const byte Dct4X8MatrixMode = 4;
+
+    /// <summary>
+    /// The serialized AFV description. It stores special frequency weights and two radial tables.
+    /// </summary>
     private const byte AfvMatrixMode = 5;
+
+    /// <summary>
+    /// The serialized generic DCT description, generated from one radial table.
+    /// </summary>
     private const byte DctMatrixMode = 6;
+
+    /// <summary>
+    /// The serialized RAW description, carrying an F16 denominator and three modular integer planes.
+    /// </summary>
     private const byte RawMatrixMode = 7;
 
     private readonly int sampleBitDepth;

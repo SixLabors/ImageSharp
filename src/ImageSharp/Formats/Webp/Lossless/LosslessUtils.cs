@@ -57,7 +57,7 @@ internal static unsafe class LosslessUtils
     {
         // The runtime compares uint sequences with its SIMD prefix scan and returns an element count.
         // Limit both views so an equal prefix cannot extend beyond the current match candidate.
-        return MemoryExtensions.CommonPrefixLength<uint>(array1[..length], array2[..length]);
+        return MemoryExtensions.CommonPrefixLength(array1[..length], array2[..length]);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

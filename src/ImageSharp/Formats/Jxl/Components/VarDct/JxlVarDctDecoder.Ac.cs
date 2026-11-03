@@ -13,13 +13,39 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 internal sealed partial class JxlVarDctDecoder
 {
-    // Each correlation entry covers eight by eight DC blocks, or sixty-four by sixty-four coding pixels.
+    /// <summary>
+    /// The log2 tile width in DC blocks. Native chroma_from_luma.h kColorTileDim covers 64 coding pixels, or eight blocks.
+    /// </summary>
     private const int ColorTileShift = 3;
+
+    /// <summary>
+    /// The 27 raw transform strategies in libjxl ac_strategy.h AcStrategy::Type, before coefficient-order family sharing.
+    /// </summary>
     private const int StrategyCount = 27;
+
+    /// <summary>
+    /// The unassigned block-map sentinel, outside every encoded strategy value. It detects overlapping transform footprints.
+    /// </summary>
     private const byte InvalidStrategy = byte.MaxValue;
+
+    /// <summary>
+    /// The low bit of a stored strategy byte. It marks the transform origin; higher bits hold the raw strategy.
+    /// </summary>
     private const byte FirstBlockFlag = 1;
+
+    /// <summary>
+    /// The largest decoded AC quantizer: native DecodeAcMetadata clamps its raw integer to [0,255], then adds one.
+    /// </summary>
     private const int MaximumAcQuantizer = 256;
+
+    /// <summary>
+    /// The eight valid EPF sharpness indices from native DecodeAcMetadata. Values outside [0,7] are invalid.
+    /// </summary>
     private const int SharpnessCount = 8;
+
+    /// <summary>
+    /// The two modular metadata rows: raw transform strategies, followed by their origin quantizers.
+    /// </summary>
     private const int RecordRows = 2;
 
     private readonly List<Buffer2D<sbyte>> correlationMaps = new(2);

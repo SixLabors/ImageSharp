@@ -42,7 +42,7 @@ internal static partial class JxlInverseTransform
         TLanes v24 = TOperator.Load(ref Unsafe.Add(ref source, 24 * sourceStride));
         TLanes v8 = TOperator.Load(ref Unsafe.Add(ref source, 8 * sourceStride));
         TLanes v34 = TOperator.Add(v24, v8);
-        TLanes v35 = TOperator.Multiply(v8, 1.4142135623730951F);
+        TLanes v35 = TOperator.Multiply(v8, RootTwo);
         TLanes v36 = TOperator.Add(v35, v34);
         TLanes v37 = TOperator.Subtract(v35, v34);
 
@@ -54,7 +54,7 @@ internal static partial class JxlInverseTransform
 
         // 8-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
         TLanes v4 = TOperator.Load(ref Unsafe.Add(ref source, 4 * sourceStride));
-        TLanes v42 = TOperator.Multiply(v4, 1.4142135623730951F);
+        TLanes v42 = TOperator.Multiply(v4, RootTwo);
         TLanes v12 = TOperator.Load(ref Unsafe.Add(ref source, 12 * sourceStride));
         TLanes v43 = TOperator.Add(v12, v4);
         TLanes v20 = TOperator.Load(ref Unsafe.Add(ref source, 20 * sourceStride));
@@ -66,7 +66,7 @@ internal static partial class JxlInverseTransform
         TLanes v46 = TOperator.Add(v42, v44);
         TLanes v47 = TOperator.Subtract(v42, v44);
         TLanes v48 = TOperator.Add(v45, v43);
-        TLanes v49 = TOperator.Multiply(v43, 1.4142135623730951F);
+        TLanes v49 = TOperator.Multiply(v43, RootTwo);
         TLanes v50 = TOperator.Add(v49, v48);
         TLanes v51 = TOperator.Subtract(v49, v48);
 
@@ -102,13 +102,13 @@ internal static partial class JxlInverseTransform
         TLanes v69 = TOperator.Add(v10, v6);
         TLanes v2 = TOperator.Load(ref Unsafe.Add(ref source, 2 * sourceStride));
         TLanes v70 = TOperator.Add(v6, v2);
-        TLanes v71 = TOperator.Multiply(v2, 1.4142135623730951F);
+        TLanes v71 = TOperator.Multiply(v2, RootTwo);
 
         // Four-point leaf: the even two-point transform, original odd sum, and separate sqrt(2) multiplication.
         TLanes v72 = TOperator.Add(v71, v67);
         TLanes v73 = TOperator.Subtract(v71, v67);
         TLanes v74 = TOperator.Add(v65, v69);
-        TLanes v75 = TOperator.Multiply(v69, 1.4142135623730951F);
+        TLanes v75 = TOperator.Multiply(v69, RootTwo);
         TLanes v76 = TOperator.Add(v75, v74);
         TLanes v77 = TOperator.Subtract(v75, v74);
 
@@ -119,7 +119,7 @@ internal static partial class JxlInverseTransform
         TLanes v81 = TOperator.MultiplyAdd(v77, -multipliers4[1], v73);
 
         // 8-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
-        TLanes v82 = TOperator.Multiply(v70, 1.4142135623730951F);
+        TLanes v82 = TOperator.Multiply(v70, RootTwo);
         TLanes v83 = TOperator.Add(v68, v70);
         TLanes v84 = TOperator.Add(v66, v68);
         TLanes v85 = TOperator.Add(v64, v66);
@@ -128,7 +128,7 @@ internal static partial class JxlInverseTransform
         TLanes v86 = TOperator.Add(v82, v84);
         TLanes v87 = TOperator.Subtract(v82, v84);
         TLanes v88 = TOperator.Add(v85, v83);
-        TLanes v89 = TOperator.Multiply(v83, 1.4142135623730951F);
+        TLanes v89 = TOperator.Multiply(v83, RootTwo);
         TLanes v90 = TOperator.Add(v89, v88);
         TLanes v91 = TOperator.Subtract(v89, v88);
 
@@ -198,13 +198,13 @@ internal static partial class JxlInverseTransform
         TLanes v133 = TOperator.Add(v5, v3);
         TLanes v1 = TOperator.Load(ref Unsafe.Add(ref source, 1 * sourceStride));
         TLanes v134 = TOperator.Add(v3, v1);
-        TLanes v135 = TOperator.Multiply(v1, 1.4142135623730951F);
+        TLanes v135 = TOperator.Multiply(v1, RootTwo);
 
         // Four-point leaf: the even two-point transform, original odd sum, and separate sqrt(2) multiplication.
         TLanes v136 = TOperator.Add(v135, v127);
         TLanes v137 = TOperator.Subtract(v135, v127);
         TLanes v138 = TOperator.Add(v123, v131);
-        TLanes v139 = TOperator.Multiply(v131, 1.4142135623730951F);
+        TLanes v139 = TOperator.Multiply(v131, RootTwo);
         TLanes v140 = TOperator.Add(v139, v138);
         TLanes v141 = TOperator.Subtract(v139, v138);
 
@@ -215,7 +215,7 @@ internal static partial class JxlInverseTransform
         TLanes v145 = TOperator.MultiplyAdd(v141, -multipliers4[1], v137);
 
         // 8-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
-        TLanes v146 = TOperator.Multiply(v133, 1.4142135623730951F);
+        TLanes v146 = TOperator.Multiply(v133, RootTwo);
         TLanes v147 = TOperator.Add(v129, v133);
         TLanes v148 = TOperator.Add(v125, v129);
         TLanes v149 = TOperator.Add(v121, v125);
@@ -224,7 +224,7 @@ internal static partial class JxlInverseTransform
         TLanes v150 = TOperator.Add(v146, v148);
         TLanes v151 = TOperator.Subtract(v146, v148);
         TLanes v152 = TOperator.Add(v149, v147);
-        TLanes v153 = TOperator.Multiply(v147, 1.4142135623730951F);
+        TLanes v153 = TOperator.Multiply(v147, RootTwo);
         TLanes v154 = TOperator.Add(v153, v152);
         TLanes v155 = TOperator.Subtract(v153, v152);
 
@@ -252,13 +252,13 @@ internal static partial class JxlInverseTransform
         TLanes v172 = TOperator.Add(v128, v130);
         TLanes v173 = TOperator.Add(v130, v132);
         TLanes v174 = TOperator.Add(v132, v134);
-        TLanes v175 = TOperator.Multiply(v134, 1.4142135623730951F);
+        TLanes v175 = TOperator.Multiply(v134, RootTwo);
 
         // Four-point leaf: the even two-point transform, original odd sum, and separate sqrt(2) multiplication.
         TLanes v176 = TOperator.Add(v175, v171);
         TLanes v177 = TOperator.Subtract(v175, v171);
         TLanes v178 = TOperator.Add(v169, v173);
-        TLanes v179 = TOperator.Multiply(v173, 1.4142135623730951F);
+        TLanes v179 = TOperator.Multiply(v173, RootTwo);
         TLanes v180 = TOperator.Add(v179, v178);
         TLanes v181 = TOperator.Subtract(v179, v178);
 
@@ -269,7 +269,7 @@ internal static partial class JxlInverseTransform
         TLanes v185 = TOperator.MultiplyAdd(v181, -multipliers4[1], v177);
 
         // 8-point odd half: retain original neighbor sums and the separate sqrt(2) multiplication.
-        TLanes v186 = TOperator.Multiply(v174, 1.4142135623730951F);
+        TLanes v186 = TOperator.Multiply(v174, RootTwo);
         TLanes v187 = TOperator.Add(v172, v174);
         TLanes v188 = TOperator.Add(v170, v172);
         TLanes v189 = TOperator.Add(v168, v170);
@@ -278,7 +278,7 @@ internal static partial class JxlInverseTransform
         TLanes v190 = TOperator.Add(v186, v188);
         TLanes v191 = TOperator.Subtract(v186, v188);
         TLanes v192 = TOperator.Add(v189, v187);
-        TLanes v193 = TOperator.Multiply(v187, 1.4142135623730951F);
+        TLanes v193 = TOperator.Multiply(v187, RootTwo);
         TLanes v194 = TOperator.Add(v193, v192);
         TLanes v195 = TOperator.Subtract(v193, v192);
 

@@ -183,52 +183,14 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                 }
 
                 using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
-                (JxlModularDecoder Modular, JxlVarDctDecoder? VarDct, Vector3 DcFactors) reconstructed = this.DecodeFrameData(
-                    ref reader, header, frame, sections, dcReference, cancellationToken);
+                using JxlFrame reconstructed = this.DecodeFrameData(ref reader, header, frame, sections, dcReference, cancellationToken);
+                reconstructed.Reconstruct(allocator, cancellationToken);
 
-                using JxlModularDecoder modular = reconstructed.Modular;
-                using JxlVarDctDecoder? varDct = reconstructed.VarDct;
                 if (lowFrequency)
                 {
-                    // Native LF slots contain restored component samples before color conversion, alpha unassociation or pixel packing.
-                    // Transfer the VarDCT planes directly. Modular XYB first restores its signed integer channels to these same float units.
-                    if (varDct is not null && frame.Upsampling > 1)
-                    {
-                        using JxlUpsampler upsampler = new(header, frame.OutputSize, frame.CodingSize, frame.Upsampling, allocator);
-                        varDct.ApplyUpsampling(upsampler, frame.Upsampling, cancellationToken);
-                    }
-
-                    Buffer2D<float>[] planes = varDct is not null
-                        ? varDct.TakeReconstructedChannels()
-                        : header.UsesXybTransform
-                            ? modular.ReconstructXyb(frame, reconstructed.DcFactors, cancellationToken)
-                            : this.ReconstructNativeModularColors(header, frame, modular, cancellationToken);
-
-                    try
-                    {
-                        if (varDct is null)
-                        {
-                            this.RestoreModularColors(frame, modular, planes, cancellationToken);
-                        }
-
-                        if (varDct is null && frame.Upsampling > 1)
-                        {
-                            using JxlUpsampler upsampler = new(header, frame.OutputSize, frame.CodingSize, frame.Upsampling, allocator);
-                            foreach (Buffer2D<float> plane in planes)
-                            {
-                                upsampler.Apply(plane, frame.CodingSize, frame.Upsampling, cancellationToken);
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        foreach (Buffer2D<float> plane in planes)
-                        {
-                            plane.Dispose();
-                        }
-
-                        throw;
-                    }
+                    // Both LF and displayed output complete the same native spatial operations. The LF slot takes
+                    // ownership before color conversion, alpha unassociation or pixel packing can change these samples.
+                    Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
 
                     // Publish only a complete replacement. A level n producer borrows slot n and replaces slot n-1.
                     // Dispose the previous contents of the replaced slot after the new planes are complete.
@@ -260,7 +222,7 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
                         frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
                     }
 
-                    this.PackFrame(header, frame, modular, varDct, reconstructed.DcFactors, destination, cancellationToken);
+                    this.PackFrame(header, reconstructed, destination, cancellationToken);
 
                     this.CompleteMetadata(codestream, header, metadata, cancellationToken);
                     return image;
@@ -296,8 +258,8 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
     /// <param name="sections">The retained physical section sizes and logical ordering.</param>
     /// <param name="dcReference">The borrowed saved LF planes, or an empty span for coded DC.</param>
     /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
-    /// <returns>The modular owner, optional VarDCT owner and DC factors needed to restore modular XYB.</returns>
-    private (JxlModularDecoder Modular, JxlVarDctDecoder? VarDct, Vector3 DcFactors) DecodeFrameData(
+    /// <returns>The owner of the decoded native components. Spatial reconstruction has not yet been applied.</returns>
+    private JxlFrame DecodeFrameData(
         ref JxlBitReader reader,
         JxlHeader header,
         JxlFrameHeader frame,
@@ -463,11 +425,13 @@ internal sealed partial class JxlDecoderCore : ImageDecoderCore
             }
 
             modular.Complete(cancellationToken);
-            varDct?.ApplyRestoration(frame, allocator, cancellationToken);
 
             // The last logical section need not end at the frame's physical end. Restore it before any following frame or metadata.
             reader.SeekBytePosition(sections.PayloadOffset + sections.TotalLength);
-            return (modular, varDct, dcFactors);
+
+            // The constructor transfers ready owners only after it succeeds. Until then this catch retains
+            // both resources, including a failed final validation or allocation of the runtime frame object.
+            return new JxlFrame(header, frame, modular, varDct, dcFactors);
         }
         catch
         {

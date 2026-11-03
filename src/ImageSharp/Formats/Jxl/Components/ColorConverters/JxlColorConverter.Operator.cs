@@ -71,13 +71,11 @@ internal abstract partial class JxlColorConverterBase
     private sealed partial class JxlColorConverter<TOperator> : JxlColorConverterBase
         where TOperator : struct, IJxlColorConverterOperator
     {
-        // The operation is prepared once and never mutated. Keep the generic receiver writable so
-        // constrained instance calls do not require a defensive copy of its matrix and bias fields.
-        private TOperator operation;
+        private readonly TOperator operation;
 
         // Coding XYB produces linear sRGB. The compander owns the following transfer and result bounds.
         private readonly bool isLinearRgb;
-        private readonly ColorProfileConverter.RgbConversion? rgbConversion;
+        private readonly ColorProfileConverterExtensionsRgbRgb.RgbConversion? rgbConversion;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for direct or ICC component conversion.
@@ -99,9 +97,9 @@ internal abstract partial class JxlColorConverterBase
         {
             this.operation = operation;
             Matrix4x4 adaptation = KnownChromaticAdaptationMatrices.Bradford;
-            Matrix4x4.Invert(adaptation, out Matrix4x4 inverse);
+            _ = Matrix4x4.Invert(adaptation, out Matrix4x4 inverse);
             RgbWorkingSpace target = KnownRgbWorkingSpaces.SRgb;
-            this.rgbConversion = new ColorProfileConverter.RgbConversion(
+            this.rgbConversion = new ColorProfileConverterExtensionsRgbRgb.RgbConversion(
                 sourceWorkingSpace,
                 target,
                 (sourceWorkingSpace.WhitePoint, target.WhitePoint),

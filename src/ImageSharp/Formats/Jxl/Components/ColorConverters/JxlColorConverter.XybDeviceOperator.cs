@@ -20,7 +20,7 @@ internal abstract partial class JxlColorConverterBase
     /// Conversion uses the standard 255-nit transform, independently of the image's custom coding transform.
     /// </remarks>
     /// <typeparam name="TComponentOperator">The existing RGB or YCbCr component restoration selected for this frame.</typeparam>
-    internal struct XybDeviceOperator<TComponentOperator> : IJxlColorConverterOperator
+    internal readonly struct XybDeviceOperator<TComponentOperator> : IJxlColorConverterOperator
         where TComponentOperator : struct, IJxlColorConverterOperator
     {
         // ScaleXYBRow stores (X + offsetX) * scaleX, Y * scaleY and (B - Y + offsetB) * scaleB.
@@ -31,8 +31,7 @@ internal abstract partial class JxlColorConverterBase
         private const float YScale = 1.183000077F;
         private const float BScale = 1.502141333F;
 
-        // Keep the constrained receiver writable to avoid copying prepared component coefficients on each call.
-        private TComponentOperator componentOperation;
+        private readonly TComponentOperator componentOperation;
         private readonly Matrix4x4 inputMapping;
         private readonly Xyb.InverseOperator inverse;
 

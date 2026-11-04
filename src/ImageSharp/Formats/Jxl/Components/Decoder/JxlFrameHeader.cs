@@ -417,6 +417,21 @@ internal sealed class JxlFrameHeader
             }
         }
 
+        // Patches address color and extras on one coding grid. If color is reduced, all extras
+        // must use that same factor so common upsampling follows patch reconstruction.
+        // Compare the effective factors, including DimensionShift, as libjxl dec_frame.cc and
+        // jxl-rs frame_header.rs do. Early extra upsampling would otherwise mix sample grids.
+        if ((frame.Flags & Patches) != 0 && frame.Upsampling != 1)
+        {
+            foreach (byte factor in frame.ExtraChannelUpsampling)
+            {
+                if (factor != frame.Upsampling)
+                {
+                    throw new InvalidImageContentException("The JPEG XL patch color and extra channels use different sample grids.");
+                }
+            }
+        }
+
         if (frame.Modular)
         {
             frame.GroupSizeShift = (byte)reader.ReadBits(2);

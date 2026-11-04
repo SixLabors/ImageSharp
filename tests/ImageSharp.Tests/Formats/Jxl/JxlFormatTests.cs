@@ -412,6 +412,33 @@ public class JxlFormatTests
     }
 
     /// <summary>
+    /// Verifies that structural patch-grid mismatches remain invalid under every segment recovery policy.
+    /// </summary>
+    /// <param name="handling">The selected segment error policy.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void DecodeRejectsPatchesWithMixedUpsampling(SegmentIntegrityHandling handling)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
+        DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.PatchesMixedUpsampling).Bytes, false);
+
+        // The unchanged jxl-rs regression declares color factor four and extra factor four with DimensionShift one.
+        // Its effective extra factor is eight. Both native decoders reject these different patch sample grids.
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+        });
+
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.True(stream.CanRead);
+    }
+
+    /// <summary>
     /// Verifies cancellation through the public asynchronous decoder without transferring stream ownership.
     /// </summary>
     [Fact]

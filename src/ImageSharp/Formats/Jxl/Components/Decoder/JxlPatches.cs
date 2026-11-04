@@ -307,12 +307,11 @@ internal sealed class JxlPatches : IDisposable
                     }
                     else if (!hasAlpha)
                     {
-                        // Opaque above composition replaces the current sample; below retains it.
-                        // jxl-rs uses this behavior. libjxl instead replaces the sample for both orders.
+                        // Without a declared alpha channel, libjxl blending.cc copies the reference
+                        // for both composition orders. Weighted addition becomes ordinary addition.
                         BlendMode colorMode = color.Mode switch
                         {
-                            BlendMode.BlendAbove => BlendMode.Replace,
-                            BlendMode.BlendBelow => BlendMode.None,
+                            BlendMode.BlendAbove or BlendMode.BlendBelow => BlendMode.Replace,
                             BlendMode.AlphaWeightedAddAbove or BlendMode.AlphaWeightedAddBelow => BlendMode.Add,
                             _ => color.Mode
                         };

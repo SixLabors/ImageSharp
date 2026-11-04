@@ -113,10 +113,20 @@ internal abstract partial class JxlColorConverterBase
             Span<Vector4> destination,
             in TSampleOperator sampleOperator)
         {
-            int count = source.Component0.Length;
-            ref TSample c0 = ref MemoryMarshal.GetReference(source.Component0);
-            ref TSample c1 = ref MemoryMarshal.GetReference(source.Component1);
-            ref TSample c2 = ref MemoryMarshal.GetReference(source.Component2);
+            // Copy the prepared operation once. Calling a constrained instance method on its readonly
+            // field would copy the struct for every SIMD block, including its matrix and bias fields.
+            TOperator operation = this.operation;
+            TSampleOperator sampleOperation = sampleOperator;
+
+            // Reconstructed planes stay fixed during conversion. Retain their spans locally so stores
+            // and constrained calls cannot force the JIT to reload the borrowed descriptor in each block.
+            ReadOnlySpan<TSample> component0 = source.Component0;
+            ReadOnlySpan<TSample> component1 = source.Component1;
+            ReadOnlySpan<TSample> component2 = source.Component2;
+            int count = component0.Length;
+            ref TSample c0 = ref MemoryMarshal.GetReference(component0);
+            ref TSample c1 = ref MemoryMarshal.GetReference(component1);
+            ref TSample c2 = ref MemoryMarshal.GetReference(component2);
             ref float black = ref MemoryMarshal.GetReference(source.Black);
             ref float alpha = ref MemoryMarshal.GetReference(source.Alpha);
             bool hasAlpha = !source.Alpha.IsEmpty;
@@ -131,11 +141,11 @@ internal abstract partial class JxlColorConverterBase
                 nuint vectorCount = (count - i).Vector512Count<float>();
                 for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
                 {
-                    Vector512<float> x = sampleOperator.Invoke(JxlSampleConverter.Load512(source.Component0, i));
-                    Vector512<float> y = sampleOperator.Invoke(JxlSampleConverter.Load512(source.Component1, i));
-                    Vector512<float> z = sampleOperator.Invoke(JxlSampleConverter.Load512(source.Component2, i));
+                    Vector512<float> x = sampleOperation.Invoke(JxlSampleConverter.Load512(component0, i));
+                    Vector512<float> y = sampleOperation.Invoke(JxlSampleConverter.Load512(component1, i));
+                    Vector512<float> z = sampleOperation.Invoke(JxlSampleConverter.Load512(component2, i));
                     Vector512<float> k = TOperator.ComponentCount == 4 ? Vector512.LoadUnsafe(ref black, (nuint)i) : default;
-                    this.operation.Invoke(ref x, ref y, ref z, ref k);
+                    operation.Invoke(ref x, ref y, ref z, ref k);
                     Vector512<float> opacity = hasAlpha ? Vector512.LoadUnsafe(ref alpha, (nuint)i) : Vector512<float>.One;
                     SimdUtils.Interleave4(x, y, z, opacity, ref Unsafe.Add(ref target, (nuint)i * 4));
                 }
@@ -146,11 +156,11 @@ internal abstract partial class JxlColorConverterBase
                 nuint vectorCount = (count - i).Vector256Count<float>();
                 for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
                 {
-                    Vector256<float> x = sampleOperator.Invoke(JxlSampleConverter.Load256(source.Component0, i));
-                    Vector256<float> y = sampleOperator.Invoke(JxlSampleConverter.Load256(source.Component1, i));
-                    Vector256<float> z = sampleOperator.Invoke(JxlSampleConverter.Load256(source.Component2, i));
+                    Vector256<float> x = sampleOperation.Invoke(JxlSampleConverter.Load256(component0, i));
+                    Vector256<float> y = sampleOperation.Invoke(JxlSampleConverter.Load256(component1, i));
+                    Vector256<float> z = sampleOperation.Invoke(JxlSampleConverter.Load256(component2, i));
                     Vector256<float> k = TOperator.ComponentCount == 4 ? Vector256.LoadUnsafe(ref black, (nuint)i) : default;
-                    this.operation.Invoke(ref x, ref y, ref z, ref k);
+                    operation.Invoke(ref x, ref y, ref z, ref k);
                     Vector256<float> opacity = hasAlpha ? Vector256.LoadUnsafe(ref alpha, (nuint)i) : Vector256<float>.One;
                     SimdUtils.Interleave4(x, y, z, opacity, ref Unsafe.Add(ref target, (nuint)i * 4));
                 }
@@ -161,11 +171,11 @@ internal abstract partial class JxlColorConverterBase
                 nuint vectorCount = (count - i).Vector128Count<float>();
                 for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
                 {
-                    Vector128<float> x = sampleOperator.Invoke(JxlSampleConverter.Load128(source.Component0, i));
-                    Vector128<float> y = sampleOperator.Invoke(JxlSampleConverter.Load128(source.Component1, i));
-                    Vector128<float> z = sampleOperator.Invoke(JxlSampleConverter.Load128(source.Component2, i));
+                    Vector128<float> x = sampleOperation.Invoke(JxlSampleConverter.Load128(component0, i));
+                    Vector128<float> y = sampleOperation.Invoke(JxlSampleConverter.Load128(component1, i));
+                    Vector128<float> z = sampleOperation.Invoke(JxlSampleConverter.Load128(component2, i));
                     Vector128<float> k = TOperator.ComponentCount == 4 ? Vector128.LoadUnsafe(ref black, (nuint)i) : default;
-                    this.operation.Invoke(ref x, ref y, ref z, ref k);
+                    operation.Invoke(ref x, ref y, ref z, ref k);
                     Vector128<float> opacity = hasAlpha ? Vector128.LoadUnsafe(ref alpha, (nuint)i) : Vector128<float>.One;
                     SimdUtils.Interleave4(x, y, z, opacity, ref Unsafe.Add(ref target, (nuint)i * 4));
                 }
@@ -174,11 +184,11 @@ internal abstract partial class JxlColorConverterBase
             // The scalar remainder uses the same operator and sample normalization as every vector width.
             for (; i < count; i++)
             {
-                float x = sampleOperator.Invoke(Unsafe.Add(ref c0, i));
-                float y = sampleOperator.Invoke(Unsafe.Add(ref c1, i));
-                float z = sampleOperator.Invoke(Unsafe.Add(ref c2, i));
+                float x = sampleOperation.Invoke(Unsafe.Add(ref c0, i));
+                float y = sampleOperation.Invoke(Unsafe.Add(ref c1, i));
+                float z = sampleOperation.Invoke(Unsafe.Add(ref c2, i));
                 float k = TOperator.ComponentCount == 4 ? Unsafe.Add(ref black, i) : 0F;
-                this.operation.Invoke(ref x, ref y, ref z, ref k);
+                operation.Invoke(ref x, ref y, ref z, ref k);
                 destination[i] = new Vector4(x, y, z, hasAlpha ? Unsafe.Add(ref alpha, i) : 1F);
             }
 

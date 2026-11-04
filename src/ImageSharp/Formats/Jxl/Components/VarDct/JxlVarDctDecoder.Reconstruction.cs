@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
@@ -11,7 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 internal sealed partial class JxlVarDctDecoder
 {
-    private readonly List<Buffer2D<float>> reconstructedChannels = new(3);
+    // Retained reconstruction owns exactly three planes. The array transfers with those planes to
+    // JxlFrame after restoration; sequential group-row output never allocates this owner array.
+    private Buffer2D<float>[] reconstructedChannels = [];
 
     // Sequential output owns one [X | Y | B] group-row buffer. The region borrows the same allocation;
     // it lets the transform kernels address its rows without a second owner or nullable hot-path access.
@@ -31,15 +32,6 @@ internal sealed partial class JxlVarDctDecoder
     private int inverseScratchLength;
     private Vector4 quantizationBias;
     private Vector3 quantizationScale;
-
-    /// <summary>
-    /// Gets the borrowed final-capacity color planes for native frame features.
-    /// </summary>
-    /// <remarks>
-    /// Only the current reconstructed rectangle contains completed samples. Borrow these owners until
-    /// the frame is disposed or transfers them to an LF slot. This view does not copy or transfer ownership.
-    /// </remarks>
-    public ReadOnlySpan<Buffer2D<float>> ReconstructedChannels => CollectionsMarshal.AsSpan(this.reconstructedChannels);
 
     /// <summary>
     /// Gets a value indicating whether completed group rows supply pixels without retaining full native color planes.
@@ -115,18 +107,37 @@ internal sealed partial class JxlVarDctDecoder
             return;
         }
 
-        for (int component = 0; component < 3; component++)
+        // Publish all three owners together. Allocation failure releases only completed entries;
+        // the decoder still owns the reconstruction workspace allocated before this retained path.
+        Buffer2D<float>[] channels = new Buffer2D<float>[3];
+        int allocated = 0;
+        try
         {
-            int horizontal = this.horizontalShifts[component];
-            int vertical = this.verticalShifts[component];
-            int width = ((size.Width - 1) >> horizontal) + 1;
-            int height = ((size.Height - 1) >> vertical) + 1;
+            for (int component = 0; component < channels.Length; component++)
+            {
+                int horizontal = this.horizontalShifts[component];
+                int vertical = this.verticalShifts[component];
+                int width = ((size.Width - 1) >> horizontal) + 1;
+                int height = ((size.Height - 1) >> vertical) + 1;
 
-            // Reserve the frame output dimensions once, including LF reduction. Native samples initially occupy this
-            // logical rectangle; chroma and frame upsampling reuse the same backing plane before filtering/output.
-            this.reconstructedSizes[component] = new Size(width, height);
-            this.reconstructedChannels.Add(allocator.Allocate2D<float>(frame.OutputSize));
+                // Reserve the frame output dimensions once, including LF reduction. Native samples initially occupy this
+                // logical rectangle; chroma and frame upsampling reuse the same backing plane before filtering/output.
+                this.reconstructedSizes[component] = new Size(width, height);
+                channels[component] = allocator.Allocate2D<float>(frame.OutputSize);
+                allocated++;
+            }
         }
+        catch
+        {
+            for (int component = 0; component < allocated; component++)
+            {
+                channels[component].Dispose();
+            }
+
+            throw;
+        }
+
+        this.reconstructedChannels = channels;
     }
 
     /// <summary>
@@ -152,17 +163,17 @@ internal sealed partial class JxlVarDctDecoder
         => this.reconstructedGroupRegion.DangerousGetRowSpan(row - this.reconstructedGroupTop);
 
     /// <summary>
-    /// Transfers the three completed native float planes to the decoder's saved LF slot without copying samples.
+    /// Transfers the three restored native float planes and their owner array to the frame without copying samples.
     /// </summary>
-    /// <returns>The X, Y and B plane owners. The caller must dispose them after their final dependent frame.</returns>
+    /// <returns>The X, Y and B plane owners. The frame owns their remaining reconstruction and disposal.</returns>
     /// <remarks>
-    /// Call this after restoration and frame upsampling. This owner must not reconstruct or read color planes after transfer.
+    /// Call this after restoration. The frame applies native features and upsampling to the transferred planes.
+    /// This decoder must not reconstruct or read the color planes after transfer.
     /// </remarks>
     public Buffer2D<float>[] TakeReconstructedChannels()
     {
-        // Build the complete result before removing ownership. If the array allocation fails, Dispose still releases the planes.
-        Buffer2D<float>[] result = this.reconstructedChannels.ToArray();
-        this.reconstructedChannels.Clear();
+        Buffer2D<float>[] result = this.reconstructedChannels;
+        this.reconstructedChannels = [];
         return result;
     }
 

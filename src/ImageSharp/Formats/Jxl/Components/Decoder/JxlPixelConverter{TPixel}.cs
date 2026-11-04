@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
-using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -184,20 +183,11 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     /// <param name="cancellationToken">The token checked before each output row.</param>
     public void Convert(CancellationToken cancellationToken)
     {
-        if (this.frame.VarDct is JxlVarDctDecoder varDct)
-        {
-            this.ConvertRows(
-                varDct.GetReconstructedChannel(0),
-                varDct.GetReconstructedChannel(1),
-                varDct.GetReconstructedChannel(2),
-                default(JxlSampleConverter.IdentityOperator),
-                cancellationToken);
-        }
-        else if (!this.frame.ModularColors.IsEmpty)
+        if (!this.frame.ReconstructedColors.IsEmpty)
         {
             // Spatial reconstruction already restored full-resolution float components. Borrow these
             // planes directly and do not normalize them as native integer samples a second time.
-            ReadOnlySpan<Buffer2D<float>> colors = this.frame.ModularColors;
+            ReadOnlySpan<Buffer2D<float>> colors = this.frame.ReconstructedColors;
             Buffer2DRegion<float> first = colors[0].GetRegion();
             Buffer2DRegion<float> second = colors.Length == 1 ? first : colors[1].GetRegion();
             Buffer2DRegion<float> third = colors.Length == 1 ? first : colors[2].GetRegion();

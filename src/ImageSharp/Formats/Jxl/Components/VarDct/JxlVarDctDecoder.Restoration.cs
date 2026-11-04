@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 
@@ -38,7 +37,7 @@ internal sealed partial class JxlVarDctDecoder
         }
 
         VarDctSigmaSource sigma = new(this, frame.RestorationFilter);
-        JxlRestoration.Apply(CollectionsMarshal.AsSpan(this.reconstructedChannels), size, frame.RestorationFilter, sigma, allocator, cancellationToken);
+        JxlRestoration.Apply(this.reconstructedChannels, size, frame.RestorationFilter, sigma, allocator, cancellationToken);
     }
 
     /// <summary>

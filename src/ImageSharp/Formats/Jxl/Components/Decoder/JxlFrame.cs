@@ -37,9 +37,10 @@ internal sealed class JxlFrame : IDisposable
     /// </summary>
     private JxlSplines? splines;
 
-    // Ordinary modular output can read the integer channels directly. Native frame features and saved
-    // references require float planes. VarDCT retains those planes in its own component owner.
-    private Buffer2D<float>[] modularColors = [];
+    // Retained VarDCT output transfers its restored planes here before native frame features run.
+    // Modular output needs these float planes only for spatial operations or saved references;
+    // ordinary modular output reads integer channels directly, and group-row VarDCT keeps its row workspace.
+    private Buffer2D<float>[] reconstructedColors = [];
 
     /// <summary>
     /// The distinct normalized extra-channel owners required by patches or a saved reference, in encoded order.
@@ -156,9 +157,9 @@ internal sealed class JxlFrame : IDisposable
     public int BlackExtra { get; }
 
     /// <summary>
-    /// Gets the borrowed modular float color owners, or an empty span when integer rows are sufficient.
+    /// Gets the borrowed reconstructed float color owners, or an empty span when conversion reads integer or group rows.
     /// </summary>
-    public ReadOnlySpan<Buffer2D<float>> ModularColors => this.modularColors;
+    public ReadOnlySpan<Buffer2D<float>> ReconstructedColors => this.reconstructedColors;
 
     /// <summary>
     /// Gets the borrowed full-resolution float alpha plane, or null when the pixel converter reads the original modular channel.
@@ -217,6 +218,11 @@ internal sealed class JxlFrame : IDisposable
         if (varDct is not null)
         {
             varDct.ApplyRestoration(frame, allocator, cancellationToken);
+
+            // Restoration expands every color to CodingSize. Transfer the existing plane owners before
+            // further reconstruction so the frame owns one set of colors through output or reference storage.
+            // The same owner array transfers with the planes; no new allocation or sample copy is needed.
+            this.reconstructedColors = varDct.TakeReconstructedChannels();
         }
         else if (this.image.UsesXybTransform || colorFactor > 1 || subsampled || restore || this.patches is not null || frame.CanBeReferenced
             || this.splines is not null || this.noise.HasAny
@@ -228,7 +234,7 @@ internal sealed class JxlFrame : IDisposable
                 ? modular.ReconstructXyb(frame, this.dcFactors, cancellationToken)
                 : this.ReconstructNativeModularColors(allocator, cancellationToken);
 
-            this.modularColors = colors;
+            this.reconstructedColors = colors;
             this.RestoreModularColors(colors, allocator, cancellationToken);
         }
 
@@ -282,8 +288,7 @@ internal sealed class JxlFrame : IDisposable
             {
                 // Patches read saved pre-transform samples. Apply them after any required early
                 // extra expansion, while color still has coding resolution and precedes splines.
-                ReadOnlySpan<Buffer2D<float>> colors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
-                patches.Apply(colors, this.nativeExtras, this.image, frame.CodingSize, allocator, cancellationToken);
+                patches.Apply(this.reconstructedColors, this.nativeExtras, this.image, frame.CodingSize, allocator, cancellationToken);
                 patches.Dispose();
                 this.patches = null;
             }
@@ -294,12 +299,11 @@ internal sealed class JxlFrame : IDisposable
                 // the color transform must see these contributions. VarDCT supplies its parsed base correlation;
                 // modular frames retain the default X=0 and B=1 ratios because they have no VarDCT map,
                 // even when their stored components use native RGB instead of XYB.
-                ReadOnlySpan<Buffer2D<float>> colors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
                 Vector2 correlation = varDct is null
                     ? Vector2.UnitY
                     : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
 
-                splines.Apply(colors, correlation, cancellationToken);
+                splines.Apply(this.reconstructedColors, correlation, cancellationToken);
 
                 // Every curve has reached its last consumer. Return its tracked storage before upsampling
                 // or pixel conversion. On failure, the attached owner remains covered by frame disposal.
@@ -311,16 +315,11 @@ internal sealed class JxlFrame : IDisposable
             {
                 if (colorFactor > 1)
                 {
-                    if (varDct is not null)
+                    // Restoration leaves all color planes at CodingSize. Each owner already reserves
+                    // OutputSize, so expansion reuses the same storage for modular and VarDCT samples.
+                    foreach (Buffer2D<float> plane in this.reconstructedColors)
                     {
-                        varDct.ApplyUpsampling(upsampler, colorFactor, cancellationToken);
-                    }
-                    else
-                    {
-                        foreach (Buffer2D<float> plane in this.modularColors)
-                        {
-                            upsampler.Apply(plane, frame.CodingSize, colorFactor, cancellationToken);
-                        }
+                        upsampler.Apply(plane, frame.CodingSize, colorFactor, cancellationToken);
                     }
                 }
 
@@ -338,28 +337,30 @@ internal sealed class JxlFrame : IDisposable
         // Noise uses final-resolution native components. Applying it before upsampling changes its spatial
         // spectrum; applying it after color conversion changes its channel correlation and strength lookup.
         // The generator uses frame counters and output-space group origins, as native Random3Planes does.
-        ReadOnlySpan<Buffer2D<float>> noiseColors = varDct is null ? this.modularColors : varDct.ReconstructedChannels;
         Vector2 noiseCorrelation = varDct is null ? Vector2.UnitY : new Vector2(varDct.BaseCorrelationX, varDct.BaseCorrelationB);
-        this.noise.Apply(noiseColors, frame.OutputSize, frame.GroupSize, noiseCorrelation, visibleFrame, nonvisibleFrame, allocator, cancellationToken);
+        this.noise.Apply(
+            this.reconstructedColors,
+            frame.OutputSize,
+            frame.GroupSize,
+            noiseCorrelation,
+            visibleFrame,
+            nonvisibleFrame,
+            allocator,
+            cancellationToken);
     }
 
     /// <summary>
-    /// Transfers the three completed native color planes to a decoder-owned LF slot without copying samples.
+    /// Transfers the completed native color planes to decoder-owned reference storage without copying samples.
     /// </summary>
     /// <returns>The transferred plane owners. The decoder must dispose them after their final dependent frame.</returns>
     /// <remarks>
-    /// Call only for an LF frame after <see cref="Reconstruct"/>. Do not read or reconstruct this frame's colors after transfer.
-    /// Array construction for VarDCT completes before its owner releases the planes. Allocation failure preserves ownership.
+    /// Complete <see cref="Reconstruct"/> and every borrowed color read before transfer. Do not read or reconstruct the colors afterward.
+    /// The existing owner array transfers with its planes. This operation does not allocate storage.
     /// </remarks>
     public Buffer2D<float>[] TakeReconstructedChannels()
     {
-        if (this.VarDct is JxlVarDctDecoder varDct)
-        {
-            return varDct.TakeReconstructedChannels();
-        }
-
-        Buffer2D<float>[] result = this.modularColors;
-        this.modularColors = [];
+        Buffer2D<float>[] result = this.reconstructedColors;
+        this.reconstructedColors = [];
         return result;
     }
 
@@ -421,7 +422,7 @@ internal sealed class JxlFrame : IDisposable
 
         this.patches?.Dispose();
         this.splines?.Dispose();
-        foreach (Buffer2D<float> plane in this.modularColors)
+        foreach (Buffer2D<float> plane in this.reconstructedColors)
         {
             plane.Dispose();
         }

@@ -326,7 +326,9 @@ internal struct JxlWeightedPredictor
         {
             // The format bounds a prediction by W, NE and N only for this error-sign condition.
             // Preserve the unbounded prediction otherwise; changing this condition changes decoded samples.
-            prediction = Math.Clamp(prediction, Math.Min(w, Math.Min(ne, n)), Math.Max(w, Math.Max(ne, n)));
+            // Both endpoints come from the same three samples, so the lower endpoint cannot exceed the upper one.
+            // Use the reference's min/max equation without Math.Clamp's redundant range validation.
+            prediction = Math.Max(Math.Min(w, Math.Min(ne, n)), Math.Min(Math.Max(w, Math.Max(ne, n)), prediction));
         }
 
         this.combinedPrediction = prediction;
@@ -365,9 +367,12 @@ internal struct JxlWeightedPredictor
             Vector256<long> absolute = Vector256.Abs(difference) + Vector256.Create((long)PredictionRounding);
             Vector256<long> rounded = absolute >>> ExtraBits;
 
-            // Narrow discards high bits; it does not saturate. This retains the native uint conversion,
-            // including wrapped error magnitudes. Only the populated four-lane lower half is stored.
-            magnitudes = Vector256.Narrow(rounded, Vector256<long>.Zero).GetLower().AsUInt32();
+            // Each of the four long lanes contributes its low 32 bits, without saturation. AVX-512
+            // converts directly to four int lanes; it does not construct a discarded upper half.
+            // Other targets use the same truncating conversion through the portable narrowing API.
+            magnitudes = Avx512F.VL.IsSupported
+                ? Avx512F.VL.ConvertToVector128Int32(rounded).AsUInt32()
+                : Vector256.Narrow(rounded, Vector256<long>.Zero).GetLower().AsUInt32();
         }
         else if (Vector128.IsHardwareAccelerated)
         {
@@ -413,7 +418,8 @@ internal struct JxlWeightedPredictor
         // Widen before adding one: uint.MaxValue must have log2(error+1)=32. This shift bounds the
         // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
         int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
-        return MinimumWeight + ((maximumWeight * Reciprocals[(int)(error >> shift)]) >> shift);
+        ref uint table = ref MemoryMarshal.GetReference(Reciprocals);
+        return MinimumWeight + ((maximumWeight * Unsafe.Add(ref table, (int)(error >> shift))) >> shift);
     }
 
     /// <summary>
@@ -458,7 +464,10 @@ internal struct JxlWeightedPredictor
                 sum += this.predictions[3] * weights.GetElement(3);
             }
 
-            return (sum * Reciprocals[(int)weightSum - 1]) >> ReciprocalBits;
+            // Normalization proves 1 <= weightSum <= 31. Borrow the same table as CalculateWeights
+            // without repeating a bounds check for each reconstructed sample.
+            ref uint table = ref MemoryMarshal.GetReference(Reciprocals);
+            return (sum * Unsafe.Add(ref table, (int)weightSum - 1)) >> ReciprocalBits;
         }
 
         // Keep the original scalar weight, normalization and dot-product flow on targets without native
@@ -480,6 +489,8 @@ internal struct JxlWeightedPredictor
         scalarSum += this.predictions[2] * weight2;
         scalarSum += this.predictions[3] * weight3;
 
-        return (scalarSum * Reciprocals[(int)scalarWeightSum - 1]) >> ReciprocalBits;
+        // The scalar normalization has the same positive sum and table bounds as the SIMD path.
+        ref uint scalarTable = ref MemoryMarshal.GetReference(Reciprocals);
+        return (scalarSum * Unsafe.Add(ref scalarTable, (int)scalarWeightSum - 1)) >> ReciprocalBits;
     }
 }

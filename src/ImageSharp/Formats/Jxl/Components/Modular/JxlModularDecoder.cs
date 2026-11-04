@@ -763,6 +763,8 @@ internal sealed partial class JxlModularDecoder : IDisposable
             : [];
 
         JxlEntropyDecoder.Reader symbols = tree.Codes.CreateReader(ref reader);
+
+        // Only LZ77 reads this history position. Its static operator removes counter updates from other entropy modes.
         uint decoded = 0;
 
         for (int channelIndex = 0; channelIndex < count; channelIndex++)
@@ -871,7 +873,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="errors">The frame-owned weighted error rows, already reset for this channel.</param>
     /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
-    /// <param name="decoded">The number of residuals consumed across all preceding channels and current samples.</param>
+    /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
     /// <param name="maximumWidth">The complete stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
     private void DecodeGeneralChannel<TSample, TOperator>(
@@ -989,7 +991,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="errors">The frame-owned weighted error rows, already reset for this channel.</param>
     /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
-    /// <param name="decoded">The number of residuals consumed across all preceding channels and current samples.</param>
+    /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
     /// <param name="maximumWidth">The complete stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
     private void DecodeGeneralChannel<TSample, TOperator, TTreeOperator>(
@@ -1173,7 +1175,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     long guess = unchecked(prediction + node.Value);
                     uint multiplier = node.Multiplier;
                     int cluster = node.FirstChild;
-                    uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
+                    uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                     int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                     int value = unchecked((int)(guess + ((long)signed * multiplier)));
                     Unsafe.Add(ref first, x) = value;
@@ -1281,7 +1283,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="channel">The complete output region.</param>
     /// <param name="leaf">The channel's fixed residual context, multiplier and offset.</param>
     /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
-    /// <param name="decoded">The number of residuals consumed across all channels.</param>
+    /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
     /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
     private static void DecodeZeroChannel<TSample, TOperator>(
@@ -1307,7 +1309,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             Span<TSample> row = channel.GetRow<TSample>(y);
             for (int x = 0; x < row.Length; x++)
             {
-                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 row[x] = TSample.CreateTruncating(unchecked((int)(guess + ((long)signed * multiplier))));
             }
@@ -1325,7 +1327,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="nodes">The reduced tree containing only property-nine splits and gradient leaves.</param>
     /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
-    /// <param name="decoded">The number of residuals consumed across all channels.</param>
+    /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
     /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
     private static void DecodeGradientChannel<TSample, TOperator>(
@@ -1371,7 +1373,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 long guess = unchecked(prediction + node.Value);
                 uint multiplier = node.Multiplier;
                 int cluster = node.FirstChild;
-                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 int value = unchecked((int)(guess + ((long)signed * multiplier)));
                 row[x] = value;
@@ -1396,7 +1398,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="errors">The caller-owned error rows for this channel.</param>
     /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
     /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
-    /// <param name="decoded">The number of residuals consumed across all channels.</param>
+    /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
     /// <param name="maximumWidth">The stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each row.</param>
     private static void DecodeWeightedChannel<TSample, TOperator>(
@@ -1451,7 +1453,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 long guess = unchecked(prediction + node.Value);
                 uint multiplier = node.Multiplier;
                 int cluster = node.FirstChild;
-                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, decoded++, maximumWidth);
+                uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
                 int value = unchecked((int)(guess + ((long)signed * multiplier)));
                 Unsafe.Add(ref first, x) = value;

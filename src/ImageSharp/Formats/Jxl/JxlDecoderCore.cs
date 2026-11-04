@@ -132,7 +132,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reconstructs saved native dependencies and packs the final full-canvas frame through the shared pixel APIs.
+    /// Reconstructs saved dependencies, composes original-device crops and packs the final canvas through the shared pixel APIs.
     /// </summary>
     /// <typeparam name="TPixel">The requested destination pixel format.</typeparam>
     /// <param name="reader">The reader following the already parsed image header.</param>
@@ -167,14 +167,21 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 cancellationToken.ThrowIfCancellationRequested();
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
-                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced && frame.SaveBeforeColorTransform;
+
+                // Original RGB device samples need no coding transform. A complete replacement can
+                // therefore transfer its existing planes at either reference boundary without conversion.
+                bool originalComponents = !header.UsesXybTransform && !frame.YCbCr;
+                bool originalReference = originalComponents && !frame.NeedsBlending;
+                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced && (frame.SaveBeforeColorTransform || originalReference);
+                bool originalComposition = originalComponents && frame.NeedsBlending;
+
                 if ((!lowFrequency && !nativeReference && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
-                    || (!nativeReference && (frame.HasCrop || frame.Size != header.Size))
+                    || (!nativeReference && !originalComposition && (frame.HasCrop || frame.Size != header.Size))
                     || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
                         | JxlFrameHeader.Patches | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
                 {
                     throw new NotSupportedException(
-                        "JPEG XL decoding currently requires native saved dependencies followed by a final full-canvas frame.");
+                        "JPEG XL decoding currently requires saved dependencies followed by a final frame with supported color composition.");
                 }
 
                 Buffer2D<float>[]? dcReference = null;
@@ -252,7 +259,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                         {
                             // Patches finish reading the old slot during reconstruction. Transfer completed
                             // native planes first, then replace that slot and release its preceding owners.
-                            JxlReferenceFrame saved = reconstructed.TakeReferenceFrame(true);
+                            JxlReferenceFrame saved = reconstructed.TakeReferenceFrame(frame.SaveBeforeColorTransform);
                             int slot = frame.ReferenceSlot;
                             JxlReferenceFrame? previous = referenceFrames[slot];
                             referenceFrames[slot] = saved;
@@ -264,6 +271,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
                     if (!pixelsWritten)
                     {
+                        if (originalComposition)
+                        {
+                            reconstructed.Compose(referenceFrames, header.Size, allocator, cancellationToken);
+                        }
+
                         using JxlPixelConverter<TPixel> pixelConverter = new(this.Options.Configuration, header, reconstructed, image.Frames.RootFrame);
                         pixelConverter.Convert(cancellationToken);
                     }

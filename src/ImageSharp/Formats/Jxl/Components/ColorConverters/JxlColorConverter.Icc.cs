@@ -11,13 +11,33 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
 internal abstract partial class JxlColorConverterBase
 {
+    /// <summary>
+    /// Converts an ICC device row to working sRGB and restores its separate image alpha.
+    /// </summary>
+    /// <param name="colors">The device components, replaced in place by working sRGB pixel vectors.</param>
+    /// <param name="profileConverter">The paired source-profile to sRGB transform.</param>
+    /// <param name="alpha">The unchanged image alpha row, or an empty span for opaque output.</param>
+    public static void ApplyOutputConversion(Span<Vector4> colors, ColorProfileConverter profileConverter, ReadOnlySpan<float> alpha)
+    {
+        profileConverter.ConvertUsingIccProfile(colors, colors);
+
+        // ICC's fourth slot is a device component, not alpha. Restore the separate opacity after conversion.
+        if (alpha.IsEmpty)
+        {
+            Numerics.WithW(colors, 1F);
+        }
+        else
+        {
+            Numerics.WithW(colors, alpha);
+        }
+    }
+
     private sealed partial class JxlColorConverter<TOperator>
     {
         /// <inheritdoc/>
-        public override void ConvertToRgb<TSample, TSampleOperator>(
+        public override void ConvertIccComponents<TSample, TSampleOperator>(
             in ComponentValues<TSample> source,
             Span<Vector4> destination,
-            ColorProfileConverter profileConverter,
             in TSampleOperator sampleOperator)
         {
             // Retain one local copy so constrained calls do not copy the readonly operation per block.
@@ -30,9 +50,6 @@ internal abstract partial class JxlColorConverterBase
             ReadOnlySpan<TSample> component1 = source.Component1;
             ReadOnlySpan<TSample> component2 = source.Component2;
             int count = component0.Length;
-            ref TSample c0 = ref MemoryMarshal.GetReference(component0);
-            ref TSample c1 = ref MemoryMarshal.GetReference(component1);
-            ref TSample c2 = ref MemoryMarshal.GetReference(component2);
             ref float black = ref MemoryMarshal.GetReference(source.Black);
             ref float target = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
             int i = 0;
@@ -85,24 +102,12 @@ internal abstract partial class JxlColorConverterBase
             // The scalar remainder uses the same operator and sample normalization as every vector width.
             for (; i < count; i++)
             {
-                float x = sampleOperation.Invoke(Unsafe.Add(ref c0, i));
-                float y = sampleOperation.Invoke(Unsafe.Add(ref c1, i));
-                float z = sampleOperation.Invoke(Unsafe.Add(ref c2, i));
-                float k = TOperator.ComponentCount == 4 ? Unsafe.Add(ref black, i) : 0F;
+                float x = sampleOperation.Invoke(component0[i]);
+                float y = sampleOperation.Invoke(component1[i]);
+                float z = sampleOperation.Invoke(component2[i]);
+                float k = TOperator.ComponentCount == 4 ? source.Black[i] : 0F;
                 operation.Invoke(ref x, ref y, ref z, ref k);
                 destination[i] = new Vector4(x, y, z, k);
-            }
-
-            profileConverter.ConvertUsingIccProfile(destination, destination);
-
-            // ICC's fourth slot is a device component, not alpha. Restore the separate opacity after conversion.
-            if (source.Alpha.IsEmpty)
-            {
-                Numerics.WithW(destination, 1F);
-            }
-            else
-            {
-                Numerics.WithW(destination, source.Alpha);
             }
         }
     }

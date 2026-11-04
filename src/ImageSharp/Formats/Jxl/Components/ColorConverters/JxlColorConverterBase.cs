@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -10,15 +11,42 @@ using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
 /// <summary>
-/// Converts reconstructed JPEG XL components to working sRGB before destination pixel packing.
+/// Restores JPEG XL components and applies the selected conversion to working sRGB.
 /// </summary>
 /// <remarks>
 /// The pixel converter owns the row storage. A closed generic converter owns traversal; its operator owns
-/// component ordering and arithmetic. Only the ICC overload uses the profile converter.
-/// Alpha remains separate from device components until the color transform has finished.
+/// component ordering and arithmetic. Component conversion does not apply the final output conversion.
+/// ICC device rows keep image alpha separate until the paired profile transform has finished.
 /// </remarks>
 internal abstract partial class JxlColorConverterBase
 {
+    // Coding XYB produces linear sRGB. The compander owns the following transfer and result bounds.
+    private readonly bool isLinearRgb;
+    private readonly ColorProfileConverterExtensionsRgbRgb.RgbConversion? rgbConversion;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlColorConverterBase"/> class for direct or ICC device components.
+    /// </summary>
+    /// <param name="isLinearRgb">Whether output conversion compresses restored linear sRGB components.</param>
+    protected JxlColorConverterBase(bool isLinearRgb) => this.isLinearRgb = isLinearRgb;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlColorConverterBase"/> class for a compact RGB description.
+    /// </summary>
+    /// <param name="sourceWorkingSpace">The restored components' transfer curve, primaries and reference white.</param>
+    protected JxlColorConverterBase(RgbWorkingSpace sourceWorkingSpace)
+    {
+        Matrix4x4 adaptation = KnownChromaticAdaptationMatrices.Bradford;
+        _ = Matrix4x4.Invert(adaptation, out Matrix4x4 inverse);
+        RgbWorkingSpace target = KnownRgbWorkingSpaces.SRgb;
+        this.rgbConversion = new ColorProfileConverterExtensionsRgbRgb.RgbConversion(
+            sourceWorkingSpace,
+            target,
+            (sourceWorkingSpace.WhitePoint, target.WhitePoint),
+            adaptation,
+            inverse);
+    }
+
     /// <summary>
     /// Prepares the source color description and selects its component operation once for the frame.
     /// </summary>
@@ -108,14 +136,54 @@ internal abstract partial class JxlColorConverterBase
     }
 
     /// <summary>
-    /// Converts native components directly to working sRGB pixel vectors without ICC conversion.
+    /// Selects the coding transform before pointwise image features without applying the final output conversion.
     /// </summary>
-    /// <typeparam name="TSample">The four-byte integer carrier or restored float sample.</typeparam>
+    /// <param name="header">The parsed image color declarations and coding XYB transform.</param>
+    /// <param name="frame">The frame whose coding transform precedes its image features.</param>
+    /// <returns>The converter to linear sRGB for coding XYB, or the original device components for other coding transforms.</returns>
+    public static JxlColorConverterBase CreateForImageFeatures(JxlHeader header, JxlFrame frame)
+    {
+        if (header.UsesXybTransform)
+        {
+            // Static spot colors follow the inverse coding transform in libjxl dec_cache.cc.
+            // Keep its linear output here; the final transfer curve follows the spot calculation.
+            return new JxlColorConverter<XybOperator>(new XybOperator(header.XybTransform), false);
+        }
+
+        // Inverse YCbCr restores the original device samples. CMYK remains in remaining-light units,
+        // and declared device XYB keeps its sample encoding until after the spot calculation.
+        return frame.Header.YCbCr
+            ? new JxlColorConverter<YCbCrOperator>(new YCbCrOperator(), false)
+            : new JxlColorConverter<RgbOperator>(default, false);
+    }
+
+    /// <summary>
+    /// Applies the selected non-ICC output conversion without repeating the row's coding transform.
+    /// </summary>
+    /// <param name="colors">The restored component row, converted in place. Alpha is retained.</param>
+    public void ApplyOutputConversion(Span<Vector4> colors)
+    {
+        if (this.isLinearRgb)
+        {
+            SRgbCompanding.Compress(colors);
+        }
+        else if (this.rgbConversion.HasValue)
+        {
+            // Reuse the converter's prepared RGB arithmetic without constructing a general converter.
+            // Transfer curves, including PQ and HLG, remain owned by their working-space implementations.
+            this.rgbConversion.Value.Invoke(colors);
+        }
+    }
+
+    /// <summary>
+    /// Restores the factory-selected components to pixel-vector rows without applying the final output conversion.
+    /// </summary>
+    /// <typeparam name="TSample">The native integer carrier or restored float sample.</typeparam>
     /// <typeparam name="TSampleOperator">The prepared sample-representation operator.</typeparam>
     /// <param name="source">The source planes and separately normalized black and alpha rows.</param>
-    /// <param name="destination">The working sRGB pixel vectors.</param>
+    /// <param name="destination">The restored components in X, Y and Z, with image alpha in W.</param>
     /// <param name="sampleOperator">The prepared integer or floating sample conversion.</param>
-    public abstract void ConvertToRgb<TSample, TSampleOperator>(
+    public abstract void ConvertComponents<TSample, TSampleOperator>(
         in ComponentValues<TSample> source,
         Span<Vector4> destination,
         in TSampleOperator sampleOperator)
@@ -123,18 +191,16 @@ internal abstract partial class JxlColorConverterBase
         where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>;
 
     /// <summary>
-    /// Restores device components and converts them to working sRGB through an ICC transform.
+    /// Restores the factory-selected ICC device components without applying the paired profile transform.
     /// </summary>
-    /// <typeparam name="TSample">The four-byte integer carrier or restored float sample.</typeparam>
+    /// <typeparam name="TSample">The native integer carrier or restored float sample.</typeparam>
     /// <typeparam name="TSampleOperator">The prepared sample-representation operator.</typeparam>
-    /// <param name="source">The source planes and separately normalized black and alpha rows.</param>
-    /// <param name="destination">The working sRGB pixel vectors. ICC device storage reuses this row.</param>
-    /// <param name="profileConverter">The paired source-profile to sRGB transform.</param>
+    /// <param name="source">The source planes and separately normalized black row. Image alpha is not read.</param>
+    /// <param name="destination">The ICC device components. W holds black for CMYK, or zero for a three-component device.</param>
     /// <param name="sampleOperator">The prepared integer or floating sample conversion.</param>
-    public abstract void ConvertToRgb<TSample, TSampleOperator>(
+    public abstract void ConvertIccComponents<TSample, TSampleOperator>(
         in ComponentValues<TSample> source,
         Span<Vector4> destination,
-        ColorProfileConverter profileConverter,
         in TSampleOperator sampleOperator)
         where TSample : unmanaged
         where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>;

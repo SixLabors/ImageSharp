@@ -828,6 +828,7 @@ public class JxlFormatTests
     [InlineData(TestImages.Jxl.Splines)]
     [InlineData(TestImages.Jxl.Noise8x8)]
     [InlineData(TestImages.Jxl.Noise)]
+    [InlineData(TestImages.Jxl.SpotColor)]
     public void DecodeColorMatchesNativeSrgb(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateDecodedColors,
@@ -842,6 +843,9 @@ public class JxlFormatTests
     /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153 decoded the source samples and profiles.
     /// Its default CMS generated the RGB and grayscale ICC results with relative-colorimetric sRGB output.
     /// The spline and noise results use the same native public decoder with float sRGB output.
+    /// The spot-color input uses native composed ProPhoto RGB with both spots applied, then LittleCMS 2.17
+    /// with perceptual intent, no black-point compensation, and the exact CompactSrgbV4 target.
+    /// Libjxl's generated 504-byte sRGB profile has different coefficients from this 480-byte target.
     /// Noise retains native's 23 random mantissa bits. Selected coordinates cover mirrored edges, group boundaries and SIMD tails.
     /// Compact PQ/HLG results use native linear-sRGB output, then the original GetFromLinearStage sRGB operation.
     /// That operation uses the signed curve required by the shared working space. A direct CMS sRGB target instead
@@ -860,6 +864,7 @@ public class JxlFormatTests
             TestImages.Jxl.Splines => new Size(2048, 2048),
             TestImages.Jxl.Noise8x8 => new Size(8, 8),
             TestImages.Jxl.Noise => new Size(500, 606),
+            TestImages.Jxl.SpotColor => new Size(600, 400),
             TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
             TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
             _ => new Size(169, 118)
@@ -867,6 +872,7 @@ public class JxlFormatTests
 
         string? profileHash = file switch
         {
+            TestImages.Jxl.SpotColor => "CE0CAEE9506116EA94D7367D646F7FD6D0B7E82FEB8D1F3DE4EDB3BA57BAE07E",
             TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
             TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg or TestImages.Jxl.Splines
                 or TestImages.Jxl.Noise8x8 or TestImages.Jxl.Noise => null,
@@ -876,6 +882,18 @@ public class JxlFormatTests
 
         ReadOnlySpan<(int X, int Y, uint R, uint G, uint B, uint A)> points = file switch
         {
+            TestImages.Jxl.SpotColor => [
+                (0, 0, 0x3F94F761U, 0xC01F27FAU, 0x3F81E5FEU, 0x3F800000U),
+                (599, 399, 0x3F80142CU, 0xBFD76F68U, 0x3F745807U, 0x3F800000U),
+                (255, 255, 0x3F94F761U, 0xC01F27FAU, 0x3F81E5FEU, 0x3F800000U),
+                (256, 255, 0x3F94F761U, 0xC01F27FAU, 0x3F81E5FEU, 0x3F800000U),
+                (255, 256, 0x3F94F761U, 0xC01F27FAU, 0x3F81E5FEU, 0x3F800000U),
+                (256, 256, 0x3F94F761U, 0xC01F27FAU, 0x3F81E5FEU, 0x3F800000U),
+                (300, 200, 0x3F5EFA51U, 0xBF8080CAU, 0x3F68B918U, 0x3F800000U),
+                (209, 62, 0x3FAE7D64U, 0xC03D102DU, 0xBDE1667CU, 0x3F800000U),
+                (326, 113, 0x3F8CE895U, 0x3F808E6EU, 0xC0059B0FU, 0x3F800000U),
+                (91, 117, 0xC136BCB2U, 0x3F8C28D7U, 0x3F32DA27U, 0x3F800000U)
+            ],
             TestImages.Jxl.Noise8x8 => [
                 (0, 0, 0x3F82FF75U, 0x3F82EB9DU, 0x3F82EC83U, 0x3F800000U),
                 (7, 0, 0x3F823A09U, 0x3F824D13U, 0x3F824C36U, 0x3F800000U),

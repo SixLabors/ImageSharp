@@ -5,8 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
@@ -65,6 +63,107 @@ internal abstract partial class JxlColorConverterBase
     }
 
     /// <summary>
+    /// Applies a three-component color operation to distinct component planes in place.
+    /// </summary>
+    /// <typeparam name="TOperator">The prepared three-component operation selected for the frame.</typeparam>
+    /// <param name="component0">The first mutable component row.</param>
+    /// <param name="component1">The second mutable component row, with the same validated length.</param>
+    /// <param name="component2">The third mutable component row, with the same validated length.</param>
+    /// <param name="operation">The shared scalar and SIMD component equations.</param>
+    /// <remarks>
+    /// Frame reconstruction owns these rows. This method changes only their three color components;
+    /// it does not pack pixels, apply a transfer curve or process extra channels.
+    /// Three-component operators leave their fourth argument unused.
+    /// </remarks>
+    public static void ConvertInPlace<TOperator>(Span<float> component0, Span<float> component1, Span<float> component2, TOperator operation)
+        where TOperator : struct, IJxlColorConverterOperator
+    {
+        int count = component0.Length;
+        ref float first = ref MemoryMarshal.GetReference(component0);
+        ref float second = ref MemoryMarshal.GetReference(component1);
+        ref float third = ref MemoryMarshal.GetReference(component2);
+        int i = 0;
+
+        // Each register holds one component from consecutive pixels. The owner supplies equally sized,
+        // distinct rows. A complete-block count bounds every load and store within those rows.
+        // Load all three components before any store, then retain the results in the same planar layout.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (count - i).Vector512Count<float>();
+
+            for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
+            {
+                Vector512<float> x = Vector512.LoadUnsafe(ref first, (nuint)i);
+                Vector512<float> y = Vector512.LoadUnsafe(ref second, (nuint)i);
+                Vector512<float> z = Vector512.LoadUnsafe(ref third, (nuint)i);
+                Vector512<float> unused = default;
+
+                operation.Invoke(ref x, ref y, ref z, ref unused);
+
+                x.StoreUnsafe(ref first, (nuint)i);
+                y.StoreUnsafe(ref second, (nuint)i);
+                z.StoreUnsafe(ref third, (nuint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (count - i).Vector256Count<float>();
+
+            // Continue at the first unprocessed pixel. Only complete smaller blocks reach these loads.
+            for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
+            {
+                Vector256<float> x = Vector256.LoadUnsafe(ref first, (nuint)i);
+                Vector256<float> y = Vector256.LoadUnsafe(ref second, (nuint)i);
+                Vector256<float> z = Vector256.LoadUnsafe(ref third, (nuint)i);
+                Vector256<float> unused = default;
+
+                operation.Invoke(ref x, ref y, ref z, ref unused);
+
+                x.StoreUnsafe(ref first, (nuint)i);
+                y.StoreUnsafe(ref second, (nuint)i);
+                z.StoreUnsafe(ref third, (nuint)i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint vectorCount = (count - i).Vector128Count<float>();
+
+            // The last complete SIMD blocks use the same planar lanes and component equations.
+            for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
+            {
+                Vector128<float> x = Vector128.LoadUnsafe(ref first, (nuint)i);
+                Vector128<float> y = Vector128.LoadUnsafe(ref second, (nuint)i);
+                Vector128<float> z = Vector128.LoadUnsafe(ref third, (nuint)i);
+                Vector128<float> unused = default;
+
+                operation.Invoke(ref x, ref y, ref z, ref unused);
+
+                x.StoreUnsafe(ref first, (nuint)i);
+                y.StoreUnsafe(ref second, (nuint)i);
+                z.StoreUnsafe(ref third, (nuint)i);
+            }
+        }
+
+        // Fewer than four pixels remain, or hardware intrinsics are disabled. Index each row directly;
+        // the scalar operator applies the same equations without reading or writing beyond the row.
+        for (; i < count; i++)
+        {
+            float x = component0[i];
+            float y = component1[i];
+            float z = component2[i];
+            float unused = 0F;
+
+            operation.Invoke(ref x, ref y, ref z, ref unused);
+
+            component0[i] = x;
+            component1[i] = y;
+            component2[i] = z;
+        }
+    }
+
+    /// <summary>
     /// Traverses source planes with one prepared component operator.
     /// </summary>
     /// <typeparam name="TOperator">The component operation selected for this frame.</typeparam>
@@ -73,19 +172,15 @@ internal abstract partial class JxlColorConverterBase
     {
         private readonly TOperator operation;
 
-        // Coding XYB produces linear sRGB. The compander owns the following transfer and result bounds.
-        private readonly bool isLinearRgb;
-        private readonly ColorProfileConverterExtensionsRgbRgb.RgbConversion? rgbConversion;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for direct or ICC component conversion.
         /// </summary>
-        /// <param name="operation">The prepared component arithmetic. ICC conversion is supplied only to the ICC overload.</param>
+        /// <param name="operation">The prepared component arithmetic, separate from the final output conversion.</param>
         /// <param name="isLinearRgb">True when the component operation produces linear sRGB that needs compression.</param>
         public JxlColorConverter(TOperator operation, bool isLinearRgb)
+            : base(isLinearRgb)
         {
             this.operation = operation;
-            this.isLinearRgb = isLinearRgb;
         }
 
         /// <summary>
@@ -94,21 +189,13 @@ internal abstract partial class JxlColorConverterBase
         /// <param name="operation">The prepared component arithmetic.</param>
         /// <param name="sourceWorkingSpace">The source transfer curve, primaries and reference white.</param>
         public JxlColorConverter(TOperator operation, RgbWorkingSpace sourceWorkingSpace)
+            : base(sourceWorkingSpace)
         {
             this.operation = operation;
-            Matrix4x4 adaptation = KnownChromaticAdaptationMatrices.Bradford;
-            _ = Matrix4x4.Invert(adaptation, out Matrix4x4 inverse);
-            RgbWorkingSpace target = KnownRgbWorkingSpaces.SRgb;
-            this.rgbConversion = new ColorProfileConverterExtensionsRgbRgb.RgbConversion(
-                sourceWorkingSpace,
-                target,
-                (sourceWorkingSpace.WhitePoint, target.WhitePoint),
-                adaptation,
-                inverse);
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgb<TSample, TSampleOperator>(
+        public override void ConvertComponents<TSample, TSampleOperator>(
             in ComponentValues<TSample> source,
             Span<Vector4> destination,
             in TSampleOperator sampleOperator)
@@ -124,9 +211,6 @@ internal abstract partial class JxlColorConverterBase
             ReadOnlySpan<TSample> component1 = source.Component1;
             ReadOnlySpan<TSample> component2 = source.Component2;
             int count = component0.Length;
-            ref TSample c0 = ref MemoryMarshal.GetReference(component0);
-            ref TSample c1 = ref MemoryMarshal.GetReference(component1);
-            ref TSample c2 = ref MemoryMarshal.GetReference(component2);
             ref float black = ref MemoryMarshal.GetReference(source.Black);
             ref float alpha = ref MemoryMarshal.GetReference(source.Alpha);
             bool hasAlpha = !source.Alpha.IsEmpty;
@@ -184,23 +268,12 @@ internal abstract partial class JxlColorConverterBase
             // The scalar remainder uses the same operator and sample normalization as every vector width.
             for (; i < count; i++)
             {
-                float x = sampleOperation.Invoke(Unsafe.Add(ref c0, i));
-                float y = sampleOperation.Invoke(Unsafe.Add(ref c1, i));
-                float z = sampleOperation.Invoke(Unsafe.Add(ref c2, i));
-                float k = TOperator.ComponentCount == 4 ? Unsafe.Add(ref black, i) : 0F;
+                float x = sampleOperation.Invoke(component0[i]);
+                float y = sampleOperation.Invoke(component1[i]);
+                float z = sampleOperation.Invoke(component2[i]);
+                float k = TOperator.ComponentCount == 4 ? source.Black[i] : 0F;
                 operation.Invoke(ref x, ref y, ref z, ref k);
-                destination[i] = new Vector4(x, y, z, hasAlpha ? Unsafe.Add(ref alpha, i) : 1F);
-            }
-
-            if (this.isLinearRgb)
-            {
-                SRgbCompanding.Compress(destination);
-            }
-            else if (this.rgbConversion.HasValue)
-            {
-                // Reuse the converter's prepared RGB arithmetic without constructing a general converter.
-                // Transfer curves, including PQ and HLG, remain owned by their working-space implementations.
-                this.rgbConversion.Value.Invoke(destination);
+                destination[i] = new Vector4(x, y, z, hasAlpha ? source.Alpha[i] : 1F);
             }
         }
     }

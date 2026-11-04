@@ -98,7 +98,8 @@ public sealed class JxlExtraChannelMetadata
     }
 
     /// <summary>
-    /// Gets the linear sRGB color and opacity of a spot-color channel. Each component must be finite and within half-precision storage limits.
+    /// Gets the RGB components and mixing weight used to render a spot-color channel.
+    /// Each component must be finite and within half-precision storage limits.
     /// Other channel types ignore this value.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">A component is not finite or exceeds half-precision storage limits.</exception>

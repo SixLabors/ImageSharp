@@ -1,12 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Numerics;
+using System.Numerics.Tensors;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.PixelFormats;
+using BlendMode = SixLabors.ImageSharp.Formats.Jxl.Components.Decoder.JxlBlending.BlendMode;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
@@ -21,6 +26,11 @@ internal sealed class JxlFrame : IDisposable
 {
     private readonly JxlHeader image;
     private readonly Vector3 dcFactors;
+
+    /// <summary>
+    /// Indicates whether encoded extra channels include a spot color for displayed output.
+    /// </summary>
+    private readonly bool hasSpotColors;
 
     /// <summary>
     /// The decoded noise strengths. A default value has no active noise and needs no workspace.
@@ -46,6 +56,17 @@ internal sealed class JxlFrame : IDisposable
     /// The distinct normalized extra-channel owners required by patches or a saved reference, in encoded order.
     /// </summary>
     private Buffer2D<float>[] nativeExtras = [];
+
+    /// <summary>
+    /// The displayed spot channels in encoded order. Planes borrow nativeExtras when spotPlanesBorrowed is true;
+    /// otherwise only reduced channels own a plane, and full-resolution channels retain no float image storage.
+    /// </summary>
+    private (int Channel, JxlExtraChannelMetadata Metadata, Buffer2D<float>? Plane)[] spotColors = [];
+
+    /// <summary>
+    /// Indicates whether the spot descriptors borrow their planes from nativeExtras instead of owning them.
+    /// </summary>
+    private bool spotPlanesBorrowed;
 
     /// <summary>
     /// The ready display alpha plane. It belongs to nativeExtras when every extra is retained, or directly to this frame otherwise.
@@ -90,6 +111,8 @@ internal sealed class JxlFrame : IDisposable
     {
         this.image = image;
         this.Header = header;
+        this.Size = header.OutputSize;
+        this.Origin = header.Origin;
         this.Modular = modular;
         this.VarDct = varDct;
         this.dcFactors = dcFactors;
@@ -100,23 +123,30 @@ internal sealed class JxlFrame : IDisposable
         this.AlphaExtra = -1;
         this.BlackExtra = -1;
 
-        // LF storage contains native color only. It does not consume display alpha or a CMYK black channel.
-        if (header.Type != JxlFrameHeader.FrameType.LowFrequency)
+        for (int i = 0; i < image.Metadata.ExtraChannels.Count; i++)
         {
-            for (int i = 0; i < image.Metadata.ExtraChannels.Count; i++)
-            {
-                JxlExtraChannelType type = image.Metadata.ExtraChannels[i].Type;
-                if (this.AlphaExtra < 0 && type == JxlExtraChannelType.Alpha)
-                {
-                    this.AlphaExtra = i;
-                }
+            JxlExtraChannelType type = image.Metadata.ExtraChannels[i].Type;
+            this.hasSpotColors |= type == JxlExtraChannelType.SpotColor;
 
-                if (this.BlackExtra < 0 && type == JxlExtraChannelType.Black)
-                {
-                    this.BlackExtra = i;
-                }
+            // LF storage contains native color only. It does not consume display alpha or a CMYK black channel.
+            if (header.Type == JxlFrameHeader.FrameType.LowFrequency)
+            {
+                continue;
             }
 
+            if (this.AlphaExtra < 0 && type == JxlExtraChannelType.Alpha)
+            {
+                this.AlphaExtra = i;
+            }
+
+            if (this.BlackExtra < 0 && type == JxlExtraChannelType.Black)
+            {
+                this.BlackExtra = i;
+            }
+        }
+
+        if (header.Type != JxlFrameHeader.FrameType.LowFrequency)
+        {
             // Black is an ICC device component. An alpha extra channel must never substitute for missing black.
             bool cmyk = !image.UsesXybTransform && image.IccProfile?.Header.DataColorSpace == IccColorSpaceType.Cmyk;
             if (cmyk && this.BlackExtra < 0)
@@ -137,6 +167,16 @@ internal sealed class JxlFrame : IDisposable
     public JxlFrameHeader Header { get; }
 
     /// <summary>
+    /// Gets the current completed component dimensions, including canvas composition when applied.
+    /// </summary>
+    public Size Size { get; private set; }
+
+    /// <summary>
+    /// Gets the current component origin on the image canvas. A composed canvas has a zero origin.
+    /// </summary>
+    public Point Origin { get; private set; }
+
+    /// <summary>
     /// Gets the retained modular color and extra-channel owner.
     /// </summary>
     public JxlModularDecoder Modular { get; }
@@ -155,6 +195,11 @@ internal sealed class JxlFrame : IDisposable
     /// Gets the CMYK black extra-channel index, or minus one when output does not use black.
     /// </summary>
     public int BlackExtra { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the image declares spot colors for displayed output.
+    /// </summary>
+    public bool HasSpotColors => this.hasSpotColors;
 
     /// <summary>
     /// Gets the borrowed reconstructed float color owners, or an empty span when conversion reads integer or group rows.
@@ -195,14 +240,22 @@ internal sealed class JxlFrame : IDisposable
         int alphaFactor = this.AlphaExtra < 0 ? 1 : frame.ExtraChannelUpsampling[this.AlphaExtra];
         int blackFactor = this.BlackExtra < 0 ? 1 : frame.ExtraChannelUpsampling[this.BlackExtra];
         int maximumFactor = Math.Max(colorFactor, Math.Max(alphaFactor, blackFactor));
-        bool retainExtras = this.patches is not null || frame.CanBeReferenced;
+        bool retainExtras = this.patches is not null || frame.CanBeReferenced || frame.NeedsBlending;
         bool lateExtraUpsampling = colorFactor > 1;
+        int spotCount = 0;
 
-        foreach (byte factor in frame.ExtraChannelUpsampling)
+        for (int extra = 0; extra < frame.ExtraChannelUpsampling.Length; extra++)
         {
-            if (retainExtras)
+            int factor = frame.ExtraChannelUpsampling[extra];
+            bool spotColor = frame.IsDisplayed && this.image.Metadata.ExtraChannels[extra].Type == JxlExtraChannelType.SpotColor;
+            if (retainExtras || spotColor)
             {
                 maximumFactor = Math.Max(maximumFactor, factor);
+            }
+
+            if (spotColor)
+            {
+                spotCount++;
             }
 
             lateExtraUpsampling &= factor == colorFactor;
@@ -245,6 +298,13 @@ internal sealed class JxlFrame : IDisposable
             this.PrepareNativeExtraChannels(allocator, cancellationToken);
         }
 
+        if (spotCount != 0)
+        {
+            // Pointwise spot mixing uses pixel-converter row storage. Only a reduced spot channel
+            // needs its own float plane; an existing retained extra supplies that plane when present.
+            this.PrepareSpotColors(spotCount, allocator, cancellationToken);
+        }
+
         // One workspace spans early extra expansion, native frame features and common color/extra expansion.
         // Equal extra and color factors defer extra expansion until after patches and splines.
         // Other extra factors expand first. These native samples retain their values without pixel or alpha bounds.
@@ -275,6 +335,18 @@ internal sealed class JxlFrame : IDisposable
                 {
                     Size size = modular.GetChannel(modular.ColorChannelCount + this.BlackExtra).Size;
                     maximumSourceSize = new Size(Math.Max(maximumSourceSize.Width, size.Width), Math.Max(maximumSourceSize.Height, size.Height));
+                }
+
+                if (!this.spotPlanesBorrowed)
+                {
+                    foreach ((int channel, JxlExtraChannelMetadata _, Buffer2D<float>? plane) in this.spotColors)
+                    {
+                        if (plane is not null)
+                        {
+                            Size size = modular.GetChannel(modular.ColorChannelCount + channel).Size;
+                            maximumSourceSize = new Size(Math.Max(maximumSourceSize.Width, size.Width), Math.Max(maximumSourceSize.Height, size.Height));
+                        }
+                    }
                 }
 
                 upsampler = new JxlUpsampler(this.image, frame.OutputSize, maximumSourceSize, maximumFactor, allocator);
@@ -350,6 +422,452 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
+    /// Composes completed original-device components onto the image canvas using the selected reference backgrounds.
+    /// </summary>
+    /// <param name="references">The four ordinary reference slots, retained for the complete composition call.</param>
+    /// <param name="canvasSize">The image canvas dimensions.</param>
+    /// <param name="allocator">The tracked allocator for the canvas planes and bounded block scratch.</param>
+    /// <param name="cancellationToken">The token checked between component rows.</param>
+    /// <remarks>
+    /// The caller restores coding color transforms before this call. Backgrounds must contain original-device samples.
+    /// Each extra channel selects its own reference source, including extra channels used as blend weights.
+    /// New canvas owners publish only after every row succeeds. Failure leaves the foreground owners unchanged.
+    /// </remarks>
+    public void Compose(ReadOnlySpan<JxlReferenceFrame?> references, Size canvasSize, MemoryAllocator allocator, CancellationToken cancellationToken)
+    {
+        JxlFrameHeader frame = this.Header;
+        int extraCount = this.image.Metadata.ExtraChannels.Count;
+        uint usedSources = 1U << frame.Blending.Source;
+        foreach (JxlFrameHeader.BlendingInfo extra in frame.ExtraChannelBlending)
+        {
+            usedSources |= 1U << extra.Source;
+        }
+
+        // An absent slot is an all-zero background. Every populated source must cover the canvas
+        // at its origin. Only the color source must follow the coding color transform: extra samples
+        // are unchanged by that transform and can also come from a pre-transform reference.
+        for (int slot = 0; slot < references.Length; slot++)
+        {
+            JxlReferenceFrame? reference = references[slot];
+            if ((usedSources & (1U << slot)) != 0 && reference is not null
+                && ((slot == frame.Blending.Source && reference.SavedBeforeColorTransform) || reference.Origin != Point.Empty
+                    || reference.Size.Width < canvasSize.Width || reference.Size.Height < canvasSize.Height))
+            {
+                throw new InvalidImageContentException("The JPEG XL composition background is not a complete original-color canvas.");
+            }
+        }
+
+        // Origins are signed. Widen before adding dimensions and intersecting the crop with the
+        // canvas; only this intersection is narrowed to row and span indices.
+        int left = (int)Math.Clamp((long)this.Origin.X, 0, canvasSize.Width);
+        int top = (int)Math.Clamp((long)this.Origin.Y, 0, canvasSize.Height);
+        int right = (int)Math.Clamp((long)this.Origin.X + this.Size.Width, 0, canvasSize.Width);
+        int bottom = (int)Math.Clamp((long)this.Origin.Y + this.Size.Height, 0, canvasSize.Height);
+
+        // Four maximum-width float registers bound the temporary block. The nine scratch ranges
+        // use 2304 bytes regardless of canvas dimensions or the number of extra channels.
+        int blockLength = 4 * Vector512<float>.Count;
+
+        Buffer2D<float>[] colors = new Buffer2D<float>[3];
+        Buffer2D<float>[] extras = extraCount == 0 ? [] : new Buffer2D<float>[extraCount];
+        int allocatedColors = 0;
+        int allocatedExtras = 0;
+
+        try
+        {
+            for (int channel = 0; channel < colors.Length; channel++)
+            {
+                colors[channel] = allocator.Allocate2D<float>(canvasSize);
+                allocatedColors++;
+            }
+
+            for (int channel = 0; channel < extras.Length; channel++)
+            {
+                extras[channel] = allocator.Allocate2D<float>(canvasSize);
+                allocatedExtras++;
+            }
+
+            // Three foreground color ranges normalize modular carriers only when full float colors
+            // are absent. Five shared equation ranges and one immutable zero range serve every block.
+            // Foreground extras already have retained float planes, so they need no scratch copies.
+            using IMemoryOwner<float> owner = allocator.Allocate<float>(9 * blockLength);
+            Span<float> workspace = owner.Memory.Span;
+            Span<float> bounded = workspace.Slice(3 * blockLength, blockLength);
+            Span<float> complement = workspace.Slice(4 * blockLength, blockLength);
+            Span<float> alpha = workspace.Slice(5 * blockLength, blockLength);
+            Span<float> contribution = workspace.Slice(6 * blockLength, blockLength);
+            Span<float> reciprocal = workspace.Slice(7 * blockLength, blockLength);
+            Span<float> zero = workspace.Slice(8 * blockLength, blockLength);
+            zero.Clear();
+
+            // Extras have independent background selections and equations. Complete them first;
+            // the color equation can later replace its selected weight with the combined output alpha.
+            for (int channel = 0; channel < extraCount; channel++)
+            {
+                JxlFrameHeader.BlendingInfo info = frame.ExtraChannelBlending[channel];
+                JxlBlending operation = CreateFrameBlending(info);
+                JxlReferenceFrame? background = references[info.Source];
+                Buffer2DRegion<float> backgroundPlane = background is null ? default : background.GetExtraChannel(channel);
+                bool weighted = operation.Mode is BlendMode.BlendAbove or BlendMode.AlphaWeightedAddAbove;
+                int weight = info.AlphaChannel;
+                JxlReferenceFrame? weightReference = weighted ? references[frame.ExtraChannelBlending[weight].Source] : null;
+                Buffer2DRegion<float> backgroundWeightPlane = weightReference is null ? default : weightReference.GetExtraChannel(weight);
+                bool associated = weighted && this.image.Metadata.ExtraChannels[weight].AlphaRepresentation == PixelAlphaRepresentation.Associated;
+                bool selectedWeight = channel == weight;
+                for (int y = 0; y < canvasSize.Height; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Span<float> destination = extras[channel].DangerousGetRowSpan(y);
+                    ReadOnlySpan<float> backgroundRow = background is null ? [] : backgroundPlane.DangerousGetRowSpan(y)[..canvasSize.Width];
+                    if (background is null)
+                    {
+                        destination.Clear();
+                    }
+                    else
+                    {
+                        backgroundRow.CopyTo(destination);
+                    }
+
+                    if (y < top || y >= bottom)
+                    {
+                        continue;
+                    }
+
+                    int sourceY = (int)((long)y - this.Origin.Y);
+                    ReadOnlySpan<float> foregroundRow = this.nativeExtras[channel].DangerousGetRowSpan(sourceY);
+                    ReadOnlySpan<float> backgroundWeightRow = weightReference is null ? [] : backgroundWeightPlane.DangerousGetRowSpan(y);
+                    ReadOnlySpan<float> foregroundWeightRow = weighted ? this.nativeExtras[weight].DangerousGetRowSpan(sourceY) : [];
+                    for (int x = left; x < right;)
+                    {
+                        int count = Math.Min(blockLength, right - x);
+                        int sourceX = (int)((long)x - this.Origin.X);
+                        ReadOnlySpan<float> backgroundSamples = background is null ? zero[..count] : backgroundRow.Slice(x, count);
+                        ReadOnlySpan<float> backgroundWeight = weightReference is null ? zero[..count] : backgroundWeightRow.Slice(x, count);
+                        ReadOnlySpan<float> foregroundWeight = weighted ? foregroundWeightRow.Slice(sourceX, count) : [];
+                        if (weighted)
+                        {
+                            operation.PrepareWeights(
+                                associated,
+                                selectedWeight,
+                                backgroundWeight,
+                                foregroundWeight,
+                                bounded[..count],
+                                complement[..count],
+                                alpha[..count],
+                                reciprocal[..count]);
+                        }
+
+                        operation.Apply(
+                            associated,
+                            selectedWeight,
+                            backgroundSamples,
+                            foregroundRow.Slice(sourceX, count),
+                            backgroundWeight,
+                            foregroundWeight,
+                            destination.Slice(x, count),
+                            bounded[..count],
+                            complement[..count],
+                            alpha[..count],
+                            contribution[..count],
+                            reciprocal[..count]);
+
+                        x += count;
+                    }
+                }
+            }
+
+            JxlFrameHeader.BlendingInfo colorInfo = frame.Blending;
+            JxlBlending colorOperation = CreateFrameBlending(colorInfo);
+            bool hasAlpha = this.AlphaExtra >= 0;
+            if (!hasAlpha)
+            {
+                // Without an alpha channel, over replaces the background and weighted addition
+                // becomes ordinary addition. Other extra-channel kinds do not make color transparent.
+                BlendMode opaqueMode = colorOperation.Mode switch
+                {
+                    BlendMode.BlendAbove => BlendMode.Replace,
+                    BlendMode.AlphaWeightedAddAbove => BlendMode.Add,
+                    _ => colorOperation.Mode
+                };
+
+                colorOperation = new JxlBlending(opaqueMode, colorInfo.AlphaChannel, colorInfo.Clamp);
+            }
+
+            bool colorWeighted = colorOperation.Mode is BlendMode.BlendAbove or BlendMode.AlphaWeightedAddAbove;
+            int colorWeight = colorInfo.AlphaChannel;
+            JxlReferenceFrame? colorReference = references[colorInfo.Source];
+            Buffer2DRegion<float> background0 = colorReference is null ? default : colorReference.GetColorChannel(0);
+            Buffer2DRegion<float> background1 = colorReference is null ? default : colorReference.GetColorChannel(1);
+            Buffer2DRegion<float> background2 = colorReference is null ? default : colorReference.GetColorChannel(2);
+            JxlReferenceFrame? colorWeightReference = colorWeighted ? references[frame.ExtraChannelBlending[colorWeight].Source] : null;
+            Buffer2DRegion<float> colorWeightPlane = colorWeightReference is null ? default : colorWeightReference.GetExtraChannel(colorWeight);
+            bool colorAssociated = colorWeighted && this.image.Metadata.ExtraChannels[colorWeight].AlphaRepresentation == PixelAlphaRepresentation.Associated;
+            bool retainedColors = this.reconstructedColors.Length != 0;
+            bool narrowColors = this.Modular.Uses16BitStorage;
+            Buffer2DRegion<short> raw16Red = default;
+            Buffer2DRegion<short> raw16Green = default;
+            Buffer2DRegion<short> raw16Blue = default;
+            Buffer2DRegion<int> raw32Red = default;
+            Buffer2DRegion<int> raw32Green = default;
+            Buffer2DRegion<int> raw32Blue = default;
+            if (!retainedColors)
+            {
+                JxlModularChannel first = this.Modular.GetChannel(0);
+                JxlModularChannel second = this.Modular.GetChannel(this.Modular.ColorChannelCount == 1 ? 0 : 1);
+                JxlModularChannel third = this.Modular.GetChannel(this.Modular.ColorChannelCount == 1 ? 0 : 2);
+                if (narrowColors)
+                {
+                    raw16Red = first.Region16;
+                    raw16Green = second.Region16;
+                    raw16Blue = third.Region16;
+                }
+                else
+                {
+                    raw32Red = first.Region;
+                    raw32Green = second.Region;
+                    raw32Blue = third.Region;
+                }
+            }
+
+            for (int y = 0; y < canvasSize.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Span<float> red = colors[0].DangerousGetRowSpan(y);
+                Span<float> green = colors[1].DangerousGetRowSpan(y);
+                Span<float> blue = colors[2].DangerousGetRowSpan(y);
+                ReadOnlySpan<float> backgroundRed = colorReference is null ? [] : background0.DangerousGetRowSpan(y)[..canvasSize.Width];
+                ReadOnlySpan<float> backgroundGreen = colorReference is null ? [] : background1.DangerousGetRowSpan(y)[..canvasSize.Width];
+                ReadOnlySpan<float> backgroundBlue = colorReference is null ? [] : background2.DangerousGetRowSpan(y)[..canvasSize.Width];
+                if (colorReference is null)
+                {
+                    red.Clear();
+                    green.Clear();
+                    blue.Clear();
+                }
+                else
+                {
+                    backgroundRed.CopyTo(red);
+                    backgroundGreen.CopyTo(green);
+                    backgroundBlue.CopyTo(blue);
+                }
+
+                if (y < top || y >= bottom)
+                {
+                    continue;
+                }
+
+                int sourceY = (int)((long)y - this.Origin.Y);
+                ReadOnlySpan<float> backgroundWeightRow = colorWeightReference is null ? [] : colorWeightPlane.DangerousGetRowSpan(y);
+                ReadOnlySpan<float> foregroundWeightRow = colorWeighted ? this.nativeExtras[colorWeight].DangerousGetRowSpan(sourceY) : [];
+                Span<float> combinedAlphaRow = colorOperation.Mode == BlendMode.BlendAbove ? extras[colorWeight].DangerousGetRowSpan(y) : [];
+
+                // Borrow source rows before block traversal. A block does not resolve Memory.Span
+                // again, and raw modular colors normalize only the visible samples into bounded scratch.
+                ReadOnlySpan<float> foregroundRed = retainedColors ? this.reconstructedColors[0].DangerousGetRowSpan(sourceY) : [];
+                int secondPlane = this.reconstructedColors.Length == 1 ? 0 : 1;
+                int thirdPlane = this.reconstructedColors.Length == 1 ? 0 : 2;
+                ReadOnlySpan<float> foregroundGreen = retainedColors ? this.reconstructedColors[secondPlane].DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<float> foregroundBlue = retainedColors ? this.reconstructedColors[thirdPlane].DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<short> source16Red = !retainedColors && narrowColors ? raw16Red.DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<short> source16Green = !retainedColors && narrowColors ? raw16Green.DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<short> source16Blue = !retainedColors && narrowColors ? raw16Blue.DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<int> source32Red = !retainedColors && !narrowColors ? raw32Red.DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<int> source32Green = !retainedColors && !narrowColors ? raw32Green.DangerousGetRowSpan(sourceY) : [];
+                ReadOnlySpan<int> source32Blue = !retainedColors && !narrowColors ? raw32Blue.DangerousGetRowSpan(sourceY) : [];
+                for (int x = left; x < right;)
+                {
+                    int count = Math.Min(blockLength, right - x);
+                    int sourceX = (int)((long)x - this.Origin.X);
+                    ReadOnlySpan<float> backgroundWeight = colorWeightReference is null ? zero[..count] : backgroundWeightRow.Slice(x, count);
+                    ReadOnlySpan<float> foregroundWeight = colorWeighted ? foregroundWeightRow.Slice(sourceX, count) : [];
+                    if (colorWeighted)
+                    {
+                        colorOperation.PrepareWeights(
+                            colorAssociated,
+                            false,
+                            backgroundWeight,
+                            foregroundWeight,
+                            bounded[..count],
+                            complement[..count],
+                            alpha[..count],
+                            reciprocal[..count]);
+                    }
+
+                    for (int component = 0; component < 3; component++)
+                    {
+                        ReadOnlySpan<float> foreground;
+                        if (retainedColors)
+                        {
+                            ReadOnlySpan<float> source = component == 0 ? foregroundRed : component == 1 ? foregroundGreen : foregroundBlue;
+                            foreground = source.Slice(sourceX, count);
+                        }
+                        else
+                        {
+                            Span<float> normalized = workspace.Slice(component * blockLength, count);
+                            if (narrowColors)
+                            {
+                                ReadOnlySpan<short> source = component == 0 ? source16Red : component == 1 ? source16Green : source16Blue;
+                                JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, this.image.Metadata.BitDepth);
+                            }
+                            else
+                            {
+                                ReadOnlySpan<int> source = component == 0 ? source32Red : component == 1 ? source32Green : source32Blue;
+                                JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, this.image.Metadata.BitDepth);
+                            }
+
+                            foreground = normalized;
+                        }
+
+                        ReadOnlySpan<float> backgroundRow = component == 0 ? backgroundRed : component == 1 ? backgroundGreen : backgroundBlue;
+                        Span<float> destination = component == 0 ? red : component == 1 ? green : blue;
+                        colorOperation.Apply(
+                            colorAssociated,
+                            false,
+                            colorReference is null ? zero[..count] : backgroundRow.Slice(x, count),
+                            foreground,
+                            backgroundWeight,
+                            foregroundWeight,
+                            destination.Slice(x, count),
+                            bounded[..count],
+                            complement[..count],
+                            alpha[..count],
+                            contribution[..count],
+                            reciprocal[..count]);
+                    }
+
+                    if (colorOperation.Mode == BlendMode.BlendAbove)
+                    {
+                        // Every color component has read the unchanged input weights. Only now
+                        // replace the selected extra's output with the combined color alpha.
+                        alpha[..count].CopyTo(combinedAlphaRow.Slice(x, count));
+                    }
+
+                    x += count;
+                }
+            }
+        }
+        catch
+        {
+            for (int channel = 0; channel < allocatedColors; channel++)
+            {
+                colors[channel].Dispose();
+            }
+
+            for (int channel = 0; channel < allocatedExtras; channel++)
+            {
+                extras[channel].Dispose();
+            }
+
+            throw;
+        }
+
+        // All new canvas rows are complete. Release distinct foreground owners only after success;
+        // saved backgrounds remain owned by their reference slots and were never modified.
+        foreach (Buffer2D<float> plane in this.reconstructedColors)
+        {
+            plane.Dispose();
+        }
+
+        if (this.nativeExtras.Length == 0)
+        {
+            this.upsampledAlpha?.Dispose();
+            this.upsampledBlack?.Dispose();
+        }
+        else
+        {
+            foreach (Buffer2D<float> plane in this.nativeExtras)
+            {
+                plane.Dispose();
+            }
+        }
+
+        if (!this.spotPlanesBorrowed)
+        {
+            foreach ((int _, JxlExtraChannelMetadata _, Buffer2D<float>? plane) in this.spotColors)
+            {
+                plane?.Dispose();
+            }
+        }
+
+        this.reconstructedColors = colors;
+        this.nativeExtras = extras;
+        this.upsampledAlpha = this.AlphaExtra < 0 ? null : extras[this.AlphaExtra];
+        this.upsampledBlack = this.BlackExtra < 0 ? null : extras[this.BlackExtra];
+        for (int i = 0; i < this.spotColors.Length; i++)
+        {
+            // Rebind the existing descriptor array without allocating or copying any composed plane.
+            (int channel, JxlExtraChannelMetadata metadata, _) = this.spotColors[i];
+            this.spotColors[i] = (channel, metadata, extras[channel]);
+        }
+
+        this.spotPlanesBorrowed = true;
+        this.Size = canvasSize;
+        this.Origin = Point.Empty;
+    }
+
+    /// <summary>
+    /// Adds encoded spot colors to one restored color row without changing alpha or retained frame samples.
+    /// </summary>
+    /// <param name="row">The output-resolution row index.</param>
+    /// <param name="red">The restored red or first device component, replaced by its mixed values.</param>
+    /// <param name="green">The restored green or second device component, with the same row length.</param>
+    /// <param name="blue">The restored blue or third device component, with the same row length.</param>
+    /// <param name="workspace">Three distinct row-length scratch ranges, disjoint from the component rows.</param>
+    /// <remarks>
+    /// The pixel converter restores coding XYB or YCbCr before this call and owns its row and scratch storage.
+    /// ICC conversion and destination pixel bounds follow spot mixing. Spot weights are image samples,
+    /// not pixel alpha. This operation does not clip their range or allocate any storage.
+    /// </remarks>
+    public void ApplySpotColors(int row, Span<float> red, Span<float> green, Span<float> blue, Span<float> workspace)
+    {
+        // The first range holds normalized samples until their weights have been calculated, then
+        // holds the complementary weights. The other ranges retain weights and one color contribution.
+        // The caller borrows these spans once before row traversal and reuses them for every spot.
+        int width = red.Length;
+        Span<float> normalized = workspace[..width];
+        Span<float> mix = workspace.Slice(width, width);
+        Span<float> contribution = workspace.Slice(2 * width, width);
+
+        // Native stage_spot and Rust SpotColorStage apply encoded spots in order. For each channel,
+        // mix = opacity * sample and result = mix * spotColor + (1 - mix) * currentColor.
+        // Keep the same device-space boundary and leave alpha and all other extra channels unchanged.
+        foreach ((int channel, JxlExtraChannelMetadata metadata, Buffer2D<float>? plane) in this.spotColors)
+        {
+            ReadOnlySpan<float> samples;
+            if (plane is not null)
+            {
+                samples = plane.DangerousGetRowSpan(row);
+            }
+            else
+            {
+                // Full-resolution spots normalize directly into row scratch. They never need a
+                // float image plane, and retained or expanded spots already supply normalized samples.
+                JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + channel);
+                if (source.Uses16BitStorage)
+                {
+                    JxlSampleConverter.Convert(source.Region16.DangerousGetRowSpan(row), normalized, metadata.BitDepth);
+                }
+                else
+                {
+                    JxlSampleConverter.Convert(source.Region.DangerousGetRowSpan(row), normalized, metadata.BitDepth);
+                }
+
+                samples = normalized;
+            }
+
+            Vector4 spot = metadata.SpotColor;
+            TensorPrimitives.Multiply(samples, spot.W, mix);
+            TensorPrimitives.Subtract(1F, mix, normalized);
+            TensorPrimitives.Multiply(mix, spot.X, contribution);
+            TensorPrimitives.MultiplyAddEstimate(red, normalized, contribution, red);
+            TensorPrimitives.Multiply(mix, spot.Y, contribution);
+            TensorPrimitives.MultiplyAddEstimate(green, normalized, contribution, green);
+            TensorPrimitives.Multiply(mix, spot.Z, contribution);
+            TensorPrimitives.MultiplyAddEstimate(blue, normalized, contribution, blue);
+        }
+    }
+
+    /// <summary>
     /// Transfers the completed native color planes to decoder-owned reference storage without copying samples.
     /// </summary>
     /// <returns>The transferred plane owners. The decoder must dispose them after their final dependent frame.</returns>
@@ -379,13 +897,21 @@ internal sealed class JxlFrame : IDisposable
 
         try
         {
-            JxlReferenceFrame result = new(colors, this.nativeExtras, this.Header.OutputSize, this.Header.Origin, savedBeforeColorTransform);
+            JxlReferenceFrame result = new(colors, this.nativeExtras, this.Size, this.Origin, savedBeforeColorTransform);
 
             // The reference owns every retained extra. The display selections only borrowed entries
             // from that array, so clear both aliases before this frame's remaining owners are disposed.
             this.nativeExtras = [];
             this.upsampledAlpha = null;
             this.upsampledBlack = null;
+            if (this.spotPlanesBorrowed)
+            {
+                // Spot descriptors also borrowed the transferred extras. Drop those aliases so
+                // this frame cannot read or dispose reference-owned samples after the transfer.
+                this.spotColors = [];
+                this.spotPlanesBorrowed = false;
+            }
+
             return result;
         }
         catch
@@ -422,6 +948,14 @@ internal sealed class JxlFrame : IDisposable
 
         this.patches?.Dispose();
         this.splines?.Dispose();
+        if (!this.spotPlanesBorrowed)
+        {
+            foreach ((int _, JxlExtraChannelMetadata _, Buffer2D<float>? plane) in this.spotColors)
+            {
+                plane?.Dispose();
+            }
+        }
+
         foreach (Buffer2D<float> plane in this.reconstructedColors)
         {
             plane.Dispose();
@@ -431,6 +965,25 @@ internal sealed class JxlFrame : IDisposable
         this.Modular.Dispose();
         this.isDisposed = true;
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Maps the five frame equations to the shared patch and frame blending equations.
+    /// </summary>
+    /// <param name="info">The validated serialized frame instruction.</param>
+    /// <returns>The matching shared equation with unchanged weight selection and clamp behavior.</returns>
+    private static JxlBlending CreateFrameBlending(JxlFrameHeader.BlendingInfo info)
+    {
+        BlendMode mode = info.Mode switch
+        {
+            0 => BlendMode.Replace,
+            1 => BlendMode.Add,
+            2 => BlendMode.BlendAbove,
+            3 => BlendMode.AlphaWeightedAddAbove,
+            _ => BlendMode.Multiply
+        };
+
+        return new JxlBlending(mode, info.AlphaChannel, info.Clamp);
     }
 
     /// <summary>
@@ -588,7 +1141,65 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
-    /// Expands retained native extras, or the selected display alpha and black channels, with one shared workspace.
+    /// Prepares displayed spot descriptors and only the float planes needed by reduced spot channels.
+    /// </summary>
+    /// <param name="spotCount">The exact number of displayed spots selected from image metadata.</param>
+    /// <param name="allocator">The tracked allocator for spot-only planes when extras are not already retained.</param>
+    /// <param name="cancellationToken">The token checked between normalized source rows.</param>
+    /// <remarks>
+    /// Call after modular reconstruction and retained-extra preparation. Borrowed planes stay owned by nativeExtras;
+    /// otherwise this frame owns each nonnull plane. Publication follows complete normalization so failure releases partial allocations.
+    /// </remarks>
+    private void PrepareSpotColors(int spotCount, MemoryAllocator allocator, CancellationToken cancellationToken)
+    {
+        (int Channel, JxlExtraChannelMetadata Metadata, Buffer2D<float>? Plane)[] spots =
+            new (int Channel, JxlExtraChannelMetadata Metadata, Buffer2D<float>? Plane)[spotCount];
+
+        bool borrowed = this.nativeExtras.Length != 0;
+        int prepared = 0;
+        try
+        {
+            for (int extra = 0; extra < this.image.Metadata.ExtraChannels.Count; extra++)
+            {
+                JxlExtraChannelMetadata metadata = this.image.Metadata.ExtraChannels[extra];
+                if (metadata.Type != JxlExtraChannelType.SpotColor)
+                {
+                    continue;
+                }
+
+                Buffer2D<float>? plane = borrowed ? this.nativeExtras[extra] : null;
+                if (!borrowed && this.Header.ExtraChannelUpsampling[extra] > 1)
+                {
+                    plane = allocator.Allocate2D<float>(this.Header.OutputSize);
+                }
+
+                spots[prepared++] = (extra, metadata, plane);
+                if (!borrowed && plane is not null)
+                {
+                    JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + extra);
+                    NormalizeChannel(source, plane, metadata.BitDepth, cancellationToken);
+                }
+            }
+        }
+        catch
+        {
+            if (!borrowed)
+            {
+                for (int i = 0; i < prepared; i++)
+                {
+                    spots[i].Plane?.Dispose();
+                }
+            }
+
+            throw;
+        }
+
+        this.spotColors = spots;
+        this.spotPlanesBorrowed = borrowed;
+    }
+
+    /// <summary>
+    /// Expands retained native extras, or the selected display and spot channels, with one shared workspace.
     /// </summary>
     /// <param name="upsampler">The ready workspace covering every selected source and factor.</param>
     /// <param name="allocator">The tracked allocator for display-only planes that have not been normalized.</param>
@@ -620,6 +1231,17 @@ internal sealed class JxlFrame : IDisposable
         {
             this.upsampledBlack = this.UpsampleExtraChannel(
                 this.BlackExtra, upsampler, this.Header.ExtraChannelUpsampling[this.BlackExtra], allocator, cancellationToken);
+        }
+
+        foreach ((int channel, JxlExtraChannelMetadata _, Buffer2D<float>? plane) in this.spotColors)
+        {
+            if (plane is not null)
+            {
+                // Retained extras returned above. A remaining plane belongs only to a reduced spot;
+                // reuse its normalized samples and the common upsampling workspace in place.
+                JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + channel);
+                upsampler.Apply(plane, source.Size, this.Header.ExtraChannelUpsampling[channel], cancellationToken);
+            }
         }
     }
 

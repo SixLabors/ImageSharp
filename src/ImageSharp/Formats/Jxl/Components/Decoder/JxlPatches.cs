@@ -3,13 +3,13 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using Blending = SixLabors.ImageSharp.Formats.Jxl.Components.Decoder.JxlBlending;
+using BlendMode = SixLabors.ImageSharp.Formats.Jxl.Components.Decoder.JxlBlending.BlendMode;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
@@ -127,52 +127,6 @@ internal sealed class JxlPatches : IDisposable
             this.referencePatches?.Dispose();
             throw;
         }
-    }
-
-    /// <summary>
-    /// Defines the eight serialized patch blend modes.
-    /// </summary>
-    private enum BlendMode : byte
-    {
-        /// <summary>
-        /// Retains the destination samples.
-        /// </summary>
-        None,
-
-        /// <summary>
-        /// Replaces the destination samples with reference samples.
-        /// </summary>
-        Replace,
-
-        /// <summary>
-        /// Adds the reference samples to the destination samples.
-        /// </summary>
-        Add,
-
-        /// <summary>
-        /// Multiplies the destination samples by the reference samples.
-        /// </summary>
-        Multiply,
-
-        /// <summary>
-        /// Composes the reference above the destination using the selected weight channel.
-        /// </summary>
-        BlendAbove,
-
-        /// <summary>
-        /// Composes the destination above the reference using the selected weight channel.
-        /// </summary>
-        BlendBelow,
-
-        /// <summary>
-        /// Adds the weighted reference samples to the destination.
-        /// </summary>
-        AlphaWeightedAddAbove,
-
-        /// <summary>
-        /// Adds the weighted destination samples to the reference.
-        /// </summary>
-        AlphaWeightedAddBelow
     }
 
     /// <summary>
@@ -301,8 +255,7 @@ internal sealed class JxlPatches : IDisposable
                             foregroundWeight = reference.GetExtraChannel(weight).DangerousGetRowSpan(sourceY).Slice(sourceX, length);
                             associated = header.Metadata.ExtraChannels[weight].AlphaRepresentation == PixelAlphaRepresentation.Associated;
 
-                            PrepareWeights(
-                                mode,
+                            mode.PrepareWeights(
                                 associated,
                                 selectedWeight,
                                 backgroundWeight,
@@ -313,8 +266,7 @@ internal sealed class JxlPatches : IDisposable
                                 reciprocal[..length]);
                         }
 
-                        BlendChannel(
-                            mode,
+                        mode.Apply(
                             associated,
                             selectedWeight,
                             background,
@@ -343,8 +295,7 @@ internal sealed class JxlPatches : IDisposable
 
                         // All color components use the same weights. Prepare their combined weight and
                         // reciprocal once; each component keeps its own products and output samples.
-                        PrepareWeights(
-                            color,
+                        color.PrepareWeights(
                             colorAssociated,
                             false,
                             colorBackgroundWeight,
@@ -374,8 +325,7 @@ internal sealed class JxlPatches : IDisposable
                         ReadOnlySpan<float> background = colors[channel].DangerousGetRowSpan(y).Slice(x, length);
                         ReadOnlySpan<float> foreground = reference.GetColorChannel(channel).DangerousGetRowSpan(sourceY).Slice(sourceX, length);
 
-                        BlendChannel(
-                            color,
+                        color.Apply(
                             colorAssociated,
                             false,
                             background,
@@ -428,175 +378,6 @@ internal sealed class JxlPatches : IDisposable
         this.references = default;
         this.isDisposed = true;
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Prepares the selected weights for one weighted blend record without changing either input.
-    /// </summary>
-    /// <param name="blending">The validated weighted blend equation and optional clamp.</param>
-    /// <param name="associated">Whether the selected weight has associated-alpha semantics.</param>
-    /// <param name="selectedWeight">Whether the component itself supplies the selected weight.</param>
-    /// <param name="backgroundWeight">The unchanged destination weights.</param>
-    /// <param name="foregroundWeight">The immutable reference weights.</param>
-    /// <param name="bounded">The bounded top weights when clamping is enabled.</param>
-    /// <param name="complement">The output for one minus each top weight in an alpha blend.</param>
-    /// <param name="alpha">The combined weights for an alpha blend.</param>
-    /// <param name="reciprocal">The positive combined-weight reciprocals for unassociated non-weight components.</param>
-    private static void PrepareWeights(
-        in Blending blending,
-        bool associated,
-        bool selectedWeight,
-        ReadOnlySpan<float> backgroundWeight,
-        ReadOnlySpan<float> foregroundWeight,
-        Span<float> bounded,
-        Span<float> complement,
-        Span<float> alpha,
-        Span<float> reciprocal)
-    {
-        bool weightedAdd = blending.Mode is BlendMode.AlphaWeightedAddAbove or BlendMode.AlphaWeightedAddBelow;
-
-        if (weightedAdd && selectedWeight)
-        {
-            // Weighted addition copies the selected weight instead of multiplying it by itself.
-            return;
-        }
-
-        bool above = blending.Mode is BlendMode.BlendAbove or BlendMode.AlphaWeightedAddAbove;
-        ReadOnlySpan<float> topWeight = above ? foregroundWeight : backgroundWeight;
-        ReadOnlySpan<float> bottomWeight = above ? backgroundWeight : foregroundWeight;
-
-        if (blending.Clamp)
-        {
-            // Only the top weight is bounded. Keep both original planes unchanged for other channels.
-            topWeight.CopyTo(bounded);
-            ColorNumerics.ClampToFinite(bounded, 0F, 1F);
-            topWeight = bounded;
-        }
-
-        if (weightedAdd)
-        {
-            return;
-        }
-
-        // libjxl alpha.cc combines weights as 1 - (1 - top) * (1 - bottom).
-        // Keep these separate operations so every component uses the same rounding order.
-        TensorPrimitives.Subtract(1F, topWeight, complement);
-        TensorPrimitives.Subtract(1F, bottomWeight, alpha);
-        TensorPrimitives.Multiply(complement, alpha, alpha);
-        TensorPrimitives.Subtract(1F, alpha, alpha);
-
-        if (!associated && !selectedWeight)
-        {
-            TensorPrimitives_.Invoke(alpha, reciprocal, default(PositiveReciprocalOperator));
-        }
-    }
-
-    /// <summary>
-    /// Combines one component block using its prepared weights without overwriting either input.
-    /// </summary>
-    /// <param name="blending">The validated blend equation and optional clamp.</param>
-    /// <param name="associated">Whether the selected weight has associated-alpha semantics.</param>
-    /// <param name="selectedWeight">Whether this component itself supplies the selected weight.</param>
-    /// <param name="background">The unchanged destination samples.</param>
-    /// <param name="foreground">The immutable reference samples.</param>
-    /// <param name="backgroundWeight">The selected unchanged destination weights, when needed.</param>
-    /// <param name="foregroundWeight">The selected immutable reference weights, when needed.</param>
-    /// <param name="destination">The separate output block.</param>
-    /// <param name="bounded">The prepared bounded weights, or scratch for bounded foreground samples in a multiplicative blend.</param>
-    /// <param name="complement">The prepared values of one minus each top weight.</param>
-    /// <param name="alpha">The prepared combined weights, also used by color blends.</param>
-    /// <param name="contribution">Scratch for the unassociated bottom contribution.</param>
-    /// <param name="reciprocal">The prepared positive combined-weight reciprocals for unassociated non-weight components.</param>
-    private static void BlendChannel(
-        in Blending blending,
-        bool associated,
-        bool selectedWeight,
-        ReadOnlySpan<float> background,
-        ReadOnlySpan<float> foreground,
-        ReadOnlySpan<float> backgroundWeight,
-        ReadOnlySpan<float> foregroundWeight,
-        Span<float> destination,
-        Span<float> bounded,
-        ReadOnlySpan<float> complement,
-        ReadOnlySpan<float> alpha,
-        Span<float> contribution,
-        ReadOnlySpan<float> reciprocal)
-    {
-        switch (blending.Mode)
-        {
-            case BlendMode.None:
-                background.CopyTo(destination);
-                return;
-            case BlendMode.Replace:
-                foreground.CopyTo(destination);
-                return;
-            case BlendMode.Add:
-                TensorPrimitives.Add(background, foreground, destination);
-                return;
-            case BlendMode.Multiply:
-                if (blending.Clamp)
-                {
-                    foreground.CopyTo(bounded);
-                    ColorNumerics.ClampToFinite(bounded, 0F, 1F);
-                    foreground = bounded;
-                }
-
-                TensorPrimitives.Multiply(background, foreground, destination);
-                return;
-            case BlendMode.AlphaWeightedAddAbove:
-            case BlendMode.AlphaWeightedAddBelow:
-                if (selectedWeight)
-                {
-                    // The weight is not weighted a second time. Above keeps the destination
-                    // weight; below takes the reference weight, matching alpha.cc's alias rule.
-                    (blending.Mode == BlendMode.AlphaWeightedAddAbove ? background : foreground).CopyTo(destination);
-                    return;
-                }
-
-                ReadOnlySpan<float> weight = blending.Mode == BlendMode.AlphaWeightedAddAbove ? foregroundWeight : backgroundWeight;
-                if (blending.Clamp)
-                {
-                    weight = bounded;
-                }
-
-                if (blending.Mode == BlendMode.AlphaWeightedAddAbove)
-                {
-                    TensorPrimitives.MultiplyAddEstimate(foreground, weight, background, destination);
-                }
-                else
-                {
-                    TensorPrimitives.MultiplyAddEstimate(background, weight, foreground, destination);
-                }
-
-                return;
-        }
-
-        // Only the two validated alpha-blend modes reach this point. Below reverses top and bottom;
-        // PrepareWeights has already bounded the selected top weight when the record requests it.
-        bool above = blending.Mode == BlendMode.BlendAbove;
-        ReadOnlySpan<float> top = above ? foreground : background;
-        ReadOnlySpan<float> bottom = above ? background : foreground;
-        ReadOnlySpan<float> topWeight = blending.Clamp ? bounded : above ? foregroundWeight : backgroundWeight;
-        ReadOnlySpan<float> bottomWeight = above ? backgroundWeight : foregroundWeight;
-
-        if (selectedWeight)
-        {
-            alpha.CopyTo(destination);
-        }
-        else if (associated)
-        {
-            TensorPrimitives.MultiplyAddEstimate(bottom, complement, top, destination);
-        }
-        else
-        {
-            // Retain the reference's product order before division. A nonpositive combined weight
-            // gives a zero reciprocal; this is codec reconstruction, not pixel unassociation.
-            TensorPrimitives.Multiply(bottomWeight, bottom, contribution);
-            TensorPrimitives.Multiply(contribution, complement, contribution);
-            TensorPrimitives.Multiply(topWeight, top, destination);
-            TensorPrimitives.Add(destination, contribution, destination);
-            TensorPrimitives.Multiply(destination, reciprocal, destination);
-        }
     }
 
     /// <summary>
@@ -922,35 +703,6 @@ internal sealed class JxlPatches : IDisposable
         => symbols.ReadUInt32<TOperator>(ref reader, context, history, TOperator.UsesLz77 ? decoded++ : 0, 0);
 
     /// <summary>
-    /// Computes reciprocals only for positive combined patch weights.
-    /// </summary>
-    /// <remarks>
-    /// Each SIMD lane is an independent weight. Shared tensor traversal selects the width and
-    /// applies the same scalar equation to remainders; the operation does not interpret pixel layout.
-    /// </remarks>
-    private readonly struct PositiveReciprocalOperator : TensorPrimitives_.IUnaryOperator
-    {
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Invoke(float value) => value > 0F ? 1F / value : 0F;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<float> Invoke(Vector128<float> value)
-            => Vector128.ConditionalSelect(Vector128.GreaterThan(value, Vector128<float>.Zero), Vector128<float>.One / value, Vector128<float>.Zero);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector256<float> Invoke(Vector256<float> value)
-            => Vector256.ConditionalSelect(Vector256.GreaterThan(value, Vector256<float>.Zero), Vector256<float>.One / value, Vector256<float>.Zero);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector512<float> Invoke(Vector512<float> value)
-            => Vector512.ConditionalSelect(Vector512.GreaterThan(value, Vector512<float>.Zero), Vector512<float>.One / value, Vector512<float>.Zero);
-    }
-
-    /// <summary>
     /// Identifies one source rectangle in an ordinary pre-transform reference frame.
     /// </summary>
     private readonly struct ReferencePatch
@@ -1002,39 +754,5 @@ internal sealed class JxlPatches : IDisposable
         /// Gets the destination origin in coding samples.
         /// </summary>
         public Point Position { get; }
-    }
-
-    /// <summary>
-    /// Retains the blend equation, weight selection and optional clamp for one component group.
-    /// </summary>
-    private readonly struct Blending
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Blending"/> struct.
-        /// </summary>
-        /// <param name="mode">The validated serialized blend mode.</param>
-        /// <param name="alphaChannel">The weight index, bounded by the header's maximum of 4096 extra channels.</param>
-        /// <param name="clamp">Whether the selected equation bounds its weight or multiplicand.</param>
-        public Blending(BlendMode mode, ushort alphaChannel, bool clamp)
-        {
-            this.Mode = mode;
-            this.Clamp = clamp;
-            this.AlphaChannel = alphaChannel;
-        }
-
-        /// <summary>
-        /// Gets the selected blend equation.
-        /// </summary>
-        public BlendMode Mode { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the equation bounds its weight or multiplicand.
-        /// </summary>
-        public bool Clamp { get; }
-
-        /// <summary>
-        /// Gets the encoded extra-channel index supplying the equation's weight.
-        /// </summary>
-        public ushort AlphaChannel { get; }
     }
 }

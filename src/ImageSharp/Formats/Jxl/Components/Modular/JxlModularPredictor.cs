@@ -14,6 +14,55 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 internal static class JxlModularPredictor
 {
     /// <summary>
+    /// Supplies weighted prediction and error updates for the mode selected before channel traversal.
+    /// </summary>
+    /// <remarks>
+    /// A constrained struct call selects either the actual weighted state or the empty unweighted implementation.
+    /// The sample loop therefore needs no runtime test for weighted participation.
+    /// </remarks>
+    public interface IWeightedPredictor
+    {
+        /// <summary>
+        /// Calculates the weighted prediction and property fifteen before the current residual is decoded.
+        /// </summary>
+        /// <param name="errors">The reusable error rows; empty when the channel does not use weighted prediction.</param>
+        /// <param name="x">The current column.</param>
+        /// <param name="y">The current row.</param>
+        /// <param name="left">The preceding sample, with the modular edge substitution already applied.</param>
+        /// <param name="top">The sample in the preceding row.</param>
+        /// <param name="topLeft">The preceding row's preceding column.</param>
+        /// <param name="topRight">The preceding row's following column.</param>
+        /// <param name="topTop">The sample two rows before the current row.</param>
+        /// <param name="property">The signed preceding error used by property fifteen, or zero without weighted prediction.</param>
+        /// <returns>The prediction in native sample units, or zero when the tree does not use weighted prediction.</returns>
+        long Predict(ReadOnlySpan<int> errors, int x, int y, int left, int top, int topLeft, int topRight, int topTop, out int property);
+
+        /// <summary>
+        /// Calculates the weighted prediction without substituting error columns at either image edge.
+        /// </summary>
+        /// <param name="errors">The reusable error rows; empty when the channel does not use weighted prediction.</param>
+        /// <param name="x">An interior column with both a preceding and a following column.</param>
+        /// <param name="y">The current row.</param>
+        /// <param name="left">The preceding sample.</param>
+        /// <param name="top">The sample in the preceding row.</param>
+        /// <param name="topLeft">The preceding row's preceding column.</param>
+        /// <param name="topRight">The preceding row's following column.</param>
+        /// <param name="topTop">The sample two rows before the current row.</param>
+        /// <param name="property">The signed preceding error used by property fifteen, or zero without weighted prediction.</param>
+        /// <returns>The prediction in native sample units, or zero when the tree does not use weighted prediction.</returns>
+        long PredictInterior(ReadOnlySpan<int> errors, int x, int y, int left, int top, int topLeft, int topRight, int topTop, out int property);
+
+        /// <summary>
+        /// Advances the selected weighted state after the current sample has been reconstructed.
+        /// </summary>
+        /// <param name="errors">The reusable error rows; empty when the channel does not use weighted prediction.</param>
+        /// <param name="x">The reconstructed column.</param>
+        /// <param name="y">The reconstructed row.</param>
+        /// <param name="value">The reconstructed signed sample.</param>
+        void Update(Span<int> errors, int x, int y, int value);
+    }
+
+    /// <summary>
     /// Calculates one nonweighted modular predictor from already reconstructed signed neighbors.
     /// </summary>
     /// <param name="predictor">The validated nonweighted predictor code.</param>
@@ -185,6 +234,36 @@ internal static class JxlModularPredictor
     }
 
     /// <summary>
+    /// Omits weighted state for a tree whose properties and leaves do not require weighted prediction.
+    /// </summary>
+    public readonly struct UnweightedPredictor : IWeightedPredictor
+    {
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long Predict(ReadOnlySpan<int> errors, int x, int y, int left, int top, int topLeft, int topRight, int topTop, out int property)
+        {
+            // Tree reduction has excluded property fifteen and weighted leaves. No error storage is needed.
+            property = 0;
+            return 0;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long PredictInterior(ReadOnlySpan<int> errors, int x, int y, int left, int top, int topLeft, int topRight, int topTop, out int property)
+        {
+            property = 0;
+            return 0;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(Span<int> errors, int x, int y, int value)
+        {
+            // This implementation has no prediction history to advance.
+        }
+    }
+
+    /// <summary>
     /// Defines cross-channel gradient properties independently of block traversal.
     /// </summary>
     private readonly struct ReferenceOperator
@@ -204,9 +283,9 @@ internal static class JxlModularPredictor
         {
             long guess = Math.Clamp((long)left + top - topLeft, Math.Min(left, top), Math.Max(left, top));
             long difference = value - guess;
-            absolute = unchecked((int)Math.Abs((long)value));
-            absoluteResidual = unchecked((int)Math.Abs(difference));
-            residual = unchecked((int)difference);
+            absolute = (int)Math.Abs((long)value);
+            absoluteResidual = (int)Math.Abs(difference);
+            residual = (int)difference;
         }
 
         /// <summary>

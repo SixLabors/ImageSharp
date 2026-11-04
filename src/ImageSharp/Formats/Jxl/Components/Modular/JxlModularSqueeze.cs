@@ -266,7 +266,7 @@ internal static class JxlModularSqueeze
                     output[(2 * x) + 1] = TSample.CreateTruncating(b);
 
                     // Retain the stored short value for the next pair without reading the output row again.
-                    left = typeof(TSample) == typeof(short) ? unchecked((short)b) : b;
+                    left = typeof(TSample) == typeof(short) ? (short)b : b;
                 }
 
                 if ((destination.Width & 1) != 0)
@@ -609,8 +609,8 @@ internal static class JxlModularSqueeze
             }
 
             long difference = residual + tendency;
-            first = unchecked((int)(average + (difference / 2)));
-            second = unchecked((int)(average + (difference / 2) - difference));
+            first = (int)(average + (difference / 2));
+            second = (int)(average + (difference / 2) - difference);
         }
 
         /// <summary>

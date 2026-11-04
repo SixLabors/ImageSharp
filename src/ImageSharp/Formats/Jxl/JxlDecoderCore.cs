@@ -192,12 +192,12 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 // a displayed frame resets it. Native noise generation consumes the low 32 bits of each counter.
                 if (frame.IsDisplayed)
                 {
-                    visibleFrame = unchecked(visibleFrame + 1);
+                    visibleFrame++;
                     nonvisibleFrame = 0;
                 }
                 else
                 {
-                    nonvisibleFrame = unchecked(nonvisibleFrame + 1);
+                    nonvisibleFrame++;
                 }
 
                 using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);

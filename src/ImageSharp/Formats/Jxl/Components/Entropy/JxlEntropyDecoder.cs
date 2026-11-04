@@ -920,7 +920,7 @@ internal sealed class JxlEntropyDecoder : IDisposable
             // Each AND either clears a complete field or retains it unchanged. The complementary mask keeps
             // only the direct bucket index. This keeps field selection off the multiplication chain used by the ANS state.
             uint selectAlias = positionInBucket >= bucket.Cutoff ? 1U : 0U;
-            uint aliasMask = unchecked(0U - selectAlias);
+            uint aliasMask = 0U - selectAlias;
             uint frequency = bucket.Frequency ^ (bucket.AliasFrequencyXor & aliasMask);
             uint offset = positionInBucket + (bucket.AliasOffset & aliasMask);
             uint symbol = (bucket.AliasSymbol & aliasMask) | ((uint)bucketIndex & ~aliasMask);

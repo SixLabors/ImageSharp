@@ -236,7 +236,7 @@ internal sealed partial class JxlModularDecoder
 
         for (; i < first.Length; i++)
         {
-            destination[i] = unchecked(int.CreateTruncating(first[i]) + int.CreateTruncating(second[i]));
+            destination[i] = int.CreateTruncating(first[i]) + int.CreateTruncating(second[i]);
         }
     }
 

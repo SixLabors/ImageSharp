@@ -316,7 +316,7 @@ internal sealed partial class JxlVarDctDecoder
         // The remaining columns use the same range rule. Preserve signed correlation bytes by keeping their low eight bits.
         for (; i < source.Length; i++)
         {
-            destination[i] = unchecked((byte)TOperator.Invoke(source[i]));
+            destination[i] = (byte)TOperator.Invoke(source[i]);
         }
     }
 }

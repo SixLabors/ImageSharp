@@ -509,12 +509,12 @@ internal sealed partial class JxlVarDctDecoder
             }
 
             // Unsigned zigzag maps 0, 1, 2, 3 to 0, -1, 1, -2. Shift unsigned bits before converting to signed storage.
-            // Retain generic truncation and unchecked addition so short/int progressive accumulation keeps its original wrapping.
-            uint signedBits = unchecked((value >> 1) ^ (0U - (value & 1)));
-            int coefficient = unchecked((int)(signedBits << coefficientShift));
+            // Retain generic truncation and wrapping addition so short/int progressive accumulation keeps its original stored values.
+            uint signedBits = (value >> 1) ^ (0U - (value & 1));
+            int coefficient = (int)(signedBits << coefficientShift);
             int index = (int)Unsafe.Add(ref firstOrder, k);
             ref TCoefficient target = ref Unsafe.Add(ref firstCoefficient, index);
-            target = unchecked(target + TCoefficient.CreateTruncating(coefficient));
+            target += TCoefficient.CreateTruncating(coefficient);
 
             // Count the encoded nonzero even when progressive shifting wraps its stored coefficient to zero.
             previous = 1;

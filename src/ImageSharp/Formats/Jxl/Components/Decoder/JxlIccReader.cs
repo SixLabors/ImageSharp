@@ -145,7 +145,7 @@ internal static class JxlIccReader
                 _ => 0
             };
 
-            output[i] = unchecked((byte)(prediction + headerData[i]));
+            output[i] = (byte)(prediction + headerData[i]);
         }
 
         int written = HeaderSize;
@@ -463,12 +463,12 @@ internal static class JxlIccReader
             uint first = ReadPredictionSample(output, position - stride, width);
             uint second = ReadPredictionSample(output, position - (2 * stride), width);
             uint third = ReadPredictionSample(output, position - (3 * stride), width);
-            uint prediction = unchecked(order switch
+            uint prediction = order switch
             {
                 0 => first,
                 1 => (2 * first) - second,
                 _ => (3 * first) - (3 * second) + third
-            });
+            };
 
             // Prediction works on big-endian integers, but residual addition works on individual bytes.
             // A carry from one residual byte must not change the next byte's predicted value.
@@ -476,7 +476,7 @@ internal static class JxlIccReader
             for (int j = 0; j < bytes; j++)
             {
                 int shift = (width - j - 1) * 8;
-                output[position + j] = unchecked((byte)(output[position + j] + (byte)(prediction >> shift)));
+                output[position + j] = (byte)(output[position + j] + (byte)(prediction >> shift));
             }
         }
     }

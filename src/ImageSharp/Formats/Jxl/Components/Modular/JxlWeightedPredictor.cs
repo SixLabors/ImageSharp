@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 /// The decoder owns the error storage and reuses it between channels. Prediction and error updates follow sample order on one thread.
 /// Arithmetic follows the weighted predictor in ISO/IEC 18181-1, as implemented by libjxl's context_predict.h.
 /// </remarks>
-internal struct JxlWeightedPredictor
+internal struct JxlWeightedPredictor : JxlModularPredictor.IWeightedPredictor
 {
     /// <summary>
     /// The number of candidate predictions combined for each sample.
@@ -228,13 +228,143 @@ internal struct JxlWeightedPredictor
     /// <param name="topTop">The sample two rows before the current row.</param>
     /// <param name="property">The signed preceding error with the largest magnitude, used by tree property 15.</param>
     /// <returns>The prediction in native sample units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long Predict(ReadOnlySpan<int> errors, int x, int y, int left, int top, int topLeft, int topRight, int topTop, out int property)
+        => this.PredictCore(errors, x, y, left, top, topLeft, topRight, topTop, false, out property);
+
+    /// <inheritdoc cref="Predict" />
+    /// <remarks>
+    /// The caller must supply a column with both a preceding and a following column.
+    /// Error-row access uses those columns directly, without image-edge substitution.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public long PredictInterior(ReadOnlySpan<int> errors, int x, int y, int left, int top, int topLeft, int topRight, int topTop, out int property)
+        => this.PredictCore(errors, x, y, left, top, topLeft, topRight, topTop, true, out property);
+
+    /// <summary>
+    /// Updates all prediction errors from the reconstructed sample, even when its leaf selected another predictor.
+    /// </summary>
+    /// <param name="errors">The two scalar combined-error rows followed by the two interleaved predictor-error rows.</param>
+    /// <param name="x">The reconstructed column.</param>
+    /// <param name="y">The reconstructed row.</param>
+    /// <param name="value">The reconstructed signed sample.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Update(Span<int> errors, int x, int y, int value)
     {
-        int currentRow = (y & 1) == 0 ? this.rowStride : 0;
-        int previousRow = (y & 1) == 0 ? 0 : this.rowStride;
+        // Reset bounds both retained rows. Parity selects their order without a conditional branch.
+        int previousRow = (y & 1) * this.rowStride;
+        int currentRow = this.rowStride - previousRow;
+        long scaled = (long)value << ExtraBits;
+
+        // The validated column and Reset's two-row layout bound this index below combinedErrorLength.
+        // Use the same reference for the scalar combined error and the interleaved vector errors below.
+        ref int firstError = ref MemoryMarshal.GetReference(errors);
+        Unsafe.Add(ref firstError, currentRow + x) = (int)(this.combinedPrediction - scaled);
+
+        // The four lanes depend on this same reconstructed sample. They can be computed together,
+        // although the predictor state still advances sequentially from one image column to the next.
+        // Format-bounded predictions and 32-bit samples keep each difference and its absolute value in long.
+        // A logical shift removes the three fractional bits. The direct vector operator keeps the
+        // shift in the arithmetic expression at every width; narrowing below retains the low 32 bits.
+        Vector128<uint> magnitudes;
+        ref long prediction = ref this.predictions[0];
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<long> difference = Vector256.LoadUnsafe(ref prediction) - Vector256.Create(scaled);
+            Vector256<long> absolute = Vector256.Abs(difference) + Vector256.Create((long)PredictionRounding);
+            Vector256<long> rounded = absolute >>> ExtraBits;
+
+            // Each of the four long lanes contributes its low 32 bits, without saturation. AVX-512
+            // converts directly to four int lanes; it does not construct a discarded upper half.
+            // Other targets use the same truncating conversion through the portable narrowing API.
+            magnitudes = Avx512F.VL.IsSupported
+                ? Avx512F.VL.ConvertToVector128Int32(rounded).AsUInt32()
+                : Vector256.Narrow(rounded, Vector256<long>.Zero).GetLower().AsUInt32();
+        }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<long> scaledValue = Vector128.Create(scaled);
+            Vector128<long> rounding = Vector128.Create((long)PredictionRounding);
+            Vector128<long> first = Vector128.Abs(Vector128.LoadUnsafe(ref prediction) - scaledValue) + rounding;
+            Vector128<long> second = Vector128.Abs(Vector128.LoadUnsafe(ref prediction, (nuint)Vector128<long>.Count) - scaledValue) + rounding;
+            first >>>= ExtraBits;
+            second >>>= ExtraBits;
+            magnitudes = Vector128.Narrow(first, second).AsUInt32();
+        }
+        else
+        {
+            // Scalar equations retain the same long arithmetic, rounding and conversion to the low 32 bits.
+            magnitudes = Vector128.Create(
+                (uint)((Math.Abs(this.predictions[0] - scaled) + PredictionRounding) >> ExtraBits),
+                (uint)((Math.Abs(this.predictions[1] - scaled) + PredictionRounding) >> ExtraBits),
+                (uint)((Math.Abs(this.predictions[2] - scaled) + PredictionRounding) >> ExtraBits),
+                (uint)((Math.Abs(this.predictions[3] - scaled) + PredictionRounding) >> ExtraBits));
+        }
+
+        // Store one current-column group and add into the previous row's next group. That wrapped
+        // addition supplies the westward contributions consumed by the next Predict call. The row margin
+        // guarantees a complete four-lane group even when this is the last visible image column.
+        ref uint errorWords = ref Unsafe.As<int, uint>(ref firstError);
+        nuint current = (nuint)(this.combinedErrorLength + ((currentRow + x) * PredictorCount));
+        nuint next = (nuint)(this.combinedErrorLength + ((previousRow + x + 1) * PredictorCount));
+        magnitudes.StoreUnsafe(ref errorWords, current);
+        (Vector128.LoadUnsafe(ref errorWords, next) + magnitudes).StoreUnsafe(ref errorWords, next);
+    }
+
+    /// <summary>
+    /// Converts one wrapped local error sum to the format's positive predictor weight.
+    /// </summary>
+    /// <param name="error">The wrapped unsigned sum of north, northeast and northwest error magnitudes.</param>
+    /// <param name="maximumWeight">The four-bit maximum weight read from the group header.</param>
+    /// <returns>The integer reciprocal weight, including the minimum contribution of four.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint GetWeight(uint error, uint maximumWeight)
+    {
+        // All four predictor weights use this equation for every sample. Keep it in the caller, as in
+        // jxl-rs predict.rs, so the four local error lanes do not cross separate call boundaries.
+        // Widen before adding one: uint.MaxValue must have log2(error+1)=32. This shift bounds the
+        // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
+        int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
+        ref uint table = ref MemoryMarshal.GetReference(Reciprocals);
+        return MinimumWeight + ((maximumWeight * Unsafe.Add(ref table, (int)(error >> shift))) >> shift);
+    }
+
+    /// <summary>
+    /// Calculates one weighted prediction with general or interior error-row access.
+    /// </summary>
+    /// <param name="errors">The two scalar combined-error rows followed by the two interleaved predictor-error rows.</param>
+    /// <param name="x">The current column.</param>
+    /// <param name="y">The current row.</param>
+    /// <param name="left">The preceding sample, with the modular edge substitution already applied.</param>
+    /// <param name="top">The sample in the preceding row.</param>
+    /// <param name="topLeft">The preceding row's preceding column.</param>
+    /// <param name="topRight">The preceding row's following column.</param>
+    /// <param name="topTop">The sample two rows before the current row.</param>
+    /// <param name="isInterior">Whether the caller has excluded columns without both a preceding and a following column.</param>
+    /// <param name="property">The signed preceding error with the largest magnitude, used by tree property fifteen.</param>
+    /// <returns>The prediction in native sample units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private long PredictCore(
+        ReadOnlySpan<int> errors,
+        int x,
+        int y,
+        int left,
+        int top,
+        int topLeft,
+        int topRight,
+        int topTop,
+        bool isInterior,
+        out int property)
+    {
+        // Reset bounds both retained rows. Parity selects their order without a conditional branch.
+        int previousRow = (y & 1) * this.rowStride;
+        int currentRow = this.rowStride - previousRow;
         int north = previousRow + x;
-        int northEast = x + 1 < this.rowStride - RowMargin ? north + 1 : north;
-        int northWest = x == 0 ? north : north - 1;
+
+        // Interior callers already exclude the first and last columns. Their constant mode removes
+        // edge selection; general callers retain repeated N and the first column's zero W error.
+        int northEast = isInterior || x + 1 < this.rowStride - RowMargin ? north + 1 : north;
+        int northWest = isInterior || x != 0 ? north - 1 : north;
 
         // Fixed lanes identify the four predictors for this one sample, not four image columns.
         // Each wrapped sum combines the previous row's N, NE and NW errors exactly as libjxl and
@@ -249,7 +379,7 @@ internal struct JxlWeightedPredictor
         // Reset reserves both rows with a two-word margin, and callers traverse 0 <= x < width.
         // These scalar indices are therefore within the first two rows, just like the vector indices above.
         // Borrow the same managed reference so each sample does not repeat the already established bounds checks.
-        long errorWest = x == 0 ? 0 : Unsafe.Add(ref firstError, currentRow + x - 1);
+        long errorWest = isInterior || x != 0 ? Unsafe.Add(ref firstError, currentRow + x - 1) : 0;
         long errorNorth = Unsafe.Add(ref firstError, north);
         long errorNorthWest = Unsafe.Add(ref firstError, northWest);
         long errorNorthEast = Unsafe.Add(ref firstError, northEast);
@@ -333,93 +463,6 @@ internal struct JxlWeightedPredictor
 
         this.combinedPrediction = prediction;
         return (prediction + PredictionRounding) >> ExtraBits;
-    }
-
-    /// <summary>
-    /// Updates all prediction errors from the reconstructed sample, even when its leaf selected another predictor.
-    /// </summary>
-    /// <param name="errors">The two scalar combined-error rows followed by the two interleaved predictor-error rows.</param>
-    /// <param name="x">The reconstructed column.</param>
-    /// <param name="y">The reconstructed row.</param>
-    /// <param name="value">The reconstructed signed sample.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Update(Span<int> errors, int x, int y, int value)
-    {
-        int currentRow = (y & 1) == 0 ? this.rowStride : 0;
-        int previousRow = (y & 1) == 0 ? 0 : this.rowStride;
-        long scaled = (long)value << ExtraBits;
-
-        // The validated column and Reset's two-row layout bound this index below combinedErrorLength.
-        // Use the same reference for the scalar combined error and the interleaved vector errors below.
-        ref int firstError = ref MemoryMarshal.GetReference(errors);
-        Unsafe.Add(ref firstError, currentRow + x) = unchecked((int)(this.combinedPrediction - scaled));
-
-        // The four lanes depend on this same reconstructed sample. They can be computed together,
-        // although the predictor state still advances sequentially from one image column to the next.
-        // Format-bounded predictions and 32-bit samples keep each difference and its absolute value in long.
-        // A logical shift removes the three fractional bits. The direct vector operator keeps the
-        // shift in the arithmetic expression at every width; narrowing below retains the low 32 bits.
-        Vector128<uint> magnitudes;
-        ref long prediction = ref this.predictions[0];
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<long> difference = Vector256.LoadUnsafe(ref prediction) - Vector256.Create(scaled);
-            Vector256<long> absolute = Vector256.Abs(difference) + Vector256.Create((long)PredictionRounding);
-            Vector256<long> rounded = absolute >>> ExtraBits;
-
-            // Each of the four long lanes contributes its low 32 bits, without saturation. AVX-512
-            // converts directly to four int lanes; it does not construct a discarded upper half.
-            // Other targets use the same truncating conversion through the portable narrowing API.
-            magnitudes = Avx512F.VL.IsSupported
-                ? Avx512F.VL.ConvertToVector128Int32(rounded).AsUInt32()
-                : Vector256.Narrow(rounded, Vector256<long>.Zero).GetLower().AsUInt32();
-        }
-        else if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<long> scaledValue = Vector128.Create(scaled);
-            Vector128<long> rounding = Vector128.Create((long)PredictionRounding);
-            Vector128<long> first = Vector128.Abs(Vector128.LoadUnsafe(ref prediction) - scaledValue) + rounding;
-            Vector128<long> second = Vector128.Abs(Vector128.LoadUnsafe(ref prediction, (nuint)Vector128<long>.Count) - scaledValue) + rounding;
-            first >>>= ExtraBits;
-            second >>>= ExtraBits;
-            magnitudes = Vector128.Narrow(first, second).AsUInt32();
-        }
-        else
-        {
-            // Scalar equations retain the same long arithmetic, rounding and conversion to the low 32 bits.
-            magnitudes = Vector128.Create(
-                unchecked((uint)((Math.Abs(this.predictions[0] - scaled) + PredictionRounding) >> ExtraBits)),
-                unchecked((uint)((Math.Abs(this.predictions[1] - scaled) + PredictionRounding) >> ExtraBits)),
-                unchecked((uint)((Math.Abs(this.predictions[2] - scaled) + PredictionRounding) >> ExtraBits)),
-                unchecked((uint)((Math.Abs(this.predictions[3] - scaled) + PredictionRounding) >> ExtraBits)));
-        }
-
-        // Store one current-column group and add into the previous row's next group. That wrapped
-        // addition supplies the westward contributions consumed by the next Predict call. The row margin
-        // guarantees a complete four-lane group even when this is the last visible image column.
-        ref uint errorWords = ref Unsafe.As<int, uint>(ref firstError);
-        nuint current = (nuint)(this.combinedErrorLength + ((currentRow + x) * PredictorCount));
-        nuint next = (nuint)(this.combinedErrorLength + ((previousRow + x + 1) * PredictorCount));
-        magnitudes.StoreUnsafe(ref errorWords, current);
-        (Vector128.LoadUnsafe(ref errorWords, next) + magnitudes).StoreUnsafe(ref errorWords, next);
-    }
-
-    /// <summary>
-    /// Converts one wrapped local error sum to the format's positive predictor weight.
-    /// </summary>
-    /// <param name="error">The wrapped unsigned sum of north, northeast and northwest error magnitudes.</param>
-    /// <param name="maximumWeight">The four-bit maximum weight read from the group header.</param>
-    /// <returns>The integer reciprocal weight, including the minimum contribution of four.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint GetWeight(uint error, uint maximumWeight)
-    {
-        // All four predictor weights use this equation for every sample. Keep it in the caller, as in
-        // jxl-rs predict.rs, so the four local error lanes do not cross separate call boundaries.
-        // Widen before adding one: uint.MaxValue must have log2(error+1)=32. This shift bounds the
-        // reciprocal index below 64 even at that endpoint, without changing the wrapped local error sum.
-        int shift = Math.Max(0, BitOperations.Log2((ulong)error + 1) - ErrorWeightMagnitudeBits);
-        ref uint table = ref MemoryMarshal.GetReference(Reciprocals);
-        return MinimumWeight + ((maximumWeight * Unsafe.Add(ref table, (int)(error >> shift))) >> shift);
     }
 
     /// <summary>

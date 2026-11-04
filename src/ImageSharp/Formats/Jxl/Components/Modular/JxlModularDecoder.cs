@@ -895,10 +895,90 @@ internal sealed partial class JxlModularDecoder : IDisposable
         where TSample : unmanaged, IBinaryInteger<TSample>
         where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
     {
+        // Tree reduction fixes weighted participation before row traversal. Each constrained
+        // predictor compiles into its worker without a per-sample weighted-mode test.
+        if (usesWeighted)
+        {
+            this.DecodeGeneralChannel<TSample, TOperator, JxlWeightedPredictor>(
+                ref reader,
+                ref symbols,
+                descriptors,
+                channelIndex,
+                nodes,
+                propertyCount,
+                streamId,
+                ref weightedPredictor,
+                errors,
+                predictionRows,
+                history,
+                ref decoded,
+                maximumWidth,
+                cancellationToken);
+        }
+        else
+        {
+            JxlModularPredictor.UnweightedPredictor unweighted = default;
+            this.DecodeGeneralChannel<TSample, TOperator, JxlModularPredictor.UnweightedPredictor>(
+                ref reader,
+                ref symbols,
+                descriptors,
+                channelIndex,
+                nodes,
+                propertyCount,
+                streamId,
+                ref unweighted,
+                errors,
+                predictionRows,
+                history,
+                ref decoded,
+                maximumWidth,
+                cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Selects one tree representation before reconstructing a mixed-predictor channel.
+    /// </summary>
+    /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
+    /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
+    /// <typeparam name="TPredictor">The channel's weighted or unweighted prediction state.</typeparam>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The entropy state shared by every channel in this stream.</param>
+    /// <param name="descriptors">The ready channels. Earlier matching channels can supply reference properties.</param>
+    /// <param name="channelIndex">The current channel and its static property zero.</param>
+    /// <param name="nodes">The current channel's reduced tree, retained unchanged throughout traversal.</param>
+    /// <param name="propertyCount">The property range required by the reduced tree.</param>
+    /// <param name="streamId">The static stream property one.</param>
+    /// <param name="weightedPredictor">The current group's coefficients and mutable prediction state.</param>
+    /// <param name="errors">The frame-owned weighted error rows, already reset for this channel.</param>
+    /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
+    /// <param name="history">The shared residual history, or an empty span without LZ77.</param>
+    /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
+    /// <param name="maximumWidth">The complete stream width used by modular LZ77 distances.</param>
+    /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
+    private void DecodeGeneralChannel<TSample, TOperator, TPredictor>(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        ReadOnlySpan<JxlModularChannel> descriptors,
+        int channelIndex,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        int propertyCount,
+        int streamId,
+        ref TPredictor weightedPredictor,
+        Span<int> errors,
+        Span<int> predictionRows,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth,
+        CancellationToken cancellationToken)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+        where TPredictor : struct, JxlModularPredictor.IWeightedPredictor
+    {
         if (nodes.Length == 1)
         {
             // A fixed leaf needs neither interval tables nor compiled flat storage.
-            this.DecodeGeneralChannel<TSample, TOperator, JxlModularTree.SingleLeafTreeOperator>(
+            this.DecodeGeneralChannel<TSample, TOperator, JxlModularTree.SingleLeafTreeOperator, TPredictor>(
                 ref reader,
                 ref symbols,
                 descriptors,
@@ -908,7 +988,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 default,
                 propertyCount,
                 streamId,
-                usesWeighted,
                 ref weightedPredictor,
                 errors,
                 predictionRows,
@@ -928,7 +1007,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
         if (!lookup.IsEmpty)
         {
-            this.DecodeGeneralChannel<TSample, TOperator, JxlModularTree.IntervalTreeOperator>(
+            this.DecodeGeneralChannel<TSample, TOperator, JxlModularTree.IntervalTreeOperator, TPredictor>(
                 ref reader,
                 ref symbols,
                 descriptors,
@@ -938,7 +1017,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 lookup,
                 propertyCount,
                 streamId,
-                usesWeighted,
                 ref weightedPredictor,
                 errors,
                 predictionRows,
@@ -951,7 +1029,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
         }
 
         ReadOnlySpan<JxlModularTree.FlatNode> flatNodes = JxlModularTree.PrepareFlatTree(nodes, this.workspace);
-        this.DecodeGeneralChannel<TSample, TOperator, JxlModularTree.FlatTreeOperator>(
+        this.DecodeGeneralChannel<TSample, TOperator, JxlModularTree.FlatTreeOperator, TPredictor>(
             ref reader,
             ref symbols,
             descriptors,
@@ -961,7 +1039,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
             default,
             propertyCount,
             streamId,
-            usesWeighted,
             ref weightedPredictor,
             errors,
             predictionRows,
@@ -977,6 +1054,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <typeparam name="TSample">The signed modular storage type selected before traversal.</typeparam>
     /// <typeparam name="TOperator">The entropy mode selected once for this modular stream.</typeparam>
     /// <typeparam name="TTreeOperator">The tree representation selected once for this channel.</typeparam>
+    /// <typeparam name="TPredictor">The channel's weighted or unweighted prediction state.</typeparam>
     /// <param name="reader">The bounded sample reader.</param>
     /// <param name="symbols">The entropy state shared by every channel in this stream.</param>
     /// <param name="descriptors">The ready channels. Earlier matching channels can supply reference properties.</param>
@@ -986,7 +1064,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="lookup">The prepared interval tables, or empty for flat and fixed-leaf selection.</param>
     /// <param name="propertyCount">The property range required by the reduced tree.</param>
     /// <param name="streamId">The static stream property one.</param>
-    /// <param name="usesWeighted">Whether any reachable leaf or property requires weighted prediction state.</param>
     /// <param name="weightedPredictor">The current group's coefficients and mutable prediction state.</param>
     /// <param name="errors">The frame-owned weighted error rows, already reset for this channel.</param>
     /// <param name="predictionRows">Three reusable wide rows for signed 16-bit prediction; empty for 32-bit storage.</param>
@@ -994,7 +1071,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
     /// <param name="decoded">The preceding residual count for LZ77 history; zero without LZ77.</param>
     /// <param name="maximumWidth">The complete stream width used by modular LZ77 distances.</param>
     /// <param name="cancellationToken">The token checked before each reconstructed row.</param>
-    private void DecodeGeneralChannel<TSample, TOperator, TTreeOperator>(
+    private void DecodeGeneralChannel<TSample, TOperator, TTreeOperator, TPredictor>(
         ref JxlBitReader reader,
         ref JxlEntropyDecoder.Reader symbols,
         ReadOnlySpan<JxlModularChannel> descriptors,
@@ -1004,8 +1081,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
         JxlModularTree.Lookup lookup,
         int propertyCount,
         int streamId,
-        bool usesWeighted,
-        ref JxlWeightedPredictor weightedPredictor,
+        ref TPredictor weightedPredictor,
         Span<int> errors,
         Span<int> predictionRows,
         Span<uint> history,
@@ -1015,6 +1091,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
         where TSample : unmanaged, IBinaryInteger<TSample>
         where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
         where TTreeOperator : struct, JxlModularTree.ITreeOperator
+        where TPredictor : struct, JxlModularPredictor.IWeightedPredictor
     {
         // General properties and reference indices belong to this worker. The stream dispatcher and
         // specialized channel loops do not share its stack state or its prediction-loop compilation budget.
@@ -1050,21 +1127,12 @@ internal sealed partial class JxlModularDecoder : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Every row in this region has rowLength samples. The block limit bounds x, and the
-            // neighbor conditions below bound each offset. The decoder retains this row storage throughout traversal.
-            ref int first = ref MemoryMarshal.GetReference(channel.GetPredictionRow<TSample>(y, predictionRows));
-            ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(channel.GetPredictionRow<TSample>(y - 1, predictionRows)));
-            ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(channel.GetPredictionRow<TSample>(y - 2, predictionRows)));
+            // Borrow wide rows once. Signed 16-bit prediction retains these values until
+            // the complete row is narrowed; both traversal paths read the same wide storage.
+            Span<int> row = channel.GetPredictionRow<TSample>(y, predictionRows);
+            ReadOnlySpan<int> topRow = y == 0 ? row : channel.GetPredictionRow<TSample>(y - 1, predictionRows);
+            ReadOnlySpan<int> aboveRow = y < 2 ? topRow : channel.GetPredictionRow<TSample>(y - 2, predictionRows);
             properties[9] = 0;
-
-            // Carry the horizontal neighbors in sample order, as in jxl-rs PredictionData. The first
-            // column repeats N for W and NW. The first row instead starts at zero and repeats W.
-            int left = y == 0 ? 0 : topStart;
-            int top = left;
-            int topLeft = left;
-            int topRight = y != 0 && rowLength > 1 ? Unsafe.Add(ref topStart, 1) : top;
-            int topRightRight = y != 0 && rowLength > 2 ? Unsafe.Add(ref topStart, 2) : topRight;
-            int leftLeft = left;
 
             // Bound reference scratch to 64 columns. Borrow each matching source row before its SIMD preparation,
             // then pass only spans through the pixel loop. Every property occupies one contiguous block plane.
@@ -1095,119 +1163,371 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         referenceValues.Slice(offset + (3 * ReferenceBlockLength), length));
                 }
 
-                for (int column = 0; column < length; column++)
+                int end = start + length;
+                int interiorStart = y == 0 ? end : Math.Min(end, Math.Max(start, 2));
+                int interiorEnd = Math.Max(interiorStart, Math.Min(end, rowLength - 3));
+
+                // First-row and outer-column samples use the format's edge substitutions.
+                // Tiny rows have no interior range. Only nonempty edge ranges enter the cold worker.
+                if (start < interiorStart)
                 {
-                    int x = start + column;
-                    int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
-                    long weighted = 0;
-                    if (usesWeighted)
-                    {
-                        weighted = weightedPredictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out int errorProperty);
-                        properties[15] = errorProperty;
-                    }
+                    DecodeGeneralEdgeRange<TOperator, TTreeOperator, TPredictor>(
+                        ref reader,
+                        ref symbols,
+                        nodes,
+                        flatNodes,
+                        in lookup,
+                        ref propertyStorage,
+                        referenceValues,
+                        references,
+                        start,
+                        ref weightedPredictor,
+                        errors,
+                        row,
+                        topRow,
+                        aboveRow,
+                        start,
+                        interiorStart,
+                        y,
+                        history,
+                        ref decoded,
+                        maximumWidth);
+                }
 
-                    if (TTreeOperator.UsesLookup)
-                    {
-                        // The selected property IDs are sorted. Property eight consumes the preceding
-                        // pixel's gradient before property nine replaces it. Missing reference channels stay zero.
-                        foreach (byte property in lookup.PropertyIndices)
-                        {
-                            properties[property] = property switch
-                            {
-                                2 => y,
-                                3 => x,
-                                4 => top < 0 ? unchecked(-top) : top,
-                                5 => left < 0 ? unchecked(-left) : left,
-                                6 => top,
-                                7 => left,
-                                8 => unchecked(left - properties[9]),
-                                9 => unchecked(left + top - topLeft),
-                                10 => unchecked(left - topLeft),
-                                11 => unchecked(topLeft - top),
-                                12 => unchecked(top - topRight),
-                                13 => unchecked(top - topTop),
-                                14 => unchecked(left - leftLeft),
-                                15 => properties[15],
-                                _ => property - FirstReferenceProperty < references * PropertiesPerReference
-                                    ? referenceValues[((property - FirstReferenceProperty) * ReferenceBlockLength) + column]
-                                    : 0,
-                            };
-                        }
+                if (interiorStart < interiorEnd)
+                {
+                    // Rebuild neighbors once per reference block. Persistent properties and weighted
+                    // errors retain continuity across blocks without another state object or buffer.
+                    int left = row[interiorStart - 1];
+                    int leftLeft = row[interiorStart - 2];
+                    int top = topRow[interiorStart];
+                    int topLeft = topRow[interiorStart - 1];
+                    int topRight = topRow[interiorStart + 1];
+                    int topRightRight = topRow[interiorStart + 2];
 
-                        if ((lookup.PropertyMask & (1UL << 8)) != 0 && (lookup.PropertyMask & (1UL << 9)) == 0)
-                        {
-                            // Property eight still needs the previous gradient when no split reads property nine.
-                            properties[9] = unchecked(left + top - topLeft);
-                        }
-                    }
-                    else if (TTreeOperator.UsesProperties)
-                    {
-                        // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
-                        properties[2] = y;
-                        properties[3] = x;
-                        properties[4] = top < 0 ? unchecked(-top) : top;
-                        properties[5] = left < 0 ? unchecked(-left) : left;
-                        properties[6] = top;
-                        properties[7] = left;
-                        properties[8] = unchecked(left - properties[9]);
-                        properties[9] = unchecked(left + top - topLeft);
-                        properties[10] = unchecked(left - topLeft);
-                        properties[11] = unchecked(topLeft - top);
-                        properties[12] = unchecked(top - topRight);
-                        properties[13] = unchecked(top - topTop);
-                        properties[14] = unchecked(left - leftLeft);
-                        for (int p = 0; p < references * PropertiesPerReference; p++)
-                        {
-                            properties[FirstReferenceProperty + p] = referenceValues[(p * ReferenceBlockLength) + column];
-                        }
-                    }
+                    int interiorLength = interiorEnd - interiorStart;
+                    Span<int> output = row.Slice(interiorStart, interiorLength);
+                    ReadOnlySpan<int> northernLookahead = topRow.Slice(interiorStart + 3, interiorLength);
+                    ReadOnlySpan<int> secondNorthern = aboveRow.Slice(interiorStart, interiorLength);
 
-                    // The channel's operator fixes both property preparation and leaf selection. Flat and fixed-leaf
-                    // traversals do not read interval state. All representations borrow the existing retained payload.
-                    ref readonly JxlModularTree.Node node = ref TTreeOperator.SelectLeaf(nodes, flatNodes, in lookup, ref propertyStorage);
-
-                    // Complete the leaf's prediction before entropy expansion. Retain the horizontal
-                    // neighbors for the next sample, but do not carry the tree leaf across a refill call.
-                    long prediction = node.Predictor == 6
-                        ? weighted
-                        : JxlModularPredictor.Predict(node.Predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
-
-                    long guess = unchecked(prediction + node.Value);
-                    uint multiplier = node.Multiplier;
-                    int cluster = node.FirstChild;
-                    uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
-                    int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                    int value = unchecked((int)(guess + ((long)signed * multiplier)));
-                    Unsafe.Add(ref first, x) = value;
-                    if (usesWeighted)
+                    // All three slices have the same length. Validate their ranges once, then
+                    // let the loop bound cover each indexed load and store in the interior.
+                    for (int column = 0; column < interiorLength; column++)
                     {
-                        // Weighted errors advance even when this tree leaf selected another predictor.
-                        weightedPredictor.Update(errors, x, y, value);
-                    }
+                        int x = interiorStart + column;
 
-                    // Advance without loading W, WW, N, NW or NE again. WW repeats W at column one;
-                    // beyond the right edge, NEE repeats NE. Carry state across reference-scratch blocks.
-                    leftLeft = x == 0 ? value : left;
-                    left = value;
-                    if (y == 0)
-                    {
-                        top = value;
-                        topLeft = value;
-                        topRight = value;
-                        topRightRight = value;
-                    }
-                    else
-                    {
+                        // Advance after decoding, so the next NEE load uses x+3. Keep the final three
+                        // columns in the edge worker. On row one, aboveRow aliases topRow for NN.
+                        int topTop = secondNorthern[column];
+                        int value = DecodeGeneralSample<TOperator, TTreeOperator, TPredictor>(
+                            ref reader,
+                            ref symbols,
+                            nodes,
+                            flatNodes,
+                            in lookup,
+                            ref propertyStorage,
+                            referenceValues,
+                            references,
+                            x - start,
+                            ref weightedPredictor,
+                            errors,
+                            true,
+                            x,
+                            y,
+                            left,
+                            top,
+                            topLeft,
+                            topRight,
+                            leftLeft,
+                            topTop,
+                            topRightRight,
+                            history,
+                            ref decoded,
+                            maximumWidth);
+
+                        output[column] = value;
+                        leftLeft = left;
+                        left = value;
                         topLeft = top;
                         top = topRight;
                         topRight = topRightRight;
-                        topRightRight = x < rowLength - 3 ? Unsafe.Add(ref topStart, x + 3) : topRight;
+                        topRightRight = northernLookahead[column];
                     }
+                }
+
+                if (interiorEnd < end)
+                {
+                    DecodeGeneralEdgeRange<TOperator, TTreeOperator, TPredictor>(
+                        ref reader,
+                        ref symbols,
+                        nodes,
+                        flatNodes,
+                        in lookup,
+                        ref propertyStorage,
+                        referenceValues,
+                        references,
+                        start,
+                        ref weightedPredictor,
+                        errors,
+                        row,
+                        topRow,
+                        aboveRow,
+                        interiorEnd,
+                        end,
+                        y,
+                        history,
+                        ref decoded,
+                        maximumWidth);
                 }
             }
 
-            channel.CommitPredictionRow<TSample>(y, MemoryMarshal.CreateReadOnlySpan(ref first, rowLength));
+            channel.CommitPredictionRow<TSample>(y, row);
         }
+    }
+
+    /// <summary>
+    /// Reconstructs an edge range with the format's first-row and outer-column neighbor rules.
+    /// </summary>
+    /// <typeparam name="TOperator">The stream's fixed entropy mode.</typeparam>
+    /// <typeparam name="TTreeOperator">The channel's fixed tree representation.</typeparam>
+    /// <typeparam name="TPredictor">The channel's weighted or unweighted prediction state.</typeparam>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The shared entropy state.</param>
+    /// <param name="nodes">The reduced source tree.</param>
+    /// <param name="flatNodes">The compiled flat tree when selected.</param>
+    /// <param name="lookup">The interval tables when selected.</param>
+    /// <param name="propertyStorage">The persistent channel properties, including the preceding gradient.</param>
+    /// <param name="referenceValues">The current block's prepared cross-channel properties.</param>
+    /// <param name="references">The number of available reference channels.</param>
+    /// <param name="blockStart">The first image column in the prepared reference block.</param>
+    /// <param name="weightedPredictor">The selected mutable prediction state.</param>
+    /// <param name="errors">The reused weighted error rows.</param>
+    /// <param name="row">The current wide prediction row.</param>
+    /// <param name="topRow">The preceding wide row, or the current row at the top edge.</param>
+    /// <param name="aboveRow">The second preceding row, or topRow when that row does not exist.</param>
+    /// <param name="start">The first column in this edge range.</param>
+    /// <param name="end">The exclusive end of this edge range.</param>
+    /// <param name="y">The image row.</param>
+    /// <param name="history">The reused LZ77 history, or empty without LZ77.</param>
+    /// <param name="decoded">The preceding LZ77 residual count.</param>
+    /// <param name="maximumWidth">The stream width for LZ77 distances.</param>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void DecodeGeneralEdgeRange<TOperator, TTreeOperator, TPredictor>(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        ReadOnlySpan<JxlModularTree.FlatNode> flatNodes,
+        in JxlModularTree.Lookup lookup,
+        ref InlineArray256<int> propertyStorage,
+        Span<int> referenceValues,
+        int references,
+        int blockStart,
+        ref TPredictor weightedPredictor,
+        Span<int> errors,
+        Span<int> row,
+        ReadOnlySpan<int> topRow,
+        ReadOnlySpan<int> aboveRow,
+        int start,
+        int end,
+        int y,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+        where TTreeOperator : struct, JxlModularTree.ITreeOperator
+        where TPredictor : struct, JxlModularPredictor.IWeightedPredictor
+    {
+        // The first row and outer columns need these substitutions. Interior traversal reads
+        // only validated neighbors and does not execute these branches.
+        int width = row.Length;
+
+        for (int x = start; x < end; x++)
+        {
+            int left = x != 0 ? row[x - 1] : y != 0 ? topRow[0] : 0;
+            int top = y != 0 ? topRow[x] : left;
+            int topLeft = x != 0 && y != 0 ? topRow[x - 1] : left;
+            int topRight = y != 0 && x < width - 1 ? topRow[x + 1] : top;
+            int leftLeft = x > 1 ? row[x - 2] : left;
+            int topTop = y > 1 ? aboveRow[x] : top;
+            int topRightRight = y != 0 && x < width - 2 ? topRow[x + 2] : topRight;
+            int value = DecodeGeneralSample<TOperator, TTreeOperator, TPredictor>(
+                ref reader,
+                ref symbols,
+                nodes,
+                flatNodes,
+                in lookup,
+                ref propertyStorage,
+                referenceValues,
+                references,
+                x - blockStart,
+                ref weightedPredictor,
+                errors,
+                false,
+                x,
+                y,
+                left,
+                top,
+                topLeft,
+                topRight,
+                leftLeft,
+                topTop,
+                topRightRight,
+                history,
+                ref decoded,
+                maximumWidth);
+
+            row[x] = value;
+        }
+    }
+
+    /// <summary>
+    /// Selects a tree leaf and reconstructs one sample with shared arithmetic for edge and interior traversal.
+    /// </summary>
+    /// <typeparam name="TOperator">The stream's fixed entropy mode.</typeparam>
+    /// <typeparam name="TTreeOperator">The channel's fixed tree representation.</typeparam>
+    /// <typeparam name="TPredictor">The channel's weighted or unweighted prediction state.</typeparam>
+    /// <param name="reader">The bounded sample reader.</param>
+    /// <param name="symbols">The shared entropy state.</param>
+    /// <param name="nodes">The reduced source tree.</param>
+    /// <param name="flatNodes">The compiled flat tree when selected.</param>
+    /// <param name="lookup">The interval tables when selected.</param>
+    /// <param name="propertyStorage">The persistent channel properties, including the preceding gradient.</param>
+    /// <param name="referenceValues">The current block's prepared cross-channel properties.</param>
+    /// <param name="references">The number of available reference channels.</param>
+    /// <param name="column">The sample's offset in the prepared reference block.</param>
+    /// <param name="weightedPredictor">The selected mutable prediction state.</param>
+    /// <param name="errors">The reused weighted error rows.</param>
+    /// <param name="isInterior">Whether the column has both preceding and following neighbors inside the row.</param>
+    /// <param name="x">The image column.</param>
+    /// <param name="y">The image row.</param>
+    /// <param name="left">The W neighbor after edge substitution.</param>
+    /// <param name="top">The N neighbor after edge substitution.</param>
+    /// <param name="topLeft">The NW neighbor after edge substitution.</param>
+    /// <param name="topRight">The NE neighbor after edge substitution.</param>
+    /// <param name="leftLeft">The WW neighbor after edge substitution.</param>
+    /// <param name="topTop">The NN neighbor after edge substitution.</param>
+    /// <param name="topRightRight">The NEE neighbor after edge substitution.</param>
+    /// <param name="history">The reused LZ77 history, or empty without LZ77.</param>
+    /// <param name="decoded">The preceding LZ77 residual count.</param>
+    /// <param name="maximumWidth">The stream width for LZ77 distances.</param>
+    /// <returns>The reconstructed wide sample before storage conversion.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int DecodeGeneralSample<TOperator, TTreeOperator, TPredictor>(
+        ref JxlBitReader reader,
+        ref JxlEntropyDecoder.Reader symbols,
+        ReadOnlySpan<JxlModularTree.Node> nodes,
+        ReadOnlySpan<JxlModularTree.FlatNode> flatNodes,
+        in JxlModularTree.Lookup lookup,
+        ref InlineArray256<int> propertyStorage,
+        Span<int> referenceValues,
+        int references,
+        int column,
+        ref TPredictor weightedPredictor,
+        Span<int> errors,
+        bool isInterior,
+        int x,
+        int y,
+        int left,
+        int top,
+        int topLeft,
+        int topRight,
+        int leftLeft,
+        int topTop,
+        int topRightRight,
+        Span<uint> history,
+        ref uint decoded,
+        int maximumWidth)
+        where TOperator : struct, JxlEntropyDecoder.IEntropyOperator
+        where TTreeOperator : struct, JxlModularTree.ITreeOperator
+        where TPredictor : struct, JxlModularPredictor.IWeightedPredictor
+    {
+        Span<int> properties = propertyStorage;
+
+        int errorProperty;
+        long weighted = isInterior
+            ? weightedPredictor.PredictInterior(errors, x, y, left, top, topLeft, topRight, topTop, out errorProperty)
+            : weightedPredictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out errorProperty);
+
+        properties[15] = errorProperty;
+
+        if (TTreeOperator.UsesLookup)
+        {
+            // The selected property IDs are sorted. Property eight consumes the preceding
+            // pixel's gradient before property nine replaces it. Missing reference channels stay zero.
+            foreach (byte property in lookup.PropertyIndices)
+            {
+                properties[property] = property switch
+                {
+                    2 => y,
+                    3 => x,
+                    4 => top < 0 ? -top : top,
+                    5 => left < 0 ? -left : left,
+                    6 => top,
+                    7 => left,
+                    8 => left - properties[9],
+                    9 => left + top - topLeft,
+                    10 => left - topLeft,
+                    11 => topLeft - top,
+                    12 => top - topRight,
+                    13 => top - topTop,
+                    14 => left - leftLeft,
+                    15 => properties[15],
+                    _ => property - FirstReferenceProperty < references * PropertiesPerReference
+                        ? referenceValues[((property - FirstReferenceProperty) * ReferenceBlockLength) + column]
+                        : 0,
+                };
+            }
+
+            if ((lookup.PropertyMask & (1UL << 8)) != 0 && (lookup.PropertyMask & (1UL << 9)) == 0)
+            {
+                // Property eight still needs the previous gradient when no split reads property nine.
+                properties[9] = left + top - topLeft;
+            }
+        }
+        else if (TTreeOperator.UsesProperties)
+        {
+            // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
+            properties[2] = y;
+            properties[3] = x;
+            properties[4] = top < 0 ? -top : top;
+            properties[5] = left < 0 ? -left : left;
+            properties[6] = top;
+            properties[7] = left;
+            properties[8] = left - properties[9];
+            properties[9] = left + top - topLeft;
+            properties[10] = left - topLeft;
+            properties[11] = topLeft - top;
+            properties[12] = top - topRight;
+            properties[13] = top - topTop;
+            properties[14] = left - leftLeft;
+            for (int p = 0; p < references * PropertiesPerReference; p++)
+            {
+                properties[FirstReferenceProperty + p] = referenceValues[(p * ReferenceBlockLength) + column];
+            }
+        }
+
+        // The channel's operator fixes both property preparation and leaf selection. Flat and fixed-leaf
+        // traversals do not read interval state. All representations borrow the existing retained payload.
+        ref readonly JxlModularTree.Node node = ref TTreeOperator.SelectLeaf(nodes, flatNodes, in lookup, ref propertyStorage);
+
+        // Complete the leaf's prediction before entropy expansion. Retain the horizontal
+        // neighbors for the next sample, but do not carry the tree leaf across a refill call.
+        long prediction = node.Predictor == 6
+            ? weighted
+            : JxlModularPredictor.Predict(node.Predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
+
+        long guess = prediction + node.Value;
+        uint multiplier = node.Multiplier;
+        int cluster = node.FirstChild;
+        uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
+        int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
+        int value = (int)(guess + ((long)signed * multiplier));
+
+        // Weighted errors advance even when this leaf selected another predictor.
+        // The unweighted implementation is empty and disappears from its compiled worker.
+        weightedPredictor.Update(errors, x, y, value);
+
+        return value;
     }
 
     /// <summary>
@@ -1311,7 +1631,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             {
                 uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                row[x] = TSample.CreateTruncating(unchecked((int)(guess + ((long)signed * multiplier))));
+                row[x] = TSample.CreateTruncating((int)(guess + ((long)signed * multiplier)));
             }
         }
     }
@@ -1356,7 +1676,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
             for (int x = 0; x < row.Length; x++)
             {
                 int top = y == 0 ? left : topRow[x];
-                int property = unchecked(left + top - topLeft);
+                int property = left + top - topLeft;
                 int leaf = 0;
                 while (nodes[leaf].Property >= 0)
                 {
@@ -1370,12 +1690,12 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 // then limits it by W and N before the residual is applied. Carry these neighbors across columns.
                 // Finish the guess before entropy expansion so leaf data need not survive a refill call.
                 long prediction = Math.Clamp((long)left + top - topLeft, Math.Min(left, top), Math.Max(left, top));
-                long guess = unchecked(prediction + node.Value);
+                long guess = prediction + node.Value;
                 uint multiplier = node.Multiplier;
                 int cluster = node.FirstChild;
                 uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                int value = unchecked((int)(guess + ((long)signed * multiplier)));
+                int value = (int)(guess + ((long)signed * multiplier));
                 row[x] = value;
                 topLeft = y == 0 ? value : top;
                 left = value;
@@ -1450,12 +1770,12 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
                 // Weighted prediction has already prepared its error-update state. Complete the leaf's guess now,
                 // then read the residual. The sample and its error rows remain unchanged if that read fails.
-                long guess = unchecked(prediction + node.Value);
+                long guess = prediction + node.Value;
                 uint multiplier = node.Multiplier;
                 int cluster = node.FirstChild;
                 uint residual = symbols.ReadClusteredUInt32<TOperator>(ref reader, cluster, history, TOperator.UsesLz77 ? decoded++ : 0, maximumWidth);
                 int signed = (int)(residual >> 1) ^ -(int)(residual & 1);
-                int value = unchecked((int)(guess + ((long)signed * multiplier)));
+                int value = (int)(guess + ((long)signed * multiplier));
                 Unsafe.Add(ref first, x) = value;
                 predictor.Update(errors, x, y, value);
 

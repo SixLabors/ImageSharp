@@ -195,7 +195,7 @@ internal static class JxlModularColorTransform
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Apply(ref int first, ref int second, ref int third)
         {
-            third = unchecked(third + first);
+            third += first;
         }
 
         /// <inheritdoc/>
@@ -229,7 +229,7 @@ internal static class JxlModularColorTransform
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Apply(ref int first, ref int second, ref int third)
         {
-            second = unchecked(second + first);
+            second += first;
         }
 
         /// <inheritdoc/>
@@ -263,8 +263,8 @@ internal static class JxlModularColorTransform
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Apply(ref int first, ref int second, ref int third)
         {
-            second = unchecked(second + first);
-            third = unchecked(third + first);
+            second += first;
+            third += first;
         }
 
         /// <inheritdoc/>
@@ -302,7 +302,7 @@ internal static class JxlModularColorTransform
         public static void Apply(ref int first, ref int second, ref int third)
         {
             // The sum wraps before its arithmetic right shift. A negative odd sum rounds toward negative infinity, not toward zero.
-            second = unchecked(second + (unchecked(first + third) >> 1));
+            second += (first + third) >> 1;
         }
 
         /// <inheritdoc/>
@@ -339,15 +339,15 @@ internal static class JxlModularColorTransform
         public static void Apply(ref int first, ref int second, ref int third)
         {
             // The second channel depends on the restored third channel. Preserve this order and wrap the sum before shifting.
-            third = unchecked(third + first);
+            third += first;
             if (typeof(TSample) == typeof(short))
             {
                 // Rust rct_impl_i16 wraps the updated third component before avg_i16 reads it.
                 // The widened sum used for that average then preserves its mathematical signed half-sum.
-                third = unchecked((short)third);
+                third = (short)third;
             }
 
-            second = unchecked(second + (unchecked(first + third) >> 1));
+            second += (first + third) >> 1;
         }
 
         /// <inheritdoc/>
@@ -403,11 +403,11 @@ internal static class JxlModularColorTransform
         public static void Apply(ref int first, ref int second, ref int third)
         {
             // Inputs are Y, Co and Cg. Subtract half Cg first, then half Co; signed shifts retain the reversible integer rounding.
-            int center = unchecked(first - (third >> 1));
-            int green = unchecked(third + center);
-            int blue = unchecked(center - (second >> 1));
+            int center = first - (third >> 1);
+            int green = third + center;
+            int blue = center - (second >> 1);
 
-            first = unchecked(blue + second);
+            first = blue + second;
             second = green;
             third = blue;
         }

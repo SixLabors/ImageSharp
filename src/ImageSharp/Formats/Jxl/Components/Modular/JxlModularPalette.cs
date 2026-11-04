@@ -378,7 +378,7 @@ internal static class JxlModularPalette
                 int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : north;
                 int topRightRight = y != 0 && x + 2 < row.Length ? Unsafe.Add(ref topStart, x + 2) : topRight;
                 long prediction = JxlModularPredictor.Predict(predictor, left, north, topLeft, topRight, leftLeft, topTop, topRightRight);
-                value = unchecked((int)(prediction + value));
+                value = (int)(prediction + value);
             }
 
             Unsafe.Add(ref first, x) = value;
@@ -433,7 +433,7 @@ internal static class JxlModularPalette
                 long prediction = weightedPredictor.Predict(scratch, x, y, left, top, topLeft, topRight, topTop, out _);
                 if (index < deltaCount)
                 {
-                    value = unchecked((int)(prediction + value));
+                    value = (int)(prediction + value);
                 }
 
                 Unsafe.Add(ref first, x) = value;

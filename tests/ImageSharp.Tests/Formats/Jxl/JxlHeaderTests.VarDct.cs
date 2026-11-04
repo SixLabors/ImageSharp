@@ -31,6 +31,8 @@ public partial class JxlHeaderTests
     [InlineData(TestImages.Jxl.LowFrequencyPyramid)]
     [InlineData(TestImages.Jxl.Dice)]
     [InlineData(TestImages.Jxl.PaletteAlphaUpsampling8)]
+    [InlineData(TestImages.Jxl.GrayscalePatchesVarDct)]
+    [InlineData(TestImages.Jxl.Patches)]
     public void DecodeVarDctGroupsMatchNative(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateVarDctGroupPixels,
@@ -53,6 +55,8 @@ public partial class JxlHeaderTests
             TestImages.Jxl.LowFrequencyPyramid => new Size(64, 64),
             TestImages.Jxl.Dice => new Size(800, 600),
             TestImages.Jxl.PaletteAlphaUpsampling8 => new Size(1024, 192),
+            TestImages.Jxl.GrayscalePatchesVarDct => new Size(1011, 277),
+            TestImages.Jxl.Patches => new Size(1600, 1096),
             _ => new Size(513, 321)
         };
 
@@ -110,9 +114,36 @@ public partial class JxlHeaderTests
     /// ec_upsampling8_multi_group.jxl keeps color at full resolution and expands palette alpha eightfold after four groups.
     /// Its RGB differs by at most 1.84e-5 and its alpha by at most 2.39e-7. These values precede final pixel bounds.
     /// Coordinates cover AC seams at 255/256, DC seams at 2047/2048, upsampling phases and final partial groups.
+    /// The grayscale patch input uses the same native float sRGB target. Its saved reference supplies native samples before color conversion.
+    /// The color patch conformance input also uses native float sRGB output. With a common linear-sRGB target,
+    /// libjxl and jxl-rs disagree by at most 7.16e-6 over its complete image; alpha agrees exactly.
     /// </remarks>
     private static (int X, int Y, uint R, uint G, uint B, uint A)[] NativeVarDctGroupPoints(string file) => file switch
     {
+        TestImages.Jxl.Patches =>
+        [
+            (0, 0, 0x3D46E97FU, 0x3D78E828U, 0x3DADA465U, 0x3F800000U),
+            (255, 255, 0x3DB04403U, 0x3DDE9B2EU, 0x3E02F304U, 0x3F800000U),
+            (256, 255, 0x3DAF8643U, 0x3DDDEDB3U, 0x3E03915CU, 0x3F800000U),
+            (255, 256, 0x3DAE39B1U, 0x3DDEDEDFU, 0x3E0335E0U, 0x3F800000U),
+            (256, 256, 0x3DADDF5DU, 0x3DDE8C17U, 0x3E0380FCU, 0x3F800000U),
+            (800, 548, 0x3DA7CC86U, 0x3DD4E606U, 0x3E0513A6U, 0x3F800000U),
+            (1599, 1095, 0x3D5F4C0CU, 0x3D87F553U, 0x3DB86765U, 0x3F800000U),
+            (511, 100, 0x3D5E6F3BU, 0x3D87A3F6U, 0x3DB83AA7U, 0x3F800000U),
+            (512, 100, 0x3D5F88B8U, 0x3D88520FU, 0x3DB90F44U, 0x3F800000U),
+        ],
+        TestImages.Jxl.GrayscalePatchesVarDct =>
+        [
+            (0, 0, 0x3DEE1B8BU, 0x3DEE1B8BU, 0x3DEE1B8BU, 0x3F800000U),
+            (255, 0, 0x3DEE7E7AU, 0x3DEE7E81U, 0x3DEE7E81U, 0x3F800000U),
+            (256, 0, 0x3DEE0E69U, 0x3DEE0E70U, 0x3DEE0E6FU, 0x3F800000U),
+            (0, 118, 0x3DEDF4ADU, 0x3DEDF4B1U, 0x3DEDF4ACU, 0x3F800000U),
+            (255, 255, 0x3DEDD069U, 0x3DEDD06CU, 0x3DEDD06BU, 0x3F800000U),
+            (256, 255, 0x3DEDD602U, 0x3DEDD60AU, 0x3DEDD609U, 0x3F800000U),
+            (1010, 276, 0x3DEC4F37U, 0x3DEC4F42U, 0x3DEC4F40U, 0x3F800000U),
+            (511, 100, 0x3F1322C2U, 0x3F1322C4U, 0x3F1322C4U, 0x3F800000U),
+            (512, 100, 0x3F130513U, 0x3F130516U, 0x3F130516U, 0x3F800000U),
+        ],
         TestImages.Jxl.PermutedSections =>
         [
             (0, 0, 0x3C174175U, 0x38ACB656U, 0x3F7EB0DCU, 0x3F800000U),

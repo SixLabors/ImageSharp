@@ -132,7 +132,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reconstructs LF dependencies and packs the final frame through the shared pixel APIs.
+    /// Reconstructs saved native dependencies and packs the final full-canvas frame through the shared pixel APIs.
     /// </summary>
     /// <typeparam name="TPixel">The requested destination pixel format.</typeparam>
     /// <param name="reader">The reader following the already parsed image header.</param>
@@ -154,9 +154,10 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             }
         }
 
-        // Slots hold native float planes, not displayed pixel images. LF producers replace one slot after success;
-        // their dependent frames borrow it without a copy. The whole decode call owns all four slot lifetimes.
+        // LF dependencies and ordinary references use separate four-slot tables. Each slot owns
+        // completed native planes, without retaining a frame's entropy or reconstruction workspace.
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
+        InlineArray4<JxlReferenceFrame?> referenceFrames = default;
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
         try
@@ -166,13 +167,14 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 cancellationToken.ThrowIfCancellationRequested();
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
-                if ((!lowFrequency && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
-                    || frame.HasCrop || frame.Size != header.Size
+                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced && frame.SaveBeforeColorTransform;
+                if ((!lowFrequency && !nativeReference && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
+                    || (!nativeReference && (frame.HasCrop || frame.Size != header.Size))
                     || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
-                        | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
+                        | JxlFrameHeader.Patches | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
                 {
                     throw new NotSupportedException(
-                        "JPEG XL decoding currently requires full-canvas LF dependencies followed by a final frame with supported reconstruction flags.");
+                        "JPEG XL decoding currently requires native saved dependencies followed by a final full-canvas frame.");
                 }
 
                 Buffer2D<float>[]? dcReference = null;
@@ -204,7 +206,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 Image<TPixel>? image = null;
                 try
                 {
-                    if (!lowFrequency)
+                    if (!lowFrequency && !nativeReference)
                     {
                         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
                         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
@@ -220,7 +222,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     }
 
                     using JxlFrame reconstructed = this.DecodeFrameData(
-                        ref reader, header, frame, sections, dcReference, image?.Frames.RootFrame, cancellationToken);
+                        ref reader, header, frame, sections, dcReference, referenceFrames, image?.Frames.RootFrame, cancellationToken);
 
                     bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
                     if (!pixelsWritten)
@@ -230,18 +232,31 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
                     if (image is null)
                     {
-                        // LF storage retains native float samples. Transfer completed planes before any output
-                        // color conversion, and release the preceding contents of the same reference slot.
-                        Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
-                        int slot = frame.LowFrequencyLevel - 1;
-                        Buffer2D<float>[]? previous = lowFrequencyFrames[slot];
-                        lowFrequencyFrames[slot] = planes;
-                        if (previous is not null)
+                        if (lowFrequency)
                         {
-                            foreach (Buffer2D<float> plane in previous)
+                            // LF storage retains native float samples. Transfer completed planes before any output
+                            // color conversion, and release the preceding contents of the same reference slot.
+                            Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
+                            int slot = frame.LowFrequencyLevel - 1;
+                            Buffer2D<float>[]? previous = lowFrequencyFrames[slot];
+                            lowFrequencyFrames[slot] = planes;
+                            if (previous is not null)
                             {
-                                plane.Dispose();
+                                foreach (Buffer2D<float> plane in previous)
+                                {
+                                    plane.Dispose();
+                                }
                             }
+                        }
+                        else
+                        {
+                            // Patches finish reading the old slot during reconstruction. Transfer completed
+                            // native planes first, then replace that slot and release its preceding owners.
+                            JxlReferenceFrame saved = reconstructed.TakeReferenceFrame(true);
+                            int slot = frame.ReferenceSlot;
+                            JxlReferenceFrame? previous = referenceFrames[slot];
+                            referenceFrames[slot] = saved;
+                            previous?.Dispose();
                         }
 
                         continue;
@@ -267,6 +282,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         {
             for (int slot = 0; slot < 4; slot++)
             {
+                referenceFrames[slot]?.Dispose();
+
                 if (lowFrequencyFrames[slot] is Buffer2D<float>[] planes)
                 {
                     foreach (Buffer2D<float> plane in planes)
@@ -286,6 +303,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     /// <param name="frame">The coding dimensions and pass descriptions.</param>
     /// <param name="sections">The retained physical section sizes and logical ordering.</param>
     /// <param name="dcReference">The borrowed saved LF planes, or an empty span for coded DC.</param>
+    /// <param name="references">The borrowed ordinary slots. Patches read their completed pre-transform planes.</param>
     /// <param name="destination">The initialized displayed frame, or null for retained LF output.</param>
     /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
     /// <returns>
@@ -297,6 +315,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         JxlFrameHeader frame,
         JxlFrameSections sections,
         ReadOnlySpan<Buffer2D<float>> dcReference,
+        ReadOnlySpan<JxlReferenceFrame?> references,
         ImageFrame<TPixel>? destination,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -325,6 +344,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         }
 
         MemoryAllocator allocator = this.Options.Configuration.MemoryAllocator;
+        JxlPatches? patches = null;
         JxlSplines? splines = null;
         JxlVarDctDecoder? varDct = null;
         JxlModularDecoder? modular = null;
@@ -333,6 +353,19 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         {
             // Frame features precede DC factors in the DC-global section. Their entropy state ends
             // before VarDCT metadata and the shared modular tree, including in a combined single-group section.
+            if ((frame.Flags & JxlFrameHeader.Patches) != 0)
+            {
+                int physicalSection = order.IsEmpty ? 0 : (int)order[0];
+                patches = JxlPatches.Read(
+                    ref reader, frame, header.Metadata.ExtraChannels.Count, references, sizes[physicalSection], allocator, cancellationToken);
+
+                if (!patches.HasAny)
+                {
+                    patches.Dispose();
+                    patches = null;
+                }
+            }
+
             if ((frame.Flags & JxlFrameHeader.Splines) != 0)
             {
                 splines = JxlSplines.Read(ref reader, frame, allocator, cancellationToken);
@@ -348,7 +381,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             // Ordinary final color can instead be restored and packed as each group row becomes complete.
             bool useGroupRows = destination is not null && varDct is not null
                 && frame.Type == JxlFrameHeader.FrameType.Regular && !frame.CanBeReferenced && !frame.NeedsBlending
-                && header.Metadata.ExtraChannels.Count == 0 && frame.Upsampling == 1 && splines is null && !noise.HasAny;
+                && header.Metadata.ExtraChannels.Count == 0 && frame.Upsampling == 1 && patches is null && splines is null && !noise.HasAny;
             for (int component = 0; component < frame.HorizontalSamplingShifts.Length; component++)
             {
                 useGroupRows &= frame.HorizontalSamplingShifts[component] == 0 && frame.VerticalSamplingShifts[component] == 0;
@@ -424,7 +457,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
             // The frame takes ownership before traversal so both streamed and retained output share failure
             // cleanup. No other owner disposes its component planes after this construction succeeds.
-            reconstructed = new JxlFrame(header, frame, modular, varDct, dcFactors, splines, noise);
+            reconstructed = new JxlFrame(header, frame, modular, varDct, dcFactors, patches, splines, noise);
             using JxlPixelConverter<TPixel>? pixelConverter = varDct is not null && varDct.UsesGroupRows && destination is not null
                 ? new JxlPixelConverter<TPixel>(this.Options.Configuration, header, reconstructed, destination)
                 : null;
@@ -557,6 +590,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             {
                 modular?.Dispose();
                 varDct?.Dispose();
+                patches?.Dispose();
                 splines?.Dispose();
             }
 

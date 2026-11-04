@@ -263,6 +263,8 @@ public class JxlFormatTests
     [InlineData(TestImages.Jxl.GrayAlphaLossless, 64, 64, "B53CECBA04562FB5728FDBE175AF374BB9EB44B47A0F936B3C35E3D4A547E000")]
     [InlineData(TestImages.Jxl.DeltaPalette, 555, 751, "CD2DAB268DFAF19A5285277BCE16A71E73DB337BDA82DD47A1354F4FEC80EABF")]
     [InlineData(TestImages.Jxl.EmptyPalette, 1623, 1080, "50E5FC336905C9E32842A94F52DB68815446A0B12C45C03988C3133870181283")]
+    [InlineData(TestImages.Jxl.GrayscalePatches, 169, 118, "2A6DD4E00A9AB88BFA96F09C05C15E662C508AD72B2B9496694EB109428FFBC4")]
+    [InlineData(TestImages.Jxl.GrayscalePatchesWithIcc, 169, 118, "2A6DD4E00A9AB88BFA96F09C05C15E662C508AD72B2B9496694EB109428FFBC4")]
     public void DecodeModularMatchesNativePixels(string file, int width, int height, string pixelHash)
     {
         Configuration configuration = new(new JxlConfigurationModule());
@@ -1082,8 +1084,9 @@ public class JxlFormatTests
         byte[] pixels = new byte[image.Width * image.Height * 4];
         image.CopyPixelDataTo(pixels);
 
-        // Each input declares the sRGB transfer curve. The reference output therefore needs no color-profile conversion.
-        // Libjxl and jxl-rs produce the same hash. It covers every channel of every pixel, including RGB beneath transparent alpha.
+        // Compact inputs declare the sRGB transfer curve. The profiled gray patch input has the same curve;
+        // its native sRGB conversion produces the same complete byte image as the compact variant.
+        // The hash covers every channel of every pixel, including RGB beneath transparent alpha.
         Assert.Equal(pixelHash, Convert.ToHexString(SHA256.HashData(pixels)));
     }
 

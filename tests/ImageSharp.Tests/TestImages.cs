@@ -1830,6 +1830,9 @@ public static class TestImages
         public const string WithIcc = "Jxl/with_icc.jxl";
         public const string LossyWithIcc = "Jxl/lossy_with_icc.jxl";
         public const string GrayscalePatchesWithIcc = "Jxl/small_grayscale_patches_modular_with_icc.jxl";
+        public const string GrayscalePatches = "Jxl/small_grayscale_patches_modular.jxl";
+        public const string GrayscalePatchesVarDct = "Jxl/grayscale_patches_var_dct.jxl";
+        public const string Patches = "Jxl/patches.jxl";
         public const string WithPreview = "Jxl/with_preview.jxl";
         public const string PermutedSections = "Jxl/has_permutation.jxl";
         public const string ProgressiveAc = "Jxl/progressive_ac.jxl";

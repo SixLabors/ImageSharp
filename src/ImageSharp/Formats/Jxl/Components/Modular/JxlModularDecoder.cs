@@ -1055,6 +1055,15 @@ internal sealed partial class JxlModularDecoder : IDisposable
             ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(channel.GetPredictionRow<TSample>(y - 2, predictionRows)));
             properties[9] = 0;
 
+            // Carry the horizontal neighbors in sample order, as in jxl-rs PredictionData. The first
+            // column repeats N for W and NW. The first row instead starts at zero and repeats W.
+            int left = y == 0 ? 0 : topStart;
+            int top = left;
+            int topLeft = left;
+            int topRight = y != 0 && rowLength > 1 ? Unsafe.Add(ref topStart, 1) : top;
+            int topRightRight = y != 0 && rowLength > 2 ? Unsafe.Add(ref topStart, 2) : topRight;
+            int leftLeft = left;
+
             // Bound reference scratch to 64 columns. Borrow each matching source row before its SIMD preparation,
             // then pass only spans through the pixel loop. Every property occupies one contiguous block plane.
             for (int start = 0; start < rowLength; start += ReferenceBlockLength)
@@ -1071,11 +1080,11 @@ internal sealed partial class JxlModularDecoder : IDisposable
 
                     JxlModularChannel reference = descriptors[referenceIndices[r]];
                     ReadOnlySpan<TSample> source = reference.GetRow<TSample>(y);
-                    ReadOnlySpan<TSample> top = y == 0 ? source : reference.GetRow<TSample>(y - 1);
+                    ReadOnlySpan<TSample> referenceTop = y == 0 ? source : reference.GetRow<TSample>(y - 1);
                     int offset = r * PropertiesPerReference * ReferenceBlockLength;
                     JxlModularPredictor.PrepareReferences(
                         source,
-                        top,
+                        referenceTop,
                         start,
                         y != 0,
                         referenceValues.Slice(offset, length),
@@ -1087,13 +1096,7 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 for (int column = 0; column < length; column++)
                 {
                     int x = start + column;
-                    int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
-                    int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
-                    int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
-                    int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
-                    int leftLeft = x > 1 ? Unsafe.Add(ref first, x - 2) : left;
                     int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
-                    int topRightRight = y != 0 && x + 2 < rowLength ? Unsafe.Add(ref topStart, x + 2) : topRight;
                     long weighted = 0;
                     if (usesWeighted)
                     {
@@ -1161,8 +1164,8 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     // traversals do not read interval state. All representations borrow the existing retained payload.
                     ref readonly JxlModularTree.Node node = ref TTreeOperator.SelectLeaf(nodes, flatNodes, in lookup, ref propertyStorage);
 
-                    // Complete prediction before entropy expansion. The neighbor values
-                    // and leaf reference can then expire before a refill call; only the guess and multiplier must survive.
+                    // Complete the leaf's prediction before entropy expansion. Retain the horizontal
+                    // neighbors for the next sample, but do not carry the tree leaf across a refill call.
                     long prediction = node.Predictor == 6
                         ? weighted
                         : JxlModularPredictor.Predict(node.Predictor, left, top, topLeft, topRight, leftLeft, topTop, topRightRight);
@@ -1178,6 +1181,25 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     {
                         // Weighted errors advance even when this tree leaf selected another predictor.
                         weightedPredictor.Update(errors, x, y, value);
+                    }
+
+                    // Advance without loading W, WW, N, NW or NE again. WW repeats W at column one;
+                    // beyond the right edge, NEE repeats NE. Carry state across reference-scratch blocks.
+                    leftLeft = x == 0 ? value : left;
+                    left = value;
+                    if (y == 0)
+                    {
+                        top = value;
+                        topLeft = value;
+                        topRight = value;
+                        topRightRight = value;
+                    }
+                    else
+                    {
+                        topLeft = top;
+                        top = topRight;
+                        topRight = topRightRight;
+                        topRightRight = x < rowLength - 3 ? Unsafe.Add(ref topStart, x + 3) : topRight;
                     }
                 }
             }
@@ -1404,12 +1426,15 @@ internal sealed partial class JxlModularDecoder : IDisposable
             ref int topStart = ref (y == 0 ? ref first : ref MemoryMarshal.GetReference(channel.GetPredictionRow<TSample>(y - 1, predictionRows)));
             ref int aboveStart = ref (y < 2 ? ref topStart : ref MemoryMarshal.GetReference(channel.GetPredictionRow<TSample>(y - 2, predictionRows)));
 
+            // Weighted prediction needs W, N, NW and NE. Retain these neighbors across columns;
+            // only the next NE and the second northern row need new loads in the row interior.
+            int left = y == 0 ? 0 : topStart;
+            int top = left;
+            int topLeft = left;
+            int topRight = y != 0 && rowLength > 1 ? Unsafe.Add(ref topStart, 1) : top;
+
             for (int x = 0; x < rowLength; x++)
             {
-                int left = x != 0 ? Unsafe.Add(ref first, x - 1) : y != 0 ? topStart : 0;
-                int top = y != 0 ? Unsafe.Add(ref topStart, x) : left;
-                int topLeft = x != 0 && y != 0 ? Unsafe.Add(ref topStart, x - 1) : left;
-                int topRight = y != 0 && x + 1 < rowLength ? Unsafe.Add(ref topStart, x + 1) : top;
                 int topTop = y > 1 ? Unsafe.Add(ref aboveStart, x) : top;
                 long prediction = predictor.Predict(errors, x, y, left, top, topLeft, topRight, topTop, out int property);
                 int leaf = 0;
@@ -1431,6 +1456,22 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 int value = unchecked((int)(guess + ((long)signed * multiplier)));
                 Unsafe.Add(ref first, x) = value;
                 predictor.Update(errors, x, y, value);
+
+                // The first row repeats the reconstructed W. Other rows shift the northern window
+                // and repeat its final sample when the next NE would lie outside the channel.
+                left = value;
+                if (y == 0)
+                {
+                    top = value;
+                    topLeft = value;
+                    topRight = value;
+                }
+                else
+                {
+                    topLeft = top;
+                    top = topRight;
+                    topRight = x < rowLength - 2 ? Unsafe.Add(ref topStart, x + 2) : top;
+                }
             }
 
             channel.CommitPredictionRow<TSample>(y, MemoryMarshal.CreateReadOnlySpan(ref first, rowLength));

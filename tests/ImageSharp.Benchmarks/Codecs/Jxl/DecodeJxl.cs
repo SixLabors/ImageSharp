@@ -126,23 +126,23 @@ public class DecodeJxl
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method     | TestImage                 |      Mean |      Error |   StdDev | Ratio | RatioSD |     Gen0 | Allocated native memory | Native memory leak |     Gen1 |     Gen2 | Allocated | Alloc Ratio |
-    | ---------- | ------------------------- | --------: | ---------: | -------: | ----: | ------: | -------: | ----------------------: | -----------------: | -------: | -------: | --------: | ----------: |
-    | ImageSharp | Jxl/dice.jxl              |  21.35 ms |   5.661 ms | 0.310 ms |  0.72 |    0.01 |  93.7500 |            12,208,995 B |       10,485,912 B |  93.7500 |  93.7500 |  104883 B |    1,456.71 |
-    | Libjxl     | Jxl/dice.jxl              |  29.54 ms |   4.433 ms | 0.243 ms |  1.00 |    0.01 |        - |            53,902,572 B |                  - |        - |        - |      72 B |        1.00 |
-    | JxlRs      | Jxl/dice.jxl              |  18.32 ms |   5.156 ms | 0.283 ms |  0.62 |    0.01 |        - |            16,017,583 B |                  - |        - |        - |      72 B |        1.00 |
-    |            |                           |           |            |          |       |         |          |                         |                    |          |          |           |             |
-    | ImageSharp | Jxl/has_permutation.jxl   |  18.60 ms |   2.600 ms | 0.142 ms |  0.37 |    0.00 |  93.7500 |             4,613,738 B |        4,613,738 B |  93.7500 |  93.7500 |  109768 B |    1,425.56 |
-    | Libjxl     | Jxl/has_permutation.jxl   |  49.99 ms |  11.329 ms | 0.621 ms |  1.00 |    0.02 |        - |            49,736,696 B |               33 B |        - |        - |      77 B |        1.00 |
-    | JxlRs      | Jxl/has_permutation.jxl   |  25.70 ms |   5.060 ms | 0.277 ms |  0.51 |    0.01 |        - |            39,813,244 B |                  - |        - |        - |      72 B |        0.94 |
-    |            |                           |           |            |          |       |         |          |                         |                    |          |          |           |             |
-    | ImageSharp | Jxl/issue648_palette0.jxl | 118.21 ms |  30.660 ms | 1.681 ms |  0.91 |    0.01 | 750.0000 |            13,984,921 B |       13,981,101 B | 750.0000 | 750.0000 |  819310 B |   11,379.31 |
-    | Libjxl     | Jxl/issue648_palette0.jxl | 130.61 ms |   6.492 ms | 0.356 ms |  1.00 |    0.00 |        - |           119,047,387 B |                  - |        - |        - |      72 B |        1.00 |
-    | JxlRs      | Jxl/issue648_palette0.jxl | 126.57 ms |  75.025 ms | 4.112 ms |  0.97 |    0.03 |        - |            50,769,710 B |                  - |        - |        - |      72 B |        1.00 |
-    |            |                           |           |            |          |       |         |          |                         |                    |          |          |           |             |
-    | ImageSharp | Jxl/progressive_ac.jxl    |  52.07 ms |   2.933 ms | 0.161 ms |  0.52 |    0.00 | 200.0000 |            20,860,725 B |       16,826,508 B | 200.0000 | 200.0000 |  120752 B |    1,509.40 |
-    | Libjxl     | Jxl/progressive_ac.jxl    |  99.85 ms |  18.151 ms | 0.995 ms |  1.00 |    0.01 |        - |           106,975,397 B |                  - |        - |        - |      80 B |        1.00 |
-    | JxlRs      | Jxl/progressive_ac.jxl    |  62.64 ms | 131.210 ms | 7.192 ms |  0.63 |    0.06 |        - |            61,092,899 B |                  - |        - |        - |      72 B |        0.90 |
+    | Method     | TestImage                 |      Mean |     Error |   StdDev | Ratio |    Gen0 | Allocated native memory | Native memory leak |    Gen1 |    Gen2 | Allocated | Alloc Ratio |
+    | ---------- | ------------------------- | --------: | --------: | -------: | ----: | ------: | ----------------------: | -----------------: | ------: | ------: | --------: | ----------: |
+    | ImageSharp | Jxl/dice.jxl              |  18.61 ms |  1.048 ms | 0.057 ms |  0.63 | 93.7500 |            12,754,976 B |       10,488,044 B | 93.7500 | 93.7500 |  104872 B |    1,456.56 |
+    | Libjxl     | Jxl/dice.jxl              |  29.44 ms |  2.098 ms | 0.115 ms |  1.00 |       - |            53,902,572 B |                  - |       - |       - |      72 B |        1.00 |
+    | JxlRs      | Jxl/dice.jxl              |  17.75 ms |  2.044 ms | 0.112 ms |  0.60 |       - |            16,017,583 B |                  - |       - |       - |      72 B |        1.00 |
+    |            |                           |           |           |          |       |         |                         |                    |         |         |           |             |
+    | ImageSharp | Jxl/has_permutation.jxl   |  17.04 ms |  2.100 ms | 0.115 ms |  0.35 | 93.7500 |             4,613,752 B |        4,613,752 B | 93.7500 | 93.7500 |   27516 B |      362.05 |
+    | Libjxl     | Jxl/has_permutation.jxl   |  49.22 ms |  5.269 ms | 0.289 ms |  1.00 |       - |            49,736,696 B |               33 B |       - |       - |      76 B |        1.00 |
+    | JxlRs      | Jxl/has_permutation.jxl   |  24.96 ms |  1.024 ms | 0.056 ms |  0.51 |       - |            39,813,244 B |                  - |       - |       - |      72 B |        0.95 |
+    |            |                           |           |           |          |       |         |                         |                    |         |         |           |             |
+    | ImageSharp | Jxl/issue648_palette0.jxl | 116.15 ms | 29.428 ms | 1.613 ms |  0.90 |       - |            13,984,921 B |       13,981,101 B |       - |       - |   29968 B |      416.22 |
+    | Libjxl     | Jxl/issue648_palette0.jxl | 128.62 ms | 11.904 ms | 0.652 ms |  1.00 |       - |           119,047,387 B |                  - |       - |       - |      72 B |        1.00 |
+    | JxlRs      | Jxl/issue648_palette0.jxl | 119.51 ms | 13.755 ms | 0.754 ms |  0.93 |       - |            50,803,012 B |            1,228 B |       - |       - |      72 B |        1.00 |
+    |            |                           |           |           |          |       |         |                         |                    |         |         |           |             |
+    | ImageSharp | Jxl/progressive_ac.jxl    |  49.08 ms |  8.062 ms | 0.442 ms |  0.50 |       - |            13,422,387 B |       13,422,182 B |       - |       - |   26704 B |      333.80 |
+    | Libjxl     | Jxl/progressive_ac.jxl    |  98.44 ms |  5.225 ms | 0.286 ms |  1.00 |       - |           106,975,397 B |                  - |       - |       - |      80 B |        1.00 |
+    | JxlRs      | Jxl/progressive_ac.jxl    |  56.30 ms |  7.993 ms | 0.438 ms |  0.57 |       - |            61,092,899 B |                  - |       - |       - |      72 B |        0.90 |
 
     libjxl 0.12.0 through JxlNet 0.12.0.2; jxl-rs d7a831fae15b903f1b56a76668030c19ac07bb6f with high_precision=true.
     Each operation includes decoder/output allocation, complete decode, shared final pixel bounds and disposal.

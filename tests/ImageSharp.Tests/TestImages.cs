@@ -1833,10 +1833,7 @@ public static class TestImages
         public const string GrayscalePatches = "Jxl/small_grayscale_patches_modular.jxl";
         public const string GrayscalePatchesVarDct = "Jxl/grayscale_patches_var_dct.jxl";
         public const string Patches = "Jxl/patches.jxl";
-
-        // Original jxl-rs regression input uses color factor four and effective extra factor eight.
         public const string PatchesMixedUpsampling = "Jxl/patches_ec_upsampling_dim_shift.jxl";
-
         public const string WithPreview = "Jxl/with_preview.jxl";
         public const string PermutedSections = "Jxl/has_permutation.jxl";
         public const string ProgressiveAc = "Jxl/progressive_ac.jxl";

@@ -427,8 +427,9 @@ public class JxlFormatTests
         DecoderOptions options = new(configuration) { SegmentIntegrityHandling = handling };
         using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.PatchesMixedUpsampling).Bytes, false);
 
-        // The unchanged jxl-rs regression declares color factor four and extra factor four with DimensionShift one.
-        // Its effective extra factor is eight. Both native decoders reject these different patch sample grids.
+        // This stored jxl-rs regression requires 4x enlargement of each color-plane dimension.
+        // The extra channel has an additional DimensionShift of one, so it requires 8x enlargement.
+        // Both references prohibit patching these different sample grids.
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);

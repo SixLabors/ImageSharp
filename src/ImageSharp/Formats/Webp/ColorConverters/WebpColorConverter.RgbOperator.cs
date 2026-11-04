@@ -48,7 +48,11 @@ internal abstract partial class WebpColorConverterBase
             // Three-byte decoder output stores B, G, R. The pixel API exposes straight RGB vectors to the ICC transform.
             ReadOnlySpan<Bgr24> bgr = MemoryMarshal.Cast<byte, Bgr24>(source);
             PixelOperations<Bgr24>.Instance.ToUnassociatedScaledVector4(configuration, bgr, vectors);
-            converter.Convert(vectors, rgb);
+            Rgb.FromScaledVector4(vectors, rgb);
+            converter.Convert<Rgb, Rgb>(rgb, rgb);
+
+            // Copy only the transformed RGB components. The pixel-vector alpha remains unchanged.
+            Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(rgb), vectors);
         }
 
         /// <inheritdoc />

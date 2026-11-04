@@ -11,71 +11,10 @@ using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
-/// Converts normalized device components between ICC profiles.
+/// Converts typed color profiles through the configured source and target ICC transforms.
 /// </summary>
-public static class ColorProfileConverterExtensionsIcc
+internal static class ColorProfileConverterExtensionsIcc
 {
-    /// <summary>
-    /// Converts one set of normalized device components from the source ICC profile to the target ICC profile.
-    /// </summary>
-    /// <remarks>
-    /// Components follow the channel order and normalized encoding of each profile's data color space.
-    /// X, Y, Z and W hold the first through fourth device components. W is a device component, such as black in CMYK, rather than pixel alpha.
-    /// Keep pixel alpha separate from these components. Only channels used by the target profile have color meaning in the result.
-    /// The profiles and their selected transforms define the component ranges, including extended values.
-    /// </remarks>
-    /// <param name="converter">The converter configured with source and target ICC profiles.</param>
-    /// <param name="source">The normalized device components in the source profile's channel order.</param>
-    /// <returns>The normalized device components in the target profile's channel order.</returns>
-    /// <exception cref="InvalidOperationException">The source or target ICC profile is missing from the converter options.</exception>
-    public static Vector4 ConvertUsingIccProfile(this ColorProfileConverter converter, in Vector4 source)
-    {
-        if (converter.Options.SourceIccProfile is null)
-        {
-            throw new InvalidOperationException("Source ICC profile is missing.");
-        }
-
-        if (converter.Options.TargetIccProfile is null)
-        {
-            throw new InvalidOperationException("Target ICC profile is missing.");
-        }
-
-        return converter.GetIccTransform().Converter.Convert(source);
-    }
-
-    /// <summary>
-    /// Converts normalized device components from the source ICC profile to the target ICC profile.
-    /// </summary>
-    /// <remarks>
-    /// Each vector follows the channel order and normalized encoding of its profile's data color space.
-    /// X, Y, Z and W hold the first through fourth device components. W is a device component, such as black in CMYK, rather than pixel alpha.
-    /// Keep pixel alpha separate from these components. Only channels used by the target profile have color meaning in the result.
-    /// The profiles and their selected transforms define the component ranges, including extended values.
-    /// The same span can be used for source and destination.
-    /// </remarks>
-    /// <param name="converter">The converter configured with source and target ICC profiles.</param>
-    /// <param name="source">The normalized device components in the source profile's channel order.</param>
-    /// <param name="destination">The output span. Its length must be at least the source length.</param>
-    /// <exception cref="InvalidOperationException">The source or target ICC profile is missing from the converter options.</exception>
-    /// <exception cref="ArgumentException">The destination is shorter than the source.</exception>
-    public static void ConvertUsingIccProfile(this ColorProfileConverter converter, ReadOnlySpan<Vector4> source, Span<Vector4> destination)
-    {
-        if (converter.Options.SourceIccProfile is null)
-        {
-            throw new InvalidOperationException("Source ICC profile is missing.");
-        }
-
-        if (converter.Options.TargetIccProfile is null)
-        {
-            throw new InvalidOperationException("Target ICC profile is missing.");
-        }
-
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-        // The ICC owner reads and writes device vectors directly. A fourth input channel belongs to the profile, not to pixel alpha.
-        converter.GetIccTransform().Converter.Convert(source, destination);
-    }
-
     /// <summary>
     /// Converts a color value from one ICC color profile to another using the specified color profile converter.
     /// </summary>
@@ -94,7 +33,7 @@ public static class ColorProfileConverterExtensionsIcc
     /// <exception cref="InvalidOperationException">
     /// Thrown if either the source or target ICC profile is missing from the converter options.
     /// </exception>
-    internal static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
+    public static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
     {
@@ -135,7 +74,7 @@ public static class ColorProfileConverterExtensionsIcc
     /// <exception cref="InvalidOperationException">
     /// Thrown if the source or target ICC profile is missing from the converter options.
     /// </exception>
-    internal static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
+    public static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
     {

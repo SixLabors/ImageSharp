@@ -6,38 +6,19 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
 internal abstract partial class JxlColorConverterBase
 {
-    /// <summary>
-    /// Converts an ICC device row to working sRGB and restores its separate image alpha.
-    /// </summary>
-    /// <param name="colors">The device components, replaced in place by working sRGB pixel vectors.</param>
-    /// <param name="profileConverter">The paired source-profile to sRGB transform.</param>
-    /// <param name="alpha">The unchanged image alpha row, or an empty span for opaque output.</param>
-    public static void ApplyOutputConversion(Span<Vector4> colors, ColorProfileConverter profileConverter, ReadOnlySpan<float> alpha)
-    {
-        profileConverter.ConvertUsingIccProfile(colors, colors);
-
-        // ICC's fourth slot is a device component, not alpha. Restore the separate opacity after conversion.
-        if (alpha.IsEmpty)
-        {
-            Numerics.WithW(colors, 1F);
-        }
-        else
-        {
-            Numerics.WithW(colors, alpha);
-        }
-    }
-
     private sealed partial class JxlColorConverter<TOperator>
     {
         /// <inheritdoc/>
-        public override void ConvertIccComponents<TSample, TSampleOperator>(
+        public override void ConvertToRgb<TSample, TSampleOperator>(
             in ComponentValues<TSample> source,
-            Span<Vector4> destination,
+            Span<float> storage,
+            ColorProfileConverter profileConverter,
             in TSampleOperator sampleOperator)
         {
             // Retain one local copy so constrained calls do not copy the readonly operation per block.
@@ -50,13 +31,23 @@ internal abstract partial class JxlColorConverterBase
             ReadOnlySpan<TSample> component1 = source.Component1;
             ReadOnlySpan<TSample> component2 = source.Component2;
             int count = component0.Length;
+            int channels = TOperator.ComponentCount == 4 ? 4
+                : profileConverter.Options.SourceIccProfile is { Header.DataColorSpace: IccColorSpaceType.Gray } ? 1 : 3;
+
+            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[..(3 * count)]);
+
+            // RGB output occupies the first three floats per pixel. A gray input expands to RGB,
+            // so place its one-component row after that output. RGB and CMYK can use the prefix:
+            // their typed conversion keeps or reduces its size and loads each source block before writing.
+            Span<float> samples = channels == 1 ? storage.Slice(3 * count, count) : storage[..(channels * count)];
             ref float black = ref MemoryMarshal.GetReference(source.Black);
-            ref float target = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
+            ref float target = ref MemoryMarshal.GetReference(samples);
             int i = 0;
 
-            // ICC device samples use four slots. W can hold black; image alpha stays separate until after ICC.
-            // Counts use float output lanes. Short loads fill only the low half of their input register;
-            // the sample operator widens those carriers before the device arithmetic.
+            // Each lane holds one pixel while normalization and the coding transform run. Interleave
+            // only the components belonging to Y, Rgb or Cmyk; image alpha never enters these profiles.
+            // Short loads fill the low half of the register before the sample operator widens them.
+            // The channel count is invariant for the row and every scalar/SIMD path uses the same layout.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = (count - i).Vector512Count<float>();
@@ -67,7 +58,20 @@ internal abstract partial class JxlColorConverterBase
                     Vector512<float> z = sampleOperation.Invoke(JxlSampleConverter.Load512(component2, i));
                     Vector512<float> k = TOperator.ComponentCount == 4 ? Vector512.LoadUnsafe(ref black, (nuint)i) : default;
                     operation.Invoke(ref x, ref y, ref z, ref k);
-                    SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref target, (nuint)i * 4));
+                    nuint offset = (uint)i * (uint)channels;
+
+                    if (channels == 1)
+                    {
+                        x.StoreUnsafe(ref target, offset);
+                    }
+                    else if (channels == 3)
+                    {
+                        SimdUtils.Interleave3(x, y, z, ref Unsafe.Add(ref target, offset));
+                    }
+                    else
+                    {
+                        SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref target, offset));
+                    }
                 }
             }
 
@@ -81,7 +85,20 @@ internal abstract partial class JxlColorConverterBase
                     Vector256<float> z = sampleOperation.Invoke(JxlSampleConverter.Load256(component2, i));
                     Vector256<float> k = TOperator.ComponentCount == 4 ? Vector256.LoadUnsafe(ref black, (nuint)i) : default;
                     operation.Invoke(ref x, ref y, ref z, ref k);
-                    SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref target, (nuint)i * 4));
+                    nuint offset = (uint)i * (uint)channels;
+
+                    if (channels == 1)
+                    {
+                        x.StoreUnsafe(ref target, offset);
+                    }
+                    else if (channels == 3)
+                    {
+                        SimdUtils.Interleave3(x, y, z, ref Unsafe.Add(ref target, offset));
+                    }
+                    else
+                    {
+                        SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref target, offset));
+                    }
                 }
             }
 
@@ -95,7 +112,20 @@ internal abstract partial class JxlColorConverterBase
                     Vector128<float> z = sampleOperation.Invoke(JxlSampleConverter.Load128(component2, i));
                     Vector128<float> k = TOperator.ComponentCount == 4 ? Vector128.LoadUnsafe(ref black, (nuint)i) : default;
                     operation.Invoke(ref x, ref y, ref z, ref k);
-                    SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref target, (nuint)i * 4));
+                    nuint offset = (uint)i * (uint)channels;
+
+                    if (channels == 1)
+                    {
+                        x.StoreUnsafe(ref target, offset);
+                    }
+                    else if (channels == 3)
+                    {
+                        SimdUtils.Interleave3(x, y, z, ref Unsafe.Add(ref target, offset));
+                    }
+                    else
+                    {
+                        SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref target, offset));
+                    }
                 }
             }
 
@@ -107,7 +137,33 @@ internal abstract partial class JxlColorConverterBase
                 float z = sampleOperation.Invoke(component2[i]);
                 float k = TOperator.ComponentCount == 4 ? source.Black[i] : 0F;
                 operation.Invoke(ref x, ref y, ref z, ref k);
-                destination[i] = new Vector4(x, y, z, k);
+                int offset = i * channels;
+                samples[offset] = x;
+
+                if (channels >= 3)
+                {
+                    samples[offset + 1] = y;
+                    samples[offset + 2] = z;
+                    if (channels == 4)
+                    {
+                        samples[offset + 3] = k;
+                    }
+                }
+            }
+
+            // The device type determines the source component count and encoding. ICC retains
+            // fractional RGB; destination pixel packing follows after conversion, with alpha kept separate.
+            if (channels == 1)
+            {
+                profileConverter.Convert<Y, Rgb>(MemoryMarshal.Cast<float, Y>(samples), rgb);
+            }
+            else if (channels == 4)
+            {
+                profileConverter.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(samples), rgb);
+            }
+            else
+            {
+                profileConverter.Convert<Rgb, Rgb>(MemoryMarshal.Cast<float, Rgb>(samples), rgb);
             }
         }
     }

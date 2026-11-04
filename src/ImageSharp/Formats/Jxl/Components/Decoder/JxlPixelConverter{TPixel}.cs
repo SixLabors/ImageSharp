@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
@@ -167,7 +166,7 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         int width = destination.Width;
         this.alphaLength = alphaExtra >= 0 && this.upsampledAlpha is null ? width : 0;
         this.blackLength = blackExtra >= 0 && this.upsampledBlack is null ? width : 0;
-        long spotLength = this.featureConverter is null ? 0 : 7L * width;
+        long spotLength = this.featureConverter is null ? 0 : 6L * width;
         long rowLength = (4L * width) + this.alphaLength + this.blackLength + spotLength;
         if (rowLength > int.MaxValue)
         {
@@ -407,10 +406,10 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     {
         if (this.featureConverter is not null)
         {
-            // Features consume native RGB before output transfer/CMS. The ordinary converter keeps
-            // its existing fused path; only feature-bearing rows need the separate working ranges.
+            // Features consume native color components before output transfer or ICC conversion.
+            // Only feature-bearing rows need separate component ranges for the spot calculation.
             this.featureConverter.ConvertComponents(in source, vectors, in sampleOperator);
-            this.ApplySpotColors(row, vectors, spotWorkspace, source.Black);
+            this.ApplySpotColors(row, vectors, spotWorkspace, source.Black, source.Alpha);
         }
         else if (this.profileConverter is null)
         {
@@ -419,8 +418,13 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         }
         else
         {
-            this.colorConverter.ConvertIccComponents(in source, vectors, in sampleOperator);
-            JxlColorConverterBase.ApplyOutputConversion(vectors, this.profileConverter, source.Alpha);
+            this.colorConverter.ConvertToRgb(in source, MemoryMarshal.Cast<Vector4, float>(vectors), this.profileConverter, in sampleOperator);
+        }
+
+        if (this.profileConverter is not null)
+        {
+            this.PackRgb(row, vectors, source.Alpha);
+            return;
         }
 
         // Both traversal modes use the same color operator and PixelOperations packing. Normalized alpha
@@ -441,34 +445,33 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     /// </summary>
     /// <param name="row">The completed native image row.</param>
     /// <param name="vectors">The restored native colors with their separate image alpha.</param>
-    /// <param name="workspace">Seven exact row ranges: red, green, blue, three mixing ranges, and retained alpha.</param>
+    /// <param name="workspace">Six exact row ranges: red, green, blue and three mixing ranges.</param>
     /// <param name="black">Original remaining-light black samples for CMYK, or empty for other device models.</param>
-    private void ApplySpotColors(int row, Span<Vector4> vectors, Span<float> workspace, ReadOnlySpan<float> black)
+    /// <param name="alpha">The unchanged normalized alpha row, or empty for opaque output.</param>
+    private void ApplySpotColors(int row, Span<Vector4> vectors, Span<float> workspace, ReadOnlySpan<float> black, ReadOnlySpan<float> alpha)
     {
         int width = vectors.Length;
         Span<float> red = workspace[..width];
         Span<float> green = workspace.Slice(width, width);
         Span<float> blue = workspace.Slice(2 * width, width);
-        Span<float> alpha = workspace.Slice(6 * width, width);
         ref float first = ref MemoryMarshal.GetReference(red);
         ref float second = ref MemoryMarshal.GetReference(green);
         ref float third = ref MemoryMarshal.GetReference(blue);
-        ref float opacity = ref MemoryMarshal.GetReference(alpha);
         int i = 0;
 
         // Every input vector is one complete pixel. The shared unpackers transpose complete batches
-        // into independent component lanes. All four destinations have exactly width entries, so
+        // into independent color lanes. Image alpha stays in its original row. The three output planes
+        // each have exactly width entries, so
         // each complete-block count bounds both the input reads and these planar stores.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint count = width.Vector512Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
-                SimdUtils.Deinterleave4(vectors, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b, out Vector512<float> a);
+                SimdUtils.Deinterleave4(vectors, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b, out _);
                 r.StoreUnsafe(ref first, (nuint)i);
                 g.StoreUnsafe(ref second, (nuint)i);
                 b.StoreUnsafe(ref third, (nuint)i);
-                a.StoreUnsafe(ref opacity, (nuint)i);
             }
         }
 
@@ -477,11 +480,10 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             nuint count = (width - i).Vector256Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
-                SimdUtils.Deinterleave4(vectors, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b, out Vector256<float> a);
+                SimdUtils.Deinterleave4(vectors, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b, out _);
                 r.StoreUnsafe(ref first, (nuint)i);
                 g.StoreUnsafe(ref second, (nuint)i);
                 b.StoreUnsafe(ref third, (nuint)i);
-                a.StoreUnsafe(ref opacity, (nuint)i);
             }
         }
 
@@ -490,11 +492,10 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             nuint count = (width - i).Vector128Count<float>();
             for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
-                SimdUtils.Deinterleave4(vectors, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out Vector128<float> a);
+                SimdUtils.Deinterleave4(vectors, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out _);
                 r.StoreUnsafe(ref first, (nuint)i);
                 g.StoreUnsafe(ref second, (nuint)i);
                 b.StoreUnsafe(ref third, (nuint)i);
-                a.StoreUnsafe(ref opacity, (nuint)i);
             }
         }
 
@@ -505,7 +506,6 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             red[i] = value.X;
             green[i] = value.Y;
             blue[i] = value.Z;
-            alpha[i] = value.W;
         }
 
         this.frame.ApplySpotColors(row, red, green, blue, workspace.Slice(3 * width, 3 * width));
@@ -518,25 +518,74 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
                 red, green, blue, new JxlColorConverterBase.XybDeviceOperator<JxlColorConverterBase.RgbOperator>(default));
         }
 
-        // Repack without quantization. The unit normalization keeps native float components and
-        // retained alpha unchanged; only PixelOperations later applies destination storage bounds.
-        SimdUtils.PackedNormalizeInterleave4(red, green, blue, alpha, MemoryMarshal.Cast<Vector4, float>(vectors), 1F);
         if (this.profileConverter is null)
         {
+            // Rejoin the unchanged alpha row after the RGB-only feature calculation. The shared
+            // interleaver supplies opaque alpha for an empty row and retains floating-point components.
+            SimdUtils.InterleaveFloatPlanes(red, green, blue, alpha, vectors);
             this.colorConverter.ApplyOutputConversion(vectors);
         }
         else
         {
+            Span<float> storage = MemoryMarshal.Cast<Vector4, float>(vectors);
+            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[..(3 * width)]);
             if (this.blackChannel >= 0)
             {
-                // JXL composition and spots use remaining light. ICC consumes ink amounts. Flip all
-                // four device components only at this final boundary; W holds black here, not alpha.
-                Numerics.WithW(vectors, black);
-                Span<float> components = MemoryMarshal.Cast<Vector4, float>(vectors);
-                TensorPrimitives.Subtract(1F, components, components);
+                // Features use remaining light. Invert all four components to ink amounts before
+                // the typed CMYK transform. Its RGB output reduces four floats per pixel to three.
+                SimdUtils.PackedInvertNormalizeInterleave4(red, green, blue, black, storage, 1F);
+                this.profileConverter.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(storage), rgb);
+            }
+            else if (this.profileConverter.Options.SourceIccProfile is { Header.DataColorSpace: IccColorSpaceType.Gray })
+            {
+                this.profileConverter.Convert<Y, Rgb>(MemoryMarshal.Cast<float, Y>(red), rgb);
+            }
+            else
+            {
+                SimdUtils.PackedNormalizeInterleave3(red, green, blue, storage[..(3 * width)], 1F);
+                this.profileConverter.Convert<Rgb, Rgb>(rgb, rgb);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Packs typed RGB output and its separate image alpha through the shared bulk pixel operations.
+    /// </summary>
+    /// <param name="row">The destination image row.</param>
+    /// <param name="vectors">Four floats per pixel. Its first 3 * width floats hold the contiguous converted Rgb row.</param>
+    /// <param name="alpha">The unchanged normalized alpha row, or empty for opaque pixels.</param>
+    private void PackRgb(int row, Span<Vector4> vectors, ReadOnlySpan<float> alpha)
+    {
+        int width = vectors.Length;
+        Span<float> storage = MemoryMarshal.Cast<Vector4, float>(vectors);
+        ReadOnlySpan<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[..(3 * width)]);
+        Span<TPixel> pixels = this.destination.PixelBuffer.DangerousGetRowSpan(row);
+
+        // RGB has three floats per pixel; pixel vectors have four. Keep this one full Vector512
+        // batch separate from the packed RGB source so expansion and destructive packing cannot
+        // overwrite unread colors. The fixed inline storage uses no allocator or managed allocation.
+        InlineArray16<Vector4> blockBuffer = default;
+        Span<Vector4> blockStorage = blockBuffer;
+
+        for (int x = 0; x < width; x += blockStorage.Length)
+        {
+            int count = Math.Min(blockStorage.Length, width - x);
+            Span<Vector4> block = blockStorage[..count];
+            Rgb.ToScaledVector4(rgb.Slice(x, count), block);
+            if (!alpha.IsEmpty)
+            {
+                Numerics.WithW(block, alpha.Slice(x, count));
             }
 
-            JxlColorConverterBase.ApplyOutputConversion(vectors, this.profileConverter, alpha);
+            Span<TPixel> destination = pixels.Slice(x, count);
+            if (this.associated)
+            {
+                this.pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, block, destination);
+            }
+            else
+            {
+                this.pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, destination);
+            }
         }
     }
 }

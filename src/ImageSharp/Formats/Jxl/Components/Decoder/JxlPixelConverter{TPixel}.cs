@@ -460,7 +460,8 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
 
         this.frame.ApplySpotColors(row, red, green, blue, workspace.Slice(3 * width, 3 * width));
 
-        if (!this.header.UsesXybTransform && !this.header.HasIccProfile && this.header.ProfileColorType == JxlColorType.Xyb)
+        if ((!this.header.UsesXybTransform || this.frame.CodingColorTransformApplied)
+            && !this.header.HasIccProfile && this.header.ProfileColorType == JxlColorType.Xyb)
         {
             // Declared XYB is an original device encoding, unlike coding XYB. Its image features
             // precede the device-to-linear-RGB transform, just as they precede a device ICC transform.

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 public partial class JxlHeaderTests
 {
     /// <summary>
-    /// Verifies declared XYB device samples restore native linear RGB without clipping HDR or negative components.
+    /// Verifies native coding-to-device XYB scaling and device-to-linear-RGB reconstruction at every SIMD width.
     /// </summary>
     [Fact]
     public void ConvertDeclaredXybDeviceMatchesNativeLinearRgb()
@@ -26,13 +26,14 @@ public partial class JxlHeaderTests
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks each component overload against independently recorded native RGB and XYB pairs.
+    /// Checks component overloads and mixed planar traversal against independently recorded native RGB and XYB pairs.
     /// </summary>
     /// <remarks>
     /// The native pairs are recorded in RgbAndXybConversionTest.VerifyNativeLinearForward. Original libjxl revision
     /// 91837342b24034078780b687f57f670a7def8153, lib/jxl/enc_xyb.cc, ToXYB, produced the XYB values at 255 nits.
     /// ScaleXYBRow in the same source converts those values to the fixed device samples below.
-    /// The expected values are the original linear RGB inputs, not results from the decoder or profile converter.
+    /// Device-to-RGB expectations are the original linear RGB inputs. Coding-to-device expectations are the
+    /// independently recorded ScaleXYBRow results. Neither direction derives expectations from production operators.
     /// </remarks>
     private static void ValidateDeclaredXybDeviceConversion()
     {
@@ -54,9 +55,28 @@ public partial class JxlHeaderTests
             new(-.025F, .4F, .8F)
         ];
 
+        // These are the matching native ToXYB values from VerifyNativeLinearForward at 255 nits.
+        // Keeping the literal coding and device samples checks the fixed encoding without using an inverse round trip.
+        ReadOnlySpan<Vector3> coding =
+        [
+            new(0F, -1.23873107e-08F, -1.23873107e-08F),
+            new(0.0281000584F, 0.488188207F, 0.471658945F),
+            new(-0.0108984411F, 0.665244937F, 0.561094284F),
+            new(0.0211055875F, 0.675203204F, 0.631933689F),
+            new(-0.0105505288F, 0.52955687F, 0.648738146F)
+        ];
+
+        JxlColorConverterBase.XybEncodingOperator encoding = default;
         JxlColorConverterBase.XybDeviceOperator<JxlColorConverterBase.RgbOperator> operation = new(default);
         for (int i = 0; i < device.Length; i++)
         {
+            float x = coding[i].X;
+            float y = coding[i].Y;
+            float blue = coding[i].Z;
+            float unusedEncoding = 0F;
+            encoding.Invoke(ref x, ref y, ref blue, ref unusedEncoding);
+            Assert.Equal(device[i], new Vector3(x, y, blue), ApproximateFloatComparer.FromPrecision(4));
+
             float r = device[i].X;
             float g = device[i].Y;
             float b = device[i].Z;
@@ -104,6 +124,26 @@ public partial class JxlHeaderTests
                     new Vector3(r512.GetElement(lane), g512.GetElement(lane), b512.GetElement(lane)),
                     ApproximateFloatComparer.FromPrecision(4));
             }
+        }
+
+        // Thirty-five samples provide mixed lanes and three scalar samples after complete 512-,
+        // 256- or 128-bit blocks. The feature runner also sends all samples through the scalar traversal.
+        const int length = 35;
+        float[] first = new float[length];
+        float[] second = new float[length];
+        float[] third = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            Vector3 sample = coding[i % coding.Length];
+            first[i] = sample.X;
+            second[i] = sample.Y;
+            third[i] = sample.Z;
+        }
+
+        JxlColorConverterBase.ConvertInPlace(first, second, third, encoding);
+        for (int i = 0; i < length; i++)
+        {
+            Assert.Equal(device[i % device.Length], new Vector3(first[i], second[i], third[i]), ApproximateFloatComparer.FromPrecision(4));
         }
     }
 

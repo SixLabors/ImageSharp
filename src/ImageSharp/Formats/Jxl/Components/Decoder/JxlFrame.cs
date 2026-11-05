@@ -162,7 +162,7 @@ internal sealed class JxlFrame : IDisposable
             }
         }
 
-        if (image.UsesXybTransform
+        if (image.UsesXybTransform && image.ProfileColorType != JxlColorType.Xyb
             && (header.NeedsBlending || (header.CanBeReferenced && !header.SaveBeforeColorTransform))
             && JxlColorConverterBase.CanRestoreOriginalColor(image))
         {
@@ -192,8 +192,8 @@ internal sealed class JxlFrame : IDisposable
     /// Gets a value indicating whether the coding color transform has completed in this frame's retained samples.
     /// </summary>
     /// <remarks>
-    /// Completed coding XYB includes the declared device transfer curve. Raw modular YCbCr remains pending
-    /// until composition restores its normalized blocks without retaining another foreground image.
+    /// Completed coding XYB includes the declared RGB transfer curve, or the declared XYB device scaling.
+    /// Raw modular YCbCr remains pending until composition restores its normalized blocks without retaining another foreground image.
     /// </remarks>
     public bool CodingColorTransformApplied { get; private set; }
 
@@ -457,7 +457,7 @@ internal sealed class JxlFrame : IDisposable
     /// Call once after spatial reconstruction and before composition or post-transform reference transfer.
     /// RGB without a coding transform needs no work.
     /// Raw modular YCbCr has no float color image; Compose restores its existing normalized scratch blocks instead.
-    /// When coding XYB is active, the decoder selects this boundary only for a compact RGB or luminance description.
+    /// Coding XYB reconstructs compact RGB or luminance, or rescales declared XYB into its device sample units.
     /// </remarks>
     public void TransformToOriginalColor(MemoryAllocator allocator, CancellationToken cancellationToken)
     {
@@ -484,6 +484,24 @@ internal sealed class JxlFrame : IDisposable
             }
 
             // YCbCr reconstructs encoded device components directly. Do not apply another transfer curve.
+            this.CodingColorTransformApplied = true;
+        }
+        else if (this.image.UsesXybTransform && this.image.ProfileColorType == JxlColorType.Xyb)
+        {
+            // Declared XYB is not RGB. The reference rescales the existing coding planes into
+            // XYB device units before composition, without an opsin inverse or a transfer curve.
+            // Shared in-place traversal changes all three components before storing each SIMD block.
+            JxlColorConverterBase.XybEncodingOperator operation = default;
+            for (int y = 0; y < this.Size.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                JxlColorConverterBase.ConvertInPlace(
+                    this.reconstructedColors[0].DangerousGetRowSpan(y),
+                    this.reconstructedColors[1].DangerousGetRowSpan(y),
+                    this.reconstructedColors[2].DangerousGetRowSpan(y),
+                    operation);
+            }
+
             this.CodingColorTransformApplied = true;
         }
         else if (this.image.UsesXybTransform && this.OriginalWorkingSpace is RgbWorkingSpace workingSpace)

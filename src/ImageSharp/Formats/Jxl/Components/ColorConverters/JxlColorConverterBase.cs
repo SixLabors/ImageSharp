@@ -70,10 +70,11 @@ internal abstract partial class JxlColorConverterBase
             return new JxlColorConverter<XybOperator>(new XybOperator(header.XybTransform), KnownRgbWorkingSpaces.SRgb);
         }
 
-        if (!header.HasIccProfile && !header.UsesXybTransform && header.ProfileColorType == JxlColorType.Xyb)
+        if (!header.HasIccProfile && header.ProfileColorType == JxlColorType.Xyb)
         {
             // Declared XYB uses scaled device samples, independently of coding XYB's custom transform.
-            // Restore the optional YCbCr frame coding before mapping those samples to linear sRGB.
+            // A completed coding inverse leaves those device samples in the retained planes.
+            // Otherwise restore optional YCbCr coding before mapping the samples to linear sRGB.
             return frame.Header.YCbCr && restoreCodingTransform
                 ? new JxlColorConverter<XybDeviceOperator<YCbCrOperator>>(new XybDeviceOperator<YCbCrOperator>(new YCbCrOperator()), KnownRgbWorkingSpaces.SRgb)
                 : new JxlColorConverter<XybDeviceOperator<RgbOperator>>(new XybDeviceOperator<RgbOperator>(default), KnownRgbWorkingSpaces.SRgb);
@@ -152,14 +153,14 @@ internal abstract partial class JxlColorConverterBase
     /// Determines whether the component operators can restore the original encoding for composition or reference saving.
     /// </summary>
     /// <param name="header">The parsed coding transform and original color description.</param>
-    /// <returns>Whether device reconstruction or direct compact RGB or D65 grayscale reconstruction is available.</returns>
+    /// <returns>Whether device reconstruction or direct compact RGB, XYB or D65 grayscale reconstruction is available.</returns>
     /// <remarks>
-    /// Coding XYB uses a direct inverse for compact RGB and D65 grayscale. An ICC-only or declared XYB
-    /// output description does not supply that direct RGB conversion. Ordinary final output has its own converter selection.
+    /// Coding XYB uses a direct inverse for compact RGB and D65 grayscale, or device scaling for declared XYB.
+    /// An ICC-only output description does not supply that direct conversion. Ordinary final output has its own converter selection.
     /// </remarks>
     public static bool CanRestoreOriginalColor(JxlHeader header)
         => !header.UsesXybTransform
-            || (!header.HasIccProfile && (header.ProfileColorType == JxlColorType.Rgb
+            || (!header.HasIccProfile && (header.ProfileColorType is JxlColorType.Rgb or JxlColorType.Xyb
                 || (header.ProfileColorType == JxlColorType.Luminance && header.WhitePoint == KnownIlluminants.D65Chromaticity)));
 
     /// <summary>

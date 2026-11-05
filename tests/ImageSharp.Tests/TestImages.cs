@@ -1848,6 +1848,10 @@ public static class TestImages
 
         public const string Orientation6 = "Jxl/orientation6_rotate_90_cw.jxl";
         public const string SpotColor = "Jxl/spot.jxl";
+
+        public const string BlendModes = "Jxl/blendmodes.jxl";
+        public const string CroppedXybBlending = "Jxl/issue772_blendbug.jxl";
+
         public const string TruncatedIcc = "Jxl/with_icc_truncated.jxl";
         public const string LosslessFloat = "Jxl/lossless_pfm.jxl";
         public const string CmykLayers = "Jxl/cmyk_layers.jxl";

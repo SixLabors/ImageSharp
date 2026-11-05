@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
@@ -158,6 +159,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         // completed native planes, without retaining a frame's entropy or reconstruction workspace.
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
         InlineArray4<JxlReferenceFrame?> referenceFrames = default;
+        bool canRestoreOriginalColor = JxlColorConverterBase.CanRestoreOriginalColor(header);
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
         try
@@ -168,12 +170,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
 
-                // Original RGB device samples need no coding transform. A complete replacement can
-                // therefore transfer its existing planes at either reference boundary without conversion.
-                bool originalComponents = !header.UsesXybTransform && !frame.YCbCr;
-                bool originalReference = originalComponents && !frame.NeedsBlending;
-                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced && (frame.SaveBeforeColorTransform || originalReference);
-                bool originalComposition = originalComponents && frame.NeedsBlending;
+                // Pre-transform references retain coding samples for patches. Other saved frames
+                // and composition need the image's original component encoding. Its direct conversion
+                // capability depends on image metadata, so select it once before frame traversal.
+                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced && (frame.SaveBeforeColorTransform || canRestoreOriginalColor);
+                bool originalComposition = canRestoreOriginalColor && frame.NeedsBlending;
 
                 if ((!lowFrequency && !nativeReference && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
                     || (!nativeReference && !originalComposition && (frame.HasCrop || frame.Size != header.Size))
@@ -257,8 +258,19 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                         }
                         else
                         {
-                            // Patches finish reading the old slot during reconstruction. Transfer completed
-                            // native planes first, then replace that slot and release its preceding owners.
+                            if (!frame.SaveBeforeColorTransform)
+                            {
+                                // Save the original encoded colors, including the frame's composition.
+                                // A patch reference takes the earlier branch and keeps its coding samples.
+                                reconstructed.TransformToOriginalColor(allocator, cancellationToken);
+                                if (originalComposition)
+                                {
+                                    reconstructed.Compose(referenceFrames, header.Size, allocator, cancellationToken);
+                                }
+                            }
+
+                            // Every consumer has finished reading the preceding slot. Transfer the
+                            // completed planes before releasing those preceding reference owners.
                             JxlReferenceFrame saved = reconstructed.TakeReferenceFrame(frame.SaveBeforeColorTransform);
                             int slot = frame.ReferenceSlot;
                             JxlReferenceFrame? previous = referenceFrames[slot];
@@ -273,6 +285,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     {
                         if (originalComposition)
                         {
+                            reconstructed.TransformToOriginalColor(allocator, cancellationToken);
                             reconstructed.Compose(referenceFrames, header.Size, allocator, cancellationToken);
                         }
 

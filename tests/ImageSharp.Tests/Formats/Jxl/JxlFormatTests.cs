@@ -1085,6 +1085,8 @@ public class JxlFormatTests
     [InlineData(TestImages.Jxl.Noise8x8)]
     [InlineData(TestImages.Jxl.Noise)]
     [InlineData(TestImages.Jxl.SpotColor)]
+    [InlineData(TestImages.Jxl.BlendModes)]
+    [InlineData(TestImages.Jxl.CroppedXybBlending)]
     public void DecodeColorMatchesNativeSrgb(string file)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateDecodedColors,
@@ -1099,6 +1101,12 @@ public class JxlFormatTests
     /// Original libjxl revision 91837342b24034078780b687f57f670a7def8153 decoded the source samples and profiles.
     /// Its default CMS generated the RGB and grayscale ICC results with relative-colorimetric sRGB output.
     /// The spline and noise results use the same native public decoder with float sRGB output.
+    /// The blend-mode and cropped XYB inputs also use straight float sRGB, relative-colorimetric intent, and their original 255-nit intensity target.
+    /// The blend-mode input applies all five frame equations through four hidden post-transform references and one displayed final frame.
+    /// Native and jxl-rs agree on every float component of that output. The cropped input has two hidden XYB frames and one displayed final frame.
+    /// Native restores their original D65/sRGB components before composition. Native and jxl-rs differ by at most 1.1816621e-5 in RGB.
+    /// Alpha agrees exactly.
+    /// Its coordinates cover crop origins, overlapping frame content, retained color at zero alpha, and final crop edges.
     /// The spot-color input uses native composed ProPhoto RGB with both spots applied, then LittleCMS 2.17
     /// with perceptual intent, no black-point compensation, and the exact CompactSrgbV4 target.
     /// Libjxl's generated 504-byte sRGB profile has different coefficients from this 480-byte target.
@@ -1121,6 +1129,8 @@ public class JxlFormatTests
             TestImages.Jxl.Noise8x8 => new Size(8, 8),
             TestImages.Jxl.Noise => new Size(500, 606),
             TestImages.Jxl.SpotColor => new Size(600, 400),
+            TestImages.Jxl.BlendModes => new Size(1024, 1024),
+            TestImages.Jxl.CroppedXybBlending => new Size(750, 1000),
             TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
             TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
             _ => new Size(169, 118)
@@ -1131,13 +1141,34 @@ public class JxlFormatTests
             TestImages.Jxl.SpotColor => "CE0CAEE9506116EA94D7367D646F7FD6D0B7E82FEB8D1F3DE4EDB3BA57BAE07E",
             TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
             TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg or TestImages.Jxl.Splines
-                or TestImages.Jxl.Noise8x8 or TestImages.Jxl.Noise => null,
+                or TestImages.Jxl.Noise8x8 or TestImages.Jxl.Noise or TestImages.Jxl.BlendModes or TestImages.Jxl.CroppedXybBlending => null,
             TestImages.Jxl.CmykFirstFrame or TestImages.Jxl.CmykFourthFrame => "4855B8FABB96BDC6495D45D089BB8C8EFB1AE18389E0DC9E75A5F701A9C0B662",
             _ => "92AAEE40521D7671DBC901DFC88CC36CB83D41766B2C466FF97268EE5AB0C577"
         };
 
         ReadOnlySpan<(int X, int Y, uint R, uint G, uint B, uint A)> points = file switch
         {
+            TestImages.Jxl.BlendModes => [
+                (0, 0, 0xBDB1B2F7U, 0x3F57DD5DU, 0x3F0286C2U, 0x3EA4E01CU),
+                (1023, 1023, 0x3F9D315FU, 0x409FCF7DU, 0x3F9D4699U, 0x3FF28132U),
+                (255, 255, 0xBCFDA47CU, 0x3F569A0EU, 0x3EF802B9U, 0x3EB587DEU),
+                (256, 255, 0xBCE3DA50U, 0x3F592AD3U, 0x3EF9BA44U, 0x3EB587DEU),
+                (255, 256, 0xBCE2B4F0U, 0x3F58E18BU, 0x3EF95EA4U, 0x3EB59896U),
+                (256, 256, 0xBCC8E738U, 0x3F5B72B3U, 0x3EFB165AU, 0x3EB59896U),
+                (512, 512, 0x3EEAF295U, 0x401CED0AU, 0x3F571449U, 0x3EF90D90U)
+            ],
+            TestImages.Jxl.CroppedXybBlending => [
+                (0, 0, 0x00000000U, 0x00000000U, 0x00000000U, 0x00000000U),
+                (749, 999, 0x00000000U, 0x00000000U, 0x00000000U, 0x00000000U),
+                (255, 255, 0x3EB78485U, 0x3D6A369BU, 0x3D6BC9B8U, 0x00000000U),
+                (256, 256, 0x3EB78485U, 0x3D6A369BU, 0x3D6BC9B8U, 0x00000000U),
+                (375, 500, 0x3DE6D3BEU, 0x3EA0623DU, 0x3F36C8F3U, 0x3F008081U),
+                (177, 138, 0x3EB6FDB2U, 0x3D636590U, 0x3D780049U, 0x00000000U),
+                (41, 313, 0x00000000U, 0x00000000U, 0x00000000U, 0x00000000U),
+                (268, 651, 0x3DC49C4DU, 0x3F3689B3U, 0x3E13CD0EU, 0x3F008081U),
+                (572, 747, 0x3DFF761CU, 0x3F36D133U, 0x3DEC4249U, 0x3F008081U),
+                (668, 844, 0x3DFF761CU, 0x3F36D133U, 0x3DEC4249U, 0x3F008081U)
+            ],
             TestImages.Jxl.SpotColor => [
                 (0, 0, 0x3F94F761U, 0xC01F27FAU, 0x3F81E5FEU, 0x3F800000U),
                 (599, 399, 0x3F80142CU, 0xBFD76F68U, 0x3F745807U, 0x3F800000U),
@@ -1270,9 +1301,11 @@ public class JxlFormatTests
                             $"{file}, ({x},{y}), component {component}: {actual[component]:R}, native {expected[component]:R}.");
                     }
 
-                    // Alpha bypasses ICC. Permit only its existing integer-to-float normalization rounding,
-                    // including retention of straight RGB at zero alpha in the final linear-RGB sample.
-                    Assert.InRange(MathF.Abs(actual.W - expected.W), 0F, .0000001F);
+                    // Native float output can retain finite reconstruction weights outside [0,1].
+                    // Pixel storage bounds alpha to [0,1], including floating-point pixel formats.
+                    // Keep the existing allowance for integer-to-float normalization rounding.
+                    float expectedAlpha = Math.Clamp(expected.W, 0F, 1F);
+                    Assert.InRange(MathF.Abs(actual.W - expectedAlpha), 0F, .0000001F);
                 }
             }
         }

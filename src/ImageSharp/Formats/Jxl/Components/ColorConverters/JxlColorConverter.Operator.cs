@@ -176,20 +176,30 @@ internal abstract partial class JxlColorConverterBase
         /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for direct or ICC component conversion.
         /// </summary>
         /// <param name="operation">The prepared component arithmetic, separate from the final output conversion.</param>
-        /// <param name="isLinearRgb">True when the component operation produces linear sRGB that needs compression.</param>
-        public JxlColorConverter(TOperator operation, bool isLinearRgb)
-            : base(isLinearRgb)
+        public JxlColorConverter(TOperator operation)
         {
             this.operation = operation;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for a compact RGB description.
+        /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for linear RGB output.
+        /// </summary>
+        /// <param name="operation">The prepared component arithmetic.</param>
+        /// <param name="linearOutputWorkingSpace">The working space whose transfer curve encodes the restored linear components.</param>
+        public JxlColorConverter(TOperator operation, RgbWorkingSpace linearOutputWorkingSpace)
+            : base(linearOutputWorkingSpace)
+        {
+            this.operation = operation;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for compact RGB conversion.
         /// </summary>
         /// <param name="operation">The prepared component arithmetic.</param>
         /// <param name="sourceWorkingSpace">The source transfer curve, primaries and reference white.</param>
-        public JxlColorConverter(TOperator operation, RgbWorkingSpace sourceWorkingSpace)
-            : base(sourceWorkingSpace)
+        /// <param name="targetWorkingSpace">The required output transfer curve, primaries and reference white.</param>
+        public JxlColorConverter(TOperator operation, RgbWorkingSpace sourceWorkingSpace, RgbWorkingSpace targetWorkingSpace)
+            : base(sourceWorkingSpace, targetWorkingSpace)
         {
             this.operation = operation;
         }

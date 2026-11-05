@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -369,7 +370,7 @@ public class RgbAndXybConversionTest
     }
 
     /// <summary>
-    /// Checks both public conversion directions with independently recorded native endpoint values.
+    /// Checks both public conversion directions and the prepared inverse with independently recorded native endpoint values.
     /// </summary>
     /// <remarks>
     /// Expected values come from libjxl revision 91837342b24034078780b687f57f670a7def8153.
@@ -479,6 +480,68 @@ public class RgbAndXybConversionTest
                 Assert.True(ConverterComparer.Equals(expectedRgb, actualRgb),
                     $"Space {space}; input {xybSource[i]}; expected {expectedRgb.ToScaledVector4()}; scalar {actualRgb.ToScaledVector4()}.");
                 Assert.Equal(expectedRgb, decoded[i], ConverterComparer);
+            }
+
+            // The prepared inverse maps absorbance directly to the same native endpoint coordinates.
+            // Reuse the independent P3/D65 and ProPhoto/D50 results above; this path has no RGB/XYZ
+            // conversion afterward, so it separately checks matrix composition and intensity scaling.
+            Xyb.InverseOperator directInverse = new(transform, endpoints[space], false);
+            for (int i = 0; i < xybInput.Length; i++)
+            {
+                Xyb sample = xybInput[i];
+                Rgb expectedRgb = expectedInverse[i];
+                directInverse.Invoke(sample.X, sample.Y, sample.B, out float r, out float g, out float b);
+                Assert.Equal(expectedRgb, new Rgb(r, g, b), ConverterComparer);
+
+                // Each register holds one component. Broadcast a native sample and compare every
+                // output lane, with distinct RGB expectations to detect component-order mistakes.
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    directInverse.Invoke(
+                        Vector128.Create(sample.X),
+                        Vector128.Create(sample.Y),
+                        Vector128.Create(sample.B),
+                        out Vector128<float> r128,
+                        out Vector128<float> g128,
+                        out Vector128<float> b128);
+
+                    for (int lane = 0; lane < Vector128<float>.Count; lane++)
+                    {
+                        Assert.Equal(expectedRgb, new Rgb(r128.GetElement(lane), g128.GetElement(lane), b128.GetElement(lane)), ConverterComparer);
+                    }
+                }
+
+                if (Vector256.IsHardwareAccelerated)
+                {
+                    directInverse.Invoke(
+                        Vector256.Create(sample.X),
+                        Vector256.Create(sample.Y),
+                        Vector256.Create(sample.B),
+                        out Vector256<float> r256,
+                        out Vector256<float> g256,
+                        out Vector256<float> b256);
+
+                    for (int lane = 0; lane < Vector256<float>.Count; lane++)
+                    {
+                        Assert.Equal(expectedRgb, new Rgb(r256.GetElement(lane), g256.GetElement(lane), b256.GetElement(lane)), ConverterComparer);
+                    }
+                }
+
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    directInverse.Invoke(
+                        Vector512.Create(sample.X),
+                        Vector512.Create(sample.Y),
+                        Vector512.Create(sample.B),
+                        out Vector512<float> r512,
+                        out Vector512<float> g512,
+                        out Vector512<float> b512);
+
+                    for (int lane = 0; lane < Vector512<float>.Count; lane++)
+                    {
+                        Assert.Equal(expectedRgb, new Rgb(r512.GetElement(lane), g512.GetElement(lane), b512.GetElement(lane)), ConverterComparer);
+                    }
+                }
             }
         }
     }

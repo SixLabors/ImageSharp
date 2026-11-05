@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -770,6 +771,91 @@ public readonly struct Xyb : IColorProfile<Xyb, CieXyz>
             this.matrix = matrix;
             this.biases = biases;
             this.cubeRootBiases = cubeRootBiases;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InverseOperator"/> struct for the selected linear RGB coordinates.
+        /// </summary>
+        /// <param name="transform">The inverse absorbance matrix, signed biases and original intensity target.</param>
+        /// <param name="target">The original compact RGB working space. Its transfer curve is applied separately.</param>
+        /// <param name="grayscale">Whether all three results repeat the D65 luminance component.</param>
+        /// <exception cref="ArgumentException">The target primaries do not produce an invertible RGB-to-XYZ matrix.</exception>
+        public InverseOperator(XybTransform transform, RgbWorkingSpace target, bool grayscale)
+        {
+            // The coding matrix maps absorbance to linear sRGB. Transpose the serialized row-major
+            // coefficients once for System.Numerics row vectors; every SIMD lane uses this same matrix.
+            Matrix4x4 inverse = Matrix4x4.Transpose(transform.Inverse);
+            RgbWorkingSpace source = KnownRgbWorkingSpaces.SRgb;
+            if (grayscale)
+            {
+                // libjxl dec_xyb.cc uses the BT.709 luminance row for D65 gray output. Repeat its
+                // column so the existing three-component inverse produces the same gray in X, Y and Z.
+                Vector4 luminance = ColorNumerics.Bt709;
+                Matrix4x4 gray = new(
+                    luminance.X,
+                    luminance.X,
+                    luminance.X,
+                    0F,
+                    luminance.Y,
+                    luminance.Y,
+                    luminance.Y,
+                    0F,
+                    luminance.Z,
+                    luminance.Z,
+                    luminance.Z,
+                    0F,
+                    0F,
+                    0F,
+                    0F,
+                    1F);
+
+                inverse *= gray;
+            }
+            else if (!target.WhitePoint.Equals(source.WhitePoint) || !target.ChromaticityCoordinates.Equals(source.ChromaticityCoordinates))
+            {
+                // Both RGB spaces connect through D50-adapted XYZ, as in libjxl dec_xyb.cc.
+                // Row vectors therefore use absorbance * sRGB-to-XYZ-D50 * XYZ-D50-to-target.
+                // Keep the default sRGB path above free of matrix products that would change its rounding.
+                Matrix4x4 adaptation = KnownChromaticAdaptationMatrices.Bradford;
+                _ = Matrix4x4.Invert(adaptation, out Matrix4x4 inverseAdaptation);
+                Matrix4x4 sourceToD50 = AdaptToD50(source, adaptation, inverseAdaptation);
+                Matrix4x4 targetToD50 = AdaptToD50(target, adaptation, inverseAdaptation);
+                if (!Matrix4x4.Invert(targetToD50, out Matrix4x4 d50ToTarget))
+                {
+                    throw new ArgumentException("The target RGB primaries must produce an invertible matrix.", nameof(target));
+                }
+
+                inverse *= sourceToD50 * d50ToTarget;
+            }
+
+            // XYB absorbance uses a 255-nit reference. Scale only after composing the coordinate
+            // matrices, so linear RGB one represents the original intensity target in every output space.
+            this.matrix = inverse * (XybTransform.ReferenceIntensity / transform.IntensityTarget);
+            this.biases = transform.Biases;
+            this.cubeRootBiases = transform.CubeRootBiases;
+        }
+
+        /// <summary>
+        /// Adapts each RGB primary's XYZ contribution to the common D50 connection white.
+        /// </summary>
+        /// <param name="workingSpace">The RGB matrix and its reference white.</param>
+        /// <param name="adaptation">The shared Bradford matrix.</param>
+        /// <param name="inverseAdaptation">Its inverse, prepared once for both working spaces.</param>
+        /// <returns>The RGB-to-D50-XYZ matrix in row-vector order.</returns>
+        private static Matrix4x4 AdaptToD50(RgbWorkingSpace workingSpace, Matrix4x4 adaptation, Matrix4x4 inverseAdaptation)
+        {
+            // Matrix rows contain the red, green and blue contributions to XYZ. Adapt those three
+            // vectors through the existing API; no separate chromatic-adaptation formula is required.
+            Matrix4x4 matrix = workingSpace.RgbToCieXyzMatrix;
+            CieXyz red = new(matrix.M11, matrix.M12, matrix.M13);
+            CieXyz green = new(matrix.M21, matrix.M22, matrix.M23);
+            CieXyz blue = new(matrix.M31, matrix.M32, matrix.M33);
+            (CieXyz From, CieXyz To) whitePoints = (workingSpace.WhitePoint, KnownIlluminants.D50);
+            red = VonKriesChromaticAdaptation.Transform(in red, whitePoints, adaptation, inverseAdaptation);
+            green = VonKriesChromaticAdaptation.Transform(in green, whitePoints, adaptation, inverseAdaptation);
+            blue = VonKriesChromaticAdaptation.Transform(in blue, whitePoints, adaptation, inverseAdaptation);
+
+            return new Matrix4x4(red.X, red.Y, red.Z, 0F, green.X, green.Y, green.Z, 0F, blue.X, blue.Y, blue.Z, 0F, 0F, 0F, 0F, 1F);
         }
 
         /// <summary>

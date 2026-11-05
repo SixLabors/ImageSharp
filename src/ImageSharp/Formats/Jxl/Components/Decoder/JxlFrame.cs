@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
@@ -160,6 +161,16 @@ internal sealed class JxlFrame : IDisposable
                 this.BlackExtra = -1;
             }
         }
+
+        if (image.UsesXybTransform
+            && (header.NeedsBlending || (header.CanBeReferenced && !header.SaveBeforeColorTransform))
+            && JxlColorConverterBase.CanRestoreOriginalColor(image))
+        {
+            // Coding XYB needs the original matrix and transfer before composition or post-transform
+            // reference saving. Prepare that compact description once and reuse it for final output.
+            // Device RGB and YCbCr already use the original transfer and need no working-space setup here.
+            this.OriginalWorkingSpace = JxlColorConverterBase.GetWorkingSpace(image);
+        }
     }
 
     /// <summary>
@@ -176,6 +187,21 @@ internal sealed class JxlFrame : IDisposable
     /// Gets the current component origin on the image canvas. A composed canvas has a zero origin.
     /// </summary>
     public Point Origin { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the coding color transform has completed in this frame's retained samples.
+    /// </summary>
+    /// <remarks>
+    /// Completed coding XYB includes the declared device transfer curve. Raw modular YCbCr remains pending
+    /// until composition restores its normalized blocks without retaining another foreground image.
+    /// </remarks>
+    public bool CodingColorTransformApplied { get; private set; }
+
+    /// <summary>
+    /// Gets the original compact working space when coding XYB requires it before composition or reference storage.
+    /// </summary>
+    /// <remarks>An embedded ICC profile retains its own color description and does not use this compact working space.</remarks>
+    public RgbWorkingSpace? OriginalWorkingSpace { get; }
 
     /// <summary>
     /// Gets the retained modular color and extra-channel owner.
@@ -423,6 +449,73 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
+    /// Restores retained coding colors to the encoded device components required by composition and post-transform references.
+    /// </summary>
+    /// <param name="allocator">The tracked allocator for one reusable row when XYB requires a transfer curve.</param>
+    /// <param name="cancellationToken">The token checked between converted rows.</param>
+    /// <remarks>
+    /// Call once after spatial reconstruction and before composition or post-transform reference transfer.
+    /// RGB without a coding transform needs no work.
+    /// Raw modular YCbCr has no float color image; Compose restores its existing normalized scratch blocks instead.
+    /// When coding XYB is active, the decoder selects this boundary only for a compact RGB or luminance description.
+    /// </remarks>
+    public void TransformToOriginalColor(MemoryAllocator allocator, CancellationToken cancellationToken)
+    {
+        if (this.Header.YCbCr)
+        {
+            if (this.reconstructedColors.Length == 0)
+            {
+                // A raw modular foreground will be normalized in Compose's bounded scratch.
+                // Defer its inverse there, and leave the state pending until composition succeeds.
+                return;
+            }
+
+            // Modular channel setup and VarDCT reconstruction both provide three distinct coding
+            // planes for YCbCr, even when the declared output model is grayscale.
+            JxlColorConverterBase.YCbCrOperator operation = new();
+            for (int y = 0; y < this.Size.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                JxlColorConverterBase.ConvertInPlace(
+                    this.reconstructedColors[0].DangerousGetRowSpan(y),
+                    this.reconstructedColors[1].DangerousGetRowSpan(y),
+                    this.reconstructedColors[2].DangerousGetRowSpan(y),
+                    operation);
+            }
+
+            // YCbCr reconstructs encoded device components directly. Do not apply another transfer curve.
+            this.CodingColorTransformApplied = true;
+        }
+        else if (this.image.UsesXybTransform && this.OriginalWorkingSpace is RgbWorkingSpace workingSpace)
+        {
+            JxlColorConverterBase converter = JxlColorConverterBase.CreateForOriginalColor(this.image, workingSpace);
+            JxlSampleConverter.IdentityOperator sampleOperation = default;
+
+            // Every retained color plane already has final dimensions. One row holds Width Vector4
+            // values (16 bytes per sample) in [R G B 1] layout. The existing working-space compander
+            // applies its transfer curve without pixel packing or another full-image allocation.
+            // Alpha and other extras remain in their own planes and are not read or modified here.
+            using IMemoryOwner<Vector4> owner = allocator.Allocate<Vector4>(this.Size.Width);
+            Span<Vector4> row = owner.Memory.Span[..this.Size.Width];
+            for (int y = 0; y < this.Size.Height; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Span<float> red = this.reconstructedColors[0].DangerousGetRowSpan(y);
+                Span<float> green = this.reconstructedColors[1].DangerousGetRowSpan(y);
+                Span<float> blue = this.reconstructedColors[2].DangerousGetRowSpan(y);
+                JxlColorConverterBase.ComponentValues<float> source = new(red, green, blue, [], []);
+                converter.ConvertComponents(in source, row, in sampleOperation);
+                converter.ApplyOutputConversion(row);
+                SimdUtils.DeinterleaveFloatPlanes(row, red, green, blue, []);
+            }
+
+            // Publish only the complete coding inverse and device transfer. Final pixel conversion
+            // uses this state to retain these encoded samples instead of applying the coding inverse again.
+            this.CodingColorTransformApplied = true;
+        }
+    }
+
+    /// <summary>
     /// Composes completed original-device components onto the image canvas using the selected reference backgrounds.
     /// </summary>
     /// <param name="references">The four ordinary reference slots, retained for the complete composition call.</param>
@@ -438,6 +531,11 @@ internal sealed class JxlFrame : IDisposable
     {
         JxlFrameHeader frame = this.Header;
         int extraCount = this.image.Metadata.ExtraChannels.Count;
+
+        // Retained YCbCr planes were restored before this call. Only raw modular YCbCr can
+        // still need its inverse, which runs in the normalization scratch below.
+        bool deferredYcbcr = frame.YCbCr && !this.CodingColorTransformApplied;
+        JxlColorConverterBase.YCbCrOperator yCbCrOperation = deferredYcbcr ? new() : default;
         JxlFrameHeader.BlendingInfo colorInfo = frame.Blending;
         JxlBlending colorOperation = CreateFrameBlending(colorInfo);
         bool hasAlpha = this.AlphaExtra >= 0;
@@ -716,6 +814,17 @@ internal sealed class JxlFrame : IDisposable
                                 JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, this.image.Metadata.BitDepth);
                             }
                         }
+
+                        if (deferredYcbcr)
+                        {
+                            // Raw modular colors already use these three bounded normalization ranges.
+                            // Restore each block here instead of allocating full foreground float planes.
+                            JxlColorConverterBase.ConvertInPlace(
+                                workspace[..count],
+                                workspace.Slice(blockLength, count),
+                                workspace.Slice(2 * blockLength, count),
+                                yCbCrOperation);
+                        }
                     }
 
                     ReadOnlySpan<float> inputRed = retainedColors ? foregroundRed.Slice(sourceX, count) : workspace[..count];
@@ -854,6 +963,7 @@ internal sealed class JxlFrame : IDisposable
         this.spotPlanesBorrowed = true;
         this.Size = canvasSize;
         this.Origin = Point.Empty;
+        this.CodingColorTransformApplied |= deferredYcbcr;
     }
 
     /// <summary>

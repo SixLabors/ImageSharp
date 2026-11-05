@@ -60,7 +60,7 @@
     <PackageReference Include="Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers" Version="18.3.36812.1" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" Condition="'$(IsWindows)'=='true'" />
-    <PackageReference Include="JxlNet" Version="0.12.0.2" />
+    <PackageReference Include="JxlNet" />
     <PackageReference Include="Colourful" />
     <PackageReference Include="NetVips" />
     <PackageReference Include="NetVips.Native" />

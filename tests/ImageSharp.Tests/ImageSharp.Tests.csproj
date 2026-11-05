@@ -50,6 +50,7 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.13.0" />
     <!-- HDRI retains floating ICC output, including values outside the unsigned sixteen-bit range. -->
     <PackageReference Include="Magick.NET-Q16-HDRI-AnyCPU" />
+    <PackageReference Include="JxlNet" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Moq" />
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />

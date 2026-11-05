@@ -1877,7 +1877,7 @@ public static class TestImages
         public const string ZipUncompressedBlock = "Exr/zip_uncompressed_block.exr";
 
         /// <summary>
-        /// Native one-pixel float RGBA input whose ZIP chunk stores the uncompressed pixel bytes.
+        /// Native 2-by-2 float RGBA input whose ZIP chunk stores the uncompressed pixel bytes.
         /// </summary>
         public const string FloatRgbaZipFallback = "Exr/rgba_float_zip_fallback.exr";
         public const string Zips = "Exr/Calliphora_zips.exr";

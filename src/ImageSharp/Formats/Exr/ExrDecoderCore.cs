@@ -183,7 +183,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
         InlineArray16<Vector4> colorStorage = default;
         Span<Vector4> colors = colorStorage;
-        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
             this.Compression,
@@ -235,18 +234,22 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                         width);
                 }
 
-                // Pack the associated linear samples through TPixel before color conversion.
-                // TPixel sets the range, component precision and alpha representation of the decoded pixels.
-                pixelOperations.PackFromAssociatedScaledFloatPlanes(
-                    this.configuration, redPixelData, greenPixelData, bluePixelData, hasAlpha ? alphaPixelData : [], pixelRow);
-
                 for (int x = 0; x < width; x += colors.Length)
                 {
                     int count = Math.Min(colors.Length, width - x);
                     Span<Vector4> block = colors[..count];
                     Span<TPixel> destination = pixelRow.Slice(x, count);
-                    colorConverter.Convert<TPixel>(this.configuration, destination, block);
-                    pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, destination);
+
+                    // Keep native precision through color conversion. The typed destination is packed
+                    // only after its linear samples have been restored to the working transfer curve.
+                    SimdUtils.InterleaveFloatPlanes(
+                        redPixelData.Slice(x, count),
+                        greenPixelData.Slice(x, count),
+                        bluePixelData.Slice(x, count),
+                        hasAlpha ? alphaPixelData.Slice(x, count) : [],
+                        block);
+
+                    colorConverter.Convert(this.configuration, block, destination, PixelAlphaRepresentation.Associated);
                 }
 
                 decodedRows++;
@@ -293,7 +296,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
         InlineArray16<Vector4> colorStorage = default;
         Span<Vector4> colors = colorStorage;
-        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
         if (!hasAlpha)
         {
@@ -370,9 +372,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     Span<float> components = MemoryMarshal.Cast<Vector4, float>(block);
                     TensorPrimitives.ConvertTruncating<uint, float>(MemoryMarshal.Cast<Vector4, uint>(block), components);
                     TensorPrimitives.Multiply(components, 1F / uint.MaxValue, components);
-                    pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, block, destination);
-                    colorConverter.Convert<TPixel>(this.configuration, destination, block);
-                    pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, destination);
+                    colorConverter.Convert(this.configuration, block, destination, PixelAlphaRepresentation.Associated);
                 }
 
                 decodedRows++;

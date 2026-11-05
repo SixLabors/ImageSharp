@@ -199,10 +199,7 @@ internal sealed class ExrEncoderCore
         Span<float> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
         Span<byte> rowBlocks = rowBlockBuffer.GetSpan();
         InlineArray16<Vector4> colorStorage = default;
-        InlineArray16<TPixel> pixelStorage = default;
         Span<Vector4> colors = colorStorage;
-        Span<TPixel> convertedPixels = pixelStorage;
-        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
             compression,
@@ -234,15 +231,12 @@ internal sealed class ExrEncoderCore
                 {
                     int count = Math.Min(colors.Length, width - x);
                     Span<Vector4> block = colors[..count];
-                    Span<TPixel> converted = convertedPixels[..count];
-                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block);
-                    pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, converted);
+                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
 
-                    // TPixel owns the converted component precision and alpha representation.
-                    // Its planar API supplies the associated samples written by this encoder.
-                    pixelOperations.UnpackToAssociatedScaledFloatPlanes(
-                        this.configuration,
-                        converted,
+                    // The typed source supplies its own range and alpha rules. Retain the converted
+                    // float precision until EXR's selected channel storage rounds each component.
+                    SimdUtils.DeinterleaveFloatPlanes(
+                        block,
                         redBuffer.Slice(x, count),
                         greenBuffer.Slice(x, count),
                         blueBuffer.Slice(x, count),
@@ -320,10 +314,7 @@ internal sealed class ExrEncoderCore
         Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
         Span<byte> rowBlocks = rowBlockBuffer.GetSpan();
         InlineArray16<Vector4> colorStorage = default;
-        InlineArray16<TPixel> pixelStorage = default;
         Span<Vector4> colors = colorStorage;
-        Span<TPixel> convertedPixels = pixelStorage;
-        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
         PixelOperations<Rgba128> unsignedPixelOperations = PixelOperations<Rgba128>.Instance;
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
@@ -356,13 +347,10 @@ internal sealed class ExrEncoderCore
                 {
                     int count = Math.Min(colors.Length, width - x);
                     Span<Vector4> block = colors[..count];
-                    Span<TPixel> converted = convertedPixels[..count];
-                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block);
-                    pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, converted);
-                    pixelOperations.ToAssociatedScaledVector4(this.configuration, converted, block);
+                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
 
-                    // TPixel has already applied its range, precision and alpha rules. This final
-                    // pack only represents those samples in EXR's selected UINT channel storage.
+                    // The source TPixel supplied its color and alpha. This final pack rounds the
+                    // converted samples directly to EXR's selected UINT storage, without an intermediate pixel pack.
                     Span<Rgba128> packed = MemoryMarshal.Cast<Vector4, Rgba128>(block);
                     unsignedPixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, packed);
 

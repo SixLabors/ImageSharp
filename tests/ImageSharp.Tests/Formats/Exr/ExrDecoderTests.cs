@@ -103,8 +103,8 @@ public class ExrDecoderTests
         ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
         image.DebugSave(provider);
 
-        // OpenEXR 3.5.3 supplies the reference's UINT channels. Normalize them by uint.MaxValue
-        // and pack linear Rgba32 before the analytic IEC sRGB conversion and final Rgba32 packing.
+        // OpenEXR 3.5.3 supplies native UINT channels. Normalize them by uint.MaxValue,
+        // apply the analytic IEC sRGB curve, then pack the final Rgba32 destination once.
         image.CompareToReferenceOutput(provider);
         Assert.Equal(ExrPixelType.UnsignedInt, exrMetaData.PixelType);
     }
@@ -119,7 +119,7 @@ public class ExrDecoderTests
         image.DebugSave(provider);
 
         // The OpenEXR 3.5.3 reference normalizes UINT color and alpha, restores straight RGB,
-        // and packs linear Rgba32 before sRGB conversion. Zero alpha retains the supplied RGB.
+        // and applies the analytic IEC sRGB curve before final Rgba32 packing. Zero alpha retains the supplied RGB.
         image.CompareToReferenceOutput(provider);
         Assert.Equal(ExrPixelType.UnsignedInt, exrMetaData.PixelType);
     }
@@ -194,8 +194,8 @@ public class ExrDecoderTests
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
 
-        // OpenEXR 3.5.3 decodes PXR24 UINT independently. The reference normalizes and packs
-        // linear Rgba32 before the analytic IEC sRGB conversion and final Rgba32 packing.
+        // OpenEXR 3.5.3 decodes PXR24 UINT independently. Normalize native channels,
+        // apply the analytic IEC sRGB curve, then pack the final Rgba32 destination once.
         image.CompareToReferenceOutput(provider);
     }
 

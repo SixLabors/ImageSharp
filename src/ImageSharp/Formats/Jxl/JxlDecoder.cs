@@ -44,9 +44,11 @@ public sealed class JxlDecoder : SpecializedImageDecoder<JxlDecoderOptions>
     protected override Image Decode(JxlDecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         // The sample precision and alpha channel determine the destination pixel format.
-        // Identify reads these fields without allocating pixels. Restore the initial position so Decode<TPixel> can read the complete image.
+        // Read only the image header so a later truncated frame remains subject to the typed decoder's recovery policy.
+        // The shared core still owns buffering. Restore the initial position so Decode<TPixel> can read the complete image.
         long position = stream.Position;
-        ImageInfo info = this.Identify(options.GeneralOptions, stream, cancellationToken);
+        JxlDecoderCore decoder = new(options, true);
+        ImageInfo info = decoder.Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
         stream.Position = position;
 
         JxlMetadata metadata = info.Metadata.GetFormatMetadata(JxlFormat.Instance);

@@ -21,6 +21,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 internal sealed class JxlDecoderCore : ImageDecoderCore
 {
     /// <summary>
+    /// Limits identification to image-wide fields when selecting the destination pixel format.
+    /// </summary>
+    private readonly bool colorMetadataOnly;
+
+    /// <summary>
     /// Counts successfully packed rows in the current streamed frame. Recovery cannot expose an image with no decoded output.
     /// </summary>
     private int decodedRows;
@@ -30,8 +35,19 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="options">The JPEG XL decoder options.</param>
     public JxlDecoderCore(JxlDecoderOptions options)
+        : this(options, false)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlDecoderCore"/> class with an identification scope.
+    /// </summary>
+    /// <param name="options">The JPEG XL decoder options.</param>
+    /// <param name="colorMetadataOnly">Whether identification stops after the image header used for pixel selection.</param>
+    public JxlDecoderCore(JxlDecoderOptions options, bool colorMetadataOnly)
         : base(options.GeneralOptions)
     {
+        this.colorMetadataOnly = colorMetadataOnly;
     }
 
     /// <summary>
@@ -75,6 +91,13 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
+
+        if (this.colorMetadataOnly)
+        {
+            // Pixel selection needs no frame headers or trailing boxes. The typed decoder reads them under
+            // the caller's integrity policy and owns the output profiles, orientation and configuration.
+            return new ImageInfo(header.Size, metadata);
+        }
 
         List<ImageFrameMetadata> frames = this.IdentifyFrames(ref reader, header, cancellationToken);
 

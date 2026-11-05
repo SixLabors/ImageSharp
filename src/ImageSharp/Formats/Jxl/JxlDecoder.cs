@@ -53,15 +53,23 @@ public sealed class JxlDecoder : SpecializedImageDecoder<JxlDecoderOptions>
         int precision = metadata.BitDepth.BitsPerSample;
         bool floatingPoint = metadata.BitDepth.ExponentBits != 0;
         bool alpha = false;
+        bool coloredSpot = false;
         foreach (JxlExtraChannelMetadata channel in metadata.ExtraChannels)
         {
-            // Among extra channels, only the first alpha channel and black affect output precision.
-            // Other extra channels remain metadata and do not change the destination pixel format.
-            if ((channel.Type == JxlExtraChannelType.Alpha && !alpha) || channel.Type == JxlExtraChannelType.Black)
+            // Alpha and black contribute displayed components. A rendered spot also contributes color
+            // and sample precision, even when the encoded base image has only a luminance channel.
+            // Depth and selection masks remain metadata and do not change the destination pixel format.
+            if ((channel.Type == JxlExtraChannelType.Alpha && !alpha)
+                || channel.Type is JxlExtraChannelType.Black or JxlExtraChannelType.SpotColor)
             {
                 alpha |= channel.Type == JxlExtraChannelType.Alpha;
                 precision = Math.Max(precision, channel.BitDepth.BitsPerSample);
                 floatingPoint |= channel.BitDepth.ExponentBits != 0;
+
+                // Equal spot RGB components retain grayscale. Distinct components need RGB storage;
+                // selecting a luminance pixel would discard the color already produced by spot rendering.
+                coloredSpot |= channel.Type == JxlExtraChannelType.SpotColor
+                    && (channel.SpotColor.X != channel.SpotColor.Y || channel.SpotColor.X != channel.SpotColor.Z);
             }
         }
 
@@ -70,7 +78,7 @@ public sealed class JxlDecoder : SpecializedImageDecoder<JxlDecoderOptions>
             return this.Decode<RgbaVector>(options, stream, cancellationToken);
         }
 
-        if (metadata.ColorType == JxlColorType.Luminance)
+        if (metadata.ColorType == JxlColorType.Luminance && !coloredSpot)
         {
             return (precision <= 8, alpha) switch
             {

@@ -940,22 +940,16 @@ public class JxlDecoderTests
     [WithFile(TestImages.Jxl.CroppedTrafficLightLongDuration, PixelTypes.Rgba32, 4, 4398046510080L, 102400L)]
     public void DecodeAndIdentifyReportDisplayedAnimationFrames(TestImageProvider<Rgba32> provider, int maxFrames, long firstSeconds, long shortSeconds)
     {
-        Configuration configuration = new(new JxlConfigurationModule());
-        provider.Configuration = configuration;
-        DecoderOptions options = new(configuration) { MaxFrames = (uint)maxFrames };
-        TestFile input = TestFile.Create(provider.SourceFileOrDescription);
-        using MemoryStream stream = new(input.Bytes, false);
-
-        ImageInfo info = Image.Identify(options, stream);
-        stream.Position = 0;
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+        provider.Configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(provider.Configuration) { MaxFrames = (uint)maxFrames };
+        string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, provider.SourceFileOrDescription);
+        ImageInfo info = Image.Identify(options, path);
+        using Image<Rgba32> image = provider.GetImage(JxlDecoder.Instance, options);
         image.DebugSaveMultiFrame(provider, maxFrames);
 
         // Magick uses libjxl's coalesced output. Compare every displayed canvas in memory through
         // the existing image comparer; matching metadata alone cannot prove reference-frame composition.
-        using MemoryStream referenceStream = new(input.Bytes, false);
-        using Image<Rgba32> reference = MagickReferenceDecoder.Jxl.Decode<Rgba32>(options, referenceStream);
-        ImageComparer.Tolerant().VerifySimilarity(reference, image);
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(), MagickReferenceDecoder.Jxl, options);
 
         // jxlinspect reports the exact durations for both files. The long variant uses the maximum native
         // tick count and a 1/1024 tick rate, which exceeds both uint seconds and TimeSpan's duration range.

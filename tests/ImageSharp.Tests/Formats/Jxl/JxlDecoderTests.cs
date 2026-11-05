@@ -930,24 +930,26 @@ public class JxlDecoderTests
     /// <summary>
     /// Verifies displayed animation pixels, timing and MaxFrames against native decoding and header inspection.
     /// </summary>
-    /// <param name="file">The stored animation input.</param>
+    /// <param name="provider">The stored animation input and normal diagnostic output path.</param>
     /// <param name="maxFrames">The displayed frame limit.</param>
     /// <param name="firstSeconds">The first frame's duration reported by the native inspector, in seconds.</param>
     /// <param name="shortSeconds">The shorter later frame's duration, in seconds.</param>
     [Theory]
-    [InlineData(TestImages.Jxl.CroppedTrafficLight, 1, 3L, 1L)]
-    [InlineData(TestImages.Jxl.CroppedTrafficLight, 4, 3L, 1L)]
-    [InlineData(TestImages.Jxl.CroppedTrafficLightLongDuration, 4, 4398046510080L, 102400L)]
-    public void DecodeAndIdentifyReportDisplayedAnimationFrames(string file, int maxFrames, long firstSeconds, long shortSeconds)
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1, 3L, 1L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 4, 3L, 1L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLightLongDuration, PixelTypes.Rgba32, 4, 4398046510080L, 102400L)]
+    public void DecodeAndIdentifyReportDisplayedAnimationFrames(TestImageProvider<Rgba32> provider, int maxFrames, long firstSeconds, long shortSeconds)
     {
         Configuration configuration = new(new JxlConfigurationModule());
+        provider.Configuration = configuration;
         DecoderOptions options = new(configuration) { MaxFrames = (uint)maxFrames };
-        TestFile input = TestFile.Create(file);
+        TestFile input = TestFile.Create(provider.SourceFileOrDescription);
         using MemoryStream stream = new(input.Bytes, false);
 
         ImageInfo info = Image.Identify(options, stream);
         stream.Position = 0;
         using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+        image.DebugSaveMultiFrame(provider, maxFrames);
 
         // Magick uses libjxl's coalesced output. Compare every displayed canvas in memory through
         // the existing image comparer; matching metadata alone cannot prove reference-frame composition.

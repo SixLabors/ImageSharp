@@ -1,15 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr;
-using SixLabors.ImageSharp.Formats.Exr.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -27,11 +22,12 @@ public class ExrEncoderTests
     [InlineData(ExrPixelType.Float, ExrPixelType.Float)]
     [InlineData(ExrPixelType.Half, ExrPixelType.Half)]
     [InlineData(ExrPixelType.UnsignedInt, ExrPixelType.UnsignedInt)]
-    public void EncoderOptions_SetPixelType_Works(ExrPixelType? pixelType, ExrPixelType? expectedPixelType)
+    public void EncoderOptions_SetPixelType_Works(ExrPixelType? pixelType, ExrPixelType expectedPixelType)
     {
         // arrange
         ExrEncoder exrEncoder = new() { PixelType = pixelType };
-        using Image input = new Image<Rgb24>(10, 10);
+        TestFile file = TestFile.Create(TestImages.Exr.Uncompressed);
+        using Image<Rgba32> input = file.CreateRgba32Image();
         using MemoryStream memStream = new();
 
         // act
@@ -39,7 +35,7 @@ public class ExrEncoderTests
 
         // assert
         memStream.Position = 0;
-        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        ImageInfo output = Image.Identify(memStream);
         ExrMetadata exrMetaData = output.Metadata.GetExrMetadata();
         Assert.Equal(expectedPixelType, exrMetaData.PixelType);
     }
@@ -75,40 +71,15 @@ public class ExrEncoderTests
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.FloatRgbaZipFallback, PixelTypes.Rgba32)]
     public void ExrEncoder_WithZipCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestExrEncoderCore(provider, "ZipCompression", compression: ExrCompression.Zip);
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.FloatRgbaZipFallback, PixelTypes.Rgba32)]
     public void ExrEncoder_WithZipsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestExrEncoderCore(provider, "ZipsCompression", compression: ExrCompression.Zips);
-
-    /// <summary>
-    /// Verifies that a final partial ZIP chunk stores its original bytes when zlib cannot reduce them.
-    /// </summary>
-    /// <param name="provider">The stored native EXR input.</param>
-    [Theory]
-    [WithFile(TestImages.Exr.ZipUncompressedBlock, PixelTypes.RgbaVector)]
-    public void ExrEncoder_StoresOriginalBlockWhenZipCannotReduceSize(TestImageProvider<RgbaVector> provider)
-    {
-        using Image<RgbaVector> input = provider.GetImage(ExrDecoder.Instance);
-        Span<byte> row = MemoryMarshal.AsBytes(input.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0));
-        byte[] expected = row.ToArray();
-        using IMemoryOwner<byte> buffer = input.Configuration.MemoryAllocator.Allocate<byte>(row.Length * 16);
-        Span<byte> rows = buffer.GetSpan();
-        row.CopyTo(rows);
-
-        // Only the first row belongs to this chunk. The remaining capacity represents reusable
-        // storage from other chunks and must not appear in the raw fallback payload.
-        rows[row.Length..].Fill(0xAA);
-        using MemoryStream output = new();
-        using ZipExrCompressor compressor = new(
-            output, input.Configuration.MemoryAllocator, (uint)rows.Length, (uint)row.Length, 16, input.Width, DeflateCompressionLevel.NoCompression);
-
-        // Level zero adds zlib framing without compressing the row, so the raw fallback is required.
-        Assert.Equal((uint)row.Length, compressor.CompressRowBlock(rows, 1));
-        Assert.Equal(expected, output.ToArray());
-    }
 
     protected static void TestExrEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,

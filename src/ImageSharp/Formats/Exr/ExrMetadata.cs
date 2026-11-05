@@ -23,7 +23,12 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     /// Initializes a new instance of the <see cref="ExrMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    private ExrMetadata(ExrMetadata other) => this.PixelType = other.PixelType;
+    private ExrMetadata(ExrMetadata other)
+    {
+        this.PixelType = other.PixelType;
+        this.ImageDataType = other.ImageDataType;
+        this.Compression = other.Compression;
+    }
 
     /// <summary>
     /// Gets or sets the pixel format.

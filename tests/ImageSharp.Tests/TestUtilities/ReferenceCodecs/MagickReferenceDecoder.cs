@@ -153,8 +153,8 @@ public class MagickReferenceDecoder : ImageDecoder
                 {
                     // Transfer curves require straight RGB. Disassociate disables alpha after dividing RGB;
                     // Activate restores the stored alpha channel. On would replace those samples with opaque alpha.
-                    magicFrame.Alpha(AlphaAction.Disassociate);
-                    magicFrame.Alpha(AlphaAction.Activate);
+                    magicFrame.Alpha(AlphaOption.Disassociate);
+                    magicFrame.Alpha(AlphaOption.Activate);
                 }
 
                 magicFrame.ColorSpace = ColorSpace.sRGB;

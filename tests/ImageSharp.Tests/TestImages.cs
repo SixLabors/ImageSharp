@@ -1792,6 +1792,10 @@ public static class TestImages
         public const string ExifXmpAfterCodestream = "Jxl/1x1_exif_xmp_after_codestream.jxl";
         public const string CroppedTrafficLight = "Jxl/cropped_traffic_light.jxl";
 
+        // The first 705 bytes retain three complete frames and one byte of the fourth header.
+        // Native ReadFrameHeader and ReadGroupOffsets place that header at byte 704 in the original raw codestream.
+        public const string CroppedTrafficLightTruncatedHeader = "Jxl/cropped_traffic_light_truncated_header.jxl";
+
         // This stored variant changes only the timebase and first frame's duration. The coded pixels are unchanged.
         public const string CroppedTrafficLightLongDuration = "Jxl/cropped_traffic_light_long_duration.jxl";
 
@@ -1837,6 +1841,11 @@ public static class TestImages
         public const string WithPreview = "Jxl/with_preview.jxl";
         public const string PermutedSections = "Jxl/has_permutation.jxl";
         public const string ProgressiveAc = "Jxl/progressive_ac.jxl";
+
+        // Concatenate the original progressive_ac jxlp codestream fragments, then retain its first 358745 bytes.
+        // Native ReadGroupOffsets puts pass two, group nine at byte 358744. All passes of the first group row remain complete.
+        public const string ProgressiveAcTruncatedRows = "Jxl/progressive_ac_truncated_rows.jxl";
+
         public const string NarrowEdgeGroup = "Jxl/narrow_edge_group.jxl";
         public const string OddSizeUpsampling = "Jxl/oddsize_ups.jxl";
         public const string UpsamplingWithAlpha = "Jxl/upsampling.jxl";
@@ -1849,8 +1858,23 @@ public static class TestImages
         public const string Orientation6 = "Jxl/orientation6_rotate_90_cw.jxl";
         public const string SpotColor = "Jxl/spot.jxl";
 
+        // Native libjxl serializers write these four-pixel gray8 inputs with one opaque red spot.
+        // Only the spot precision changes. The float spot includes 1.25 coverage to retain extended RGB.
+        public const string Gray8Spot8 = "Jxl/gray8_spot8.jxl";
+        public const string Gray8Spot16 = "Jxl/gray8_spot16.jxl";
+        public const string Gray8SpotFloat = "Jxl/gray8_spot32.jxl";
+
         public const string BlendModes = "Jxl/blendmodes.jxl";
         public const string CroppedXybBlending = "Jxl/issue772_blendbug.jxl";
+        public const string CroppedDeclaredXybBlending = "Jxl/issue772_blendbug_xyb.jxl";
+        public const string CroppedP3Blending = "Jxl/issue772_blendbug_p3.jxl";
+        public const string CroppedSrgbIccBlending = "Jxl/issue772_blendbug_srgb_icc.jxl";
+        public const string CroppedD50GrayBlending = "Jxl/issue772_blendbug_gray_d50.jxl";
+        public const string CroppedD65GrayBlending = "Jxl/issue772_blendbug_gray_d65.jxl";
+        public const string CroppedP3IccBlending = "Jxl/issue772_blendbug_p3_icc.jxl";
+        public const string WeightedPatchModes = "Jxl/weighted_patch_modes.jxl";
+        public const string P3XybSpotComposition = "Jxl/p3_xyb_spot_composition.jxl";
+        public const string P3IccStandalonePostSave = "Jxl/p3_icc_standalone_postsave.jxl";
 
         public const string TruncatedIcc = "Jxl/with_icc_truncated.jxl";
         public const string LosslessFloat = "Jxl/lossless_pfm.jxl";

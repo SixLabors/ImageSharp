@@ -880,6 +880,50 @@ public class JxlDecoderTests
     }
 
     /// <summary>
+    /// Verifies cancellation after the displayed destination is allocated releases all owners and leaves the caller's stream open.
+    /// </summary>
+    [Fact]
+    public async Task DecodeHonorsCancellationAfterDestinationAllocation()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+
+        // Small buffered reads retain stream pauses while the stored progressive frame is being decoded.
+        Configuration configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator, StreamProcessingBufferSize = 128 };
+        DecoderOptions options = new(configuration);
+        using PausedMemoryStream stream = new(TestFile.Create(TestImages.Jxl.ProgressiveAc).Bytes);
+        using CancellationTokenSource cancellation = new();
+
+        stream.OnWaiting(() =>
+        {
+            // The Rgba32 allocation identifies the displayed destination after frame parsing.
+            // Cancel at the next underlying read so the failure must release an existing pixel owner.
+            foreach (TestMemoryAllocator.AllocationRequest request in allocator.AllocationLog)
+            {
+                if (request.ElementType == typeof(Rgba32))
+                {
+                    cancellation.Cancel();
+
+                    // Release also disables further pauses, so cancellation occurs once.
+                    stream.Release();
+                    return;
+                }
+            }
+
+            stream.Next();
+        });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            using Image<Rgba32> image = await JxlDecoder.Instance.DecodeAsync<Rgba32>(options, stream, cancellation.Token);
+        });
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Equal(0, allocator.LiveBufferBytes);
+        Assert.True(stream.CanRead);
+    }
+
+    /// <summary>
     /// Verifies displayed animation pixels, timing and MaxFrames against native decoding and header inspection.
     /// </summary>
     /// <param name="file">The stored animation input.</param>

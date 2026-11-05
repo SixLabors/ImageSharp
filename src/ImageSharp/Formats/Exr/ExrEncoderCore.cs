@@ -239,7 +239,7 @@ internal sealed class ExrEncoderCore
                     pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, converted);
 
                     // TPixel owns the converted component precision and alpha representation.
-                    // Its planar API supplies the associated samples required by EXR storage.
+                    // Its planar API supplies the associated samples written by this encoder.
                     pixelOperations.UnpackToAssociatedScaledFloatPlanes(
                         this.configuration,
                         converted,

@@ -20,6 +20,7 @@ public class ExrDecoderTests
 
     [Theory]
     [InlineData(TestImages.Exr.UncompressedFloatRgb, typeof(Image<RgbaVector>))]
+    [InlineData(TestImages.Exr.FloatRgbaZipFallback, typeof(Image<RgbaVectorP>))]
     [InlineData(TestImages.Exr.UncompressedRgba, typeof(Image<RgbaHalfP>))]
     [InlineData(TestImages.Exr.Rgb, typeof(Image<RgbaHalf>))]
     public void DefaultLoad_UsesFloatingStorageForExrSamples(string imagePath, Type expectedImageType)

@@ -76,7 +76,7 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
             bitsPerPixel = hasAlpha ? bitsPerComponent * 4 : bitsPerComponent * 3;
         }
 
-        // OpenEXR defines RGBA color channels as premultiplied by alpha, so expose the association stored by the format.
+        // Interpret RGBA using OpenEXR's associated-color convention when selecting the decoded pixel format.
         PixelAlphaRepresentation alpha = hasAlpha ? PixelAlphaRepresentation.Associated : PixelAlphaRepresentation.None;
         PixelColorType color = PixelColorType.RGB;
 

@@ -4,8 +4,9 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
-using SixLabors.ImageSharp.Formats.Exr;
-using SixLabors.ImageSharp.Formats.Exr.Constants;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -317,10 +318,19 @@ public class ResizeTests
         using Image<TPixel> image = provider.GetImage();
         image.Mutate(x => x.Resize(x.GetCurrentSize() / 2));
 
-        // Bicubic filtering can produce RGB and alpha outside 0..1. Float EXR retains these values; PNG clips them.
+        // Bicubic filtering can produce signed and extended RGB. Float TIFF retains those components,
+        // including nonzero RGB at zero alpha that the EXR encoder's association would clear.
         bool floatingPoint = typeof(TPixel) == typeof(RgbaVector);
-        string extension = floatingPoint ? "exr" : "png";
-        image.DebugSave(provider, extension: extension, encoder: floatingPoint ? new ExrEncoder { PixelType = ExrPixelType.Float } : null);
+        string extension = floatingPoint ? "tiff" : "png";
+        IImageEncoder encoder = floatingPoint ? new TiffEncoder
+        {
+            SampleFormat = TiffSampleFormat.Float,
+            BitsPerPixel = TiffBitsPerPixel.Bit128,
+            Compression = TiffCompression.Deflate,
+            TransparentColorMode = TransparentColorMode.Preserve
+        } : null;
+
+        image.DebugSave(provider, extension: extension, encoder: encoder);
 
         if (TestEnvironment.IsWindows)
         {

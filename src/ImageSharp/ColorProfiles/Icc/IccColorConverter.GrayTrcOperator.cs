@@ -27,8 +27,20 @@ internal static partial class IccColorConverter
         /// <param name="pcs">The XYZ or Lab connection space.</param>
         /// <param name="toPcs">Whether to convert device gray to encoded PCS values.</param>
         public GrayTrcOperator(IccTagDataEntry curve, IccColorSpaceType pcs, bool toPcs)
+            : this(curve, pcs, toPcs, false)
         {
-            this.curve = new CurveOperator(curve, !toPcs);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GrayTrcOperator"/> struct with a channel-curve policy.
+        /// </summary>
+        /// <param name="curve">The gray tone response curve.</param>
+        /// <param name="pcs">The XYZ or Lab connection space.</param>
+        /// <param name="toPcs">Whether to convert device gray to encoded PCS values.</param>
+        /// <param name="symmetricCurves">Whether the analytic curve converts magnitudes and retains its sign.</param>
+        public GrayTrcOperator(IccTagDataEntry curve, IccColorSpaceType pcs, bool toPcs, bool symmetricCurves)
+        {
+            this.curve = new CurveOperator(curve, !toPcs, symmetricCurves);
             this.toPcs = toPcs;
             this.isLab = pcs == IccColorSpaceType.CieLab;
         }

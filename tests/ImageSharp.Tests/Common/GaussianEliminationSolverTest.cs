@@ -7,6 +7,38 @@ namespace SixLabors.ImageSharp.Tests.Common;
 
 public class GaussianEliminationSolverTest
 {
+    /// <summary>
+    /// Checks the contiguous solver with the existing matrix cases.
+    /// </summary>
+    /// <param name="matrix">The coefficient rows.</param>
+    /// <param name="result">The right-hand side.</param>
+    /// <param name="expected">The expected solution.</param>
+    [Theory]
+    [MemberData(nameof(MatrixTestData))]
+    public void CanSolveContiguous(double[][] matrix, double[] result, double[] expected)
+    {
+        double[] coefficients = matrix.SelectMany(row => row).ToArray();
+
+        Assert.True(GaussianEliminationSolver.TrySolve(coefficients, result));
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.Equal(expected[i], result[i], 4);
+        }
+    }
+
+    /// <summary>
+    /// Checks that dependent equations do not produce a solution.
+    /// </summary>
+    [Fact]
+    public void ContiguousSolverRejectsSingularMatrix()
+    {
+        double[] matrix = [1D, 2D, 2D, 4D];
+        double[] result = [3D, 6D];
+
+        Assert.False(GaussianEliminationSolver.TrySolve(matrix, result));
+    }
+
     [Theory]
     [MemberData(nameof(MatrixTestData))]
     public void CanSolve(double[][] matrix, double[] result, double[] expected)

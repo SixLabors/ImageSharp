@@ -25,8 +25,8 @@ internal abstract partial class IccConverterBase
         // Curve-only profiles have no intent-specific transform tables.
         // If only the target uses tables, select its rendering intent. The reverse connection then selects the same intent.
         // Use transform selection to distinguish curve-only profiles from profiles that provide both curves and tables.
-        if (GetConversionMethod(source, sourceIntent) is ConversionMethod.ColorTrc or ConversionMethod.GrayTrc
-            && GetConversionMethod(target, targetIntent) is not (ConversionMethod.ColorTrc or ConversionMethod.GrayTrc or ConversionMethod.Invalid))
+        if (GetConversionMethod(source, sourceIntent, true) is ConversionMethod.ColorTrc or ConversionMethod.GrayTrc
+            && GetConversionMethod(target, targetIntent, false) is not (ConversionMethod.ColorTrc or ConversionMethod.GrayTrc or ConversionMethod.Invalid))
         {
             return targetIntent;
         }
@@ -35,31 +35,91 @@ internal abstract partial class IccConverterBase
         return sourceIntent;
     }
 
-    private static ConversionMethod GetConversionMethod(IccProfile profile, IccRenderingIntent renderingIntent) => profile.Header.Class switch
+    /// <summary>
+    /// Tests whether the profile provides the requested direction, including the normal perceptual fallback.
+    /// </summary>
+    /// <param name="profile">The external profile whose transform availability is checked.</param>
+    /// <param name="toPcs">Whether the transform converts device components to PCS values.</param>
+    /// <param name="renderingIntent">The requested rendering intent.</param>
+    /// <returns>Whether an existing table or curve transform can provide that direction.</returns>
+    public static bool SupportsConversion(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+        => GetConversionMethod(profile, renderingIntent, toPcs) != ConversionMethod.Invalid;
+
+    /// <summary>
+    /// Checks whether RGB colorants and channel curves, or a grayscale curve, provide a matrix-shaper model.
+    /// </summary>
+    /// <param name="profile">The external profile whose tags are checked.</param>
+    /// <returns>Whether matrix-shaper tags are present, even when a selected transform uses a lookup table.</returns>
+    public static bool IsMatrixShaper(IccProfile profile)
+        => profile.Header.DataColorSpace switch
+        {
+            IccColorSpaceType.Rgb => CheckMethodTrc(profile) == ConversionMethod.ColorTrc,
+            IccColorSpaceType.Gray => HasTag(profile, IccProfileTag.GrayTrc),
+            _ => false
+        };
+
+    /// <summary>
+    /// Checks exact intent support for black-point detection, without perceptual table fallback.
+    /// </summary>
+    /// <param name="profile">The external profile whose tags are checked.</param>
+    /// <param name="toPcs">Whether the direction converts device components to PCS values.</param>
+    /// <param name="renderingIntent">The requested intent.</param>
+    /// <returns>Whether an intent-specific table or a matrix-shaper model supports detection.</returns>
+    public static bool SupportsBlackPointIntent(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+        => HasIntentTable(profile, toPcs, renderingIntent) || IsMatrixShaper(profile);
+
+    /// <summary>
+    /// Checks the exact AToB or BToA tag used by the native black-point detector's CLUT eligibility query.
+    /// </summary>
+    /// <param name="profile">The external profile whose tags are checked.</param>
+    /// <param name="toPcs">Whether the direction converts device components to PCS values.</param>
+    /// <param name="renderingIntent">The requested intent.</param>
+    /// <returns>Whether the requested direction has its exact intent table.</returns>
+    public static bool HasIntentTable(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+    {
+        // LCMS cmsIsCLUT tests the legacy intent-tag family. MPE precedence and A0 fallback belong
+        // to transform selection, not to this detector capability query. Absolute intent shares A1/B1.
+        if (renderingIntent > IccRenderingIntent.AbsoluteColorimetric)
+        {
+            return false;
+        }
+
+        IccProfileTag tag = renderingIntent switch
+        {
+            IccRenderingIntent.Perceptual => toPcs ? IccProfileTag.AToB0 : IccProfileTag.BToA0,
+            IccRenderingIntent.MediaRelativeColorimetric or IccRenderingIntent.AbsoluteColorimetric =>
+                toPcs ? IccProfileTag.AToB1 : IccProfileTag.BToA1,
+            _ => toPcs ? IccProfileTag.AToB2 : IccProfileTag.BToA2
+        };
+
+        return HasTag(profile, tag);
+    }
+
+    private static ConversionMethod GetConversionMethod(IccProfile profile, IccRenderingIntent renderingIntent, bool toPcs) => profile.Header.Class switch
     {
         IccProfileClass.InputDevice or
         IccProfileClass.DisplayDevice or
         IccProfileClass.OutputDevice or
-        IccProfileClass.ColorSpace => CheckMethod1(profile, renderingIntent),
-        IccProfileClass.DeviceLink or IccProfileClass.Abstract => CheckMethod2(profile),
+        IccProfileClass.ColorSpace => CheckMethod1(profile, renderingIntent, toPcs),
+        IccProfileClass.DeviceLink or IccProfileClass.Abstract => CheckMethod2(profile, toPcs),
         _ => ConversionMethod.Invalid,
     };
 
-    private static ConversionMethod CheckMethod1(IccProfile profile, IccRenderingIntent renderingIntent)
+    private static ConversionMethod CheckMethod1(IccProfile profile, IccRenderingIntent renderingIntent, bool toPcs)
     {
-        ConversionMethod method = CheckMethodD(profile, renderingIntent);
+        ConversionMethod method = CheckMethodD(profile, renderingIntent, toPcs);
         if (method != ConversionMethod.Invalid)
         {
             return method;
         }
 
-        method = CheckMethodA(profile, renderingIntent);
+        method = CheckMethodA(profile, renderingIntent, toPcs);
         if (method != ConversionMethod.Invalid)
         {
             return method;
         }
 
-        method = CheckMethodA0(profile);
+        method = CheckMethodA0(profile, toPcs);
         if (method != ConversionMethod.Invalid)
         {
             return method;
@@ -74,27 +134,27 @@ internal abstract partial class IccConverterBase
         return ConversionMethod.Invalid;
     }
 
-    private static ConversionMethod CheckMethodD(IccProfile profile, IccRenderingIntent renderingIntent)
+    private static ConversionMethod CheckMethodD(IccProfile profile, IccRenderingIntent renderingIntent, bool toPcs)
     {
-        if ((HasTag(profile, IccProfileTag.DToB0) || HasTag(profile, IccProfileTag.BToD0))
+        if (HasTag(profile, toPcs ? IccProfileTag.DToB0 : IccProfileTag.BToD0)
             && renderingIntent == IccRenderingIntent.Perceptual)
         {
             return ConversionMethod.D0;
         }
 
-        if ((HasTag(profile, IccProfileTag.DToB1) || HasTag(profile, IccProfileTag.BToD1))
+        if (HasTag(profile, toPcs ? IccProfileTag.DToB1 : IccProfileTag.BToD1)
             && renderingIntent == IccRenderingIntent.MediaRelativeColorimetric)
         {
             return ConversionMethod.D1;
         }
 
-        if ((HasTag(profile, IccProfileTag.DToB2) || HasTag(profile, IccProfileTag.BToD2))
+        if (HasTag(profile, toPcs ? IccProfileTag.DToB2 : IccProfileTag.BToD2)
             && renderingIntent == IccRenderingIntent.Saturation)
         {
             return ConversionMethod.D2;
         }
 
-        if ((HasTag(profile, IccProfileTag.DToB3) || HasTag(profile, IccProfileTag.BToD3))
+        if (HasTag(profile, toPcs ? IccProfileTag.DToB3 : IccProfileTag.BToD3)
             && renderingIntent == IccRenderingIntent.AbsoluteColorimetric)
         {
             return ConversionMethod.D3;
@@ -103,21 +163,21 @@ internal abstract partial class IccConverterBase
         return ConversionMethod.Invalid;
     }
 
-    private static ConversionMethod CheckMethodA(IccProfile profile, IccRenderingIntent renderingIntent)
+    private static ConversionMethod CheckMethodA(IccProfile profile, IccRenderingIntent renderingIntent, bool toPcs)
     {
-        if ((HasTag(profile, IccProfileTag.AToB0) || HasTag(profile, IccProfileTag.BToA0))
+        if (HasTag(profile, toPcs ? IccProfileTag.AToB0 : IccProfileTag.BToA0)
             && renderingIntent == IccRenderingIntent.Perceptual)
         {
             return ConversionMethod.A0;
         }
 
-        if ((HasTag(profile, IccProfileTag.AToB1) || HasTag(profile, IccProfileTag.BToA1))
+        if (HasTag(profile, toPcs ? IccProfileTag.AToB1 : IccProfileTag.BToA1)
             && renderingIntent == IccRenderingIntent.MediaRelativeColorimetric)
         {
             return ConversionMethod.A1;
         }
 
-        if ((HasTag(profile, IccProfileTag.AToB2) || HasTag(profile, IccProfileTag.BToA2))
+        if (HasTag(profile, toPcs ? IccProfileTag.AToB2 : IccProfileTag.BToA2)
             && renderingIntent == IccRenderingIntent.Saturation)
         {
             return ConversionMethod.A2;
@@ -126,9 +186,9 @@ internal abstract partial class IccConverterBase
         return ConversionMethod.Invalid;
     }
 
-    private static ConversionMethod CheckMethodA0(IccProfile profile)
+    private static ConversionMethod CheckMethodA0(IccProfile profile, bool toPcs)
     {
-        bool valid = HasTag(profile, IccProfileTag.AToB0) || HasTag(profile, IccProfileTag.BToA0);
+        bool valid = HasTag(profile, toPcs ? IccProfileTag.AToB0 : IccProfileTag.BToA0);
         return valid ? ConversionMethod.A0 : ConversionMethod.Invalid;
     }
 
@@ -152,14 +212,14 @@ internal abstract partial class IccConverterBase
         return ConversionMethod.Invalid;
     }
 
-    private static ConversionMethod CheckMethod2(IccProfile profile)
+    private static ConversionMethod CheckMethod2(IccProfile profile, bool toPcs)
     {
-        if (HasTag(profile, IccProfileTag.DToB0) || HasTag(profile, IccProfileTag.BToD0))
+        if (HasTag(profile, toPcs ? IccProfileTag.DToB0 : IccProfileTag.BToD0))
         {
             return ConversionMethod.D0;
         }
 
-        if (HasTag(profile, IccProfileTag.AToB0) || HasTag(profile, IccProfileTag.AToB0))
+        if (HasTag(profile, toPcs ? IccProfileTag.AToB0 : IccProfileTag.BToA0))
         {
             return ConversionMethod.A0;
         }

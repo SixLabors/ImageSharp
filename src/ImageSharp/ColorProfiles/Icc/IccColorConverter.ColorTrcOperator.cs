@@ -27,8 +27,28 @@ internal static partial class IccColorConverter
         /// <param name="curves">The red, green and blue channel curves.</param>
         /// <param name="toPcs">Whether to convert device RGB to encoded PCS XYZ.</param>
         public ColorTrcOperator(Vector3 red, Vector3 green, Vector3 blue, ReadOnlySpan<IccTagDataEntry> curves, bool toPcs)
+            : this(red, green, blue, curves, toPcs, false)
         {
-            TrcOperator trc = new(curves, !toPcs);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ColorTrcOperator"/> struct with a channel-curve policy.
+        /// </summary>
+        /// <param name="red">The red XYZ matrix column.</param>
+        /// <param name="green">The green XYZ matrix column.</param>
+        /// <param name="blue">The blue XYZ matrix column.</param>
+        /// <param name="curves">The red, green and blue channel curves.</param>
+        /// <param name="toPcs">Whether to convert device RGB to encoded PCS XYZ.</param>
+        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        public ColorTrcOperator(
+            Vector3 red,
+            Vector3 green,
+            Vector3 blue,
+            ReadOnlySpan<IccTagDataEntry> curves,
+            bool toPcs,
+            bool symmetricCurves)
+        {
+            TrcOperator trc = new(curves, !toPcs, symmetricCurves);
 
             // Each row stores one RGB primary's XYZ coefficients. Row-vector multiplication combines the three primaries.
             Matrix4x4 matrix = new(red.X, red.Y, red.Z, 0F, green.X, green.Y, green.Z, 0F, blue.X, blue.Y, blue.Z, 0F, 0F, 0F, 0F, 1F);

@@ -108,6 +108,19 @@ public class ColorConversionOptions
     public IccInterpolationMethod IccInterpolationMethod { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether analytic ICC channel curves convert absolute values and restore their signs.
+    /// The default is <see langword="true"/>. Sampled curves retain their bounded lookup behavior.
+    /// </summary>
+    public bool UseSymmetricIccCurves { get; init; } = true;
+
+    /// <summary>
+    /// Gets a value indicating whether ICC connections between RGB, grayscale and CMYK profiles compensate for different black points.
+    /// The default is false. Absolute colorimetric intent and other device color models do not use this adjustment.
+    /// Device-link, abstract and named-color profiles do not use this adjustment.
+    /// </summary>
+    public bool UseBlackPointCompensation { get; init; }
+
+    /// <summary>
     /// Gets the transformation matrix used in conversion to perform chromatic adaptation.
     /// <see cref="KnownChromaticAdaptationMatrices"/> for further information. Default is Bradford.
     /// </summary>

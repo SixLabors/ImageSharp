@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// <summary>
 /// Converts typed color profiles through the configured source and target ICC transforms.
 /// </summary>
-internal static class ColorProfileConverterExtensionsIcc
+internal static partial class ColorProfileConverterExtensionsIcc
 {
     /// <summary>
     /// Converts a color value from one ICC color profile to another using the specified color profile converter.
@@ -136,8 +136,8 @@ internal static class ColorProfileConverterExtensionsIcc
             // Select one intent for both transform tables and PCS adjustment. A curve-only working profile
             // must not select a different table when the same table-based profile becomes the destination.
             IccRenderingIntent renderingIntent = IccConverterBase.GetRenderingIntent(sourceProfile, targetProfile);
-            ConversionParams source = new(sourceProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod);
-            ConversionParams target = new(targetProfile, toPcs: false, renderingIntent, options.IccInterpolationMethod);
+            ConversionParams source = new(sourceProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
+            ConversionParams target = new(targetProfile, toPcs: false, renderingIntent, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
             ColorConversionOptions pcsOptions = new()
             {
                 MemoryAllocator = options.MemoryAllocator,
@@ -145,7 +145,22 @@ internal static class ColorProfileConverterExtensionsIcc
                 TargetWhitePoint = KnownIlluminants.D50Icc
             };
 
-            PcsOperator pcs = new(source, target, pcsOptions);
+            bool compensateBlack = options.UseBlackPointCompensation
+                && renderingIntent != IccRenderingIntent.AbsoluteColorimetric
+                && SupportsBlackPointCompensation(sourceProfile) && SupportsBlackPointCompensation(targetProfile);
+            Vector3 blackScale = Vector3.One;
+            Vector3 blackOffset = Vector3.Zero;
+            if (compensateBlack)
+            {
+                // Detection uses only profile transforms. The lazy connection retains the result for every row and stride.
+                Vector3 sourceBlack = DetectBlackPoint(sourceProfile, source, options, pcsOptions, false);
+                Vector3 targetBlack = DetectBlackPoint(targetProfile, target, options, pcsOptions, true);
+                Vector3 white = KnownIlluminants.D50Icc.ToVector3();
+                blackScale = (targetBlack - white) / (sourceBlack - white);
+                blackOffset = -white * (targetBlack - sourceBlack) / (sourceBlack - white);
+            }
+
+            PcsOperator pcs = new(source, target, pcsOptions, compensateBlack, blackScale, blackOffset);
             this.Converter = source.Converter.Connect(target.Converter, pcs);
         }
 
@@ -170,12 +185,30 @@ internal static class ColorProfileConverterExtensionsIcc
         /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
         /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
         public ConversionParams(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
+            : this(profile, toPcs, renderingIntent, interpolationMethod, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConversionParams"/> class with a channel-curve policy.
+        /// </summary>
+        /// <param name="profile">The profile used by this transform.</param>
+        /// <param name="toPcs">Whether this transform converts device values to the PCS.</param>
+        /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
+        /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+        /// <param name="symmetricCurves">Whether analytic channel curves convert magnitudes and retain their signs.</param>
+        public ConversionParams(
+            IccProfile profile,
+            bool toPcs,
+            IccRenderingIntent renderingIntent,
+            IccInterpolationMethod interpolationMethod,
+            bool symmetricCurves)
         {
             this.profile = profile;
             this.Intent = renderingIntent;
             this.Converter = toPcs
-                ? new IccDataToPcsConverter(profile, renderingIntent, interpolationMethod)
-                : new IccPcsToDataConverter(profile, renderingIntent, interpolationMethod);
+                ? new IccDataToPcsConverter(profile, renderingIntent, interpolationMethod, symmetricCurves)
+                : new IccPcsToDataConverter(profile, renderingIntent, interpolationMethod, symmetricCurves);
         }
 
         /// <summary>

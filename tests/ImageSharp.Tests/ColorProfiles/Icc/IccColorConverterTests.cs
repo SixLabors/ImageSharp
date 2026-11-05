@@ -35,10 +35,11 @@ public class IccColorConverterTests
         ColorProfileConverter converter = new(new ColorConversionOptions
         {
             SourceIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2),
-            TargetIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39)
+            TargetIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39),
+            UseBlackPointCompensation = false
         });
 
-        // LittleCMS, with perceptual intent and optimization/cache disabled, gives these CMYK amounts
+        // LittleCMS, with perceptual intent and optimization, caching and black-point compensation disabled, gives these CMYK amounts
         // for RGB black. Values use [0,1] ink units, not LittleCMS's [0,100] float CMYK units.
         // The largest measured difference was 1.30E-5; round upward to 2E-5 for single-precision differences.
         Vector4 expected = new(0.770153344F, 0.665583253F, 0.546013594F, 0.999984741F);
@@ -55,6 +56,158 @@ public class IccColorConverterTests
 
         Assert.Equal(expected, converter.Convert<Rgb, Cmyk>(default(Rgb)).ToScaledVector4(), comparer);
     }
+
+    /// <summary>
+    /// Checks profile-based black-point compensation against native CMYK conversion.
+    /// </summary>
+    /// <param name="compensateBlack">Whether to apply black-point compensation.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BlackPointCompensation_MatchesNativeCmyk(bool compensateBlack)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            CheckBlackPointCompensation,
+            compensateBlack,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Converts black and a chromatic ink sample through the stored SWOP profile.
+    /// </summary>
+    /// <param name="compensateBlackDump">The serialized compensation setting.</param>
+    private static void CheckBlackPointCompensation(string compensateBlackDump)
+    {
+        bool compensateBlack = FeatureTestRunner.Deserialize<bool>(compensateBlackDump);
+        IccProfile sourceProfile = TestIccProfiles.GetProfile(TestIccProfiles.Swop2006).DeepClone();
+        sourceProfile.Header.RenderingIntent = IccRenderingIntent.MediaRelativeColorimetric;
+
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = sourceProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            UseBlackPointCompensation = compensateBlack
+        });
+
+        // LCMS 2.19 produced these RGB values with relative intent and optimization and caching disabled.
+        // Native ink values use percentages; the public CMYK API uses normalized values.
+        ReadOnlySpan<Cmyk> samples = [new(0F, 0F, 0F, 1F), new(0F, .5F, 1F, 0F)];
+        ReadOnlySpan<Vector4> expected = compensateBlack
+            ? [new(.1623211801F, .1506255865F, .1555172056F, 1F), new(.9735323191F, .5876750350F, .1470931470F, 1F)]
+            : [new(.2158472985F, .2075308859F, .2109746188F, 1F), new(.9739651084F, .5974054337F, .2050751001F, 1F)];
+
+        Cmyk[] source = new Cmyk[31];
+        Rgb[] actual = new Rgb[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = samples[i % samples.Length];
+        }
+
+        converter.Convert<Cmyk, Rgb>(source, actual);
+
+        // Use the existing 5e-4 bound for ICC output-curve approximation.
+        ApproximateFloatComparer comparer = new(5E-4F);
+        for (int i = 0; i < actual.Length; i++)
+        {
+            Assert.Equal(expected[i % expected.Length], actual[i].ToScaledVector4(), comparer);
+            Assert.Equal(expected[i % expected.Length], converter.Convert<Cmyk, Rgb>(source[i]).ToScaledVector4(), comparer);
+        }
+    }
+
+    /// <summary>
+    /// Checks default signed RGB curves and the explicit option to retain the original ICC branches.
+    /// </summary>
+    [Fact]
+    public void SymmetricCurves_PreserveSignedRgb() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckSymmetricCurves,
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Converts exact binary values through identity matrices and a continuous square-root profile in both directions.
+    /// </summary>
+    private static void CheckSymmetricCurves()
+    {
+        IccProfile identityProfile = CreateIdentityMatrixProfile(new IccParametricCurve(1F));
+        IccProfile squareRootProfile = CreateIdentityMatrixProfile(new IccParametricCurve(.5F, 1F, 0F, 2F, .25F));
+
+        // The profile defines Y = sqrt(X) for X >= 1/4 and Y = 2X below it.
+        // Its inverse squares Y >= 1/2 and halves lower Y. The symmetric extension retains each sign.
+        // Identity matrices and relative intent isolate the public curve policy from PCS adjustment.
+        ReadOnlySpan<float> outputInputs = [-4F, -1F, -.125F, 0F, .125F, 1F, 4F];
+        ReadOnlySpan<float> outputLegacy = [-2F, -.5F, -.0625F, 0F, .0625F, 1F, 16F];
+        ReadOnlySpan<float> outputSymmetric = [-16F, -1F, -.0625F, 0F, .0625F, 1F, 16F];
+
+        // Unit magnitudes have exact roots. The smaller values use the exact linear branch.
+        // The negative unit input distinguishes signed source conversion from the original linear branch.
+        ReadOnlySpan<float> sourceInputs = [-1F, -.125F, 0F, .125F, 1F];
+        ReadOnlySpan<float> sourceLegacy = [-2F, -.25F, 0F, .25F, 1F];
+        ReadOnlySpan<float> sourceSymmetric = [-1F, -.25F, 0F, .25F, 1F];
+        Rgb[] source = new Rgb[31];
+        Rgb[] legacyActual = new Rgb[source.Length];
+        Rgb[] symmetricActual = new Rgb[source.Length];
+
+        foreach (bool sourceCurve in new[] { false, true })
+        {
+            ColorProfileConverter legacyConverter = new(new ColorConversionOptions
+            {
+                SourceIccProfile = sourceCurve ? squareRootProfile : identityProfile,
+                TargetIccProfile = sourceCurve ? identityProfile : squareRootProfile,
+                UseSymmetricIccCurves = false
+            });
+
+            ColorProfileConverter defaultConverter = new(new ColorConversionOptions
+            {
+                SourceIccProfile = sourceCurve ? squareRootProfile : identityProfile,
+                TargetIccProfile = sourceCurve ? identityProfile : squareRootProfile
+            });
+
+            ReadOnlySpan<float> inputs = sourceCurve ? sourceInputs : outputInputs;
+            ReadOnlySpan<float> legacyExpected = sourceCurve ? sourceLegacy : outputLegacy;
+            ReadOnlySpan<float> symmetricExpected = sourceCurve ? sourceSymmetric : outputSymmetric;
+
+            // Shift each channel independently. Thirty-one pixels cover every SIMD width and a scalar tail.
+            for (int i = 0; i < source.Length; i++)
+            {
+                source[i] = new Rgb(inputs[i % inputs.Length], inputs[(i + 1) % inputs.Length], inputs[(i + 2) % inputs.Length]);
+            }
+
+            legacyConverter.Convert<Rgb, Rgb>(source, legacyActual);
+            defaultConverter.Convert<Rgb, Rgb>(source, symmetricActual);
+            for (int i = 0; i < source.Length; i++)
+            {
+                Rgb expectedLegacy = new(
+                    legacyExpected[i % inputs.Length], legacyExpected[(i + 1) % inputs.Length], legacyExpected[(i + 2) % inputs.Length]);
+                Rgb expectedSymmetric = new(
+                    symmetricExpected[i % inputs.Length], symmetricExpected[(i + 1) % inputs.Length], symmetricExpected[(i + 2) % inputs.Length]);
+
+                Assert.Equal(expectedLegacy, legacyActual[i]);
+                Assert.Equal(expectedSymmetric, symmetricActual[i]);
+                Assert.Equal(expectedLegacy, legacyConverter.Convert<Rgb, Rgb>(source[i]));
+                Assert.Equal(expectedSymmetric, defaultConverter.Convert<Rgb, Rgb>(source[i]));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a matrix/TRC profile whose independent component axes have no matrix scaling or cross-channel terms.
+    /// </summary>
+    /// <param name="curve">The transfer curve shared by the three independent axes.</param>
+    /// <returns>The profile for exact channel-curve comparisons through the public converter.</returns>
+    private static IccProfile CreateIdentityMatrixProfile(IccParametricCurve curve)
+        => new(
+            new IccProfileHeader
+            {
+                Class = IccProfileClass.DisplayDevice,
+                DataColorSpace = IccColorSpaceType.Rgb,
+                ProfileConnectionSpace = IccColorSpaceType.CieXyz,
+                RenderingIntent = IccRenderingIntent.MediaRelativeColorimetric
+            },
+            [
+                new IccXyzTagDataEntry([Vector3.UnitX], IccProfileTag.RedMatrixColumn),
+                new IccXyzTagDataEntry([Vector3.UnitY], IccProfileTag.GreenMatrixColumn),
+                new IccXyzTagDataEntry([Vector3.UnitZ], IccProfileTag.BlueMatrixColumn),
+                new IccParametricCurveTagDataEntry(curve, IccProfileTag.RedTrc),
+                new IccParametricCurveTagDataEntry(curve, IccProfileTag.GreenTrc),
+                new IccParametricCurveTagDataEntry(curve, IccProfileTag.BlueTrc)
+            ]);
 
     /// <summary>
     /// Checks that floating-point PCS adjustment retains negative XYZ at every SIMD width and in the scalar fallback.

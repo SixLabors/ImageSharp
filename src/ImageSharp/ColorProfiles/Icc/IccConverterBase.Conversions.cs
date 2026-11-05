@@ -94,8 +94,14 @@ internal abstract partial class IccConverterBase
     /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available.</param>
     /// <exception cref="InvalidIccProfileException">Invalid conversion method.</exception>
     /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-    protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
-        => this.calculator = GetConversionMethod(profile, renderingIntent) switch
+    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+    protected void Init(
+        IccProfile profile,
+        bool toPcs,
+        IccRenderingIntent renderingIntent,
+        IccInterpolationMethod interpolationMethod,
+        bool symmetricCurves)
+        => this.calculator = GetConversionMethod(profile, renderingIntent, toPcs) switch
         {
             ConversionMethod.D0 => toPcs ?
                                 InitD(profile, IccProfileTag.DToB0) :
@@ -110,16 +116,16 @@ internal abstract partial class IccConverterBase
                                 InitD(profile, IccProfileTag.DToB3) :
                                 InitD(profile, IccProfileTag.BToD3),
             ConversionMethod.A0 => toPcs ?
-                                InitA(profile, IccProfileTag.AToB0, interpolationMethod) :
-                                InitA(profile, IccProfileTag.BToA0, interpolationMethod),
+                                InitA(profile, IccProfileTag.AToB0, interpolationMethod, symmetricCurves) :
+                                InitA(profile, IccProfileTag.BToA0, interpolationMethod, symmetricCurves),
             ConversionMethod.A1 => toPcs ?
-                                InitA(profile, IccProfileTag.AToB1, interpolationMethod) :
-                                InitA(profile, IccProfileTag.BToA1, interpolationMethod),
+                                InitA(profile, IccProfileTag.AToB1, interpolationMethod, symmetricCurves) :
+                                InitA(profile, IccProfileTag.BToA1, interpolationMethod, symmetricCurves),
             ConversionMethod.A2 => toPcs ?
-                                InitA(profile, IccProfileTag.AToB2, interpolationMethod) :
-                                InitA(profile, IccProfileTag.BToA2, interpolationMethod),
-            ConversionMethod.ColorTrc => InitColorTrc(profile, toPcs),
-            ConversionMethod.GrayTrc => InitGrayTrc(profile, toPcs),
+                                InitA(profile, IccProfileTag.AToB2, interpolationMethod, symmetricCurves) :
+                                InitA(profile, IccProfileTag.BToA2, interpolationMethod, symmetricCurves),
+            ConversionMethod.ColorTrc => InitColorTrc(profile, toPcs, symmetricCurves),
+            ConversionMethod.GrayTrc => InitGrayTrc(profile, toPcs, symmetricCurves),
             _ => throw new InvalidIccProfileException("Invalid conversion method."),
         };
 
@@ -129,8 +135,13 @@ internal abstract partial class IccConverterBase
     /// <param name="profile">The profile containing the table.</param>
     /// <param name="tag">The AToB device-to-PCS table or BToA PCS-to-device table selected for the rendering intent.</param>
     /// <param name="interpolationMethod">The requested interpolation method.</param>
+    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
     /// <returns>The configured table operator.</returns>
-    private static IIccColorConverter InitA(IccProfile profile, IccProfileTag tag, IccInterpolationMethod interpolationMethod)
+    private static IIccColorConverter InitA(
+        IccProfile profile,
+        IccProfileTag tag,
+        IccInterpolationMethod interpolationMethod,
+        bool symmetricCurves)
     {
         // Lab-indexed output and linking tables use independent-axis interpolation.
         // Device-to-PCS tables use tetrahedra in their final three input dimensions.
@@ -152,8 +163,10 @@ internal abstract partial class IccConverterBase
             // Both legacy storage types use the XYZ-only matrix rule. The mAB and mBA operators below use their own matrix order.
             IccLut8TagDataEntry lut8 => new IccColorConverter<SampledLutColorOperator>(new(lut8, inputColorSpace, useTrilinearInterpolation)),
             IccLut16TagDataEntry lut16 => new IccColorConverter<SampledLutColorOperator>(new(lut16, inputColorSpace, useTrilinearInterpolation)),
-            IccLutAToBTagDataEntry lutAtoB => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutAtoB, useTrilinearInterpolation)),
-            IccLutBToATagDataEntry lutBtoA => new IccColorConverter<LutColorOperator>(new LutColorOperator(lutBtoA, useTrilinearInterpolation)),
+            IccLutAToBTagDataEntry lutAtoB =>
+                new IccColorConverter<LutColorOperator>(new LutColorOperator(lutAtoB, useTrilinearInterpolation, symmetricCurves)),
+            IccLutBToATagDataEntry lutBtoA =>
+                new IccColorConverter<LutColorOperator>(new LutColorOperator(lutBtoA, useTrilinearInterpolation, symmetricCurves)),
             _ => throw new InvalidIccProfileException($"Invalid entry {tag}."),
         };
     }
@@ -166,7 +179,14 @@ internal abstract partial class IccConverterBase
         throw new NotImplementedException("Multi process elements are not supported");
     }
 
-    private static IccColorConverter<ColorTrcOperator> InitColorTrc(IccProfile profile, bool toPcs)
+    /// <summary>
+    /// Creates the profile's RGB matrix and channel curves with the selected curve policy.
+    /// </summary>
+    /// <param name="profile">The matrix/TRC profile.</param>
+    /// <param name="toPcs">Whether to convert device values to the PCS.</param>
+    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+    /// <returns>The prepared RGB converter.</returns>
+    private static IccColorConverter<ColorTrcOperator> InitColorTrc(IccProfile profile, bool toPcs, bool symmetricCurves)
     {
         IccXyzTagDataEntry redMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
         IccXyzTagDataEntry greenMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
@@ -191,14 +211,22 @@ internal abstract partial class IccConverterBase
             greenMatrixColumn.Data[0],
             blueMatrixColumn.Data[0],
             [redTrc, greenTrc, blueTrc],
-            toPcs);
+            toPcs,
+            symmetricCurves);
 
         return new IccColorConverter<ColorTrcOperator>(colorOperator);
     }
 
-    private static IccColorConverter<GrayTrcOperator> InitGrayTrc(IccProfile profile, bool toPcs)
+    /// <summary>
+    /// Creates the profile's gray curve and PCS mapping with the selected curve policy.
+    /// </summary>
+    /// <param name="profile">The gray profile.</param>
+    /// <param name="toPcs">Whether to convert device values to the PCS.</param>
+    /// <param name="symmetricCurves">Whether the analytic curve converts magnitudes and retains its sign.</param>
+    /// <returns>The prepared gray converter.</returns>
+    private static IccColorConverter<GrayTrcOperator> InitGrayTrc(IccProfile profile, bool toPcs, bool symmetricCurves)
     {
         IccTagDataEntry entry = GetTag(profile, IccProfileTag.GrayTrc);
-        return new IccColorConverter<GrayTrcOperator>(new GrayTrcOperator(entry, profile.Header.ProfileConnectionSpace, toPcs));
+        return new IccColorConverter<GrayTrcOperator>(new GrayTrcOperator(entry, profile.Header.ProfileConnectionSpace, toPcs, symmetricCurves));
     }
 }

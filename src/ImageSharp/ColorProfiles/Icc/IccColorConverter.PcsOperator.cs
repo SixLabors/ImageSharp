@@ -45,6 +45,9 @@ internal static partial class IccColorConverter
         private readonly bool targetLegacyLab;
         private readonly bool adjustFrom;
         private readonly bool adjustTo;
+        private readonly bool compensateBlack;
+        private readonly Vector3 blackScale;
+        private readonly Vector3 blackOffset;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PcsOperator"/> struct.
@@ -53,8 +56,31 @@ internal static partial class IccColorConverter
         /// <param name="target">The selected target transform and PCS encoding.</param>
         /// <param name="options">The PCS converter options, with D50 as both white points.</param>
         public PcsOperator(ConversionParams source, ConversionParams target, ColorConversionOptions options)
+            : this(source, target, options, false, Vector3.One, Vector3.Zero)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PcsOperator"/> struct with a prepared black-point adjustment.
+        /// </summary>
+        /// <param name="source">The selected source transform and PCS encoding.</param>
+        /// <param name="target">The selected target transform and PCS encoding.</param>
+        /// <param name="options">The existing D50 Lab/XYZ conversion options.</param>
+        /// <param name="compensateBlack">Whether detected black points replace the legacy fixed perceptual adjustment.</param>
+        /// <param name="blackScale">The diagonal scale in unencoded XYZ units.</param>
+        /// <param name="blackOffset">The offset in unencoded XYZ units.</param>
+        public PcsOperator(
+            ConversionParams source,
+            ConversionParams target,
+            ColorConversionOptions options,
+            bool compensateBlack,
+            Vector3 blackScale,
+            Vector3 blackOffset)
         {
             this.options = options;
+            this.compensateBlack = compensateBlack && (blackScale != Vector3.One || blackOffset != Vector3.Zero);
+            this.blackScale = blackScale;
+            this.blackOffset = blackOffset;
             this.sourceLab = source.PcsType switch
             {
                 IccColorSpaceType.CieLab => true,
@@ -76,8 +102,8 @@ internal static partial class IccColorConverter
             // Matching v2 perceptual tables need no black-point adjustment between them; their adjustments cancel.
             // When only one table uses this convention, adjust that side. Curve-only perceptual profiles need their corresponding adjustment.
             bool oneV2 = source.HasV2PerceptualHandling ^ target.HasV2PerceptualHandling;
-            this.adjustFrom = source.HasNoPerceptualHandling || (oneV2 && source.HasV2PerceptualHandling);
-            this.adjustTo = target.HasNoPerceptualHandling || (oneV2 && target.HasV2PerceptualHandling);
+            this.adjustFrom = !compensateBlack && (source.HasNoPerceptualHandling || (oneV2 && source.HasV2PerceptualHandling));
+            this.adjustTo = !compensateBlack && (target.HasNoPerceptualHandling || (oneV2 && target.HasV2PerceptualHandling));
         }
 
         /// <inheritdoc/>
@@ -114,6 +140,12 @@ internal static partial class IccColorConverter
                 offset = (offset * targetScale) - new Vector3(TargetBlackPointOffsetX, TargetBlackPointOffsetY, TargetBlackPointOffsetZ);
             }
 
+            if (this.compensateBlack)
+            {
+                scale *= this.blackScale;
+                offset = (offset * this.blackScale) + this.blackOffset;
+            }
+
             return new MatrixOperator(Matrix4x4.CreateScale(scale), offset);
         }
 
@@ -125,7 +157,7 @@ internal static partial class IccColorConverter
         public Vector4 Convert(Vector4 value)
         {
             // Equal connection spaces need no color-model round trip. Legacy Lab encoding alone changes its scale.
-            if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
+            if (!this.adjustFrom && !this.adjustTo && !this.compensateBlack && this.sourceLab == this.targetLab)
             {
                 return this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab
                     ? value * (this.sourceLegacyLab ? LegacyLabDecodeScale : LegacyLabEncodeScale)
@@ -159,6 +191,12 @@ internal static partial class IccColorConverter
                     - new Vector3(TargetBlackPointOffsetX, TargetBlackPointOffsetY, TargetBlackPointOffsetZ);
             }
 
+            if (this.compensateBlack)
+            {
+                // Profile detection maps source black to target black while retaining the common D50 white.
+                components = (components * this.blackScale) + this.blackOffset;
+            }
+
             xyz = new CieXyz(components);
             if (this.targetLab)
             {
@@ -180,7 +218,7 @@ internal static partial class IccColorConverter
         public void Convert(ref Vector128<float> x, ref Vector128<float> y, ref Vector128<float> z, ref Vector128<float> w)
         {
             // Matching PCS values are already encoded for the target, except for legacy Lab's scale.
-            if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
+            if (!this.adjustFrom && !this.adjustTo && !this.compensateBlack && this.sourceLab == this.targetLab)
             {
                 if (this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab)
                 {
@@ -232,6 +270,14 @@ internal static partial class IccColorConverter
                 z = (z * Vector128.Create(TargetBlackPointScaleZ)) - Vector128.Create(TargetBlackPointOffsetZ);
             }
 
+            if (this.compensateBlack)
+            {
+                // Independent pixel lanes use the same prepared diagonal XYZ adjustment as scalar conversion.
+                x = (x * Vector128.Create(this.blackScale.X)) + Vector128.Create(this.blackOffset.X);
+                y = (y * Vector128.Create(this.blackScale.Y)) + Vector128.Create(this.blackOffset.Y);
+                z = (z * Vector128.Create(this.blackScale.Z)) + Vector128.Create(this.blackOffset.Z);
+            }
+
             if (this.targetLab)
             {
                 CieXyz white = this.options.TargetWhitePoint;
@@ -266,7 +312,7 @@ internal static partial class IccColorConverter
         public void Convert(ref Vector256<float> x, ref Vector256<float> y, ref Vector256<float> z, ref Vector256<float> w)
         {
             // Matching PCS values are already encoded for the target, except for legacy Lab's scale.
-            if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
+            if (!this.adjustFrom && !this.adjustTo && !this.compensateBlack && this.sourceLab == this.targetLab)
             {
                 if (this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab)
                 {
@@ -318,6 +364,14 @@ internal static partial class IccColorConverter
                 z = (z * Vector256.Create(TargetBlackPointScaleZ)) - Vector256.Create(TargetBlackPointOffsetZ);
             }
 
+            if (this.compensateBlack)
+            {
+                // Independent pixel lanes use the same prepared diagonal XYZ adjustment as scalar conversion.
+                x = (x * Vector256.Create(this.blackScale.X)) + Vector256.Create(this.blackOffset.X);
+                y = (y * Vector256.Create(this.blackScale.Y)) + Vector256.Create(this.blackOffset.Y);
+                z = (z * Vector256.Create(this.blackScale.Z)) + Vector256.Create(this.blackOffset.Z);
+            }
+
             if (this.targetLab)
             {
                 CieXyz white = this.options.TargetWhitePoint;
@@ -352,7 +406,7 @@ internal static partial class IccColorConverter
         public void Convert(ref Vector512<float> x, ref Vector512<float> y, ref Vector512<float> z, ref Vector512<float> w)
         {
             // Matching PCS values are already encoded for the target, except for legacy Lab's scale.
-            if (!this.adjustFrom && !this.adjustTo && this.sourceLab == this.targetLab)
+            if (!this.adjustFrom && !this.adjustTo && !this.compensateBlack && this.sourceLab == this.targetLab)
             {
                 if (this.sourceLab && this.sourceLegacyLab != this.targetLegacyLab)
                 {
@@ -402,6 +456,14 @@ internal static partial class IccColorConverter
                 x = (x * Vector512.Create(TargetBlackPointScaleX)) - Vector512.Create(TargetBlackPointOffsetX);
                 y = (y * Vector512.Create(TargetBlackPointScaleY)) - Vector512.Create(TargetBlackPointOffsetY);
                 z = (z * Vector512.Create(TargetBlackPointScaleZ)) - Vector512.Create(TargetBlackPointOffsetZ);
+            }
+
+            if (this.compensateBlack)
+            {
+                // Independent pixel lanes use the same prepared diagonal XYZ adjustment as scalar conversion.
+                x = (x * Vector512.Create(this.blackScale.X)) + Vector512.Create(this.blackOffset.X);
+                y = (y * Vector512.Create(this.blackScale.Y)) + Vector512.Create(this.blackOffset.Y);
+                z = (z * Vector512.Create(this.blackScale.Z)) + Vector512.Create(this.blackOffset.Z);
             }
 
             if (this.targetLab)

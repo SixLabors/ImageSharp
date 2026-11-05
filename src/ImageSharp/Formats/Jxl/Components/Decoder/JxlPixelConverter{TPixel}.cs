@@ -149,7 +149,8 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             {
                 MemoryAllocator = configuration.MemoryAllocator,
                 SourceIccProfile = sourceProfile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+                UseBlackPointCompensation = true
             });
         }
 

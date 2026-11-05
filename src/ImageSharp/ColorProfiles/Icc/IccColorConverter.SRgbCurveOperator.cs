@@ -19,6 +19,7 @@ internal static partial class IccColorConverter
         private readonly float c;
         private readonly float d;
         private readonly float e;
+        private readonly float signMask;
         private readonly TensorPrimitives_.PowOperator power;
 
         /// <summary>
@@ -31,6 +32,21 @@ internal static partial class IccColorConverter
         /// <param name="e">The offset after the power branch.</param>
         /// <param name="power">The classified positive finite power selected by the curve factory.</param>
         public SRgbCurveOperator(float a, float b, float c, float d, float e, TensorPrimitives_.PowOperator power)
+            : this(a, b, c, d, e, power, 0F)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SRgbCurveOperator"/> struct with a configured channel domain.
+        /// </summary>
+        /// <param name="a">The scale inside the power branch.</param>
+        /// <param name="b">The offset inside the power branch.</param>
+        /// <param name="c">The linear branch scale.</param>
+        /// <param name="d">The input at which the power branch starts.</param>
+        /// <param name="e">The offset after the power branch.</param>
+        /// <param name="power">The classified positive finite power selected by the curve factory.</param>
+        /// <param name="signMask">The analytic sign bit, or zero to retain the original curve domain.</param>
+        public SRgbCurveOperator(float a, float b, float c, float d, float e, TensorPrimitives_.PowOperator power, float signMask)
         {
             this.a = a;
             this.b = b;
@@ -38,10 +54,25 @@ internal static partial class IccColorConverter
             this.d = d;
             this.e = e;
             this.power = power;
+            this.signMask = signMask;
         }
 
         /// <inheritdoc/>
         public float Invoke(float value)
+        {
+            int bits = BitConverter.SingleToInt32Bits(value);
+            int sign = bits & BitConverter.SingleToInt32Bits(this.signMask);
+            float result = this.InvokeCore(BitConverter.Int32BitsToSingle(bits ^ sign));
+            return BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(result) | sign);
+        }
+
+        /// <summary>
+        /// Applies the normalized formula after the caller selects the component's sign domain.
+        /// </summary>
+        /// <param name="value">The component in the configured curve domain.</param>
+        /// <returns>The result before sign restoration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float InvokeCore(float value)
         {
             if (!(value >= this.d))
             {
@@ -61,6 +92,9 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<float> Invoke(Vector128<float> value)
         {
+            // One independent component per lane. Zero masks retain the original curve domain.
+            Vector128<float> sign = value & Vector128.Create(this.signMask);
+            value ^= sign;
             Vector128<float> zero = Vector128.Create(0F);
             Vector128<float> active = Vector128.LessThanOrEqual(Vector128.Create(this.d), value);
             Vector128<float> input = Vector128.Add(Vector128.Multiply(Vector128.Create(this.a), value), Vector128.Create(this.b));
@@ -75,7 +109,7 @@ internal static partial class IccColorConverter
 
             Vector128<float> nonlinear = Vector128.Add(power, Vector128.Create(this.e));
             Vector128<float> linear = Vector128.Multiply(Vector128.Create(this.c), value);
-            return Vector128.ConditionalSelect(active, nonlinear, linear);
+            return Vector128.ConditionalSelect(active, nonlinear, linear) | sign;
         }
 
         /// <summary>
@@ -86,6 +120,9 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector256<float> Invoke(Vector256<float> value)
         {
+            // One independent component per lane. Zero masks retain the original curve domain.
+            Vector256<float> sign = value & Vector256.Create(this.signMask);
+            value ^= sign;
             Vector256<float> zero = Vector256.Create(0F);
             Vector256<float> active = Vector256.LessThanOrEqual(Vector256.Create(this.d), value);
             Vector256<float> input = Vector256.Add(Vector256.Multiply(Vector256.Create(this.a), value), Vector256.Create(this.b));
@@ -100,7 +137,7 @@ internal static partial class IccColorConverter
 
             Vector256<float> nonlinear = Vector256.Add(power, Vector256.Create(this.e));
             Vector256<float> linear = Vector256.Multiply(Vector256.Create(this.c), value);
-            return Vector256.ConditionalSelect(active, nonlinear, linear);
+            return Vector256.ConditionalSelect(active, nonlinear, linear) | sign;
         }
 
         /// <summary>
@@ -111,6 +148,9 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector512<float> Invoke(Vector512<float> value)
         {
+            // One independent component per lane. Zero masks retain the original curve domain.
+            Vector512<float> sign = value & Vector512.Create(this.signMask);
+            value ^= sign;
             Vector512<float> zero = Vector512.Create(0F);
             Vector512<float> active = Vector512.LessThanOrEqual(Vector512.Create(this.d), value);
             Vector512<float> input = Vector512.Add(Vector512.Multiply(Vector512.Create(this.a), value), Vector512.Create(this.b));
@@ -125,7 +165,7 @@ internal static partial class IccColorConverter
 
             Vector512<float> nonlinear = Vector512.Add(power, Vector512.Create(this.e));
             Vector512<float> linear = Vector512.Multiply(Vector512.Create(this.c), value);
-            return Vector512.ConditionalSelect(active, nonlinear, linear);
+            return Vector512.ConditionalSelect(active, nonlinear, linear) | sign;
         }
     }
 }

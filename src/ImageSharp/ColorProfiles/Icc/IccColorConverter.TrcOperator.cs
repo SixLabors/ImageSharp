@@ -28,6 +28,17 @@ internal static partial class IccColorConverter
         /// <param name="entries">The curves for up to four input channels.</param>
         /// <param name="inverted">Whether each channel uses the inverse of its curve.</param>
         public TrcOperator(ReadOnlySpan<IccTagDataEntry> entries, bool inverted)
+            : this(entries, inverted, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TrcOperator"/> struct with a channel-curve policy.
+        /// </summary>
+        /// <param name="entries">The curves for up to four input channels.</param>
+        /// <param name="inverted">Whether each channel uses the inverse of its curve.</param>
+        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        public TrcOperator(ReadOnlySpan<IccTagDataEntry> entries, bool inverted, bool symmetricCurves)
         {
             if (entries.Length > 4)
             {
@@ -36,10 +47,10 @@ internal static partial class IccColorConverter
 
             this.count = entries.Length;
 
-            this.curve0 = entries.Length > 0 ? new CurveOperator(entries[0], inverted) : default;
-            this.curve1 = entries.Length > 1 ? new CurveOperator(entries[1], inverted) : default;
-            this.curve2 = entries.Length > 2 ? new CurveOperator(entries[2], inverted) : default;
-            this.curve3 = entries.Length > 3 ? new CurveOperator(entries[3], inverted) : default;
+            this.curve0 = entries.Length > 0 ? new CurveOperator(entries[0], inverted, symmetricCurves) : default;
+            this.curve1 = entries.Length > 1 ? new CurveOperator(entries[1], inverted, symmetricCurves) : default;
+            this.curve2 = entries.Length > 2 ? new CurveOperator(entries[2], inverted, symmetricCurves) : default;
+            this.curve3 = entries.Length > 3 ? new CurveOperator(entries[3], inverted, symmetricCurves) : default;
         }
 
         /// <inheritdoc/>
@@ -47,6 +58,14 @@ internal static partial class IccColorConverter
 
         /// <inheritdoc/>
         public bool Is16BitLut => false;
+
+        /// <summary>
+        /// Gets the configured sign-bit masks for the three RGB curves selected by specialized workers.
+        /// </summary>
+        public Vector3 SymmetricSignMask => new(
+            this.curve0.SignMask,
+            this.curve1.SignMask,
+            this.curve2.SignMask);
 
         /// <summary>
         /// Builds an sRGB-form stage when all three channel curves use that formula.
@@ -77,7 +96,7 @@ internal static partial class IccColorConverter
             if (this.count == 3 && this.curve0.TryGetGamma(out TensorPrimitives_.PowOperator x)
                 && this.curve1.TryGetGamma(out TensorPrimitives_.PowOperator y) && this.curve2.TryGetGamma(out TensorPrimitives_.PowOperator z))
             {
-                gamma = new GammaTrcOperator(x, y, z);
+                gamma = new GammaTrcOperator(x, y, z, this.SymmetricSignMask);
                 return true;
             }
 

@@ -32,7 +32,7 @@ public class JxlCodestreamReaderTests
         // The version-one fixture stores fragments out of logical order; bytes still match the unchanged raw file.
         foreach (int position in positions)
         {
-            reader.Seek(position);
+            Assert.True(reader.TrySeek(position));
             int count = Math.Min(actual.Length, expected.Length - position);
             int consumed = 0;
             while (consumed < count)
@@ -45,6 +45,10 @@ public class JxlCodestreamReaderTests
             Assert.Equal(expected.AsSpan(position, count), actual[..count]);
             Assert.Equal(position + count, reader.Position);
         }
+
+        // A valid final fragment can end before a requested section. Report that short payload
+        // separately from malformed fragment headers, which still throw during traversal.
+        Assert.False(reader.TrySeek(expected.Length + 1));
 
         reader.Complete();
         Assert.Empty(reader.Boxes);
@@ -163,9 +167,9 @@ public class JxlCodestreamReaderTests
         Assert.Equal((byte)0x0A, prefix[1]);
 
         // A backward section read must not cause metadata boxes to be discovered twice during completion.
-        reader.Seek(80);
+        Assert.True(reader.TrySeek(80));
         Assert.InRange(reader.Read(prefix), 1, prefix.Length);
-        reader.Seek(0);
+        Assert.True(reader.TrySeek(0));
         Assert.Equal(16, reader.Read(prefix));
 
         reader.Complete();

@@ -123,14 +123,20 @@ internal sealed class JxlCodestreamReader
     /// Positions the logical codestream at a byte offset without copying fragment payloads.
     /// </summary>
     /// <param name="position">The nonnegative offset from the codestream signature.</param>
-    /// <exception cref="InvalidImageContentException">The offset exceeds the available codestream or crosses an invalid container boundary.</exception>
-    public void Seek(long position)
+    /// <returns>Whether the requested position exists. False identifies a position beyond the final codestream end.</returns>
+    /// <exception cref="InvalidImageContentException">The offset is negative or crosses an invalid container boundary.</exception>
+    public bool TrySeek(long position)
     {
         // TOC offsets come from untrusted lengths. The physical file supplies a conservative first bound;
         // fragment traversal below also validates the actual logical end and every required container box.
-        if ((ulong)position > (ulong)this.MaximumLength)
+        if (position < 0)
         {
             throw new InvalidImageContentException("The JPEG XL seek exceeds its codestream boundary.");
+        }
+
+        if (position > this.MaximumLength)
+        {
+            return false;
         }
 
         if (!this.isContainer)
@@ -138,7 +144,7 @@ internal sealed class JxlCodestreamReader
             this.stream.Position = this.codestreamOrigin + position;
             this.Position = position;
             this.fragmentRemaining = this.MaximumLength - position;
-            return;
+            return true;
         }
 
         List<(long LogicalOffset, long PhysicalOffset, long Length)> ranges = this.fragments ?? this.OpenNextFragment();
@@ -151,10 +157,10 @@ internal sealed class JxlCodestreamReader
             this.SelectFragment(ranges, ranges.Count - 1, frontier);
             if (!this.TrySkip(position - frontier))
             {
-                throw new InvalidImageContentException("The JPEG XL seek exceeds its codestream boundary.");
+                return false;
             }
 
-            return;
+            return true;
         }
 
         // Find the first range whose exclusive end follows the requested byte. Empty fragments have
@@ -176,6 +182,7 @@ internal sealed class JxlCodestreamReader
         }
 
         this.SelectFragment(ranges, Math.Min(lower, ranges.Count - 1), position);
+        return true;
     }
 
     /// <summary>

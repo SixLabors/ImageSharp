@@ -21,6 +21,11 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 internal sealed class JxlDecoderCore : ImageDecoderCore
 {
     /// <summary>
+    /// Counts successfully packed rows in the current streamed frame. Recovery cannot expose an image with no decoded output.
+    /// </summary>
+    private int decodedRows;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The JPEG XL decoder options.</param>
@@ -161,12 +166,14 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
         InlineArray4<JxlReferenceFrame?> referenceFrames = default;
         Image<TPixel>? image = null;
+        int completedFrames = 0;
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
         try
         {
             while (true)
             {
+                this.decodedRows = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
@@ -298,6 +305,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                         preservedReference?.Dispose();
                     }
 
+                    completedFrames++;
                     if (frame.IsLast || lastRequestedFrame)
                     {
                         // Container traversal skips any frames omitted by MaxFrames and still reads later metadata boxes.
@@ -342,6 +350,31 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                     referenceFrames[slot] = saved;
                     previous?.Dispose();
                 }
+            }
+        }
+        catch (InvalidImageContentException) when (reader.IsTruncatedInput
+            && this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData
+            && image is not null && (completedFrames != 0 || this.decodedRows != 0))
+        {
+            try
+            {
+                // An allocated frame is not decoded output. Keep an incomplete streamed frame only
+                // after at least one row was packed; otherwise retain only earlier complete canvases.
+                // The image constructor initialized every unread row, so retained tails contain no pooled samples.
+                if (this.decodedRows == 0 && image.Frames.Count > completedFrames)
+                {
+                    image.Frames.RemoveFrame(image.Frames.Count - 1);
+                }
+
+                // Physical pixel EOF does not waive container structure or metadata policies.
+                // Exceptions here leave this catch directly, so dispose the image in its own failure handler.
+                this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
+                return image;
+            }
+            catch
+            {
+                image.Dispose();
+                throw;
             }
         }
         catch
@@ -617,11 +650,13 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                             while (restoration.TryReadRow(out int outputY, out ReadOnlySpan<float> x, out ReadOnlySpan<float> luma, out ReadOnlySpan<float> b))
                             {
                                 pixelConverter.ConvertRow(outputY, x, luma, b, pixelRow);
+                                this.decodedRows++;
                             }
                         }
                         else
                         {
                             pixelConverter.ConvertRow(y, rowX[..size.Width], rowY[..size.Width], rowB[..size.Width], pixelRow);
+                            this.decodedRows++;
                         }
                     }
                 }
@@ -636,6 +671,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     pixelConverter.ConvertRow(outputY, x, luma, b, pixelRow);
+                    this.decodedRows++;
                 }
             }
 

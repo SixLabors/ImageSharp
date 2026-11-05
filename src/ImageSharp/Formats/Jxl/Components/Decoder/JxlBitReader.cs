@@ -57,6 +57,12 @@ internal struct JxlBitReader
     public readonly long BytePosition => this.source.Position - ((this.availableBits + 7) / 8);
 
     /// <summary>
+    /// Gets a value indicating whether a consuming operation failed because physical codestream bytes are missing.
+    /// Section overreads, invalid syntax and malformed container boxes do not set this value.
+    /// </summary>
+    public bool IsTruncatedInput { get; private set; }
+
+    /// <summary>
     /// Positions the codestream at a byte offset and discards lookahead and the preceding section bound.
     /// </summary>
     /// <param name="position">The logical byte offset selected from the frame's validated section table.</param>
@@ -68,7 +74,11 @@ internal struct JxlBitReader
 
         try
         {
-            this.source.Seek(position);
+            if (!this.source.TrySeek(position))
+            {
+                this.IsTruncatedInput = true;
+                ThrowBoundaryExceeded();
+            }
         }
         finally
         {
@@ -111,7 +121,7 @@ internal struct JxlBitReader
     /// Container headers can make this upper bound larger than the actual remaining codestream.
     /// </summary>
     /// <param name="count">The minimum bit count required by the consuming syntax.</param>
-    public readonly void CheckBitBudget(ulong count)
+    public void CheckBitBudget(ulong count)
     {
         if (count > (ulong)this.remainingSectionBits)
         {
@@ -124,6 +134,7 @@ internal struct JxlBitReader
         ulong requiredBytes = (uncached >> 3) + ((uncached & 7) != 0 ? 1UL : 0UL);
         if (requiredBytes > (ulong)(this.source.MaximumLength - this.source.Position))
         {
+            this.IsTruncatedInput = true;
             throw new InvalidImageContentException("The JPEG XL field cannot fit in the remaining codestream.");
         }
     }
@@ -137,20 +148,21 @@ internal struct JxlBitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint ReadBits(int count)
     {
+        // A field wider than its declared section is malformed, even when the physical file also ends here.
+        // Keep that check separate from physical EOF so image-data recovery cannot cross section boundaries.
+        if (count > this.remainingSectionBits)
+        {
+            ThrowBoundaryExceeded();
+        }
+
         if (this.availableBits < count)
         {
             this.Refill(count);
             if (this.availableBits < count)
             {
+                this.IsTruncatedInput = true;
                 ThrowBoundaryExceeded();
             }
-        }
-
-        // The fast path already proved availability. Only a short refill needs a second availability check.
-        // Cached lookahead can extend beyond this section, so every path must still validate its allowance.
-        if (count > this.remainingSectionBits)
-        {
-            ThrowBoundaryExceeded();
         }
 
         // Retain the result before consumption shifts the reservoir. A 64-bit mask handles both zero and 32 bits.
@@ -185,8 +197,14 @@ internal struct JxlBitReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ConsumeBits(int count)
     {
-        if (count > this.availableBits || count > this.remainingSectionBits)
+        if (count > this.remainingSectionBits)
         {
+            ThrowBoundaryExceeded();
+        }
+
+        if (count > this.availableBits)
+        {
+            this.IsTruncatedInput = true;
             ThrowBoundaryExceeded();
         }
 
@@ -332,6 +350,7 @@ internal struct JxlBitReader
 
             if (read == 0)
             {
+                this.IsTruncatedInput = true;
                 throw new InvalidImageContentException("The JPEG XL byte field exceeds its codestream boundary.");
             }
 
@@ -362,6 +381,7 @@ internal struct JxlBitReader
             // issuing one buffered read for every machine word of an unknown extension.
             if (!this.TrySkipSourceBytes((long)(count >> 3)))
             {
+                this.IsTruncatedInput = true;
                 throw new InvalidImageContentException("The JPEG XL field exceeds its codestream boundary.");
             }
 

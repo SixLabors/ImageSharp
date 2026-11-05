@@ -108,6 +108,7 @@ public class JxlBitReaderTests
         InvalidImageContentException shortRead = Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(32));
         Assert.Equal(boundaryError, shortRead.Message);
         Assert.Equal(640, reader.Position);
+        Assert.True(reader.IsTruncatedInput);
 
         // Prefix lookup can zero-pad its high bits, but those bits must not become valid consumption.
         Assert.Equal(0x03U, reader.PeekBits(32));
@@ -136,6 +137,7 @@ public class JxlBitReaderTests
         // The first reservoir also contains the following 3F byte. Lookahead can expose only FA from this section.
         Assert.Equal(0xFAU, reader.PeekBits(16));
         Assert.Throws<InvalidImageContentException>(() => reader.ReadBits(16));
+        Assert.False(reader.IsTruncatedInput);
         Assert.Equal(16, reader.Position);
         Assert.Equal(2U, reader.ReadBits(3));
         reader.EndSection();

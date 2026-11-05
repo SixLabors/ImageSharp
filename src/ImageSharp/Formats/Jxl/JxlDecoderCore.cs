@@ -116,7 +116,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         JxlBitReader reader = new(codestream);
         JxlHeader header = this.ReadHeader(ref reader, cancellationToken);
 
-        return this.DecodeFrame<TPixel>(ref reader, codestream, header, cancellationToken);
+        return this.DecodeFrames<TPixel>(ref reader, codestream, header, cancellationToken);
     }
 
     /// <summary>
@@ -133,15 +133,15 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reconstructs saved dependencies, composes original-device crops and packs the final canvas through the shared pixel APIs.
+    /// Reconstructs native dependencies and packs each displayed canvas through the shared pixel APIs.
     /// </summary>
     /// <typeparam name="TPixel">The requested destination pixel format.</typeparam>
     /// <param name="reader">The reader following the already parsed image header.</param>
     /// <param name="codestream">The borrowed codestream and container reader.</param>
     /// <param name="header">The retained image-wide sample and color declarations.</param>
     /// <param name="cancellationToken">The token checked during reconstruction and output packing.</param>
-    /// <returns>The final image. Failure disposes its complete destination allocation.</returns>
-    private Image<TPixel> DecodeFrame<TPixel>(
+    /// <returns>The displayed frames, limited by MaxFrames. Failure disposes every destination frame.</returns>
+    private Image<TPixel> DecodeFrames<TPixel>(
         ref JxlBitReader reader, JxlCodestreamReader codestream, JxlHeader header, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -157,8 +157,10 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
 
         // LF dependencies and ordinary references use separate four-slot tables. Each slot owns
         // completed native planes, without retaining a frame's entropy or reconstruction workspace.
+        // Displayed TPixel frames have separate storage and remain attached to one image throughout decoding.
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
         InlineArray4<JxlReferenceFrame?> referenceFrames = default;
+        Image<TPixel>? image = null;
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
         try
@@ -168,20 +170,18 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 cancellationToken.ThrowIfCancellationRequested();
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
-
-                // Pre-transform references retain coding samples for patches. The frame owner prepares
-                // post-transform samples before reference saving or composition. A color-conversion
-                // limitation must produce a decode error there, never disable a requested blend here.
-                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced;
                 bool originalComposition = frame.NeedsBlending;
 
-                if ((!lowFrequency && !nativeReference && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
-                    || (!nativeReference && !originalComposition && (frame.HasCrop || frame.Size != header.Size))
-                    || (frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
-                        | JxlFrameHeader.Patches | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
+                // MaxFrames counts displayed canvases, not previews, LF dependencies or hidden references.
+                // The final requested canvas still reads earlier references, but no later consumer needs
+                // a copy of its native samples. Avoid reserving a pre-transform snapshot for that case.
+                bool lastRequestedFrame = frame.IsDisplayed && (uint)(image?.Frames.Count ?? 0) + 1 >= this.Options.MaxFrames;
+                bool saveReference = frame.CanBeReferenced && !lastRequestedFrame;
+
+                if ((frame.Flags & ~(JxlFrameHeader.SkipAdaptiveDcSmoothing | JxlFrameHeader.UseLowFrequencyFrame
+                    | JxlFrameHeader.Patches | JxlFrameHeader.Splines | JxlFrameHeader.Noise)) != 0)
                 {
-                    throw new NotSupportedException(
-                        "JPEG XL decoding currently requires saved dependencies followed by a final frame with supported color composition.");
+                    throw new NotSupportedException("The JPEG XL frame uses unsupported reconstruction flags.");
                 }
 
                 Buffer2D<float>[]? dcReference = null;
@@ -210,10 +210,10 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 }
 
                 using JxlFrameSections sections = JxlFrameSections.Read(ref reader, allocator, frame.SectionCount, cancellationToken);
-                Image<TPixel>? image = null;
-                try
+                ImageFrame<TPixel>? destination = null;
+                if (frame.IsDisplayed)
                 {
-                    if (!lowFrequency && !nativeReference)
+                    if (image is null)
                     {
                         ImageMetadata metadata = new() { IccProfile = header.IccProfile };
                         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
@@ -221,46 +221,53 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                         // Sequential output writes completed rows during AC traversal. Initialize the destination
                         // first so malformed or cancelled input cannot expose samples retained in pooled memory.
                         image = new Image<TPixel>(this.Options.Configuration, header.Size.Width, header.Size.Height, metadata);
-                        JxlFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetFormatMetadata(JxlFormat.Instance);
-                        if (header.TicksPerSecond is Rational rate)
-                        {
-                            frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
-                        }
+                        destination = image.Frames.RootFrame;
+                    }
+                    else
+                    {
+                        // Native composition produces a complete canvas. A new initialized frame needs
+                        // no copy of the previous TPixel frame; reference backgrounds remain in native planes.
+                        destination = image.Frames.CreateFrame();
                     }
 
-                    using JxlFrame reconstructed = this.DecodeFrameData(
-                        ref reader, header, frame, sections, dcReference, referenceFrames, image?.Frames.RootFrame, cancellationToken);
-
-                    bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
-                    if (!pixelsWritten)
+                    JxlFrameMetadata frameMetadata = destination.Metadata.GetFormatMetadata(JxlFormat.Instance);
+                    if (header.TicksPerSecond is Rational rate)
                     {
-                        reconstructed.Reconstruct(allocator, visibleFrame, nonvisibleFrame, cancellationToken);
+                        // Seconds = duration ticks * timebase denominator / timebase numerator.
+                        // Widen before multiplication and retain the exact fraction for every displayed frame.
+                        frameMetadata.FrameDelay = new LongRational((long)frame.Duration * rate.Denominator, rate.Numerator).Simplify();
                     }
+                }
 
-                    if (image is null)
+                using JxlFrame reconstructed = this.DecodeFrameData(
+                    ref reader, header, frame, sections, dcReference, referenceFrames, destination, cancellationToken);
+
+                bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
+                if (!pixelsWritten)
+                {
+                    reconstructed.Reconstruct(allocator, visibleFrame, nonvisibleFrame, cancellationToken);
+                }
+
+                if (destination is not null && image is not null)
+                {
+                    JxlReferenceFrame? preservedReference = null;
+                    try
                     {
-                        if (lowFrequency)
+                        if (saveReference && frame.SaveBeforeColorTransform && originalComposition)
                         {
-                            // LF storage retains native float samples. Transfer completed planes before any output
-                            // color conversion, and release the preceding contents of the same reference slot.
-                            Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
-                            int slot = frame.LowFrequencyLevel - 1;
-                            Buffer2D<float>[]? previous = lowFrequencyFrames[slot];
-                            lowFrequencyFrames[slot] = planes;
-                            if (previous is not null)
-                            {
-                                foreach (Buffer2D<float> plane in previous)
-                                {
-                                    plane.Dispose();
-                                }
-                            }
+                            // libjxl dec_cache.cc saves every color and extra before the coding transform.
+                            // The color replacement can still blend extras, so composition must not overwrite
+                            // those earlier samples. Only this case needs separate native reference storage.
+                            preservedReference = reconstructed.CopyReferenceFrame(this.Options.Configuration, cancellationToken);
                         }
-                        else
+
+                        if (!pixelsWritten)
                         {
-                            if (!frame.SaveBeforeColorTransform)
+                            // Post-transform reference frames reach the original encoding before spot rendering,
+                            // even when MaxFrames omits their later consumers. Retain that conversion order;
+                            // only the unused reference allocation and publication can be omitted.
+                            if (originalComposition || (frame.CanBeReferenced && !frame.SaveBeforeColorTransform))
                             {
-                                // Save the original encoded colors, including the frame's composition.
-                                // A patch reference takes the earlier branch and keeps its coding samples.
                                 reconstructed.TransformToOriginalColor(allocator, cancellationToken);
                                 if (originalComposition)
                                 {
@@ -268,39 +275,79 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                                 }
                             }
 
-                            // Every consumer has finished reading the preceding slot. Transfer the
-                            // completed planes before releasing those preceding reference owners.
-                            JxlReferenceFrame saved = reconstructed.TakeReferenceFrame(frame.SaveBeforeColorTransform);
+                            using JxlPixelConverter<TPixel> pixelConverter = new(this.Options.Configuration, header, reconstructed, destination);
+                            pixelConverter.Convert(cancellationToken);
+                        }
+
+                        if (saveReference)
+                        {
+                            // Pixel conversion and spot mixing borrow rows without changing the native planes.
+                            // Transfer those owners after output, unless composition required an earlier snapshot.
+                            // Publish only now: this frame can read the previous contents of its own reference slot.
+                            JxlReferenceFrame saved = preservedReference ?? reconstructed.TakeReferenceFrame(frame.SaveBeforeColorTransform);
                             int slot = frame.ReferenceSlot;
                             JxlReferenceFrame? previous = referenceFrames[slot];
                             referenceFrames[slot] = saved;
+                            preservedReference = null;
                             previous?.Dispose();
                         }
-
-                        continue;
+                    }
+                    finally
+                    {
+                        // A snapshot remains local until both display conversion and reference publication succeed.
+                        preservedReference?.Dispose();
                     }
 
-                    if (!pixelsWritten)
+                    if (frame.IsLast || lastRequestedFrame)
                     {
+                        // Container traversal skips any frames omitted by MaxFrames and still reads later metadata boxes.
+                        this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
+                        return image;
+                    }
+                }
+                else if (lowFrequency)
+                {
+                    // LF storage retains native float samples. Transfer completed planes before any output
+                    // color conversion, and release the preceding contents of the same reference slot.
+                    Buffer2D<float>[] planes = reconstructed.TakeReconstructedChannels();
+                    int slot = frame.LowFrequencyLevel - 1;
+                    Buffer2D<float>[]? previous = lowFrequencyFrames[slot];
+                    lowFrequencyFrames[slot] = planes;
+                    if (previous is not null)
+                    {
+                        foreach (Buffer2D<float> plane in previous)
+                        {
+                            plane.Dispose();
+                        }
+                    }
+                }
+                else
+                {
+                    if (!frame.SaveBeforeColorTransform)
+                    {
+                        // Hidden post-transform references retain the original encoded colors after composition.
+                        // Pre-transform references instead retain the untouched coding colors and extras for patches.
+                        reconstructed.TransformToOriginalColor(allocator, cancellationToken);
                         if (originalComposition)
                         {
-                            reconstructed.TransformToOriginalColor(allocator, cancellationToken);
                             reconstructed.Compose(referenceFrames, header.Size, allocator, cancellationToken);
                         }
-
-                        using JxlPixelConverter<TPixel> pixelConverter = new(this.Options.Configuration, header, reconstructed, image.Frames.RootFrame);
-                        pixelConverter.Convert(cancellationToken);
                     }
 
-                    this.CompleteMetadata(codestream, header, image.Metadata, cancellationToken);
-                    return image;
-                }
-                catch
-                {
-                    image?.Dispose();
-                    throw;
+                    // Every consumer has finished reading the preceding slot. Transfer the
+                    // completed planes before releasing those preceding reference owners.
+                    JxlReferenceFrame saved = reconstructed.TakeReferenceFrame(frame.SaveBeforeColorTransform);
+                    int slot = frame.ReferenceSlot;
+                    JxlReferenceFrame? previous = referenceFrames[slot];
+                    referenceFrames[slot] = saved;
+                    previous?.Dispose();
                 }
             }
+        }
+        catch
+        {
+            image?.Dispose();
+            throw;
         }
         finally
         {

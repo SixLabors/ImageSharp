@@ -1064,6 +1064,62 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
+    /// Copies completed coding colors and extras before displayed-frame composition changes their samples.
+    /// </summary>
+    /// <param name="configuration">The configuration whose allocator owns the independent reference planes.</param>
+    /// <param name="cancellationToken">The token checked between copied component planes.</param>
+    /// <returns>The pre-transform reference owner. This frame retains its original owners for composition and output.</returns>
+    /// <remarks>
+    /// Call after reconstruction and before the coding transform, only when a displayed pre-transform reference also needs composition.
+    /// Ordinary references transfer their existing planes through <see cref="TakeReferenceFrame"/> without copying samples.
+    /// </remarks>
+    public JxlReferenceFrame CopyReferenceFrame(Configuration configuration, CancellationToken cancellationToken)
+    {
+        Buffer2D<float>[] colors = new Buffer2D<float>[this.reconstructedColors.Length];
+        Buffer2D<float>[] extras = this.nativeExtras.Length == 0 ? [] : new Buffer2D<float>[this.nativeExtras.Length];
+        Rectangle bounds = new(Point.Empty, this.Size);
+        int copiedColors = 0;
+        int copiedExtras = 0;
+        try
+        {
+            // Reconstruction owners can have padded capacity beyond Size. Clone only the initialized
+            // sample rectangle. Each array contains distinct owners, including one color plane for gray.
+            // libjxl saves all extras here, even when the displayed frame later blends those extras.
+            for (int channel = 0; channel < colors.Length; channel++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                colors[channel] = this.reconstructedColors[channel].CloneRegion(configuration, bounds);
+                copiedColors++;
+            }
+
+            for (int channel = 0; channel < extras.Length; channel++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                extras[channel] = this.nativeExtras[channel].CloneRegion(configuration, bounds);
+                copiedExtras++;
+            }
+
+            return new JxlReferenceFrame(colors, extras, this.Size, this.Origin, true);
+        }
+        catch
+        {
+            // The reference constructor takes ownership only on success. Failed copies leave the
+            // foreground unchanged and release every independent plane acquired for this snapshot.
+            for (int channel = 0; channel < copiedColors; channel++)
+            {
+                colors[channel].Dispose();
+            }
+
+            for (int channel = 0; channel < copiedExtras; channel++)
+            {
+                extras[channel].Dispose();
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Transfers this frame's completed color and extra planes to one ordinary reference owner.
     /// </summary>
     /// <param name="savedBeforeColorTransform">Whether the transferred samples precede the frame color transform.</param>

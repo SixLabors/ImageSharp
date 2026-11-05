@@ -1821,11 +1821,6 @@ public static class TestImages
         // with lossless modular coding at effort one. The four source pixels and their embedded linear RGB profile are unchanged.
         public const string LinearRgbaWithIcc = "Jxl/linear_rgba_with_icc.jxl";
 
-        // Original libjxl writers retain the first and fourth CmykLayers frames as separate final images.
-        // The fourth frame's 110-by-68 source rectangle has origin zero. Every coded section and ICC byte is unchanged.
-        public const string CmykFirstFrame = "Jxl/cmyk_layers_first_frame.jxl";
-        public const string CmykFourthFrame = "Jxl/cmyk_layers_fourth_frame.jxl";
-
         // Original jxl-rs HDR inputs use compact BT.2020 color descriptions and ten-bit native samples.
         public const string HdrPq = "Jxl/hdr_pq_test.jxl";
         public const string HdrHlg = "Jxl/hdr_hlg_test.jxl";
@@ -1866,7 +1861,6 @@ public static class TestImages
 
         public const string BlendModes = "Jxl/blendmodes.jxl";
         public const string CroppedXybBlending = "Jxl/issue772_blendbug.jxl";
-        public const string CroppedDeclaredXybBlending = "Jxl/issue772_blendbug_xyb.jxl";
         public const string CroppedP3Blending = "Jxl/issue772_blendbug_p3.jxl";
         public const string CroppedSrgbIccBlending = "Jxl/issue772_blendbug_srgb_icc.jxl";
         public const string CroppedD50GrayBlending = "Jxl/issue772_blendbug_gray_d50.jxl";
@@ -1886,6 +1880,24 @@ public static class TestImages
         public const string ExifBrotliTrailingFinite = "Jxl/exif_brob_trailing_finite.jxl";
         public const string ExifBrotliTrailingInfinite = "Jxl/exif_brob_trailing_infinite.jxl";
         public const string ExifBrotliTruncated = "Jxl/exif_brob_truncated.jxl";
+
+        public const string AlphaNonPremultiplied = "Jxl/alpha_nonpremultiplied.jxl";
+        public const string AlphaPremultiplied = "Jxl/alpha_premultiplied.jxl";
+        public const string AlphaTriangles = "Jxl/alpha_triangles.jxl";
+        public const string AnimationIcos4d = "Jxl/animation_icos4d.jxl";
+        public const string AnimationNewtonsCradle = "Jxl/animation_newtons_cradle.jxl";
+        public const string AnimationSpline = "Jxl/animation_spline.jxl";
+        public const string BenchOrientedBrg = "Jxl/bench_oriented_brg.jxl";
+        public const string Bicycles = "Jxl/bicycles.jxl";
+        public const string Bike = "Jxl/bike.jxl";
+        public const string Cafe = "Jxl/cafe.jxl";
+        public const string Grayscale = "Jxl/grayscale.jxl";
+        public const string GrayscaleJpeg = "Jxl/grayscale_jpeg.jxl";
+        public const string GrayscalePublicUniversity = "Jxl/grayscale_public_university.jxl";
+        public const string Lz77Flower = "Jxl/lz77_flower.jxl";
+        public const string OpsinInverse = "Jxl/opsin_inverse.jxl";
+        public const string Progressive = "Jxl/progressive.jxl";
+        public const string SunsetLogo = "Jxl/sunset_logo.jxl";
     }
 
     public static class Exr

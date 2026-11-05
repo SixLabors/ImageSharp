@@ -6,14 +6,10 @@ using System.Numerics.Tensors;
 using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Exr;
-using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
-using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -31,6 +27,83 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [ValidateDisposedMemoryAllocations]
 public class JxlDecoderTests
 {
+    /// <summary>
+    /// Inputs for native pixel comparisons.
+    /// </summary>
+    public static readonly string[] NativeTestImages =
+    [
+        TestImages.Jxl.WeightedPatchModes,
+        TestImages.Jxl.LinearRgbaWithIcc,
+        TestImages.Jxl.HdrPq,
+        TestImages.Jxl.HdrHlg,
+        TestImages.Jxl.WithPreview,
+        TestImages.Jxl.Splines,
+        TestImages.Jxl.Noise8x8,
+        TestImages.Jxl.Noise,
+        TestImages.Jxl.BlendModes,
+        TestImages.Jxl.CroppedP3Blending,
+        TestImages.Jxl.CroppedSrgbIccBlending,
+        TestImages.Jxl.CroppedD65GrayBlending,
+        TestImages.Jxl.P3XybSpotComposition,
+        TestImages.Jxl.P3IccStandalonePostSave,
+        TestImages.Jxl.SpotColor,
+        TestImages.Jxl.AlphaNonPremultiplied,
+        TestImages.Jxl.AlphaPremultiplied,
+        TestImages.Jxl.AlphaTriangles,
+        TestImages.Jxl.AnimationIcos4d,
+        TestImages.Jxl.AnimationNewtonsCradle,
+        TestImages.Jxl.AnimationSpline,
+        TestImages.Jxl.BenchOrientedBrg,
+        TestImages.Jxl.Bicycles,
+        TestImages.Jxl.Bike,
+        TestImages.Jxl.Cafe,
+        TestImages.Jxl.CmykLayers,
+        TestImages.Jxl.DeltaPalette,
+        TestImages.Jxl.Grayscale,
+        TestImages.Jxl.GrayscaleJpeg,
+        TestImages.Jxl.GrayscalePublicUniversity,
+        TestImages.Jxl.LosslessFloat,
+        TestImages.Jxl.Lz77Flower,
+        TestImages.Jxl.OpsinInverse,
+        TestImages.Jxl.Patches,
+        TestImages.Jxl.Progressive,
+        TestImages.Jxl.SunsetLogo,
+        TestImages.Jxl.UpsamplingWithAlpha,
+    ];
+
+    /// <summary>
+    /// Compares decoded pixels with native output at each SIMD width and in the scalar path.
+    /// </summary>
+    /// <param name="provider">The test image provider.</param>
+    /// <param name="tolerance">The allowed image difference.</param>
+    [Theory]
+    [WithFileCollection(nameof(NativeTestImages), PixelTypes.RgbaVector, TolerantImageComparer.DefaultImageThreshold)]
+    [WithFile(TestImages.Jxl.CroppedXybBlending, PixelTypes.RgbaVector, .0004F / 100F)]
+    public void DecodeMatchesNativePixels(TestImageProvider<RgbaVector> provider, float tolerance)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateDecodedPixels,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider,
+            tolerance.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// Decodes and compares one input with the selected hardware features.
+    /// </summary>
+    /// <param name="providerDump">The serialized test image provider.</param>
+    /// <param name="toleranceDump">The serialized image tolerance.</param>
+    private static void ValidateDecodedPixels(string providerDump, string toleranceDump)
+    {
+        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
+        float tolerance = FeatureTestRunner.Deserialize<float>(toleranceDump);
+        provider.Configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(provider.Configuration) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+
+        using Image<RgbaVector> image = provider.GetImage(JxlDecoder.Instance, options);
+        image.DebugSaveMultiFrame(provider);
+
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(tolerance), LibJxlReferenceDecoder.Instance, options);
+    }
+
     /// <summary>
     /// Verifies AC metadata packing and field bounds at every SIMD width and the scalar fallback.
     /// </summary>
@@ -1368,307 +1441,6 @@ public class JxlDecoderTests
         Assert.NotNull(info.Metadata.IccProfile);
         Assert.Equal(544, info.Metadata.IccProfile.ToByteArray().Length);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.PixelType.AlphaRepresentation);
-    }
-
-    /// <summary>
-    /// Verifies stored patch modes, selected weights and clamping against complete native output at each SIMD width and scalar fallback.
-    /// </summary>
-    /// <param name="provider">The stored weighted-patch input.</param>
-    [Theory]
-    [WithFile(TestImages.Jxl.WeightedPatchModes, PixelTypes.RgbaVector)]
-    public void DecodeWeightedPatchModesMatchesNativePixels(TestImageProvider<RgbaVector> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateDecodedWeightedPatchModes,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider);
-
-    /// <summary>
-    /// Compares the complete stored patch result with native float output without quantizing signed RGB or transparent pixels.
-    /// </summary>
-    /// <param name="providerDump">The serialized file provider for one hardware configuration.</param>
-    private static void ValidateDecodedWeightedPatchModes(string providerDump)
-    {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
-        provider.Configuration = new(new JxlConfigurationModule());
-        DecoderOptions options = new(provider.Configuration);
-        using Image<RgbaVector> image = provider.GetImage(JxlDecoder.Instance, options);
-
-        // Compare float pixels directly. The diagnostic dump does not supply expected values.
-        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
-        using MemoryStream referenceStream = new(file.Bytes, false);
-        using Image<RgbaVector> reference = LibJxlReferenceDecoder.Instance.Decode<RgbaVector>(options, referenceStream);
-        SaveDecodedImage(image, provider);
-        Assert.Equal(reference.Size, image.Size);
-        ApproximateFloatComparer comparer = ApproximateFloatComparer.FromPrecision(4);
-
-        // Check every component, including RGB at partial and zero alpha, with the four-decimal bound.
-        for (int y = 0; y < image.Height; y++)
-        {
-            Span<RgbaVector> expected = reference.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<RgbaVector> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            for (int x = 0; x < actual.Length; x++)
-            {
-                Assert.Equal(expected[x].ToVector4(), actual[x].ToVector4(), comparer);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Verifies that public declared-XYB decoding retains native alpha at its stored eight-bit precision.
-    /// </summary>
-    /// <param name="provider">The stored cropped input with a declared XYB color profile.</param>
-    [Theory]
-    [WithFile(TestImages.Jxl.CroppedDeclaredXybBlending, PixelTypes.RgbaVector)]
-    public void DecodeDeclaredXybPreservesNativeAlpha(TestImageProvider<RgbaVector> provider)
-    {
-        provider.Configuration = new(new JxlConfigurationModule());
-        DecoderOptions options = new(provider.Configuration) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
-        using Image<RgbaVector> image = provider.GetImage(JxlDecoder.Instance, options);
-        SaveDecodedImage(image, provider);
-
-        // Native alpha has eight-bit integer precision. The generated XYB ICC approximates the device transform,
-        // so this test compares only alpha. ConvertDeclaredXybDeviceMatchesNativeLinearRgb checks the device color arithmetic.
-        TestFile file = TestFile.Create(provider.SourceFileOrDescription);
-        using MemoryStream referenceStream = new(file.Bytes, false);
-        using Image<A8> expected = LibJxlReferenceDecoder.Instance.Decode<A8>(options, referenceStream);
-        using Image<A8> actual = image.CloneAs<A8>();
-
-        Assert.Equal(new Size(750, 1000), expected.Size);
-        Assert.Equal(1, expected.Frames.Count);
-        Assert.Equal(expected.Size, actual.Size);
-        Assert.Equal(expected.Frames.Count, actual.Frames.Count);
-        ImageComparer.Exact.VerifySimilarity(expected, actual);
-    }
-
-    /// <summary>
-    /// Verifies native color conversion, preview skipping, profile retention and straight alpha through the public decoder.
-    /// </summary>
-    /// <param name="provider">The stored profiled or compact-color input.</param>
-    [Theory]
-    [WithFile(TestImages.Jxl.LinearRgbaWithIcc, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.CmykFirstFrame, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.CmykFourthFrame, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.HdrPq, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.HdrHlg, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.WithPreview, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.Splines, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.Noise8x8, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.Noise, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.BlendModes, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.CroppedXybBlending, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.CroppedP3Blending, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.CroppedSrgbIccBlending, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.CroppedD65GrayBlending, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.P3XybSpotComposition, PixelTypes.RgbaVector)]
-    [WithFile(TestImages.Jxl.P3IccStandalonePostSave, PixelTypes.RgbaVector)]
-    public void DecodeColorMatchesNativeSrgb(TestImageProvider<RgbaVector> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateDecodedColors,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider);
-
-    /// <summary>
-    /// Verifies native spot rendering with RGB acceptance for the embedded profile's amplified Fast Pow error.
-    /// </summary>
-    /// <param name="provider">The stored spot image with a ProPhoto matrix/TRC profile.</param>
-    [Theory]
-    [WithFile(TestImages.Jxl.SpotColor, PixelTypes.RgbaVector)]
-    public void DecodeSpotColorMatchesNativeSrgb(TestImageProvider<RgbaVector> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateDecodedColors,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider);
-
-    /// <summary>
-    /// Compares complete native float images with each profile-retention and optional-metadata setting.
-    /// </summary>
-    /// <param name="providerDump">The serialized file provider for one hardware configuration.</param>
-    /// <remarks>
-    /// Libjxl decodes the same stored input to unassociated sRGB float pixels for each hardware configuration.
-    /// The comparison checks the complete image, including extended RGB and hidden RGB at zero alpha.
-    /// Diagnostic dumps are for visual inspection. They do not supply expected pixel values.
-    /// </remarks>
-    private static void ValidateDecodedColors(string providerDump)
-    {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
-        string file = provider.SourceFileOrDescription;
-
-        // The spot profile's gamma curve feeds a matrix that subtracts similar values when calculating green.
-        // That subtraction and the output transfer curve amplify Fast Pow's error. Its separate RGB acceptance
-        // bounds the independently measured maximum 0.0011096562 at 0.00112. Other cases retain their existing bound.
-        float rgbTolerance = file == TestImages.Jxl.SpotColor ? .00112F : .00052F;
-        Size size = file switch
-        {
-            TestImages.Jxl.LinearRgbaWithIcc => new Size(4, 1),
-            TestImages.Jxl.WithPreview => new Size(64, 64),
-            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg => new Size(1024, 1024),
-            TestImages.Jxl.Splines => new Size(2048, 2048),
-            TestImages.Jxl.Noise8x8 or TestImages.Jxl.P3IccStandalonePostSave => new Size(8, 8),
-            TestImages.Jxl.Noise => new Size(500, 606),
-            TestImages.Jxl.SpotColor => new Size(600, 400),
-            TestImages.Jxl.BlendModes => new Size(1024, 1024),
-            TestImages.Jxl.P3XybSpotComposition => new Size(35, 3),
-            TestImages.Jxl.CroppedXybBlending or TestImages.Jxl.CroppedP3Blending or TestImages.Jxl.CroppedSrgbIccBlending
-                or TestImages.Jxl.CroppedD65GrayBlending => new Size(750, 1000),
-            TestImages.Jxl.CmykFirstFrame => new Size(512, 512),
-            TestImages.Jxl.CmykFourthFrame => new Size(110, 68),
-            _ => new Size(169, 118)
-        };
-
-        string profileHash = file switch
-        {
-            TestImages.Jxl.SpotColor => "CE0CAEE9506116EA94D7367D646F7FD6D0B7E82FEB8D1F3DE4EDB3BA57BAE07E",
-            TestImages.Jxl.LinearRgbaWithIcc => "5FB4D2577884135C20D1E81FE1A0912907037B31486E5BCDA0029270C924E264",
-            TestImages.Jxl.CroppedSrgbIccBlending => "87948CDB39DC5FE2044FA8A340B09B27AD06A3A0795F6EED5B8EF4CBCF6EA051",
-            TestImages.Jxl.P3IccStandalonePostSave => "3F8CA934C4B3AE48B5B2522117C715FF390C00F887FD4CDFAD60720CCBEF3B5B",
-            TestImages.Jxl.WithPreview => null,
-            TestImages.Jxl.HdrPq or TestImages.Jxl.HdrHlg or TestImages.Jxl.Splines
-                or TestImages.Jxl.Noise8x8 or TestImages.Jxl.Noise or TestImages.Jxl.BlendModes or TestImages.Jxl.CroppedXybBlending
-                or TestImages.Jxl.CroppedP3Blending
-                or TestImages.Jxl.CroppedD65GrayBlending or TestImages.Jxl.P3XybSpotComposition => null,
-            TestImages.Jxl.CmykFirstFrame or TestImages.Jxl.CmykFourthFrame => "4855B8FABB96BDC6495D45D089BB8C8EFB1AE18389E0DC9E75A5F701A9C0B662",
-            _ => "92AAEE40521D7671DBC901DFC88CC36CB83D41766B2C466FF97268EE5AB0C577"
-        };
-
-        Configuration configuration = new(new JxlConfigurationModule());
-        provider.Configuration = configuration;
-
-        // Read the reference from the original codestream. Keep float samples in memory so the
-        // comparison does not depend on a second image format's transfer curve or storage precision.
-        TestFile testFile = TestFile.Create(file);
-        using MemoryStream referenceStream = new(testFile.Bytes, false);
-        using Image<RgbaVector> reference = LibJxlReferenceDecoder.Instance.Decode<RgbaVector>(new DecoderOptions(configuration), referenceStream);
-
-        // Embedded ICC inputs need every retention/metadata combination. Compact inputs have no
-        // optional profile to retain; Convert with metadata skipped proves that mandatory color and feature data remain active.
-        ReadOnlySpan<ColorProfileHandling> policies = profileHash is null
-            ? [ColorProfileHandling.Convert]
-            : [ColorProfileHandling.Preserve, ColorProfileHandling.Compact, ColorProfileHandling.Convert];
-
-        ReadOnlySpan<bool> metadataModes = profileHash is null ? [true] : [false, true];
-        foreach (ColorProfileHandling handling in policies)
-        {
-            foreach (bool skipMetadata in metadataModes)
-            {
-                DecoderOptions options = new(configuration) { ColorProfileHandling = handling, SkipMetadata = skipMetadata };
-                using Image<RgbaVector> image = provider.GetImage(JxlDecoder.Instance, options);
-                Assert.Equal(size, image.Size);
-
-                // All policies convert pixels. Compact color descriptions have no embedded ICC profile.
-                // Compact also removes the canonical sRGB ICC profile; Preserve keeps its exact original bytes.
-                // SkipMetadata must retain color data needed for conversion and the selected retention policy.
-                if (handling == ColorProfileHandling.Convert || profileHash is null
-                    || (handling == ColorProfileHandling.Compact && file == TestImages.Jxl.CroppedSrgbIccBlending))
-                {
-                    Assert.Null(image.Metadata.IccProfile);
-                }
-                else
-                {
-                    Assert.NotNull(image.Metadata.IccProfile);
-                    Assert.Equal(profileHash, Convert.ToHexString(SHA256.HashData(image.Metadata.IccProfile.ToByteArray())));
-                }
-
-                // The metadata assertions above verified profile retention. These pixels are already sRGB;
-                // remove the retained source profile so output encoding does not convert them back to device values.
-                image.Metadata.IccProfile = null;
-                image.Frames.RootFrame.Metadata.IccProfile = null;
-                SaveDecodedImage(image, provider);
-
-                // Bound each RGB component by rgbTolerance * max(1, abs(expected)). Alpha uses an absolute
-                // bound because its normalized range remains [0,1].
-                bool matches = true;
-                string firstFailure = null;
-                float maximumRejectedRgbError = 0F;
-                float maximumAlphaError = 0F;
-
-                for (int y = 0; y < image.Height; y++)
-                {
-                    Span<RgbaVector> expected = reference.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-                    Span<RgbaVector> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-                    for (int x = 0; x < actual.Length; x++)
-                    {
-                        Vector3 expectedRgb = new(expected[x].R, expected[x].G, expected[x].B);
-                        Vector3 actualRgb = new(actual[x].R, actual[x].G, actual[x].B);
-                        Vector3 scale = Vector3.Max(Vector3.One, Vector3.Abs(expectedRgb));
-                        Vector3 difference = Vector3.Abs(actualRgb - expectedRgb);
-                        Vector3 tolerance = rgbTolerance * scale;
-                        float alphaError = MathF.Abs(actual[x].A - expected[x].A);
-                        maximumAlphaError = MathF.Max(maximumAlphaError, alphaError);
-
-                        // Positive bound checks also reject NaN. Normalize only rejected pixels, then finish
-                        // this pass to report their largest RGB error and the complete image's largest alpha error.
-                        if (!(difference.X <= tolerance.X && difference.Y <= tolerance.Y && difference.Z <= tolerance.Z
-                            && alphaError <= .0000001F))
-                        {
-                            Vector3 normalized = difference / scale;
-                            maximumRejectedRgbError = MathF.Max(
-                                maximumRejectedRgbError, MathF.Max(normalized.X, MathF.Max(normalized.Y, normalized.Z)));
-
-                            if (matches)
-                            {
-                                firstFailure = $"{file}: pixel ({x}, {y}); reference {expected[x].ToVector4():R}; ImageSharp {actual[x].ToVector4():R}.";
-                            }
-
-                            matches = false;
-                        }
-                    }
-                }
-
-                if (!matches)
-                {
-                    Assert.Fail(
-                        $"{firstFailure} Maximum rejected-pixel normalized RGB error {maximumRejectedRgbError:R}; maximum alpha error {maximumAlphaError:R}.");
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Saves decoded pixels in a format that retains the stored case's independently verified component range.
-    /// </summary>
-    /// <param name="image">The decoded working RGB pixels, without a retained source ICC profile.</param>
-    /// <param name="provider">The stored input and normal diagnostic output path.</param>
-    private static void SaveDecodedImage(Image<RgbaVector> image, TestImageProvider<RgbaVector> provider)
-    {
-        switch (provider.SourceFileOrDescription)
-        {
-            case TestImages.Jxl.WeightedPatchModes:
-            case TestImages.Jxl.CroppedDeclaredXybBlending:
-            case TestImages.Jxl.CroppedXybBlending:
-            case TestImages.Jxl.CroppedP3Blending:
-            case TestImages.Jxl.CroppedSrgbIccBlending:
-            case TestImages.Jxl.P3XybSpotComposition:
-            case TestImages.Jxl.CmykFourthFrame:
-                // These cases contain signed or extended RGB at zero alpha. Float TIFF retains those
-                // unassociated samples. The EXR encoder associates straight RGB, which clears these colors at zero alpha.
-                image.DebugSave(provider, extension: "tiff", encoder: new TiffEncoder
-                {
-                    SampleFormat = TiffSampleFormat.Float,
-                    BitsPerPixel = TiffBitsPerPixel.Bit128,
-                    Compression = TiffCompression.Deflate,
-                    TransparentColorMode = TransparentColorMode.Preserve
-                });
-
-                break;
-
-            case TestImages.Jxl.HdrPq:
-            case TestImages.Jxl.HdrHlg:
-            case TestImages.Jxl.Splines:
-            case TestImages.Jxl.Noise8x8:
-            case TestImages.Jxl.Noise:
-            case TestImages.Jxl.SpotColor:
-            case TestImages.Jxl.BlendModes:
-            case TestImages.Jxl.CmykFirstFrame:
-                // Native float output proves that these cases exceed [0,1]. ZIP-compressed float EXR
-                // retains their range. Its encoder converts working RGB to the file's linear components.
-                image.DebugSave(provider, extension: "exr", encoder: new ExrEncoder { PixelType = ExrPixelType.Float, Compression = ExrCompression.Zip });
-                break;
-
-            default:
-                // The remaining stored cases fit [0,1], so the normal PNG dump retains their appearance.
-                image.DebugSave(provider);
-                break;
-        }
     }
 
     /// <summary>

@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
@@ -65,7 +66,7 @@ internal abstract partial class JxlColorConverterBase
         bool restoreCodingTransform = !frame.CodingColorTransformApplied;
         if (header.UsesXybTransform && restoreCodingTransform)
         {
-            // Coding XYB reconstructs linear sRGB directly. Its embedded profile describes the suggested
+            // Coding XYB reconstructs linear RGB with sRGB primaries and D65. Its embedded profile describes the suggested
             // original output space, not the components consumed by this inverse transform.
             return new JxlColorConverter<XybOperator>(new XybOperator(header.XybTransform), KnownRgbWorkingSpaces.SRgb);
         }
@@ -74,7 +75,7 @@ internal abstract partial class JxlColorConverterBase
         {
             // Declared XYB uses scaled device samples, independently of coding XYB's custom transform.
             // A completed coding inverse leaves those device samples in the retained planes.
-            // Otherwise restore optional YCbCr coding before mapping the samples to linear sRGB.
+            // Otherwise restore optional YCbCr coding before mapping the samples to linear RGB with sRGB primaries and D65.
             return frame.Header.YCbCr && restoreCodingTransform
                 ? new JxlColorConverter<XybDeviceOperator<YCbCrOperator>>(new XybDeviceOperator<YCbCrOperator>(new YCbCrOperator()), KnownRgbWorkingSpaces.SRgb)
                 : new JxlColorConverter<XybDeviceOperator<RgbOperator>>(new XybDeviceOperator<RgbOperator>(default), KnownRgbWorkingSpaces.SRgb);
@@ -150,18 +151,52 @@ internal abstract partial class JxlColorConverterBase
     }
 
     /// <summary>
-    /// Determines whether the component operators can restore the original encoding for composition or reference saving.
+    /// Prepares the original RGB encoding for composition, or linear-light RGB with sRGB primaries and D65 for a saved replacement.
     /// </summary>
-    /// <param name="header">The parsed coding transform and original color description.</param>
-    /// <returns>Whether device reconstruction or direct compact RGB, XYB or D65 grayscale reconstruction is available.</returns>
+    /// <param name="header">The parsed compact or ICC original color description.</param>
+    /// <param name="frame">The frame that requires composition or post-transform reference saving.</param>
+    /// <returns>The working space for the retained color samples.</returns>
+    /// <exception cref="InvalidImageContentException">Composition requires an original encoding without a supported direct inverse.</exception>
     /// <remarks>
-    /// Coding XYB uses a direct inverse for compact RGB and D65 grayscale, or device scaling for declared XYB.
-    /// An ICC-only output description does not supply that direct conversion. Ordinary final output has its own converter selection.
+    /// The caller handles compact XYB through device scaling. Ordinary final output has its own converter selection.
+    /// This method does not approximate ICC matrices or invert a gamut-mapping LUT before composition.
     /// </remarks>
-    public static bool CanRestoreOriginalColor(JxlHeader header)
-        => !header.UsesXybTransform
-            || (!header.HasIccProfile && (header.ProfileColorType is JxlColorType.Rgb or JxlColorType.Xyb
-                || (header.ProfileColorType == JxlColorType.Luminance && header.WhitePoint == KnownIlluminants.D65Chromaticity)));
+    public static RgbWorkingSpace GetOriginalWorkingSpace(JxlHeader header, JxlFrameHeader frame)
+    {
+        if (!header.HasIccProfile && (header.ProfileColorType != JxlColorType.Luminance || header.WhitePoint == KnownIlluminants.D65Chromaticity))
+        {
+            return GetWorkingSpace(header);
+        }
+
+        if (header.HasIccProfile)
+        {
+            // The shared detector identifies matrix/TRC profiles that the library treats as sRGB.
+            // Restore those samples with the existing sRGB inverse. This detector does not extract
+            // arbitrary ICC primaries or transfer curves. Run it only when a frame needs retained
+            // original samples, never on the ordinary coding-XYB output path.
+            IccProfile? profile = header.IccProfile;
+            if (profile is not null && profile.IsCanonicalSrgbMatrixTrc())
+            {
+                return KnownRgbWorkingSpaces.SRgb;
+            }
+        }
+
+        if (frame.NeedsBlending)
+        {
+            // libjxl stage_blending.cc requires the selected encoding to equal the original encoding.
+            // This path restores compact RGB, D65 grayscale and profiles identified as sRGB above.
+            // Other ICC profiles need parsed component fields to select a direct inverse. A paired
+            // ICC round trip can map gamut before blending, so it cannot substitute for that inverse.
+            // Reject this unsupported composition instead of returning an image with its blend omitted.
+            throw new InvalidImageContentException("JPEG XL frame composition cannot reconstruct the declared original color encoding.");
+        }
+
+        // Native dec_xyb.cc falls back to linear-light RGB with sRGB primaries and D65 when no direct original inverse is available.
+        // dec_cache.cc can still save a full replacement in that selected encoding. A later frame
+        // that requires original-space composition fails above before consuming this reference.
+        RgbWorkingSpace srgb = KnownRgbWorkingSpaces.SRgb;
+        return new GammaWorkingSpace(1F, srgb.WhitePoint, srgb.ChromaticityCoordinates);
+    }
 
     /// <summary>
     /// Selects coding XYB reconstruction into the original compact RGB or grayscale encoding.

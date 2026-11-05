@@ -159,7 +159,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         // completed native planes, without retaining a frame's entropy or reconstruction workspace.
         InlineArray4<Buffer2D<float>[]?> lowFrequencyFrames = default;
         InlineArray4<JxlReferenceFrame?> referenceFrames = default;
-        bool canRestoreOriginalColor = JxlColorConverterBase.CanRestoreOriginalColor(header);
         uint visibleFrame = 0;
         uint nonvisibleFrame = 0;
         try
@@ -170,11 +169,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, this.Options.SegmentIntegrityHandling);
                 bool lowFrequency = frame.Type == JxlFrameHeader.FrameType.LowFrequency;
 
-                // Pre-transform references retain coding samples for patches. Other saved frames
-                // and composition need the image's original component encoding. Its direct conversion
-                // capability depends on image metadata, so select it once before frame traversal.
-                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced && (frame.SaveBeforeColorTransform || canRestoreOriginalColor);
-                bool originalComposition = canRestoreOriginalColor && frame.NeedsBlending;
+                // Pre-transform references retain coding samples for patches. The frame owner prepares
+                // post-transform samples before reference saving or composition. A color-conversion
+                // limitation must produce a decode error there, never disable a requested blend here.
+                bool nativeReference = !frame.IsDisplayed && frame.CanBeReferenced;
+                bool originalComposition = frame.NeedsBlending;
 
                 if ((!lowFrequency && !nativeReference && (!frame.IsLast || frame.Type != JxlFrameHeader.FrameType.Regular))
                     || (!nativeReference && !originalComposition && (frame.HasCrop || frame.Size != header.Size))

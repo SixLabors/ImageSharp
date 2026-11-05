@@ -162,14 +162,14 @@ internal sealed class JxlFrame : IDisposable
             }
         }
 
-        if (image.UsesXybTransform && image.ProfileColorType != JxlColorType.Xyb
-            && (header.NeedsBlending || (header.CanBeReferenced && !header.SaveBeforeColorTransform))
-            && JxlColorConverterBase.CanRestoreOriginalColor(image))
+        if (image.UsesXybTransform && (image.HasIccProfile || image.ProfileColorType != JxlColorType.Xyb)
+            && (header.NeedsBlending || (header.CanBeReferenced && !header.SaveBeforeColorTransform)))
         {
-            // Coding XYB needs the original matrix and transfer before composition or post-transform
-            // reference saving. Prepare that compact description once and reuse it for final output.
+            // Prepare the required original encoding once when initializing this frame. Report
+            // unsupported original-space composition before applying the coding color transform.
+            // A saved replacement can use libjxl's fallback encoding when it does not require composition.
             // Device RGB and YCbCr already use the original transfer and need no working-space setup here.
-            this.OriginalWorkingSpace = JxlColorConverterBase.GetWorkingSpace(image);
+            this.OriginalWorkingSpace = JxlColorConverterBase.GetOriginalWorkingSpace(image, header);
         }
     }
 
@@ -192,15 +192,15 @@ internal sealed class JxlFrame : IDisposable
     /// Gets a value indicating whether the coding color transform has completed in this frame's retained samples.
     /// </summary>
     /// <remarks>
-    /// Completed coding XYB includes the declared RGB transfer curve, or the declared XYB device scaling.
+    /// Completed coding XYB includes the prepared RGB encoding's transfer curve, or the declared XYB device scaling.
     /// Raw modular YCbCr remains pending until composition restores its normalized blocks without retaining another foreground image.
     /// </remarks>
     public bool CodingColorTransformApplied { get; private set; }
 
     /// <summary>
-    /// Gets the original compact working space when coding XYB requires it before composition or reference storage.
+    /// Gets the prepared working space for coding XYB before composition or reference storage.
     /// </summary>
-    /// <remarks>An embedded ICC profile retains its own color description and does not use this compact working space.</remarks>
+    /// <remarks>Composition uses the original encoding. A replacement reference can instead retain linear-light RGB with sRGB primaries and D65.</remarks>
     public RgbWorkingSpace? OriginalWorkingSpace { get; }
 
     /// <summary>
@@ -449,12 +449,13 @@ internal sealed class JxlFrame : IDisposable
     }
 
     /// <summary>
-    /// Restores retained coding colors to the encoded device components required by composition and post-transform references.
+    /// Restores retained coding colors for composition or post-transform reference storage.
     /// </summary>
     /// <param name="allocator">The tracked allocator for one reusable row when XYB requires a transfer curve.</param>
     /// <param name="cancellationToken">The token checked between converted rows.</param>
     /// <remarks>
     /// Call once after spatial reconstruction and before composition or post-transform reference transfer.
+    /// Composition uses the original encoding. A saved replacement can use libjxl's selected fallback encoding.
     /// RGB without a coding transform needs no work.
     /// Raw modular YCbCr has no float color image; Compose restores its existing normalized scratch blocks instead.
     /// Coding XYB reconstructs compact RGB or luminance, or rescales declared XYB into its device sample units.
@@ -486,7 +487,7 @@ internal sealed class JxlFrame : IDisposable
             // YCbCr reconstructs encoded device components directly. Do not apply another transfer curve.
             this.CodingColorTransformApplied = true;
         }
-        else if (this.image.UsesXybTransform && this.image.ProfileColorType == JxlColorType.Xyb)
+        else if (this.image.UsesXybTransform && !this.image.HasIccProfile && this.image.ProfileColorType == JxlColorType.Xyb)
         {
             // Declared XYB is not RGB. The reference rescales the existing coding planes into
             // XYB device units before composition, without an opsin inverse or a transfer curve.

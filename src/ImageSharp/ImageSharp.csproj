@@ -52,11 +52,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Keep the rejected JXL port as reference material outside the compiled codec implementation. -->
-    <Compile Remove="Formats\Jxl.Legacy\**\*.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Update="Formats\Heif\Heif4CharCode.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

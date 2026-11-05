@@ -27,11 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Preserve the old port's tests without retaining a dependency on its excluded types. -->
-    <Compile Remove="Formats\Jxl.Legacy\**\*.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="PixelFormats\PixelOperations\Generated\PixelOperationsTests.Specialized.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

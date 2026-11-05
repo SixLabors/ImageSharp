@@ -928,6 +928,26 @@ public class JxlDecoderTests
     }
 
     /// <summary>
+    /// Verifies public decoding and identification retain stored dimensions and orientation until the caller applies AutoOrient.
+    /// </summary>
+    [Fact]
+    public void DecodeAndIdentifyRetainStoredOrientation()
+    {
+        Configuration configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(configuration);
+        using MemoryStream stream = new(TestFile.Create(TestImages.Jxl.Orientation6).Bytes, false);
+
+        ImageInfo info = Image.Identify(options, stream);
+        stream.Position = 0;
+        using Image<Rgb24> image = Image.Load<Rgb24>(options, stream);
+
+        Assert.Equal(new Size(100, 256), info.Size);
+        Assert.Equal(info.Size, image.Size);
+        Assert.Equal(ExifOrientationMode.RightTop, info.Metadata.ExifProfile.GetValue(ExifTag.Orientation).Value);
+        Assert.Equal(ExifOrientationMode.RightTop, image.Metadata.ExifProfile.GetValue(ExifTag.Orientation).Value);
+    }
+
+    /// <summary>
     /// Verifies that the optional preview is skipped during identification and public pixel decoding.
     /// </summary>
     [Fact]

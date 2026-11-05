@@ -116,7 +116,7 @@ public class DecodeJxl
         }
     }
 
-    /* Results 04.11.2026
+    /* Results 05.11.2026
     BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
@@ -126,31 +126,54 @@ public class DecodeJxl
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method     | TestImage                 |      Mean |     Error |   StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-    | ---------- | ------------------------- | --------: | --------: | -------: | ----: | ------: | --------: | ----------: |
-    | ImageSharp | Jxl/dice.jxl              |  18.49 ms |  2.327 ms | 0.128 ms |  0.62 |    0.00 |   37592 B |      522.11 |
-    | Libjxl     | Jxl/dice.jxl              |  29.91 ms |  1.468 ms | 0.080 ms |  1.00 |    0.00 |      72 B |        1.00 |
-    | JxlRs      | Jxl/dice.jxl              |  18.41 ms |  2.629 ms | 0.144 ms |  0.62 |    0.00 |      72 B |        1.00 |
-    |            |                           |           |           |          |       |         |           |             |
-    | ImageSharp | Jxl/has_permutation.jxl   |  17.30 ms |  0.646 ms | 0.035 ms |  0.34 |    0.00 |   27456 B |      381.33 |
-    | Libjxl     | Jxl/has_permutation.jxl   |  51.26 ms |  2.763 ms | 0.151 ms |  1.00 |    0.00 |      72 B |        1.00 |
-    | JxlRs      | Jxl/has_permutation.jxl   |  26.91 ms | 41.789 ms | 2.291 ms |  0.52 |    0.04 |      72 B |        1.00 |
-    |            |                           |           |           |          |       |         |           |             |
-    | ImageSharp | Jxl/issue648_palette0.jxl | 116.41 ms | 22.251 ms | 1.220 ms |  0.89 |    0.01 |   29968 B |      416.22 |
-    | Libjxl     | Jxl/issue648_palette0.jxl | 130.41 ms |  6.657 ms | 0.365 ms |  1.00 |    0.00 |      72 B |        1.00 |
-    | JxlRs      | Jxl/issue648_palette0.jxl | 120.02 ms |  8.188 ms | 0.449 ms |  0.92 |    0.00 |      72 B |        1.00 |
-    |            |                           |           |           |          |       |         |           |             |
-    | ImageSharp | Jxl/progressive_ac.jxl    |  48.82 ms |  5.064 ms | 0.278 ms |  0.49 |    0.00 |   26704 B |      333.80 |
-    | Libjxl     | Jxl/progressive_ac.jxl    |  99.53 ms | 14.505 ms | 0.795 ms |  1.00 |    0.01 |      80 B |        1.00 |
-    | JxlRs      | Jxl/progressive_ac.jxl    |  57.37 ms | 12.554 ms | 0.688 ms |  0.58 |    0.01 |      72 B |        0.90 |
+    Without NativeMemoryProfiler (21:06:39):
 
-    libjxl 0.12.0 through JxlNet 0.12.0.2; jxl-rs d7a831fae15b903f1b56a76668030c19ac07bb6f with high_precision=true.
+    | Method     | TestImage                 |      Mean |    Error |   StdDev | Ratio | Allocated | Alloc Ratio |
+    | ---------- | ------------------------- | --------: | -------: | -------: | ----: | --------: | ----------: |
+    | ImageSharp | Jxl/dice.jxl              |  19.28 ms | 2.964 ms | 0.162 ms |  0.64 |   37624 B |      522.56 |
+    | Libjxl     | Jxl/dice.jxl              |  29.92 ms | 4.678 ms | 0.256 ms |  1.00 |      72 B |        1.00 |
+    | JxlRs      | Jxl/dice.jxl              |  19.35 ms | 3.873 ms | 0.212 ms |  0.65 |      72 B |        1.00 |
+    |            |                           |           |          |          |       |           |             |
+    | ImageSharp | Jxl/has_permutation.jxl   |  17.74 ms | 2.636 ms | 0.145 ms |  0.34 |   27440 B |      356.36 |
+    | Libjxl     | Jxl/has_permutation.jxl   |  51.67 ms | 5.092 ms | 0.279 ms |  1.00 |      77 B |        1.00 |
+    | JxlRs      | Jxl/has_permutation.jxl   |  25.65 ms | 3.830 ms | 0.210 ms |  0.50 |      72 B |        0.94 |
+    |            |                           |           |          |          |       |           |             |
+    | ImageSharp | Jxl/issue648_palette0.jxl | 114.89 ms | 2.645 ms | 0.145 ms |  0.88 |   30040 B |      417.22 |
+    | Libjxl     | Jxl/issue648_palette0.jxl | 130.66 ms | 7.784 ms | 0.427 ms |  1.00 |      72 B |        1.00 |
+    | JxlRs      | Jxl/issue648_palette0.jxl | 120.32 ms | 5.550 ms | 0.304 ms |  0.92 |      72 B |        1.00 |
+    |            |                           |           |          |          |       |           |             |
+    | ImageSharp | Jxl/progressive_ac.jxl    |  49.93 ms | 4.589 ms | 0.252 ms |  0.49 |   26688 B |      370.67 |
+    | Libjxl     | Jxl/progressive_ac.jxl    | 100.92 ms | 8.644 ms | 0.474 ms |  1.00 |      72 B |        1.00 |
+    | JxlRs      | Jxl/progressive_ac.jxl    |  59.63 ms | 6.806 ms | 0.373 ms |  0.59 |      72 B |        1.00 |
+
+    With NativeMemoryProfiler (21:11:13):
+
+    | Method     | TestImage                 |      Mean |     Error |   StdDev | Ratio | Allocated native memory | Native memory leak | Allocated | Alloc Ratio |
+    | ---------- | ------------------------- | --------: | --------: | -------: | ----: | ----------------------: | -----------------: | --------: | ----------: |
+    | ImageSharp | Jxl/dice.jxl              |  20.44 ms |  7.559 ms | 0.414 ms |  0.65 |             5,243,136 B |        5,243,136 B |   37624 B |      522.56 |
+    | Libjxl     | Jxl/dice.jxl              |  31.29 ms |  3.379 ms | 0.185 ms |  1.00 |            53,902,572 B |                  - |      72 B |        1.00 |
+    | JxlRs      | Jxl/dice.jxl              |  19.50 ms |  9.298 ms | 0.510 ms |  0.62 |            16,017,583 B |                  - |      72 B |        1.00 |
+    |            |                           |           |           |          |       |                         |                    |           |             |
+    | ImageSharp | Jxl/has_permutation.jxl   |  18.73 ms | 12.245 ms | 0.671 ms |  0.36 |                   356 B |              242 B |   27440 B |      356.36 |
+    | Libjxl     | Jxl/has_permutation.jxl   |  51.83 ms |  6.651 ms | 0.365 ms |  1.00 |            49,736,696 B |               33 B |      77 B |        1.00 |
+    | JxlRs      | Jxl/has_permutation.jxl   |  27.67 ms |  0.992 ms | 0.054 ms |  0.53 |            39,813,244 B |                  - |      72 B |        0.94 |
+    |            |                           |           |           |          |       |                         |                    |           |             |
+    | ImageSharp | Jxl/issue648_palette0.jxl | 119.53 ms | 11.650 ms | 0.639 ms |  0.89 |             1,281,548 B |            1,420 B |   30040 B |      417.22 |
+    | Libjxl     | Jxl/issue648_palette0.jxl | 134.28 ms | 20.583 ms | 1.128 ms |  1.00 |           119,047,387 B |                  - |      72 B |        1.00 |
+    | JxlRs      | Jxl/issue648_palette0.jxl | 124.08 ms | 15.763 ms | 0.864 ms |  0.92 |            50,752,370 B |                  - |      72 B |        1.00 |
+    |            |                           |           |           |          |       |                         |                    |           |             |
+    | ImageSharp | Jxl/progressive_ac.jxl    |  52.61 ms | 12.969 ms | 0.711 ms |  0.51 |               796,806 B |               28 B |   26688 B |      333.60 |
+    | Libjxl     | Jxl/progressive_ac.jxl    | 102.91 ms | 15.121 ms | 0.829 ms |  1.00 |           106,975,397 B |                  - |      80 B |        1.00 |
+    | JxlRs      | Jxl/progressive_ac.jxl    |  60.25 ms |  8.617 ms | 0.472 ms |  0.59 |            61,091,654 B |                  - |      72 B |        0.90 |
+
+    libjxl 0.12.0 through JxlNet 0.12.0.5; jxl-rs d7a831fae15b903f1b56a76668030c19ac07bb6f with high_precision=true.
     Each operation includes decoder/output allocation, complete decode, shared final pixel bounds and disposal.
     Output is unassociated sRGB float RGBA in codestream order. Ancillary EXIF/XMP is skipped by every decoder.
     Full-image output validation runs before measurement. The existing Config.Short and .NET JIT/thread settings are unchanged.
 
-    Allocated reports new managed allocations only. Native allocation profiling was not enabled for this run.
-    This counter excludes native allocations and reused pooled buffers. It does not measure total working memory.
+    Allocated reports new managed allocations. Allocated native memory reports new native allocations.
+    Reused pooled buffers are not new allocations. These columns do not measure peak working memory.
+    ImageSharp's native leak values are entirely retained pooled storage.
     Every output contains 16 bytes per pixel. Error is half the 99.9% confidence interval; StdDev describes the three measured iterations.
     */
 }

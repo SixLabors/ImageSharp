@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
@@ -437,6 +438,23 @@ internal sealed class JxlFrame : IDisposable
     {
         JxlFrameHeader frame = this.Header;
         int extraCount = this.image.Metadata.ExtraChannels.Count;
+        JxlFrameHeader.BlendingInfo colorInfo = frame.Blending;
+        JxlBlending colorOperation = CreateFrameBlending(colorInfo);
+        bool hasAlpha = this.AlphaExtra >= 0;
+        if (!hasAlpha)
+        {
+            // Without an alpha channel, over replaces the background and weighted addition
+            // becomes ordinary addition. Select this equation before reserving packed scratch.
+            BlendMode opaqueMode = colorOperation.Mode switch
+            {
+                BlendMode.BlendAbove => BlendMode.Replace,
+                BlendMode.AlphaWeightedAddAbove => BlendMode.Add,
+                _ => colorOperation.Mode
+            };
+
+            colorOperation = new JxlBlending(opaqueMode, colorInfo.AlphaChannel, colorInfo.Clamp);
+        }
+
         uint usedSources = 1U << frame.Blending.Source;
         foreach (JxlFrameHeader.BlendingInfo extra in frame.ExtraChannelBlending)
         {
@@ -464,9 +482,10 @@ internal sealed class JxlFrame : IDisposable
         int right = (int)Math.Clamp((long)this.Origin.X + this.Size.Width, 0, canvasSize.Width);
         int bottom = (int)Math.Clamp((long)this.Origin.Y + this.Size.Height, 0, canvasSize.Height);
 
-        // Four maximum-width float registers bound the temporary block. The nine scratch ranges
-        // use 2304 bytes regardless of canvas dimensions or the number of extra channels.
+        // Four maximum-width float registers bound the temporary block. Base scratch uses nine
+        // ranges (2304 bytes); source-over alone adds two packed color blocks (2048 bytes).
         int blockLength = 4 * Vector512<float>.Count;
+        int packedLength = colorOperation.Mode == BlendMode.BlendAbove ? 4 * blockLength : 0;
 
         Buffer2D<float>[] colors = new Buffer2D<float>[3];
         Buffer2D<float>[] extras = extraCount == 0 ? [] : new Buffer2D<float>[extraCount];
@@ -487,10 +506,11 @@ internal sealed class JxlFrame : IDisposable
                 allocatedExtras++;
             }
 
-            // Three foreground color ranges normalize modular carriers only when full float colors
-            // are absent. Five shared equation ranges and one immutable zero range serve every block.
-            // Foreground extras already have retained float planes, so they need no scratch copies.
-            using IMemoryOwner<float> owner = allocator.Allocate<float>(9 * blockLength);
+            // Base scratch holds [three normalized foreground planes | bounded | complement | alpha | contribution | reciprocal | zero].
+            // Each range is 64 floats (256 bytes). Source-over appends packed background and foreground blocks of
+            // 64 Vector4 values (1024 bytes each), giving 4352 bytes only when the selected equation needs them.
+            // Foreground extras already have immutable float planes and need no scratch copies.
+            using IMemoryOwner<float> owner = allocator.Allocate<float>((9 * blockLength) + (2 * packedLength));
             Span<float> workspace = owner.Memory.Span;
             Span<float> bounded = workspace.Slice(3 * blockLength, blockLength);
             Span<float> complement = workspace.Slice(4 * blockLength, blockLength);
@@ -498,6 +518,8 @@ internal sealed class JxlFrame : IDisposable
             Span<float> contribution = workspace.Slice(6 * blockLength, blockLength);
             Span<float> reciprocal = workspace.Slice(7 * blockLength, blockLength);
             Span<float> zero = workspace.Slice(8 * blockLength, blockLength);
+            Span<Vector4> backgroundColors = MemoryMarshal.Cast<float, Vector4>(workspace.Slice(9 * blockLength, packedLength));
+            Span<Vector4> foregroundColors = MemoryMarshal.Cast<float, Vector4>(workspace.Slice((9 * blockLength) + packedLength, packedLength));
             zero.Clear();
 
             // Extras have independent background selections and equations. Complete them first;
@@ -574,23 +596,6 @@ internal sealed class JxlFrame : IDisposable
                         x += count;
                     }
                 }
-            }
-
-            JxlFrameHeader.BlendingInfo colorInfo = frame.Blending;
-            JxlBlending colorOperation = CreateFrameBlending(colorInfo);
-            bool hasAlpha = this.AlphaExtra >= 0;
-            if (!hasAlpha)
-            {
-                // Without an alpha channel, over replaces the background and weighted addition
-                // becomes ordinary addition. Other extra-channel kinds do not make color transparent.
-                BlendMode opaqueMode = colorOperation.Mode switch
-                {
-                    BlendMode.BlendAbove => BlendMode.Replace,
-                    BlendMode.AlphaWeightedAddAbove => BlendMode.Add,
-                    _ => colorOperation.Mode
-                };
-
-                colorOperation = new JxlBlending(opaqueMode, colorInfo.AlphaChannel, colorInfo.Clamp);
             }
 
             bool colorWeighted = colorOperation.Mode is BlendMode.BlendAbove or BlendMode.AlphaWeightedAddAbove;
@@ -693,15 +698,11 @@ internal sealed class JxlFrame : IDisposable
                             reciprocal[..count]);
                     }
 
-                    for (int component = 0; component < 3; component++)
+                    if (!retainedColors)
                     {
-                        ReadOnlySpan<float> foreground;
-                        if (retainedColors)
-                        {
-                            ReadOnlySpan<float> source = component == 0 ? foregroundRed : component == 1 ? foregroundGreen : foregroundBlue;
-                            foreground = source.Slice(sourceX, count);
-                        }
-                        else
+                        // The raw modular branch has no full foreground color image. Normalize
+                        // each source block once before either component or shared RGB composition.
+                        for (int component = 0; component < 3; component++)
                         {
                             Span<float> normalized = workspace.Slice(component * blockLength, count);
                             if (narrowColors)
@@ -714,25 +715,75 @@ internal sealed class JxlFrame : IDisposable
                                 ReadOnlySpan<int> source = component == 0 ? source32Red : component == 1 ? source32Green : source32Blue;
                                 JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, this.image.Metadata.BitDepth);
                             }
-
-                            foreground = normalized;
                         }
+                    }
 
-                        ReadOnlySpan<float> backgroundRow = component == 0 ? backgroundRed : component == 1 ? backgroundGreen : backgroundBlue;
-                        Span<float> destination = component == 0 ? red : component == 1 ? green : blue;
-                        colorOperation.Apply(
-                            colorAssociated,
-                            false,
-                            colorReference is null ? zero[..count] : backgroundRow.Slice(x, count),
-                            foreground,
+                    ReadOnlySpan<float> inputRed = retainedColors ? foregroundRed.Slice(sourceX, count) : workspace[..count];
+                    ReadOnlySpan<float> inputGreen = retainedColors ? foregroundGreen.Slice(sourceX, count) : workspace.Slice(blockLength, count);
+                    ReadOnlySpan<float> inputBlue = retainedColors ? foregroundBlue.Slice(sourceX, count) : workspace.Slice(2 * blockLength, count);
+                    if (colorOperation.Mode == BlendMode.BlendAbove)
+                    {
+                        Span<Vector4> background = backgroundColors[..count];
+                        Span<Vector4> foreground = foregroundColors[..count];
+
+                        // The canvas and reference frames retain separate color planes. Join one
+                        // complete block from each input as [C0, C1, C2, selected weight] for the
+                        // shared blender. Empty background slots supply the initialized zero row.
+                        // These scratch blocks do not alias either frame or the retained weight rows.
+                        SimdUtils.InterleaveFloatPlanes(
+                            colorReference is null ? zero[..count] : backgroundRed.Slice(x, count),
+                            colorReference is null ? zero[..count] : backgroundGreen.Slice(x, count),
+                            colorReference is null ? zero[..count] : backgroundBlue.Slice(x, count),
                             backgroundWeight,
-                            foregroundWeight,
-                            destination.Slice(x, count),
-                            bounded[..count],
-                            complement[..count],
-                            alpha[..count],
-                            contribution[..count],
-                            reciprocal[..count]);
+                            background);
+                        SimdUtils.InterleaveFloatPlanes(
+                            inputRed,
+                            inputGreen,
+                            inputBlue,
+                            colorOperation.Clamp ? bounded[..count] : foregroundWeight,
+                            foreground);
+
+                        colorOperation.ApplyColors(colorAssociated, background, foreground);
+                        Span<float> outputRed = red.Slice(x, count);
+                        Span<float> outputGreen = green.Slice(x, count);
+                        Span<float> outputBlue = blue.Slice(x, count);
+
+                        // Store the blended color back in canvas planes so reference saving and
+                        // later frames keep the native layout. Ignore W: JXL's separately prepared
+                        // combined weight is written to its selected extra only after all colors finish.
+                        SimdUtils.DeinterleaveFloatPlanes(background, outputRed, outputGreen, outputBlue, []);
+                        if (!colorAssociated)
+                        {
+                            // Convert the shared kernel's weighted numerator to straight components.
+                            // JXL uses the reciprocal only for positive combined weights; otherwise
+                            // the prepared multiplier is zero. This leaves the pixel alpha contract unchanged.
+                            TensorPrimitives.Multiply(outputRed, reciprocal[..count], outputRed);
+                            TensorPrimitives.Multiply(outputGreen, reciprocal[..count], outputGreen);
+                            TensorPrimitives.Multiply(outputBlue, reciprocal[..count], outputBlue);
+                        }
+                    }
+                    else
+                    {
+                        for (int component = 0; component < 3; component++)
+                        {
+                            ReadOnlySpan<float> foreground = component == 0 ? inputRed : component == 1 ? inputGreen : inputBlue;
+                            ReadOnlySpan<float> backgroundRow = component == 0 ? backgroundRed : component == 1 ? backgroundGreen : backgroundBlue;
+                            Span<float> destination = component == 0 ? red : component == 1 ? green : blue;
+
+                            colorOperation.Apply(
+                                colorAssociated,
+                                false,
+                                colorReference is null ? zero[..count] : backgroundRow.Slice(x, count),
+                                foreground,
+                                backgroundWeight,
+                                foregroundWeight,
+                                destination.Slice(x, count),
+                                bounded[..count],
+                                complement[..count],
+                                alpha[..count],
+                                contribution[..count],
+                                reciprocal[..count]);
+                        }
                     }
 
                     if (colorOperation.Mode == BlendMode.BlendAbove)

@@ -3,7 +3,9 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Memory;
@@ -84,6 +86,12 @@ internal sealed class JxlPatches : IDisposable
     private readonly int placementCount;
     private readonly int blendingCount;
     private readonly int blendingStride;
+
+    /// <summary>
+    /// Indicates whether the validated color records contain source-over or destination-over composition.
+    /// </summary>
+    private readonly bool usesColorAlphaBlend;
+
     private InlineArray4<JxlReferenceFrame> references;
     private bool isDisposed;
 
@@ -95,6 +103,7 @@ internal sealed class JxlPatches : IDisposable
     /// <param name="placementCount">The total number of destination placements.</param>
     /// <param name="blendingCount">The total number of color and extra-channel blend records.</param>
     /// <param name="blendingStride">One color record followed by one record for each encoded extra channel.</param>
+    /// <param name="usesColorAlphaBlend">Whether a validated color record uses above or below alpha composition.</param>
     /// <param name="references">The borrowed reference slots validated while counting records. Unused slots remain unread.</param>
     private JxlPatches(
         MemoryAllocator allocator,
@@ -102,12 +111,14 @@ internal sealed class JxlPatches : IDisposable
         int placementCount,
         int blendingCount,
         int blendingStride,
+        bool usesColorAlphaBlend,
         in InlineArray4<JxlReferenceFrame> references)
     {
         this.referencePatchCount = referencePatchCount;
         this.placementCount = placementCount;
         this.blendingCount = blendingCount;
         this.blendingStride = blendingStride;
+        this.usesColorAlphaBlend = usesColorAlphaBlend;
         this.references = references;
 
         // The first parse has established every count. Allocate each retained array once;
@@ -194,27 +205,35 @@ internal sealed class JxlPatches : IDisposable
         MemoryAllocator allocator,
         CancellationToken cancellationToken)
     {
-        // Four maximum-width registers bound scratch independently of patch and image dimensions.
-        // Even 4096 extra channels need about 1 MiB. Compute every output in a block before
-        // overwriting any input: another channel can still need its original background weight.
+        // Four maximum-width registers give 64 samples per planar row, or 256 bytes. Base scratch holds
+        // [component outputs | bounded | complement | alpha | contribution | reciprocal], using (componentCount + 5) * 256 bytes.
+        // Color alpha composition additionally reserves packed background and foreground blocks of 1024 bytes each.
+        // Compute every output before overwriting input: another channel can still need its original background weight.
         int capacity = 4 * Vector512<float>.Count;
         int colorCount = colors.Length;
         int componentCount = colorCount + extras.Length;
-        using IMemoryOwner<float> owner = allocator.Allocate<float>((componentCount + 5) * capacity);
+        bool hasAlpha = false;
+        foreach (JxlExtraChannelMetadata extra in header.Metadata.ExtraChannels)
+        {
+            hasAlpha |= extra.Type == JxlExtraChannelType.Alpha;
+        }
+
+        // The parser derived the mode flag while validating records. Without an alpha channel,
+        // both over modes become replacement and cannot reach the packed-color branch.
+        int packedLength = this.usesColorAlphaBlend && hasAlpha ? 4 * capacity : 0;
+        int componentLength = (componentCount + 5) * capacity;
+        using IMemoryOwner<float> owner = allocator.Allocate<float>(componentLength + (2 * packedLength));
         Span<float> workspace = owner.Memory.Span;
         Span<float> bounded = workspace.Slice(componentCount * capacity, capacity);
         Span<float> complement = workspace.Slice((componentCount + 1) * capacity, capacity);
         Span<float> alpha = workspace.Slice((componentCount + 2) * capacity, capacity);
         Span<float> contribution = workspace.Slice((componentCount + 3) * capacity, capacity);
         Span<float> reciprocal = workspace.Slice((componentCount + 4) * capacity, capacity);
+        Span<Vector4> backgroundColors = MemoryMarshal.Cast<float, Vector4>(workspace.Slice(componentLength, packedLength));
+        Span<Vector4> foregroundColors = MemoryMarshal.Cast<float, Vector4>(workspace.Slice(componentLength + packedLength, packedLength));
         ReadOnlySpan<ReferencePatch> sources = this.referencePatches.Memory.Span[..this.referencePatchCount];
         ReadOnlySpan<Placement> positions = this.placements.Memory.Span[..this.placementCount];
         ReadOnlySpan<Blending> modes = this.blendings.Memory.Span[..this.blendingCount];
-        bool hasAlpha = false;
-        foreach (JxlExtraChannelMetadata extra in header.Metadata.ExtraChannels)
-        {
-            hasAlpha |= extra.Type == JxlExtraChannelType.Alpha;
-        }
 
         for (int placementIndex = 0; placementIndex < positions.Length; placementIndex++)
         {
@@ -224,6 +243,9 @@ internal sealed class JxlPatches : IDisposable
             JxlReferenceFrame reference = this.references[source.Reference];
             ReadOnlySpan<Blending> blending = modes.Slice(placementIndex * this.blendingStride, this.blendingStride);
             Rectangle destination = Rectangle.Intersect(new Rectangle(position.Position, source.Rectangle.Size), new Rectangle(Point.Empty, size));
+            Buffer2DRegion<float> referenceRed = reference.GetColorChannel(0);
+            Buffer2DRegion<float> referenceGreen = reference.GetColorChannel(1);
+            Buffer2DRegion<float> referenceBlue = reference.GetColorChannel(2);
 
             // Valid VarDCT placements can extend into padding. Only the visible intersection
             // reaches later image features; retain the corresponding immutable source offset.
@@ -231,6 +253,12 @@ internal sealed class JxlPatches : IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sourceY = source.Rectangle.Y + y - position.Position.Y;
+                Span<float> backgroundRed = colors[0].DangerousGetRowSpan(y);
+                Span<float> backgroundGreen = colorCount == 1 ? backgroundRed : colors[1].DangerousGetRowSpan(y);
+                Span<float> backgroundBlue = colorCount == 1 ? backgroundRed : colors[2].DangerousGetRowSpan(y);
+                ReadOnlySpan<float> foregroundRed = referenceRed.DangerousGetRowSpan(sourceY);
+                ReadOnlySpan<float> foregroundGreen = referenceGreen.DangerousGetRowSpan(sourceY);
+                ReadOnlySpan<float> foregroundBlue = referenceBlue.DangerousGetRowSpan(sourceY);
                 for (int x = destination.Left; x < destination.Right; x += capacity)
                 {
                     int length = Math.Min(capacity, destination.Right - x);
@@ -319,24 +347,78 @@ internal sealed class JxlPatches : IDisposable
                         color = new Blending(colorMode, color.AlphaChannel, color.Clamp);
                     }
 
-                    for (int channel = 0; channel < colorCount; channel++)
+                    if (color.Mode is BlendMode.BlendAbove or BlendMode.BlendBelow)
                     {
-                        ReadOnlySpan<float> background = colors[channel].DangerousGetRowSpan(y).Slice(x, length);
-                        ReadOnlySpan<float> foreground = reference.GetColorChannel(channel).DangerousGetRowSpan(sourceY).Slice(sourceX, length);
+                        // Only the top weight is clamped. Pack each complete logical RGB block once;
+                        // gray repeats its one plane, and black remains an independently blended extra.
+                        ReadOnlySpan<float> backgroundWeight = color.Clamp && color.Mode == BlendMode.BlendBelow
+                            ? bounded[..length] : colorBackgroundWeight;
+                        ReadOnlySpan<float> foregroundWeight = color.Clamp && color.Mode == BlendMode.BlendAbove
+                            ? bounded[..length] : colorForegroundWeight;
+                        Span<Vector4> background = backgroundColors[..length];
+                        Span<Vector4> foreground = foregroundColors[..length];
 
-                        color.Apply(
-                            colorAssociated,
-                            false,
-                            background,
-                            foreground,
-                            colorBackgroundWeight,
-                            colorForegroundWeight,
-                            workspace.Slice(channel * capacity, length),
-                            bounded[..length],
-                            complement[..length],
-                            alpha[..length],
-                            contribution[..length],
-                            reciprocal[..length]);
+                        // Reconstruction stores separate component planes. The shared blender instead
+                        // consumes complete [C0, C1, C2, weight] vectors. Join each input once in its
+                        // disjoint scratch block; this changes layout without conversion or rounding.
+                        // W holds the selected extra-channel weight, never CMYK black or a packed pixel.
+                        SimdUtils.InterleaveFloatPlanes(
+                            backgroundRed.Slice(x, length),
+                            backgroundGreen.Slice(x, length),
+                            backgroundBlue.Slice(x, length),
+                            backgroundWeight,
+                            background);
+                        SimdUtils.InterleaveFloatPlanes(
+                            foregroundRed.Slice(sourceX, length),
+                            foregroundGreen.Slice(sourceX, length),
+                            foregroundBlue.Slice(sourceX, length),
+                            foregroundWeight,
+                            foreground);
+
+                        color.ApplyColors(colorAssociated, background, foreground);
+                        Span<float> red = workspace[..length];
+                        Span<float> green = colorCount == 1 ? [] : workspace.Slice(capacity, length);
+                        Span<float> blue = colorCount == 1 ? [] : workspace.Slice(2 * capacity, length);
+
+                        // Return the three results to planar storage for later patch, spline and
+                        // upsampling operations. Discard the blender's W: native combined weights are
+                        // retained separately and published only after every input weight has been read.
+                        // Gray supplied the same plane three times, so only its first output is needed.
+                        SimdUtils.DeinterleaveFloatPlanes(background, red, green, blue, []);
+                        if (!colorAssociated)
+                        {
+                            // The shared kernel returns the weighted numerator. Restore straight
+                            // components with the reciprocal prepared from JXL's combined weight.
+                            // That multiplier is zero when the combined weight is not positive.
+                            // Gray has one stored output plane, so normalize it only once.
+                            for (int channel = 0; channel < colorCount; channel++)
+                            {
+                                Span<float> result = workspace.Slice(channel * capacity, length);
+                                TensorPrimitives.Multiply(result, reciprocal[..length], result);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int channel = 0; channel < colorCount; channel++)
+                        {
+                            ReadOnlySpan<float> background = channel == 0 ? backgroundRed : channel == 1 ? backgroundGreen : backgroundBlue;
+                            ReadOnlySpan<float> foreground = channel == 0 ? foregroundRed : channel == 1 ? foregroundGreen : foregroundBlue;
+
+                            color.Apply(
+                                colorAssociated,
+                                false,
+                                background.Slice(x, length),
+                                foreground.Slice(sourceX, length),
+                                colorBackgroundWeight,
+                                colorForegroundWeight,
+                                workspace.Slice(channel * capacity, length),
+                                bounded[..length],
+                                complement[..length],
+                                alpha[..length],
+                                contribution[..length],
+                                reciprocal[..length]);
+                        }
                     }
 
                     if (hasAlpha && color.Mode is BlendMode.BlendAbove or BlendMode.BlendBelow)
@@ -348,7 +430,8 @@ internal sealed class JxlPatches : IDisposable
                     // component is ready, including a weight replaced by the color-blend equation.
                     for (int channel = 0; channel < colorCount; channel++)
                     {
-                        workspace.Slice(channel * capacity, length).CopyTo(colors[channel].DangerousGetRowSpan(y).Slice(x, length));
+                        Span<float> output = channel == 0 ? backgroundRed : channel == 1 ? backgroundGreen : backgroundBlue;
+                        workspace.Slice(channel * capacity, length).CopyTo(output.Slice(x, length));
                     }
 
                     for (int channel = 0; channel < extras.Length; channel++)
@@ -439,7 +522,7 @@ internal sealed class JxlPatches : IDisposable
 
         using IMemoryOwner<uint>? historyOwner = historyLength == 0 ? null : allocator.Allocate<uint>(historyLength);
         Span<uint> history = historyOwner is null ? [] : historyOwner.Memory.Span[..historyLength];
-        (int sourceCount, int placementCount, int blendingCount) = ReadPayload<TOperator>(
+        (int sourceCount, int placementCount, int blendingCount, bool usesColorAlphaBlend) = ReadPayload<TOperator>(
             ref reader,
             codes,
             history,
@@ -466,7 +549,7 @@ internal sealed class JxlPatches : IDisposable
             }
         }
 
-        JxlPatches result = new(allocator, sourceCount, placementCount, blendingCount, blendingStride, in borrowedReferences);
+        JxlPatches result = new(allocator, sourceCount, placementCount, blendingCount, blendingStride, usesColorAlphaBlend, in borrowedReferences);
         if (sourceCount == 0)
         {
             // The first pass has already consumed and validated the empty dictionary. There
@@ -527,8 +610,8 @@ internal sealed class JxlPatches : IDisposable
     /// <param name="positions">The exact placement destination, or empty during counting.</param>
     /// <param name="blendingValues">The exact blend-record destination, or empty during counting.</param>
     /// <param name="cancellationToken">The token checked between reference groups and placements.</param>
-    /// <returns>The exact source, placement and blend-record counts.</returns>
-    private static (int Sources, int Placements, int Blendings) ReadPayload<TOperator>(
+    /// <returns>The exact record counts and whether a validated color record uses alpha composition.</returns>
+    private static (int Sources, int Placements, int Blendings, bool UsesColorAlphaBlend) ReadPayload<TOperator>(
         ref JxlBitReader reader,
         JxlEntropyDecoder codes,
         Span<uint> history,
@@ -561,6 +644,7 @@ internal sealed class JxlPatches : IDisposable
         int placementCount = 0;
         int blendingStride = extraChannelCount + 1;
         int blendingCount = 0;
+        bool usesColorAlphaBlend = false;
         for (int sourceIndex = 0; sourceIndex < sourceCount; sourceIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -648,6 +732,7 @@ internal sealed class JxlPatches : IDisposable
                     }
 
                     BlendMode mode = (BlendMode)modeValue;
+                    usesColorAlphaBlend |= component == 0 && mode is BlendMode.BlendAbove or BlendMode.BlendBelow;
                     bool usesAlpha = mode >= BlendMode.BlendAbove;
                     uint alphaChannel = 0;
                     if (usesAlpha && extraChannelCount > 1)
@@ -678,7 +763,7 @@ internal sealed class JxlPatches : IDisposable
         // A fresh Reader restarts both states on the second pass; reused history is overwritten
         // before each position can be read, so neither pass needs to clear the history buffer.
         symbols.CheckFinalState();
-        return ((int)sourceCount, placementCount, blendingCount);
+        return ((int)sourceCount, placementCount, blendingCount, usesColorAlphaBlend);
     }
 
     /// <summary>

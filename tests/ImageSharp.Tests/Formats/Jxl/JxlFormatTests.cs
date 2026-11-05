@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.Intrinsics;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats;
@@ -15,6 +16,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using BlendMode = SixLabors.ImageSharp.Formats.Jxl.Components.Decoder.JxlBlending.BlendMode;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 
@@ -79,6 +81,232 @@ public class JxlFormatTests
             invalidSharpness[0] = invalid;
             Assert.Throws<InvalidImageContentException>(
                 () => JxlVarDctDecoder.ConvertSharpnessRow(invalidSharpness, sharpnessOutput.AsSpan(0, invalidSharpness.Length)));
+        }
+    }
+
+    /// <summary>
+    /// Verifies all eight native blend equations and selected-weight behavior at every SIMD width and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void BlendEquationsMatchNativeAcrossSimdWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateBlendEquations,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies native blend weight boundaries and optional clamping at every SIMD width and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void BlendWeightBoundariesMatchNativeAcrossSimdWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateBlendWeightBoundaries,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks literal results for background eight, foreground two, and equal half weights, then checks weight-channel outputs.
+    /// </summary>
+    private static void ValidateBlendEquations()
+    {
+        // These literal results follow libjxl blending.cc and alpha.cc. Binary-exact inputs retain exact
+        // final results with either fused or separate multiply/add operations. This checks component arithmetic,
+        // not encoded patch-mode coverage: the stored image fixtures currently exercise color Add and extra None.
+        ReadOnlySpan<(BlendMode Mode, bool Associated, float Expected)> cases =
+        [
+            (BlendMode.None, false, 8F),
+            (BlendMode.Replace, false, 2F),
+            (BlendMode.Add, false, 10F),
+            (BlendMode.Multiply, false, 16F),
+            (BlendMode.BlendAbove, false, 4F),
+            (BlendMode.BlendBelow, false, 6F),
+            (BlendMode.AlphaWeightedAddAbove, false, 9F),
+            (BlendMode.AlphaWeightedAddBelow, false, 6F),
+            (BlendMode.BlendAbove, true, 6F),
+            (BlendMode.BlendBelow, true, 9F)
+        ];
+
+        foreach ((BlendMode mode, bool associated, float expected) in cases)
+        {
+            AssertBlendResult(new JxlBlending(mode, 0, false), associated, false, [8F], [2F], [0.5F], [0.5F], [expected]);
+        }
+
+        ReadOnlySpan<(BlendMode Mode, float Expected)> weightCases =
+        [
+            (BlendMode.BlendAbove, 0.625F),
+            (BlendMode.BlendBelow, 0.625F),
+            (BlendMode.AlphaWeightedAddAbove, 0.25F),
+            (BlendMode.AlphaWeightedAddBelow, 0.5F)
+        ];
+
+        foreach ((BlendMode mode, float expected) in weightCases)
+        {
+            // Native alpha.cc recognizes the selected weight channel itself. Alpha blending returns
+            // the combined weight. Weighted addition preserves the bottom weight without weighting it again.
+            AssertBlendResult(new JxlBlending(mode, 0, false), false, true, [0.25F], [0.5F], [0.25F], [0.5F], [expected]);
+        }
+    }
+
+    /// <summary>
+    /// Checks mixed positive, zero and negative combined weights, top-only clamping, and selected-weight preservation.
+    /// </summary>
+    private static void ValidateBlendWeightBoundaries()
+    {
+        ReadOnlySpan<float> backgroundWeights = [0.5F, 0F, -1F, 2F];
+        ReadOnlySpan<float> foregroundWeights = [0.5F, 0F, 0F, 1.5F];
+
+        // Native alpha.cc uses a zero reciprocal for nonpositive combined weights. This reconstruction
+        // rule produces zero color, unlike pixel unassociation, which can preserve color at zero alpha.
+        // The last lane also proves that only the selected top weight is bounded when clamping is enabled.
+        ReadOnlySpan<(BlendMode Mode, bool Associated, bool SelectedWeight, bool Clamp, float[] Expected)> cases =
+        [
+            (BlendMode.BlendAbove, false, false, false, [4F, 0F, 0F, -10F]),
+            (BlendMode.BlendBelow, false, false, false, [6F, 0F, 0F, 26F]),
+            (BlendMode.BlendAbove, false, false, true, [4F, 0F, 0F, 2F]),
+            (BlendMode.BlendBelow, false, false, true, [6F, 0F, 0F, 8F]),
+            (BlendMode.BlendAbove, true, false, false, [6F, 10F, 10F, -2F]),
+            (BlendMode.BlendBelow, true, false, false, [9F, 10F, 12F, 6F]),
+            (BlendMode.BlendAbove, true, false, true, [6F, 10F, 10F, 2F]),
+            (BlendMode.BlendBelow, true, false, true, [9F, 10F, 10F, 8F]),
+            (BlendMode.AlphaWeightedAddAbove, false, false, false, [9F, 8F, 8F, 11F]),
+            (BlendMode.AlphaWeightedAddBelow, false, false, false, [6F, 2F, -6F, 18F]),
+            (BlendMode.AlphaWeightedAddAbove, false, false, true, [9F, 8F, 8F, 10F]),
+            (BlendMode.AlphaWeightedAddBelow, false, false, true, [6F, 2F, 2F, 10F]),
+            (BlendMode.BlendAbove, false, true, true, [0.75F, 0F, -1F, 1F]),
+            (BlendMode.BlendBelow, false, true, true, [0.75F, 0F, 0F, 1F]),
+            (BlendMode.AlphaWeightedAddAbove, false, true, true, [0.5F, 0F, -1F, 2F]),
+            (BlendMode.AlphaWeightedAddBelow, false, true, true, [0.5F, 0F, 0F, 1.5F])
+        ];
+
+        foreach ((BlendMode mode, bool associated, bool selectedWeight, bool clamp, float[] expected) in cases)
+        {
+            ReadOnlySpan<float> background = selectedWeight ? backgroundWeights : [8F];
+            ReadOnlySpan<float> foreground = selectedWeight ? foregroundWeights : [2F];
+            AssertBlendResult(
+                new JxlBlending(mode, 0, clamp),
+                associated,
+                selectedWeight,
+                background,
+                foreground,
+                backgroundWeights,
+                foregroundWeights,
+                expected);
+        }
+
+        // Multiplication bounds the foreground component itself. It does not use a separate weight channel.
+        AssertBlendResult(new JxlBlending(BlendMode.Multiply, 0, false), false, false, [8F], [-2F, 0F, 0.5F, 2F], [0F], [0F], [-16F, 0F, 4F, 16F]);
+        AssertBlendResult(new JxlBlending(BlendMode.Multiply, 0, true), false, false, [8F], [-2F, 0F, 0.5F, 2F], [0F], [0F], [0F, 0F, 4F, 8F]);
+    }
+
+    /// <summary>
+    /// Checks component and packed RGB blend results using fixed numeric patterns, complete SIMD blocks and three-component tails.
+    /// </summary>
+    /// <param name="operation">The selected codec equation and clamp setting.</param>
+    /// <param name="associated">Whether the selected weight has associated-alpha semantics.</param>
+    /// <param name="selectedWeight">Whether the component itself is the selected weight.</param>
+    /// <param name="backgroundPattern">The literal background components, repeated without arithmetic.</param>
+    /// <param name="foregroundPattern">The literal foreground components, repeated without arithmetic.</param>
+    /// <param name="backgroundWeightPattern">The literal background weights.</param>
+    /// <param name="foregroundWeightPattern">The literal foreground weights.</param>
+    /// <param name="expectedPattern">The independently specified literal output components.</param>
+    private static void AssertBlendResult(
+        JxlBlending operation,
+        bool associated,
+        bool selectedWeight,
+        ReadOnlySpan<float> backgroundPattern,
+        ReadOnlySpan<float> foregroundPattern,
+        ReadOnlySpan<float> backgroundWeightPattern,
+        ReadOnlySpan<float> foregroundWeightPattern,
+        ReadOnlySpan<float> expectedPattern)
+    {
+        const int length = 35;
+        float[] background = new float[length];
+        float[] foreground = new float[length];
+        float[] backgroundWeight = new float[length];
+        float[] foregroundWeight = new float[length];
+        float[] expected = new float[length];
+        float[] workspace = new float[6 * length];
+        Span<float> destination = workspace.AsSpan(0, length);
+        Span<float> bounded = workspace.AsSpan(length, length);
+        Span<float> complement = workspace.AsSpan(2 * length, length);
+        Span<float> alpha = workspace.AsSpan(3 * length, length);
+        Span<float> contribution = workspace.AsSpan(4 * length, length);
+        Span<float> reciprocal = workspace.AsSpan(5 * length, length);
+
+        // Thirty-five lanes cover two 512-bit blocks, four 256-bit blocks or eight 128-bit blocks,
+        // followed by three scalar values. The mixed patterns put zero and negative weights in that tail.
+        for (int i = 0; i < length; i++)
+        {
+            background[i] = backgroundPattern[i % backgroundPattern.Length];
+            foreground[i] = foregroundPattern[i % foregroundPattern.Length];
+            backgroundWeight[i] = backgroundWeightPattern[i % backgroundWeightPattern.Length];
+            foregroundWeight[i] = foregroundWeightPattern[i % foregroundWeightPattern.Length];
+            expected[i] = expectedPattern[i % expectedPattern.Length];
+        }
+
+        if (operation.Mode >= BlendMode.BlendAbove)
+        {
+            operation.PrepareWeights(associated, selectedWeight, backgroundWeight, foregroundWeight, bounded, complement, alpha, reciprocal);
+        }
+
+        operation.Apply(
+            associated,
+            selectedWeight,
+            background,
+            foreground,
+            backgroundWeight,
+            foregroundWeight,
+            destination,
+            bounded,
+            complement,
+            alpha,
+            contribution,
+            reciprocal);
+
+        Assert.Equal(expected.AsSpan(), destination);
+
+        if (!selectedWeight && operation.Mode is BlendMode.BlendAbove or BlendMode.BlendBelow)
+        {
+            float[] backgroundGreen = new float[length];
+            float[] backgroundBlue = new float[length];
+            float[] foregroundGreen = new float[length];
+            float[] foregroundBlue = new float[length];
+            Vector4[] backgroundColors = new Vector4[length];
+            Vector4[] foregroundColors = new Vector4[length];
+
+            // Unequal channels expose packing or lane-order errors. Powers of two retain the
+            // exact contract results without introducing another blend equation into the assertions.
+            for (int i = 0; i < length; i++)
+            {
+                backgroundGreen[i] = background[i] * 2F;
+                backgroundBlue[i] = background[i] * 4F;
+                foregroundGreen[i] = foreground[i] * 2F;
+                foregroundBlue[i] = foreground[i] * 4F;
+            }
+
+            // PrepareWeights bounds only the top input. Pack those prepared weights directly,
+            // including negative or extended bottom weights, without pixel normalization or clipping.
+            ReadOnlySpan<float> packedBackgroundWeight = operation.Clamp && operation.Mode == BlendMode.BlendBelow ? bounded : backgroundWeight;
+            ReadOnlySpan<float> packedForegroundWeight = operation.Clamp && operation.Mode == BlendMode.BlendAbove ? bounded : foregroundWeight;
+            SimdUtils.InterleaveFloatPlanes(background, backgroundGreen, backgroundBlue, packedBackgroundWeight, backgroundColors);
+            SimdUtils.InterleaveFloatPlanes(foreground, foregroundGreen, foregroundBlue, packedForegroundWeight, foregroundColors);
+
+            operation.ApplyColors(associated, backgroundColors, foregroundColors);
+
+            // Both composition orders return RGB in the background buffer. The shared kernel's W
+            // is not the native combined weight. Discard it and use the separately prepared reciprocal.
+            SimdUtils.DeinterleaveFloatPlanes(backgroundColors, destination, backgroundGreen, backgroundBlue, []);
+            if (!associated)
+            {
+                TensorPrimitives.Multiply(destination, reciprocal, destination);
+                TensorPrimitives.Multiply(backgroundGreen, reciprocal, backgroundGreen);
+                TensorPrimitives.Multiply(backgroundBlue, reciprocal, backgroundBlue);
+            }
+
+            Assert.Equal(expected.AsSpan(), destination);
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(expected[i] * 2F, backgroundGreen[i]);
+                Assert.Equal(expected[i] * 4F, backgroundBlue[i]);
+            }
         }
     }
 

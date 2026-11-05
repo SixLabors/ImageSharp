@@ -136,6 +136,9 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     /// <summary>
     /// Converts the RGB components of a pixel-vector row through typed ICC profiles while retaining its alpha.
     /// </summary>
+    /// <remarks>
+    /// RGB values can remain outside [0,1]. The caller applies destination pixel storage bounds after this conversion.
+    /// </remarks>
     /// <param name="converter">The converter configured with the source and target ICC profiles.</param>
     /// <param name="row">The pixel vectors updated in place. Alpha remains unchanged.</param>
     /// <param name="rgbSpan">Existing RGB storage with one entry per pixel. It must not overlap the vector row.</param>

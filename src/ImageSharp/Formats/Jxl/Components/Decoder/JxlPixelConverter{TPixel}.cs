@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
@@ -454,59 +453,10 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         Span<float> red = workspace[..width];
         Span<float> green = workspace.Slice(width, width);
         Span<float> blue = workspace.Slice(2 * width, width);
-        ref float first = ref MemoryMarshal.GetReference(red);
-        ref float second = ref MemoryMarshal.GetReference(green);
-        ref float third = ref MemoryMarshal.GetReference(blue);
-        int i = 0;
 
-        // Every input vector is one complete pixel. The shared unpackers transpose complete batches
-        // into independent color lanes. Image alpha stays in its original row. The three output planes
-        // each have exactly width entries, so
-        // each complete-block count bounds both the input reads and these planar stores.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint count = width.Vector512Count<float>();
-            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
-            {
-                SimdUtils.Deinterleave4(vectors, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b, out _);
-                r.StoreUnsafe(ref first, (nuint)i);
-                g.StoreUnsafe(ref second, (nuint)i);
-                b.StoreUnsafe(ref third, (nuint)i);
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint count = (width - i).Vector256Count<float>();
-            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
-            {
-                SimdUtils.Deinterleave4(vectors, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b, out _);
-                r.StoreUnsafe(ref first, (nuint)i);
-                g.StoreUnsafe(ref second, (nuint)i);
-                b.StoreUnsafe(ref third, (nuint)i);
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint count = (width - i).Vector128Count<float>();
-            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
-            {
-                SimdUtils.Deinterleave4(vectors, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out _);
-                r.StoreUnsafe(ref first, (nuint)i);
-                g.StoreUnsafe(ref second, (nuint)i);
-                b.StoreUnsafe(ref third, (nuint)i);
-            }
-        }
-
-        // Direct span indexing handles fewer than four remaining pixels and the scalar fallback.
-        for (; i < width; i++)
-        {
-            Vector4 value = vectors[i];
-            red[i] = value.X;
-            green[i] = value.Y;
-            blue[i] = value.Z;
-        }
+        // Split the native colors without copying alpha. The shared traversal handles complete
+        // SIMD blocks and scalar tails; the original alpha row remains available for pixel packing.
+        SimdUtils.DeinterleaveFloatPlanes(vectors, red, green, blue, []);
 
         this.frame.ApplySpotColors(row, red, green, blue, workspace.Slice(3 * width, 3 * width));
 

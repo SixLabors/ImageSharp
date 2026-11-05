@@ -1,10 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 
@@ -265,6 +267,52 @@ internal readonly struct JxlBlending
             TensorPrimitives.Add(destination, contribution, destination);
             TensorPrimitives.Multiply(destination, reciprocal, destination);
         }
+    }
+
+    /// <summary>
+    /// Composes a complete packed RGB block with the shared associated source-over operator.
+    /// </summary>
+    /// <param name="associated">Whether the packed RGB components already have associated weights.</param>
+    /// <param name="background">The mutable packed background block. W carries its selected codec weight.</param>
+    /// <param name="foreground">The mutable packed foreground block. W carries its selected codec weight.</param>
+    /// <remarks>
+    /// Call only for BlendAbove or BlendBelow after PrepareWeights. The caller packs all three logical
+    /// components once per input and substitutes the bounded top weights when Clamp is set.
+    /// Both packed blocks are scratch. The result reuses background and retains associated RGB.
+    /// The caller applies native positive reciprocals after unpacking unassociated output, then publishes
+    /// the separately prepared combined weight. The shared kernel's W result is not the native weight.
+    /// </remarks>
+    public void ApplyColors(bool associated, Span<Vector4> background, Span<Vector4> foreground)
+    {
+        // The packed layout is [component0, component1, component2, selected weight] for each pixel.
+        // The shared associated operator needs weighted color components. Multiply only straight
+        // inputs here; multiplying associated inputs again would apply their weight twice.
+        // Numerics.Premultiply retains W and does not apply pixel storage bounds. These scratch
+        // weights can therefore retain negative or extended values when the codestream permits them.
+        if (!associated)
+        {
+            Numerics.Premultiply(background);
+            Numerics.Premultiply(foreground);
+        }
+
+        // The shared kernel computes top + bottom * (1 - topWeight) for all three components.
+        // Pass opacity one: W already carries the selected codec weight, so no further opacity is needed.
+        // Below exchanges the inputs. Both orders write into background; these blocks are separate
+        // scratch ranges, so the immutable reference planes and their original weights cannot change.
+        // The shared traversal handles complete SIMD blocks and the remaining pixels.
+        if (this.Mode == BlendMode.BlendAbove)
+        {
+            PixelBlenders.Blend<AssociatedAlphaPixelBlenderOperators.NormalSrcOver>(background, background, foreground, 1F);
+        }
+        else
+        {
+            PixelBlenders.Blend<AssociatedAlphaPixelBlenderOperators.NormalSrcOver>(background, foreground, background, 1F);
+        }
+
+        // W is deliberately not published. libjxl alpha.cc computes the combined weight as
+        // 1 - (1 - topWeight) * (1 - bottomWeight), which can round differently from pixel source-over.
+        // The caller retains that prepared result and, for straight output, its positive reciprocal.
+        // Keeping these values separate also preserves JXL's zero multiplier for nonpositive weights.
     }
 
     /// <summary>

@@ -114,10 +114,12 @@ public class ColorConversionOptions
     public bool UseSymmetricIccCurves { get; init; } = true;
 
     /// <summary>
-    /// Gets a value indicating whether ICC connections between RGB, grayscale and CMYK profiles compensate for different black points.
-    /// The default is false. Absolute colorimetric intent and other device color models do not use this adjustment.
-    /// Device-link, abstract and named-color profiles do not use this adjustment.
+    /// Gets a value indicating whether ICC conversion maps the source black point to the target black point.
     /// </summary>
+    /// <remarks>
+    /// The default is <see langword="false"/>. The adjustment applies to RGB, grayscale, and CMYK device profiles
+    /// with an RGB matrix and curve target or a grayscale curve target. Absolute colorimetric intent disables the adjustment.
+    /// </remarks>
     public bool UseBlackPointCompensation { get; init; }
 
     /// <summary>

@@ -131,6 +131,7 @@ public class ExrDecoderTests
 
     [Theory]
     [WithFile(TestImages.Exr.Zip, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.ZipUncompressedBlock, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_ZipCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

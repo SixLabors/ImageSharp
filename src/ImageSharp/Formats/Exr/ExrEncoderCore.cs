@@ -122,9 +122,11 @@ internal sealed class ExrEncoderCore
         // Write EXR header.
         this.WriteHeader(stream, header);
 
-        // Next is offsets table to each pixel row, which will be written after the pixel data was written.
+        // The offset table has one entry per chunk. ZIP stores up to sixteen rows in each chunk;
+        // single-row compression stores one row. Reserve exactly that many offsets before pixel data.
+        int blockCount = ((height - 1) / (int)ExrUtils.RowsPerBlock(this.Compression)) + 1;
         ulong startOfRowOffsetData = (ulong)stream.Position;
-        stream.Position += 8 * height;
+        stream.Position += (long)sizeof(ulong) * blockCount;
 
         // Write pixel data.
         switch (this.pixelType)
@@ -134,7 +136,7 @@ internal sealed class ExrEncoderCore
             {
                 ulong[] rowOffsets = this.EncodeFloatingPointPixelData(stream, pixels, width, height, channels, this.Compression, cancellationToken);
                 stream.Position = (long)startOfRowOffsetData;
-                this.WriteRowOffsets(stream, height, rowOffsets);
+                this.WriteRowOffsets(stream, rowOffsets);
                 break;
             }
 
@@ -142,7 +144,7 @@ internal sealed class ExrEncoderCore
             {
                 ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(stream, pixels, width, height, channels, this.Compression, cancellationToken);
                 stream.Position = (long)startOfRowOffsetData;
-                this.WriteRowOffsets(stream, height, rowOffsets);
+                this.WriteRowOffsets(stream, rowOffsets);
                 break;
             }
         }
@@ -194,10 +196,10 @@ internal sealed class ExrEncoderCore
             rowsPerBlock,
             width);
 
-        ulong[] rowOffsets = new ulong[height];
+        ulong[] rowOffsets = new ulong[((height - 1) / (int)rowsPerBlock) + 1];
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
-            rowOffsets[y] = (ulong)stream.Position;
+            rowOffsets[y / rowsPerBlock] = (ulong)stream.Position;
 
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
@@ -297,10 +299,10 @@ internal sealed class ExrEncoderCore
             width);
 
         Rgba128 rgb = default;
-        ulong[] rowOffsets = new ulong[height];
+        ulong[] rowOffsets = new ulong[((height - 1) / (int)rowsPerBlock) + 1];
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
-            rowOffsets[y] = (ulong)stream.Position;
+            rowOffsets[y / rowsPerBlock] = (ulong)stream.Position;
 
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
@@ -498,14 +500,13 @@ internal sealed class ExrEncoderCore
     }
 
     /// <summary>
-    /// Writes the row offsets to the stream.
+    /// Writes one offset for each scanline chunk to the stream.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="height">The height in pixels of the image.</param>
-    /// <param name="rowOffsets">The row offsets.</param>
-    private void WriteRowOffsets(Stream stream, int height, ulong[] rowOffsets)
+    /// <param name="rowOffsets">The scanline chunk offsets in increasing row order.</param>
+    private void WriteRowOffsets(Stream stream, ulong[] rowOffsets)
     {
-        for (int i = 0; i < height; i++)
+        for (int i = 0; i < rowOffsets.Length; i++)
         {
             BinaryPrimitives.WriteUInt64LittleEndian(this.buffer, rowOffsets[i]);
             stream.Write(this.buffer);

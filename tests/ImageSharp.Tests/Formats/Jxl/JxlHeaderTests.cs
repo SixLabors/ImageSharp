@@ -41,7 +41,7 @@ public partial class JxlHeaderTests
     /// </summary>
     /// <remarks>
     /// Integer normalization follows libjxl revision 91837342b24034078780b687f57f670a7def8153,
-    /// lib/jxl/dec_modular.cc, SingleFromSingle and SingleFromSingleAccurate. From 23 bits, the exact integer
+    /// lib/jxl/dec_modular.cc, SingleFromSingle and SingleFromSingleAccurate. From 23 main-image bits, the exact integer
     /// multiplies the double factor before one final float rounding. In particular, 16777217 at 31-bit depth
     /// rounds to 0x3C000001; converting that integer to float first loses one level and produces 0x3C000000.
     /// Floating expectations are literal IEEE bits for signed zero, powers of two, endpoint mantissas, infinity and NaN payloads.
@@ -50,14 +50,36 @@ public partial class JxlHeaderTests
     /// </remarks>
     private static void ValidateSampleConversion()
     {
-        ValidateSampleConversionPeriod(new(1, 0), [0U, 1U, uint.MaxValue], [0x00000000U, 0x3F800000U, 0xBF800000U]);
-        ValidateSampleConversionPeriod(new(8, 0), [0U, 1U, 255U, uint.MaxValue], [0x00000000U, 0x3B808081U, 0x3F800000U, 0xBB808081U]);
-        ValidateSampleConversionPeriod(new(22, 0), [0U, 1U, 4194303U, uint.MaxValue], [0x00000000U, 0x34800002U, 0x3F800000U, 0xB4800002U]);
-        ValidateSampleConversionPeriod(new(23, 0), [0U, 1U, 8388607U, uint.MaxValue], [0x00000000U, 0x34000001U, 0x3F800000U, 0xB4000001U]);
+        ValidateSampleConversionPeriod(new(1, 0), new(1, 0), [0U, 1U, uint.MaxValue], [0x00000000U, 0x3F800000U, 0xBF800000U]);
+        ValidateSampleConversionPeriod(new(8, 0), new(8, 0), [0U, 1U, 255U, uint.MaxValue], [0x00000000U, 0x3B808081U, 0x3F800000U, 0xBB808081U]);
+        ValidateSampleConversionPeriod(new(22, 0), new(22, 0), [0U, 1U, 4194303U, uint.MaxValue], [0x00000000U, 0x34800002U, 0x3F800000U, 0xB4800002U]);
+        ValidateSampleConversionPeriod(new(23, 0), new(23, 0), [0U, 1U, 8388607U, uint.MaxValue], [0x00000000U, 0x34000001U, 0x3F800000U, 0xB4000001U]);
         ValidateSampleConversionPeriod(
+            new(31, 0),
             new(31, 0),
             [0U, 1U, 16777217U, 1073741889U, 0x7FFFFFFFU, 0x80000000U, 0xFEFFFFFFU],
             [0x00000000U, 0x30000000U, 0x3C000001U, 0x3F000001U, 0x3F800000U, 0xBF800000U, 0xBC000001U]);
+
+        // The stored P3 spot-composition input has 32-bit main samples and 16-bit integer extras.
+        // Native uses the main precision to select arithmetic, but divides by the extra's 65535 maximum.
+        // These literals are the rational samples rounded once to float. The float-factor path rounds 874 one float step lower.
+        ValidateSampleConversionPeriod(
+            new(16, 0),
+            new(32, 8),
+            [0U, 218U, 874U, 65535U],
+            [0x00000000U, 0x3B5A00DAU, 0x3C5A80DBU, 0x3F800000U]);
+
+        // The same selection also applies to short carriers. All samples fit signed short storage;
+        // 513 / 32767 distinguishes one final rounding from multiplication by a rounded float factor.
+        ValidateSampleConversionPeriod(
+            new(15, 0),
+            new(32, 8),
+            [0U, 513U, 32767U],
+            [0x00000000U, 0x3C804101U, 0x3F800000U]);
+
+        // Reverse the precision relationship using the existing 31-bit sample above. Native's
+        // lower main-image precision selects float multiplication, even for this wider extra.
+        ValidateSampleConversionPeriod(new(31, 0), new(8, 0), [0U, 16777217U], [0x00000000U, 0x3C000000U]);
 
         // Full binary32 values are bit carriers. Include a subnormal, HDR value and signed NaN payloads;
         // the conversion must not perform arithmetic or apply the destination pixel's finite range.
@@ -67,8 +89,9 @@ public partial class JxlHeaderTests
             0xBF800000U, 0x47800000U, 0x7F800000U, 0xFF800000U, 0x7FC12345U, 0xFFC54321U
         ];
 
-        ValidateSampleConversionPeriod(new(32, 8), binary32, binary32);
+        ValidateSampleConversionPeriod(new(32, 8), new(32, 8), binary32, binary32);
         ValidateSampleConversionPeriod(
+            new(16, 5),
             new(16, 5),
             [0x0000U, 0x8000U, 0x0001U, 0x03FFU, 0x0400U, 0x3C00U, 0xBC00U, 0x7BFFU, 0x7C00U, 0xFC00U, 0x7E55U],
             [0x00000000U, 0x80000000U, 0x33800000U, 0x387FC000U, 0x38800000U, 0x3F800000U,
@@ -76,6 +99,7 @@ public partial class JxlHeaderTests
 
         // An eight-bit exponent retains binary32's bias and subnormal exponent. Only the two mantissa bits expand.
         ValidateSampleConversionPeriod(
+            new(11, 8),
             new(11, 8),
             [0x000U, 0x400U, 0x001U, 0x003U, 0x004U, 0x1FCU, 0x5FCU, 0x3FBU, 0x3FCU, 0x7FCU, 0x3FFU],
             [0x00000000U, 0x80000000U, 0x00200000U, 0x00600000U, 0x00800000U, 0x3F800000U,
@@ -101,6 +125,7 @@ public partial class JxlHeaderTests
             uint one = ((1U << (sample.Exponent - 1)) - 1U) << 2;
             ValidateSampleConversionPeriod(
                 new((byte)(sample.Exponent + 3), sample.Exponent),
+                new((byte)(sample.Exponent + 3), sample.Exponent),
                 [0U, sign, 1U, 3U, 4U, one, sign | one, ((exponent - 1) << 2) | 3U, exponent << 2, sign | (exponent << 2), (exponent << 2) | 3U],
                 [0x00000000U, 0x80000000U, sample.SmallestSubnormal, sample.LargestSubnormal, sample.SmallestNormal, 0x3F800000U,
                  0xBF800000U, sample.LargestFinite, 0x7F800000U, 0xFF800000U, 0x7FE00000U]);
@@ -108,6 +133,7 @@ public partial class JxlHeaderTests
 
         // The widest custom mantissa needs no left shift. Its smallest nonzero value is exactly 2^-85.
         ValidateSampleConversionPeriod(
+            new(31, 7),
             new(31, 7),
             [0U, 0x40000000U, 1U, 0x007FFFFFU, 0x00800000U, 0x1F800000U, 0x5F800000U, 0x3F7FFFFFU, 0x3F800000U, 0x3FC00001U],
             [0x00000000U, 0x80000000U, 0x15000000U, 0x207FFFFEU, 0x20800000U,
@@ -118,9 +144,11 @@ public partial class JxlHeaderTests
     /// Checks one sample period over a full row with vector tails and untouched destination guards.
     /// </summary>
     /// <param name="bitDepth">The validated source layout.</param>
+    /// <param name="imageBitDepth">The main image precision that selects integer normalization arithmetic.</param>
     /// <param name="samples">The independently constructed integer carriers or floating-point encodings.</param>
     /// <param name="expected">The corresponding exact float representations.</param>
-    private static void ValidateSampleConversionPeriod(JxlBitDepth bitDepth, ReadOnlySpan<uint> samples, ReadOnlySpan<uint> expected)
+    private static void ValidateSampleConversionPeriod(
+        JxlBitDepth bitDepth, JxlBitDepth imageBitDepth, ReadOnlySpan<uint> samples, ReadOnlySpan<uint> expected)
     {
         int[] source = new int[33];
         float[] storage = new float[35];
@@ -130,7 +158,7 @@ public partial class JxlHeaderTests
             source[i] = unchecked((int)samples[i % samples.Length]);
         }
 
-        JxlSampleConverter.Convert(source, storage.AsSpan(1), bitDepth);
+        JxlSampleConverter.Convert(source, storage.AsSpan(1), bitDepth, imageBitDepth);
         for (int i = 0; i < source.Length; i++)
         {
             Assert.Equal(expected[i % expected.Length], BitConverter.SingleToUInt32Bits(storage[i + 1]));
@@ -151,7 +179,7 @@ public partial class JxlHeaderTests
             }
 
             storage.AsSpan().Fill(1.25F);
-            JxlSampleConverter.Convert(shortSource, storage.AsSpan(1), bitDepth);
+            JxlSampleConverter.Convert(shortSource, storage.AsSpan(1), bitDepth, imageBitDepth);
             for (int i = 0; i < shortSource.Length; i++)
             {
                 Assert.Equal(expected[i % expected.Length], BitConverter.SingleToUInt32Bits(storage[i + 1]));

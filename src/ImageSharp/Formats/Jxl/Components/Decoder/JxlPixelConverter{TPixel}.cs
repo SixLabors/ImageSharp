@@ -348,11 +348,11 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             {
                 if (nativeAlpha.Uses16BitStorage)
                 {
-                    JxlSampleConverter.Convert(nativeAlpha.Region16.DangerousGetRowSpan(y), alpha, this.alphaDepth);
+                    JxlSampleConverter.Convert(nativeAlpha.Region16.DangerousGetRowSpan(y), alpha, this.alphaDepth, this.header.Metadata.BitDepth);
                 }
                 else
                 {
-                    JxlSampleConverter.Convert(nativeAlpha.Region.DangerousGetRowSpan(y), alpha, this.alphaDepth);
+                    JxlSampleConverter.Convert(nativeAlpha.Region.DangerousGetRowSpan(y), alpha, this.alphaDepth, this.header.Metadata.BitDepth);
                 }
 
                 rowAlpha = alpha;
@@ -367,11 +367,11 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
             {
                 if (nativeBlack.Uses16BitStorage)
                 {
-                    JxlSampleConverter.Convert(nativeBlack.Region16.DangerousGetRowSpan(y), black, this.blackDepth);
+                    JxlSampleConverter.Convert(nativeBlack.Region16.DangerousGetRowSpan(y), black, this.blackDepth, this.header.Metadata.BitDepth);
                 }
                 else
                 {
-                    JxlSampleConverter.Convert(nativeBlack.Region.DangerousGetRowSpan(y), black, this.blackDepth);
+                    JxlSampleConverter.Convert(nativeBlack.Region.DangerousGetRowSpan(y), black, this.blackDepth, this.header.Metadata.BitDepth);
                 }
 
                 rowBlack = black;

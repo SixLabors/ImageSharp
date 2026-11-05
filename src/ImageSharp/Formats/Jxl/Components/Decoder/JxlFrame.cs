@@ -548,6 +548,7 @@ internal sealed class JxlFrame : IDisposable
     public void Compose(ReadOnlySpan<JxlReferenceFrame?> references, Size canvasSize, MemoryAllocator allocator, CancellationToken cancellationToken)
     {
         JxlFrameHeader frame = this.Header;
+        JxlBitDepth imageBitDepth = this.image.Metadata.BitDepth;
         int extraCount = this.image.Metadata.ExtraChannels.Count;
 
         // Retained YCbCr planes were restored before this call. Only raw modular YCbCr can
@@ -824,12 +825,12 @@ internal sealed class JxlFrame : IDisposable
                             if (narrowColors)
                             {
                                 ReadOnlySpan<short> source = component == 0 ? source16Red : component == 1 ? source16Green : source16Blue;
-                                JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, this.image.Metadata.BitDepth);
+                                JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, imageBitDepth, imageBitDepth);
                             }
                             else
                             {
                                 ReadOnlySpan<int> source = component == 0 ? source32Red : component == 1 ? source32Green : source32Blue;
-                                JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, this.image.Metadata.BitDepth);
+                                JxlSampleConverter.Convert(source.Slice(sourceX, count), normalized, imageBitDepth, imageBitDepth);
                             }
                         }
 
@@ -1024,11 +1025,11 @@ internal sealed class JxlFrame : IDisposable
                 JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + channel);
                 if (source.Uses16BitStorage)
                 {
-                    JxlSampleConverter.Convert(source.Region16.DangerousGetRowSpan(row), normalized, metadata.BitDepth);
+                    JxlSampleConverter.Convert(source.Region16.DangerousGetRowSpan(row), normalized, metadata.BitDepth, this.image.Metadata.BitDepth);
                 }
                 else
                 {
-                    JxlSampleConverter.Convert(source.Region.DangerousGetRowSpan(row), normalized, metadata.BitDepth);
+                    JxlSampleConverter.Convert(source.Region.DangerousGetRowSpan(row), normalized, metadata.BitDepth, this.image.Metadata.BitDepth);
                 }
 
                 samples = normalized;
@@ -1172,8 +1173,10 @@ internal sealed class JxlFrame : IDisposable
     /// <param name="destination">The float plane with room for the coded rectangle.</param>
     /// <param name="bitDepth">The component's integer or floating-point sample representation.</param>
     /// <param name="cancellationToken">The token checked between rows.</param>
-    private static void NormalizeChannel(JxlModularChannel source, Buffer2D<float> destination, JxlBitDepth bitDepth, CancellationToken cancellationToken)
+    private void NormalizeChannel(JxlModularChannel source, Buffer2D<float> destination, JxlBitDepth bitDepth, CancellationToken cancellationToken)
     {
+        JxlBitDepth imageBitDepth = this.image.Metadata.BitDepth;
+
         // The image selects its carrier width before decoding. Keep that choice outside the row loop;
         // both branches use the same sample operators and write only the original coded rectangle.
         if (source.Uses16BitStorage)
@@ -1182,7 +1185,7 @@ internal sealed class JxlFrame : IDisposable
             for (int y = 0; y < source.Height; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                JxlSampleConverter.Convert(region.DangerousGetRowSpan(y), destination.DangerousGetRowSpan(y)[..source.Width], bitDepth);
+                JxlSampleConverter.Convert(region.DangerousGetRowSpan(y), destination.DangerousGetRowSpan(y)[..source.Width], bitDepth, imageBitDepth);
             }
         }
         else
@@ -1191,7 +1194,7 @@ internal sealed class JxlFrame : IDisposable
             for (int y = 0; y < source.Height; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                JxlSampleConverter.Convert(region.DangerousGetRowSpan(y), destination.DangerousGetRowSpan(y)[..source.Width], bitDepth);
+                JxlSampleConverter.Convert(region.DangerousGetRowSpan(y), destination.DangerousGetRowSpan(y)[..source.Width], bitDepth, imageBitDepth);
             }
         }
     }
@@ -1226,7 +1229,7 @@ internal sealed class JxlFrame : IDisposable
                 planes[component] = plane;
                 allocated++;
                 JxlModularChannel source = modular.GetChannel(colorCount == 1 ? 0 : component);
-                NormalizeChannel(source, plane, header.Metadata.BitDepth, cancellationToken);
+                this.NormalizeChannel(source, plane, header.Metadata.BitDepth, cancellationToken);
             }
 
             return planes;
@@ -1299,7 +1302,7 @@ internal sealed class JxlFrame : IDisposable
                 extras[extra] = plane;
                 allocated++;
                 JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + extra);
-                NormalizeChannel(source, plane, this.image.Metadata.ExtraChannels[extra].BitDepth, cancellationToken);
+                this.NormalizeChannel(source, plane, this.image.Metadata.ExtraChannels[extra].BitDepth, cancellationToken);
             }
 
             // Publish only the completed array. Until this point, failure releases every acquired
@@ -1356,7 +1359,7 @@ internal sealed class JxlFrame : IDisposable
                 if (!borrowed && plane is not null)
                 {
                     JxlModularChannel source = this.Modular.GetChannel(this.Modular.ColorChannelCount + extra);
-                    NormalizeChannel(source, plane, metadata.BitDepth, cancellationToken);
+                    this.NormalizeChannel(source, plane, metadata.BitDepth, cancellationToken);
                 }
             }
         }
@@ -1444,7 +1447,7 @@ internal sealed class JxlFrame : IDisposable
         Buffer2D<float> plane = allocator.Allocate2D<float>(upsampler.TargetSize);
         try
         {
-            NormalizeChannel(source, plane, this.image.Metadata.ExtraChannels[extraIndex].BitDepth, cancellationToken);
+            this.NormalizeChannel(source, plane, this.image.Metadata.ExtraChannels[extraIndex].BitDepth, cancellationToken);
 
             // Reconstruction and interpolation can retain values outside zero through one. Extra channels
             // use their own precision; the destination pixel API applies alpha bounds after color conversion.

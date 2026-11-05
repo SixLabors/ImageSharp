@@ -60,14 +60,16 @@ internal static class JxlSampleConverter
     /// <param name="source">Reconstructed signed integer carriers, including raw bits for floating-point samples.</param>
     /// <param name="destination">Float storage with at least the source length.</param>
     /// <param name="bitDepth">The validated integer or floating-point sample layout.</param>
-    public static void Convert(ReadOnlySpan<int> source, Span<float> destination, JxlBitDepth bitDepth)
+    /// <param name="imageBitDepth">The main image precision that selects the integer normalization arithmetic.</param>
+    public static void Convert(ReadOnlySpan<int> source, Span<float> destination, JxlBitDepth bitDepth, JxlBitDepth imageBitDepth)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         if (bitDepth.ExponentBits == 0)
         {
-            // Native reconstruction preserves integer precision before multiplication from 23 bits onward.
-            // Its factor is calculated in double even when the lower-precision worker consumes a float factor.
-            if (bitDepth.BitsPerSample < 23)
+            // dec_modular.cc selects normalization from the main image precision, including for extra
+            // channels with a different depth. The channel depth still determines its normalization factor.
+            // From 23 main-image bits onward, multiply by the double factor before rounding once to float.
+            if (imageBitDepth.BitsPerSample < 23)
             {
                 Convert(source, destination, new IntegerOperator(bitDepth.BitsPerSample));
             }
@@ -96,12 +98,15 @@ internal static class JxlSampleConverter
     /// <param name="source">The short carriers promised by the image's modular storage flag.</param>
     /// <param name="destination">Float storage with at least the source length.</param>
     /// <param name="bitDepth">The validated integer or floating-point sample layout.</param>
-    public static void Convert(ReadOnlySpan<short> source, Span<float> destination, JxlBitDepth bitDepth)
+    /// <param name="imageBitDepth">The main image precision that selects the integer normalization arithmetic.</param>
+    public static void Convert(ReadOnlySpan<short> source, Span<float> destination, JxlBitDepth bitDepth, JxlBitDepth imageBitDepth)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         if (bitDepth.ExponentBits == 0)
         {
-            if (bitDepth.BitsPerSample < 23)
+            // Short storage uses the same main-image precision rule as int storage. In particular,
+            // a narrow extra channel in a 32-bit image must retain the accurate factor multiplication.
+            if (imageBitDepth.BitsPerSample < 23)
             {
                 Convert(source, destination, new Int16Operator<IntegerOperator>(new IntegerOperator(bitDepth.BitsPerSample)));
             }
@@ -297,7 +302,7 @@ internal static class JxlSampleConverter
     }
 
     /// <summary>
-    /// Normalizes integer samples with the native single-precision multiplication order below 23-bit precision.
+    /// Normalizes integer samples with single-precision multiplication when the main image has fewer than 23 bits per sample.
     /// </summary>
     public readonly struct IntegerOperator : IConversionOperator<int>
     {
@@ -306,7 +311,7 @@ internal static class JxlSampleConverter
         /// <summary>
         /// Initializes a new instance of the <see cref="IntegerOperator"/> struct.
         /// </summary>
-        /// <param name="bitsPerSample">The validated integer precision from 1 through 22 bits.</param>
+        /// <param name="bitsPerSample">The channel's validated integer precision from 1 through 31 bits.</param>
         public IntegerOperator(int bitsPerSample) => this.factor = (float)(1D / ((1U << bitsPerSample) - 1U));
 
         /// <inheritdoc />
@@ -327,7 +332,7 @@ internal static class JxlSampleConverter
     }
 
     /// <summary>
-    /// Normalizes integer samples from 23 through 31 bits with one final rounding to float.
+    /// Normalizes integer samples with one final rounding to float when the main image has at least 23 bits per sample.
     /// </summary>
     public readonly struct AccurateIntegerOperator : IConversionOperator<int>
     {
@@ -336,7 +341,7 @@ internal static class JxlSampleConverter
         /// <summary>
         /// Initializes a new instance of the <see cref="AccurateIntegerOperator"/> struct.
         /// </summary>
-        /// <param name="bitsPerSample">The validated integer precision from 23 through 31 bits.</param>
+        /// <param name="bitsPerSample">The channel's validated integer precision from 1 through 31 bits.</param>
         public AccurateIntegerOperator(int bitsPerSample) => this.factor = 1D / ((1U << bitsPerSample) - 1U);
 
         /// <inheritdoc />

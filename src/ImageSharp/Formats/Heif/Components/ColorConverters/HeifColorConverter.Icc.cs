@@ -110,11 +110,11 @@ internal abstract partial class HeifColorConverterBase
             Span<Rgb> rgbSpan)
         {
             // This shared API extracts straight RGB according to TPixel, applies ICC, and retains alpha in vectors.
-            // Both spans belong to the row writer and are reused for the next row. The separate alpha encoder reads source alpha.
-            profileConverter.Convert(configuration, source, vectors, rgbSpan);
+            // The vector row belongs to the writer and is reused for the next row. The separate alpha encoder reads source alpha.
+            profileConverter.Convert(configuration, source, vectors);
 
-            // Each Rgb stores three consecutive floats. Unpack those transformed device values into the model's R, G and B planes.
-            SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<Rgb, Vector3>(rgbSpan), component0, component1, component2);
+            // The converted vectors retain opacity. Extract only the transformed RGB components for the color model.
+            SimdUtils.DeinterleaveFloatPlanes(vectors[..source.Length], component0, component1, component2, Span<float>.Empty);
 
             // Encoding reverses the decode order: ICC produces device RGB, then the same closed operator encodes the model.
             // The maximum value is 1 because ICC returns scaled RGB, not byte or ushort codes. This does not bound RGB to [0,1].

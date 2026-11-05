@@ -129,6 +129,24 @@ public class MagickReferenceDecoder : ImageDecoder
                 magicFrame.ColorSpace = ColorSpace.sRGB;
             }
 
+            if (!transformed && this.imageFormat is ExrFormat)
+            {
+                // For RGB input, ImageMagick's OpenEXR Core reader copies associated linear samples but leaves its default sRGB tag.
+                // The reserved attribute sets the source tag without changing samples; the ColorSpace setter below converts them.
+                magicFrame.SetAttribute("colorspace", "RGB");
+
+                if (magicFrame.HasAlpha)
+                {
+                    // Transfer curves require straight RGB. Disassociate disables alpha after dividing RGB;
+                    // Activate restores the stored alpha channel. On would replace those samples with opaque alpha.
+                    magicFrame.Alpha(AlphaAction.Disassociate);
+                    magicFrame.Alpha(AlphaAction.Activate);
+                }
+
+                magicFrame.ColorSpace = ColorSpace.sRGB;
+                transformed = true;
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 
@@ -154,7 +172,7 @@ public class MagickReferenceDecoder : ImageDecoder
 
             if (transformed)
             {
-                // Magick's Q16-HDRI samples use 65535 for full intensity and opaque alpha, but ICC output can exceed that range.
+                // Magick's Q16-HDRI samples use 65535 for full intensity and opaque alpha, but converted RGB can exceed that range.
                 // Read the float samples directly. Exporting bytes or ushorts would clip RGB and hide differences from our decoder.
                 // Dividing by Quantum.Max maps full intensity to 1 while retaining negative RGB and RGB above 1.
                 float[] data = pixels.GetValues();
@@ -163,9 +181,10 @@ public class MagickReferenceDecoder : ImageDecoder
                 int rowLength = buffer.Width * (int)magicFrame.ChannelCount;
                 using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(buffer.Width);
 
+                Span<Vector4> row = vectors.Memory.Span;
+
                 for (int y = 0; y < buffer.Height; y++)
                 {
-                    Span<Vector4> row = vectors.Memory.Span;
                     if (magicFrame.HasAlpha)
                     {
                         MemoryMarshal.Cast<float, Vector4>(samples[..rowLength]).CopyTo(row);

@@ -209,6 +209,56 @@ public class RgbWorkingSpaceTests
     }
 
     /// <summary>
+    /// Checks valid zero-y primaries through scalar and bulk conversions at every SIMD width and scalar fallback.
+    /// </summary>
+    [Fact]
+    public void ZeroYPrimariesPreserveXyzBasis()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateZeroYPrimaries,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the X, Y and Z primary directions without transfer curves or white-point adaptation.
+    /// </summary>
+    private static void ValidateZeroYPrimaries()
+    {
+        // With equal-energy white, these xy primaries define the XYZ basis itself.
+        // Red and blue have y=0 but independent, nonzero XYZ directions. The expected
+        // conversion is therefore the identity, rather than a value derived from either matrix.
+        CieXyz white = new(1F, 1F, 1F);
+        GammaWorkingSpace workingSpace = new(1F, white, new(new(1F, 0F), new(0F, 1F), new(0F, 0F)));
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceWhitePoint = white,
+            TargetWhitePoint = white,
+            SourceRgbWorkingSpace = workingSpace,
+            TargetRgbWorkingSpace = workingSpace
+        });
+
+        ReadOnlySpan<Rgb> inputs = [new(1F, 0F, 0F), new(0F, 1F, 0F), new(0F, 0F, 1F), new(.25F, .5F, .75F)];
+        Rgb[] source = new Rgb[33];
+        CieXyz[] xyz = new CieXyz[source.Length];
+        Rgb[] restored = new Rgb[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = inputs[i % inputs.Length];
+        }
+
+        // Thirty-three colors cover complete SIMD blocks and an incomplete final block.
+        converter.Convert<Rgb, CieXyz>(source, xyz);
+        converter.Convert<CieXyz, Rgb>(xyz, restored);
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgb rgb = source[i];
+            CieXyz expected = new(rgb.R, rgb.G, rgb.B);
+            Assert.Equal(expected.ToScaledVector4(), converter.Convert<Rgb, CieXyz>(rgb).ToScaledVector4(), TolerantComparer);
+            Assert.Equal(expected.ToScaledVector4(), xyz[i].ToScaledVector4(), TolerantComparer);
+            Assert.Equal(rgb.ToScaledVector4(), converter.Convert<CieXyz, Rgb>(expected).ToScaledVector4(), TolerantComparer);
+            Assert.Equal(rgb.ToScaledVector4(), restored[i].ToScaledVector4(), TolerantComparer);
+        }
+    }
+
+    /// <summary>
     /// Checks that PQ and HLG working-space identity includes the display peak.
     /// </summary>
     [Fact]

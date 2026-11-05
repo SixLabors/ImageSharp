@@ -821,10 +821,9 @@ internal sealed class PngEncoderCore : IDisposable
             // Later frames use this sRGB palette to select their indices. Leave it unchanged.
             // Convert its RGB colors from sRGB to the embedded profile's color space in separate storage.
             using IMemoryOwner<Vector4> vectors = this.memoryAllocator.Allocate<Vector4>(paletteLength);
-            using IMemoryOwner<Rgb> scratch = this.memoryAllocator.Allocate<Rgb>(paletteLength);
 
             // The converter removes premultiplication when required by TPixel and leaves alpha unchanged.
-            colorProfileConverter.Convert(quantized.Configuration, palette, vectors.GetSpan(), scratch.GetSpan());
+            colorProfileConverter.Convert(quantized.Configuration, palette, vectors.GetSpan());
 
             // Pack the converted colors as straight RGBA bytes. Below, RGB goes into PLTE and alpha goes into tRNS.
             PixelOperations<Rgba32>.Instance.FromUnassociatedScaledVector4Destructive(quantized.Configuration, vectors.GetSpan(), rgbaPaletteSpan);
@@ -1478,15 +1477,13 @@ internal sealed class PngEncoderCore : IDisposable
 
         // Direct-color ICC output converts each source row into straight floating-point samples, then the existing packer quantizes once.
         using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(pixels.Width);
-        using IMemoryOwner<Rgb> rgbBuffer = this.memoryAllocator.Allocate<Rgb>(pixels.Width);
 
         Span<Vector4> vectors = vectorBuffer.GetSpan();
-        Span<Rgb> rgb = rgbBuffer.GetSpan();
 
         for (int y = 0; y < pixels.Height; y++)
         {
             ReadOnlySpan<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
-            colorProfileConverter.Convert(this.configuration, rowSpan, vectors, rgb);
+            colorProfileConverter.Convert(this.configuration, rowSpan, vectors);
 
             ReadOnlySpan<RgbaVector> convertedRow = MemoryMarshal.Cast<Vector4, RgbaVector>(vectors)[..rowSpan.Length];
             this.CollectAndFilterPixelRow(convertedRow, ref filter, ref attempt, null, y);
@@ -1555,10 +1552,8 @@ internal sealed class PngEncoderCore : IDisposable
 
             // Direct-color ICC output converts gathered pass samples before the unchanged packing and filtering stages.
             using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(blockWidth);
-            using IMemoryOwner<Rgb> rgbBuffer = this.memoryAllocator.Allocate<Rgb>(blockWidth);
 
             Span<Vector4> vectors = vectorBuffer.GetSpan();
-            Span<Rgb> rgb = rgbBuffer.GetSpan();
 
             for (int row = startRow; row < pixels.Height; row += Adam7.RowIncrement[pass])
             {
@@ -1574,7 +1569,7 @@ internal sealed class PngEncoderCore : IDisposable
                 // Note: quantized parameter not used
                 // Note: row parameter not used
                 ReadOnlySpan<TPixel> blockSpan = block;
-                colorProfileConverter.Convert(this.configuration, blockSpan, vectors, rgb);
+                colorProfileConverter.Convert(this.configuration, blockSpan, vectors);
 
                 ReadOnlySpan<RgbaVector> convertedRow = MemoryMarshal.Cast<Vector4, RgbaVector>(vectors)[..blockSpan.Length];
                 this.CollectAndFilterPixelRow(convertedRow, ref filter, ref attempt, null, -1);

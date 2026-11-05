@@ -5,8 +5,11 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.IO;
@@ -101,6 +104,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadExrHeader(stream);
+        ColorProfileConverter colorConverter = ExrColorConverter.Create(this.exrMetadata, false);
 
         if (!this.IsSupportedCompression())
         {
@@ -117,10 +121,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             {
                 case ExrPixelType.Half:
                 case ExrPixelType.Float:
-                    this.DecodeFloatingPointPixelData(stream, pixels, cancellationToken);
+                    this.DecodeFloatingPointPixelData(stream, pixels, colorConverter, cancellationToken);
                     break;
                 case ExrPixelType.UnsignedInt:
-                    this.DecodeUnsignedIntPixelData(stream, pixels, cancellationToken);
+                    this.DecodeUnsignedIntPixelData(stream, pixels, colorConverter, cancellationToken);
                     break;
                 default:
                     ExrThrowHelper.ThrowNotSupported("Pixel type is not supported");
@@ -150,8 +154,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="pixels">The pixel buffer.</param>
+    /// <param name="colorConverter">The conversion from stored linear RGB to sRGB working pixels.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void DecodeFloatingPointPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
+    private void DecodeFloatingPointPixelData<TPixel>(
+        BufferedReadStream stream, Buffer2D<TPixel> pixels, ColorProfileConverter colorConverter, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
@@ -175,6 +181,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<float> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
         Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
+        InlineArray16<Vector4> colorStorage = default;
+        Span<Vector4> colors = colorStorage;
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
             this.Compression,
@@ -226,13 +235,19 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                         width);
                 }
 
-                PixelOperations<TPixel>.Instance.PackFromAssociatedScaledFloatPlanes(
-                    this.configuration,
-                    redPixelData,
-                    greenPixelData,
-                    bluePixelData,
-                    hasAlpha ? alphaPixelData : Span<float>.Empty,
-                    pixelRow);
+                // Pack the associated linear samples through TPixel before color conversion.
+                // TPixel sets the range, component precision and alpha representation of the decoded pixels.
+                pixelOperations.PackFromAssociatedScaledFloatPlanes(
+                    this.configuration, redPixelData, greenPixelData, bluePixelData, hasAlpha ? alphaPixelData : [], pixelRow);
+
+                for (int x = 0; x < width; x += colors.Length)
+                {
+                    int count = Math.Min(colors.Length, width - x);
+                    Span<Vector4> block = colors[..count];
+                    Span<TPixel> destination = pixelRow.Slice(x, count);
+                    colorConverter.Convert<TPixel>(this.configuration, destination, block);
+                    pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, destination);
+                }
 
                 decodedRows++;
             }
@@ -249,8 +264,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="pixels">The pixel buffer.</param>
+    /// <param name="colorConverter">The conversion from stored linear RGB to sRGB working pixels.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void DecodeUnsignedIntPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
+    private void DecodeUnsignedIntPixelData<TPixel>(
+        BufferedReadStream stream, Buffer2D<TPixel> pixels, ColorProfileConverter colorConverter, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
@@ -274,6 +291,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
         Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
+        InlineArray16<Vector4> colorStorage = default;
+        Span<Vector4> colors = colorStorage;
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+
+        if (!hasAlpha)
+        {
+            alphaPixelData.Fill(uint.MaxValue);
+        }
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
             this.Compression,
@@ -325,12 +350,29 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                         width);
                 }
 
-                for (int x = 0; x < width; x++)
+                for (int x = 0; x < width; x += colors.Length)
                 {
-                    Rgba128 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
+                    int count = Math.Min(colors.Length, width - x);
+                    Span<Vector4> block = colors[..count];
+                    Span<TPixel> destination = pixelRow.Slice(x, count);
 
-                    // Rgba128 normalizes the unsigned channel values before the destination applies its own numeric representation.
-                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(pixelValue.ToVector4());
+                    // Interleave the UINT component bits without converting their values. The
+                    // shared interleaver only shuffles and stores these temporary float views.
+                    SimdUtils.InterleaveFloatPlanes(
+                        MemoryMarshal.Cast<uint, float>(redPixelData.Slice(x, count)),
+                        MemoryMarshal.Cast<uint, float>(greenPixelData.Slice(x, count)),
+                        MemoryMarshal.Cast<uint, float>(bluePixelData.Slice(x, count)),
+                        MemoryMarshal.Cast<uint, float>(alphaPixelData.Slice(x, count)),
+                        block);
+
+                    // Normalize the native UINT samples with the existing tensor conversions.
+                    // Both spans start at the same address; each vector load precedes its store.
+                    Span<float> components = MemoryMarshal.Cast<Vector4, float>(block);
+                    TensorPrimitives.ConvertTruncating<uint, float>(MemoryMarshal.Cast<Vector4, uint>(block), components);
+                    TensorPrimitives.Multiply(components, 1F / uint.MaxValue, components);
+                    pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, block, destination);
+                    colorConverter.Convert<TPixel>(this.configuration, destination, block);
+                    pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, destination);
                 }
 
                 decodedRows++;
@@ -737,6 +779,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.exrMetadata.PixelType = this.PixelType;
         this.exrMetadata.ImageDataType = this.ImageDataType;
         this.exrMetadata.Compression = this.Compression;
+        this.exrMetadata.Primaries = this.HeaderAttributes.Primaries;
+        this.exrMetadata.WhitePoint = this.HeaderAttributes.WhitePoint;
 
         return this.HeaderAttributes;
     }
@@ -762,6 +806,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         uint? tileXSize = null;
         uint? tileYSize = null;
         int? chunkCount = null;
+        RgbPrimariesChromaticityCoordinates primaries = KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates;
+        CieXyChromaticityCoordinates whitePoint = KnownIlluminants.D65Chromaticity;
         while (!attribute.Equals(ExrAttribute.EmptyAttribute))
         {
             switch (attribute.Name)
@@ -771,6 +817,21 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     break;
                 case ExrConstants.AttributeNames.Compression:
                     compression = (ExrCompression)stream.ReadByte();
+                    break;
+                case ExrConstants.AttributeNames.Chromaticities:
+                    // The attribute stores eight little-endian floats, not an ICC profile or a transfer curve.
+                    // Validate its extent before reading so malformed color metadata cannot shift the next attribute.
+                    if (attribute.Type != ExrConstants.AttibuteTypes.Chromaticities || attribute.Length != 8 * sizeof(float))
+                    {
+                        ExrThrowHelper.ThrowInvalidImageContentException("EXR chromaticities must contain eight float values.");
+                    }
+
+                    primaries = new RgbPrimariesChromaticityCoordinates(
+                        new(this.ReadSingle(stream), this.ReadSingle(stream)),
+                        new(this.ReadSingle(stream), this.ReadSingle(stream)),
+                        new(this.ReadSingle(stream), this.ReadSingle(stream)));
+
+                    whitePoint = new CieXyChromaticityCoordinates(this.ReadSingle(stream), this.ReadSingle(stream));
                     break;
                 case ExrConstants.AttributeNames.DataWindow:
                     dataWindow = this.ReadBoxInteger(stream);
@@ -849,6 +910,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         ExrHeaderAttributes header = new(
             channels,
+            primaries,
+            whitePoint,
             compression.Value,
             dataWindow.Value,
             displayWindow.Value,
@@ -1085,7 +1148,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a float value from the stream!");
         }
 
-        int intValue = BinaryPrimitives.ReadInt32BigEndian(this.buffer);
+        int intValue = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
 
         return Unsafe.As<int, float>(ref intValue);
     }

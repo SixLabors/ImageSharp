@@ -50,11 +50,10 @@ internal abstract class TiffCompositeColorWriter<TPixel> : TiffBaseColorWriter<T
     /// <summary>
     /// Gets the row storage shared by pixel conversion, ICC conversion and float sample packing.
     /// </summary>
-    /// <returns>Four floats per pixel for RGBA, plus three floats per pixel for ICC input when needed.</returns>
+    /// <returns>Four floats per pixel for the converted pixel vectors.</returns>
     protected Span<float> GetConversionBuffer()
     {
-        int components = this.converter is null ? 4 : 7;
-        this.conversionBuffer ??= this.MemoryAllocator.Allocate<float>(this.Width * components);
+        this.conversionBuffer ??= this.MemoryAllocator.Allocate<float>(this.Width * 4);
         return this.conversionBuffer.GetSpan();
     }
 
@@ -106,11 +105,9 @@ internal abstract class TiffCompositeColorWriter<TPixel> : TiffBaseColorWriter<T
         else
         {
             // Reuse one allocation across all rows and strips: four floats per pixel hold straight RGBA.
-            // ICC needs three additional floats per pixel for its RGB input.
             // Keep the converted values in RgbaVector until the writer packs the selected TIFF depth.
             Span<float> storage = this.GetConversionBuffer();
             Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(storage[..(width * 4)]);
-            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[(width * 4)..]);
 
             for (int row = y; row < lastRow; row++)
             {
@@ -121,7 +118,7 @@ internal abstract class TiffCompositeColorWriter<TPixel> : TiffBaseColorWriter<T
                 }
                 else
                 {
-                    converter.Convert(this.Configuration, source, vectors, rgb);
+                    converter.Convert(this.Configuration, source, vectors);
                 }
 
                 // Clear after conversion and before packing. Only zero-alpha pixels in the encoder's row are replaced.

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,6 +11,10 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 /// <summary>
 /// Provides OpenExr specific metadata information for the image.
 /// </summary>
+/// <remarks>
+/// RGB samples store linear-light values. The default primaries and white point provide the conventional
+/// ITU-R BT.709 fallback when color metadata is absent. Files without color metadata can use other color spaces.
+/// </remarks>
 public class ExrMetadata : IFormatMetadata<ExrMetadata>
 {
     /// <summary>
@@ -23,7 +28,14 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     /// Initializes a new instance of the <see cref="ExrMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    private ExrMetadata(ExrMetadata other) => this.PixelType = other.PixelType;
+    private ExrMetadata(ExrMetadata other)
+    {
+        this.PixelType = other.PixelType;
+        this.ImageDataType = other.ImageDataType;
+        this.Compression = other.Compression;
+        this.Primaries = other.Primaries;
+        this.WhitePoint = other.WhitePoint;
+    }
 
     /// <summary>
     /// Gets or sets the pixel format.
@@ -39,6 +51,17 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     /// Gets or sets the compression method.
     /// </summary>
     public ExrCompression Compression { get; set; } = ExrCompression.None;
+
+    /// <summary>
+    /// Gets or sets the CIE xy coordinates of the stored linear RGB primaries.
+    /// Defaults to the ITU-R BT.709 primaries used by sRGB.
+    /// </summary>
+    public RgbPrimariesChromaticityCoordinates Primaries { get; set; } = KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates;
+
+    /// <summary>
+    /// Gets or sets the CIE xy coordinates of the stored RGB white point. Defaults to D65.
+    /// </summary>
+    public CieXyChromaticityCoordinates WhitePoint { get; set; } = KnownIlluminants.D65Chromaticity;
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()

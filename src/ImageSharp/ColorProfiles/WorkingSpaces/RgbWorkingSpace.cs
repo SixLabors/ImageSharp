@@ -169,24 +169,33 @@ public abstract class RgbWorkingSpace
         float yg = chromaticityCoordinates.G.Y;
         float yb = chromaticityCoordinates.B.Y;
 
-        // Convert each xy primary to XYZ with unit luminance (Y = 1).
-        float mXr = xr / yr;
-        float mZr = (1 - xr - yr) / yr;
+        // A primary defines the XYZ direction (x, y, 1-x-y), not an absolute luminance.
+        // Retain unit-Y rows for nonzero y so existing matrices keep their arithmetic.
+        // A zero-y primary still defines a valid direction, such as the X and Z basis
+        // primaries accepted by OpenEXR's RGBtoXYZ. Keep its homogeneous row instead of dividing by zero.
+        float divisorR = yr == 0F ? 1F : yr;
+        float divisorG = yg == 0F ? 1F : yg;
+        float divisorB = yb == 0F ? 1F : yb;
+        float mYr = yr == 0F ? 0F : 1F;
+        float mYg = yg == 0F ? 0F : 1F;
+        float mYb = yb == 0F ? 0F : 1F;
+        float mXr = xr / divisorR;
+        float mZr = (1 - xr - yr) / divisorR;
 
-        float mXg = xg / yg;
-        float mZg = (1 - xg - yg) / yg;
+        float mXg = xg / divisorG;
+        float mZg = (1 - xg - yg) / divisorG;
 
-        float mXb = xb / yb;
-        float mZb = (1 - xb - yb) / yb;
+        float mXb = xb / divisorB;
+        float mZb = (1 - xb - yb) / divisorB;
 
         Matrix4x4 xyzMatrix = new()
         {
             M11 = mXr,
             M21 = mXg,
             M31 = mXb,
-            M12 = 1F,
-            M22 = 1F,
-            M32 = 1F,
+            M12 = mYr,
+            M22 = mYg,
+            M32 = mYb,
             M13 = mZr,
             M23 = mZg,
             M33 = mZb,
@@ -204,9 +213,9 @@ public abstract class RgbWorkingSpace
             M11 = vector.X * mXr,
             M21 = vector.Y * mXg,
             M31 = vector.Z * mXb,
-            M12 = vector.X,
-            M22 = vector.Y,
-            M32 = vector.Z,
+            M12 = vector.X * mYr,
+            M22 = vector.Y * mYg,
+            M32 = vector.Z * mYb,
             M13 = vector.X * mZr,
             M23 = vector.Y * mZg,
             M33 = vector.Z * mZb,

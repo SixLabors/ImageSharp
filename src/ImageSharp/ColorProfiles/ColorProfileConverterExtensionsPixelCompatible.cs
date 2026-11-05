@@ -69,22 +69,34 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     }
 
     /// <summary>
-    /// Converts source pixels from the converter's source profile to its target profile as straight, scaled vectors.
+    /// Converts source pixels between the configured ICC profiles or RGB working spaces as straight, scaled vectors.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel format.</typeparam>
-    /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
+    /// <param name="converter">The converter configured with source and target profiles or working spaces.</param>
     /// <param name="configuration">The configuration used for pixel conversion.</param>
     /// <param name="source">The source pixels, which remain unchanged.</param>
     /// <param name="destination">The destination vectors.</param>
-    /// <param name="scratch">Caller-owned RGB scratch storage.</param>
     public static void Convert<TPixel>(
-        this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination, Span<Rgb> scratch)
+        this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // ICC consumes straight RGB. Extract associated pixels as straight vectors without changing the source pixels.
-        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
+        // Extract the complete pixel row through its bulk implementation before changing RGB.
+        // PixelOperations validates the destination and selects the source alpha conversion.
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+        pixelOperations.ToUnassociatedScaledVector4(configuration, source, destination);
+        destination = destination[..source.Length];
+        InlineArray64<Rgb> storage = default;
+        Span<Rgb> rgb = storage;
 
-        converter.Convert(destination[..source.Length], scratch[..source.Length]);
+        // Reuse bounded RGB staging for the complete row. Separate staging keeps the profile
+        // conversion from overwriting unread vector components. Alpha remains in the vector row.
+        while (!destination.IsEmpty)
+        {
+            int count = Math.Min(destination.Length, rgb.Length);
+            Span<Vector4> block = destination[..count];
+            converter.Convert(block, rgb[..count]);
+            destination = destination[count..];
+        }
     }
 
     /// <summary>
@@ -134,12 +146,12 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     }
 
     /// <summary>
-    /// Converts the RGB components of a pixel-vector row through typed ICC profiles while retaining its alpha.
+    /// Converts the RGB components of a pixel-vector row through typed profiles while retaining its alpha.
     /// </summary>
     /// <remarks>
     /// RGB values can remain outside [0,1]. The caller applies destination pixel storage bounds after this conversion.
     /// </remarks>
-    /// <param name="converter">The converter configured with the source and target ICC profiles.</param>
+    /// <param name="converter">The converter configured with the source and target profiles or working spaces.</param>
     /// <param name="row">The pixel vectors updated in place. Alpha remains unchanged.</param>
     /// <param name="rgbSpan">Existing RGB storage with one entry per pixel. It must not overlap the vector row.</param>
     private static void Convert(this ColorProfileConverter converter, Span<Vector4> row, Span<Rgb> rgbSpan)
@@ -147,7 +159,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         // Keep alpha in the pixel row while the existing typed API transforms the separate RGB row.
         // Replace only XYZ afterward, without applying pixel storage bounds or changing alpha bits.
         Rgb.FromScaledVector4(row, rgbSpan);
-        converter.Convert<Rgb, Rgb>(rgbSpan, rgbSpan);
+        converter.Convert(rgbSpan, rgbSpan);
         Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(rgbSpan), row);
     }
 }

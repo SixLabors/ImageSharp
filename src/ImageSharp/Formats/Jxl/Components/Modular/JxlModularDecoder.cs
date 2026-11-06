@@ -1927,6 +1927,11 @@ internal sealed partial class JxlModularDecoder : IDisposable
             }
             else
             {
+                Transform next = i > 0 ? transforms[i - 1] : default;
+                bool combineSqueezes = targets.IsEmpty && transform.InPlace && !transform.Horizontal
+                    && next.Kind == SqueezeTransform && next.InPlace && next.Horizontal
+                    && next.Begin == transform.Begin && next.ChannelCount == transform.ChannelCount;
+
                 int residualStart = transform.InPlace ? transform.Begin + transform.ChannelCount : channels.Count - transform.ChannelCount;
                 Span<JxlModularChannel> descriptors = CollectionsMarshal.AsSpan(channels);
                 for (int c = 0; c < transform.ChannelCount; c++)
@@ -1948,13 +1953,36 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         vertical--;
                     }
 
+                    Size outputSize = size;
+                    if (combineSqueezes)
+                    {
+                        // The vertical residuals precede the horizontal residuals in the channel list.
+                        outputSize.Width += descriptors[residualStart + transform.ChannelCount + c].Width;
+                        if (horizontal >= 0)
+                        {
+                            horizontal--;
+                        }
+                    }
+
+                    JxlModularChannelLayout layout = new(outputSize, horizontal, vertical);
                     JxlModularChannel output = useTargets
                         ? targets[transform.Begin + c]
-                        : JxlModularChannel.Allocate(this.allocator, new JxlModularChannelLayout(size, horizontal, vertical), averages.Uses16BitStorage);
+                        : JxlModularChannel.Allocate(this.allocator, layout, averages.Uses16BitStorage);
 
                     try
                     {
-                        if (!output.IsEmpty)
+                        if (combineSqueezes)
+                        {
+                            ref JxlModularChannel horizontalResiduals = ref descriptors[residualStart + transform.ChannelCount + c];
+
+                            // The vertical pass fills the right side of the final plane. The horizontal pass writes from left
+                            // to right and reads each average and its lookahead before the output can overwrite them.
+                            JxlModularChannel intermediate = output.Borrow(new Rectangle(horizontalResiduals.Width, 0, size.Width, size.Height));
+                            JxlModularSqueeze.Apply(averages, residuals, intermediate, false, cancellationToken);
+                            JxlModularSqueeze.Apply(intermediate, horizontalResiduals, output, true, cancellationToken);
+                            horizontalResiduals.Dispose();
+                        }
+                        else if (!output.IsEmpty)
                         {
                             JxlModularSqueeze.Apply(averages, residuals, output, transform.Horizontal, cancellationToken);
                         }
@@ -1972,7 +2000,11 @@ internal sealed partial class JxlModularDecoder : IDisposable
                     averages = output;
                 }
 
-                channels.RemoveRange(residualStart, transform.ChannelCount);
+                channels.RemoveRange(residualStart, combineSqueezes ? 2 * transform.ChannelCount : transform.ChannelCount);
+                if (combineSqueezes)
+                {
+                    i--;
+                }
             }
         }
     }

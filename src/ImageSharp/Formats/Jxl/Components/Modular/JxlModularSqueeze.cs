@@ -13,7 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 /// Reconstructs integer sample pairs from modular averages and squeeze residuals.
 /// </summary>
 /// <remarks>
-/// The decoder owns the three regions and validates their dimensions. Destination must not overlap either input.
+/// The decoder owns the regions and validates their dimensions. For horizontal reconstruction, the averages can occupy the rightmost columns
+/// of the destination. Otherwise the destination must be separate from both inputs.
 /// Horizontal reconstruction depends on the preceding output pair. Vertical reconstruction has the same dependency between rows.
 /// </remarks>
 internal static class JxlModularSqueeze
@@ -42,7 +43,7 @@ internal static class JxlModularSqueeze
     /// </summary>
     /// <param name="averages">The ceiling-sized average channel.</param>
     /// <param name="residuals">The floor-sized residual channel.</param>
-    /// <param name="destination">The separate complete output channel with the same storage width.</param>
+    /// <param name="destination">The complete output channel with the same storage width.</param>
     /// <param name="horizontal">Whether pairs occupy adjacent columns instead of adjacent rows.</param>
     /// <param name="cancellationToken">The token checked before each row or row batch.</param>
     public static void Apply(
@@ -70,7 +71,7 @@ internal static class JxlModularSqueeze
     /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">The ceiling-sized average plane.</param>
     /// <param name="residuals">The floor-sized residual plane.</param>
-    /// <param name="destination">The separate complete output plane.</param>
+    /// <param name="destination">The complete output plane.</param>
     /// <param name="horizontal">Whether pairs occupy adjacent columns instead of adjacent rows.</param>
     /// <param name="cancellationToken">The token checked before each row or row batch.</param>
     public static void Apply<TSample>(
@@ -214,7 +215,7 @@ internal static class JxlModularSqueeze
     /// <typeparam name="TSample">The selected short or int storage carrier.</typeparam>
     /// <param name="averages">The average plane.</param>
     /// <param name="residuals">The residual plane.</param>
-    /// <param name="destination">The nonoverlapping output plane.</param>
+    /// <param name="destination">The output plane. Its rightmost columns can hold the averages.</param>
     /// <param name="cancellationToken">The token checked before each reconstructed row batch.</param>
     private static void ApplyHorizontal<TSample>(
         Buffer2DRegion<TSample> averages,

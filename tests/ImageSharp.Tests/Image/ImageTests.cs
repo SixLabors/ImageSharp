@@ -19,6 +19,28 @@ namespace SixLabors.ImageSharp.Tests;
 /// </summary>
 public partial class ImageTests
 {
+    /// <summary>
+    /// Verifies that either changed target dimension applies the decoder's aspect-ratio-preserving size limit.
+    /// </summary>
+    /// <param name="targetWidth">The target bounding-box width.</param>
+    /// <param name="targetHeight">The target bounding-box height.</param>
+    [Theory]
+    [InlineData(32, 16)]
+    [InlineData(16, 32)]
+    public void Decode_TargetSizeWithOneMatchingDimension_ResizesToFit(int targetWidth, int targetHeight)
+    {
+        DecoderOptions options = new()
+        {
+            TargetSize = new Size(targetWidth, targetHeight)
+        };
+
+        // This stored PNG is 32 by 32. The unchanged bound must not prevent the other bound from shrinking both axes.
+        string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.FilterVar);
+        using Image image = Image.Load(options, path);
+
+        Assert.Equal(new Size(16, 16), image.Size);
+    }
+
     public class Constructor
     {
         [Fact]

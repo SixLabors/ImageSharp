@@ -25,7 +25,7 @@ public sealed class PngDecoder : SpecializedImageDecoder<PngDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        return new PngDecoderCore(new PngDecoderOptions { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
+        return new PngDecoderCore(new PngDecoderOptions(options)).Identify(options.Configuration, stream, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -101,5 +101,5 @@ public sealed class PngDecoder : SpecializedImageDecoder<PngDecoderOptions>
     }
 
     /// <inheritdoc/>
-    protected override PngDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new() { GeneralOptions = options };
+    protected override PngDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new(options);
 }

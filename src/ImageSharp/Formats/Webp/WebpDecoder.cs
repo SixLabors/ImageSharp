@@ -25,7 +25,7 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        using WebpDecoderCore decoder = new(new WebpDecoderOptions { GeneralOptions = options });
+        using WebpDecoderCore decoder = new(new WebpDecoderOptions(options));
         return decoder.Identify(options.Configuration, stream, cancellationToken);
     }
 
@@ -52,5 +52,5 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 
     /// <inheritdoc/>
-    protected override WebpDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new() { GeneralOptions = options };
+    protected override WebpDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new(options);
 }

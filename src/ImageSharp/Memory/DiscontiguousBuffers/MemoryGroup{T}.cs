@@ -142,17 +142,33 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         }
 
         IMemoryOwner<T>[] buffers = new IMemoryOwner<T>[bufferCount];
-        for (int i = 0; i < buffers.Length - 1; i++)
-        {
-            buffers[i] = allocator.AllocateGroupBuffer<T>(bufferLength, options);
-        }
 
-        if (bufferCount > 0)
+        try
         {
+            for (int i = 0; i < buffers.Length - 1; i++)
+            {
+                buffers[i] = allocator.AllocateGroupBuffer<T>(bufferLength, options);
+            }
+
             buffers[^1] = allocator.AllocateGroupBuffer<T>(sizeOfLastBuffer, options);
+            return new Owned(buffers, bufferLength, totalLengthInElements, true);
         }
+        catch
+        {
+            // The group owns the segments only after construction succeeds.
+            // A failed rent leaves the first unused array slot empty.
+            foreach (IMemoryOwner<T>? buffer in buffers)
+            {
+                if (buffer is null)
+                {
+                    break;
+                }
 
-        return new Owned(buffers, bufferLength, totalLengthInElements, true);
+                buffer.Dispose();
+            }
+
+            throw;
+        }
     }
 
     public static MemoryGroup<T> CreateContiguous(IMemoryOwner<T> buffer, bool clear)

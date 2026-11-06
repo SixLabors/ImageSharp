@@ -8,6 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Jxl;
 /// <summary>
 /// Provides JPEG XL image identification and decoding.
 /// </summary>
+/// <remarks>
+/// The decoder returns image pixels from JPEG reconstruction containers.
+/// It skips the data required to recreate the original JPEG file.
+/// </remarks>
 public sealed class JxlDecoder : SpecializedImageDecoder<JxlDecoderOptions>
 {
     /// <summary>

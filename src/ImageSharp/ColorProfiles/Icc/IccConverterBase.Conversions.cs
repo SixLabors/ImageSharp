@@ -94,7 +94,7 @@ internal abstract partial class IccConverterBase
     /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available.</param>
     /// <exception cref="InvalidIccProfileException">Invalid conversion method.</exception>
     /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
     protected void Init(
         IccProfile profile,
         bool toPcs,
@@ -135,7 +135,7 @@ internal abstract partial class IccConverterBase
     /// <param name="profile">The profile containing the table.</param>
     /// <param name="tag">The AToB device-to-PCS table or BToA PCS-to-device table selected for the rendering intent.</param>
     /// <param name="interpolationMethod">The requested interpolation method.</param>
-    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
     /// <returns>The configured table operator.</returns>
     private static IIccColorConverter InitA(
         IccProfile profile,
@@ -180,11 +180,11 @@ internal abstract partial class IccConverterBase
     }
 
     /// <summary>
-    /// Creates the profile's RGB matrix and channel curves with the selected curve policy.
+    /// Creates the RGB transform from the matrix and channel curves in the profile.
     /// </summary>
     /// <param name="profile">The matrix/TRC profile.</param>
     /// <param name="toPcs">Whether to convert device values to the PCS.</param>
-    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
     /// <returns>The prepared RGB converter.</returns>
     private static IccColorConverter<ColorTrcOperator> InitColorTrc(IccProfile profile, bool toPcs, bool symmetricCurves)
     {
@@ -218,11 +218,11 @@ internal abstract partial class IccConverterBase
     }
 
     /// <summary>
-    /// Creates the profile's gray curve and PCS mapping with the selected curve policy.
+    /// Creates the grayscale transform from the curve and PCS in the profile.
     /// </summary>
     /// <param name="profile">The gray profile.</param>
     /// <param name="toPcs">Whether to convert device values to the PCS.</param>
-    /// <param name="symmetricCurves">Whether the analytic curve converts magnitudes and retains its sign.</param>
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
     /// <returns>The prepared gray converter.</returns>
     private static IccColorConverter<GrayTrcOperator> InitGrayTrc(IccProfile profile, bool toPcs, bool symmetricCurves)
     {

@@ -3,6 +3,8 @@
 
 using System.Buffers;
 using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
@@ -11,6 +13,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jxl;
@@ -183,6 +186,22 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             }
         }
 
+        // The ICC profile belongs to the image. All displayed frames share its transform and black point.
+        ColorProfileConverter? profileConverter = null;
+
+        if (!header.UsesXybTransform && IccProfile.TryGetIccProfileForColorConversion(header.IccProfile, out IccProfile? sourceProfile))
+        {
+            // Libjxl's skcms backend applies ICC curves to component magnitudes and restores the input signs.
+            profileConverter = new ColorProfileConverter(new ColorConversionOptions
+            {
+                MemoryAllocator = allocator,
+                SourceIccProfile = sourceProfile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+                UseSymmetricIccCurves = true,
+                UseBlackPointCompensation = true
+            });
+        }
+
         // LF dependencies and ordinary references use separate four-slot tables. Each slot owns
         // completed native planes, without retaining a frame's entropy or reconstruction workspace.
         // Displayed TPixel frames have separate storage and remain attached to one image throughout decoding.
@@ -270,7 +289,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 }
 
                 using JxlFrame reconstructed = this.DecodeFrameData(
-                    ref reader, header, frame, sections, dcReference, referenceFrames, destination, cancellationToken);
+                    ref reader, header, frame, sections, dcReference, referenceFrames, destination, profileConverter, cancellationToken);
 
                 bool pixelsWritten = reconstructed.VarDct is JxlVarDctDecoder decodedVarDct && decodedVarDct.UsesGroupRows;
                 if (!pixelsWritten)
@@ -305,7 +324,9 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                                 }
                             }
 
-                            using JxlPixelConverter<TPixel> pixelConverter = new(this.Options.Configuration, header, reconstructed, destination);
+                            using JxlPixelConverter<TPixel> pixelConverter = new(
+                                this.Options.Configuration, header, reconstructed, destination, profileConverter);
+
                             pixelConverter.Convert(cancellationToken);
                         }
 
@@ -432,6 +453,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     /// <param name="dcReference">The borrowed saved LF planes, or an empty span for coded DC.</param>
     /// <param name="references">The borrowed ordinary slots. Patches read their completed pre-transform planes.</param>
     /// <param name="destination">The initialized displayed frame, or null for retained LF output.</param>
+    /// <param name="profileConverter">The shared ICC converter, or null for direct color conversion.</param>
     /// <param name="cancellationToken">The token checked between sections and within reconstruction.</param>
     /// <returns>
     /// The native component owner. Group-row output has already written destination pixels; retained planes still require spatial reconstruction.
@@ -444,6 +466,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         ReadOnlySpan<Buffer2D<float>> dcReference,
         ReadOnlySpan<JxlReferenceFrame?> references,
         ImageFrame<TPixel>? destination,
+        ColorProfileConverter? profileConverter,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -586,7 +609,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
             // cleanup. No other owner disposes its component planes after this construction succeeds.
             reconstructed = new JxlFrame(header, frame, modular, varDct, dcFactors, patches, splines, noise);
             using JxlPixelConverter<TPixel>? pixelConverter = varDct is not null && varDct.UsesGroupRows && destination is not null
-                ? new JxlPixelConverter<TPixel>(this.Options.Configuration, header, reconstructed, destination)
+                ? new JxlPixelConverter<TPixel>(this.Options.Configuration, header, reconstructed, destination, profileConverter)
                 : null;
 
             Span<Vector4> pixelRow = pixelConverter is null ? [] : pixelConverter.PixelRow;

@@ -34,11 +34,11 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LutColorOperator"/> struct with a channel-curve policy.
+        /// Initializes a new instance of the <see cref="LutColorOperator"/> struct with the specified curve settings.
         /// </summary>
         /// <param name="entry">The parsed LUT stages.</param>
         /// <param name="trilinear">Whether the CLUT uses multilinear interpolation.</param>
-        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
         public LutColorOperator(IccLutAToBTagDataEntry entry, bool trilinear, bool symmetricCurves)
             : this(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x3, entry.Matrix3x1, entry.ClutValues, trilinear, false, symmetricCurves)
         {
@@ -55,11 +55,11 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LutColorOperator"/> struct with a channel-curve policy.
+        /// Initializes a new instance of the <see cref="LutColorOperator"/> struct with the specified curve settings.
         /// </summary>
         /// <param name="entry">The parsed LUT stages.</param>
         /// <param name="trilinear">Whether the CLUT uses multilinear interpolation.</param>
-        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
         public LutColorOperator(IccLutBToATagDataEntry entry, bool trilinear, bool symmetricCurves)
             : this(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x3, entry.Matrix3x1, entry.ClutValues, trilinear, true, symmetricCurves)
         {
@@ -76,7 +76,7 @@ internal static partial class IccColorConverter
         /// <param name="clut">The optional color table.</param>
         /// <param name="trilinear">Whether the CLUT uses multilinear interpolation.</param>
         /// <param name="bToA">Whether the stages run in B-to-A order.</param>
-        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
         private LutColorOperator(
             IccTagDataEntry[]? a,
             IccTagDataEntry[]? b,

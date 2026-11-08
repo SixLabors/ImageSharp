@@ -120,10 +120,10 @@ internal static class ColorProfileConverterExtensionsIcc
     }
 
     /// <summary>
-    /// Checks the device models and profile classes supported by the black-point detection algorithm.
+    /// Checks if the profile describes a device that supports black point detection.
     /// </summary>
     /// <param name="profile">The external ICC profile.</param>
-    /// <returns>Whether the profile describes a supported device rather than an abstract or device-link transform.</returns>
+    /// <returns>Whether the profile supports black point detection.</returns>
     private static bool SupportsBlackPointCompensation(IccProfile profile)
         => profile.Header.DataColorSpace is IccColorSpaceType.Rgb or IccColorSpaceType.Gray or IccColorSpaceType.Cmyk
         && profile.Header.Class is IccProfileClass.InputDevice or IccProfileClass.DisplayDevice or IccProfileClass.OutputDevice or IccProfileClass.ColorSpace;
@@ -135,7 +135,7 @@ internal static class ColorProfileConverterExtensionsIcc
     /// <param name="intent">The rendering intent of the connection.</param>
     /// <param name="options">The interpolation and curve settings.</param>
     /// <param name="pcsOptions">The D50 Lab and XYZ conversion settings.</param>
-    /// <param name="existingForward">The selected device-to-PCS transform, or null if detection needs a different transform.</param>
+    /// <param name="existingForward">The device-to-PCS transform to reuse, or null to create one.</param>
     /// <returns>The black point, or zero if the profile cannot provide it.</returns>
     private static Vector3 DetectBlackPoint(
         IccProfile profile,
@@ -165,7 +165,7 @@ internal static class ColorProfileConverterExtensionsIcc
 
         if (cmykRoundTrip)
         {
-            if (!IccConverterBase.SupportsBlackPointIntent(profile, true, IccRenderingIntent.Perceptual)
+            if (!IccConverterBase.SupportsBlackPointIntent(profile, IccRenderingIntent.Perceptual)
                 || !IccConverterBase.SupportsConversion(profile, false, IccRenderingIntent.Perceptual)
                 || (existingForward is null && !IccConverterBase.SupportsConversion(profile, true, intent)))
             {
@@ -195,7 +195,7 @@ internal static class ColorProfileConverterExtensionsIcc
         else
         {
             // The transform can fall back to AToB0. Black point detection needs a table for the selected intent or matrix and curve tags.
-            if (!IccConverterBase.SupportsBlackPointIntent(profile, true, intent))
+            if (!IccConverterBase.SupportsBlackPointIntent(profile, intent))
             {
                 return Vector3.Zero;
             }
@@ -210,11 +210,11 @@ internal static class ColorProfileConverterExtensionsIcc
     }
 
     /// <summary>
-    /// Converts one transform's encoded PCS output through the existing Lab/XYZ APIs.
+    /// Converts encoded Lab or XYZ values to Lab.
     /// </summary>
-    /// <param name="encoded">The unmodified output from the parsed profile operator.</param>
-    /// <param name="profile">The output's PCS type and legacy encoding.</param>
-    /// <param name="options">The existing D50 Lab/XYZ conversion options.</param>
+    /// <param name="encoded">The encoded PCS value.</param>
+    /// <param name="profile">The profile transform that supplies the PCS encoding.</param>
+    /// <param name="options">The D50 conversion settings.</param>
     /// <returns>The output in ordinary Lab units.</returns>
     private static CieLab DecodeBlackPointPcs(Vector4 encoded, ConversionParams profile, ColorConversionOptions options)
     {
@@ -296,19 +296,7 @@ internal static class ColorProfileConverterExtensionsIcc
         /// <param name="toPcs">Whether this transform converts device values to the PCS.</param>
         /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
         /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-        public ConversionParams(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
-            : this(profile, toPcs, renderingIntent, interpolationMethod, false)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConversionParams"/> class with a channel-curve policy.
-        /// </summary>
-        /// <param name="profile">The profile used by this transform.</param>
-        /// <param name="toPcs">Whether this transform converts device values to the PCS.</param>
-        /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
-        /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-        /// <param name="symmetricCurves">Whether analytic channel curves convert magnitudes and retain their signs.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
         public ConversionParams(
             IccProfile profile,
             bool toPcs,

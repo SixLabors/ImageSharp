@@ -33,11 +33,11 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TrcOperator"/> struct with a channel-curve policy.
+        /// Initializes a new instance of the <see cref="TrcOperator"/> struct with the specified curve settings.
         /// </summary>
         /// <param name="entries">The curves for up to four input channels.</param>
         /// <param name="inverted">Whether each channel uses the inverse of its curve.</param>
-        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
         public TrcOperator(ReadOnlySpan<IccTagDataEntry> entries, bool inverted, bool symmetricCurves)
         {
             if (entries.Length > 4)
@@ -60,7 +60,7 @@ internal static partial class IccColorConverter
         public bool Is16BitLut => false;
 
         /// <summary>
-        /// Gets the configured sign-bit masks for the three RGB curves selected by specialized workers.
+        /// Gets the input sign masks for the three RGB curves.
         /// </summary>
         public Vector3 SymmetricSignMask => new(
             this.curve0.SignMask,

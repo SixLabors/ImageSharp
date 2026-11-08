@@ -113,54 +113,54 @@ public class IccColorConverterTests
     }
 
     /// <summary>
-    /// Checks default signed RGB curves and the explicit option to retain the original ICC branches.
+    /// Checks that ICC curves use signed inputs by default and use magnitudes when requested.
     /// </summary>
     [Fact]
-    public void SymmetricCurves_PreserveSignedRgb() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-        CheckSymmetricCurves,
+    public void ParametricCurves_UseSignedInputsByDefault() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckParametricCurves,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Converts exact binary values through identity matrices and a continuous square-root profile in both directions.
     /// </summary>
-    private static void CheckSymmetricCurves()
+    private static void CheckParametricCurves()
     {
         IccProfile identityProfile = CreateIdentityMatrixProfile(new IccParametricCurve(1F));
         IccProfile squareRootProfile = CreateIdentityMatrixProfile(new IccParametricCurve(.5F, 1F, 0F, 2F, .25F));
 
         // The profile defines Y = sqrt(X) for X >= 1/4 and Y = 2X below it.
-        // Its inverse squares Y >= 1/2 and halves lower Y. The symmetric extension retains each sign.
-        // Identity matrices and relative intent isolate the public curve policy from PCS adjustment.
+        // Little CMS uses the linear branch for negative inputs in both directions.
+        // The inverse squares Y >= 1/2 and halves Y below 1/2.
         ReadOnlySpan<float> outputInputs = [-4F, -1F, -.125F, 0F, .125F, 1F, 4F];
-        ReadOnlySpan<float> outputLegacy = [-2F, -.5F, -.0625F, 0F, .0625F, 1F, 16F];
+        ReadOnlySpan<float> outputDefault = [-2F, -.5F, -.0625F, 0F, .0625F, 1F, 16F];
         ReadOnlySpan<float> outputSymmetric = [-16F, -1F, -.0625F, 0F, .0625F, 1F, 16F];
 
         // Unit magnitudes have exact roots. The smaller values use the exact linear branch.
-        // The negative unit input distinguishes signed source conversion from the original linear branch.
+        // The negative unit input uses a different branch when the curve uses its magnitude.
         ReadOnlySpan<float> sourceInputs = [-1F, -.125F, 0F, .125F, 1F];
-        ReadOnlySpan<float> sourceLegacy = [-2F, -.25F, 0F, .25F, 1F];
+        ReadOnlySpan<float> sourceDefault = [-2F, -.25F, 0F, .25F, 1F];
         ReadOnlySpan<float> sourceSymmetric = [-1F, -.25F, 0F, .25F, 1F];
         Rgb[] source = new Rgb[31];
-        Rgb[] legacyActual = new Rgb[source.Length];
+        Rgb[] defaultActual = new Rgb[source.Length];
         Rgb[] symmetricActual = new Rgb[source.Length];
 
         foreach (bool sourceCurve in new[] { false, true })
         {
-            ColorProfileConverter legacyConverter = new(new ColorConversionOptions
-            {
-                SourceIccProfile = sourceCurve ? squareRootProfile : identityProfile,
-                TargetIccProfile = sourceCurve ? identityProfile : squareRootProfile,
-                UseSymmetricIccCurves = false
-            });
-
             ColorProfileConverter defaultConverter = new(new ColorConversionOptions
             {
                 SourceIccProfile = sourceCurve ? squareRootProfile : identityProfile,
                 TargetIccProfile = sourceCurve ? identityProfile : squareRootProfile
             });
 
+            ColorProfileConverter symmetricConverter = new(new ColorConversionOptions
+            {
+                SourceIccProfile = sourceCurve ? squareRootProfile : identityProfile,
+                TargetIccProfile = sourceCurve ? identityProfile : squareRootProfile,
+                UseSymmetricIccCurves = true
+            });
+
             ReadOnlySpan<float> inputs = sourceCurve ? sourceInputs : outputInputs;
-            ReadOnlySpan<float> legacyExpected = sourceCurve ? sourceLegacy : outputLegacy;
+            ReadOnlySpan<float> defaultExpected = sourceCurve ? sourceDefault : outputDefault;
             ReadOnlySpan<float> symmetricExpected = sourceCurve ? sourceSymmetric : outputSymmetric;
 
             // Shift each channel independently. Thirty-one pixels cover every SIMD width and a scalar tail.
@@ -169,19 +169,21 @@ public class IccColorConverterTests
                 source[i] = new Rgb(inputs[i % inputs.Length], inputs[(i + 1) % inputs.Length], inputs[(i + 2) % inputs.Length]);
             }
 
-            legacyConverter.Convert<Rgb, Rgb>(source, legacyActual);
-            defaultConverter.Convert<Rgb, Rgb>(source, symmetricActual);
+            defaultConverter.Convert<Rgb, Rgb>(source, defaultActual);
+            symmetricConverter.Convert<Rgb, Rgb>(source, symmetricActual);
+
             for (int i = 0; i < source.Length; i++)
             {
-                Rgb expectedLegacy = new(
-                    legacyExpected[i % inputs.Length], legacyExpected[(i + 1) % inputs.Length], legacyExpected[(i + 2) % inputs.Length]);
+                Rgb expectedDefault = new(
+                    defaultExpected[i % inputs.Length], defaultExpected[(i + 1) % inputs.Length], defaultExpected[(i + 2) % inputs.Length]);
+
                 Rgb expectedSymmetric = new(
                     symmetricExpected[i % inputs.Length], symmetricExpected[(i + 1) % inputs.Length], symmetricExpected[(i + 2) % inputs.Length]);
 
-                Assert.Equal(expectedLegacy, legacyActual[i]);
+                Assert.Equal(expectedDefault, defaultActual[i]);
                 Assert.Equal(expectedSymmetric, symmetricActual[i]);
-                Assert.Equal(expectedLegacy, legacyConverter.Convert<Rgb, Rgb>(source[i]));
-                Assert.Equal(expectedSymmetric, defaultConverter.Convert<Rgb, Rgb>(source[i]));
+                Assert.Equal(expectedDefault, defaultConverter.Convert<Rgb, Rgb>(source[i]));
+                Assert.Equal(expectedSymmetric, symmetricConverter.Convert<Rgb, Rgb>(source[i]));
             }
         }
     }
@@ -223,8 +225,8 @@ public class IccColorConverterTests
     private static void CheckFloatingPcsConversion()
     {
         IccProfile profile = CompactSrgbV4Profile.Profile;
-        ConversionParams source = new(profile, true, IccRenderingIntent.Perceptual, IccInterpolationMethod.Auto);
-        ConversionParams target = new(profile, false, IccRenderingIntent.Perceptual, IccInterpolationMethod.Auto);
+        ConversionParams source = new(profile, true, IccRenderingIntent.Perceptual, IccInterpolationMethod.Auto, symmetricCurves: false);
+        ConversionParams target = new(profile, false, IccRenderingIntent.Perceptual, IccInterpolationMethod.Auto, symmetricCurves: false);
         PcsOperator operation = new(source, target, new ColorConversionOptions());
         Vector4[] inputs = new Vector4[31];
         Vector4[] actual = new Vector4[inputs.Length];

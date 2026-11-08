@@ -32,14 +32,14 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ColorTrcOperator"/> struct with a channel-curve policy.
+        /// Initializes a new instance of the <see cref="ColorTrcOperator"/> struct with the specified curve settings.
         /// </summary>
         /// <param name="red">The red XYZ matrix column.</param>
         /// <param name="green">The green XYZ matrix column.</param>
         /// <param name="blue">The blue XYZ matrix column.</param>
         /// <param name="curves">The red, green and blue channel curves.</param>
         /// <param name="toPcs">Whether to convert device RGB to encoded PCS XYZ.</param>
-        /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
         public ColorTrcOperator(
             Vector3 red,
             Vector3 green,

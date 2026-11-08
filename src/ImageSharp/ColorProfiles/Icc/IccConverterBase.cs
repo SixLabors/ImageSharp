@@ -19,7 +19,7 @@ internal abstract partial class IccConverterBase
     /// <param name="toPcs">True if the conversion is to the profile connection space (PCS); False if the conversion is to the data space</param>
     /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
     /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-    /// <param name="symmetricCurves">Whether analytic curves convert magnitudes and retain their signs.</param>
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
     protected IccConverterBase(
         IccProfile profile,
         bool toPcs,

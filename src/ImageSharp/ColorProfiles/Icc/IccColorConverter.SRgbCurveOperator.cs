@@ -30,22 +30,22 @@ internal static partial class IccColorConverter
         /// <param name="c">The linear branch scale.</param>
         /// <param name="d">The input at which the power branch starts.</param>
         /// <param name="e">The offset after the power branch.</param>
-        /// <param name="power">The classified positive finite power selected by the curve factory.</param>
+        /// <param name="power">The power operator for the upper branch.</param>
         public SRgbCurveOperator(float a, float b, float c, float d, float e, TensorPrimitives_.PowOperator power)
             : this(a, b, c, d, e, power, 0F)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SRgbCurveOperator"/> struct with a configured channel domain.
+        /// Initializes a new instance of the <see cref="SRgbCurveOperator"/> struct with a sign mask for the input.
         /// </summary>
         /// <param name="a">The scale inside the power branch.</param>
         /// <param name="b">The offset inside the power branch.</param>
         /// <param name="c">The linear branch scale.</param>
         /// <param name="d">The input at which the power branch starts.</param>
         /// <param name="e">The offset after the power branch.</param>
-        /// <param name="power">The classified positive finite power selected by the curve factory.</param>
-        /// <param name="signMask">The analytic sign bit, or zero to retain the original curve domain.</param>
+        /// <param name="power">The power operator for the upper branch.</param>
+        /// <param name="signMask">The mask for the input sign bit, or zero to keep the original input.</param>
         public SRgbCurveOperator(float a, float b, float c, float d, float e, TensorPrimitives_.PowOperator power, float signMask)
         {
             this.a = a;
@@ -67,9 +67,9 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
-        /// Applies the normalized formula after the caller selects the component's sign domain.
+        /// Applies the curve to the prepared input.
         /// </summary>
-        /// <param name="value">The component in the configured curve domain.</param>
+        /// <param name="value">The input after the sign mask is applied.</param>
         /// <returns>The result before sign restoration.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float InvokeCore(float value)
@@ -92,7 +92,7 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<float> Invoke(Vector128<float> value)
         {
-            // One independent component per lane. Zero masks retain the original curve domain.
+            // Each lane holds one component. A zero mask keeps the original input.
             Vector128<float> sign = value & Vector128.Create(this.signMask);
             value ^= sign;
             Vector128<float> zero = Vector128.Create(0F);
@@ -120,7 +120,7 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector256<float> Invoke(Vector256<float> value)
         {
-            // One independent component per lane. Zero masks retain the original curve domain.
+            // Each lane holds one component. A zero mask keeps the original input.
             Vector256<float> sign = value & Vector256.Create(this.signMask);
             value ^= sign;
             Vector256<float> zero = Vector256.Create(0F);
@@ -148,7 +148,7 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector512<float> Invoke(Vector512<float> value)
         {
-            // One independent component per lane. Zero masks retain the original curve domain.
+            // Each lane holds one component. A zero mask keeps the original input.
             Vector512<float> sign = value & Vector512.Create(this.signMask);
             value ^= sign;
             Vector512<float> zero = Vector512.Create(0F);

@@ -61,14 +61,14 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PcsOperator"/> struct with a prepared black-point adjustment.
+        /// Initializes a new instance of the <see cref="PcsOperator"/> struct with the black point scale and offset.
         /// </summary>
         /// <param name="source">The selected source transform and PCS encoding.</param>
         /// <param name="target">The selected target transform and PCS encoding.</param>
-        /// <param name="options">The existing D50 Lab/XYZ conversion options.</param>
-        /// <param name="compensateBlack">Whether detected black points replace the legacy fixed perceptual adjustment.</param>
-        /// <param name="blackScale">The diagonal scale in unencoded XYZ units.</param>
-        /// <param name="blackOffset">The offset in unencoded XYZ units.</param>
+        /// <param name="options">The D50 conversion settings.</param>
+        /// <param name="compensateBlack">Whether to use the black points from the two profiles.</param>
+        /// <param name="blackScale">The scale for each XYZ component.</param>
+        /// <param name="blackOffset">The offset for each XYZ component.</param>
         public PcsOperator(
             ConversionParams source,
             ConversionParams target,
@@ -193,7 +193,7 @@ internal static partial class IccColorConverter
 
             if (this.compensateBlack)
             {
-                // Profile detection maps source black to target black while retaining the common D50 white.
+                // Map the source black point to the target black point and keep D50 white fixed.
                 components = (components * this.blackScale) + this.blackOffset;
             }
 
@@ -272,7 +272,7 @@ internal static partial class IccColorConverter
 
             if (this.compensateBlack)
             {
-                // Independent pixel lanes use the same prepared diagonal XYZ adjustment as scalar conversion.
+                // Each lane holds one pixel. Apply the scale and offset to its XYZ components.
                 x = (x * Vector128.Create(this.blackScale.X)) + Vector128.Create(this.blackOffset.X);
                 y = (y * Vector128.Create(this.blackScale.Y)) + Vector128.Create(this.blackOffset.Y);
                 z = (z * Vector128.Create(this.blackScale.Z)) + Vector128.Create(this.blackOffset.Z);
@@ -366,7 +366,7 @@ internal static partial class IccColorConverter
 
             if (this.compensateBlack)
             {
-                // Independent pixel lanes use the same prepared diagonal XYZ adjustment as scalar conversion.
+                // Each lane holds one pixel. Apply the scale and offset to its XYZ components.
                 x = (x * Vector256.Create(this.blackScale.X)) + Vector256.Create(this.blackOffset.X);
                 y = (y * Vector256.Create(this.blackScale.Y)) + Vector256.Create(this.blackOffset.Y);
                 z = (z * Vector256.Create(this.blackScale.Z)) + Vector256.Create(this.blackOffset.Z);
@@ -460,7 +460,7 @@ internal static partial class IccColorConverter
 
             if (this.compensateBlack)
             {
-                // Independent pixel lanes use the same prepared diagonal XYZ adjustment as scalar conversion.
+                // Each lane holds one pixel. Apply the scale and offset to its XYZ components.
                 x = (x * Vector512.Create(this.blackScale.X)) + Vector512.Create(this.blackOffset.X);
                 y = (y * Vector512.Create(this.blackScale.Y)) + Vector512.Create(this.blackOffset.Y);
                 z = (z * Vector512.Create(this.blackScale.Z)) + Vector512.Create(this.blackOffset.Z);

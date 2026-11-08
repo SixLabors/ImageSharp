@@ -156,23 +156,13 @@ internal struct JxlModularChannel : IDisposable
     }
 
     /// <summary>
-    /// Creates a ready channel that owns sample storage for its validated layout.
+    /// Creates a ready channel that owns zeroed signed 32-bit sample storage for its validated layout.
     /// </summary>
     /// <param name="allocator">The decoder's tracked sample allocator.</param>
     /// <param name="layout">The complete logical layout after transform parsing and validation.</param>
     /// <returns>A ready owned channel, or an empty channel that needs no sample allocation.</returns>
     public static JxlModularChannel Allocate(MemoryAllocator allocator, JxlModularChannelLayout layout)
-    {
-        // Empty palette and squeeze layouts are legal. Their ready sample set is empty, not an unallocated image.
-        // Nonempty channels are constructed only after both their allocation and complete region exist.
-        if (layout.IsEmpty)
-        {
-            return new JxlModularChannel(layout, default(Buffer2DRegion<int>), null);
-        }
-
-        Buffer2D<int> buffer = allocator.Allocate2D<int>(layout.Size, AllocationOptions.Clean);
-        return new JxlModularChannel(layout, buffer.GetRegion(), buffer);
-    }
+        => Allocate(allocator, layout, false, AllocationOptions.Clean);
 
     /// <summary>
     /// Creates owned sample storage using the image's declared modular integer width.
@@ -180,20 +170,32 @@ internal struct JxlModularChannel : IDisposable
     /// <param name="allocator">The decoder's tracked sample allocator.</param>
     /// <param name="layout">The complete validated layout.</param>
     /// <param name="use16BitStorage">True when the image guarantees signed 16-bit modular sample storage.</param>
+    /// <param name="options">
+    /// <see cref="AllocationOptions.Clean"/> when samples can be read before they are written.
+    /// <see cref="AllocationOptions.None"/> when the caller writes every sample before any read.
+    /// </param>
     /// <returns>The ready owned channel, or an empty channel for an empty layout.</returns>
-    public static JxlModularChannel Allocate(MemoryAllocator allocator, JxlModularChannelLayout layout, bool use16BitStorage)
+    public static JxlModularChannel Allocate(MemoryAllocator allocator, JxlModularChannelLayout layout, bool use16BitStorage, AllocationOptions options)
     {
-        if (!use16BitStorage)
+        // Empty palette and squeeze layouts are legal. Their ready sample set is empty, not an unallocated image.
+        // Nonempty channels are constructed only after both their allocation and complete region exist.
+        if (use16BitStorage)
         {
-            return Allocate(allocator, layout);
+            if (layout.IsEmpty)
+            {
+                return new JxlModularChannel(layout, default(Buffer2DRegion<short>), null);
+            }
+
+            Buffer2D<short> shortBuffer = allocator.Allocate2D<short>(layout.Size, options);
+            return new JxlModularChannel(layout, shortBuffer.GetRegion(), shortBuffer);
         }
 
         if (layout.IsEmpty)
         {
-            return new JxlModularChannel(layout, default(Buffer2DRegion<short>), null);
+            return new JxlModularChannel(layout, default(Buffer2DRegion<int>), null);
         }
 
-        Buffer2D<short> buffer = allocator.Allocate2D<short>(layout.Size, AllocationOptions.Clean);
+        Buffer2D<int> buffer = allocator.Allocate2D<int>(layout.Size, options);
         return new JxlModularChannel(layout, buffer.GetRegion(), buffer);
     }
 

@@ -36,20 +36,20 @@ internal abstract partial class IccConverterBase
     }
 
     /// <summary>
-    /// Tests whether the profile provides the requested direction, including the normal perceptual fallback.
+    /// Checks if the profile provides a transform in the requested direction, including the perceptual fallback.
     /// </summary>
-    /// <param name="profile">The external profile whose transform availability is checked.</param>
+    /// <param name="profile">The profile to check.</param>
     /// <param name="toPcs">Whether the transform converts device components to PCS values.</param>
     /// <param name="renderingIntent">The requested rendering intent.</param>
-    /// <returns>Whether an existing table or curve transform can provide that direction.</returns>
+    /// <returns>Whether the requested transform exists.</returns>
     public static bool SupportsConversion(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
         => GetConversionMethod(profile, renderingIntent, toPcs) != ConversionMethod.Invalid;
 
     /// <summary>
-    /// Checks whether RGB colorants and channel curves, or a grayscale curve, provide a matrix-shaper model.
+    /// Checks for RGB matrix and curve tags or a grayscale curve tag.
     /// </summary>
-    /// <param name="profile">The external profile whose tags are checked.</param>
-    /// <returns>Whether matrix-shaper tags are present, even when a selected transform uses a lookup table.</returns>
+    /// <param name="profile">The profile to check.</param>
+    /// <returns>Whether the profile has the tags, regardless of the selected transform.</returns>
     public static bool IsMatrixShaper(IccProfile profile)
         => profile.Header.DataColorSpace switch
         {
@@ -59,40 +59,22 @@ internal abstract partial class IccConverterBase
         };
 
     /// <summary>
-    /// Checks exact intent support for black-point detection, without perceptual table fallback.
+    /// Checks if the source profile can supply a black point for the selected intent.
     /// </summary>
-    /// <param name="profile">The external profile whose tags are checked.</param>
-    /// <param name="toPcs">Whether the direction converts device components to PCS values.</param>
-    /// <param name="renderingIntent">The requested intent.</param>
-    /// <returns>Whether an intent-specific table or a matrix-shaper model supports detection.</returns>
-    public static bool SupportsBlackPointIntent(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
-        => HasIntentTable(profile, toPcs, renderingIntent) || IsMatrixShaper(profile);
-
-    /// <summary>
-    /// Checks the exact AToB or BToA tag used by the native black-point detector's CLUT eligibility query.
-    /// </summary>
-    /// <param name="profile">The external profile whose tags are checked.</param>
-    /// <param name="toPcs">Whether the direction converts device components to PCS values.</param>
-    /// <param name="renderingIntent">The requested intent.</param>
-    /// <returns>Whether the requested direction has its exact intent table.</returns>
-    public static bool HasIntentTable(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+    /// <param name="profile">The source profile.</param>
+    /// <param name="renderingIntent">The selected rendering intent.</param>
+    /// <returns>Whether the profile has a table for the intent or has matrix and curve tags.</returns>
+    public static bool SupportsBlackPointIntent(IccProfile profile, IccRenderingIntent renderingIntent)
     {
-        // LCMS cmsIsCLUT tests the legacy intent-tag family. MPE precedence and A0 fallback belong
-        // to transform selection, not to this detector capability query. Absolute intent shares A1/B1.
-        if (renderingIntent > IccRenderingIntent.AbsoluteColorimetric)
+        bool hasTable = renderingIntent switch
         {
-            return false;
-        }
-
-        IccProfileTag tag = renderingIntent switch
-        {
-            IccRenderingIntent.Perceptual => toPcs ? IccProfileTag.AToB0 : IccProfileTag.BToA0,
-            IccRenderingIntent.MediaRelativeColorimetric or IccRenderingIntent.AbsoluteColorimetric =>
-                toPcs ? IccProfileTag.AToB1 : IccProfileTag.BToA1,
-            _ => toPcs ? IccProfileTag.AToB2 : IccProfileTag.BToA2
+            IccRenderingIntent.Perceptual => HasTag(profile, IccProfileTag.AToB0),
+            IccRenderingIntent.MediaRelativeColorimetric or IccRenderingIntent.AbsoluteColorimetric => HasTag(profile, IccProfileTag.AToB1),
+            IccRenderingIntent.Saturation => HasTag(profile, IccProfileTag.AToB2),
+            _ => false
         };
 
-        return HasTag(profile, tag);
+        return hasTable || IsMatrixShaper(profile);
     }
 
     private static ConversionMethod GetConversionMethod(IccProfile profile, IccRenderingIntent renderingIntent, bool toPcs) => profile.Header.Class switch
@@ -227,13 +209,41 @@ internal abstract partial class IccConverterBase
         return ConversionMethod.Invalid;
     }
 
-    private static bool HasTag(IccProfile profile, IccProfileTag tag)
-        => profile.Entries.Any(t => t.TagSignature == tag);
+    /// <summary>
+    /// Checks if the profile contains the specified tag.
+    /// </summary>
+    /// <param name="profile">The profile to search.</param>
+    /// <param name="tag">The tag signature.</param>
+    /// <returns>Whether the tag exists.</returns>
+    private static bool HasTag(IccProfile profile, IccProfileTag tag) => GetTag(profile, tag) is not null;
 
-    private static IccTagDataEntry GetTag(IccProfile profile, IccProfileTag tag)
-        => Array.Find(profile.Entries, t => t.TagSignature == tag);
+    /// <summary>
+    /// Finds the first entry with the specified tag.
+    /// </summary>
+    /// <param name="profile">The profile to search.</param>
+    /// <param name="tag">The tag signature.</param>
+    /// <returns>The entry, or null if the tag is absent.</returns>
+    private static IccTagDataEntry GetTag(IccProfile profile, IccProfileTag tag) => GetTag<IccTagDataEntry>(profile, tag);
 
+    /// <summary>
+    /// Finds the first entry with the specified tag and type.
+    /// </summary>
+    /// <typeparam name="T">The required entry type.</typeparam>
+    /// <param name="profile">The profile to search.</param>
+    /// <param name="tag">The tag signature.</param>
+    /// <returns>The entry, or null if no entry matches.</returns>
     private static T GetTag<T>(IccProfile profile, IccProfileTag tag)
         where T : IccTagDataEntry
-        => profile.Entries.OfType<T>().FirstOrDefault(t => t.TagSignature == tag);
+    {
+        // Profile setup checks several tags. Search the array directly to avoid a delegate allocation for each check.
+        foreach (IccTagDataEntry entry in profile.Entries)
+        {
+            if (entry is T match && match.TagSignature == tag)
+            {
+                return match;
+            }
+        }
+
+        return null;
+    }
 }

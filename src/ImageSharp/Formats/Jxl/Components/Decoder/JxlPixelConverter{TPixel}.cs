@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Memory;
@@ -129,30 +128,24 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     /// <param name="header">The native sample, extra-channel and association declarations.</param>
     /// <param name="frame">The borrowed frame. Convert only completed rows; component owners remain valid until conversion ends.</param>
     /// <param name="destination">The initialized destination frame.</param>
-    public JxlPixelConverter(Configuration configuration, JxlHeader header, JxlFrame frame, ImageFrame<TPixel> destination)
+    /// <param name="profileConverter">The borrowed ICC converter, or null for direct color conversion.</param>
+    public JxlPixelConverter(
+        Configuration configuration,
+        JxlHeader header,
+        JxlFrame frame,
+        ImageFrame<TPixel> destination,
+        ColorProfileConverter? profileConverter)
     {
         this.configuration = configuration;
         this.header = header;
         this.frame = frame;
         this.destination = destination;
+        this.profileConverter = profileConverter;
         this.upsampledAlpha = frame.UpsampledAlpha;
         this.upsampledBlack = frame.UpsampledBlack;
         this.colorConverter = JxlColorConverterBase.Create(header, frame);
         this.featureConverter = frame.HasSpotColors ? JxlColorConverterBase.CreateForImageFeatures(header, frame) : null;
         this.pixelOperations = PixelOperations<TPixel>.Instance;
-
-        // Coding XYB reconstructs sRGB without its suggested output profile. Compact color descriptions
-        // also use direct operators. Only native components with an embedded non-sRGB profile need ICC.
-        if (!header.UsesXybTransform && IccProfile.TryGetIccProfileForColorConversion(header.IccProfile, out IccProfile? sourceProfile))
-        {
-            this.profileConverter = new ColorProfileConverter(new ColorConversionOptions
-            {
-                MemoryAllocator = configuration.MemoryAllocator,
-                SourceIccProfile = sourceProfile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-                UseBlackPointCompensation = true
-            });
-        }
 
         int alphaExtra = frame.AlphaExtra;
         int blackExtra = frame.BlackExtra;

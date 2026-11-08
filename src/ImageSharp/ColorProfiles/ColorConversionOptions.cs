@@ -108,10 +108,10 @@ public class ColorConversionOptions
     public IccInterpolationMethod IccInterpolationMethod { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether analytic ICC channel curves convert absolute values and restore their signs.
-    /// The default is <see langword="true"/>. Sampled curves retain their bounded lookup behavior.
+    /// Gets a value indicating whether gamma and parametric ICC curves use the magnitude of a negative input
+    /// and set a negative sign on the result. The default is <see langword="false"/>, which uses the signed input directly.
     /// </summary>
-    public bool UseSymmetricIccCurves { get; init; } = true;
+    public bool UseSymmetricIccCurves { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether ICC conversion maps the source black point to the target black point.

@@ -114,24 +114,21 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
                                         decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_ORIGINAL, profileData, profileSize));
                                 }
 
-                                srgb.rendering_intent = (JxlRenderingIntent)new IccProfile(profile).Header.RenderingIntent;
+                                IccProfile sourceProfile = new(profile);
 
-                                if (!grayscale && usesOriginalProfile)
+                                // Match the RGB destination profile. Libjxl expands grayscale output to RGBA.
+                                if (!grayscale && usesOriginalProfile && IccProfile.TryGetIccProfileForColorConversion(sourceProfile, out _))
                                 {
-                                    // Both decoders must use the same output matrix and curves. Different sRGB profiles
-                                    // can produce different RGB values near zero after a wide-gamut conversion.
-                                    // Copy the source intent without changing the shared output profile.
-                                    IccProfile targetProfile = CompactSrgbV4Profile.Profile.DeepClone();
-                                    targetProfile.Header.RenderingIntent = (IccRenderingIntent)srgb.rendering_intent;
-                                    byte[] outputProfile = targetProfile.ToByteArray();
-                                    fixed (byte* outputProfileData = outputProfile)
+                                    byte[] targetProfile = CompactSrgbV4Profile.Profile.ToByteArray();
+                                    fixed (byte* targetProfileData = targetProfile)
                                     {
-                                        Check(NativeJxl.JxlDecoderSetOutputColorProfile(
-                                            decoder, null, outputProfileData, (nuint)outputProfile.Length));
+                                        Check(NativeJxl.JxlDecoderSetOutputColorProfile(decoder, null, targetProfileData, (nuint)targetProfile.Length));
                                     }
 
                                     break;
                                 }
+
+                                srgb.rendering_intent = (JxlRenderingIntent)sourceProfile.Header.RenderingIntent;
                             }
 
                             Check(NativeJxl.JxlDecoderSetOutputColorProfile(decoder, &srgb, null, 0));

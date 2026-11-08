@@ -1834,6 +1834,8 @@ public static class TestImages
         public const string Patches = "Jxl/patches.jxl";
         public const string PatchesMixedUpsampling = "Jxl/patches_ec_upsampling_dim_shift.jxl";
         public const string WithPreview = "Jxl/with_preview.jxl";
+        public const string PqGradient = "Jxl/pq_gradient.jxl";
+        public const string SplineOnFirstFrame = "Jxl/spline_on_first_frame.jxl";
         public const string PermutedSections = "Jxl/has_permutation.jxl";
         public const string ProgressiveAc = "Jxl/progressive_ac.jxl";
 
@@ -1861,11 +1863,6 @@ public static class TestImages
 
         public const string BlendModes = "Jxl/blendmodes.jxl";
         public const string CroppedXybBlending = "Jxl/issue772_blendbug.jxl";
-        public const string CroppedP3Blending = "Jxl/issue772_blendbug_p3.jxl";
-        public const string CroppedSrgbIccBlending = "Jxl/issue772_blendbug_srgb_icc.jxl";
-        public const string CroppedD50GrayBlending = "Jxl/issue772_blendbug_gray_d50.jxl";
-        public const string CroppedD65GrayBlending = "Jxl/issue772_blendbug_gray_d65.jxl";
-        public const string CroppedP3IccBlending = "Jxl/issue772_blendbug_p3_icc.jxl";
         public const string WeightedPatchModes = "Jxl/weighted_patch_modes.jxl";
         public const string P3XybSpotComposition = "Jxl/p3_xyb_spot_composition.jxl";
         public const string P3IccStandalonePostSave = "Jxl/p3_icc_standalone_postsave.jxl";

@@ -419,15 +419,20 @@ internal sealed partial class JxlModularDecoder : IDisposable
             changesShape |= transform.Kind != ColorTransform;
         }
 
+        int count = GetEligiblePrefix(layouts, maximumSize);
         if (allocateAll || changesShape)
         {
             // Parsing changes layouts only. Borrowed targets retain their ready regions until every encoded shape
             // has passed validation. Reserve descriptor capacity before renting samples so Add cannot strand an owner.
             channels.EnsureCapacity(layouts.Count);
             channels.Clear();
-            foreach (JxlModularChannelLayout layout in layouts)
+            for (int c = 0; c < layouts.Count; c++)
             {
-                channels.Add(JxlModularChannel.Allocate(this.allocator, layout, use16BitStorage));
+                // Every decode path below writes every sample of each prefix channel before any read, so that
+                // storage needs no clearing. Later group sections fill the remaining global channels. Keep those
+                // zeroed, as jxl-rs does for buffers without decoded data, so an unfilled region reads as zero.
+                AllocationOptions options = c < count ? AllocationOptions.None : AllocationOptions.Clean;
+                channels.Add(JxlModularChannel.Allocate(this.allocator, layouts[c], use16BitStorage, options));
             }
         }
         else
@@ -449,7 +454,6 @@ internal sealed partial class JxlModularDecoder : IDisposable
             }
         }
 
-        int count = GetEligiblePrefix(layouts, maximumSize);
         long samples = GetSampleCount(channels, count, out _);
         if (samples == 0)
         {
@@ -1454,14 +1458,15 @@ internal sealed partial class JxlModularDecoder : IDisposable
         {
             // The selected property IDs are sorted. Property eight consumes the preceding
             // pixel's gradient before property nine replaces it. Missing reference channels stay zero.
+            // Numerics.Abs is branch-free. Its int.MinValue result wraps to int.MinValue, like 32-bit negation.
             foreach (byte property in lookup.PropertyIndices)
             {
                 properties[property] = property switch
                 {
                     2 => y,
                     3 => x,
-                    4 => top < 0 ? -top : top,
-                    5 => left < 0 ? -left : left,
+                    4 => Numerics.Abs(top),
+                    5 => Numerics.Abs(left),
                     6 => top,
                     7 => left,
                     8 => left - properties[9],
@@ -1487,10 +1492,12 @@ internal sealed partial class JxlModularDecoder : IDisposable
         else if (TTreeOperator.UsesProperties)
         {
             // Tree properties wrap in signed 32-bit units. The predictor itself uses the existing wide integer equations.
+            // A conditional negation compiles to a branch on the sample sign. Numerics.Abs has no branch
+            // and gives the same wrapped int.MinValue result.
             properties[2] = y;
             properties[3] = x;
-            properties[4] = top < 0 ? -top : top;
-            properties[5] = left < 0 ? -left : left;
+            properties[4] = Numerics.Abs(top);
+            properties[5] = Numerics.Abs(left);
             properties[6] = top;
             properties[7] = left;
             properties[8] = left - properties[9];
@@ -1860,9 +1867,10 @@ internal sealed partial class JxlModularDecoder : IDisposable
                 JxlModularChannel firstOutput = useTargets ? targets[transform.Begin] : index;
                 for (int c = 1; c < transform.ChannelCount; c++)
                 {
+                    // JxlModularPalette.Apply writes every row and column of each output before any read.
                     JxlModularChannel output = useTargets
                         ? targets[transform.Begin + c]
-                        : JxlModularChannel.Allocate(this.allocator, index.Layout, index.Uses16BitStorage);
+                        : JxlModularChannel.Allocate(this.allocator, index.Layout, index.Uses16BitStorage, AllocationOptions.None);
 
                     try
                     {
@@ -1964,10 +1972,11 @@ internal sealed partial class JxlModularDecoder : IDisposable
                         }
                     }
 
+                    // The inverse squeeze writes every output sample from its averages and residuals before any read.
                     JxlModularChannelLayout layout = new(outputSize, horizontal, vertical);
                     JxlModularChannel output = useTargets
                         ? targets[transform.Begin + c]
-                        : JxlModularChannel.Allocate(this.allocator, layout, averages.Uses16BitStorage);
+                        : JxlModularChannel.Allocate(this.allocator, layout, averages.Uses16BitStorage, AllocationOptions.None);
 
                     try
                     {

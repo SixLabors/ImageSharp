@@ -1567,8 +1567,10 @@ public static class TestImages
         public const string ZipUncompressedBlock = "Exr/zip_uncompressed_block.exr";
 
         /// <summary>
-        /// Native one-pixel float RGBA input whose ZIP chunk stores the uncompressed pixel bytes.
+        /// Native 2x2 float RGBA input whose ZIP chunk stores the uncompressed pixel bytes.
         /// </summary>
+        // ImageMagick 7.1.2-25 rejects EXR data windows with a one-pixel width or height.
+        // Two pixels in each dimension allow native comparisons while retaining raw ZIP blocks.
         public const string FloatRgbaZipFallback = "Exr/rgba_float_zip_fallback.exr";
 
         public const string Zips = "Exr/Calliphora_zips.exr";

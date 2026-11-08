@@ -73,6 +73,15 @@ public class MagickReferenceDecoder : ImageDecoder
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
+            if (this.imageFormat is ExrFormat && magicFrame.HasAlpha)
+            {
+                // ImageMagick 7.1.2-25 leaves EXR RGB associated with alpha. Pixel export supplies
+                // straight RGBA, so divide through the native alpha API before packing. Disassociate
+                // disables alpha; reactivate the retained channel so export preserves its samples.
+                magicFrame.Alpha(AlphaOption.Disassociate);
+                magicFrame.Alpha(AlphaOption.Activate);
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 

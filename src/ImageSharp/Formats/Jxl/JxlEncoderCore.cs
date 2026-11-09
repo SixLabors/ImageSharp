@@ -669,7 +669,14 @@ internal sealed class JxlEncoderCore : IDisposable
             : checked(2 + this.dcGroupCount + (this.groupCount * (encoder.Progressive ? 2 : 1)));
 
         MemoryAllocator allocator = configuration.MemoryAllocator;
-        this.payload = new ChunkedMemoryStream(allocator);
+
+        // The frame must retain its encoded bytes until section lengths are known. Use its declared sample
+        // storage as a chunk-size hint, capped before multiplication and by the allocator's segment capacity.
+        // This reduces small-chunk rentals without preallocating the complete uncompressed frame.
+        int capacity = allocator.GetBufferCapacityInBytes();
+        long pixels = Math.Min((long)size.Width * size.Height, capacity);
+        int chunkSize = (int)Math.Min(pixels * this.componentCount * ((bitDepth.BitsPerSample + 7) / 8), capacity);
+        this.payload = new ChunkedMemoryStream(allocator, chunkSize);
         Buffer2D<int>? samples = null;
         IMemoryOwner<Vector4>? pixelRow = null;
         IMemoryOwner<float>? floatRows = null;

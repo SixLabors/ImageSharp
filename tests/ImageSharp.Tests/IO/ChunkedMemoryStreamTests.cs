@@ -230,17 +230,20 @@ public class ChunkedMemoryStreamTests
     /// Checks that bounded emission excludes retained bytes after the completed payload.
     /// </summary>
     /// <param name="count">The completed prefix length, including chunk edges and an empty payload.</param>
+    /// <param name="minimumChunkSize">The chunk-size hint, or zero for the existing growth policy.</param>
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(DefaultSmallChunkSize - 1)]
-    [InlineData(DefaultSmallChunkSize)]
-    [InlineData(DefaultSmallChunkSize + 1)]
-    [InlineData(DefaultSmallChunkSize * 3)]
-    public void WriteToUsesCompletedPayloadLength(int count)
+    [InlineData(0, 0)]
+    [InlineData(1, 0)]
+    [InlineData(DefaultSmallChunkSize - 1, 0)]
+    [InlineData(DefaultSmallChunkSize, 0)]
+    [InlineData(DefaultSmallChunkSize + 1, 0)]
+    [InlineData(DefaultSmallChunkSize * 3, 0)]
+    [InlineData(DefaultSmallChunkSize * 3, DefaultSmallChunkSize * 2)]
+    [InlineData(DefaultSmallChunkSize * 3, DefaultLargeChunkSize * 2)]
+    public void WriteToUsesCompletedPayloadLength(int count, int minimumChunkSize)
     {
         byte[] data = this.CreateTestBuffer(DefaultSmallChunkSize * 3);
-        using ChunkedMemoryStream source = new(this.allocator);
+        using ChunkedMemoryStream source = new(this.allocator, minimumChunkSize);
         source.Write(data);
         using MemoryStream output = new();
 

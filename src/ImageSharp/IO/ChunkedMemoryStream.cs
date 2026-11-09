@@ -27,7 +27,17 @@ internal sealed class ChunkedMemoryStream : Stream
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     public ChunkedMemoryStream(MemoryAllocator allocator)
-        => this.memoryChunkBuffer = new MemoryChunkBuffer(allocator);
+        : this(allocator, 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class with a minimum chunk-size hint.
+    /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="minimumChunkSize">The nonnegative size hint in bytes, capped at 4 MiB and the allocator's buffer capacity.</param>
+    public ChunkedMemoryStream(MemoryAllocator allocator, int minimumChunkSize)
+        => this.memoryChunkBuffer = new MemoryChunkBuffer(allocator, minimumChunkSize);
 
     /// <inheritdoc/>
     public override bool CanRead => !this.isDisposed;
@@ -418,15 +428,30 @@ internal sealed class ChunkedMemoryStream : Stream
 
     private sealed class MemoryChunkBuffer : IDisposable
     {
+        /// <summary>
+        /// The largest stream chunk in bytes. The allocator can impose a smaller limit.
+        /// </summary>
+        private const int MaximumChunkSize = 1 << 22;
+
         private readonly List<MemoryChunk> memoryChunks = [];
         private readonly MemoryAllocator allocator;
         private readonly int allocatorCapacity;
+        private readonly int minimumChunkSize;
         private bool isDisposed;
 
-        public MemoryChunkBuffer(MemoryAllocator allocator)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MemoryChunkBuffer"/> class with a chunk-size hint.
+        /// </summary>
+        /// <param name="allocator">The allocator that owns all chunks.</param>
+        /// <param name="minimumChunkSize">The validated nonnegative size hint in bytes.</param>
+        public MemoryChunkBuffer(MemoryAllocator allocator, int minimumChunkSize)
         {
             this.allocatorCapacity = allocator.GetBufferCapacityInBytes();
             this.allocator = allocator;
+
+            // Keep the existing 4 MiB growth limit. Large known payloads start with fewer, larger chunks,
+            // while default callers retain gradual growth. Storage is still rented only when a write needs it.
+            this.minimumChunkSize = Math.Min(minimumChunkSize, MaximumChunkSize);
         }
 
         public int ChunkCount => this.memoryChunks.Count;
@@ -435,10 +460,13 @@ internal sealed class ChunkedMemoryStream : Stream
 
         public MemoryChunk this[int index] => this.memoryChunks[index];
 
+        /// <summary>
+        /// Adds an allocator-owned chunk using normal growth and the requested minimum size.
+        /// </summary>
         public void Expand()
         {
             IMemoryOwner<byte> buffer =
-                this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, GetChunkSize(this.ChunkCount)));
+                this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, Math.Max(this.minimumChunkSize, GetChunkSize(this.ChunkCount))));
 
             MemoryChunk chunk = new(buffer)
             {
@@ -471,8 +499,7 @@ internal sealed class ChunkedMemoryStream : Stream
             // same ArrayPool bucket of the default MemoryAllocator.
             // https://github.com/SixLabors/ImageSharp/pull/2006#issuecomment-1066244720
             const int b128K = 1 << 17;
-            const int b4M = 1 << 22;
-            return i < 16 ? b128K * (1 << (int)((uint)i / 4)) : b4M;
+            return i < 16 ? b128K * (1 << (int)((uint)i / 4)) : MaximumChunkSize;
         }
     }
 

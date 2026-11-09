@@ -313,7 +313,7 @@ public class RgbAndXybConversionTest
     }
 
     /// <summary>
-    /// Checks one native inverse case through scalar and bulk conversion to a linear RGB endpoint.
+    /// Checks direct inverse kernels and public XYZ conversions against native linear RGB values.
     /// </summary>
     /// <param name="transform">The transform used by the native decoder.</param>
     /// <param name="samples">The native XYB input period.</param>
@@ -321,6 +321,7 @@ public class RgbAndXybConversionTest
     /// <param name="unfused">The recorded unfused linear-RGB output period for the same input bits.</param>
     private static void VerifyNativeInverse(XybTransform transform, ReadOnlySpan<Xyb> samples, ReadOnlySpan<Rgb> expected, ReadOnlySpan<Rgb> unfused)
     {
+        Xyb.InverseOperator inverse = new(transform, KnownRgbWorkingSpaces.SRgb, false);
         GammaWorkingSpace linear = CreateNativeLinearSrgbWorkingSpace();
         ColorConversionOptions options = new() { XybTransform = transform, SourceRgbWorkingSpace = linear, TargetRgbWorkingSpace = linear };
         ColorProfileConverter converter = new(options);
@@ -342,15 +343,15 @@ public class RgbAndXybConversionTest
         {
             Rgb expectedColor = expected[i % expected.Length];
             Rgb unfusedColor = unfused[i % unfused.Length];
+            VerifyNativeInverseKernel(in inverse, source[i], expectedColor, unfusedColor);
 
-            // MultiplyAddEstimate can use one fused operation or two separately rounded operations.
-            // Original libjxl AVX2 and SSE4 kernels produced these two results from identical input bits.
-            // Keep the same accuracy bound for both; an unfused target need not reproduce fused rounding.
+            // Native values describe the direct linear-RGB kernel checked above. The public converter also
+            // applies RGB-to-XYZ and XYZ-to-RGB matrices. Use its existing conversion bound for that complete path.
             Rgb actualScalar = converter.Convert<Xyb, Rgb>(source[i]);
-            Assert.True(ComponentComparer.Equals(expectedColor, actualScalar) || ComponentComparer.Equals(unfusedColor, actualScalar),
+            Assert.True(ConverterComparer.Equals(expectedColor, actualScalar) || ConverterComparer.Equals(unfusedColor, actualScalar),
                 $"Intensity {transform.IntensityTarget:R}; input {source[i]}; "
                 + $"fused {expectedColor.ToScaledVector4()}; unfused {unfusedColor.ToScaledVector4()}; scalar {actualScalar.ToScaledVector4()}.");
-            Assert.True(ComponentComparer.Equals(expectedColor, destination[i]) || ComponentComparer.Equals(unfusedColor, destination[i]),
+            Assert.True(ConverterComparer.Equals(expectedColor, destination[i]) || ConverterComparer.Equals(unfusedColor, destination[i]),
                 $"Intensity {transform.IntensityTarget:R}; input {source[i]}; "
                 + $"fused {expectedColor.ToScaledVector4()}; unfused {unfusedColor.ToScaledVector4()}; bulk {destination[i].ToScaledVector4()}.");
         }
@@ -365,7 +366,68 @@ public class RgbAndXybConversionTest
         for (int i = 0; i < inPlace.Length; i++)
         {
             Assert.True(
-                ComponentComparer.Equals(expected[i % expected.Length], inPlace[i]) || ComponentComparer.Equals(unfused[i % unfused.Length], inPlace[i]));
+                ConverterComparer.Equals(expected[i % expected.Length], inPlace[i]) || ConverterComparer.Equals(unfused[i % unfused.Length], inPlace[i]));
+        }
+    }
+
+    /// <summary>
+    /// Checks the direct inverse equations against the recorded native values at the existing component accuracy bound.
+    /// </summary>
+    /// <param name="operation">The intensity-scaled inverse that produces linear sRGB directly.</param>
+    /// <param name="sample">One recorded native XYB input.</param>
+    /// <param name="expected">The recorded fused native output.</param>
+    /// <param name="unfused">The recorded unfused native output.</param>
+    private static void VerifyNativeInverseKernel(in Xyb.InverseOperator operation, Xyb sample, Rgb expected, Rgb unfused)
+    {
+        // Native XybToRgb applies the inverse absorbance matrix directly. It does not pass through XYZ.
+        // Keep the strict component bound here for scalar arithmetic and every available SIMD width.
+        operation.Invoke(sample.X, sample.Y, sample.B, out float r, out float g, out float b);
+        Rgb scalar = new(r, g, b);
+        Assert.True(ComponentComparer.Equals(expected, scalar) || ComponentComparer.Equals(unfused, scalar),
+            $"Input {sample}; fused {expected}; unfused {unfused}; direct scalar {scalar}.");
+
+        // Each register repeats one component across independent pixels. Check every output lane;
+        // the surrounding FeatureTestRunner also selects narrower workers and the scalar fallback.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            operation.Invoke(
+                Vector512.Create(sample.X), Vector512.Create(sample.Y), Vector512.Create(sample.B),
+                out Vector512<float> red, out Vector512<float> green, out Vector512<float> blue);
+
+            for (int lane = 0; lane < Vector512<float>.Count; lane++)
+            {
+                Rgb actual = new(red.GetElement(lane), green.GetElement(lane), blue.GetElement(lane));
+                Assert.True(ComponentComparer.Equals(expected, actual) || ComponentComparer.Equals(unfused, actual),
+                    $"Input {sample}; fused {expected}; unfused {unfused}; direct Vector512 lane {lane}: {actual}.");
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            operation.Invoke(
+                Vector256.Create(sample.X), Vector256.Create(sample.Y), Vector256.Create(sample.B),
+                out Vector256<float> red, out Vector256<float> green, out Vector256<float> blue);
+
+            for (int lane = 0; lane < Vector256<float>.Count; lane++)
+            {
+                Rgb actual = new(red.GetElement(lane), green.GetElement(lane), blue.GetElement(lane));
+                Assert.True(ComponentComparer.Equals(expected, actual) || ComponentComparer.Equals(unfused, actual),
+                    $"Input {sample}; fused {expected}; unfused {unfused}; direct Vector256 lane {lane}: {actual}.");
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            operation.Invoke(
+                Vector128.Create(sample.X), Vector128.Create(sample.Y), Vector128.Create(sample.B),
+                out Vector128<float> red, out Vector128<float> green, out Vector128<float> blue);
+
+            for (int lane = 0; lane < Vector128<float>.Count; lane++)
+            {
+                Rgb actual = new(red.GetElement(lane), green.GetElement(lane), blue.GetElement(lane));
+                Assert.True(ComponentComparer.Equals(expected, actual) || ComponentComparer.Equals(unfused, actual),
+                    $"Input {sample}; fused {expected}; unfused {unfused}; direct Vector128 lane {lane}: {actual}.");
+            }
         }
     }
 

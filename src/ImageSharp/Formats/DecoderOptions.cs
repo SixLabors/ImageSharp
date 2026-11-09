@@ -19,8 +19,29 @@ public sealed class DecoderOptions
 
     // Used by the FileProvider in the unit tests to set the configuration on the fly.
 #pragma warning disable IDE0032 // Use auto property
-    private Configuration configuration = Configuration.Default;
+    private Configuration configuration;
 #pragma warning restore IDE0032 // Use auto property
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DecoderOptions"/> class with the default configuration.
+    /// </summary>
+    public DecoderOptions()
+        : this(Configuration.Default)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DecoderOptions"/> class with the specified configuration.
+    /// </summary>
+    /// <param name="configuration">The configuration used to decode and identify images.</param>
+    /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+    public DecoderOptions(Configuration configuration)
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+
+        // Explicit construction must not initialize the default codec registry before an init accessor replaces it.
+        this.configuration = configuration;
+    }
 
     /// <summary>
     /// Gets the shared default general decoder options instance.

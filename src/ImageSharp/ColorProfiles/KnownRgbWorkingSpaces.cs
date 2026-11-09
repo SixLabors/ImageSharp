@@ -12,6 +12,30 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public static class KnownRgbWorkingSpaces
 {
     /// <summary>
+    /// The generic film primary chromaticities defined by ITU-T H.273.
+    /// </summary>
+    public static readonly RgbPrimariesChromaticityCoordinates GenericFilmPrimaries = new(
+        new CieXyChromaticityCoordinates(0.681F, 0.319F),
+        new CieXyChromaticityCoordinates(0.243F, 0.692F),
+        new CieXyChromaticityCoordinates(0.145F, 0.049F));
+
+    /// <summary>
+    /// The CIE XYZ axis chromaticities used by SMPTE ST 428-1.
+    /// </summary>
+    public static readonly RgbPrimariesChromaticityCoordinates CieXyzPrimaries = new(
+        new CieXyChromaticityCoordinates(1F, 0F),
+        new CieXyChromaticityCoordinates(0F, 1F),
+        new CieXyChromaticityCoordinates(0F, 0F));
+
+    /// <summary>
+    /// The EBU Tech. 3213-E primary chromaticities defined by ITU-T H.273.
+    /// </summary>
+    public static readonly RgbPrimariesChromaticityCoordinates EbuTech3213EPrimaries = new(
+        new CieXyChromaticityCoordinates(0.630F, 0.340F),
+        new CieXyChromaticityCoordinates(0.295F, 0.605F),
+        new CieXyChromaticityCoordinates(0.155F, 0.077F));
+
+    /// <summary>
     /// sRgb working space.
     /// </summary>
     /// <remarks>

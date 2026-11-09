@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public static class KnownIlluminants
 {
     /// <summary>
+    /// Gets the Illuminant C chromaticity coordinates used by NTSC and generic film primaries.
+    /// </summary>
+    public static CieXyChromaticityCoordinates CChromaticity { get; } = new(0.310F, 0.316F);
+
+    /// <summary>
     /// Gets the D65 chromaticity coordinates used by sRGB and ITU-R BT.2020.
     /// </summary>
     public static CieXyChromaticityCoordinates D65Chromaticity { get; } = new(0.3127F, 0.3290F);

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
@@ -348,121 +349,17 @@ internal readonly struct HeifColorConversionParameters
     /// <param name="kb">The resulting blue luma coefficient.</param>
     private static void GetChromaticityDerivedCoefficients(CicpColorPrimaries colorPrimaries, out float kr, out float kb)
     {
-        float redX;
-        float redY;
-        float greenX;
-        float greenY;
-        float blueX;
-        float blueY;
-        float whiteX;
-        float whiteY;
+        ColorNumerics.GetCicpChromaticityCoordinates(
+            colorPrimaries, out CieXyChromaticityCoordinates whitePoint, out RgbPrimariesChromaticityCoordinates primaries);
 
-        switch (colorPrimaries)
-        {
-            case CicpColorPrimaries.ItuRBt470_6M:
-                redX = 0.67F;
-                redY = 0.33F;
-                greenX = 0.21F;
-                greenY = 0.71F;
-                blueX = 0.14F;
-                blueY = 0.08F;
-                whiteX = 0.310F;
-                whiteY = 0.316F;
-                break;
-            case CicpColorPrimaries.ItuRBt601_7_625:
-                redX = 0.64F;
-                redY = 0.33F;
-                greenX = 0.29F;
-                greenY = 0.60F;
-                blueX = 0.15F;
-                blueY = 0.06F;
-                whiteX = 0.3127F;
-                whiteY = 0.3290F;
-                break;
-            case CicpColorPrimaries.ItuRBt601_7_525:
-            case CicpColorPrimaries.SmpteSt240:
-                redX = 0.630F;
-                redY = 0.340F;
-                greenX = 0.310F;
-                greenY = 0.595F;
-                blueX = 0.155F;
-                blueY = 0.070F;
-                whiteX = 0.3127F;
-                whiteY = 0.3290F;
-                break;
-            case CicpColorPrimaries.GenericFilm:
-                redX = 0.681F;
-                redY = 0.319F;
-                greenX = 0.243F;
-                greenY = 0.692F;
-                blueX = 0.145F;
-                blueY = 0.049F;
-                whiteX = 0.310F;
-                whiteY = 0.316F;
-                break;
-            case CicpColorPrimaries.ItuRBt2020_2:
-                redX = 0.708F;
-                redY = 0.292F;
-                greenX = 0.170F;
-                greenY = 0.797F;
-                blueX = 0.131F;
-                blueY = 0.046F;
-                whiteX = 0.3127F;
-                whiteY = 0.3290F;
-                break;
-            case CicpColorPrimaries.SmpteSt428_1:
-                redX = 1F;
-                redY = 0F;
-                greenX = 0F;
-                greenY = 1F;
-                blueX = 0F;
-                blueY = 0F;
-                whiteX = 1F / 3F;
-                whiteY = 1F / 3F;
-                break;
-            case CicpColorPrimaries.SmpteRp431_2:
-                redX = 0.680F;
-                redY = 0.320F;
-                greenX = 0.265F;
-                greenY = 0.690F;
-                blueX = 0.150F;
-                blueY = 0.060F;
-                whiteX = 0.314F;
-                whiteY = 0.351F;
-                break;
-            case CicpColorPrimaries.SmpteEg432_1:
-                redX = 0.680F;
-                redY = 0.320F;
-                greenX = 0.265F;
-                greenY = 0.690F;
-                blueX = 0.150F;
-                blueY = 0.060F;
-                whiteX = 0.3127F;
-                whiteY = 0.3290F;
-                break;
-            case CicpColorPrimaries.EbuTech3213E:
-                redX = 0.630F;
-                redY = 0.340F;
-                greenX = 0.295F;
-                greenY = 0.605F;
-                blueX = 0.155F;
-                blueY = 0.077F;
-                whiteX = 0.3127F;
-                whiteY = 0.3290F;
-                break;
-            default:
-                // Unspecified primaries cannot define a chromaticity-derived matrix. Use the BT.709 primaries and the
-                // D65 white point, so the image has one deterministic interpretation.
-                redX = 0.64F;
-                redY = 0.33F;
-                greenX = 0.30F;
-                greenY = 0.60F;
-                blueX = 0.15F;
-                blueY = 0.06F;
-                whiteX = 0.3127F;
-                whiteY = 0.3290F;
-                break;
-        }
+        float redX = primaries.R.X;
+        float redY = primaries.R.Y;
+        float greenX = primaries.G.X;
+        float greenY = primaries.G.Y;
+        float blueX = primaries.B.X;
+        float blueY = primaries.B.Y;
+        float whiteX = whitePoint.X;
+        float whiteY = whitePoint.Y;
 
         float redZ = 1F - (redX + redY);
         float greenZ = 1F - (greenX + greenY);

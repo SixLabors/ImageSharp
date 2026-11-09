@@ -34,6 +34,7 @@ public partial class JxlHeaderTests
     /// ScaleXYBRow in the same source converts those values to the fixed device samples below.
     /// Device-to-RGB expectations are the original linear RGB inputs. Coding-to-device expectations are the
     /// independently recorded ScaleXYBRow results. Neither direction derives expectations from production operators.
+    /// Two additional device inputs reuse the native black and red expectations after the native ICC CLUT bounds their coordinates.
     /// </remarks>
     private static void ValidateDeclaredXybDeviceConversion()
     {
@@ -43,7 +44,12 @@ public partial class JxlHeaderTests
             new(.999999285F, .577526689F, .392322272F),
             new(.103198044F, .786984801F, .26070255F),
             new(.839155912F, .798765421F, .352154642F),
-            new(.111198567F, .626465797F, .59617871F)
+            new(.111198567F, .626465797F, .59617871F),
+
+            // Native ICC conversion clamps device coordinates before the CLUT. Negative Y reaches
+            // the black boundary; X above one reaches the red boundary. The other coordinates retain their native values.
+            new(.353816301F, -1F, .41715157F),
+            new(2F, .577526689F, .392322272F)
         ];
 
         ReadOnlySpan<Vector3> expected =
@@ -52,7 +58,9 @@ public partial class JxlHeaderTests
             new(1F, 0F, 0F),
             new(.12F, .75F, .33F),
             new(1.5F, .25F, .125F),
-            new(-.025F, .4F, .8F)
+            new(-.025F, .4F, .8F),
+            new(0F, 0F, 0F),
+            new(1F, 0F, 0F)
         ];
 
         // These are the matching native ToXYB values from VerifyNativeLinearForward at 255 nits.
@@ -67,8 +75,8 @@ public partial class JxlHeaderTests
         ];
 
         JxlColorConverterBase.XybEncodingOperator encoding = default;
-        JxlColorConverterBase.XybDeviceOperator<JxlColorConverterBase.RgbOperator> operation = new(default);
-        for (int i = 0; i < device.Length; i++)
+
+        for (int i = 0; i < coding.Length; i++)
         {
             float x = coding[i].X;
             float y = coding[i].Y;
@@ -76,7 +84,12 @@ public partial class JxlHeaderTests
             float unusedEncoding = 0F;
             encoding.Invoke(ref x, ref y, ref blue, ref unusedEncoding);
             Assert.Equal(device[i], new Vector3(x, y, blue), ApproximateFloatComparer.FromPrecision(4));
+        }
 
+        JxlColorConverterBase.XybDeviceOperator<JxlColorConverterBase.RgbOperator> operation = new(default);
+
+        for (int i = 0; i < device.Length; i++)
+        {
             float r = device[i].X;
             float g = device[i].Y;
             float b = device[i].Z;
@@ -143,7 +156,7 @@ public partial class JxlHeaderTests
         JxlColorConverterBase.ConvertInPlace(first, second, third, encoding);
         for (int i = 0; i < length; i++)
         {
-            Assert.Equal(device[i % device.Length], new Vector3(first[i], second[i], third[i]), ApproximateFloatComparer.FromPrecision(4));
+            Assert.Equal(device[i % coding.Length], new Vector3(first[i], second[i], third[i]), ApproximateFloatComparer.FromPrecision(4));
         }
     }
 

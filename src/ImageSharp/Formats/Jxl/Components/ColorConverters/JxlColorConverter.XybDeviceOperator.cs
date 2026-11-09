@@ -140,7 +140,11 @@ internal abstract partial class JxlColorConverterBase
         public void Invoke(ref float c0, ref float c1, ref float c2, ref float c3)
         {
             this.componentOperation.Invoke(ref c0, ref c1, ref c2, ref c3);
-            Vector3 gamma = Vector3.Transform(new Vector3(c0, c1, c2), this.inputMapping);
+
+            // Native ICC conversion bounds the three device coordinates before its CLUT.
+            // This direct mapping replaces that CLUT, so apply its [0,1] input domain before unmapping.
+            Vector3 device = Vector3.Clamp(new Vector3(c0, c1, c2), Vector3.Zero, Vector3.One);
+            Vector3 gamma = Vector3.Transform(device, this.inputMapping);
 
             // The declared device curve is zero below its root-domain cutoff. This is part of that
             // encoding's curve, not pixel clipping. Linear RGB keeps its extended range after the matrix.
@@ -155,8 +159,13 @@ internal abstract partial class JxlColorConverterBase
         public void Invoke(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, ref Vector128<float> c3)
         {
             // Each register holds one component from consecutive pixels. Restore RGB/YCbCr coding first,
-            // then unmap the device encoding and share the inverse cube and matrix with coding XYB.
+            // then apply the native ICC CLUT's [0,1] device domain before the combined input mapping.
+            // Only device coordinates are bounded. The following inverse retains extended linear RGB.
             this.componentOperation.Invoke(ref c0, ref c1, ref c2, ref c3);
+            c0 = Vector128.Clamp(c0, Vector128<float>.Zero, Vector128<float>.One);
+            c1 = Vector128.Clamp(c1, Vector128<float>.Zero, Vector128<float>.One);
+            c2 = Vector128.Clamp(c2, Vector128<float>.Zero, Vector128<float>.One);
+
             SimdUtils.Transform3(in this.inputMapping, c0, c1, c2, out c0, out c1, out c2);
             c0 = Vector128.Max(c0, Vector128<float>.Zero);
             c1 = Vector128.Max(c1, Vector128<float>.Zero);
@@ -169,8 +178,13 @@ internal abstract partial class JxlColorConverterBase
         public void Invoke(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, ref Vector256<float> c3)
         {
             // Each register holds one component from consecutive pixels. Restore RGB/YCbCr coding first,
-            // then unmap the device encoding and share the inverse cube and matrix with coding XYB.
+            // then apply the native ICC CLUT's [0,1] device domain before the combined input mapping.
+            // Only device coordinates are bounded. The following inverse retains extended linear RGB.
             this.componentOperation.Invoke(ref c0, ref c1, ref c2, ref c3);
+            c0 = Vector256.Clamp(c0, Vector256<float>.Zero, Vector256<float>.One);
+            c1 = Vector256.Clamp(c1, Vector256<float>.Zero, Vector256<float>.One);
+            c2 = Vector256.Clamp(c2, Vector256<float>.Zero, Vector256<float>.One);
+
             SimdUtils.Transform3(in this.inputMapping, c0, c1, c2, out c0, out c1, out c2);
             c0 = Vector256.Max(c0, Vector256<float>.Zero);
             c1 = Vector256.Max(c1, Vector256<float>.Zero);
@@ -183,8 +197,13 @@ internal abstract partial class JxlColorConverterBase
         public void Invoke(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, ref Vector512<float> c3)
         {
             // Each register holds one component from consecutive pixels. Restore RGB/YCbCr coding first,
-            // then unmap the device encoding and share the inverse cube and matrix with coding XYB.
+            // then apply the native ICC CLUT's [0,1] device domain before the combined input mapping.
+            // Only device coordinates are bounded. The following inverse retains extended linear RGB.
             this.componentOperation.Invoke(ref c0, ref c1, ref c2, ref c3);
+            c0 = Vector512.Clamp(c0, Vector512<float>.Zero, Vector512<float>.One);
+            c1 = Vector512.Clamp(c1, Vector512<float>.Zero, Vector512<float>.One);
+            c2 = Vector512.Clamp(c2, Vector512<float>.Zero, Vector512<float>.One);
+
             SimdUtils.Transform3(in this.inputMapping, c0, c1, c2, out c0, out c1, out c2);
             c0 = Vector512.Max(c0, Vector512<float>.Zero);
             c1 = Vector512.Max(c1, Vector512<float>.Zero);

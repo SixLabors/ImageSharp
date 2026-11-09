@@ -117,12 +117,13 @@ internal readonly struct JxlHybridUint
         // Remove the implicit leading one. The token carries its position,
         // the configured leading value bits and the trailing value bits. Only the middle bits follow the token.
         // Parsed widths satisfy highBits + lowBits <= splitExponent, so every shift below is within 0..31.
+        // Mask the shifted value to remove the leading one. A zero leading width then folds to zero
+        // without subtracting and shifting a remainder for every encoded sample.
         int exponent = BitOperations.Log2(value);
-        uint remainder = value - (1U << exponent);
         token = this.splitToken
             + ((uint)(exponent - this.splitExponent) << (this.highBits + this.lowBits))
-            + ((remainder >> (exponent - this.highBits)) << this.lowBits)
-            + (remainder & ((1U << this.lowBits) - 1));
+            + (((value >> (exponent - this.highBits)) & ((1U << this.highBits) - 1)) << this.lowBits)
+            + (value & ((1U << this.lowBits) - 1));
 
         bitCount = exponent - this.highBits - this.lowBits;
         extraBits = (value >> this.lowBits) & ((1U << bitCount) - 1);

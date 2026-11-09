@@ -2690,8 +2690,21 @@ internal sealed class JxlEncoderCore : IDisposable
     {
         // The shared hybrid-integer owner supplies the same token layout used by decoding.
         JxlHybridUint.Zero.Encode(value, out uint token, out int extraBitCount, out uint extraBits);
-        this.WriteBits(codeLength, prefixCodes[(int)token], output);
-        this.WriteBits(extraBitCount, extraBits, output);
+        uint prefix = prefixCodes[(int)token];
+        int count = codeLength + extraBitCount;
+
+        // The prefix comes first in the least-significant-bit-first stream. Join fields that fit one uint
+        // to update the reservoir once. Wider carriers retain two writes so fewer than 32 pending bits plus
+        // the next field always fit the 64-bit reservoir, including a full-width signed residual.
+        if (count <= 32)
+        {
+            this.WriteBits(count, prefix | (extraBits << codeLength), output);
+        }
+        else
+        {
+            this.WriteBits(codeLength, prefix, output);
+            this.WriteBits(extraBitCount, extraBits, output);
+        }
     }
 
     /// <summary>

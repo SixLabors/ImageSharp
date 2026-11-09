@@ -22,11 +22,12 @@ public class ExrEncoderTests
     [InlineData(ExrPixelType.Float, ExrPixelType.Float)]
     [InlineData(ExrPixelType.Half, ExrPixelType.Half)]
     [InlineData(ExrPixelType.UnsignedInt, ExrPixelType.UnsignedInt)]
-    public void EncoderOptions_SetPixelType_Works(ExrPixelType? pixelType, ExrPixelType? expectedPixelType)
+    public void EncoderOptions_SetPixelType_Works(ExrPixelType? pixelType, ExrPixelType expectedPixelType)
     {
         // arrange
         ExrEncoder exrEncoder = new() { PixelType = pixelType };
-        using Image input = new Image<Rgb24>(10, 10);
+        TestFile file = TestFile.Create(TestImages.Exr.Uncompressed);
+        using Image<Rgba32> input = file.CreateRgba32Image();
         using MemoryStream memStream = new();
 
         // act
@@ -34,7 +35,7 @@ public class ExrEncoderTests
 
         // assert
         memStream.Position = 0;
-        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        ImageInfo output = Image.Identify(memStream);
         ExrMetadata exrMetaData = output.Metadata.GetExrMetadata();
         Assert.Equal(expectedPixelType, exrMetaData.PixelType);
     }
@@ -70,11 +71,13 @@ public class ExrEncoderTests
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.FloatRgbaZipFallback, PixelTypes.Rgba32)]
     public void ExrEncoder_WithZipCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestExrEncoderCore(provider, "ZipCompression", compression: ExrCompression.Zip);
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.FloatRgbaZipFallback, PixelTypes.Rgba32)]
     public void ExrEncoder_WithZipsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestExrEncoderCore(provider, "ZipsCompression", compression: ExrCompression.Zips);
 

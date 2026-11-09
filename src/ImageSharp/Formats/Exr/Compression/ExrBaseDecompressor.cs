@@ -27,13 +27,54 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     }
 
     /// <summary>
-    /// Decompresses the specified stream.
+    /// Reads one original pixel block stored without compression.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the block's pixel data.</param>
+    /// <param name="uncompressedBytes">The expected byte count for the current block.</param>
+    /// <param name="buffer">The reusable pixel buffer with room for the complete block.</param>
+    /// <remarks>
+    /// OpenEXR stores the original pixels when compression does not reduce a block's size.
+    /// This rule applies to every compression method, as well as files without compression.
+    /// A short read reports image-data damage before partial output can reach pixel conversion.
+    /// </remarks>
+    protected static void ReadUncompressedBlock(BufferedReadStream stream, uint uncompressedBytes, Span<byte> buffer)
+    {
+        if (stream.Read(buffer[..(int)uncompressedBytes]) != uncompressedBytes)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("The EXR block ends before all pixel data is available.");
+        }
+    }
+
+    /// <summary>
+    /// Reads one pixel block, including raw blocks stored by compressed files.
     /// </summary>
     /// <param name="stream">The buffered stream to decompress.</param>
     /// <param name="compressedBytes">The compressed bytes.</param>
     /// <param name="uncompressedBytes">The expected byte count for the current block.</param>
     /// <param name="buffer">The buffer to write the decompressed data to.</param>
-    public abstract void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer);
+    public void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    {
+        // OpenEXR stores the original pixel bytes when compression cannot make a block smaller.
+        // Equal lengths select that raw layout for every compression method. The raw bytes must
+        // bypass decompression, predictors, and byte reordering.
+        if (compressedBytes == uncompressedBytes)
+        {
+            ReadUncompressedBlock(stream, uncompressedBytes, buffer);
+        }
+        else
+        {
+            this.DecompressCore(stream, compressedBytes, uncompressedBytes, buffer);
+        }
+    }
+
+    /// <summary>
+    /// Decodes a block using the file's compression method after raw-block handling.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the block's encoded data.</param>
+    /// <param name="compressedBytes">The declared encoded byte count.</param>
+    /// <param name="uncompressedBytes">The expected byte count for the current block.</param>
+    /// <param name="buffer">The reusable destination for the decoded pixel bytes.</param>
+    protected abstract void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer);
 
     /// <summary>
     /// Decompresses zip compressed data.

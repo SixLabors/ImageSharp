@@ -1058,7 +1058,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a float value from the stream!");
         }
 
-        int intValue = BinaryPrimitives.ReadInt32BigEndian(this.buffer);
+        // OpenEXR stores attribute values in little-endian order, including IEEE 754 float bits.
+        int intValue = BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
 
         return Unsafe.As<int, float>(ref intValue);
     }

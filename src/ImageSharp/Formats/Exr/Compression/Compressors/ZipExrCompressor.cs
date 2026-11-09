@@ -67,8 +67,13 @@ internal class ZipExrCompressor : ExrBaseCompressor
         }
 
         int size = (int)this.memoryStream.Position;
-        byte[] buffer = this.memoryStream.GetBuffer();
-        this.Output.Write(buffer, 0, size);
+
+        // OpenEXR stores original bytes when compression cannot reduce a block. Prediction uses
+        // separate storage, so the original rows remain available. Use the current row count's
+        // byte length: the final chunk can contain fewer rows than the reusable buffer.
+        ReadOnlySpan<byte> block = size < n ? this.memoryStream.GetBuffer().AsSpan(0, size) : rows[..n];
+        this.Output.Write(block);
+        size = block.Length;
 
         // Reset memory stream for next pixel row.
         this.memoryStream.Seek(0, SeekOrigin.Begin);

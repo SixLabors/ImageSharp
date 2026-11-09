@@ -275,6 +275,67 @@ internal sealed class ChunkedMemoryStream : Stream
     }
 
     /// <summary>
+    /// Borrows the remaining writable bytes of the current allocated chunk without allocating storage.
+    /// </summary>
+    /// <param name="sizeHint">The nonnegative minimum number of contiguous bytes required by the caller.</param>
+    /// <param name="span">The remaining chunk bytes, or an empty span when the request cannot be satisfied.</param>
+    /// <returns>Whether the current chunk has enough space and the position does not leave a gap after the stream's length.</returns>
+    /// <remarks>
+    /// The caller must initialize bytes before committing them with <see cref="AdvanceWrite"/>.
+    /// The borrow ends at the next stream operation. Writes within the existing length change those bytes immediately;
+    /// writes beyond that length remain outside the readable data until committed. A failed request changes no stream state.
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException">The stream is closed.</exception>
+    public bool TryGetWritableSpan(int sizeHint, out Span<byte> span)
+    {
+        this.EnsureNotDisposed();
+        span = default;
+
+        // A normal Write owns expansion and zero-filled seek gaps. A direct borrow may use only storage
+        // already at the current cursor, so callers can retain their normal write path at these boundaries.
+        if (this.position > this.length || this.bufferIndex >= this.memoryChunkBuffer.ChunkCount)
+        {
+            return false;
+        }
+
+        MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
+        int remaining = chunk.Length - this.chunkIndex;
+
+        if (remaining < sizeHint)
+        {
+            return false;
+        }
+
+        span = chunk.Buffer.Memory.Span.Slice(this.chunkIndex, remaining);
+        return true;
+    }
+
+    /// <summary>
+    /// Commits initialized bytes from the current writable borrow without copying them.
+    /// </summary>
+    /// <param name="count">The nonnegative number of initialized bytes within the most recent successful writable borrow.</param>
+    /// <remarks>
+    /// No other stream operation may occur between borrowing the span and this call.
+    /// The caller must retain neither the borrowed span nor its slices after this call.
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException">The stream is closed.</exception>
+    public void AdvanceWrite(int count)
+    {
+        this.EnsureNotDisposed();
+        this.position += count;
+        this.length = Math.Max(this.length, this.position);
+        this.chunkIndex += count;
+
+        // The borrow stays inside one chunk. An exact boundary advances the cursor as a normal Write does,
+        // including when the next chunk has not yet been allocated. No expansion is needed to commit bytes.
+        if (this.chunkIndex == this.memoryChunkBuffer[this.bufferIndex].Length)
+        {
+            this.chunkIndex = 0;
+            this.bufferIndex++;
+        }
+    }
+
+    /// <summary>
     /// Writes the entire contents of this memory stream to another stream.
     /// </summary>
     /// <param name="stream">The stream to write this memory stream to.</param>

@@ -1658,30 +1658,64 @@ internal sealed class JxlEncoderCore : IDisposable
         Span<int> scan = scanStorage;
         InlineArray64<uint> packedStorage = default;
         Span<uint> packedValues = packedStorage;
+        InlineArray64<int> positionStorage = default;
+        Span<int> positions = positionStorage;
+        InlineArray64<int> indexStorage = default;
+        Span<int> indices = indexStorage;
+        int selectedCount = 0;
+
+        // Select each pass's frequencies once. The three spectral regions contain 3, 5 and 55 AC
+        // coefficients. Their scan positions retain the natural order, including gaps for earlier passes.
+        // Unselected scan entries start at zero and are never changed. Every selected entry is overwritten
+        // for every block, so scans need neither another coefficient pass nor a per-block clear.
+        for (int k = 1; k < 64; k++)
+        {
+            int index = (int)order[k];
+            int fx = index / 8;
+            int fy = index & 7;
+            int stage = fx < 2 && fy < 2 ? 0 : fx < 3 && fy < 3 ? 1 : 2;
+
+            if (passes == 1 || pass == stage)
+            {
+                positions[selectedCount] = k;
+                indices[selectedCount++] = index;
+            }
+        }
 
         for (int y = rectangle.Y; y < rectangle.Bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            _ = varDct.TryGetCoefficientRow(0, rectangle.X, y, rectangle.Width, out Span<int> rowX);
+            _ = varDct.TryGetCoefficientRow(1, rectangle.X, y, rectangle.Width, out Span<int> rowY);
+            _ = varDct.TryGetCoefficientRow(2, rectangle.X, y, rectangle.Width, out Span<int> rowB);
 
             for (int x = rectangle.X; x < rectangle.Right; x++)
             {
                 for (int encodedComponent = 0; encodedComponent < 3; encodedComponent++)
                 {
                     int component = encodedComponent < 2 ? encodedComponent ^ 1 : encodedComponent;
-                    ReadOnlySpan<int> coefficients = varDct.GetCoefficientBlock(component, x, y);
+                    ReadOnlySpan<int> row = component switch
+                    {
+                        0 => rowX,
+                        1 => rowY,
+                        _ => rowB
+                    };
+
+                    // A normal allocator exposes this group row as one contiguous footprint. Small
+                    // segments borrow individual blocks instead; both paths visit the same 64-value layout.
+                    ReadOnlySpan<int> coefficients = row.IsEmpty
+                        ? varDct.GetCoefficientBlock(component, x, y)
+                        : row.Slice((x - rectangle.X) * 64, 64);
+
                     int count = 0;
                     int last = 0;
 
-                    // Each frequency belongs to exactly one spectral pass. Earlier passes retain full
-                    // precision, so later passes send zero at those positions rather than sending them twice.
-                    // Coefficient zero is DC and never appears in this scan.
-                    for (int k = 1; k < 64; k++)
+                    // DC never appears in this scan. Selected positions increase in wire order, so
+                    // the final nonzero position also bounds the coefficient symbols that must be emitted.
+                    for (int i = 0; i < selectedCount; i++)
                     {
-                        int index = (int)order[k];
-                        int fx = index / 8;
-                        int fy = index & 7;
-                        int stage = fx < 2 && fy < 2 ? 0 : fx < 3 && fy < 3 ? 1 : 2;
-                        int value = passes == 1 || pass == stage ? coefficients[index] : 0;
+                        int k = positions[i];
+                        int value = coefficients[indices[i]];
                         scan[k] = value;
 
                         if (value != 0)
@@ -3183,6 +3217,17 @@ internal sealed class JxlEncoderCore : IDisposable
                 bufferedBytes = 0;
             }
 
+            // Residual streams belong to the retained frame payload. Write complete words into its
+            // current chunk when the batch fits. Header bytes already staged in output precede them.
+            // A short chunk tail or small allocator segment keeps the existing staged write path.
+            bool direct = this.payload.TryGetWritableSpan(maximumBytes + bufferedBytes, out Span<byte> payload);
+            Span<byte> destination = direct ? payload : output;
+
+            if (direct)
+            {
+                output[..bufferedBytes].CopyTo(destination);
+            }
+
             ReadOnlySpan<uint> batch = values[..count];
 
             // The complete equal-length canonical table assigns prefix zero to symbol zero, which has no literals.
@@ -3197,10 +3242,16 @@ internal sealed class JxlEncoderCore : IDisposable
                 {
                     // Existing pending bits occupy only the first word. Subsequent complete words and the retained
                     // partial word contain zeros. A short batch that emits no word must retain the existing bits.
-                    BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
-                    output.Slice(bufferedBytes + sizeof(uint), completeBytes - sizeof(uint)).Clear();
+                    BinaryPrimitives.WriteUInt32LittleEndian(destination[bufferedBytes..], (uint)bits);
+                    destination.Slice(bufferedBytes + sizeof(uint), completeBytes - sizeof(uint)).Clear();
                     bufferedBytes += completeBytes;
                     bits = 0;
+                }
+
+                if (direct)
+                {
+                    this.payload.AdvanceWrite(bufferedBytes);
+                    bufferedBytes = 0;
                 }
 
                 pendingBits = totalBits & 31;
@@ -3223,7 +3274,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
                     if (pendingBits >= 32)
                     {
-                        BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
+                        BinaryPrimitives.WriteUInt32LittleEndian(destination[bufferedBytes..], (uint)bits);
                         bufferedBytes += sizeof(uint);
                         bits >>= 32;
                         pendingBits -= 32;
@@ -3243,11 +3294,17 @@ internal sealed class JxlEncoderCore : IDisposable
                 if (pendingBits >= 32)
                 {
                     // Byte-based writes support unaligned output on every target. No partial word is exposed.
-                    BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
+                    BinaryPrimitives.WriteUInt32LittleEndian(destination[bufferedBytes..], (uint)bits);
                     bufferedBytes += sizeof(uint);
                     bits >>= 32;
                     pendingBits -= 32;
                 }
+            }
+
+            if (direct)
+            {
+                this.payload.AdvanceWrite(bufferedBytes);
+                bufferedBytes = 0;
             }
 
             values = values[count..];

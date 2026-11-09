@@ -183,7 +183,7 @@ internal static partial class JxlDct
     /// <param name="length">The transform axis length.</param>
     /// <param name="start">The first column.</param>
     /// <param name="count">The number of columns, a multiple of the lane count.</param>
-    /// <param name="scratch">The loaded values followed by recursive storage. Small inverse axes do not use it.</param>
+    /// <param name="scratch">The loaded values followed by recursive storage. Fixed eight-point axes do not use it.</param>
     /// <param name="inverse">Whether to apply the inverse transform.</param>
     private static void TransformColumns<TLanes, TOperator>(
         ReadOnlySpan<float> source,
@@ -227,6 +227,37 @@ internal static partial class JxlDct
                 TOperator.Store(v5, ref Unsafe.Add(ref output, (5 * destinationStride) + column));
                 TOperator.Store(v6, ref Unsafe.Add(ref output, (6 * destinationStride) + column));
                 TOperator.Store(v7, ref Unsafe.Add(ref output, (7 * destinationStride) + column));
+            }
+
+            return;
+        }
+
+        // Keep the direction decision outside the column traversal. Both directions retain their
+        // eight loaded values in lanes, but only the forward transform applies per-axis normalization.
+        if (!inverse && length == 8)
+        {
+            for (int column = start; column < start + count; column += lanes)
+            {
+                TLanes v0 = TOperator.Load(ref Unsafe.Add(ref input, column));
+                TLanes v1 = TOperator.Load(ref Unsafe.Add(ref input, sourceStride + column));
+                TLanes v2 = TOperator.Load(ref Unsafe.Add(ref input, (2 * sourceStride) + column));
+                TLanes v3 = TOperator.Load(ref Unsafe.Add(ref input, (3 * sourceStride) + column));
+                TLanes v4 = TOperator.Load(ref Unsafe.Add(ref input, (4 * sourceStride) + column));
+                TLanes v5 = TOperator.Load(ref Unsafe.Add(ref input, (5 * sourceStride) + column));
+                TLanes v6 = TOperator.Load(ref Unsafe.Add(ref input, (6 * sourceStride) + column));
+                TLanes v7 = TOperator.Load(ref Unsafe.Add(ref input, (7 * sourceStride) + column));
+                Forward8<TLanes, TOperator>(ref v0, ref v1, ref v2, ref v3, ref v4, ref v5, ref v6, ref v7);
+
+                // Each forward axis contributes its own 1/8 scale. Keep this multiplication
+                // after the complete butterfly, as in the general normalized transform.
+                TOperator.Store(TOperator.Multiply(v0, .125F), ref Unsafe.Add(ref output, column));
+                TOperator.Store(TOperator.Multiply(v1, .125F), ref Unsafe.Add(ref output, destinationStride + column));
+                TOperator.Store(TOperator.Multiply(v2, .125F), ref Unsafe.Add(ref output, (2 * destinationStride) + column));
+                TOperator.Store(TOperator.Multiply(v3, .125F), ref Unsafe.Add(ref output, (3 * destinationStride) + column));
+                TOperator.Store(TOperator.Multiply(v4, .125F), ref Unsafe.Add(ref output, (4 * destinationStride) + column));
+                TOperator.Store(TOperator.Multiply(v5, .125F), ref Unsafe.Add(ref output, (5 * destinationStride) + column));
+                TOperator.Store(TOperator.Multiply(v6, .125F), ref Unsafe.Add(ref output, (6 * destinationStride) + column));
+                TOperator.Store(TOperator.Multiply(v7, .125F), ref Unsafe.Add(ref output, (7 * destinationStride) + column));
             }
 
             return;
@@ -546,6 +577,85 @@ internal static partial class JxlDct
             TOperator.Store(TOperator.MultiplyAdd(oddValue, multipliers[i], evenValue), ref Unsafe.Add(ref destination, i * destinationStride));
             TOperator.Store(TOperator.MultiplyAdd(oddValue, -multipliers[i], evenValue), ref Unsafe.Add(ref destination, (length - i - 1) * destinationStride));
         }
+    }
+
+    /// <summary>
+    /// Converts four spatial values to frequencies with the fixed forward radix-two butterfly.
+    /// </summary>
+    /// <typeparam name="TLanes">Independent column values, with one column in each scalar or SIMD lane.</typeparam>
+    /// <typeparam name="TOperator">The existing arithmetic for those lanes.</typeparam>
+    /// <param name="v0">Spatial position zero, replaced by frequency zero.</param>
+    /// <param name="v1">Spatial position one, replaced by frequency one.</param>
+    /// <param name="v2">Spatial position two, replaced by frequency two.</param>
+    /// <param name="v3">Spatial position three, replaced by frequency three.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Forward4<TLanes, TOperator>(ref TLanes v0, ref TLanes v1, ref TLanes v2, ref TLanes v3)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        // Split symmetric positions into sums and weighted differences. These are the same
+        // two-point children and B stage as the recursive network, with no temporary span copies.
+        ReadOnlySpan<float> multipliers = Multipliers4;
+        TLanes even0 = TOperator.Add(v0, v3);
+        TLanes even1 = TOperator.Add(v1, v2);
+        TLanes odd0 = TOperator.Multiply(TOperator.Subtract(v0, v3), multipliers[0]);
+        TLanes odd1 = TOperator.Multiply(TOperator.Subtract(v1, v2), multipliers[1]);
+        TLanes evenSum = TOperator.Add(even0, even1);
+        TLanes evenDifference = TOperator.Subtract(even0, even1);
+        TLanes oddSum = TOperator.Add(odd0, odd1);
+        TLanes oddDifference = TOperator.Subtract(odd0, odd1);
+
+        // Interleave even and odd frequencies. Only the first odd term uses multiply-add.
+        // The caller normalizes once after the complete eight-point parent, not at these child leaves.
+        v0 = evenSum;
+        v1 = TOperator.MultiplyAdd(oddSum, RootTwo, oddDifference);
+        v2 = evenDifference;
+        v3 = oddDifference;
+    }
+
+    /// <summary>
+    /// Converts eight spatial values to frequencies through two fixed four-point butterflies.
+    /// </summary>
+    /// <typeparam name="TLanes">Independent column values, with one column in each scalar or SIMD lane.</typeparam>
+    /// <typeparam name="TOperator">The existing arithmetic for those lanes.</typeparam>
+    /// <param name="v0">Spatial position zero, replaced by frequency zero.</param>
+    /// <param name="v1">Spatial position one, replaced by frequency one.</param>
+    /// <param name="v2">Spatial position two, replaced by frequency two.</param>
+    /// <param name="v3">Spatial position three, replaced by frequency three.</param>
+    /// <param name="v4">Spatial position four, replaced by frequency four.</param>
+    /// <param name="v5">Spatial position five, replaced by frequency five.</param>
+    /// <param name="v6">Spatial position six, replaced by frequency six.</param>
+    /// <param name="v7">Spatial position seven, replaced by frequency seven.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Forward8<TLanes, TOperator>(
+        ref TLanes v0, ref TLanes v1, ref TLanes v2, ref TLanes v3, ref TLanes v4, ref TLanes v5, ref TLanes v6, ref TLanes v7)
+        where TLanes : unmanaged
+        where TOperator : struct, ILaneOperator<TLanes>
+    {
+        // Each lane follows the native DCT1DImpl<8> network: symmetric sum and weighted difference,
+        // two four-point children, then the adjacent-odd B stage. Retain every input before replacing outputs.
+        ReadOnlySpan<float> multipliers = Multipliers8;
+        TLanes even0 = TOperator.Add(v0, v7);
+        TLanes even1 = TOperator.Add(v1, v6);
+        TLanes even2 = TOperator.Add(v2, v5);
+        TLanes even3 = TOperator.Add(v3, v4);
+        TLanes odd0 = TOperator.Multiply(TOperator.Subtract(v0, v7), multipliers[0]);
+        TLanes odd1 = TOperator.Multiply(TOperator.Subtract(v1, v6), multipliers[1]);
+        TLanes odd2 = TOperator.Multiply(TOperator.Subtract(v2, v5), multipliers[2]);
+        TLanes odd3 = TOperator.Multiply(TOperator.Subtract(v3, v4), multipliers[3]);
+        Forward4<TLanes, TOperator>(ref even0, ref even1, ref even2, ref even3);
+        Forward4<TLanes, TOperator>(ref odd0, ref odd1, ref odd2, ref odd3);
+
+        // Increasing odd-frequency order retains the original next term for each adjacent sum.
+        // Interleave those odd terms with the even child. The outer column traversal applies 1/8 afterward.
+        v0 = even0;
+        v1 = TOperator.MultiplyAdd(odd0, RootTwo, odd1);
+        v2 = even1;
+        v3 = TOperator.Add(odd1, odd2);
+        v4 = even2;
+        v5 = TOperator.Add(odd2, odd3);
+        v6 = even3;
+        v7 = odd3;
     }
 
     /// <summary>

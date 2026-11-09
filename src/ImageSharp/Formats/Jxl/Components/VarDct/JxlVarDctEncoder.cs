@@ -244,6 +244,24 @@ internal sealed class JxlVarDctEncoder : IDisposable
         => this.coefficients.DangerousGetRowSpan((((component * this.blockRows) + blockY) * this.blockColumns) + blockX);
 
     /// <summary>
+    /// Borrows consecutive coefficient blocks when they share one allocator segment.
+    /// </summary>
+    /// <param name="component">The X, Y or B component index.</param>
+    /// <param name="blockX">The first horizontal block coordinate in the frame.</param>
+    /// <param name="blockY">The vertical block coordinate in the frame.</param>
+    /// <param name="blockCount">The positive number of blocks within that spatial block row.</param>
+    /// <param name="blocks">The borrowed blocks, each with 64 coefficients, or an empty span when a segment divides them.</param>
+    /// <returns>Whether all requested blocks share one contiguous span.</returns>
+    public bool TryGetCoefficientRow(int component, int blockX, int blockY, int blockCount, out Span<int> blocks)
+    {
+        // Each retained row holds one block. Borrow the first row and the following block rows together
+        // only when their full footprint fits one segment. The caller uses GetCoefficientBlock otherwise.
+        int row = (((component * this.blockRows) + blockY) * this.blockColumns) + blockX;
+
+        return this.coefficients.DangerousTryGetPaddedRowSpan(row, (blockCount - 1) * CoefficientsPerBlock, out blocks);
+    }
+
+    /// <summary>
     /// Gets one retained quantized DC tile row, starting at the requested block column.
     /// </summary>
     /// <param name="component">The X, Y or B component index.</param>

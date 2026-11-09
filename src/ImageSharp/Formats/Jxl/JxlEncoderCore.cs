@@ -3217,17 +3217,6 @@ internal sealed class JxlEncoderCore : IDisposable
                 bufferedBytes = 0;
             }
 
-            // Residual streams belong to the retained frame payload. Write complete words into its
-            // current chunk when the batch fits. Header bytes already staged in output precede them.
-            // A short chunk tail or small allocator segment keeps the existing staged write path.
-            bool direct = this.payload.TryGetWritableSpan(maximumBytes + bufferedBytes, out Span<byte> payload);
-            Span<byte> destination = direct ? payload : output;
-
-            if (direct)
-            {
-                output[..bufferedBytes].CopyTo(destination);
-            }
-
             ReadOnlySpan<uint> batch = values[..count];
 
             // The complete equal-length canonical table assigns prefix zero to symbol zero, which has no literals.
@@ -3242,16 +3231,10 @@ internal sealed class JxlEncoderCore : IDisposable
                 {
                     // Existing pending bits occupy only the first word. Subsequent complete words and the retained
                     // partial word contain zeros. A short batch that emits no word must retain the existing bits.
-                    BinaryPrimitives.WriteUInt32LittleEndian(destination[bufferedBytes..], (uint)bits);
-                    destination.Slice(bufferedBytes + sizeof(uint), completeBytes - sizeof(uint)).Clear();
+                    BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
+                    output.Slice(bufferedBytes + sizeof(uint), completeBytes - sizeof(uint)).Clear();
                     bufferedBytes += completeBytes;
                     bits = 0;
-                }
-
-                if (direct)
-                {
-                    this.payload.AdvanceWrite(bufferedBytes);
-                    bufferedBytes = 0;
                 }
 
                 pendingBits = totalBits & 31;
@@ -3274,7 +3257,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
                     if (pendingBits >= 32)
                     {
-                        BinaryPrimitives.WriteUInt32LittleEndian(destination[bufferedBytes..], (uint)bits);
+                        BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
                         bufferedBytes += sizeof(uint);
                         bits >>= 32;
                         pendingBits -= 32;
@@ -3294,17 +3277,11 @@ internal sealed class JxlEncoderCore : IDisposable
                 if (pendingBits >= 32)
                 {
                     // Byte-based writes support unaligned output on every target. No partial word is exposed.
-                    BinaryPrimitives.WriteUInt32LittleEndian(destination[bufferedBytes..], (uint)bits);
+                    BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
                     bufferedBytes += sizeof(uint);
                     bits >>= 32;
                     pendingBits -= 32;
                 }
-            }
-
-            if (direct)
-            {
-                this.payload.AdvanceWrite(bufferedBytes);
-                bufferedBytes = 0;
             }
 
             values = values[count..];

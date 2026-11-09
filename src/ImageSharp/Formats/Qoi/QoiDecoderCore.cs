@@ -60,7 +60,6 @@ internal class QoiDecoderCore : ImageDecoderCore
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
-        PixelTypeInfo pixelType = new(8 * (int)this.header.Channels);
         Size size = new((int)this.header.Width, (int)this.header.Height);
 
         ImageMetadata metadata = new();

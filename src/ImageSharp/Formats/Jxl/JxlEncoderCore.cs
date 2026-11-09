@@ -1270,7 +1270,11 @@ internal sealed class JxlEncoderCore : IDisposable
         // The alphabet is a complete power of two selected from declared precision, independently of int carrier storage.
         int codeLength = Math.Max(4, BitOperations.Log2((uint)maximumBits + 1) + 1);
         int alphabetSize = 1 << codeLength;
-        using IMemoryOwner<byte> outputOwner = allocator.Allocate<byte>(Math.Max(sizeof(uint), configuration.StreamProcessingBufferSize));
+
+        // Each residual has one prefix and at most 31 literal bits. Reserve space for every complete
+        // word emitted by a 256-value batch, including up to 31 bits retained from the preceding batch.
+        int batchBytes = (((GroupDimension * (codeLength + 31)) + 31) / 32) * sizeof(uint);
+        using IMemoryOwner<byte> outputOwner = allocator.Allocate<byte>(Math.Max(batchBytes, configuration.StreamProcessingBufferSize));
         using IMemoryOwner<int> lengthOwner = allocator.Allocate<int>(alphabetSize);
         using IMemoryOwner<int> sortedOwner = allocator.Allocate<int>(alphabetSize);
         using IMemoryOwner<uint> codeOwner = allocator.Allocate<uint>(alphabetSize);
@@ -2162,10 +2166,7 @@ internal sealed class JxlEncoderCore : IDisposable
                 JxlModularPredictor.PackZeroResiduals(row, residuals);
             }
 
-            foreach (uint residual in residuals)
-            {
-                this.WriteValue(residual, codeLength, prefixCodes, output);
-            }
+            this.WriteValues(residuals, codeLength, prefixCodes, output);
         }
     }
 
@@ -2198,10 +2199,7 @@ internal sealed class JxlEncoderCore : IDisposable
             JxlModularPredictor.PackGradientResiduals(row, previous, residuals);
 
             // Prediction and signed packing use independent SIMD lanes. Entropy emission retains one ordered bit reservoir.
-            foreach (uint residual in residuals)
-            {
-                this.WriteValue(residual, codeLength, prefixCodes, output);
-            }
+            this.WriteValues(residuals, codeLength, prefixCodes, output);
         }
     }
 
@@ -2233,10 +2231,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
             JxlModularPredictor.PackZeroResiduals(row, residuals);
 
-            foreach (uint residual in residuals)
-            {
-                this.WriteValue(residual, codeLength, prefixCodes, output);
-            }
+            this.WriteValues(residuals, codeLength, prefixCodes, output);
         }
     }
 
@@ -2676,6 +2671,108 @@ internal sealed class JxlEncoderCore : IDisposable
         {
             this.WriteBits(length == codeLength ? 4 : 2, length == codeLength ? 7U : 0U, output);
         }
+    }
+
+    /// <summary>
+    /// Emits a residual row in bounded batches with reservoir state retained in local variables.
+    /// </summary>
+    /// <param name="values">The unsigned residuals in sample order.</param>
+    /// <param name="codeLength">The common entropy-symbol width.</param>
+    /// <param name="prefixCodes">The prepared code for each symbol.</param>
+    /// <param name="output">The retained buffer, large enough for one complete batch.</param>
+    private void WriteValues(ReadOnlySpan<uint> values, int codeLength, ReadOnlySpan<uint> prefixCodes, Span<byte> output)
+    {
+        // Like JPEG's coding-unit reserve, the batch bound moves stream-capacity checks outside sample emission.
+        // Only complete uint words leave the reservoir. Partial words remain unaligned between rows and batches.
+        ulong bits = this.bits;
+        int pendingBits = this.pendingBits;
+        int bufferedBytes = this.bufferedBytes;
+
+        while (!values.IsEmpty)
+        {
+            int count = Math.Min(values.Length, GroupDimension);
+            int maximumBytes = (((count * (codeLength + 31)) + 31) / 32) * sizeof(uint);
+
+            if (bufferedBytes > output.Length - maximumBytes)
+            {
+                this.outputStream.Write(output[..bufferedBytes]);
+                bufferedBytes = 0;
+            }
+
+            ReadOnlySpan<uint> batch = values[..count];
+
+            // The complete equal-length canonical table assigns prefix zero to symbol zero, which has no literals.
+            // The shared span search checks whole SIMD registers and handles scalar tails. An all-zero batch can
+            // therefore append its prefix bits together instead of splitting and emitting every residual separately.
+            if (!batch.ContainsAnyExcept(0U))
+            {
+                int totalBits = pendingBits + (count * codeLength);
+                int completeBytes = (totalBits / 32) * sizeof(uint);
+
+                if (completeBytes != 0)
+                {
+                    // Existing pending bits occupy only the first word. Subsequent complete words and the retained
+                    // partial word contain zeros. A short batch that emits no word must retain the existing bits.
+                    BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
+                    output.Slice(bufferedBytes + sizeof(uint), completeBytes - sizeof(uint)).Clear();
+                    bufferedBytes += completeBytes;
+                    bits = 0;
+                }
+
+                pendingBits = totalBits & 31;
+                values = values[count..];
+                continue;
+            }
+
+            foreach (uint value in batch)
+            {
+                JxlHybridUint.Zero.Encode(value, out uint token, out int extraBitCount, out uint extraBits);
+                uint field = prefixCodes[(int)token];
+                int fieldBits = codeLength + extraBitCount;
+
+                if (fieldBits > 32)
+                {
+                    // A wide residual can have 31 literal bits after its prefix. Drain the prefix first
+                    // when needed so the next field plus fewer than 32 pending bits fits one ulong.
+                    bits |= (ulong)field << pendingBits;
+                    pendingBits += codeLength;
+
+                    if (pendingBits >= 32)
+                    {
+                        BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
+                        bufferedBytes += sizeof(uint);
+                        bits >>= 32;
+                        pendingBits -= 32;
+                    }
+
+                    field = extraBits;
+                    fieldBits = extraBitCount;
+                }
+                else
+                {
+                    field |= extraBits << codeLength;
+                }
+
+                bits |= (ulong)field << pendingBits;
+                pendingBits += fieldBits;
+
+                if (pendingBits >= 32)
+                {
+                    // Byte-based writes support unaligned output on every target. No partial word is exposed.
+                    BinaryPrimitives.WriteUInt32LittleEndian(output[bufferedBytes..], (uint)bits);
+                    bufferedBytes += sizeof(uint);
+                    bits >>= 32;
+                    pendingBits -= 32;
+                }
+            }
+
+            values = values[count..];
+        }
+
+        // Header fields and section padding resume through WriteBits after the completed row.
+        this.bits = bits;
+        this.pendingBits = pendingBits;
+        this.bufferedBytes = bufferedBytes;
     }
 
     /// <summary>

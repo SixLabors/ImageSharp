@@ -1420,17 +1420,9 @@ internal sealed class JxlEncoderCore : IDisposable
 
             this.WriteFrameHeader(sectionSizes, duration, last, output);
 
-            // Section lengths precede the variable-length entropy payload. Its allocator-backed stream retains
-            // the encoded bytes until the table is written; the output buffer is then reused for this final transfer.
-            payload.Position = 0;
-
-            while (remaining > 0)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                int count = payload.Read(output[..(int)Math.Min(remaining, output.Length)]);
-                stream.Write(output[..count]);
-                remaining -= count;
-            }
+            // Section lengths precede the entropy payload. Once the table is written, transfer this frame's
+            // completed bytes directly from retained chunks without copying them through the output workspace.
+            payload.WriteTo(stream, remaining, cancellationToken);
         }
     }
 

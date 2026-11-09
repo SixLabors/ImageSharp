@@ -271,50 +271,46 @@ internal sealed class ChunkedMemoryStream : Stream
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The current or target stream is closed.</exception>
     public void WriteTo(Stream stream)
+        => this.WriteTo(stream, this.length, CancellationToken.None);
+
+    /// <summary>
+    /// Writes the first <paramref name="count"/> bytes directly from the retained chunks to another stream.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="count">The validated byte count, between zero and <see cref="Length"/>.</param>
+    /// <param name="cancellationToken">The token checked before each chunk is written.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ObjectDisposedException">The current or target stream is closed.</exception>
+    public void WriteTo(Stream stream, long count, CancellationToken cancellationToken)
     {
         Guard.NotNull(stream, nameof(stream));
         this.EnsureNotDisposed();
 
         this.Position = 0;
+        long remaining = count;
 
-        long remaining = this.length - this.position;
-        if (remaining <= 0)
+        // Reused encoder storage can contain bytes after this frame's payload. Bound emission by the caller's
+        // completed length, not by retained capacity or the longest earlier frame. Borrow each chunk only for its write.
+        while (remaining > 0)
         {
-            // Already at the end of the stream, nothing to read
-            return;
-        }
-
-        int bytesToRead = (int)remaining;
-        int bytesRead = 0;
-        while (bytesToRead > 0 && this.bufferIndex != this.memoryChunkBuffer.Length)
-        {
-            bool moveToNextChunk = false;
+            cancellationToken.ThrowIfCancellationRequested();
             MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
-            int n = bytesToRead;
-            int remainingBytesInCurrentChunk = chunk.Length - this.chunkIndex;
-            if (n >= remainingBytesInCurrentChunk)
-            {
-                n = remainingBytesInCurrentChunk;
-                moveToNextChunk = true;
-            }
+            int bytesToWrite = (int)Math.Min(remaining, chunk.Length - this.chunkIndex);
 
-            // Read n bytes from the current chunk
-            stream.Write(chunk.Buffer.Memory.Span.Slice(this.chunkIndex, n));
-            bytesToRead -= n;
-            bytesRead += n;
+            // The destination consumes the borrowed span synchronously. No staging buffer or ownership transfer is needed.
+            stream.Write(chunk.Buffer.Memory.Span.Slice(this.chunkIndex, bytesToWrite));
+            remaining -= bytesToWrite;
 
-            if (moveToNextChunk)
+            // Keep the logical position and chunk cursor together so reading can resume after cancellation.
+            this.chunkIndex += bytesToWrite;
+            this.position += bytesToWrite;
+
+            if (this.chunkIndex == chunk.Length)
             {
                 this.chunkIndex = 0;
                 this.bufferIndex++;
             }
-            else
-            {
-                this.chunkIndex += n;
-            }
         }
-
-        this.position += bytesRead;
     }
 
     /// <summary>

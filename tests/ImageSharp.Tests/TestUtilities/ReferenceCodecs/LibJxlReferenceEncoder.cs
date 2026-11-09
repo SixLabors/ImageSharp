@@ -37,6 +37,11 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
     public float Distance { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether lossy encoding uses three spectral passes.
+    /// </summary>
+    public bool Progressive { get; init; }
+
+    /// <summary>
     /// Gets the optional caller-owned extra channel used by the reference encoding.
     /// </summary>
     public JxlExtraChannel ExtraChannel { get; init; }
@@ -124,24 +129,31 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
             bool binary32Samples = this.BitDepth == new SampleBitDepth(32, 8)
                 || this.ExtraChannel?.Metadata.BitDepth == new SampleBitDepth(32, 8);
 
-            // Binary32 samples use signed integer carriers. Differences between carriers can exceed the signed range.
+            // Lossless binary32 samples use signed integer carriers. Differences between carriers can exceed the signed range.
             // Effort four is the first native tier that honors the selected predictor instead of forcing a fixed tree.
             Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(
                 settings,
                 JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_EFFORT,
-                binary32Samples ? 4 : 1));
+                this.Distance == 0 && binary32Samples ? 4 : 1));
 
-            if (binary32Samples)
+            if (this.Distance == 0 && binary32Samples)
             {
                 Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(settings, JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_MODULAR_PREDICTOR, 0));
             }
 
             Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(settings, JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_KEEP_INVISIBLE, 1));
 
-            // Native lossy modular defaults to responsive encoding, which selects a different quantizer.
-            // Select the same single-pass modular path as the managed encoder before comparing decoded pixels.
-            Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(settings, JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_MODULAR, 1));
+            // Lossless output uses modular coding. Positive distance uses the native VarDCT path,
+            // with the same fast effort and spectral progression as the managed encoder.
+            Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(
+                settings, JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_MODULAR, this.Distance == 0 ? 1 : 0));
+
             Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(settings, JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_RESPONSIVE, 0));
+
+            if (this.Distance > 0 && this.Progressive)
+            {
+                Check(encoder, NativeJxl.JxlEncoderFrameSettingsSetOption(settings, JxlEncoderFrameSettingId.JXL_ENC_FRAME_SETTING_PROGRESSIVE_AC, 1));
+            }
 
             if (extra is not null)
             {

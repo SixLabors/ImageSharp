@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
-using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,6 +15,7 @@ using SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
+using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -26,7 +26,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
 /// <summary>
-/// Coordinates lossless modular frame encoding and writes the image and frame headers.
+/// Coordinates modular and VarDCT frame encoding and writes the image and frame headers.
 /// </summary>
 internal sealed class JxlEncoderCore : IDisposable
 {
@@ -38,7 +38,12 @@ internal sealed class JxlEncoderCore : IDisposable
     /// <summary>
     /// The signed sample carriers for colors, derived channels and one shared supplied-channel plane.
     /// </summary>
-    private readonly Buffer2D<int> samples;
+    private readonly Buffer2D<int>? samples;
+
+    /// <summary>
+    /// The prepared modular scratch region. VarDCT frames without extra channels need no modular sample storage.
+    /// </summary>
+    private readonly Buffer2DRegion<int> sampleRegion;
 
     /// <summary>
     /// The number of supplied-channel scratch planes removed by sharing their sequential carrier storage.
@@ -296,34 +301,9 @@ internal sealed class JxlEncoderCore : IDisposable
     private readonly bool usesXyb;
 
     /// <summary>
-    /// The serialized X, Y and B reconstruction steps, in native component units.
+    /// The forward transform workspace and retained coefficients for lossy VarDCT frames.
     /// </summary>
-    private readonly Vector3 dcFactors;
-
-    /// <summary>
-    /// The prepared signed X quantizer.
-    /// </summary>
-    private readonly JxlSampleConverter.ScaledIntegerEncodingOperator xybXOperation;
-
-    /// <summary>
-    /// The prepared signed Y quantizer.
-    /// </summary>
-    private readonly JxlSampleConverter.ScaledIntegerEncodingOperator xybYOperation;
-
-    /// <summary>
-    /// The prepared B quantizer, before the encoded Y component is subtracted.
-    /// </summary>
-    private readonly JxlSampleConverter.AccurateScaledIntegerEncodingOperator xybBOperation;
-
-    /// <summary>
-    /// The X quantizer for image precision of at least 23 bits.
-    /// </summary>
-    private readonly JxlSampleConverter.AccurateScaledIntegerEncodingOperator xybAccurateXOperation;
-
-    /// <summary>
-    /// The Y quantizer for image precision of at least 23 bits.
-    /// </summary>
-    private readonly JxlSampleConverter.AccurateScaledIntegerEncodingOperator xybAccurateYOperation;
+    private readonly JxlVarDctEncoder? varDct;
 
     /// <summary>
     /// Whether the image contains a displayed frame sequence.
@@ -629,36 +609,8 @@ internal sealed class JxlEncoderCore : IDisposable
         this.colorConverter = JxlColorConverterBase.CreateForEncoding(
             this.colorType, this.usesXyb, xybTransform, this.hasBlack, targetWorkingSpace);
 
-        if (this.usesXyb)
-        {
-            // Match the reference modular quantizer, including its minimum positive distance of 0.05.
-            float distance = Math.Max(encoder.Distance, 0.05F);
-            float xFactor = 65536F * (1F / (1F + (23F * distance)));
-            float yFactor = 4096F * (1F / (1F + (14F * distance)));
-
-            // DC steps use half storage after a factor of 128. Quantize with the serialized steps,
-            // rather than the unrounded setup factors. The header retains X, Y and B order.
-            float xStep = GetDcFactor(xFactor);
-            float yStep = GetDcFactor(yFactor);
-            this.dcFactors = new Vector3(xStep, yStep, yStep);
-
-            if (bitDepth.BitsPerSample < 23)
-            {
-                this.xybXOperation = new(1F / xStep, true);
-                this.xybYOperation = new(1F / yStep, true);
-            }
-            else
-            {
-                this.xybAccurateXOperation = new(1F / xStep, true);
-                this.xybAccurateYOperation = new(1F / yStep, true);
-            }
-
-            // Native B quantization uses a double factor independently of the image precision.
-            this.xybBOperation = new(1F / yStep, false);
-        }
-
-        this.groupWidth = encoder.Progressive ? size.Width : Math.Min(size.Width, GroupDimension);
-        this.groupHeight = encoder.Progressive ? 1 : Math.Min(size.Height, GroupDimension);
+        this.groupWidth = encoder.Progressive && !this.usesXyb ? size.Width : Math.Min(size.Width, GroupDimension);
+        this.groupHeight = encoder.Progressive && !this.usesXyb ? 1 : Math.Min(size.Height, GroupDimension);
         this.groupColumns = ((size.Width - 1) / GroupDimension) + 1;
         this.groupRows = ((size.Height - 1) / GroupDimension) + 1;
         this.groupCount = checked(this.groupColumns * this.groupRows);
@@ -666,7 +618,7 @@ internal sealed class JxlEncoderCore : IDisposable
         // Each DC group spans eight coding groups on each axis. A single coding group combines every section.
         this.dcGroupCount = checked((((this.groupColumns - 1) / 8) + 1) * (((this.groupRows - 1) / 8) + 1));
         this.sectionCount = this.groupCount == 1 && !encoder.Progressive ? 1
-            : checked(2 + this.dcGroupCount + (this.groupCount * (encoder.Progressive ? 2 : 1)));
+            : checked(2 + this.dcGroupCount + (this.groupCount * (encoder.Progressive ? this.usesXyb ? 3 : 2 : 1)));
 
         MemoryAllocator allocator = configuration.MemoryAllocator;
 
@@ -684,12 +636,21 @@ internal sealed class JxlEncoderCore : IDisposable
         Buffer2D<int>? squeezeRows = null;
         Buffer2D<float>? expandedAlpha = null;
         JxlUpsampler? alphaUpsampler = null;
+        JxlVarDctEncoder? varDct = null;
 
         try
         {
-            // Colors and derived channels stay live together until group coding ends. Supplied channels are
-            // packed and emitted one at a time, so they share one plane. Row starts retain the same group-width stride.
-            samples = allocator.Allocate2D<int>(this.groupWidth, this.groupHeight * (this.componentCount - this.suppliedScratchOffset));
+            // Modular colors and derived channels stay live together until group coding ends. Supplied channels
+            // share one sequential scratch plane. VarDCT owns its colors and derived alpha, so it needs this
+            // scratch only when supplied channels exist. Do not reserve another derived-alpha plane here.
+            int samplePlanes = this.usesXyb ? Math.Min(encoder.ExtraChannels.Count, 1) : this.componentCount - this.suppliedScratchOffset;
+
+            if (samplePlanes != 0)
+            {
+                samples = allocator.Allocate2D<int>(this.groupWidth, this.groupHeight * samplePlanes);
+                this.sampleRegion = samples.GetRegion();
+            }
+
             pixelRow = allocator.Allocate<Vector4>(this.groupWidth);
 
             // RGB and alpha rows, optional black, and non-overlapping ICC scratch share one reusable owner.
@@ -714,7 +675,25 @@ internal sealed class JxlEncoderCore : IDisposable
                     allocator);
             }
 
-            if (encoder.Progressive)
+            if (this.usesXyb)
+            {
+                // DC sections precede AC sections. Retain quantized coefficients and pixel-derived alpha,
+                // but reuse one float group for color conversion and the forward DCT across the whole frame.
+                varDct = new(allocator, size, encoder.Distance, this.derivedAlphaIndex >= 0);
+
+                for (int c = 0; c < extraCount; c++)
+                {
+                    JxlModularChannelLayout layout = this.GetExtraChannelLayout(c);
+
+                    if (c != this.globalPrefixCount || layout.Width > GroupDimension || layout.Height > GroupDimension)
+                    {
+                        break;
+                    }
+
+                    this.globalPrefixCount++;
+                }
+            }
+            else if (encoder.Progressive)
             {
                 // Squeeze adds two signed arithmetic bits. Raw float carriers and wide integers retain their
                 // original bits in the final pass. Quantized XYB already has the required signed headroom.
@@ -754,6 +733,7 @@ internal sealed class JxlEncoderCore : IDisposable
         }
         catch
         {
+            varDct?.Dispose();
             alphaUpsampler?.Dispose();
             expandedAlpha?.Dispose();
             squeezeRows?.Dispose();
@@ -778,6 +758,7 @@ internal sealed class JxlEncoderCore : IDisposable
         this.squeezeRows = squeezeRows;
         this.expandedAlpha = expandedAlpha;
         this.alphaUpsampler = alphaUpsampler;
+        this.varDct = varDct;
     }
 
     /// <summary>
@@ -795,15 +776,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
         if (this.usesXyb)
         {
-            if (this.bitDepth.BitsPerSample < 23)
-            {
-                this.EncodeAlpha(image, this.xybXOperation, cancellationToken);
-            }
-            else
-            {
-                this.EncodeAlpha(image, this.xybAccurateXOperation, cancellationToken);
-            }
-
+            this.EncodeAlpha(image, default(JxlSampleConverter.Binary32Operator), cancellationToken);
             return;
         }
 
@@ -838,6 +811,7 @@ internal sealed class JxlEncoderCore : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        this.varDct?.Dispose();
         this.alphaUpsampler?.Dispose();
         this.expandedAlpha?.Dispose();
         this.squeezeRows?.Dispose();
@@ -850,7 +824,7 @@ internal sealed class JxlEncoderCore : IDisposable
         this.sectionSizes.Dispose();
         this.floatRows.Dispose();
         this.pixelRow.Dispose();
-        this.samples.Dispose();
+        this.samples?.Dispose();
         this.payload.Dispose();
     }
 
@@ -1020,22 +994,6 @@ internal sealed class JxlEncoderCore : IDisposable
         BinaryPrimitives.WriteUInt32BigEndian(header, 0);
         BinaryPrimitives.WriteUInt32BigEndian(header[4..], JxlConstants.CompleteCodestreamBox);
         this.outputStream.Write(header[..8]);
-    }
-
-    /// <summary>
-    /// Gets the reconstruction step after the format's half-precision field conversion.
-    /// </summary>
-    /// <param name="encodingFactor">The positive encoding scale selected from the validated distance.</param>
-    /// <returns>The reconstruction step in native component units.</returns>
-    private static float GetDcFactor(float encodingFactor)
-    {
-        // The reference field writer truncates the mantissa. These distance-derived values are normal half values,
-        // so removing the thirteen excess binary32 mantissa bits makes the shared half packer exact here.
-        float value = (1F / encodingFactor) * 128F;
-        uint bits = BitConverter.SingleToUInt32Bits(value) & 0xFFFFE000U;
-        ushort packed = HalfTypeHelper.Pack(BitConverter.UInt32BitsToSingle(bits));
-
-        return HalfTypeHelper.Unpack(packed) * (1F / 128F);
     }
 
     /// <summary>
@@ -1308,6 +1266,30 @@ internal sealed class JxlEncoderCore : IDisposable
         Span<uint> sectionSizes = this.sectionSizes.Memory.Span[..this.sectionCount];
         ChunkedMemoryStream payload = this.payload;
         this.WriteImageHeader(codeLength, prefixCodes, output);
+
+        if (this.varDct is JxlVarDctEncoder varDct)
+        {
+            this.EncodeVarDctFrame(
+                source,
+                stream,
+                varDct,
+                useGradient,
+                clearTransparent,
+                codeLength,
+                prefixCodes,
+                pixelRow,
+                floatRows,
+                sectionSizes,
+                output,
+                colorOperation,
+                alphaOperation,
+                blackOperation,
+                alphaDecodeOperation,
+                cancellationToken);
+
+            return;
+        }
+
         int frameIndex = 0;
 
         foreach (ImageFrame<TPixel> image in source.Frames)
@@ -1322,23 +1304,8 @@ internal sealed class JxlEncoderCore : IDisposable
 
             // LF-global starts with DC factors. The global tree has one leaf and no LZ77 or ANS state.
             // Floating carriers use the zero predictor: their raw signed bit patterns need no overflowing subtraction.
-            this.WriteBits(1, this.usesXyb ? 0U : 1U, output);
-
-            if (this.usesXyb)
-            {
-                this.WriteBits(16, HalfTypeHelper.Pack(this.dcFactors.X * 128F), output);
-                this.WriteBits(16, HalfTypeHelper.Pack(this.dcFactors.Y * 128F), output);
-                this.WriteBits(16, HalfTypeHelper.Pack(this.dcFactors.Z * 128F), output);
-            }
-
             this.WriteBits(1, 1, output);
-            this.WritePrefixHeader(6, codeLength, output);
-            this.WriteValue(0, codeLength, prefixCodes, output); // Property zero marks a leaf.
-            this.WriteValue(useGradient ? 5U : 0U, codeLength, prefixCodes, output); // Clamped gradient or zero predictor.
-            this.WriteValue(0, codeLength, prefixCodes, output); // No signed prediction offset.
-            this.WriteValue(0, codeLength, prefixCodes, output); // Multiplier exponent zero.
-            this.WriteValue(0, codeLength, prefixCodes, output); // Stored multiplier minus one: use unit residuals.
-            this.WritePrefixHeader(1, codeLength, output);
+            this.WriteGlobalTree(useGradient, codeLength, prefixCodes, output);
             this.WriteBits(1, 1, output); // Use the global tree.
             this.WriteBits(1, 1, output); // Default weighted-predictor parameters.
 
@@ -1431,6 +1398,504 @@ internal sealed class JxlEncoderCore : IDisposable
             // completed bytes directly from retained chunks without copying them through the output workspace.
             payload.WriteTo(stream, remaining, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Transforms lossy frames, then writes their DC, metadata and progressive AC sections in format order.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <typeparam name="TColor">The closed color packing operator.</typeparam>
+    /// <typeparam name="TAlpha">The closed alpha packing operator.</typeparam>
+    /// <typeparam name="TBlack">The closed black packing operator.</typeparam>
+    /// <typeparam name="TAlphaDecode">The closed alpha reconstruction operator.</typeparam>
+    /// <param name="source">The unchanged source sequence.</param>
+    /// <param name="stream">The caller-owned output stream.</param>
+    /// <param name="varDct">The retained forward-transform and coefficient owner.</param>
+    /// <param name="gradient">Whether the shared modular tree uses the gradient predictor.</param>
+    /// <param name="clearTransparent">Whether conversion clears hidden transparent colors.</param>
+    /// <param name="codeLength">The prepared prefix width.</param>
+    /// <param name="prefixCodes">The prepared LSB-first codes.</param>
+    /// <param name="pixelRow">The reusable working pixel row.</param>
+    /// <param name="floatRows">The reusable conversion rows and residual scratch.</param>
+    /// <param name="sectionSizes">The retained section lengths.</param>
+    /// <param name="output">The retained byte buffer.</param>
+    /// <param name="colorOperation">The selected color sample operation.</param>
+    /// <param name="alphaOperation">The selected alpha sample operation.</param>
+    /// <param name="blackOperation">The selected black sample operation.</param>
+    /// <param name="alphaDecodeOperation">The selected alpha reconstruction.</param>
+    /// <param name="cancellationToken">The token checked between groups, rows and output transfers.</param>
+    private void EncodeVarDctFrame<TPixel, TColor, TAlpha, TBlack, TAlphaDecode>(
+        Image<TPixel> source,
+        Stream stream,
+        JxlVarDctEncoder varDct,
+        bool gradient,
+        bool clearTransparent,
+        int codeLength,
+        ReadOnlySpan<uint> prefixCodes,
+        Span<Vector4> pixelRow,
+        Span<float> floatRows,
+        Span<uint> sectionSizes,
+        Span<byte> output,
+        TColor colorOperation,
+        TAlpha alphaOperation,
+        TBlack blackOperation,
+        TAlphaDecode alphaDecodeOperation,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TColor : struct, JxlSampleConverter.IConversionOperator<float, int>
+        where TAlpha : struct, JxlSampleConverter.IConversionOperator<float, int>
+        where TBlack : struct, JxlSampleConverter.IConversionOperator<float, int>
+        where TAlphaDecode : struct, JxlSampleConverter.IConversionOperator<int, float>
+    {
+        bool combined = this.sectionCount == 1;
+        int passes = this.encoder.Progressive ? 3 : 1;
+        int dcColumns = ((this.groupColumns - 1) / 8) + 1;
+        Size blocks = new(((this.size.Width - 1) / 8) + 1, ((this.size.Height - 1) / 8) + 1);
+        Span<uint> residuals = MemoryMarshal.Cast<float, uint>(floatRows[..this.groupWidth]);
+        InlineArray64<uint> orderStorage = default;
+        Span<uint> order = orderStorage;
+        JxlCoefficientOrder.WriteNaturalCoefficientOrder(0, order, cancellationToken);
+        int frameIndex = 0;
+
+        foreach (ImageFrame<TPixel> image in source.Frames)
+        {
+            this.sourceFrameIndex = frameIndex;
+            this.PrepareExpandedAlpha(alphaOperation, alphaDecodeOperation, cancellationToken);
+
+            // Convert each source pixel once. The DC-first section order and later spectral passes
+            // consume the retained quantized coefficients; the next group reuses the float input planes.
+            for (int group = 0; group < this.groupCount; group++)
+            {
+                int x = (group % this.groupColumns) * GroupDimension;
+                int y = (group / this.groupColumns) * GroupDimension;
+                Rectangle bounds = new(x, y, Math.Min(GroupDimension, image.Width - x), Math.Min(GroupDimension, image.Height - y));
+                this.ConvertRows(
+                    image,
+                    bounds,
+                    clearTransparent,
+                    pixelRow,
+                    floatRows,
+                    colorOperation,
+                    alphaOperation,
+                    blackOperation,
+                    alphaDecodeOperation,
+                    cancellationToken);
+
+                varDct.ProcessGroup(bounds, cancellationToken);
+            }
+
+            this.payload.Position = 0;
+            this.outputStream = this.payload;
+            this.WriteBits(1, 1, output); // Default DC matrices in X, Y, B order.
+            this.WriteU32((uint)varDct.GlobalScale, (11, 1), (11, 2049), (12, 4097), (16, 8193), output);
+            this.WriteU32((uint)varDct.DcQuantizer, (0, 16), (5, 1), (8, 1), (16, 1), output);
+            this.WriteBits(1, 1, output); // Default block contexts: no DC or quantizer thresholds.
+            this.WriteBits(1, 1, output); // Default color correlation: X=0, B=1.
+            this.WriteGlobalTree(gradient, codeLength, prefixCodes, output);
+
+            if (this.extraChannels.Length != 0)
+            {
+                this.WriteModularHeader(output);
+
+                for (int c = 0; c < this.globalPrefixCount; c++)
+                {
+                    JxlModularChannelLayout layout = this.GetExtraChannelLayout(c);
+                    this.WriteVarDctExtraChannel(
+                        varDct,
+                        c,
+                        new Rectangle(0, 0, layout.Width, layout.Height),
+                        gradient,
+                        residuals,
+                        codeLength,
+                        prefixCodes,
+                        output,
+                        cancellationToken);
+                }
+            }
+
+            if (!combined)
+            {
+                this.FlushBits(output);
+                sectionSizes[0] = checked((uint)this.payload.Position);
+            }
+
+            for (int group = 0; group < this.dcGroupCount; group++)
+            {
+                long start = this.payload.Position;
+                int x = (group % dcColumns) * GroupDimension;
+                int y = (group / dcColumns) * GroupDimension;
+                Rectangle rectangle = new(x, y, Math.Min(GroupDimension, blocks.Width - x), Math.Min(GroupDimension, blocks.Height - y));
+                this.WriteBits(2, 0, output); // Linear DC quantization needs no extra precision bits.
+                this.WriteModularHeader(output);
+
+                // DC modular streams visit Y, X, B. Each substream resets its predictor at its own edges.
+                for (int encodedComponent = 0; encodedComponent < 3; encodedComponent++)
+                {
+                    int component = encodedComponent < 2 ? encodedComponent ^ 1 : encodedComponent;
+
+                    for (int row = 0; row < rectangle.Height; row++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        ReadOnlySpan<int> values = varDct.GetDcRow(component, rectangle.X, rectangle.Y + row)[..rectangle.Width];
+                        ReadOnlySpan<int> previous = row == 0 ? []
+                            : varDct.GetDcRow(component, rectangle.X, rectangle.Y + row - 1)[..rectangle.Width];
+                        Span<uint> packed = residuals[..rectangle.Width];
+
+                        if (gradient)
+                        {
+                            JxlModularPredictor.PackGradientResiduals(values, previous, packed);
+                        }
+                        else
+                        {
+                            JxlModularPredictor.PackZeroResiduals(values, packed);
+                        }
+
+                        this.WriteValues(packed, codeLength, prefixCodes, output);
+                    }
+                }
+
+                Rectangle pixels = new(rectangle.X * 8, rectangle.Y * 8, 8 * GroupDimension, 8 * GroupDimension);
+                this.WriteVarDctExtras(varDct, pixels, 3, 1000, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+
+                // DCT8 has one transform record per block. The two correlation planes retain the native
+                // fast-path defaults. Sharpness four selects the native fast-path restoration strength.
+                int area = rectangle.Width * rectangle.Height;
+                this.WriteBits(32 - BitOperations.LeadingZeroCount((uint)(area - 1)), (uint)area - 1, output);
+                this.WriteModularHeader(output);
+                Size correlation = new(((rectangle.Width - 1) / 8) + 1, ((rectangle.Height - 1) / 8) + 1);
+                this.WriteConstantChannel(correlation, 0, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+                this.WriteConstantChannel(correlation, 0, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+                this.WriteConstantChannel(new Size(area, 1), 0, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+                this.WriteConstantChannel(
+                    new Size(area, 1), varDct.AcQuantizer - 1, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+
+                this.WriteConstantChannel(rectangle.Size, 4, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+
+                if (!combined)
+                {
+                    this.FlushBits(output);
+                    sectionSizes[1 + group] = checked((uint)(this.payload.Position - start));
+                }
+            }
+
+            long acGlobalStart = this.payload.Position;
+            this.WriteBits(1, 1, output); // Default AC quantization matrices.
+            this.WriteBits(32 - BitOperations.LeadingZeroCount((uint)this.groupCount - 1), 0, output); // One AC histogram set.
+
+            for (int pass = 0; pass < passes; pass++)
+            {
+                this.WriteU32(0, (0, 0x5F), (0, 0x13), (0, 0), (13, 0), output); // Natural coefficient orders.
+                this.WritePrefixHeader(
+                    JxlConstants.DefaultBlockContextCount * (JxlConstants.NonzeroContextCount + JxlConstants.ZeroDensityContextCount),
+                    codeLength,
+                    output);
+            }
+
+            if (!combined)
+            {
+                this.FlushBits(output);
+                sectionSizes[1 + this.dcGroupCount] = checked((uint)(this.payload.Position - acGlobalStart));
+            }
+
+            for (int pass = 0; pass < passes; pass++)
+            {
+                // Spectral stages expose quarter and half resolution. Extra channels with those
+                // dimension shifts follow the same stages; full-resolution alpha belongs to the last pass.
+                int minimumShift = passes == 1 ? 0 : 2 - pass;
+                int maximumShift = passes == 1 ? 2 : minimumShift;
+
+                for (int group = 0; group < this.groupCount; group++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    long start = combined ? 0 : this.payload.Position;
+                    int x = (group % this.groupColumns) * (GroupDimension / 8);
+                    int y = (group / this.groupColumns) * (GroupDimension / 8);
+                    Rectangle rectangle = new(x, y, Math.Min(GroupDimension / 8, blocks.Width - x), Math.Min(GroupDimension / 8, blocks.Height - y));
+                    this.WriteAcGroup(varDct, rectangle, pass, passes, order, codeLength, prefixCodes, output, cancellationToken);
+                    Rectangle pixels = new(x * 8, y * 8, GroupDimension, GroupDimension);
+                    this.WriteVarDctExtras(
+                        varDct, pixels, minimumShift, maximumShift, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+
+                    this.FlushBits(output);
+                    sectionSizes[combined ? 0 : 2 + this.dcGroupCount + (pass * this.groupCount) + group]
+                        = checked((uint)(this.payload.Position - start));
+                }
+            }
+
+            long length = this.payload.Position;
+            this.outputStream = stream;
+            bool last = ++frameIndex == source.Frames.Count;
+            uint duration = this.animated ? this.GetFrameDuration(image.Metadata.GetJxlMetadata().FrameDelay, last) : 0;
+            this.WriteFrameHeader(sectionSizes, duration, last, output);
+            this.payload.WriteTo(stream, length, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Writes one spectral contribution in block-row and Y, X, B order through the shared prefix writer.
+    /// </summary>
+    /// <param name="varDct">The retained quantized coefficients.</param>
+    /// <param name="rectangle">The group in block coordinates.</param>
+    /// <param name="pass">The spectral pass index.</param>
+    /// <param name="passes">One full pass or three spectral passes.</param>
+    /// <param name="order">The natural DCT8 coefficient order.</param>
+    /// <param name="codeLength">The prepared prefix width.</param>
+    /// <param name="prefixCodes">The prepared LSB-first codes.</param>
+    /// <param name="output">The retained byte buffer.</param>
+    /// <param name="cancellationToken">The token checked between block rows.</param>
+    private void WriteAcGroup(
+        JxlVarDctEncoder varDct,
+        Rectangle rectangle,
+        int pass,
+        int passes,
+        ReadOnlySpan<uint> order,
+        int codeLength,
+        ReadOnlySpan<uint> prefixCodes,
+        Span<byte> output,
+        CancellationToken cancellationToken)
+    {
+        InlineArray64<int> scanStorage = default;
+        Span<int> scan = scanStorage;
+        InlineArray64<uint> packedStorage = default;
+        Span<uint> packedValues = packedStorage;
+
+        for (int y = rectangle.Y; y < rectangle.Bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            for (int x = rectangle.X; x < rectangle.Right; x++)
+            {
+                for (int encodedComponent = 0; encodedComponent < 3; encodedComponent++)
+                {
+                    int component = encodedComponent < 2 ? encodedComponent ^ 1 : encodedComponent;
+                    ReadOnlySpan<int> coefficients = varDct.GetCoefficientBlock(component, x, y);
+                    int count = 0;
+                    int last = 0;
+
+                    // Each frequency belongs to exactly one spectral pass. Earlier passes retain full
+                    // precision, so later passes send zero at those positions rather than sending them twice.
+                    // Coefficient zero is DC and never appears in this scan.
+                    for (int k = 1; k < 64; k++)
+                    {
+                        int index = (int)order[k];
+                        int fx = index / 8;
+                        int fy = index & 7;
+                        int stage = fx < 2 && fy < 2 ? 0 : fx < 3 && fy < 3 ? 1 : 2;
+                        int value = passes == 1 || pass == stage ? coefficients[index] : 0;
+                        scan[k] = value;
+
+                        if (value != 0)
+                        {
+                            count++;
+                            last = k;
+                        }
+                    }
+
+                    this.WriteValue((uint)count, codeLength, prefixCodes, output);
+
+                    if (last != 0)
+                    {
+                        Span<uint> packed = packedValues[..last];
+                        JxlModularPredictor.PackZeroResiduals(scan.Slice(1, last), packed);
+                        this.WriteValues(packed, codeLength, prefixCodes, output);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the extra channels assigned to one DC or progressive AC section.
+    /// </summary>
+    /// <param name="varDct">The retained derived-alpha owner.</param>
+    /// <param name="pixels">The uncropped section rectangle in full-resolution pixels.</param>
+    /// <param name="minimumShift">The inclusive minimum channel reduction.</param>
+    /// <param name="maximumShift">The inclusive maximum channel reduction.</param>
+    /// <param name="gradient">Whether the global tree uses gradient prediction.</param>
+    /// <param name="residuals">The reusable residual row.</param>
+    /// <param name="codeLength">The prepared prefix width.</param>
+    /// <param name="prefixCodes">The prepared LSB-first codes.</param>
+    /// <param name="output">The retained byte buffer.</param>
+    /// <param name="cancellationToken">The token checked between channels and rows.</param>
+    private void WriteVarDctExtras(
+        JxlVarDctEncoder varDct,
+        Rectangle pixels,
+        int minimumShift,
+        int maximumShift,
+        bool gradient,
+        Span<uint> residuals,
+        int codeLength,
+        ReadOnlySpan<uint> prefixCodes,
+        Span<byte> output,
+        CancellationToken cancellationToken)
+    {
+        bool hasSamples = false;
+
+        for (int c = this.globalPrefixCount; c < this.extraChannels.Length; c++)
+        {
+            int shift = this.extraChannels[c].DimensionShift;
+
+            if (shift < minimumShift || shift > maximumShift)
+            {
+                continue;
+            }
+
+            Rectangle region = this.GetExtraChannelRegion(c, pixels.X, pixels.Y, pixels.Width);
+
+            if (region.Width == 0 || region.Height == 0)
+            {
+                continue;
+            }
+
+            if (!hasSamples)
+            {
+                this.WriteModularHeader(output);
+                hasSamples = true;
+            }
+
+            this.WriteVarDctExtraChannel(varDct, c, region, gradient, residuals, codeLength, prefixCodes, output, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Writes supplied extra samples or retained pixel-derived alpha without another color conversion.
+    /// </summary>
+    /// <param name="varDct">The retained derived-alpha owner.</param>
+    /// <param name="index">The encoded extra-channel index.</param>
+    /// <param name="region">The clipped channel region in its own reduced coordinates.</param>
+    /// <param name="gradient">Whether the global tree uses gradient prediction.</param>
+    /// <param name="residuals">The reusable residual row.</param>
+    /// <param name="codeLength">The prepared prefix width.</param>
+    /// <param name="prefixCodes">The prepared LSB-first codes.</param>
+    /// <param name="output">The retained byte buffer.</param>
+    /// <param name="cancellationToken">The token checked between rows.</param>
+    private void WriteVarDctExtraChannel(
+        JxlVarDctEncoder varDct,
+        int index,
+        Rectangle region,
+        bool gradient,
+        Span<uint> residuals,
+        int codeLength,
+        ReadOnlySpan<uint> prefixCodes,
+        Span<byte> output,
+        CancellationToken cancellationToken)
+    {
+        if (index < this.encoder.ExtraChannels.Count)
+        {
+            this.CopySuppliedSamples(index, region, cancellationToken);
+
+            if (gradient)
+            {
+                this.WriteGradientComponent(this.colorComponents + index, region.Size, residuals, codeLength, prefixCodes, output, cancellationToken);
+            }
+            else
+            {
+                this.WriteZeroComponent(this.colorComponents + index, region.Size, residuals, codeLength, prefixCodes, output, cancellationToken);
+            }
+
+            return;
+        }
+
+        Span<uint> packed = residuals[..region.Width];
+
+        for (int y = 0; y < region.Height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadOnlySpan<int> values = varDct.GetAlphaRow(region.X, region.Y + y)[..region.Width];
+            ReadOnlySpan<int> previous = y == 0 ? [] : varDct.GetAlphaRow(region.X, region.Y + y - 1)[..region.Width];
+
+            if (gradient)
+            {
+                JxlModularPredictor.PackGradientResiduals(values, previous, packed);
+            }
+            else
+            {
+                JxlModularPredictor.PackZeroResiduals(values, packed);
+            }
+
+            this.WriteValues(packed, codeLength, prefixCodes, output);
+        }
+    }
+
+    /// <summary>
+    /// Emits a constant metadata plane in bounded batches without allocating its full sample grid.
+    /// </summary>
+    /// <param name="size">The metadata plane dimensions.</param>
+    /// <param name="value">The actual transform, quantizer, correlation or sharpness value.</param>
+    /// <param name="gradient">Whether the global tree uses gradient prediction.</param>
+    /// <param name="residuals">The reusable packed-value scratch.</param>
+    /// <param name="codeLength">The prepared prefix width.</param>
+    /// <param name="prefixCodes">The prepared LSB-first codes.</param>
+    /// <param name="output">The retained byte buffer.</param>
+    /// <param name="cancellationToken">The token checked between rows and batches.</param>
+    private void WriteConstantChannel(
+        Size size,
+        int value,
+        bool gradient,
+        Span<uint> residuals,
+        int codeLength,
+        ReadOnlySpan<uint> prefixCodes,
+        Span<byte> output,
+        CancellationToken cancellationToken)
+    {
+        Span<int> carriers = MemoryMarshal.Cast<uint, int>(residuals);
+
+        // A constant gradient-predicted plane has only one nonzero residual, at its first sample.
+        // The zero predictor stores the same value at every position. Pack through the existing SIMD worker.
+        carriers.Fill(gradient ? 0 : value);
+        JxlModularPredictor.PackZeroResiduals(carriers, residuals);
+
+        for (int y = 0; y < size.Height; y++)
+        {
+            for (int x = 0; x < size.Width; x += residuals.Length)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(residuals.Length, size.Width - x);
+
+                if (gradient && y == 0 && x == 0)
+                {
+                    carriers[0] = value;
+                    JxlModularPredictor.PackZeroResiduals(carriers[..1], residuals[..1]);
+                }
+
+                this.WriteValues(residuals[..count], codeLength, prefixCodes, output);
+
+                if (gradient)
+                {
+                    residuals[0] = 0;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the single-leaf shared modular tree and its residual entropy description.
+    /// </summary>
+    /// <param name="gradient">Whether integer channels use the clamped gradient instead of the zero predictor.</param>
+    /// <param name="codeLength">The prepared prefix width.</param>
+    /// <param name="prefixCodes">The prepared LSB-first codes.</param>
+    /// <param name="output">The retained byte buffer.</param>
+    private void WriteGlobalTree(bool gradient, int codeLength, ReadOnlySpan<uint> prefixCodes, Span<byte> output)
+    {
+        this.WriteBits(1, 1, output);
+        this.WritePrefixHeader(6, codeLength, output);
+        this.WriteValue(0, codeLength, prefixCodes, output); // Property zero marks a leaf.
+        this.WriteValue(gradient ? 5U : 0U, codeLength, prefixCodes, output);
+        this.WriteValue(0, codeLength, prefixCodes, output); // No signed prediction offset.
+        this.WriteValue(0, codeLength, prefixCodes, output); // Multiplier exponent zero.
+        this.WriteValue(0, codeLength, prefixCodes, output); // Unit residual multiplier, stored minus one.
+        this.WritePrefixHeader(1, codeLength, output);
+    }
+
+    /// <summary>
+    /// Writes a modular substream header that reuses the global tree and has no local transforms.
+    /// </summary>
+    /// <param name="output">The retained byte buffer.</param>
+    private void WriteModularHeader(Span<byte> output)
+    {
+        this.WriteBits(1, 1, output); // Reuse the global tree.
+        this.WriteBits(1, 1, output); // Default weighted-predictor parameters.
+        this.WriteBits(2, 0, output); // No local channel transforms.
     }
 
     /// <summary>
@@ -1562,8 +2027,8 @@ internal sealed class JxlEncoderCore : IDisposable
     private void CopySuppliedSamples(int index, Rectangle bounds, CancellationToken cancellationToken)
     {
         // The preceding supplied channel has finished entropy coding before this plane is filled again.
-        Rectangle targetBounds = new(0, this.colorComponents * this.groupHeight, bounds.Width, bounds.Height);
-        this.EncodeSuppliedSamples(index, bounds, this.samples.GetRegion(targetBounds), cancellationToken);
+        Rectangle targetBounds = new(0, this.usesXyb ? 0 : this.colorComponents * this.groupHeight, bounds.Width, bounds.Height);
+        this.EncodeSuppliedSamples(index, bounds, this.sampleRegion.GetSubRegion(targetBounds), cancellationToken);
     }
 
     /// <summary>
@@ -1646,7 +2111,7 @@ internal sealed class JxlEncoderCore : IDisposable
         }
 
         Buffer2D<float> source = this.encoder.ExtraChannels[this.suppliedAlphaIndex].Frames[this.sourceFrameIndex];
-        Span<int> carriers = this.GetComponentRow(0, 0);
+        Span<int> carriers = this.GetComponentRow(this.colorComponents + this.suppliedAlphaIndex, 0);
 
         for (int y = 0; y < source.Height; y++)
         {
@@ -1828,28 +2293,13 @@ internal sealed class JxlEncoderCore : IDisposable
                 this.profileConverter,
                 scratch);
 
-            if (this.usesXyb)
+            if (this.varDct is JxlVarDctEncoder varDct)
             {
-                // Modular XYB stores Y, X and B-minus-Y. Subtract quantized Y, not a floating difference:
-                // reconstruction adds integer Y before applying B's reconstruction step.
-                Span<int> yRow = this.GetComponentRow(0, y)[..bounds.Width];
-                Span<int> xRow = this.GetComponentRow(1, y)[..bounds.Width];
-                Span<int> bRow = this.GetComponentRow(2, y)[..bounds.Width];
-
-                // The closed color operation selects float or double arithmetic before traversal.
-                // The JIT removes this type test for each closed worker, as it does for short sample loading.
-                if (typeof(TColor) == typeof(JxlSampleConverter.AccurateScaledIntegerEncodingOperator))
-                {
-                    JxlSampleConverter.Encode(second, yRow, this.xybAccurateYOperation);
-                }
-                else
-                {
-                    JxlSampleConverter.Encode(second, yRow, this.xybYOperation);
-                }
-
-                JxlSampleConverter.Encode(first, xRow, colorOperation);
-                JxlSampleConverter.Encode(third, bRow, this.xybBOperation);
-                TensorPrimitives.Subtract<int>(bRow, yRow, bRow);
+                // VarDCT quantizes frequency coefficients. Keep the converted XYB samples at float
+                // precision until the forward transform; modular sample quantization does not apply here.
+                first.CopyTo(varDct.GetColorRow(0, y));
+                second.CopyTo(varDct.GetColorRow(1, y));
+                third.CopyTo(varDct.GetColorRow(2, y));
             }
             else
             {
@@ -1870,7 +2320,11 @@ internal sealed class JxlEncoderCore : IDisposable
             if (this.derivedAlphaIndex >= 0)
             {
                 int alphaComponent = this.colorComponents + this.derivedAlphaIndex;
-                JxlSampleConverter.Encode(alpha, this.GetComponentRow(alphaComponent, y)[..bounds.Width], alphaOperation);
+                Span<int> destination = this.varDct is JxlVarDctEncoder varDctAlpha
+                    ? varDctAlpha.GetAlphaRow(bounds.X, bounds.Y + y)[..bounds.Width]
+                    : this.GetComponentRow(alphaComponent, y)[..bounds.Width];
+
+                JxlSampleConverter.Encode(alpha, destination, alphaOperation);
             }
         }
     }
@@ -2572,10 +3026,11 @@ internal sealed class JxlEncoderCore : IDisposable
     /// <param name="output">The retained output buffer.</param>
     private void WriteFrameHeader(ReadOnlySpan<uint> sectionSizes, uint duration, bool last, Span<byte> output)
     {
-        // The frame uses original-color modular samples, no optional features, no upsampling and the default 256-pixel groups.
+        // Lossless frames use modular samples. Lossy frames use XYB VarDCT with DCT8 blocks.
+        // Both paths keep full-resolution color and the default 256-pixel coding groups.
         this.WriteBits(1, 0, output); // Explicit frame fields.
         this.WriteBits(2, 0, output); // Regular displayed frame.
-        this.WriteBits(1, 1, output); // Modular coding.
+        this.WriteBits(1, this.usesXyb ? 0U : 1U, output);
         this.WriteBits(2, 0, output); // U64 zero: no frame feature flags.
 
         if (!this.usesXyb)
@@ -2590,15 +3045,36 @@ internal sealed class JxlEncoderCore : IDisposable
             this.WriteBits(2, 0, output); // No additional reduction beyond the channel's declared dimension shift.
         }
 
-        this.WriteBits(2, 1, output); // Group size shift one selects 256 pixels.
-        this.WriteBits(2, this.encoder.Progressive ? 1U : 0U, output); // Two passes or one pass.
+        if (this.varDct is JxlVarDctEncoder varDct)
+        {
+            this.WriteBits(3, (uint)varDct.XQuantizationScale, output);
+            this.WriteBits(3, (uint)varDct.BQuantizationScale, output);
+        }
+        else
+        {
+            this.WriteBits(2, 1, output); // Modular group size shift one selects 256 pixels.
+        }
+
+        this.WriteBits(2, this.encoder.Progressive ? this.usesXyb ? 2U : 1U : 0U, output);
 
         if (this.encoder.Progressive)
         {
-            this.WriteBits(2, 1, output); // One progressive display stage.
-            this.WriteBits(2, 0, output); // No coefficient precision shift in the first pass.
+            this.WriteBits(2, this.usesXyb ? 2U : 1U, output);
+            this.WriteBits(2, 0, output); // First-pass coefficients retain their full precision.
+
+            if (this.usesXyb)
+            {
+                this.WriteBits(2, 0, output); // Second-pass coefficients also retain their full precision.
+                this.WriteBits(2, 2, output); // Quarter-resolution display after the 2x2 frequency region.
+            }
+
             this.WriteBits(2, 1, output); // Half-resolution display stage.
-            this.WriteBits(2, 0, output); // The half-resolution stage ends after pass zero.
+            this.WriteBits(2, 0, output); // The first display stage ends after pass zero.
+
+            if (this.usesXyb)
+            {
+                this.WriteBits(2, 1, output); // The half-resolution stage ends after the 3x3 frequency region.
+            }
         }
 
         this.WriteBits(1, 0, output); // No crop or custom origin.
@@ -2624,7 +3100,16 @@ internal sealed class JxlEncoderCore : IDisposable
         this.WriteBits(2, 0, output); // Empty frame name.
         this.WriteBits(1, 0, output); // Explicit restoration parameters.
         this.WriteBits(1, 0, output); // Disable Gaborish.
-        this.WriteBits(2, 0, output); // Disable the edge-preserving filter.
+        int iterations = this.varDct?.EpfIterations ?? 0;
+        this.WriteBits(2, (uint)iterations, output);
+
+        if (iterations != 0)
+        {
+            this.WriteBits(1, 0, output); // Default VarDCT sharpness factors.
+            this.WriteBits(1, 0, output); // Default component distance scales and flush thresholds.
+            this.WriteBits(1, 0, output); // Default quantization, pass and border multipliers.
+        }
+
         this.WriteBits(2, 0, output); // No restoration extensions.
         this.WriteBits(2, 0, output); // No frame extensions.
         this.WriteBits(1, 0, output); // Natural section order; no TOC permutation.
@@ -2921,6 +3406,13 @@ internal sealed class JxlEncoderCore : IDisposable
             component = Math.Max(this.colorComponents, component - this.suppliedScratchOffset);
         }
 
-        return this.samples.DangerousGetRowSpan((component * this.groupHeight) + y);
+        // VarDCT keeps colors in its float group and coefficient storage. This modular workspace
+        // therefore starts at the first extra channel instead of reserving unused color planes.
+        if (this.usesXyb)
+        {
+            component -= this.colorComponents;
+        }
+
+        return this.sampleRegion.DangerousGetRowSpan((component * this.groupHeight) + y);
     }
 }

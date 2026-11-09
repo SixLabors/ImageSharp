@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
 /// <summary>
-/// Encodes images in JPEG XL format with modular compression.
+/// Encodes images in JPEG XL format.
 /// </summary>
 public sealed class JxlEncoder : AlphaAwareImageEncoder
 {
@@ -50,7 +50,7 @@ public sealed class JxlEncoder : AlphaAwareImageEncoder
 
     /// <summary>
     /// Gets the reconstruction distance from zero through 25. Zero uses lossless modular coding.
-    /// Positive values use quantized XYB components. The default is zero.
+    /// Positive values use VarDCT compression with XYB color. The default is zero.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The distance is outside the supported interval.</exception>
     public float Distance
@@ -70,8 +70,9 @@ public sealed class JxlEncoder : AlphaAwareImageEncoder
     public uint? RepeatCount { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether to write two progressive passes.
-    /// Integer color samples with sufficient arithmetic precision use a half-resolution first pass.
+    /// Gets a value indicating whether to write progressive passes.
+    /// Lossy output uses three passes with increasing color detail.
+    /// Lossless output uses two passes. Integer colors with sufficient precision first appear at half resolution.
     /// </summary>
     public bool Progressive { get; init; }
 

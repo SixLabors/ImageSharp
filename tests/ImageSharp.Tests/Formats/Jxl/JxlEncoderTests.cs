@@ -76,18 +76,24 @@ public class JxlEncoderTests
     /// <param name="progressive">Whether the managed file uses two passes.</param>
     /// <param name="associated">Whether the supplied primary alpha associates the image color components.</param>
     /// <param name="multiple">Whether to supply a second channel with different native sample values.</param>
+    /// <param name="distance">Zero for lossless modular output or positive for lossy VarDCT output.</param>
     [Theory]
-    [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.Rgb24, JxlExtraChannelType.Depth, 0, 8, 0, false, false, false)]
-    [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.Rgb24, JxlExtraChannelType.Depth, 0, 8, 0, false, false, true)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.SpotColor, 1, 16, 0, true, false, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.SelectionMask, 2, 12, 0, false, false, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.ColorFilterArray, 3, 16, 0, true, false, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Thermal, 1, 16, 5, false, false, false)]
-    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgb24, JxlExtraChannelType.Optional, 2, 24, 0, true, false, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Alpha, 1, 16, 0, false, true, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Alpha, 3, 32, 8, true, false, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Black, 0, 8, 0, false, false, false)]
-    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Black, 2, 16, 0, true, false, false)]
+    [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.Rgb24, JxlExtraChannelType.Depth, 0, 8, 0, false, false, false, 0F)]
+    [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.Rgb24, JxlExtraChannelType.Depth, 0, 8, 0, false, false, true, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.SpotColor, 1, 16, 0, true, false, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.SelectionMask, 2, 12, 0, false, false, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.ColorFilterArray, 3, 16, 0, true, false, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Thermal, 1, 16, 5, false, false, false, 0F)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgb24, JxlExtraChannelType.Optional, 2, 24, 0, true, false, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Alpha, 1, 16, 0, false, true, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Alpha, 3, 32, 8, true, false, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Black, 0, 8, 0, false, false, false, 0F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Black, 2, 16, 0, true, false, false, 0F)]
+    [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.Rgb24, JxlExtraChannelType.Depth, 0, 8, 0, true, false, true, 1F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.SelectionMask, 2, 12, 0, true, false, false, 1F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.ColorFilterArray, 3, 16, 0, true, false, false, 1F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Thermal, 1, 16, 5, false, false, false, 1F)]
+    [WithFile(TestImages.Jxl.OddSizeUpsampling, PixelTypes.Rgb24, JxlExtraChannelType.Alpha, 1, 16, 0, false, true, false, 1F)]
     public void EncodeExtraChannelsMatchNativePixels(
         TestImageProvider<Rgb24> provider,
         JxlExtraChannelType type,
@@ -96,12 +102,13 @@ public class JxlEncoderTests
         int exponentBits,
         bool progressive,
         bool associated,
-        bool multiple)
+        bool multiple,
+        float distance)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateExtraChannelPixels,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider,
-            FormattableString.Invariant($"{(int)type},{shift},{bits},{exponentBits},{progressive},{associated},{multiple}"));
+            FormattableString.Invariant($"{(int)type},{shift},{bits},{exponentBits},{progressive},{associated},{multiple},{distance}"));
 
     /// <summary>
     /// Encodes native reference pixels through Image.Save and checks native and managed reconstruction at each SIMD width.
@@ -138,20 +145,25 @@ public class JxlEncoderTests
     /// </summary>
     /// <param name="provider">The original native pixel input.</param>
     /// <param name="distance">The requested reconstruction distance.</param>
-    /// <param name="progressive">Whether to split the encoded components across two resolution passes.</param>
+    /// <param name="progressive">Whether to split the AC frequencies across three progressive passes.</param>
+    /// <param name="bufferCapacity">The allocator segment capacity used only during encoding.</param>
     [Theory]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, 1F, false)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, 3F, false)]
-    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 1F, false)]
-    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 3F, false)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, 1F, true)]
-    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 1F, true)]
-    public void EncodeLossyMatchesNativePixels(TestImageProvider<RgbaVector> provider, float distance, bool progressive)
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, 1F, false, int.MaxValue)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, .01F, false, int.MaxValue)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, 3F, false, int.MaxValue)]
+    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 1F, false, int.MaxValue)]
+    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 3F, false, int.MaxValue)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, 1F, true, int.MaxValue)]
+    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 1F, true, int.MaxValue)]
+    [WithFile(TestImages.Jxl.Dice, PixelTypes.RgbaVector, 1F, false, 1024)]
+    [WithFile(TestImages.Jxl.Dice, PixelTypes.RgbaVector, 1F, true, 1024)]
+    [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.RgbaVector, 1F, false, 1024)]
+    public void EncodeLossyMatchesNativePixels(TestImageProvider<RgbaVector> provider, float distance, bool progressive, int bufferCapacity)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLossyPixels,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider,
-            FormattableString.Invariant($"{distance},{progressive}"));
+            FormattableString.Invariant($"{distance},{progressive},{bufferCapacity}"));
 
     /// <summary>
     /// Checks binary16 rounding against native output and checks other float layouts with both decoders at each SIMD width.
@@ -343,50 +355,20 @@ public class JxlEncoderTests
     /// Checks the pixels and exact positive delays of original animation frames after a full-canvas encoding.
     /// </summary>
     /// <param name="provider">The original animation reference.</param>
+    /// <param name="distance">Zero for lossless modular output or positive for lossy VarDCT output.</param>
+    /// <param name="progressive">Whether the frame uses progressive passes.</param>
     [Theory]
-    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Jxl.CroppedTrafficLightLongDuration, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Jxl.AnimationIcos4d, PixelTypes.Rgba32)]
-    public void EncodeAnimationMatchesNativePixels(TestImageProvider<Rgba32> provider)
-    {
-        provider.Configuration = new(new JxlConfigurationModule());
-        DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
-
-        TestFile input = TestFile.Create(provider.SourceFileOrDescription);
-        using MemoryStream inputStream = new(input.Bytes, false);
-        ImageInfo info = Image.Identify(options, inputStream);
-
-        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
-        source.Metadata.SetFormatMetadata(JxlFormat.Instance, info.Metadata.GetFormatMetadata(JxlFormat.Instance).DeepClone());
-
-        for (int i = 0; i < source.Frames.Count; i++)
-        {
-            source.Frames[i].Metadata.SetFormatMetadata(JxlFormat.Instance, info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance).DeepClone());
-        }
-
-        JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, BitDepth = new JxlBitDepth(8, 0), SkipMetadata = true };
-        string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder);
-
-        using Image<Rgba32> actual = Image.Load<Rgba32>(options, path);
-        using FileStream stream = File.OpenRead(path);
-        using Image<Rgba32> native = LibJxlReferenceDecoder.Instance.Decode<Rgba32>(options, stream);
-
-        Assert.Equal(2, source.Frames.Count);
-        ImageComparer.Exact.VerifySimilarity(source, native);
-        ImageComparer.Exact.VerifySimilarity(source, actual);
-        Assert.Equal(source.Metadata.GetFormatMetadata(JxlFormat.Instance).RepeatCount, actual.Metadata.GetFormatMetadata(JxlFormat.Instance).RepeatCount);
-
-        for (int i = 0; i < source.Frames.Count; i++)
-        {
-            Assert.Equal(
-                info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance).FrameDelay,
-                actual.Frames[i].Metadata.GetFormatMetadata(JxlFormat.Instance).FrameDelay);
-
-            Assert.Equal(
-                info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance).FrameDelay,
-                source.Frames[i].Metadata.GetFormatMetadata(JxlFormat.Instance).FrameDelay);
-        }
-    }
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 0F, false)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLightLongDuration, PixelTypes.Rgba32, 0F, false)]
+    [WithFile(TestImages.Jxl.AnimationIcos4d, PixelTypes.Rgba32, 0F, false)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1F, true)]
+    [WithFile(TestImages.Jxl.AnimationIcos4d, PixelTypes.Rgba32, 1F, false)]
+    public void EncodeAnimationMatchesNativePixels(TestImageProvider<Rgba32> provider, float distance, bool progressive)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateAnimationPixels,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
+            provider,
+            FormattableString.Invariant($"{distance},{progressive}"));
 
     /// <summary>
     /// Checks that zero-delay source frames remain displayed without changing their source metadata.
@@ -437,16 +419,21 @@ public class JxlEncoderTests
     /// <param name="failedAllocation">The encoder allocation attempt that fails, counted after caller-owned inputs are prepared.</param>
     /// <param name="progressive">Whether to prepare retained progressive channel planes.</param>
     /// <param name="reducedAlpha">Whether to supply a reduced primary alpha channel that requires expansion.</param>
+    /// <param name="distance">Zero for lossless modular output or positive for lossy VarDCT output.</param>
     [Theory]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 2, false, false)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 8, false, false)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 6, true, false)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 5, false, true)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 2, false, false, 0F)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 8, false, false, 0F)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 6, true, false, 0F)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 5, false, true, 0F)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 4, false, false, 1F)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 5, true, false, 1F)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 6, false, false, 1F)]
     public void EncodeReturnsBuffersAfterAllocationFailure(
         TestImageProvider<Rgba32> provider,
         int failedAllocation,
         bool progressive,
-        bool reducedAlpha)
+        bool reducedAlpha,
+        float distance)
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -484,9 +471,10 @@ public class JxlEncoderTests
 
             // Retain caller alpha in this baseline. Progressive rent six follows two retained channel rents;
             // reduced-alpha rent five follows its expanded plane and fails while preparing the filter workspace.
+            // VarDCT rents four, five and six fail its coefficient, DC and derived-alpha owners in turn.
             long sourceBytes = allocator.LiveBufferBytes;
             allocator.FailAtAllocation = allocator.AllocationLog[^1].AllocationId + failedAllocation;
-            JxlEncoder encoder = new() { Progressive = progressive, ExtraChannels = channels, SkipMetadata = true };
+            JxlEncoder encoder = new() { Distance = distance, Progressive = progressive, ExtraChannels = channels, SkipMetadata = true };
 
             Assert.Throws<InvalidMemoryOperationException>(() => source.Save(stream, encoder));
             Assert.Equal(sourceBytes, allocator.LiveBufferBytes);
@@ -725,16 +713,84 @@ public class JxlEncoderTests
     }
 
     /// <summary>
+    /// Checks native and managed frame reconstruction and metadata across reused encoder workspace.
+    /// </summary>
+    /// <param name="providerDump">The serialized original animation provider.</param>
+    /// <param name="encodingDump">The serialized distance and progressive setting.</param>
+    private static void ValidateAnimationPixels(string providerDump, string encodingDump)
+    {
+        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+        string[] encoding = encodingDump.Split(',');
+        float distance = FeatureTestRunner.Deserialize<float>(encoding[0]);
+        bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[1]);
+        provider.Configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+
+        TestFile input = TestFile.Create(provider.SourceFileOrDescription);
+        using MemoryStream inputStream = new(input.Bytes, false);
+        ImageInfo info = Image.Identify(options, inputStream);
+
+        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
+        source.Metadata.SetFormatMetadata(JxlFormat.Instance, info.Metadata.GetFormatMetadata(JxlFormat.Instance).DeepClone());
+
+        for (int i = 0; i < source.Frames.Count; i++)
+        {
+            source.Frames[i].Metadata.SetFormatMetadata(JxlFormat.Instance, info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance).DeepClone());
+        }
+
+        JxlEncoder encoder = new()
+        {
+            ColorType = JxlColorType.Rgb,
+            BitDepth = new JxlBitDepth(8, 0),
+            Distance = distance,
+            Progressive = progressive,
+            SkipMetadata = true
+        };
+
+        string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: encodingDump.Replace(',', '_'));
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, path);
+        using FileStream stream = File.OpenRead(path);
+        using Image<Rgba32> native = LibJxlReferenceDecoder.Instance.Decode<Rgba32>(options, stream);
+
+        Assert.Equal(2, source.Frames.Count);
+
+        if (distance == 0F)
+        {
+            ImageComparer.Exact.VerifySimilarity(source, native);
+            ImageComparer.Exact.VerifySimilarity(source, actual);
+        }
+        else
+        {
+            ImageComparer.Tolerant(0.00052F).VerifySimilarity(native, actual);
+        }
+
+        Assert.Equal(source.Metadata.GetFormatMetadata(JxlFormat.Instance).RepeatCount, actual.Metadata.GetFormatMetadata(JxlFormat.Instance).RepeatCount);
+
+        for (int i = 0; i < source.Frames.Count; i++)
+        {
+            Assert.Equal(
+                info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance).FrameDelay,
+                actual.Frames[i].Metadata.GetFormatMetadata(JxlFormat.Instance).FrameDelay);
+
+            Assert.Equal(
+                info.FrameMetadataCollection[i].GetFormatMetadata(JxlFormat.Instance).FrameDelay,
+                source.Frames[i].Metadata.GetFormatMetadata(JxlFormat.Instance).FrameDelay);
+        }
+    }
+
+    /// <summary>
     /// Compares native and managed decoding of lossy output and checks source preservation.
     /// </summary>
     /// <param name="providerDump">The serialized original-image provider.</param>
-    /// <param name="encodingDump">The serialized reconstruction distance and progressive setting.</param>
+    /// <param name="encodingDump">The serialized reconstruction distance, progressive setting and allocator capacity.</param>
     private static void ValidateLossyPixels(string providerDump, string encodingDump)
     {
         TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
         string[] encoding = encodingDump.Split(',');
         float distance = FeatureTestRunner.Deserialize<float>(encoding[0]);
         bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[1]);
+        int bufferCapacity = FeatureTestRunner.Deserialize<int>(encoding[2]);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -751,15 +807,29 @@ public class JxlEncoderTests
         JxlColorType sourceColorType = metadata.ColorType;
         JxlBitDepth sourceBitDepth = metadata.BitDepth;
         JxlEncoder encoder = new() { Distance = distance, Progressive = progressive, BitDepth = new JxlBitDepth(32, 8), SkipMetadata = true };
-        string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: FormattableString.Invariant($"{distance}_{progressive}"));
+        MemoryAllocator allocator = source.Configuration.MemoryAllocator;
+        string path;
 
-        VerifyPassCount(path, provider.Configuration, progressive);
+        // Prepare the source with its normal allocator. Restrict only encoding so retained coefficient,
+        // DC and alpha planes must cross allocator segments even when the original pixel rows are contiguous.
+        source.Configuration.MemoryAllocator = new TestMemoryAllocator { BufferCapacityInBytes = bufferCapacity };
+
+        try
+        {
+            path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: FormattableString.Invariant($"{distance}_{progressive}"));
+        }
+        finally
+        {
+            source.Configuration.MemoryAllocator = allocator;
+        }
+
+        VerifyPassCount(path, provider.Configuration, progressive, distance);
 
         using FileStream stream = File.OpenRead(path);
         using Image<RgbaVector> native = LibJxlReferenceDecoder.Instance.Decode<RgbaVector>(options, stream);
         using Image<RgbaVector> actual = Image.Load<RgbaVector>(options, path);
         using MemoryStream referenceStream = new();
-        LibJxlReferenceEncoder referenceEncoder = new() { BitDepth = new JxlBitDepth(32, 8), Distance = distance };
+        LibJxlReferenceEncoder referenceEncoder = new() { BitDepth = new JxlBitDepth(32, 8), Distance = distance, Progressive = progressive };
         source.Save(referenceStream, referenceEncoder);
         referenceStream.Position = 0;
 
@@ -858,6 +928,7 @@ public class JxlEncoderTests
         bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[4]);
         bool associated = FeatureTestRunner.Deserialize<bool>(encoding[5]);
         bool multiple = FeatureTestRunner.Deserialize<bool>(encoding[6]);
+        float distance = FeatureTestRunner.Deserialize<float>(encoding[7]);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -949,6 +1020,7 @@ public class JxlEncoderTests
                 ColorType = JxlColorType.Rgb,
                 BitDepth = new JxlBitDepth(32, 8),
                 Progressive = progressive,
+                Distance = distance,
                 ExtraChannels = suppliedChannels,
                 TransparentColorMode = TransparentColorMode.Preserve,
                 SkipMetadata = true
@@ -965,7 +1037,9 @@ public class JxlEncoderTests
             LibJxlReferenceEncoder referenceEncoder = new()
             {
                 BitDepth = new JxlBitDepth(32, 8),
-                ExtraChannel = new JxlExtraChannel(referenceMetadata, planes)
+                ExtraChannel = new JxlExtraChannel(referenceMetadata, planes),
+                Distance = distance,
+                Progressive = progressive
             };
 
             using MemoryStream referenceStream = new();
@@ -977,7 +1051,14 @@ public class JxlEncoderTests
             using Image<RgbaVectorP> native = LibJxlReferenceDecoder.Instance.Decode<RgbaVectorP>(options, stream);
             using Image<RgbaVectorP> actual = Image.Load<RgbaVectorP>(options, path);
 
-            ImageComparer.Tolerant(0.00052F).VerifySimilarity(expected, native);
+            // The reference encoder receives unassociated RGB. Association preserves displayed lossless
+            // pixels, but changes the RGB values quantized by VarDCT. Compare those color encodings only
+            // when their quantizer inputs match. Native decoding still verifies every emitted file below.
+            if (!associated || distance == 0F)
+            {
+                ImageComparer.Tolerant(0.00052F).VerifySimilarity(expected, native);
+            }
+
             ImageComparer.Tolerant(0.00052F).VerifySimilarity(native, actual);
             ImageComparer.Exact.VerifySimilarity(original, source);
 
@@ -1073,8 +1154,9 @@ public class JxlEncoderTests
     /// </summary>
     /// <param name="path">The emitted file in the normal test output directory.</param>
     /// <param name="configuration">The configuration used to encode and decode the image.</param>
-    /// <param name="progressive">Whether the requested output has two passes.</param>
-    private static void VerifyPassCount(string path, Configuration configuration, bool progressive)
+    /// <param name="progressive">Whether the requested output has progressive passes.</param>
+    /// <param name="distance">Zero for lossless modular coding or positive for lossy VarDCT coding.</param>
+    private static void VerifyPassCount(string path, Configuration configuration, bool progressive, float distance)
     {
         using FileStream stream = File.OpenRead(path);
         using BufferedReadStream buffered = new(configuration, stream);
@@ -1082,7 +1164,8 @@ public class JxlEncoderTests
         JxlHeader header = JxlHeader.Read(ref reader, configuration.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
         JxlFrameHeader frame = JxlFrameHeader.Read(ref reader, header, false, SegmentIntegrityHandling.Strict);
 
-        Assert.Equal(progressive ? 2 : 1, frame.PassCount);
+        Assert.Equal(distance == 0, frame.Modular);
+        Assert.Equal(progressive ? distance > 0 ? 3 : 2 : 1, frame.PassCount);
     }
 
     /// <summary>
@@ -1207,7 +1290,7 @@ public class JxlEncoderTests
             // Keep the emitted file in the normal test output location for independent jxl-rs verification.
             string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, FormattableString.Invariant($"{bits}_{progressive}"));
 
-            VerifyPassCount(path, provider.Configuration, progressive);
+            VerifyPassCount(path, provider.Configuration, progressive, 0F);
             using FileStream nativeStream = File.OpenRead(path);
             using Image<TPixel> native = LibJxlReferenceDecoder.Instance.Decode<TPixel>(options, nativeStream);
             using Image<TPixel> actual = Image.Load<TPixel>(options, path);

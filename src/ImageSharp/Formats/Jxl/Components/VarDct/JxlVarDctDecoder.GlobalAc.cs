@@ -74,7 +74,7 @@ internal sealed partial class JxlVarDctDecoder
             cancellationToken.ThrowIfCancellationRequested();
             InlineArray64<int> offsets = default;
             IMemoryOwner<uint> orders = this.ReadCoefficientOrders(
-                ref reader, allocator, this.UsedStrategies, offsets[..CoefficientOrderCount], cancellationToken);
+                ref reader, allocator, this.UsedStrategies, offsets[..JxlCoefficientOrder.CoefficientOrderCount], cancellationToken);
 
             JxlEntropyDecoder? entropy = null;
             try
@@ -176,7 +176,7 @@ internal sealed partial class JxlVarDctDecoder
         /// <summary>
         /// Gets the initialized component offsets without another managed array.
         /// </summary>
-        public ReadOnlySpan<int> Offsets => this.offsets[..CoefficientOrderCount];
+        public ReadOnlySpan<int> Offsets => this.offsets[..JxlCoefficientOrder.CoefficientOrderCount];
 
         /// <inheritdoc/>
         public void Dispose()

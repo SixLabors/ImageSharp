@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 /// <content>
 /// Contains the fixed 32-point inverse butterfly. Each lane carries one independent column.
 /// </content>
-internal static partial class JxlInverseTransform
+internal static partial class JxlDct
 {
     /// <summary>
     /// Reconstructs 32-point columns with the existing radix-two arithmetic and no intermediate split copies.

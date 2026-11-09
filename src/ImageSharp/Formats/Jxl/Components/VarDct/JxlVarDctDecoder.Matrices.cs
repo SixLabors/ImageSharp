@@ -5,87 +5,12 @@ using System.Buffers;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 using SixLabors.ImageSharp.Memory;
+using static SixLabors.ImageSharp.Formats.Jxl.Components.VarDct.JxlQuantization;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 internal sealed partial class JxlVarDctDecoder
 {
-    /// <summary>
-    /// The seventeen decoder quantization families in libjxl quant_weights.h QuantTable. Transposed strategies can share a family.
-    /// </summary>
-    private const int QuantizationFamilyCount = 17;
-
-    /// <summary>
-    /// The X, Y and B component tables stored for each used quantization family.
-    /// </summary>
-    private const int MatrixComponentCount = 3;
-
-    /// <summary>
-    /// The sixteen radial bands permitted by the four-bit count-minus-one field in native DecodeDctParams.
-    /// </summary>
-    private const int MaximumDistanceBands = 16;
-
-    /// <summary>
-    /// The first secondary-band slot, after three sixteen-value primary-band regions in the reusable parameter buffer.
-    /// </summary>
-    private const int SecondaryBandsOffset = MatrixComponentCount * MaximumDistanceBands;
-
-    /// <summary>
-    /// The first special-weight slot, after both three-component radial-band regions.
-    /// </summary>
-    private const int SpecialWeightsOffset = 2 * SecondaryBandsOffset;
-
-    /// <summary>
-    /// The nine special values per component required by AFV: six frequency weights and three band deltas.
-    /// </summary>
-    private const int SpecialWeightStride = 9;
-
-    /// <summary>
-    /// The inclusive positive weight limit, 1e-8, from native quant_weights.cc kAlmostZero.
-    /// It also bounds encoded nonzero denominators and multipliers before table generation.
-    /// </summary>
-    private const float MinimumQuantizationWeight = 1e-8F;
-
-    /// <summary>
-    /// The exclusive 1e8 generated-weight limit from native ComputeQuantTable. Reciprocal decoder factors are prepared only after validation.
-    /// </summary>
-    private const float MaximumQuantizationWeight = 1e8F;
-
-    /// <summary>
-    /// The serialized identity description from native QuantEncoding::Mode. It stores three special weights per component.
-    /// </summary>
-    private const byte IdentityMatrixMode = 1;
-
-    /// <summary>
-    /// The serialized DCT2 description. It stores six special weights per component.
-    /// </summary>
-    private const byte Dct2MatrixMode = 2;
-
-    /// <summary>
-    /// The serialized DCT4 description. It stores two multipliers per component and one radial table.
-    /// </summary>
-    private const byte Dct4MatrixMode = 3;
-
-    /// <summary>
-    /// The serialized DCT4-by-8 description. It stores one multiplier per component and one radial table.
-    /// </summary>
-    private const byte Dct4X8MatrixMode = 4;
-
-    /// <summary>
-    /// The serialized AFV description. It stores special frequency weights and two radial tables.
-    /// </summary>
-    private const byte AfvMatrixMode = 5;
-
-    /// <summary>
-    /// The serialized generic DCT description, generated from one radial table.
-    /// </summary>
-    private const byte DctMatrixMode = 6;
-
-    /// <summary>
-    /// The serialized RAW description, carrying an F16 denominator and three modular integer planes.
-    /// </summary>
-    private const byte RawMatrixMode = 7;
-
     private readonly int sampleBitDepth;
     private IMemoryOwner<float>? quantizationMatrices;
     private InlineArray64<int> quantizationMatrixOffsets;
@@ -107,32 +32,6 @@ internal sealed partial class JxlVarDctDecoder
     public ReadOnlySpan<int> QuantizationMatrixOffsets => this.quantizationMatrixOffsets[..(MatrixComponentCount * QuantizationFamilyCount)];
 
     /// <summary>
-    /// Gets the quantization family selected by each validated raw strategy.
-    /// </summary>
-    private static ReadOnlySpan<byte> QuantizationFamilies =>
-    [
-        0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 10, 11, 12, 12, 13, 14, 14, 15, 16, 16
-    ];
-
-    /// <summary>
-    /// Gets each quantization family's first dimension in eight-sample blocks.
-    /// </summary>
-    private static ReadOnlySpan<byte> MatrixBlockWidths => [1, 1, 1, 1, 2, 4, 1, 1, 2, 1, 1, 8, 4, 16, 8, 32, 16];
-
-    /// <summary>
-    /// Gets each quantization family's second dimension in eight-sample blocks.
-    /// </summary>
-    private static ReadOnlySpan<byte> MatrixBlockHeights => [1, 1, 1, 1, 2, 4, 2, 4, 4, 1, 1, 8, 8, 16, 16, 32, 32];
-
-    /// <summary>
-    /// Selects the matrix-offset entry for a validated raw strategy and component.
-    /// </summary>
-    /// <param name="strategy">The raw strategy code established by AC metadata parsing.</param>
-    /// <param name="component">The X, Y or B component index.</param>
-    /// <returns>The index in <see cref="QuantizationMatrixOffsets"/>.</returns>
-    public static int GetQuantizationMatrixIndex(byte strategy, int component) => (MatrixComponentCount * QuantizationFamilies[strategy]) + component;
-
-    /// <summary>
     /// Reads all matrix descriptions and retains decoder factors only for families used by this frame.
     /// </summary>
     /// <param name="reader">The AC-global reader at the all-default matrix bit.</param>
@@ -143,7 +42,7 @@ internal sealed partial class JxlVarDctDecoder
         ref JxlBitReader reader, JxlModularDecoder modular, MemoryAllocator allocator, CancellationToken cancellationToken)
     {
         uint usedFamilies = 0;
-        for (int strategy = 0; strategy < StrategyCount; strategy++)
+        for (int strategy = 0; strategy < JxlCoefficientOrder.StrategyCount; strategy++)
         {
             if ((this.UsedStrategies & (1U << strategy)) != 0)
             {
@@ -186,7 +85,7 @@ internal sealed partial class JxlVarDctDecoder
                 cancellationToken.ThrowIfCancellationRequested();
                 int mode = allDefault ? 0 : (int)reader.ReadBits(3);
                 MatrixDescription description = mode == 0
-                    ? ReadLibraryMatrix(family, parameters)
+                    ? GetLibraryMatrix(family, parameters)
                     : ReadMatrixDescription(ref reader, family, (byte)mode, parameters);
 
                 int offset = offsets[family * MatrixComponentCount];
@@ -264,41 +163,6 @@ internal sealed partial class JxlVarDctDecoder
     {
         this.quantizationMatrices?.Dispose();
         this.quantizationMatrices = null;
-    }
-
-    /// <summary>
-    /// Expands one format-defined description into reusable parameter storage.
-    /// </summary>
-    /// <param name="family">The quantization family index.</param>
-    /// <param name="parameters">The reusable primary, secondary and special-weight storage.</param>
-    /// <returns>The selected mode and radial band counts.</returns>
-    private static MatrixDescription ReadLibraryMatrix(int family, Span<float> parameters)
-    {
-        byte mode = LibraryMatrixModes[family];
-        int primaryCount = LibraryBandCounts[family];
-        int secondaryCount = LibrarySecondaryBandCounts[family];
-        ReadOnlySpan<float> source = LibraryMatrixParameters[LibraryParameterOffsets[family]..LibraryParameterOffsets[family + 1]];
-        int specialCount = GetSpecialWeightCount(mode);
-        int position = 0;
-        for (int component = 0; component < MatrixComponentCount; component++)
-        {
-            source.Slice(position, specialCount).CopyTo(parameters.Slice(SpecialWeightsOffset + (component * SpecialWeightStride), specialCount));
-            position += specialCount;
-        }
-
-        for (int component = 0; component < MatrixComponentCount; component++)
-        {
-            source.Slice(position, primaryCount).CopyTo(parameters.Slice(component * MaximumDistanceBands, primaryCount));
-            position += primaryCount;
-        }
-
-        for (int component = 0; component < MatrixComponentCount; component++)
-        {
-            source.Slice(position, secondaryCount).CopyTo(parameters.Slice(SecondaryBandsOffset + (component * MaximumDistanceBands), secondaryCount));
-            position += secondaryCount;
-        }
-
-        return new MatrixDescription(mode, primaryCount, secondaryCount);
     }
 
     /// <summary>
@@ -393,54 +257,5 @@ internal sealed partial class JxlVarDctDecoder
         }
 
         return count;
-    }
-
-    /// <summary>
-    /// Gets the number of explicitly stored special weights per component for one matrix mode.
-    /// </summary>
-    /// <param name="mode">The matrix description mode.</param>
-    /// <returns>The special-weight count, or zero for a purely radial description.</returns>
-    private static int GetSpecialWeightCount(byte mode) => mode switch
-    {
-        IdentityMatrixMode => 3,
-        Dct2MatrixMode => 6,
-        Dct4MatrixMode => 2,
-        Dct4X8MatrixMode => 1,
-        AfvMatrixMode => SpecialWeightStride,
-        _ => 0
-    };
-
-    /// <summary>
-    /// Describes the mode and occupied band slots in the current reusable parameter buffer.
-    /// </summary>
-    private readonly struct MatrixDescription
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MatrixDescription"/> struct.
-        /// </summary>
-        /// <param name="mode">The resolved nonlibrary mode.</param>
-        /// <param name="bandCount">The primary radial band count.</param>
-        /// <param name="secondaryBandCount">The secondary AFV radial band count.</param>
-        public MatrixDescription(byte mode, int bandCount, int secondaryBandCount)
-        {
-            this.Mode = mode;
-            this.BandCount = bandCount;
-            this.SecondaryBandCount = secondaryBandCount;
-        }
-
-        /// <summary>
-        /// Gets the resolved description mode.
-        /// </summary>
-        public byte Mode { get; }
-
-        /// <summary>
-        /// Gets the primary radial band count.
-        /// </summary>
-        public int BandCount { get; }
-
-        /// <summary>
-        /// Gets the secondary AFV radial band count.
-        /// </summary>
-        public int SecondaryBandCount { get; }
     }
 }

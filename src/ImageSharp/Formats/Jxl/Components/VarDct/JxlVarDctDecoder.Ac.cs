@@ -19,11 +19,6 @@ internal sealed partial class JxlVarDctDecoder
     private const int ColorTileShift = 3;
 
     /// <summary>
-    /// The 27 raw transform strategies in libjxl ac_strategy.h AcStrategy::Type, before coefficient-order family sharing.
-    /// </summary>
-    private const int StrategyCount = 27;
-
-    /// <summary>
     /// The unassigned block-map sentinel, outside every encoded strategy value. It detects overlapping transform footprints.
     /// </summary>
     private const byte InvalidStrategy = byte.MaxValue;
@@ -90,22 +85,6 @@ internal sealed partial class JxlVarDctDecoder
     public uint UsedStrategies { get; private set; }
 
     /// <summary>
-    /// Gets the number of horizontal DC blocks covered by each validated raw strategy code.
-    /// </summary>
-    public static ReadOnlySpan<byte> StrategyWidths =>
-    [
-        1, 1, 1, 1, 2, 4, 1, 2, 1, 4, 2, 4, 1, 1, 1, 1, 1, 1, 8, 4, 8, 16, 8, 16, 32, 16, 32
-    ];
-
-    /// <summary>
-    /// Gets the number of vertical DC blocks covered by each validated raw strategy code.
-    /// </summary>
-    public static ReadOnlySpan<byte> StrategyHeights =>
-    [
-        1, 1, 1, 1, 2, 4, 2, 1, 4, 1, 4, 2, 1, 1, 1, 1, 1, 1, 8, 8, 4, 16, 16, 8, 32, 32, 16
-    ];
-
-    /// <summary>
     /// Reads one DC group's correlation maps, transform records and sharpness through the shared modular decoder.
     /// </summary>
     /// <param name="reader">The bounded section reader after this group's modular extra-channel data.</param>
@@ -145,8 +124,8 @@ internal sealed partial class JxlVarDctDecoder
         Buffer2DRegion<byte> outputSharpness = this.Sharpness.GetSubRegion(rectangle);
         ReadOnlySpan<int> strategyRecords = targets[2].Region.DangerousGetRowSpan(0);
         ReadOnlySpan<int> quantizerRecords = targets[2].Region.DangerousGetRowSpan(1);
-        ReadOnlySpan<byte> widths = StrategyWidths;
-        ReadOnlySpan<byte> heights = StrategyHeights;
+        ReadOnlySpan<byte> widths = JxlCoefficientOrder.StrategyWidths;
+        ReadOnlySpan<byte> heights = JxlCoefficientOrder.StrategyHeights;
         int record = 0;
 
         for (int y = 0; y < rectangle.Height; y++)
@@ -170,7 +149,7 @@ internal sealed partial class JxlVarDctDecoder
                 }
 
                 int strategy = strategyRecords[record];
-                if ((uint)strategy >= StrategyCount)
+                if ((uint)strategy >= JxlCoefficientOrder.StrategyCount)
                 {
                     throw new InvalidImageContentException("The JPEG XL AC transform strategy is invalid.");
                 }

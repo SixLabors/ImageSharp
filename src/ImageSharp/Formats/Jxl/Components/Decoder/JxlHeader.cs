@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -40,7 +41,7 @@ internal sealed class JxlHeader
     /// <summary>
     /// Gets the three quantization biases and the bias numerator used for small coefficients.
     /// </summary>
-    public Vector4 QuantizationBias { get; private set; } = new(1F - 0.05465007330715401F, 1F - 0.07005449891748593F, 1F - 0.049935103337343655F, 0.145F);
+    public Vector4 QuantizationBias { get; private set; } = JxlQuantization.DefaultBias;
 
     /// <summary>
     /// Gets the custom twofold upsampling kernel weights. Empty storage selects the format defaults.

@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
-internal sealed partial class JxlVarDctDecoder
+internal static partial class JxlQuantization
 {
     /// <summary>
     /// Gets the modes of the seventeen format-defined quantization descriptions.

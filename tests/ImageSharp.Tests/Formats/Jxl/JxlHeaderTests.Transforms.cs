@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -10,6 +11,86 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 
 public partial class JxlHeaderTests
 {
+    /// <summary>
+    /// Checks forward normalization and borrowed source rows at every SIMD width and scalar fallback.
+    /// </summary>
+    /// <param name="rows">The spatial transform height.</param>
+    /// <param name="columns">The spatial transform width.</param>
+    [Theory]
+    [InlineData(8, 8)]
+    [InlineData(8, 16)]
+    [InlineData(16, 8)]
+    [InlineData(32, 32)]
+    [InlineData(128, 256)]
+    public void ForwardDctRetainsSourceStrideAndNormalization(int rows, int columns)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateForwardDct,
+            rows,
+            columns,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks the normalized DCT of a constant rectangle without reading or changing source padding.
+    /// </summary>
+    /// <param name="rowsDump">The serialized spatial height.</param>
+    /// <param name="columnsDump">The serialized spatial width.</param>
+    private static void ValidateForwardDct(string rowsDump, string columnsDump)
+    {
+        int rows = FeatureTestRunner.Deserialize<int>(rowsDump);
+        int columns = FeatureTestRunner.Deserialize<int>(columnsDump);
+        int area = rows * columns;
+        int stride = columns + 3;
+        const float guard = -1234567F;
+        const float value = 0.25F;
+        float[] sourceStorage = new float[(rows * stride) + 2];
+        sourceStorage.AsSpan().Fill(guard);
+        Span<float> source = sourceStorage.AsSpan(1, rows * stride);
+
+        for (int y = 0; y < rows; y++)
+        {
+            source.Slice(y * stride, columns).Fill(value);
+        }
+
+        float[] coefficients = new float[area + 2];
+        coefficients.AsSpan().Fill(guard);
+        float[] temporary = new float[area + 2];
+        temporary.AsSpan().Fill(guard);
+        float[] scratch = new float[(3 * Vector512<float>.Count * Math.Max(rows, columns)) + 2];
+        scratch.AsSpan().Fill(guard);
+        JxlDct.ForwardDct(source, stride, rows, columns, coefficients.AsSpan(1, area), temporary.AsSpan(1, area), scratch.AsSpan(1, scratch.Length - 2));
+
+        // A normalized DCT maps a constant rectangle to its mean at frequency zero.
+        // Every other frequency is zero. Binary fractions and equal-pair subtraction make these expectations exact.
+        Assert.Equal(value, coefficients[1]);
+
+        for (int i = 2; i <= area; i++)
+        {
+            Assert.Equal(0F, coefficients[i]);
+        }
+
+        Assert.Equal(guard, sourceStorage[0]);
+        Assert.Equal(guard, sourceStorage[^1]);
+        Assert.Equal(guard, coefficients[0]);
+        Assert.Equal(guard, coefficients[^1]);
+        Assert.Equal(guard, temporary[0]);
+        Assert.Equal(guard, temporary[^1]);
+        Assert.Equal(guard, scratch[0]);
+        Assert.Equal(guard, scratch[^1]);
+
+        for (int y = 0; y < rows; y++)
+        {
+            for (int x = 0; x < columns; x++)
+            {
+                Assert.Equal(value, source[(y * stride) + x]);
+            }
+
+            for (int x = columns; x < stride; x++)
+            {
+                Assert.Equal(guard, source[(y * stride) + x]);
+            }
+        }
+    }
+
     /// <summary>
     /// Verifies all inverse-transform strategies, DC insertion and strided output at each SIMD width and scalar fallback.
     /// </summary>
@@ -56,11 +137,11 @@ public partial class JxlHeaderTests
             int stride = width + 3;
             float[] outputStorage = new float[(stride * height) + 2];
             outputStorage.AsSpan().Fill(guard);
-            float[] scratchStorage = new float[JxlInverseTransform.GetScratchLength(strategy) + 2];
+            float[] scratchStorage = new float[JxlDct.GetScratchLength(strategy) + 2];
             scratchStorage[0] = guard;
             scratchStorage[^1] = guard;
             Span<float> output = outputStorage.AsSpan(1, stride * height);
-            JxlInverseTransform.Transform(strategy, coefficients, dc.GetRegion(), output, stride, scratchStorage.AsSpan(1, scratchStorage.Length - 2));
+            JxlDct.Transform(strategy, coefficients, dc.GetRegion(), output, stride, scratchStorage.AsSpan(1, scratchStorage.Length - 2));
 
             Assert.Equal(guard, coefficientStorage[0]);
             Assert.Equal(guard, coefficientStorage[^1]);
@@ -297,8 +378,8 @@ public partial class JxlHeaderTests
             coefficients[16] = -0.0625F;
             coefficients[54] = 0.03125F;
             float[] output = new float[64];
-            float[] scratch = new float[JxlInverseTransform.GetScratchLength(strategy)];
-            JxlInverseTransform.Transform(strategy, coefficients, dc.GetRegion(), output, 8, scratch);
+            float[] scratch = new float[JxlDct.GetScratchLength(strategy)];
+            JxlDct.Transform(strategy, coefficients, dc.GetRegion(), output, 8, scratch);
             int origin = origins[strategy - 14];
             ReadOnlySpan<uint> expected = NonconstantAfvPoints(strategy);
             for (int y = 0; y < 8; y++)

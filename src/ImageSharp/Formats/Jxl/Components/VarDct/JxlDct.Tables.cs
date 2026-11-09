@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 /// <content>
 /// Contains the fixed AFV basis, DCT butterfly multipliers and DC resampling scales used by libjxl.
 /// </content>
-internal static partial class JxlInverseTransform
+internal static partial class JxlDct
 {
     /// <summary>
     /// The square-root-of-two coefficient in libjxl dct-inl.h B and BTranspose.

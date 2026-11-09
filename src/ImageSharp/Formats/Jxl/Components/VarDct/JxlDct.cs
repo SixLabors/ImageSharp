@@ -10,9 +10,9 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 /// <summary>
-/// Reconstructs JPEG XL VarDCT samples from dequantized coefficients and the separate DC grid.
+/// Converts between JPEG XL VarDCT samples and normalized transform coefficients.
 /// </summary>
-internal static partial class JxlInverseTransform
+internal static partial class JxlDct
 {
     /// <summary>
     /// The loaded axis and two recursive temporary batches retained by TransformColumns.
@@ -33,8 +33,8 @@ internal static partial class JxlInverseTransform
     /// <returns>The required number of floats. The same storage can serve successive transforms.</returns>
     public static int GetScratchLength(byte strategy)
     {
-        int width = JxlVarDctDecoder.StrategyWidths[strategy] * 8;
-        int height = JxlVarDctDecoder.StrategyHeights[strategy] * 8;
+        int width = JxlCoefficientOrder.StrategyWidths[strategy] * 8;
+        int height = JxlCoefficientOrder.StrategyHeights[strategy] * 8;
         int area = width * height;
 
         // One area-sized plane holds the transpose. Three longest-axis batches reserve the widest supported
@@ -62,8 +62,8 @@ internal static partial class JxlInverseTransform
         int destinationStride,
         Span<float> scratch)
     {
-        int width = JxlVarDctDecoder.StrategyWidths[strategy] * 8;
-        int height = JxlVarDctDecoder.StrategyHeights[strategy] * 8;
+        int width = JxlCoefficientOrder.StrategyWidths[strategy] * 8;
+        int height = JxlCoefficientOrder.StrategyHeights[strategy] * 8;
         InsertLowFrequencies(coefficients, dc, width, height, scratch);
         switch (strategy)
         {
@@ -116,7 +116,7 @@ internal static partial class JxlInverseTransform
             dc.DangerousGetRowSpan(y).CopyTo(input.Slice(y * dcWidth, dcWidth));
         }
 
-        ForwardDct(input, dcHeight, dcWidth, output, temporary, scratch[(3 * area)..]);
+        ForwardDct(input, dcWidth, dcHeight, dcWidth, output, temporary, scratch[(3 * area)..]);
         int shorter = Math.Min(dcWidth, dcHeight);
         int longer = Math.Max(dcWidth, dcHeight);
         ReadOnlySpan<float> verticalScale = GetResample(shorter);
@@ -137,14 +137,22 @@ internal static partial class JxlInverseTransform
     /// <summary>
     /// Applies the normalized forward DCT to a spatial rectangle and writes the longer-axis coefficient layout.
     /// </summary>
-    /// <param name="source">The contiguous spatial input.</param>
+    /// <param name="source">The spatial input at the transform origin. Each row contains at least columns samples.</param>
+    /// <param name="sourceStride">The distance between source row starts, in floats. Padding is not read.</param>
     /// <param name="rows">The spatial height.</param>
     /// <param name="columns">The spatial width.</param>
-    /// <param name="destination">The normalized coefficients.</param>
-    /// <param name="temporary">One disjoint matrix plane.</param>
-    /// <param name="scratch">The axis storage.</param>
-    private static void ForwardDct(
+    /// <param name="destination">The contiguous normalized coefficients, with the longer frequency axis contiguous.</param>
+    /// <param name="temporary">One disjoint matrix plane with rows * columns floats.</param>
+    /// <param name="scratch">Three axis batches, each with max(rows * min(columns, 16), columns * min(rows, 16)) floats.</param>
+    /// <remarks>
+    /// Axis lengths are powers of two from one through 256. The caller supplies disjoint input, output and workspace.
+    /// Each axis includes its 1/N normalization, so coefficient zero is the source rectangle's mean.
+    /// Square transforms store the horizontal frequency in the row index and the vertical frequency in the column index.
+    /// Each batch reserves at most sixteen independent columns. Eight-by-eight transforms need 192 scratch floats at every SIMD width.
+    /// </remarks>
+    public static void ForwardDct(
         ReadOnlySpan<float> source,
+        int sourceStride,
         int rows,
         int columns,
         Span<float> destination,
@@ -153,14 +161,14 @@ internal static partial class JxlInverseTransform
     {
         if (rows < columns)
         {
-            TransformAxis(source, columns, temporary, columns, rows, columns, scratch, false);
+            TransformAxis(source, sourceStride, temporary, columns, rows, columns, scratch, false);
             SimdUtils.Transpose(temporary, columns, destination, rows, rows, columns);
             TransformAxis(destination, rows, temporary, rows, columns, rows, scratch, false);
             SimdUtils.Transpose(temporary, rows, destination, columns, columns, rows);
         }
         else
         {
-            TransformAxis(source, columns, destination, columns, rows, columns, scratch, false);
+            TransformAxis(source, sourceStride, destination, columns, rows, columns, scratch, false);
             SimdUtils.Transpose(destination, columns, temporary, rows, rows, columns);
             TransformAxis(temporary, rows, destination, rows, columns, rows, scratch, false);
         }

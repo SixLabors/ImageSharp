@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
-internal sealed partial class JxlVarDctDecoder
+internal static partial class JxlQuantization
 {
     // The bounded base-two interpolation uses the native 3/3 rational approximation on [0,1).
     // Keep one coefficient set so scalar and SIMD evaluation cannot diverge during maintenance.
@@ -77,7 +77,7 @@ internal sealed partial class JxlVarDctDecoder
     /// Establishes the format's weight limits and replaces retained relative weights with decoder factors in place.
     /// </summary>
     /// <param name="weights">The complete generated component planes.</param>
-    private static void InvertQuantizationWeights(Span<float> weights)
+    public static void InvertQuantizationWeights(Span<float> weights)
     {
         ref float first = ref MemoryMarshal.GetReference(weights);
         int i = 0;

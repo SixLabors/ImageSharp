@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
 /// <summary>
-/// Contains JPEG XL format identifiers.
+/// Contains JPEG XL format identifiers and shared context counts.
 /// </summary>
 internal static class JxlConstants
 {
@@ -12,6 +12,22 @@ internal static class JxlConstants
     /// The seventeen quantization-table stream IDs reserved before modular AC groups, including in modular-only frames.
     /// </summary>
     public const int QuantizationTableCount = 17;
+
+    /// <summary>
+    /// The fifteen block contexts selected by the default VarDCT block map.
+    /// </summary>
+    public const int DefaultBlockContextCount = 15;
+
+    /// <summary>
+    /// The 37 predicted nonzero-count buckets used before each block context's coefficient-density contexts.
+    /// </summary>
+    public const int NonzeroContextCount = 37;
+
+    /// <summary>
+    /// The 458 coefficient-density buckets per VarDCT block context.
+    /// This is one plus the largest valid density context when remaining nonzeros plus frequency is below 64.
+    /// </summary>
+    public const int ZeroDensityContextCount = 458;
 
     /// <summary>
     /// The maximum encoded byte length of a frame or extra-channel name: 48 plus a 10-bit unsigned value.

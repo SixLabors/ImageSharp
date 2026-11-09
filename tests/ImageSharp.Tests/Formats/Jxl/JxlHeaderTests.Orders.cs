@@ -41,7 +41,7 @@ public partial class JxlHeaderTests
         JxlBitReader reader = new(new JxlCodestreamReader(orderBuffered));
         Assert.Equal(0x0AFFU, reader.ReadBits(16));
         long start = reader.Position;
-        int[] offsets = new int[JxlVarDctDecoder.CoefficientOrderCount];
+        int[] offsets = new int[JxlCoefficientOrder.CoefficientOrderCount];
         using IMemoryOwner<uint> owner = varDct.ReadCoefficientOrders(ref reader, Configuration.Default.MemoryAllocator, usedStrategies, offsets, default);
         ReadOnlySpan<uint> orders = owner.Memory.Span;
 
@@ -62,7 +62,7 @@ public partial class JxlHeaderTests
         {
             uint[] expected = natural8.ToArray();
             (expected[1 + component], expected[2 + component]) = (expected[2 + component], expected[1 + component]);
-            int index = JxlVarDctDecoder.GetCoefficientOrderIndex(12, component);
+            int index = JxlCoefficientOrder.GetCoefficientOrderIndex(12, component);
             Assert.Equal((ReadOnlySpan<uint>)expected, orders.Slice(offsets[index], expected.Length));
         }
 
@@ -76,10 +76,10 @@ public partial class JxlHeaderTests
         ReadOnlySpan<uint> largePrefix = [0, 1, 16, 17, 32, 2, 3, 18];
         for (int component = 0; component < 3; component++)
         {
-            int index = JxlVarDctDecoder.GetCoefficientOrderIndex(4, component);
+            int index = JxlCoefficientOrder.GetCoefficientOrderIndex(4, component);
             if (retainLargeFamily)
             {
-                ReadOnlySpan<uint> actual = orders.Slice(offsets[index], JxlVarDctDecoder.GetCoefficientOrderSize(4));
+                ReadOnlySpan<uint> actual = orders.Slice(offsets[index], JxlCoefficientOrder.GetCoefficientOrderSize(4));
 
                 // Native sixteen-by-sixteen orders have four fixed LF entries, not one. Hashes cover each complete
                 // 256-entry array returned by both references; explicit prefix and swap checks state their meaning.
@@ -120,9 +120,9 @@ public partial class JxlHeaderTests
 
         uint[] actual = new uint[expected.Length + 2];
         actual.AsSpan().Fill(uint.MaxValue);
-        JxlVarDctDecoder.WriteNaturalCoefficientOrder(strategy, actual.AsSpan(1, expected.Length), default);
+        JxlCoefficientOrder.WriteNaturalCoefficientOrder(strategy, actual.AsSpan(1, expected.Length), default);
 
-        Assert.Equal(expected.Length, JxlVarDctDecoder.GetCoefficientOrderSize(strategy));
+        Assert.Equal(expected.Length, JxlCoefficientOrder.GetCoefficientOrderSize(strategy));
         Assert.Equal(expected, actual.AsSpan(1, expected.Length));
         Assert.Equal(uint.MaxValue, actual[0]);
         Assert.Equal(uint.MaxValue, actual[^1]);

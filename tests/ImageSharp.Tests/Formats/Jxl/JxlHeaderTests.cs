@@ -466,7 +466,7 @@ public partial class JxlHeaderTests
         ];
 
         Assert.Equal(naturalOrder, varDct.GetCoefficientOrders(0).Span);
-        int orderIndex = JxlVarDctDecoder.GetCoefficientOrderIndex((byte)strategy, 0);
+        int orderIndex = JxlCoefficientOrder.GetCoefficientOrderIndex((byte)strategy, 0);
         ReadOnlySpan<int> offsets = varDct.GetCoefficientOrderOffsets(0);
         for (int i = 0; i < offsets.Length; i++)
         {
@@ -476,7 +476,7 @@ public partial class JxlHeaderTests
         // The selected matrices contain three 64-coefficient planes. The unused quantization families
         // have no retained storage. Matrix arithmetic has separate native-backed all-mode and SIMD checks.
         Assert.Equal(3 * naturalOrder.Length, varDct.QuantizationMatrices.Length);
-        int matrixIndex = JxlVarDctDecoder.GetQuantizationMatrixIndex((byte)strategy, 0);
+        int matrixIndex = JxlQuantization.GetQuantizationMatrixIndex((byte)strategy, 0);
         ReadOnlySpan<int> matrixOffsets = varDct.QuantizationMatrixOffsets;
         for (int i = 0; i < matrixOffsets.Length; i++)
         {

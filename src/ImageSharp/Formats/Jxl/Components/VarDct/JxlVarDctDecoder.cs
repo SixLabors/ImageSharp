@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 internal sealed partial class JxlVarDctDecoder : IDisposable
 {
     /// <summary>
-    /// The thirteen shared coefficient-order families from libjxl coeff_order_fwd.h kNumOrders.
-    /// </summary>
-    private const int OrderCount = 13;
-
-    /// <summary>
     /// The largest threshold count encoded by a four-bit field in libjxl entropy_coder.cc DecodeBlockCtxMap.
     /// </summary>
     private const int MaximumThresholds = 15;
@@ -39,18 +34,6 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// The largest number of clustered block contexts permitted by native DecodeBlockCtxMap.
     /// </summary>
     private const int MaximumBlockContexts = 16;
-
-    /// <summary>
-    /// The 37 predicted nonzero-count buckets from libjxl ac_context.h kNonZeroBuckets.
-    /// Each block context uses these before its separate coefficient-density contexts.
-    /// </summary>
-    private const int NonzeroContextCount = 37;
-
-    /// <summary>
-    /// The 458 coefficient-density buckets from libjxl ac_context.h kZeroDensityContextCount.
-    /// This is one plus the largest valid ZeroDensityContext result when remaining nonzeros plus frequency is below 64.
-    /// </summary>
-    private const int ZeroDensityContextCount = 458;
 
     /// <summary>
     /// The fixed 2^16 denominator of global quantization scale in libjxl quantizer.h kGlobalScaleDenom.
@@ -128,7 +111,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
     /// <summary>
     /// Gets the number of AC symbol contexts in each histogram set.
     /// </summary>
-    public int AcContextCount => this.BlockContextCount * (NonzeroContextCount + ZeroDensityContextCount);
+    public int AcContextCount => this.BlockContextCount * (JxlConstants.NonzeroContextCount + JxlConstants.ZeroDensityContextCount);
 
     /// <summary>
     /// Gets the block context map. Borrow this span once before traversing blocks.
@@ -214,7 +197,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
                 // The default map has no thresholds: one DC bucket and one AC quantization bucket.
                 // Its static bytes need no per-frame allocation and remain valid until this owner is disposed.
                 result.DcContextCount = 1;
-                result.BlockContextCount = 15;
+                result.BlockContextCount = JxlConstants.DefaultBlockContextCount;
             }
             else
             {
@@ -242,7 +225,7 @@ internal sealed partial class JxlVarDctDecoder : IDisposable
 
                 // Validate the product before allocating. The format permits at most 3 * 13 * 64 = 2496 map bytes.
                 // The shared entropy decoder consumes the complete map and validates its cluster numbering.
-                result.blockContextMap = allocator.Allocate<byte>(3 * OrderCount * combinations);
+                result.blockContextMap = allocator.Allocate<byte>(3 * JxlCoefficientOrder.OrderCount * combinations);
                 Span<byte> map = result.blockContextMap.Memory.Span;
                 JxlEntropyDecoder.ReadContextMap(ref reader, allocator, map);
                 int contexts = 1;

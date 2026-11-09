@@ -69,7 +69,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         // use units of 1/128. Retain those fractions until coefficient dequantization.
         if (reader.ReadBoolean())
         {
-            return new Vector3(1F / 4096F, 1F / 512F, 1F / 256F);
+            return JxlQuantization.DefaultDcFactors;
         }
 
         Vector3 factors = new Vector3(reader.ReadHalf(), reader.ReadHalf(), reader.ReadHalf()) * encodedFactorScale;

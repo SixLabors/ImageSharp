@@ -234,9 +234,9 @@ internal sealed partial class JxlVarDctDecoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Invoke(int qx, int qy, int qb, float mx, float my, float mb, out float x, out float y, out float b)
         {
-            y = this.AdjustBias(qy, this.bias.Y) * (my * this.scale.Y);
-            x = float.MultiplyAddEstimate(this.correlation.X, y, this.AdjustBias(qx, this.bias.X) * (mx * this.scale.X));
-            b = float.MultiplyAddEstimate(this.correlation.Y, y, this.AdjustBias(qb, this.bias.Z) * (mb * this.scale.Z));
+            y = JxlQuantization.AdjustBias(qy, this.bias.Y, this.bias.W) * (my * this.scale.Y);
+            x = float.MultiplyAddEstimate(this.correlation.X, y, JxlQuantization.AdjustBias(qx, this.bias.X, this.bias.W) * (mx * this.scale.X));
+            b = float.MultiplyAddEstimate(this.correlation.Y, y, JxlQuantization.AdjustBias(qb, this.bias.Z, this.bias.W) * (mb * this.scale.Z));
         }
 
         /// <summary>
@@ -263,12 +263,16 @@ internal sealed partial class JxlVarDctDecoder
             out Vector128<float> y,
             out Vector128<float> b)
         {
-            y = this.AdjustBias(Vector128.ConvertToSingle(qy), this.bias.Y) * (my * Vector128.Create(this.scale.Y));
+            y = JxlQuantization.AdjustBias(Vector128.ConvertToSingle(qy), this.bias.Y, this.bias.W) * (my * Vector128.Create(this.scale.Y));
             x = Vector128.MultiplyAddEstimate(
-                Vector128.Create(this.correlation.X), y, this.AdjustBias(Vector128.ConvertToSingle(qx), this.bias.X) * (mx * Vector128.Create(this.scale.X)));
+                Vector128.Create(this.correlation.X),
+                y,
+                JxlQuantization.AdjustBias(Vector128.ConvertToSingle(qx), this.bias.X, this.bias.W) * (mx * Vector128.Create(this.scale.X)));
 
             b = Vector128.MultiplyAddEstimate(
-                Vector128.Create(this.correlation.Y), y, this.AdjustBias(Vector128.ConvertToSingle(qb), this.bias.Z) * (mb * Vector128.Create(this.scale.Z)));
+                Vector128.Create(this.correlation.Y),
+                y,
+                JxlQuantization.AdjustBias(Vector128.ConvertToSingle(qb), this.bias.Z, this.bias.W) * (mb * Vector128.Create(this.scale.Z)));
         }
 
         /// <summary>
@@ -295,12 +299,16 @@ internal sealed partial class JxlVarDctDecoder
             out Vector256<float> y,
             out Vector256<float> b)
         {
-            y = this.AdjustBias(Vector256.ConvertToSingle(qy), this.bias.Y) * (my * Vector256.Create(this.scale.Y));
+            y = JxlQuantization.AdjustBias(Vector256.ConvertToSingle(qy), this.bias.Y, this.bias.W) * (my * Vector256.Create(this.scale.Y));
             x = Vector256.MultiplyAddEstimate(
-                Vector256.Create(this.correlation.X), y, this.AdjustBias(Vector256.ConvertToSingle(qx), this.bias.X) * (mx * Vector256.Create(this.scale.X)));
+                Vector256.Create(this.correlation.X),
+                y,
+                JxlQuantization.AdjustBias(Vector256.ConvertToSingle(qx), this.bias.X, this.bias.W) * (mx * Vector256.Create(this.scale.X)));
 
             b = Vector256.MultiplyAddEstimate(
-                Vector256.Create(this.correlation.Y), y, this.AdjustBias(Vector256.ConvertToSingle(qb), this.bias.Z) * (mb * Vector256.Create(this.scale.Z)));
+                Vector256.Create(this.correlation.Y),
+                y,
+                JxlQuantization.AdjustBias(Vector256.ConvertToSingle(qb), this.bias.Z, this.bias.W) * (mb * Vector256.Create(this.scale.Z)));
         }
 
         /// <summary>
@@ -327,55 +335,16 @@ internal sealed partial class JxlVarDctDecoder
             out Vector512<float> y,
             out Vector512<float> b)
         {
-            y = this.AdjustBias(Vector512.ConvertToSingle(qy), this.bias.Y) * (my * Vector512.Create(this.scale.Y));
+            y = JxlQuantization.AdjustBias(Vector512.ConvertToSingle(qy), this.bias.Y, this.bias.W) * (my * Vector512.Create(this.scale.Y));
             x = Vector512.MultiplyAddEstimate(
-                Vector512.Create(this.correlation.X), y, this.AdjustBias(Vector512.ConvertToSingle(qx), this.bias.X) * (mx * Vector512.Create(this.scale.X)));
+                Vector512.Create(this.correlation.X),
+                y,
+                JxlQuantization.AdjustBias(Vector512.ConvertToSingle(qx), this.bias.X, this.bias.W) * (mx * Vector512.Create(this.scale.X)));
 
             b = Vector512.MultiplyAddEstimate(
-                Vector512.Create(this.correlation.Y), y, this.AdjustBias(Vector512.ConvertToSingle(qb), this.bias.Z) * (mb * Vector512.Create(this.scale.Z)));
-        }
-
-        /// <summary>
-        /// Preserves zero, scales unit magnitudes, and corrects larger signed coefficients by numerator divided by coefficient.
-        /// </summary>
-        /// <param name="value">The signed coefficient converted to float.</param>
-        /// <param name="unitBias">The component's unit-magnitude bias.</param>
-        /// <returns>The bias-adjusted coefficient.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private float AdjustBias(float value, float unitBias)
-            => MathF.Abs(value) < 2F ? value * unitBias : value - (this.bias.W / value);
-
-        /// <inheritdoc cref="AdjustBias(float, float)" />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector128<float> AdjustBias(Vector128<float> value, float unitBias)
-        {
-            // Compare float magnitudes so int.MinValue cannot overflow an integer absolute value.
-            // Zero and unit lanes select the multiplication result; the unused divide-by-zero lanes do not affect output.
-            Vector128<float> small = value * Vector128.Create(unitBias);
-            Vector128<float> large = value - (Vector128.Create(this.bias.W) / value);
-            return Vector128.ConditionalSelect(Vector128.LessThan(Vector128.Abs(value), Vector128.Create(2F)), small, large);
-        }
-
-        /// <inheritdoc cref="AdjustBias(float, float)" />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector256<float> AdjustBias(Vector256<float> value, float unitBias)
-        {
-            // Compare float magnitudes so int.MinValue cannot overflow an integer absolute value.
-            // Zero and unit lanes select the multiplication result; the unused divide-by-zero lanes do not affect output.
-            Vector256<float> small = value * Vector256.Create(unitBias);
-            Vector256<float> large = value - (Vector256.Create(this.bias.W) / value);
-            return Vector256.ConditionalSelect(Vector256.LessThan(Vector256.Abs(value), Vector256.Create(2F)), small, large);
-        }
-
-        /// <inheritdoc cref="AdjustBias(float, float)" />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector512<float> AdjustBias(Vector512<float> value, float unitBias)
-        {
-            // Compare float magnitudes so int.MinValue cannot overflow an integer absolute value.
-            // Zero and unit lanes select the multiplication result; the unused divide-by-zero lanes do not affect output.
-            Vector512<float> small = value * Vector512.Create(unitBias);
-            Vector512<float> large = value - (Vector512.Create(this.bias.W) / value);
-            return Vector512.ConditionalSelect(Vector512.LessThan(Vector512.Abs(value), Vector512.Create(2F)), small, large);
+                Vector512.Create(this.correlation.Y),
+                y,
+                JxlQuantization.AdjustBias(Vector512.ConvertToSingle(qb), this.bias.Z, this.bias.W) * (mb * Vector512.Create(this.scale.Z)));
         }
     }
 }

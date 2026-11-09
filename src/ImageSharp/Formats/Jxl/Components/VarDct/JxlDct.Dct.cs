@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 /// <content>
 /// Contains the separable radix-two DCT. A SIMD lane carries one independent column through the complete butterfly network.
 /// </content>
-internal static partial class JxlInverseTransform
+internal static partial class JxlDct
 {
     /// <summary>
     /// Defines lane-local arithmetic and unaligned memory access for the shared transform network.

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 /// <content>
 /// Contains the fixed 32-point inverse butterfly. Each lane carries one independent column.
 /// </content>
-internal static partial class JxlInverseTransform
+internal static partial class JxlDct
 {
     /// <summary>
     /// Reconstructs 32-point columns with the existing radix-two arithmetic and no intermediate split copies.
@@ -39,10 +39,10 @@ internal static partial class JxlInverseTransform
         // Each lane follows the same unnormalized butterfly. The caller handles SIMD width and column remainders.
 <#
     // Emit the existing C# inverse network, including its fixed four- and eight-point leaves. Only variable names
-    // and graph connections are generated. All multipliers and the shared RootTwo coefficient remain in JxlInverseTransform.Tables.cs. This template
+    // and graph connections are generated. All multipliers and the shared RootTwo coefficient remain in JxlDct.Tables.cs. This template
     // does not calculate trigonometric constants or introduce another rounded definition of a coefficient.
     // Preserve current+preceding add order, separate sqrt(2) multiplication and the existing multiply-add operators.
-    // Regenerate with: t4 JxlInverseTransform.Dct.Generated.tt -o JxlInverseTransform.Dct.Generated.cs
+    // Regenerate with: t4 JxlDct.Dct.Generated.tt -o JxlDct.Dct.Generated.cs
     int next = 32;
     bool[] loadedInputs = new bool[32];
 

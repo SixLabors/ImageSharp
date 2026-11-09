@@ -88,7 +88,7 @@ public partial class JxlHeaderTests
         Assert.Equal(1U << strategy, varDct.UsedStrategies);
         Assert.Equal(3 * 64, varDct.QuantizationMatrices.Length);
 
-        int firstOffset = JxlVarDctDecoder.GetQuantizationMatrixIndex((byte)strategy, 0);
+        int firstOffset = JxlQuantization.GetQuantizationMatrixIndex((byte)strategy, 0);
         for (int i = 0; i < varDct.QuantizationMatrixOffsets.Length; i++)
         {
             int expected = i >= firstOffset && i < firstOffset + 3 ? (i - firstOffset) * 64 : -1;
@@ -166,7 +166,7 @@ public partial class JxlHeaderTests
         varDct.ReadQuantizationMatrices(ref reader, modular, Configuration.Default.MemoryAllocator, default);
         Assert.Equal(16 + 753, reader.Position);
         Assert.Equal(3 * area, varDct.QuantizationMatrices.Length);
-        int firstOffset = JxlVarDctDecoder.GetQuantizationMatrixIndex((byte)strategy, 0);
+        int firstOffset = JxlQuantization.GetQuantizationMatrixIndex((byte)strategy, 0);
         for (int i = 0; i < varDct.QuantizationMatrixOffsets.Length; i++)
         {
             int expected = i >= firstOffset && i < firstOffset + 3 ? (i - firstOffset) * area : -1;
@@ -231,7 +231,7 @@ public partial class JxlHeaderTests
         foreach (int length in lengths)
         {
             rawOutput.AsSpan().Fill(float.NegativeInfinity);
-            JxlVarDctDecoder.ConvertRawQuantizationRow(raw[..length], rawOutput.AsSpan(1, length), 0.5F);
+            JxlQuantization.ConvertRawQuantizationRow(raw[..length], rawOutput.AsSpan(1, length), 0.5F);
             for (int i = 0; i < length; i++)
             {
                 // RAW integers use the native expression 1 / (denominator * sample), before the decoder reciprocal.
@@ -248,7 +248,7 @@ public partial class JxlHeaderTests
         {
             invalidRaw[index] = index == 0 ? 0 : -1;
             Assert.Throws<InvalidImageContentException>(
-                () => JxlVarDctDecoder.ConvertRawQuantizationRow(invalidRaw, rawOutput.AsSpan(1, invalidRaw.Length), 0.5F));
+                () => JxlQuantization.ConvertRawQuantizationRow(invalidRaw, rawOutput.AsSpan(1, invalidRaw.Length), 0.5F));
 
             invalidRaw[index] = raw[index];
         }
@@ -271,7 +271,7 @@ public partial class JxlHeaderTests
             {
                 const int rows = 4;
                 output.AsSpan().Fill(float.NegativeInfinity);
-                JxlVarDctDecoder.GenerateRadialQuantization(parameters, rows, width, output.AsSpan(1, rows * width));
+                JxlQuantization.GenerateRadialQuantization(parameters, rows, width, output.AsSpan(1, rows * width));
                 for (int y = 0; y < rows; y++)
                 {
                     for (int x = 0; x < width; x++)

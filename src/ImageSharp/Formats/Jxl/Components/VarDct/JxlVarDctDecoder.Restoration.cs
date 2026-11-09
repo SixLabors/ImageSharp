@@ -68,7 +68,7 @@ internal sealed partial class JxlVarDctDecoder
             if ((strategy & FirstBlockFlag) != 0)
             {
                 float term = filter.QuantizationMultiplier / (quantizationScale * origins[x] * JxlRestoration.InverseSigmaNumerator);
-                quantizationSigma.Slice(x, StrategyWidths[strategy >> 1]).Fill(term);
+                quantizationSigma.Slice(x, JxlCoefficientOrder.StrategyWidths[strategy >> 1]).Fill(term);
             }
 
             // A continuation keeps the quantizer of its transform origin, while sharpness belongs to each block.

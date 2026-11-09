@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
-internal sealed partial class JxlVarDctDecoder
+internal static partial class JxlQuantization
 {
     /// <summary>
     /// Generates one component's positive frequency weights from a seed and multiplicative radial band deltas.
@@ -129,7 +129,7 @@ internal sealed partial class JxlVarDctDecoder
     /// <param name="height">The family's second coefficient dimension.</param>
     /// <param name="destination">Three contiguous coefficient planes.</param>
     /// <param name="cancellationToken">The token checked between component planes.</param>
-    private static void GenerateMatrix(
+    public static void GenerateMatrix(
         MatrixDescription description, ReadOnlySpan<float> parameters, int width, int height, Span<float> destination, CancellationToken cancellationToken)
     {
         int area = width * height;

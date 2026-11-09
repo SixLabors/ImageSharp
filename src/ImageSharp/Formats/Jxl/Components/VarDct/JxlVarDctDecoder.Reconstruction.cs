@@ -70,13 +70,13 @@ internal sealed partial class JxlVarDctDecoder
             1F,
             MathF.Pow(0.8F, frame.BQuantizationScale - 2));
 
-        for (byte strategy = 0; strategy < StrategyCount; strategy++)
+        for (byte strategy = 0; strategy < JxlCoefficientOrder.StrategyCount; strategy++)
         {
             if ((this.UsedStrategies & (1U << strategy)) != 0)
             {
-                int area = CoefficientBlockArea * StrategyWidths[strategy] * StrategyHeights[strategy];
+                int area = CoefficientBlockArea * JxlCoefficientOrder.StrategyWidths[strategy] * JxlCoefficientOrder.StrategyHeights[strategy];
                 this.reconstructionBlockArea = Math.Max(this.reconstructionBlockArea, area);
-                this.inverseScratchLength = Math.Max(this.inverseScratchLength, JxlInverseTransform.GetScratchLength(strategy));
+                this.inverseScratchLength = Math.Max(this.inverseScratchLength, JxlDct.GetScratchLength(strategy));
             }
         }
 
@@ -291,13 +291,13 @@ internal sealed partial class JxlVarDctDecoder
             {
                 // The inverse kernel already accepts a physical row stride. Write a complete block directly
                 // when all its rows share one backing allocation. Padding in the group strip includes edge blocks.
-                JxlInverseTransform.Transform(strategy, coefficients.Slice(component * area, area), dc, direct[outputLeft..], output.Stride, scratch);
+                JxlDct.Transform(strategy, coefficients.Slice(component * area, area), dc, direct[outputLeft..], output.Stride, scratch);
                 continue;
             }
 
             // Partial retained-image edges and blocks crossing allocation boundaries still need contiguous
             // transform scratch. Copy only visible samples; keep the complete padded inverse arithmetic.
-            JxlInverseTransform.Transform(
+            JxlDct.Transform(
                 strategy, coefficients.Slice(component * area, area), dc, spatial[..area], blockWidth * BlockSize, scratch);
 
             for (int row = 0; row < height; row++)

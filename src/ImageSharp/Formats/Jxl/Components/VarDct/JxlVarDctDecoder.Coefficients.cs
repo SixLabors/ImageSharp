@@ -270,9 +270,9 @@ internal sealed partial class JxlVarDctDecoder
         // Native and Rust select the entropy mode before decoding coefficients. The constrained operator
         // removes unused coding and history paths from this loop while retaining one shared traversal.
         Span<uint> history = TOperator.UsesLz77 ? this.coefficientHistoryMemory.Span : [];
-        ReadOnlySpan<byte> widths = StrategyWidths;
-        ReadOnlySpan<byte> heights = StrategyHeights;
-        ReadOnlySpan<byte> orderFamilies = StrategyOrderFamilies;
+        ReadOnlySpan<byte> widths = JxlCoefficientOrder.StrategyWidths;
+        ReadOnlySpan<byte> heights = JxlCoefficientOrder.StrategyHeights;
+        ReadOnlySpan<byte> orderFamilies = JxlCoefficientOrder.StrategyOrderFamilies;
         Span<byte> nonzeroStorage = this.nonzeroMemory.Span;
         Span<byte> nonzeros = nonzeroStorage[..(nonzeroStorage.Length / 2)];
         Span<byte> hasAc = nonzeroStorage[nonzeros.Length..];
@@ -364,7 +364,7 @@ internal sealed partial class JxlVarDctDecoder
                     }
 
                     int mapComponent = component < 2 ? component ^ 1 : component;
-                    int mapIndex = (((mapComponent * OrderCount) + orderFamily) * (quantizerThresholds.Length + 1)) + quantizerBucket;
+                    int mapIndex = (((mapComponent * JxlCoefficientOrder.OrderCount) + orderFamily) * (quantizerThresholds.Length + 1)) + quantizerBucket;
                     int blockContext = blockContexts[(mapIndex * dcContextCount) + dcRow[x]];
                     int predictionBucket = predicted < 8 ? predicted : 4 + (predicted / 2);
                     int countContext = histogramOffset + (predictionBucket * blockContextCount) + blockContext;
@@ -390,7 +390,9 @@ internal sealed partial class JxlVarDctDecoder
                         acComponents |= 1 << component;
                     }
 
-                    int densityOffset = histogramOffset + (blockContextCount * NonzeroContextCount) + (blockContext * ZeroDensityContextCount);
+                    int densityOffset = histogramOffset
+                        + (blockContextCount * JxlConstants.NonzeroContextCount)
+                        + (blockContext * JxlConstants.ZeroDensityContextCount);
                     ReadOnlySpan<uint> order = orders.Slice(orderOffsets[(orderFamily * 3) + component], size);
                     Span<TCoefficient> block = coefficients.Slice(positions[component], size);
                     positions[component] += size;
@@ -421,7 +423,7 @@ internal sealed partial class JxlVarDctDecoder
                     ReadOnlySpan<TCoefficient> qy = (active & 2) != 0 ? coefficients.Slice(positions[1] - size, size) : zeros[..size];
                     ReadOnlySpan<TCoefficient> qb = (active & 4) != 0 ? coefficients.Slice(positions[2] - size, size) : zeros[..size];
                     int fullX = rectangle.X + x;
-                    int matrixOffset = matrixOffsets[GetQuantizationMatrixIndex(strategy, 0)];
+                    int matrixOffset = matrixOffsets[JxlQuantization.GetQuantizationMatrixIndex(strategy, 0)];
                     Vector2 correlation = new(
                         this.BaseCorrelationX + (correlationX[fullX >> ColorTileShift] * this.ColorScale),
                         this.BaseCorrelationB + (correlationB[fullX >> ColorTileShift] * this.ColorScale));

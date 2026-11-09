@@ -62,10 +62,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Av1QuantizationMatrixLookup.Distortion.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\Jxl\Components\VarDct\JxlInverseTransform.Dct.Generated.cs">
+    <Compile Update="Formats\Jxl\Components\VarDct\JxlDct.Dct.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>JxlInverseTransform.Dct.Generated.tt</DependentUpon>
+      <DependentUpon>JxlDct.Dct.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="Common\InlineArray.cs">
       <DesignTime>True</DesignTime>
@@ -198,9 +198,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Av1QuantizationMatrixLookup.Distortion.cs</LastGenOutput>
     </None>
-    <None Update="Formats\Jxl\Components\VarDct\JxlInverseTransform.Dct.Generated.tt">
+    <None Update="Formats\Jxl\Components\VarDct\JxlDct.Dct.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>JxlInverseTransform.Dct.Generated.cs</LastGenOutput>
+      <LastGenOutput>JxlDct.Dct.Generated.cs</LastGenOutput>
     </None>
     <None Update="Common\InlineArray.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

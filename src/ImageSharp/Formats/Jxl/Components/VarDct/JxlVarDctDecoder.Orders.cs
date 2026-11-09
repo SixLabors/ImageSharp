@@ -11,49 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 internal sealed partial class JxlVarDctDecoder
 {
-    /// <summary>
-    /// The number of component-order offsets: thirteen transform families, each with X, Y and B components.
-    /// </summary>
-    public const int CoefficientOrderCount = 3 * OrderCount;
-
     private const int CoefficientBlockArea = BlockSize * BlockSize;
 
-    // Poll cancellation before the first diagonal position, then after each 1024 positions visited.
-    // The counter continues across both diagonal loops and includes positions discarded for rectangular transforms.
-    // This avoids reading the token at every position; it does not define an elapsed-time response limit.
-    // Keep this value a power of two: the loops select check positions with visited & (interval - 1).
-    // This value controls cancellation responsiveness. JPEG XL does not prescribe it, and no benchmark determined it.
-    private const int OrderCancellationInterval = 1024;
-
     private IMemoryOwner<uint>? orderWorkspace;
-
-    /// <summary>
-    /// Gets the coefficient-order family for each validated strategy. Transposed strategies share the same order.
-    /// </summary>
-    private static ReadOnlySpan<byte> StrategyOrderFamilies =>
-    [
-        0, 1, 1, 1, 2, 3, 4, 4, 5, 5, 6, 6, 1, 1, 1, 1, 1, 1, 7, 8, 8, 9, 10, 10, 11, 12, 12
-    ];
-
-    /// <summary>
-    /// Gets one representative strategy per order family. Its dimensions come from the shared strategy tables.
-    /// </summary>
-    private static ReadOnlySpan<byte> OrderFamilyStrategies => [0, 1, 4, 5, 6, 8, 10, 18, 19, 21, 22, 24, 25];
-
-    /// <summary>
-    /// Selects the component entry in a pass's coefficient-order offset table.
-    /// </summary>
-    /// <param name="strategy">The validated raw transform strategy, from zero through twenty-six.</param>
-    /// <param name="component">The component index in X, Y, B order.</param>
-    /// <returns>The offset-table index, from zero through thirty-eight.</returns>
-    public static int GetCoefficientOrderIndex(byte strategy, int component) => (3 * StrategyOrderFamilies[strategy]) + component;
-
-    /// <summary>
-    /// Gets the number of coefficient positions in one strategy's order.
-    /// </summary>
-    /// <param name="strategy">The validated raw transform strategy.</param>
-    /// <returns>The complete coefficient count, including the lowest-frequency prefix.</returns>
-    public static int GetCoefficientOrderSize(byte strategy) => CoefficientBlockArea * StrategyWidths[strategy] * StrategyHeights[strategy];
 
     /// <summary>
     /// Reads one pass's coefficient orders while retaining only families used by its frame's transform strategies.
@@ -74,8 +34,8 @@ internal sealed partial class JxlVarDctDecoder
     {
         uint encodedFamilies = reader.ReadU32((0, 0x5F), (0, 0x13), (0, 0), (13, 0));
         uint usedFamilies = 0;
-        ReadOnlySpan<byte> families = StrategyOrderFamilies;
-        for (int strategy = 0; strategy < StrategyCount; strategy++)
+        ReadOnlySpan<byte> families = JxlCoefficientOrder.StrategyOrderFamilies;
+        for (int strategy = 0; strategy < JxlCoefficientOrder.StrategyCount; strategy++)
         {
             if ((usedStrategies & (1U << strategy)) != 0)
             {
@@ -84,13 +44,13 @@ internal sealed partial class JxlVarDctDecoder
         }
 
         offsets.Fill(-1);
-        ReadOnlySpan<byte> representatives = OrderFamilyStrategies;
+        ReadOnlySpan<byte> representatives = JxlCoefficientOrder.OrderFamilyStrategies;
         int retainedCount = 0;
         int maximumCustomSize = 0;
         uint symbolBudget = 0;
-        for (int family = 0; family < OrderCount; family++)
+        for (int family = 0; family < JxlCoefficientOrder.OrderCount; family++)
         {
-            int size = GetCoefficientOrderSize(representatives[family]);
+            int size = JxlCoefficientOrder.GetCoefficientOrderSize(representatives[family]);
             bool encoded = (encodedFamilies & (1U << family)) != 0;
             if (encoded)
             {
@@ -122,12 +82,15 @@ internal sealed partial class JxlVarDctDecoder
         try
         {
             Span<uint> orders = result.Memory.Span;
-            for (int family = 0; family < OrderCount; family++)
+            for (int family = 0; family < JxlCoefficientOrder.OrderCount; family++)
             {
                 if ((usedFamilies & (1U << family)) != 0 && (encodedFamilies & (1U << family)) == 0)
                 {
                     byte strategy = representatives[family];
-                    WriteNaturalCoefficientOrder(strategy, orders.Slice(offsets[3 * family], GetCoefficientOrderSize(strategy)), cancellationToken);
+                    JxlCoefficientOrder.WriteNaturalCoefficientOrder(
+                        strategy,
+                        orders.Slice(offsets[3 * family], JxlCoefficientOrder.GetCoefficientOrderSize(strategy)),
+                        cancellationToken);
                 }
             }
 
@@ -167,7 +130,7 @@ internal sealed partial class JxlVarDctDecoder
             Span<uint> workspace = workspaceOwner is null ? [] : workspaceOwner.Memory.Span[..workspaceLength];
             Span<uint> history = historyOwner is null ? [] : historyOwner.Memory.Span[..historyLength];
             uint position = 0;
-            for (int family = 0; family < OrderCount; family++)
+            for (int family = 0; family < JxlCoefficientOrder.OrderCount; family++)
             {
                 if ((encodedFamilies & (1U << family)) == 0)
                 {
@@ -176,14 +139,14 @@ internal sealed partial class JxlVarDctDecoder
 
                 cancellationToken.ThrowIfCancellationRequested();
                 byte strategy = representatives[family];
-                int size = GetCoefficientOrderSize(strategy);
+                int size = JxlCoefficientOrder.GetCoefficientOrderSize(strategy);
                 int skip = size / CoefficientBlockArea;
                 bool retained = (usedFamilies & (1U << family)) != 0;
                 Span<uint> natural = retained ? workspace[..size] : [];
                 Span<uint> ranks = retained ? workspace.Slice(maximumCustomSize, size - skip) : [];
                 if (retained)
                 {
-                    WriteNaturalCoefficientOrder(strategy, natural, cancellationToken);
+                    JxlCoefficientOrder.WriteNaturalCoefficientOrder(strategy, natural, cancellationToken);
                 }
 
                 for (int component = 0; component < 3; component++)
@@ -204,74 +167,6 @@ internal sealed partial class JxlVarDctDecoder
         {
             result.Dispose();
             throw;
-        }
-    }
-
-    /// <summary>
-    /// Writes the format's natural coefficient order for one validated transform strategy.
-    /// </summary>
-    /// <param name="strategy">The validated raw strategy. Transposed shapes share the same normalized order.</param>
-    /// <param name="destination">Space for every coefficient position in this strategy.</param>
-    /// <param name="cancellationToken">The token checked while visiting large diagonal sets.</param>
-    public static void WriteNaturalCoefficientOrder(byte strategy, Span<uint> destination, CancellationToken cancellationToken)
-    {
-        int width = StrategyWidths[strategy];
-        int height = StrategyHeights[strategy];
-        int columns = Math.Max(width, height);
-        int rows = Math.Min(width, height);
-        int ratio = columns / rows;
-        int rowMask = ratio - 1;
-        int rowShift = BitOperations.Log2((uint)ratio);
-        int dimension = columns * BlockSize;
-        int next = columns * rows;
-        int visited = 0;
-
-        // Visit alternating diagonals on the enclosing square. Keep only rows at the rectangle's sampling interval,
-        // then divide their indices by that interval. This normalizes transposed strategies without sorting coefficients.
-        // The lowest-frequency rectangle is placed first in raster order; AC frequencies follow the diagonal sequence.
-        for (int diagonal = 0; diagonal < dimension; diagonal++)
-        {
-            for (int step = 0; step <= diagonal; step++)
-            {
-                if ((visited++ & (OrderCancellationInterval - 1)) == 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
-                int x = (diagonal & 1) != 0 ? diagonal - step : step;
-                int y = (diagonal & 1) != 0 ? step : diagonal - step;
-                if ((y & rowMask) == 0)
-                {
-                    y >>= rowShift;
-                    int index = x < columns && y < rows ? (y * columns) + x : next++;
-                    destination[index] = (uint)((y * dimension) + x);
-                }
-            }
-        }
-
-        for (int remaining = dimension - 1; remaining > 0; remaining--)
-        {
-            int diagonal = remaining - 1;
-            for (int step = 0; step <= diagonal; step++)
-            {
-                if ((visited++ & (OrderCancellationInterval - 1)) == 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
-                int x = dimension - 1 - (diagonal - step);
-                int y = dimension - 1 - step;
-                if ((diagonal & 1) != 0)
-                {
-                    (x, y) = (y, x);
-                }
-
-                if ((y & rowMask) == 0)
-                {
-                    y >>= rowShift;
-                    destination[next++] = (uint)((y * dimension) + x);
-                }
-            }
         }
     }
 

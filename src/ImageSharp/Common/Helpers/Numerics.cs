@@ -37,6 +37,26 @@ internal static class Numerics
     }
 
     /// <summary>
+    /// Gets the greatest common divisor of two nonnegative 64-bit values.
+    /// </summary>
+    /// <param name="a">The first value.</param>
+    /// <param name="b">The second value.</param>
+    /// <returns>The greatest common divisor, or zero when both values are zero.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GreatestCommonDivisor(ulong a, ulong b)
+    {
+        // Euclid's remainder step preserves common divisors without a multiplication that can overflow.
+        while (b != 0)
+        {
+            ulong remainder = a % b;
+            a = b;
+            b = remainder;
+        }
+
+        return a;
+    }
+
+    /// <summary>
     /// Determine the Least Common Multiple (LCM) of two numbers.
     /// See https://en.wikipedia.org/wiki/Least_common_multiple#Reduction_by_the_greatest_common_divisor.
     /// </summary>

@@ -299,6 +299,45 @@ public static class CompandingUtilities
     }
 
     /// <summary>
+    /// Applies a positive-domain transfer curve to the input magnitude and restores its sign.
+    /// </summary>
+    /// <typeparam name="TOperator">The existing curve arithmetic for nonnegative components.</typeparam>
+    /// <remarks>
+    /// Each scalar or SIMD lane evaluates the same positive curve. CopySign restores its input sign,
+    /// including negative zero. The surrounding traversal owns color bounds and alpha preservation.
+    /// </remarks>
+    internal readonly struct SymmetricOperator<TOperator> : TensorPrimitives_.IUnaryOperator
+        where TOperator : struct, TensorPrimitives_.IUnaryOperator
+    {
+        private readonly TOperator operation;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SymmetricOperator{TOperator}"/> struct.
+        /// </summary>
+        /// <param name="operation">The transfer curve applied to each input magnitude.</param>
+        public SymmetricOperator(TOperator operation) => this.operation = operation;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Invoke(float value) => MathF.CopySign(this.operation.Invoke(MathF.Abs(value)), value);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<float> Invoke(Vector128<float> value)
+            => Vector128.CopySign(this.operation.Invoke(Vector128.Abs(value)), value);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<float> Invoke(Vector256<float> value)
+            => Vector256.CopySign(this.operation.Invoke(Vector256.Abs(value)), value);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<float> Invoke(Vector512<float> value)
+            => Vector512.CopySign(this.operation.Invoke(Vector512.Abs(value)), value);
+    }
+
+    /// <summary>
     /// Evaluates a transfer curve and enforces the result contract for every companding entry point.
     /// </summary>
     /// <typeparam name="TOperator">The curve arithmetic, independent of color range and pixel layout.</typeparam>

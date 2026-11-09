@@ -281,7 +281,7 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         JxlModularChannel third,
         TSampleOperator sampleOperator,
         CancellationToken cancellationToken)
-        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<int>
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<int, float>
     {
         // All color channels use the image's modular storage width. Short storage widens in registers;
         // it uses the same sample equations without allocating or copying full-width carrier planes.
@@ -317,7 +317,7 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         TSampleOperator sampleOperator,
         CancellationToken cancellationToken)
         where TSample : unmanaged
-        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample, float>
     {
         int width = this.destination.Width;
         Span<float> row = this.rowMemory.Span;
@@ -395,7 +395,7 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         Span<float> spotWorkspace,
         in TSampleOperator sampleOperator)
         where TSample : unmanaged
-        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample, float>
     {
         if (this.featureConverter is not null)
         {

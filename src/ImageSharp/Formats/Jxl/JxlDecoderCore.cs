@@ -92,7 +92,12 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
         JxlBitReader reader = new(codestream);
         JxlHeader header = this.ReadHeader(ref reader, cancellationToken);
 
-        ImageMetadata metadata = new() { IccProfile = header.IccProfile };
+        ImageMetadata metadata = new()
+        {
+            IccProfile = header.IccProfile,
+            CicpProfile = this.Options.SkipMetadata ? null : header.GetCicpProfile()
+        };
+
         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
 
         if (this.colorMetadataOnly)
@@ -264,7 +269,14 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
                 {
                     if (image is null)
                     {
-                        ImageMetadata metadata = new() { IccProfile = header.IccProfile };
+                        // Final color conversion produces working sRGB. Keep the original compact
+                        // description in JXL metadata without applying its label to converted pixels.
+                        ImageMetadata metadata = new()
+                        {
+                            IccProfile = header.IccProfile,
+                            CicpProfile = this.Options.SkipMetadata ? null : new(1, 13, 0, true)
+                        };
+
                         metadata.SetFormatMetadata(JxlFormat.Instance, header.Metadata);
 
                         // Sequential output writes completed rows during AC traversal. Initialize the destination

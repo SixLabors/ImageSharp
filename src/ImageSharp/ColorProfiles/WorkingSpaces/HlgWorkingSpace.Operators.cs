@@ -224,7 +224,12 @@ public sealed partial class HlgWorkingSpace
             float light = this.luminance.Z * blue;
             light = float.MultiplyAddEstimate(this.luminance.Y, green, light);
             light = float.MultiplyAddEstimate(this.luminance.X, red, light);
-            float ratio = MathF.Min(this.power.Invoke(light), MaximumLuminanceRatio);
+            float power = this.power.Invoke(light);
+
+            // A negative physical luminance has no real fractional power. Native original-color CMS
+            // keeps RGB unchanged when that scale is not finite. Preserve those finite colors instead
+            // of turning all three channels into NaN before the final component bounds.
+            float ratio = float.IsFinite(power) ? MathF.Min(power, MaximumLuminanceRatio) : 1F;
             red *= ratio;
             green *= ratio;
             blue *= ratio;
@@ -243,7 +248,14 @@ public sealed partial class HlgWorkingSpace
             Vector128<float> light = Vector128.Multiply(Vector128.Create(this.luminance.Z), blue);
             light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.Y), green, light);
             light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.X), red, light);
-            Vector128<float> ratio = Vector128.Min(this.power.Invoke(light), Vector128.Create(MaximumLuminanceRatio));
+            Vector128<float> power = this.power.Invoke(light);
+
+            // Each lane represents one RGB color. Select identity for a nonfinite scale before the
+            // three multiplies, matching the scalar path and native original-color CMS.
+            Vector128<float> finite = Vector128.LessThanOrEqual(Vector128.Abs(power), Vector128.Create(float.MaxValue));
+            Vector128<float> ratio = Vector128.ConditionalSelect(
+                finite, Vector128.Min(power, Vector128.Create(MaximumLuminanceRatio)), Vector128.Create(1F));
+
             red = Vector128.Multiply(red, ratio);
             green = Vector128.Multiply(green, ratio);
             blue = Vector128.Multiply(blue, ratio);
@@ -262,7 +274,14 @@ public sealed partial class HlgWorkingSpace
             Vector256<float> light = Vector256.Multiply(Vector256.Create(this.luminance.Z), blue);
             light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.Y), green, light);
             light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.X), red, light);
-            Vector256<float> ratio = Vector256.Min(this.power.Invoke(light), Vector256.Create(MaximumLuminanceRatio));
+            Vector256<float> power = this.power.Invoke(light);
+
+            // Each lane represents one RGB color. Select identity for a nonfinite scale before the
+            // three multiplies, matching the scalar path and native original-color CMS.
+            Vector256<float> finite = Vector256.LessThanOrEqual(Vector256.Abs(power), Vector256.Create(float.MaxValue));
+            Vector256<float> ratio = Vector256.ConditionalSelect(
+                finite, Vector256.Min(power, Vector256.Create(MaximumLuminanceRatio)), Vector256.Create(1F));
+
             red = Vector256.Multiply(red, ratio);
             green = Vector256.Multiply(green, ratio);
             blue = Vector256.Multiply(blue, ratio);
@@ -281,7 +300,14 @@ public sealed partial class HlgWorkingSpace
             Vector512<float> light = Vector512.Multiply(Vector512.Create(this.luminance.Z), blue);
             light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.Y), green, light);
             light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.X), red, light);
-            Vector512<float> ratio = Vector512.Min(this.power.Invoke(light), Vector512.Create(MaximumLuminanceRatio));
+            Vector512<float> power = this.power.Invoke(light);
+
+            // Each lane represents one RGB color. Select identity for a nonfinite scale before the
+            // three multiplies, matching the scalar path and native original-color CMS.
+            Vector512<float> finite = Vector512.LessThanOrEqual(Vector512.Abs(power), Vector512.Create(float.MaxValue));
+            Vector512<float> ratio = Vector512.ConditionalSelect(
+                finite, Vector512.Min(power, Vector512.Create(MaximumLuminanceRatio)), Vector512.Create(1F));
+
             red = Vector512.Multiply(red, ratio);
             green = Vector512.Multiply(green, ratio);
             blue = Vector512.Multiply(blue, ratio);

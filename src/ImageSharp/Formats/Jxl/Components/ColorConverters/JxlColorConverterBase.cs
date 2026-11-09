@@ -11,18 +11,18 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
 /// <summary>
-/// Restores JPEG XL color components and applies the selected output conversion.
+/// Converts between JPEG XL color components and working RGB.
 /// </summary>
 /// <remarks>
-/// The pixel converter owns the row storage. A closed generic converter owns traversal; its operator owns
+/// The caller owns the row storage. A closed generic converter owns traversal; its operator owns
 /// component ordering and arithmetic. Component conversion does not apply the final output conversion.
 /// ICC device rows keep image alpha separate until the paired profile transform has finished.
 /// </remarks>
 internal abstract partial class JxlColorConverterBase
 {
-    // Coding XYB can reconstruct linear RGB in the original compact space. That space owns its
-    // transfer curve and result bounds; device samples and ICC inputs need no transfer here.
-    private readonly RgbWorkingSpace? linearOutputWorkingSpace;
+    // Coding XYB connects through linear RGB. The working space owns the transfer curve in either
+    // direction and retains alpha. Original device components and ICC conversion use their own color description.
+    private readonly RgbWorkingSpace? linearWorkingSpace;
     private readonly ColorProfileConverterExtensionsRgbRgb.RgbConversion? rgbConversion;
 
     /// <summary>
@@ -33,10 +33,10 @@ internal abstract partial class JxlColorConverterBase
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JxlColorConverterBase"/> class for linear RGB output.
+    /// Initializes a new instance of the <see cref="JxlColorConverterBase"/> class for conversion between linear components and working RGB.
     /// </summary>
-    /// <param name="linearOutputWorkingSpace">The working space whose transfer curve encodes the restored linear components.</param>
-    protected JxlColorConverterBase(RgbWorkingSpace linearOutputWorkingSpace) => this.linearOutputWorkingSpace = linearOutputWorkingSpace;
+    /// <param name="linearOutputWorkingSpace">The working space whose transfer curve connects encoded RGB and linear components.</param>
+    protected JxlColorConverterBase(RgbWorkingSpace linearOutputWorkingSpace) => this.linearWorkingSpace = linearOutputWorkingSpace;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlColorConverterBase"/> class for a compact RGB description.
@@ -108,16 +108,78 @@ internal abstract partial class JxlColorConverterBase
     }
 
     /// <summary>
+    /// Selects the component conversion from working sRGB to the encoded color model.
+    /// </summary>
+    /// <param name="colorType">The encoded color model selected for the image.</param>
+    /// <param name="usesCodingXyb">Whether quantized coding XYB precedes the declared output color encoding.</param>
+    /// <param name="transform">The coding XYB coefficients and intensity. Other models do not use this transform.</param>
+    /// <param name="hasBlack">Whether the original color's CMYK profile requires a separate black component.</param>
+    /// <param name="targetWorkingSpace">The compact original-color encoding. ICC and coding XYB use their own conversion.</param>
+    /// <returns>The prepared scalar and SIMD converter. The encoder owns its row storage.</returns>
+    public static JxlColorConverterBase CreateForEncoding(
+        JxlColorType colorType,
+        bool usesCodingXyb,
+        XybTransform transform,
+        bool hasBlack,
+        RgbWorkingSpace targetWorkingSpace)
+    {
+        if (hasBlack)
+        {
+            return new JxlColorConverter<CmykOperator>(default);
+        }
+
+        if (usesCodingXyb)
+        {
+            return new JxlColorConverter<XybForwardOperator>(
+                new XybForwardOperator(transform), KnownRgbWorkingSpaces.SRgb, colorType == JxlColorType.Luminance);
+        }
+
+        RgbWorkingSpace sourceWorkingSpace = KnownRgbWorkingSpaces.SRgb;
+        if (!targetWorkingSpace.Equals(sourceWorkingSpace))
+        {
+            return colorType == JxlColorType.Luminance
+                ? new JxlColorConverter<LuminanceOperator>(default, sourceWorkingSpace, targetWorkingSpace)
+                : new JxlColorConverter<RgbOperator>(default, sourceWorkingSpace, targetWorkingSpace);
+        }
+
+        return colorType switch
+        {
+            JxlColorType.Luminance => new JxlColorConverter<LuminanceOperator>(default),
+            _ => new JxlColorConverter<RgbOperator>(default)
+        };
+    }
+
+    /// <summary>
     /// Prepares the RGB working space described by validated compact RGB or grayscale metadata.
     /// </summary>
     /// <param name="header">The non-ICC compact color description, with parsed transfer, primaries, white and intensity.</param>
     /// <returns>The existing working-space implementation for the declared transfer curve and coordinates.</returns>
     public static RgbWorkingSpace GetWorkingSpace(JxlHeader header)
+        => GetWorkingSpace(
+            header.WhitePoint, header.Primaries, header.TransferCharacteristics, header.Gamma, header.IntensityTarget, header.UsesXybTransform);
+
+    /// <summary>
+    /// Prepares the shared RGB conversion from a resolved compact color description.
+    /// </summary>
+    /// <param name="whitePoint">The reference white chromaticity stored in the image.</param>
+    /// <param name="primaries">The RGB primary chromaticities stored in the image.</param>
+    /// <param name="transferCharacteristics">The transfer identifier used when gamma is absent.</param>
+    /// <param name="gamma">The optional compression exponent stored in the image.</param>
+    /// <param name="intensityTarget">The encoded reference intensity in nits.</param>
+    /// <param name="usesXybTransform">Whether coding XYB must reconstruct the original color encoding before composition.</param>
+    /// <returns>The shared working space for both encoding and decoding.</returns>
+    public static RgbWorkingSpace GetWorkingSpace(
+        CieXyChromaticityCoordinates whitePoint,
+        RgbPrimariesChromaticityCoordinates primaries,
+        CicpTransferCharacteristics transferCharacteristics,
+        Rational? gamma,
+        float intensityTarget,
+        bool usesXybTransform)
     {
-        bool isWorkingSrgb = !header.Gamma.HasValue
-            && header.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1
-            && header.WhitePoint == KnownIlluminants.D65Chromaticity
-            && header.Primaries.Equals(KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates);
+        bool isWorkingSrgb = !gamma.HasValue
+            && transferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1
+            && whitePoint == KnownIlluminants.D65Chromaticity
+            && primaries.Equals(KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates);
 
         if (isWorkingSrgb)
         {
@@ -126,27 +188,29 @@ internal abstract partial class JxlColorConverterBase
 
         // Keep parsed xy chromaticities rather than substituting rounded XYZ illuminant constants.
         // These options serve only the public xyY conversion during setup; they do not enter row traversal.
-        CieXyy white = new(header.WhitePoint.X, header.WhitePoint.Y, 1F);
+        CieXyy white = new(whitePoint.X, whitePoint.Y, 1F);
         CieXyz referenceWhite = white.ToProfileConnectingSpace(new ColorConversionOptions());
-        RgbPrimariesChromaticityCoordinates primaries = header.Primaries;
-        if (header.Gamma is Rational gamma)
+        if (gamma is Rational exponent)
         {
             // The file stores a compression exponent. The shared gamma working space expects its
             // reciprocal, converted only at that API's single-precision parameter boundary.
-            float expansionGamma = (float)((double)gamma.Denominator / gamma.Numerator);
+            float expansionGamma = (float)((double)exponent.Denominator / exponent.Numerator);
             return new GammaWorkingSpace(expansionGamma, referenceWhite, primaries);
         }
 
         // Header parsing admits only transfer codes 1, 8, 13, 16, 17 and 18. Keep their existing
         // working-space formulas; HLG uses the image intensity target as the display peak in nits.
-        return header.TransferCharacteristics switch
+        return transferCharacteristics switch
         {
-            CicpTransferCharacteristics.ItuRBt709_6 => new Rec709WorkingSpace(referenceWhite, primaries),
+            // Original-color CMS and jxl-rs apply the curve to the magnitude and retain the sign.
+            // Native coding XYB instead uses the direct curve before original-space composition.
+            // Keep its negative linear segment when reconstructing those retained components.
+            CicpTransferCharacteristics.ItuRBt709_6 => new Rec709WorkingSpace(referenceWhite, primaries, !usesXybTransform),
             CicpTransferCharacteristics.Linear => new GammaWorkingSpace(1F, referenceWhite, primaries),
             CicpTransferCharacteristics.Iec61966_2_1 => new SRgbWorkingSpace(referenceWhite, primaries),
-            CicpTransferCharacteristics.SmpteSt2084 => new PqWorkingSpace(header.IntensityTarget, referenceWhite, primaries),
+            CicpTransferCharacteristics.SmpteSt2084 => new PqWorkingSpace(intensityTarget, referenceWhite, primaries),
             CicpTransferCharacteristics.SmpteSt428_1 => new GammaWorkingSpace(2.6F, referenceWhite, primaries),
-            _ => new HlgWorkingSpace(header.IntensityTarget, referenceWhite, primaries)
+            _ => new HlgWorkingSpace(intensityTarget, referenceWhite, primaries)
         };
     }
 
@@ -248,9 +312,9 @@ internal abstract partial class JxlColorConverterBase
     /// <param name="colors">The restored component row, converted in place. Alpha is retained.</param>
     public void ApplyOutputConversion(Span<Vector4> colors)
     {
-        if (this.linearOutputWorkingSpace is not null)
+        if (this.linearWorkingSpace is not null)
         {
-            this.linearOutputWorkingSpace.Compress(colors);
+            this.linearWorkingSpace.Compress(colors);
         }
         else if (this.rgbConversion.HasValue)
         {
@@ -273,7 +337,7 @@ internal abstract partial class JxlColorConverterBase
         Span<Vector4> destination,
         in TSampleOperator sampleOperator)
         where TSample : unmanaged
-        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>;
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample, float>;
 
     /// <summary>
     /// Restores native components and converts their typed ICC profile to working RGB in the same row storage.
@@ -290,7 +354,34 @@ internal abstract partial class JxlColorConverterBase
         ColorProfileConverter profileConverter,
         in TSampleOperator sampleOperator)
         where TSample : unmanaged
-        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample>;
+        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample, float>;
+
+    /// <summary>
+    /// Converts a borrowed working sRGB row to native component planes and retains its alpha.
+    /// </summary>
+    /// <param name="source">The mutable converted pixel row. Its alpha values remain unchanged.</param>
+    /// <param name="component0">The first encoded component row, with source.Length elements.</param>
+    /// <param name="component1">The second component row, or empty for luminance.</param>
+    /// <param name="component2">The third component row, or empty for luminance.</param>
+    /// <param name="black">The remaining-light black row for CMYK, or empty for other color models.</param>
+    /// <param name="alpha">The alpha output row, or empty when the image has no alpha channel.</param>
+    /// <param name="associateAlpha">Whether to associate working RGB with alpha before profile conversion and the coding transform.</param>
+    /// <param name="profileConverter">The prepared sRGB-to-device ICC transform, or null for compact RGB, luminance or coding XYB.</param>
+    /// <param name="scratch">Separate ICC workspace: three floats per pixel for RGB or gray, or seven for RGB-to-CMYK expansion.</param>
+    /// <remarks>
+    /// The encoder allocates every row before traversal. This method retains float components until sample packing.
+    /// A coding XYB profile describes original output coordinates. It does not change the working sRGB input of the coding transform.
+    /// </remarks>
+    public abstract void ConvertFromRgb(
+        Span<Vector4> source,
+        Span<float> component0,
+        Span<float> component1,
+        Span<float> component2,
+        Span<float> black,
+        Span<float> alpha,
+        bool associateAlpha,
+        ColorProfileConverter? profileConverter,
+        Span<float> scratch);
 
     /// <summary>
     /// Borrows one row of reconstructed components without transferring ownership.

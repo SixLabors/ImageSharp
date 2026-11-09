@@ -259,6 +259,27 @@ public class RgbWorkingSpaceTests
     }
 
     /// <summary>
+    /// Checks that Rec.709 working-space identity includes its negative-component conversion.
+    /// </summary>
+    [Fact]
+    public void Rec709WorkingSpaceEqualityIncludesNegativeExtension()
+    {
+        RgbWorkingSpace primaries = KnownRgbWorkingSpaces.SRgb;
+        Rec709WorkingSpace original = new(primaries.WhitePoint, primaries.ChromaticityCoordinates);
+        Rec709WorkingSpace same = new(primaries.WhitePoint, primaries.ChromaticityCoordinates, false);
+        Rec709WorkingSpace symmetric = new(primaries.WhitePoint, primaries.ChromaticityCoordinates, true);
+        Rec709WorkingSpace sameSymmetric = new(primaries.WhitePoint, primaries.ChromaticityCoordinates, true);
+
+        Assert.False(original.UseSymmetricCurves);
+        Assert.True(symmetric.UseSymmetricCurves);
+        Assert.Equal(original, same);
+        Assert.Equal(original.GetHashCode(), same.GetHashCode());
+        Assert.Equal(symmetric, sameSymmetric);
+        Assert.Equal(symmetric.GetHashCode(), sameSymmetric.GetHashCode());
+        Assert.NotEqual(original, symmetric);
+    }
+
+    /// <summary>
     /// Checks that PQ and HLG working-space identity includes the display peak.
     /// </summary>
     [Fact]

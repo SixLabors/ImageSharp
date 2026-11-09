@@ -9,7 +9,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 
 /// <summary>
-/// Provides modular prediction and prepares cross-channel properties from reconstructed samples.
+/// Provides modular prediction, prepares cross-channel properties and packs signed residuals.
 /// </summary>
 internal static class JxlModularPredictor
 {
@@ -92,6 +92,142 @@ internal static class JxlModularPredictor
             12 => (top + topRight) / 2,
             _ => ((6 * top) - (2 * topTop) + (7 * left) + leftLeft + topRightRight + (3 * topRight) + 8) / 16
         };
+
+    /// <summary>
+    /// Packs a complete row's clamped-gradient residuals into unsigned zigzag order.
+    /// </summary>
+    /// <param name="row">The nonempty reconstructed source row in signed modular sample units.</param>
+    /// <param name="topRow">The preceding row with the same width, or empty for the first row.</param>
+    /// <param name="destination">Caller-owned storage for one packed residual per sample, separate from both source rows.</param>
+    /// <remarks>
+    /// The caller selects gradient coding only when its residuals fit signed 32-bit storage.
+    /// Raw floating-point carriers use <see cref="PackZeroResiduals"/> so their bit patterns need no overflowing subtraction.
+    /// </remarks>
+    public static void PackGradientResiduals(ReadOnlySpan<int> row, ReadOnlySpan<int> topRow, Span<uint> destination)
+    {
+        bool hasTop = !topRow.IsEmpty;
+        int edge = hasTop ? topRow[0] : 0;
+
+        // Column zero predicts its above sample, or zero on the first row. Process it before shifted left loads,
+        // which must never address column minus one. Equal neighbors give that same edge prediction through the shared operator.
+        ReferenceOperator.Apply(row[0], edge, edge, edge, out _, out _, out int first);
+        destination[0] = (uint)((first << 1) ^ (first >> 31));
+
+        ref int input = ref MemoryMarshal.GetReference(row);
+        ref int above = ref MemoryMarshal.GetReference(topRow);
+        ref uint output = ref MemoryMarshal.GetReference(destination);
+        int x = 1;
+
+        // Each lane owns one column. Left loads are shifted by one sample; above and above-left use the complete preceding row.
+        // On the first row both northern inputs equal left. The shared operator widens before clamping the gradient.
+        // Unaligned loads accept arbitrary group origins. Counts include the leading scalar sample and keep every load in bounds.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = (row.Length - x).Vector512Count<int>();
+
+            for (nuint block = 0; block < count; block++, x += Vector512<int>.Count)
+            {
+                Vector512<int> value = Vector512.LoadUnsafe(ref input, (nuint)x);
+                Vector512<int> left = Vector512.LoadUnsafe(ref input, (nuint)(x - 1));
+                Vector512<int> top = hasTop ? Vector512.LoadUnsafe(ref above, (nuint)x) : left;
+                Vector512<int> topLeft = hasTop ? Vector512.LoadUnsafe(ref above, (nuint)(x - 1)) : left;
+                ReferenceOperator.Apply(value, left, top, topLeft, out _, out _, out Vector512<int> residual);
+                ((residual << 1) ^ (residual >> 31)).AsUInt32().StoreUnsafe(ref output, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (row.Length - x).Vector256Count<int>();
+
+            for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
+            {
+                Vector256<int> value = Vector256.LoadUnsafe(ref input, (nuint)x);
+                Vector256<int> left = Vector256.LoadUnsafe(ref input, (nuint)(x - 1));
+                Vector256<int> top = hasTop ? Vector256.LoadUnsafe(ref above, (nuint)x) : left;
+                Vector256<int> topLeft = hasTop ? Vector256.LoadUnsafe(ref above, (nuint)(x - 1)) : left;
+                ReferenceOperator.Apply(value, left, top, topLeft, out _, out _, out Vector256<int> residual);
+                ((residual << 1) ^ (residual >> 31)).AsUInt32().StoreUnsafe(ref output, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (row.Length - x).Vector128Count<int>();
+
+            for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
+            {
+                Vector128<int> value = Vector128.LoadUnsafe(ref input, (nuint)x);
+                Vector128<int> left = Vector128.LoadUnsafe(ref input, (nuint)(x - 1));
+                Vector128<int> top = hasTop ? Vector128.LoadUnsafe(ref above, (nuint)x) : left;
+                Vector128<int> topLeft = hasTop ? Vector128.LoadUnsafe(ref above, (nuint)(x - 1)) : left;
+                ReferenceOperator.Apply(value, left, top, topLeft, out _, out _, out Vector128<int> residual);
+                ((residual << 1) ^ (residual >> 31)).AsUInt32().StoreUnsafe(ref output, (nuint)x);
+            }
+        }
+
+        // The same prediction and zigzag equations handle tails and the complete scalar fallback.
+        for (; x < row.Length; x++)
+        {
+            int left = row[x - 1];
+            ReferenceOperator.Apply(row[x], left, hasTop ? topRow[x] : left, hasTop ? topRow[x - 1] : left, out _, out _, out int residual);
+            destination[x] = (uint)((residual << 1) ^ (residual >> 31));
+        }
+    }
+
+    /// <summary>
+    /// Packs raw signed sample carriers into unsigned zigzag order without prediction or subtraction.
+    /// </summary>
+    /// <param name="row">The complete signed carrier row, including any binary32 bit patterns.</param>
+    /// <param name="destination">Caller-owned storage for one packed value per source sample.</param>
+    public static void PackZeroResiduals(ReadOnlySpan<int> row, Span<uint> destination)
+    {
+        ref int input = ref MemoryMarshal.GetReference(row);
+        ref uint output = ref MemoryMarshal.GetReference(destination);
+        int x = 0;
+
+        // Each signed int lane becomes one uint in the same position. Arithmetic sign extension supplies the zigzag mask.
+        // Left shifts retain the low 32 bits, so int.MinValue maps to uint.MaxValue without an absolute-value overflow.
+        // These unaligned loads cover complete registers only; the scalar tail never reads beyond the source row.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = (row.Length - x).Vector512Count<int>();
+
+            for (nuint block = 0; block < count; block++, x += Vector512<int>.Count)
+            {
+                Vector512<int> value = Vector512.LoadUnsafe(ref input, (nuint)x);
+                ((value << 1) ^ (value >> 31)).AsUInt32().StoreUnsafe(ref output, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (row.Length - x).Vector256Count<int>();
+
+            for (nuint block = 0; block < count; block++, x += Vector256<int>.Count)
+            {
+                Vector256<int> value = Vector256.LoadUnsafe(ref input, (nuint)x);
+                ((value << 1) ^ (value >> 31)).AsUInt32().StoreUnsafe(ref output, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (row.Length - x).Vector128Count<int>();
+
+            for (nuint block = 0; block < count; block++, x += Vector128<int>.Count)
+            {
+                Vector128<int> value = Vector128.LoadUnsafe(ref input, (nuint)x);
+                ((value << 1) ^ (value >> 31)).AsUInt32().StoreUnsafe(ref output, (nuint)x);
+            }
+        }
+
+        for (; x < row.Length; x++)
+        {
+            int value = row[x];
+            destination[x] = (uint)((value << 1) ^ (value >> 31));
+        }
+    }
 
     /// <summary>
     /// Prepares four cross-channel property planes for a bounded block of an already reconstructed channel.

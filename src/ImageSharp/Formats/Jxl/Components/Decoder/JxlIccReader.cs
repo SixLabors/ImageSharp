@@ -24,7 +24,7 @@ internal static class JxlIccReader
     /// <summary>
     /// The fixed ICC header length, in bytes, used by libjxl icc_codec_common.h kICCHeaderSize.
     /// </summary>
-    private const int HeaderSize = 128;
+    private const int HeaderSize = JxlIccPrediction.HeaderSize;
 
     /// <summary>
     /// The first-byte context plus eight preceding-byte classes times five second-byte classes in native ICC prediction.
@@ -121,30 +121,7 @@ internal static class JxlIccReader
         // bytes, such as the platform signature. Residual addition is modulo 256 for each byte independently.
         for (int i = 0; i < HeaderSize; i++)
         {
-            byte prediction = i switch
-            {
-                <= 3 => (byte)(outputLength >> (24 - (8 * i))),
-                8 => 4,
-                >= 12 and < 24 => "mntrRGB XYZ "u8[i - 12],
-                >= 36 and < 40 => "acsp"u8[i - 36],
-                41 or 42 when output[40] == (byte)'A' => (byte)'P',
-                43 when output[40] == (byte)'A' => (byte)'L',
-                41 when output[40] == (byte)'M' => (byte)'S',
-                42 when output[40] == (byte)'M' => (byte)'F',
-                43 when output[40] == (byte)'M' => (byte)'T',
-                42 when output[40] == (byte)'S' && output[41] == (byte)'G' => (byte)'I',
-                43 when output[40] == (byte)'S' && output[41] == (byte)'G' => (byte)' ',
-                42 when output[40] == (byte)'S' && output[41] == (byte)'U' => (byte)'N',
-                43 when output[40] == (byte)'S' && output[41] == (byte)'U' => (byte)'W',
-                70 => 246,
-                71 => 214,
-                73 => 1,
-                78 => 211,
-                79 => 45,
-                >= 80 and < 84 => output[i - 76],
-                _ => 0
-            };
-
+            byte prediction = JxlIccPrediction.GetHeaderPrediction(output, outputLength, i);
             output[i] = (byte)(prediction + headerData[i]);
         }
 

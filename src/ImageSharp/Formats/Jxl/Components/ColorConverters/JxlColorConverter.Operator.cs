@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
@@ -21,43 +22,43 @@ internal abstract partial class JxlColorConverterBase
     public interface IJxlColorConverterOperator
     {
         /// <summary>
-        /// Gets the number of source device components.
+        /// Gets the number of color components handled by the operation.
         /// </summary>
         public static abstract int ComponentCount { get; }
 
         /// <summary>
-        /// Restores the selected output components for one pixel.
+        /// Applies the selected component operation for one pixel.
         /// </summary>
-        /// <param name="c0">The first component, replaced by red or the first ICC device component.</param>
-        /// <param name="c1">The second component, replaced by green or the second ICC device component.</param>
-        /// <param name="c2">The third component, replaced by blue or the third ICC device component.</param>
+        /// <param name="c0">The first color component, updated in place.</param>
+        /// <param name="c1">The second color component, updated in place.</param>
+        /// <param name="c2">The third color component, updated in place.</param>
         /// <param name="c3">The black component, replaced by ICC ink amount for CMYK. Three-component models leave it unused.</param>
         public void Invoke(ref float c0, ref float c1, ref float c2, ref float c3);
 
         /// <summary>
-        /// Restores the selected output components for four pixels.
+        /// Applies the selected component operation for four pixels.
         /// </summary>
-        /// <param name="c0">The first component, replaced by red or the first ICC device component.</param>
-        /// <param name="c1">The second component, replaced by green or the second ICC device component.</param>
-        /// <param name="c2">The third component, replaced by blue or the third ICC device component.</param>
+        /// <param name="c0">The first color component, updated in place.</param>
+        /// <param name="c1">The second color component, updated in place.</param>
+        /// <param name="c2">The third color component, updated in place.</param>
         /// <param name="c3">The black component, replaced by ICC ink amount for CMYK. Three-component models leave it unused.</param>
         public void Invoke(ref Vector128<float> c0, ref Vector128<float> c1, ref Vector128<float> c2, ref Vector128<float> c3);
 
         /// <summary>
-        /// Restores the selected output components for eight pixels.
+        /// Applies the selected component operation for eight pixels.
         /// </summary>
-        /// <param name="c0">The first component, replaced by red or the first ICC device component.</param>
-        /// <param name="c1">The second component, replaced by green or the second ICC device component.</param>
-        /// <param name="c2">The third component, replaced by blue or the third ICC device component.</param>
+        /// <param name="c0">The first color component, updated in place.</param>
+        /// <param name="c1">The second color component, updated in place.</param>
+        /// <param name="c2">The third color component, updated in place.</param>
         /// <param name="c3">The black component, replaced by ICC ink amount for CMYK. Three-component models leave it unused.</param>
         public void Invoke(ref Vector256<float> c0, ref Vector256<float> c1, ref Vector256<float> c2, ref Vector256<float> c3);
 
         /// <summary>
-        /// Restores the selected output components for sixteen pixels.
+        /// Applies the selected component operation for sixteen pixels.
         /// </summary>
-        /// <param name="c0">The first component, replaced by red or the first ICC device component.</param>
-        /// <param name="c1">The second component, replaced by green or the second ICC device component.</param>
-        /// <param name="c2">The third component, replaced by blue or the third ICC device component.</param>
+        /// <param name="c0">The first color component, updated in place.</param>
+        /// <param name="c1">The second color component, updated in place.</param>
+        /// <param name="c2">The third color component, updated in place.</param>
         /// <param name="c3">The black component, replaced by ICC ink amount for CMYK. Three-component models leave it unused.</param>
         public void Invoke(ref Vector512<float> c0, ref Vector512<float> c1, ref Vector512<float> c2, ref Vector512<float> c3);
     }
@@ -173,6 +174,11 @@ internal abstract partial class JxlColorConverterBase
         private readonly TOperator operation;
 
         /// <summary>
+        /// The prepared grayscale input stage for coding XYB, or null when the original RGB components are retained.
+        /// </summary>
+        private readonly JxlColorConverter<LuminanceOperator>? luminanceInput;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for direct or ICC component conversion.
         /// </summary>
         /// <param name="operation">The prepared component arithmetic, separate from the final output conversion.</param>
@@ -182,14 +188,20 @@ internal abstract partial class JxlColorConverterBase
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for linear RGB output.
+        /// Initializes a new instance of the <see cref="JxlColorConverter{TOperator}"/> class for conversion between linear components and working RGB.
         /// </summary>
         /// <param name="operation">The prepared component arithmetic.</param>
-        /// <param name="linearOutputWorkingSpace">The working space whose transfer curve encodes the restored linear components.</param>
-        public JxlColorConverter(TOperator operation, RgbWorkingSpace linearOutputWorkingSpace)
+        /// <param name="linearOutputWorkingSpace">The working space whose transfer curve connects encoded RGB and linear components.</param>
+        /// <param name="luminanceInput">Whether encoding first replaces working RGB with its luminance component.</param>
+        public JxlColorConverter(TOperator operation, RgbWorkingSpace linearOutputWorkingSpace, bool luminanceInput = false)
             : base(linearOutputWorkingSpace)
         {
             this.operation = operation;
+
+            if (luminanceInput)
+            {
+                this.luminanceInput = new(default(LuminanceOperator));
+            }
         }
 
         /// <summary>
@@ -202,6 +214,156 @@ internal abstract partial class JxlColorConverterBase
             : base(sourceWorkingSpace, targetWorkingSpace)
         {
             this.operation = operation;
+        }
+
+        /// <inheritdoc/>
+        public override void ConvertFromRgb(
+            Span<Vector4> source,
+            Span<float> component0,
+            Span<float> component1,
+            Span<float> component2,
+            Span<float> black,
+            Span<float> alpha,
+            bool associateAlpha,
+            ColorProfileConverter? profileConverter,
+            Span<float> scratch)
+        {
+            // The decoder unassociates working RGB after its color conversion. Apply the inverse order:
+            // associate working RGB before the profile or coding transform. Only this borrowed row changes; W remains alpha.
+            if (associateAlpha)
+            {
+                Numerics.Premultiply(source);
+            }
+
+            if (profileConverter is not null)
+            {
+                this.ConvertFromIcc(source, component0, component1, component2, black, alpha, profileConverter, scratch);
+                return;
+            }
+
+            if (this.luminanceInput is not null)
+            {
+                // ColorType.Luminance selects the existing encoded BT.709 luminance conversion.
+                // Run it before curve expansion, as for ordinary grayscale input. Its first output row
+                // is reused as three equal RGB planes; shared SIMD interleaving retains the alpha lane.
+                this.luminanceInput.ConvertFromRgb(source, component0, [], [], [], alpha, false, null, []);
+                SimdUtils.InterleaveFloatPlanes(component0, component0, component0, alpha, source);
+            }
+
+            // Original compact components use the inverse of the decoder's prepared RGB conversion.
+            // The shared worker owns the transfer curves, adaptation and matrices. It retains alpha.
+            if (this.rgbConversion.HasValue)
+            {
+                this.rgbConversion.Value.Invoke(source);
+            }
+
+            // Coding XYB consumes linear sRGB. The existing working-space expansion retains the alpha lane.
+            this.linearWorkingSpace?.Expand(source);
+            TOperator operation = this.operation;
+            bool hasAlpha = !alpha.IsEmpty;
+            ref float first = ref MemoryMarshal.GetReference(component0);
+            ref float second = ref MemoryMarshal.GetReference(component1);
+            ref float third = ref MemoryMarshal.GetReference(component2);
+            ref float opacity = ref MemoryMarshal.GetReference(alpha);
+            int i = 0;
+
+            // Deinterleave complete RGBA blocks in registers. The operator transforms only RGB;
+            // W goes directly to the separate alpha row. Luminance operators store only the first result.
+            // Every row is equally wide and owned by the encoder. Smaller blocks and scalar tails never overread it.
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint count = (source.Length - i).Vector512Count<float>();
+
+                for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+                {
+                    SimdUtils.Deinterleave4(source, i, out Vector512<float> r, out Vector512<float> g, out Vector512<float> b, out Vector512<float> a);
+                    Vector512<float> unused = default;
+                    operation.Invoke(ref r, ref g, ref b, ref unused);
+                    r.StoreUnsafe(ref first, (nuint)i);
+
+                    if (TOperator.ComponentCount != 1)
+                    {
+                        g.StoreUnsafe(ref second, (nuint)i);
+                        b.StoreUnsafe(ref third, (nuint)i);
+                    }
+
+                    if (hasAlpha)
+                    {
+                        a.StoreUnsafe(ref opacity, (nuint)i);
+                    }
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint count = (source.Length - i).Vector256Count<float>();
+
+                for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
+                {
+                    SimdUtils.Deinterleave4(source, i, out Vector256<float> r, out Vector256<float> g, out Vector256<float> b, out Vector256<float> a);
+                    Vector256<float> unused = default;
+                    operation.Invoke(ref r, ref g, ref b, ref unused);
+                    r.StoreUnsafe(ref first, (nuint)i);
+
+                    if (TOperator.ComponentCount != 1)
+                    {
+                        g.StoreUnsafe(ref second, (nuint)i);
+                        b.StoreUnsafe(ref third, (nuint)i);
+                    }
+
+                    if (hasAlpha)
+                    {
+                        a.StoreUnsafe(ref opacity, (nuint)i);
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint count = (source.Length - i).Vector128Count<float>();
+
+                for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+                {
+                    SimdUtils.Deinterleave4(source, i, out Vector128<float> r, out Vector128<float> g, out Vector128<float> b, out Vector128<float> a);
+                    Vector128<float> unused = default;
+                    operation.Invoke(ref r, ref g, ref b, ref unused);
+                    r.StoreUnsafe(ref first, (nuint)i);
+
+                    if (TOperator.ComponentCount != 1)
+                    {
+                        g.StoreUnsafe(ref second, (nuint)i);
+                        b.StoreUnsafe(ref third, (nuint)i);
+                    }
+
+                    if (hasAlpha)
+                    {
+                        a.StoreUnsafe(ref opacity, (nuint)i);
+                    }
+                }
+            }
+
+            // The scalar tail uses the same prepared operation and preserves the original alpha bits.
+            for (; i < source.Length; i++)
+            {
+                Vector4 value = source[i];
+                float r = value.X;
+                float g = value.Y;
+                float b = value.Z;
+                float unused = 0F;
+                operation.Invoke(ref r, ref g, ref b, ref unused);
+                component0[i] = r;
+
+                if (TOperator.ComponentCount != 1)
+                {
+                    component1[i] = g;
+                    component2[i] = b;
+                }
+
+                if (hasAlpha)
+                {
+                    alpha[i] = value.W;
+                }
+            }
         }
 
         /// <inheritdoc/>

@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Compression;
 
 /// <summary>
-/// Builds least-significant-bit-first canonical Huffman lookup tables for lossless codecs.
+/// Builds least-significant-bit-first canonical Huffman tables for lossless codecs.
 /// </summary>
 internal static class HuffmanTableBuilder
 {
@@ -22,6 +22,20 @@ internal static class HuffmanTableBuilder
     /// <param name="sorted">Caller-owned workspace with at least one entry per symbol.</param>
     /// <returns>The required entry count, or zero for an invalid code.</returns>
     public static int Build(Span<HuffmanCode> table, int rootBits, ReadOnlySpan<int> codeLengths, Span<int> sorted)
+        => Build(table, rootBits, codeLengths, sorted, []);
+
+    /// <summary>
+    /// Builds a decoder lookup table and symbol-indexed encoder codes in one canonical traversal.
+    /// </summary>
+    /// <param name="table">The decoder destination, or empty to omit lookup entries.</param>
+    /// <param name="rootBits">The number of bits in the first decoder lookup.</param>
+    /// <param name="codeLengths">The code length for each alphabet symbol.</param>
+    /// <param name="sorted">Caller-owned workspace with at least one entry per symbol.</param>
+    /// <param name="encodingCodes">
+    /// One least-significant-bit-first code per symbol, or empty to omit encoder codes. Unused symbols remain unchanged.
+    /// </param>
+    /// <returns>The decoder table entry count, or zero for an invalid code.</returns>
+    public static int Build(Span<HuffmanCode> table, int rootBits, ReadOnlySpan<int> codeLengths, Span<int> sorted, Span<uint> encodingCodes)
     {
         DebugGuard.MustBeGreaterThan(rootBits, 0, nameof(rootBits));
         int codeLengthsSize = codeLengths.Length;
@@ -89,6 +103,11 @@ internal static class HuffmanTableBuilder
                 ReplicateValue(table, 1, totalSize, huffmanCode);
             }
 
+            if (!encodingCodes.IsEmpty)
+            {
+                encodingCodes[(int)huffmanCode.Value] = 0;
+            }
+
             return totalSize;
         }
 
@@ -122,6 +141,13 @@ internal static class HuffmanTableBuilder
                 if (!table.IsEmpty)
                 {
                     ReplicateValue(table[key..], step, tableSize, huffmanCode);
+                }
+
+                // The traversal already holds the reversed canonical key. Store it by symbol before advancing
+                // so encoders use the same ordering without constructing and inverting a decoder lookup table.
+                if (!encodingCodes.IsEmpty)
+                {
+                    encodingCodes[(int)huffmanCode.Value] = (uint)key;
                 }
 
                 key = GetNextKey(key, len);
@@ -174,6 +200,12 @@ internal static class HuffmanTableBuilder
                 if (!table.IsEmpty)
                 {
                     ReplicateValue(tableSpan[(key >> rootBits)..], step, tableSize, huffmanCode);
+                }
+
+                // Encoder codes retain the complete key, including the root prefix removed from secondary lookups.
+                if (!encodingCodes.IsEmpty)
+                {
+                    encodingCodes[(int)huffmanCode.Value] = (uint)key;
                 }
 
                 key = GetNextKey(key, len);

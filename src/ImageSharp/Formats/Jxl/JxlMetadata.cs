@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jxl;
@@ -13,6 +16,12 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
 {
     private JxlBitDepth bitDepth = new(8, 0);
     private JxlColorType colorType;
+    private CieXyChromaticityCoordinates? whitePoint;
+    private RgbPrimariesChromaticityCoordinates? primaries;
+    private CicpTransferCharacteristics? transferCharacteristics;
+    private Rational? gamma;
+    private IccRenderingIntent? renderingIntent;
+    private float? intensityTarget;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JxlMetadata"/> class.
@@ -29,6 +38,12 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
     {
         this.bitDepth = other.bitDepth;
         this.colorType = other.colorType;
+        this.WhitePoint = other.WhitePoint;
+        this.Primaries = other.Primaries;
+        this.TransferCharacteristics = other.TransferCharacteristics;
+        this.Gamma = other.Gamma;
+        this.RenderingIntent = other.RenderingIntent;
+        this.IntensityTarget = other.IntensityTarget;
         this.RepeatCount = other.RepeatCount;
 
         // Each channel description is immutable. Copy the collection so callers can edit channel lists independently.
@@ -71,6 +86,136 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
     }
 
     /// <summary>
+    /// Gets or sets the compact color encoding's reference white chromaticity.
+    /// Null uses the image's CICP profile or the default D65 white point. An ICC profile supplies its own white point.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate exceeds the signed millionths stored by JPEG XL.</exception>
+    public CieXyChromaticityCoordinates? WhitePoint
+    {
+        get => this.whitePoint;
+        set
+        {
+            if (value.HasValue)
+            {
+                ValidateChromaticity(value.Value);
+            }
+
+            this.whitePoint = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the compact RGB encoding's primary chromaticities.
+    /// Null uses the image's CICP profile or sRGB primaries. Grayscale and ICC encodings do not use this value.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate exceeds the signed millionths stored by JPEG XL.</exception>
+    public RgbPrimariesChromaticityCoordinates? Primaries
+    {
+        get => this.primaries;
+        set
+        {
+            if (value.HasValue)
+            {
+                ValidateChromaticity(value.Value.R);
+                ValidateChromaticity(value.Value.G);
+                ValidateChromaticity(value.Value.B);
+            }
+
+            this.primaries = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the compact encoding's transfer function when <see cref="Gamma"/> is null.
+    /// Null uses the image's CICP profile or the sRGB transfer function. An ICC profile supplies its own transfer function.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a compact JPEG XL transfer function.</exception>
+    public CicpTransferCharacteristics? TransferCharacteristics
+    {
+        get => this.transferCharacteristics;
+        set
+        {
+            if (value.HasValue && value.Value is not (CicpTransferCharacteristics.ItuRBt709_6
+                or CicpTransferCharacteristics.Linear or CicpTransferCharacteristics.Iec61966_2_1
+                or CicpTransferCharacteristics.SmpteSt2084 or CicpTransferCharacteristics.SmpteSt428_1 or CicpTransferCharacteristics.AribStdB67))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "The transfer function has no compact JPEG XL identifier.");
+            }
+
+            this.transferCharacteristics = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the compact encoding's compression exponent.
+    /// Null uses <see cref="TransferCharacteristics"/>. An ICC profile supplies its own transfer function.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The stored exponent is outside the interval from 1/8192 to one.</exception>
+    public Rational? Gamma
+    {
+        get => this.gamma;
+        set
+        {
+            if (value.HasValue)
+            {
+                // The file stores integer ten-millionths. Validate the rounded field, including NaN
+                // from an uninitialized rational, before the writer converts it to an unsigned integer.
+                // The least legal integer is ceil(10000000 / 8192), or 1221.
+                double encoded = Math.Round(value.Value.ToDouble() * 10_000_000D);
+
+                if (!(encoded >= 1221D && encoded <= 10_000_000D))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), "The stored JPEG XL gamma must be between 1/8192 and one.");
+                }
+            }
+
+            this.gamma = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the compact encoding's rendering intent.
+    /// Null uses media-relative colorimetric intent. An ICC profile supplies its own rendering intent.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not an ICC rendering intent.</exception>
+    public IccRenderingIntent? RenderingIntent
+    {
+        get => this.renderingIntent;
+        set
+        {
+            if (value.HasValue)
+            {
+                Guard.MustBeLessThanOrEqualTo((uint)value.Value, 3U, nameof(value));
+            }
+
+            this.renderingIntent = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the reference intensity in nits.
+    /// Null uses 10000 nits for PQ, 1000 nits for HLG, or 255 nits for other transfer functions.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value does not round to a positive finite half-precision intensity.</exception>
+    public float? IntensityTarget
+    {
+        get => this.intensityTarget;
+        set
+        {
+            if (value.HasValue)
+            {
+                float encoded = HalfTypeHelper.Unpack(HalfTypeHelper.Pack(value.Value));
+                if (!(encoded > 0F && float.IsFinite(encoded)))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), "The intensity must round to a positive finite half-precision value.");
+                }
+            }
+
+            this.intensityTarget = value;
+        }
+    }
+
+    /// <summary>
     /// Gets the channels stored in addition to the image color components, in encoded order.
     /// Each channel has its own precision and alpha representation.
     /// </summary>
@@ -86,28 +231,32 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
     public static JxlMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
         PixelTypeInfo pixelInfo = metadata.PixelTypeInfo;
-        int precision = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 8;
+        PixelColorType color = pixelInfo.ColorType & ~PixelColorType.Alpha;
+
+        // Palette precision describes an index, not a color component. PNG and GIF palette entries
+        // contain eight-bit RGB components, even when one or two index bits select each decoded color.
+        int precision = color == PixelColorType.Indexed ? 8 : pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 8;
 
         // Connecting metadata describes precision and range, but not the floating-point exponent layout.
         // Use single precision for extended values or integer formats beyond JPEG XL's 31-bit unsigned limit.
         bool useFloat = pixelInfo.ColorRange == PixelColorRange.Extended || precision > 31;
         JxlBitDepth bitDepth = useFloat ? new JxlBitDepth(32, 8) : new JxlBitDepth((byte)precision, 0);
-        PixelColorType color = pixelInfo.ColorType & ~PixelColorType.Alpha;
         JxlMetadata result = new()
         {
             BitDepth = bitDepth,
             ColorType = color switch
             {
                 PixelColorType.Luminance => JxlColorType.Luminance,
-                PixelColorType.RGB or PixelColorType.BGR or PixelColorType.CMYK => JxlColorType.Rgb,
+                PixelColorType.RGB or PixelColorType.BGR or PixelColorType.CMYK
+                    or PixelColorType.YCbCr or PixelColorType.YCCK or PixelColorType.Indexed => JxlColorType.Rgb,
                 _ => JxlColorType.Other
             },
             RepeatCount = metadata.RepeatCount
         };
 
-        // JPEG XL's RGB color type also represents the three CMY components. A black extra channel identifies CMYK.
-        // Preserve that component instead of labelling the four source components as RGB with alpha.
-        if (color == PixelColorType.CMYK)
+        // JPEG XL's RGB color type also represents the three CMY components. CMYK and YCCK source
+        // descriptions need a separate black component when the original CMYK profile is retained.
+        if (color is PixelColorType.CMYK or PixelColorType.YCCK)
         {
             result.ExtraChannels.Add(new JxlExtraChannelMetadata(JxlExtraChannelType.Black, bitDepth, PixelAlphaRepresentation.None));
         }
@@ -203,5 +352,23 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
     public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+    }
+
+    /// <summary>
+    /// Checks the signed millionths used by both compact white points and RGB primaries.
+    /// </summary>
+    /// <param name="value">The chromaticity to encode.</param>
+    /// <exception cref="ArgumentOutOfRangeException">A rounded coordinate does not fit the encoded field.</exception>
+    private static void ValidateChromaticity(CieXyChromaticityCoordinates value)
+    {
+        // Zigzag coding stores 22 bits. Its signed range is -2097152 through 2097151 millionths.
+        // Match the writer's single-precision rounding before validating that integer range.
+        float x = MathF.Round(value.X * 1_000_000F);
+        float y = MathF.Round(value.Y * 1_000_000F);
+
+        if (!(x >= -2097152F && x <= 2097151F && y >= -2097152F && y <= 2097151F))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "Chromaticity coordinates must fit the signed JPEG XL millionths field.");
+        }
     }
 }

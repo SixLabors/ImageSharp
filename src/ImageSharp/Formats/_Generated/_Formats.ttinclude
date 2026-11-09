@@ -10,6 +10,7 @@
         "Gif",
         "Ico",
         "Jpeg",
+        "Jxl",
         "Pbm",
         "Png",
         "Qoi",
@@ -26,6 +27,7 @@
         "Gif",
         "Png",
         "Tiff",
-        "Webp"
+        "Webp",
+        "Jxl"
         ];
 #>

@@ -27,8 +27,32 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
     /// </summary>
     public static LibJxlReferenceDecoder Instance { get; } = new();
 
+    /// <summary>
+    /// Decodes one extra channel with native reconstruction and packs it as grayscale pixels.
+    /// </summary>
+    /// <param name="options">The configuration and frame limit.</param>
+    /// <param name="stream">The seekable JPEG XL input.</param>
+    /// <param name="channelIndex">The encoded extra-channel index.</param>
+    /// <param name="cancellationToken">The token checked between native decoder events.</param>
+    /// <returns>The full-resolution native channel samples for each requested frame.</returns>
+    public Image<RgbaVector> DecodeExtraChannel(DecoderOptions options, Stream stream, uint channelIndex, CancellationToken cancellationToken)
+        => this.Decode<RgbaVector>(options, stream, channelIndex, cancellationToken);
+
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => this.Decode<TPixel>(options, stream, null, cancellationToken);
+
+    /// <summary>
+    /// Decodes displayed color or one extra channel through the same native decoder and frame traversal.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
+    /// <param name="options">The configuration and frame limit.</param>
+    /// <param name="stream">The seekable encoded input.</param>
+    /// <param name="channelIndex">The requested extra channel, or null for displayed color.</param>
+    /// <param name="cancellationToken">The token checked between native decoder events.</param>
+    /// <returns>The native reconstructed frames.</returns>
+    private Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, uint? channelIndex, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         // The decoder base supplies seekable input. Retain its bytes until native decoding finishes:
         // libjxl borrows the pinned input instead of taking ownership of it.
@@ -44,6 +68,7 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
         }
 
         void* pixels = null;
+        void* extraPixels = null;
         int width = 0;
         int height = 0;
         bool grayscale = false;
@@ -94,19 +119,17 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
                             JxlColorEncoding srgb;
                             NativeJxl.JxlColorEncodingSetToSRGB(&srgb, grayscale ? 1 : 0);
                             JxlColorEncoding originalEncoding;
+                            nuint profileSize;
                             if (NativeJxl.JxlDecoderGetColorAsEncodedProfile(
                                 decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_ORIGINAL, &originalEncoding) == JxlDecoderStatus.JXL_DEC_SUCCESS)
                             {
                                 srgb.rendering_intent = originalEncoding.rendering_intent;
                             }
-                            else
+                            else if (NativeJxl.JxlDecoderGetICCProfileSize(
+                                decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_ORIGINAL, &profileSize) == JxlDecoderStatus.JXL_DEC_SUCCESS)
                             {
-                                // ICC-only inputs have no structured encoding. Read the declared intent
-                                // through the existing ICC metadata API; libjxl performs the transform itself.
-                                nuint profileSize;
-                                Check(NativeJxl.JxlDecoderGetICCProfileSize(
-                                    decoder, JxlColorProfileTarget.JXL_COLOR_PROFILE_TARGET_ORIGINAL, &profileSize));
-
+                                // Some ICC-only device encodings expose no original profile through this API.
+                                // Use available ICC metadata; otherwise keep native sRGB defaults and conversion.
                                 byte[] profile = new byte[checked((int)profileSize)];
                                 fixed (byte* profileData = profile)
                                 {
@@ -142,11 +165,33 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
                             pixels = NativeMemory.Realloc(pixels, size);
                             Check(NativeJxl.JxlDecoderSetImageOutBuffer(decoder, &format, pixels, size));
 
+                            if (channelIndex is uint index)
+                            {
+                                nuint extraSize;
+                                Check(NativeJxl.JxlDecoderExtraChannelBufferSize(decoder, &format, &extraSize, index));
+                                extraPixels = NativeMemory.Realloc(extraPixels, extraSize);
+                                Check(NativeJxl.JxlDecoderSetExtraChannelBuffer(decoder, &format, extraPixels, extraSize, index));
+                            }
+
                             break;
 
                         case JxlDecoderStatus.JXL_DEC_FULL_IMAGE:
                         {
                             Span<Vector4> colors = new(pixels, checked(width * height));
+
+                            if (channelIndex.HasValue)
+                            {
+                                // Native reconstruction includes the channel's spatial upsampling. Replicate its
+                                // scalar samples into RGB for the existing whole-image comparer; no color transform is applied here.
+                                ReadOnlySpan<float> samples = new(extraPixels, colors.Length);
+
+                                for (int i = 0; i < samples.Length; i++)
+                                {
+                                    float value = samples[i];
+                                    colors[i] = new Vector4(value, value, value, 1F);
+                                }
+                            }
+
                             ImageFrame<TPixel> frame;
                             if (image is null)
                             {
@@ -191,6 +236,7 @@ public sealed unsafe class LibJxlReferenceDecoder : ImageDecoder
         {
             // libjxl borrows the output allocation. Release the decoder before freeing that allocation.
             NativeJxl.JxlDecoderDestroy(decoder);
+            NativeMemory.Free(extraPixels);
             NativeMemory.Free(pixels);
         }
     }

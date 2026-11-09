@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
 /// <summary>
-/// Registers the JPEG XL decoder and format detector.
+/// Registers the JPEG XL codecs and format detector.
 /// </summary>
 public sealed class JxlConfigurationModule : IImageFormatConfigurationModule
 {
@@ -12,6 +12,7 @@ public sealed class JxlConfigurationModule : IImageFormatConfigurationModule
     public void Configure(Configuration configuration)
     {
         configuration.ImageFormatsManager.SetDecoder(JxlFormat.Instance, JxlDecoder.Instance);
+        configuration.ImageFormatsManager.SetEncoder(JxlFormat.Instance, new JxlEncoder());
         configuration.ImageFormatsManager.AddImageFormatDetector(new JxlImageFormatDetector());
     }
 }

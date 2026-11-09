@@ -178,10 +178,82 @@ internal sealed class JxlHeader
                 ref reader, allocator, header.UsesXybTransform ? handling : SegmentIntegrityHandling.Strict, cancellationToken);
         }
 
+        header.Metadata.IntensityTarget = header.IntensityTarget;
+        if (!header.HasIccProfile && header.ProfileColorType is JxlColorType.Rgb or JxlColorType.Luminance)
+        {
+            // Pixels use working sRGB after decoding. Retain the original compact description separately
+            // so an encoder can convert those pixels back without inventing an ICC profile.
+            header.Metadata.WhitePoint = header.WhitePoint;
+            header.Metadata.Primaries = header.ProfileColorType == JxlColorType.Rgb ? header.Primaries : null;
+            header.Metadata.TransferCharacteristics = header.Gamma.HasValue ? null : header.TransferCharacteristics;
+            header.Metadata.Gamma = header.Gamma;
+            header.Metadata.RenderingIntent = header.RenderingIntent;
+        }
+
         // Frame syntax starts on the next byte. The padding belongs to this header and must be zero,
         // including when a compact color description omits the compressed ICC section.
         reader.AlignToByte();
         return header;
+    }
+
+    /// <summary>
+    /// Gets the shared CICP description when it represents the compact color encoding exactly.
+    /// </summary>
+    /// <returns>The original compact description, or null for ICC profiles and unrepresented chromaticities or gamma.</returns>
+    public CicpProfile? GetCicpProfile()
+    {
+        if (this.HasIccProfile || this.ProfileColorType is not (JxlColorType.Rgb or JxlColorType.Luminance))
+        {
+            return null;
+        }
+
+        CicpTransferCharacteristics transfer = this.TransferCharacteristics;
+        if (this.Gamma is Rational gamma)
+        {
+            // A unit exponent is exactly CICP linear. Other file exponents remain in JXL metadata;
+            // rounding one to a named CICP curve would change the original color description.
+            if (gamma.Numerator != gamma.Denominator)
+            {
+                return null;
+            }
+
+            transfer = CicpTransferCharacteristics.Linear;
+        }
+
+        CicpColorPrimaries primaries;
+        if (this.WhitePoint == KnownIlluminants.D65Chromaticity)
+        {
+            // Grayscale stores no primaries. D65 gray can share the sRGB white description.
+            if (this.ProfileColorType == JxlColorType.Luminance || this.Primaries == KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates)
+            {
+                primaries = CicpColorPrimaries.ItuRBt709_6;
+            }
+            else if (this.Primaries == KnownRgbWorkingSpaces.Rec2020.ChromaticityCoordinates)
+            {
+                primaries = CicpColorPrimaries.ItuRBt2020_2;
+            }
+            else if (this.Primaries == KnownRgbWorkingSpaces.DisplayP3.ChromaticityCoordinates)
+            {
+                primaries = CicpColorPrimaries.SmpteEg432_1;
+            }
+            else
+            {
+                return null;
+            }
+        }
+        else if (this.ProfileColorType == JxlColorType.Rgb
+            && this.WhitePoint == KnownIlluminants.DciP3Chromaticity
+            && this.Primaries == KnownRgbWorkingSpaces.DisplayP3.ChromaticityCoordinates)
+        {
+            primaries = CicpColorPrimaries.SmpteRp431_2;
+        }
+        else
+        {
+            return null;
+        }
+
+        // These are original RGB or gray coordinates. YUV matrix and range flags do not describe their samples.
+        return new CicpProfile((byte)primaries, (byte)transfer, (byte)CicpMatrixCoefficients.Identity, true);
     }
 
     /// <summary>

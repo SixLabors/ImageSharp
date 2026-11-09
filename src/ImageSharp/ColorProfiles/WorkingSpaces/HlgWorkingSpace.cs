@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 /// Expansion accepts nonlinear HLG RGB and produces display-linear RGB relative to the selected display peak.
 /// Compression accepts that display-linear RGB and produces nonlinear HLG RGB.
 /// Luminance adjustment is identity when its gamma differs from one by at most 0.01. Its RGB scale is limited to 1,000,000,000.
+/// A nonfinite luminance scale leaves the RGB components unchanged.
 /// Compression applies the same limits to the inverse gamma. These limits bound luminance adjustment, not the component-curve input.
 /// Converted RGB is bounded to the normalized range [-65504,65504]. Alpha remains unchanged.
 /// </remarks>

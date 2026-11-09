@@ -10,10 +10,11 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.Modular;
 
 /// <summary>
-/// Reconstructs integer sample pairs from modular averages and squeeze residuals.
+/// Splits and reconstructs integer sample pairs with reversible averages and smooth residuals.
 /// </summary>
 /// <remarks>
-/// The decoder owns the regions and validates their dimensions. For horizontal reconstruction, the averages can occupy the rightmost columns
+/// The caller owns the regions and validates their dimensions. Forward outputs are separate from all inputs and from each other.
+/// For horizontal reconstruction, the averages can occupy the rightmost columns
 /// of the destination. Otherwise the destination must be separate from both inputs.
 /// Horizontal reconstruction depends on the preceding output pair. Vertical reconstruction has the same dependency between rows.
 /// </remarks>
@@ -21,6 +22,276 @@ internal static class JxlModularSqueeze
 {
     // Eight average columns and their lookahead fit sixteen independent rows in the existing inline-array types.
     private const int TileColumns = 8;
+
+    /// <summary>
+    /// Splits an integer sample row into reversible pair averages and smooth residuals.
+    /// </summary>
+    /// <param name="source">The original row. Its samples have two spare signed bits for squeeze arithmetic.</param>
+    /// <param name="averages">The caller-owned output with ceiling half the source length.</param>
+    /// <param name="residuals">The caller-owned output with floor half the source length.</param>
+    /// <remarks>All spans are disjoint. The caller validates their lengths and retains their storage.</remarks>
+    public static void ForwardHorizontal(ReadOnlySpan<int> source, Span<int> averages, Span<int> residuals)
+    {
+        ref int sourceRef = ref MemoryMarshal.GetReference(source);
+        ref int averageRef = ref MemoryMarshal.GetReference(averages);
+        ref int residualRef = ref MemoryMarshal.GetReference(residuals);
+        int x = 0;
+
+        // Each pair becomes one lane. Unaligned loads cover exactly two vector lengths of source samples.
+        // Complete the average row first because every residual needs the following pair average.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector512<int>.Count; x += Vector512<int>.Count)
+            {
+                int sourceOffset = x * 2;
+                SimdUtils.Deinterleave2(
+                    Vector512.LoadUnsafe(ref sourceRef, (nuint)sourceOffset),
+                    Vector512.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset + Vector512<int>.Count)),
+                    out Vector512<int> first,
+                    out Vector512<int> second);
+
+                // Comparison masks contain minus one. Subtraction adds one when the first sample is larger.
+                Vector512<int> average = ((first + second) - Vector512.GreaterThan(first, second)) >> 1;
+                average.StoreUnsafe(ref averageRef, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector256<int>.Count; x += Vector256<int>.Count)
+            {
+                int sourceOffset = x * 2;
+                SimdUtils.Deinterleave2(
+                    Vector256.LoadUnsafe(ref sourceRef, (nuint)sourceOffset),
+                    Vector256.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset + Vector256<int>.Count)),
+                    out Vector256<int> first,
+                    out Vector256<int> second);
+
+                // Comparison masks contain minus one. Subtraction adds one when the first sample is larger.
+                Vector256<int> average = ((first + second) - Vector256.GreaterThan(first, second)) >> 1;
+                average.StoreUnsafe(ref averageRef, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector128<int>.Count; x += Vector128<int>.Count)
+            {
+                int sourceOffset = x * 2;
+                SimdUtils.Deinterleave2(
+                    Vector128.LoadUnsafe(ref sourceRef, (nuint)sourceOffset),
+                    Vector128.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset + Vector128<int>.Count)),
+                    out Vector128<int> first,
+                    out Vector128<int> second);
+
+                // Comparison masks contain minus one. Subtraction adds one when the first sample is larger.
+                Vector128<int> average = ((first + second) - Vector128.GreaterThan(first, second)) >> 1;
+                average.StoreUnsafe(ref averageRef, (nuint)x);
+            }
+        }
+
+        for (; x < residuals.Length; x++)
+        {
+            int a = source[x * 2];
+            int b = source[(x * 2) + 1];
+            averages[x] = (a + b + (a > b ? 1 : 0)) >> 1;
+        }
+
+        // An unmatched final sample is already the last average and also supplies the last pair's lookahead.
+        if ((source.Length & 1) != 0)
+        {
+            averages[^1] = source[^1];
+        }
+
+        x = 0;
+        if (!residuals.IsEmpty)
+        {
+            int average = averages[0];
+            int next = averages.Length > 1 ? averages[1] : average;
+            residuals[0] = SqueezeOperator.Forward(source[0], source[1], average, next, average);
+            x = 1;
+        }
+
+        // Lane i uses source pair i, source sample 2*i-1 and average i+1.
+        // Start after the left edge and leave a scalar tail where a following average is unavailable.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector512<int>.Count && x < averages.Length - Vector512<int>.Count; x += Vector512<int>.Count)
+            {
+                int sourceOffset = x * 2;
+                SimdUtils.Deinterleave2(
+                    Vector512.LoadUnsafe(ref sourceRef, (nuint)sourceOffset),
+                    Vector512.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset + Vector512<int>.Count)),
+                    out Vector512<int> first,
+                    out Vector512<int> second);
+
+                SimdUtils.Deinterleave2(
+                    Vector512.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset - 1)),
+                    Vector512.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset - 1 + Vector512<int>.Count)),
+                    out Vector512<int> previous,
+                    out _);
+
+                Vector512<int> average = Vector512.LoadUnsafe(ref averageRef, (nuint)x);
+                Vector512<int> next = Vector512.LoadUnsafe(ref averageRef, (nuint)(x + 1));
+                SqueezeOperator.Forward(first, second, average, next, previous).StoreUnsafe(ref residualRef, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector256<int>.Count && x < averages.Length - Vector256<int>.Count; x += Vector256<int>.Count)
+            {
+                int sourceOffset = x * 2;
+                SimdUtils.Deinterleave2(
+                    Vector256.LoadUnsafe(ref sourceRef, (nuint)sourceOffset),
+                    Vector256.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset + Vector256<int>.Count)),
+                    out Vector256<int> first,
+                    out Vector256<int> second);
+
+                SimdUtils.Deinterleave2(
+                    Vector256.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset - 1)),
+                    Vector256.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset - 1 + Vector256<int>.Count)),
+                    out Vector256<int> previous,
+                    out _);
+
+                Vector256<int> average = Vector256.LoadUnsafe(ref averageRef, (nuint)x);
+                Vector256<int> next = Vector256.LoadUnsafe(ref averageRef, (nuint)(x + 1));
+                SqueezeOperator.Forward(first, second, average, next, previous).StoreUnsafe(ref residualRef, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= residuals.Length - Vector128<int>.Count && x < averages.Length - Vector128<int>.Count; x += Vector128<int>.Count)
+            {
+                int sourceOffset = x * 2;
+                SimdUtils.Deinterleave2(
+                    Vector128.LoadUnsafe(ref sourceRef, (nuint)sourceOffset),
+                    Vector128.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset + Vector128<int>.Count)),
+                    out Vector128<int> first,
+                    out Vector128<int> second);
+
+                SimdUtils.Deinterleave2(
+                    Vector128.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset - 1)),
+                    Vector128.LoadUnsafe(ref sourceRef, (nuint)(sourceOffset - 1 + Vector128<int>.Count)),
+                    out Vector128<int> previous,
+                    out _);
+
+                Vector128<int> average = Vector128.LoadUnsafe(ref averageRef, (nuint)x);
+                Vector128<int> next = Vector128.LoadUnsafe(ref averageRef, (nuint)(x + 1));
+                SqueezeOperator.Forward(first, second, average, next, previous).StoreUnsafe(ref residualRef, (nuint)x);
+            }
+        }
+
+        for (; x < residuals.Length; x++)
+        {
+            int average = averages[x];
+            int next = x + 1 < averages.Length ? averages[x + 1] : average;
+            residuals[x] = SqueezeOperator.Forward(source[x * 2], source[(x * 2) + 1], average, next, source[(x * 2) - 1]);
+        }
+    }
+
+    /// <summary>
+    /// Splits two original sample rows into one average row and one smooth residual row.
+    /// </summary>
+    /// <param name="first">The even row. Its samples have two spare signed bits for squeeze arithmetic.</param>
+    /// <param name="second">The following odd row with the same length and range.</param>
+    /// <param name="previous">The preceding original odd row, or an empty span for the first pair.</param>
+    /// <param name="nextFirst">The following even row, or an empty span at an even bottom edge.</param>
+    /// <param name="nextSecond">The following odd row, or an empty span if the next row is unmatched or absent.</param>
+    /// <param name="averages">The caller-owned output average row.</param>
+    /// <param name="residuals">The caller-owned output residual row.</param>
+    /// <remarks>
+    /// The caller validates equal nonempty row lengths and keeps both outputs separate from all inputs.
+    /// The caller copies an unmatched final row directly to the average plane.
+    /// </remarks>
+    public static void ForwardVerticalPair(
+        ReadOnlySpan<int> first,
+        ReadOnlySpan<int> second,
+        ReadOnlySpan<int> previous,
+        ReadOnlySpan<int> nextFirst,
+        ReadOnlySpan<int> nextSecond,
+        Span<int> averages,
+        Span<int> residuals)
+    {
+        ref int firstRef = ref MemoryMarshal.GetReference(first);
+        ref int secondRef = ref MemoryMarshal.GetReference(second);
+        ref int averageRef = ref MemoryMarshal.GetReference(averages);
+        ref int residualRef = ref MemoryMarshal.GetReference(residuals);
+        ref int previousRef = ref (previous.IsEmpty ? ref averageRef : ref MemoryMarshal.GetReference(previous));
+        ref int nextFirstRef = ref (nextFirst.IsEmpty ? ref averageRef : ref MemoryMarshal.GetReference(nextFirst));
+        ref int nextSecondRef = ref (nextSecond.IsEmpty ? ref nextFirstRef : ref MemoryMarshal.GetReference(nextSecond));
+        int x = 0;
+
+        // Each lane processes one column of the two rows. Absent following rows borrow the stored current average.
+        // An unmatched following row occupies both pair positions, so its average is that unchanged sample.
+        // Select these row references once so the vector loops need no edge branches.
+        // Loads need no alignment. Full-vector bounds and the scalar tail prevent access beyond any input row.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            for (; x <= averages.Length - Vector512<int>.Count; x += Vector512<int>.Count)
+            {
+                Vector512<int> a = Vector512.LoadUnsafe(ref firstRef, (nuint)x);
+                Vector512<int> b = Vector512.LoadUnsafe(ref secondRef, (nuint)x);
+                Vector512<int> average = ((a + b) - Vector512.GreaterThan(a, b)) >> 1;
+                average.StoreUnsafe(ref averageRef, (nuint)x);
+
+                Vector512<int> before = Vector512.LoadUnsafe(ref previousRef, (nuint)x);
+                Vector512<int> nextA = Vector512.LoadUnsafe(ref nextFirstRef, (nuint)x);
+                Vector512<int> nextB = Vector512.LoadUnsafe(ref nextSecondRef, (nuint)x);
+                Vector512<int> after = ((nextA + nextB) - Vector512.GreaterThan(nextA, nextB)) >> 1;
+                SqueezeOperator.Forward(a, b, average, after, before).StoreUnsafe(ref residualRef, (nuint)x);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            for (; x <= averages.Length - Vector256<int>.Count; x += Vector256<int>.Count)
+            {
+                Vector256<int> a = Vector256.LoadUnsafe(ref firstRef, (nuint)x);
+                Vector256<int> b = Vector256.LoadUnsafe(ref secondRef, (nuint)x);
+                Vector256<int> average = ((a + b) - Vector256.GreaterThan(a, b)) >> 1;
+                average.StoreUnsafe(ref averageRef, (nuint)x);
+
+                Vector256<int> before = Vector256.LoadUnsafe(ref previousRef, (nuint)x);
+                Vector256<int> nextA = Vector256.LoadUnsafe(ref nextFirstRef, (nuint)x);
+                Vector256<int> nextB = Vector256.LoadUnsafe(ref nextSecondRef, (nuint)x);
+                Vector256<int> after = ((nextA + nextB) - Vector256.GreaterThan(nextA, nextB)) >> 1;
+                SqueezeOperator.Forward(a, b, average, after, before).StoreUnsafe(ref residualRef, (nuint)x);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; x <= averages.Length - Vector128<int>.Count; x += Vector128<int>.Count)
+            {
+                Vector128<int> a = Vector128.LoadUnsafe(ref firstRef, (nuint)x);
+                Vector128<int> b = Vector128.LoadUnsafe(ref secondRef, (nuint)x);
+                Vector128<int> average = ((a + b) - Vector128.GreaterThan(a, b)) >> 1;
+                average.StoreUnsafe(ref averageRef, (nuint)x);
+
+                Vector128<int> before = Vector128.LoadUnsafe(ref previousRef, (nuint)x);
+                Vector128<int> nextA = Vector128.LoadUnsafe(ref nextFirstRef, (nuint)x);
+                Vector128<int> nextB = Vector128.LoadUnsafe(ref nextSecondRef, (nuint)x);
+                Vector128<int> after = ((nextA + nextB) - Vector128.GreaterThan(nextA, nextB)) >> 1;
+                SqueezeOperator.Forward(a, b, average, after, before).StoreUnsafe(ref residualRef, (nuint)x);
+            }
+        }
+
+        for (; x < averages.Length; x++)
+        {
+            int a = first[x];
+            int b = second[x];
+            int average = (a + b + (a > b ? 1 : 0)) >> 1;
+            averages[x] = average;
+
+            int before = Unsafe.Add(ref previousRef, x);
+            int nextA = Unsafe.Add(ref nextFirstRef, x);
+            int nextB = Unsafe.Add(ref nextSecondRef, x);
+            int after = (nextA + nextB + (nextA > nextB ? 1 : 0)) >> 1;
+            residuals[x] = SqueezeOperator.Forward(a, b, average, after, before);
+        }
+    }
 
     /// <summary>
     /// Reverses one horizontal or vertical squeeze without allocating sample storage.
@@ -583,6 +854,103 @@ internal static class JxlModularSqueeze
         private const int DivideByThreeShift = 33;
 
         /// <summary>
+        /// Removes the shared smooth tendency from an original sample-pair difference.
+        /// </summary>
+        /// <param name="first">The original even sample.</param>
+        /// <param name="second">The original odd sample.</param>
+        /// <param name="average">The reversible pair average.</param>
+        /// <param name="next">The following pair average, or the current average at an even edge.</param>
+        /// <param name="previous">The preceding odd sample, or the current average at the first pair.</param>
+        /// <returns>The signed residual. The caller reserves two bits of signed sample headroom.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Forward(int first, int second, int average, int next, int previous)
+            => (int)((long)first - second - GetTendency(average, next, previous));
+
+        /// <summary>
+        /// Removes the shared smooth tendency from independent original sample-pair lanes.
+        /// </summary>
+        /// <param name="first">The original even-sample lanes.</param>
+        /// <param name="second">The original odd-sample lanes.</param>
+        /// <param name="average">The reversible pair-average lanes.</param>
+        /// <param name="next">The following-average lanes.</param>
+        /// <param name="previous">The preceding odd-sample lanes.</param>
+        /// <returns>The residual lanes. The caller reserves two bits of signed sample headroom.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<int> Forward(
+            Vector128<int> first,
+            Vector128<int> second,
+            Vector128<int> average,
+            Vector128<int> next,
+            Vector128<int> previous)
+        {
+            // Widen neighboring samples before tendency subtraction, as in the inverse operation.
+            // Narrow only the bounded tendency; the caller's sample headroom keeps the residual in signed storage.
+            Vector128<long> lower = GetTendency(
+                Vector128.WidenLower(average), Vector128.WidenLower(next), Vector128.WidenLower(previous));
+
+            Vector128<long> upper = GetTendency(
+                Vector128.WidenUpper(average), Vector128.WidenUpper(next), Vector128.WidenUpper(previous));
+
+            return first - second - Vector128.Narrow(lower, upper);
+        }
+
+        /// <summary>
+        /// Removes the shared smooth tendency from independent original sample-pair lanes.
+        /// </summary>
+        /// <param name="first">The original even-sample lanes.</param>
+        /// <param name="second">The original odd-sample lanes.</param>
+        /// <param name="average">The reversible pair-average lanes.</param>
+        /// <param name="next">The following-average lanes.</param>
+        /// <param name="previous">The preceding odd-sample lanes.</param>
+        /// <returns>The residual lanes. The caller reserves two bits of signed sample headroom.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<int> Forward(
+            Vector256<int> first,
+            Vector256<int> second,
+            Vector256<int> average,
+            Vector256<int> next,
+            Vector256<int> previous)
+        {
+            // Widen neighboring samples before tendency subtraction, as in the inverse operation.
+            // Narrow only the bounded tendency; the caller's sample headroom keeps the residual in signed storage.
+            Vector256<long> lower = GetTendency(
+                Vector256.WidenLower(average), Vector256.WidenLower(next), Vector256.WidenLower(previous));
+
+            Vector256<long> upper = GetTendency(
+                Vector256.WidenUpper(average), Vector256.WidenUpper(next), Vector256.WidenUpper(previous));
+
+            return first - second - Vector256.Narrow(lower, upper);
+        }
+
+        /// <summary>
+        /// Removes the shared smooth tendency from independent original sample-pair lanes.
+        /// </summary>
+        /// <param name="first">The original even-sample lanes.</param>
+        /// <param name="second">The original odd-sample lanes.</param>
+        /// <param name="average">The reversible pair-average lanes.</param>
+        /// <param name="next">The following-average lanes.</param>
+        /// <param name="previous">The preceding odd-sample lanes.</param>
+        /// <returns>The residual lanes. The caller reserves two bits of signed sample headroom.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> Forward(
+            Vector512<int> first,
+            Vector512<int> second,
+            Vector512<int> average,
+            Vector512<int> next,
+            Vector512<int> previous)
+        {
+            // Widen neighboring samples before tendency subtraction, as in the inverse operation.
+            // Narrow only the bounded tendency; the caller's sample headroom keeps the residual in signed storage.
+            Vector512<long> lower = GetTendency(
+                Vector512.WidenLower(average), Vector512.WidenLower(next), Vector512.WidenLower(previous));
+
+            Vector512<long> upper = GetTendency(
+                Vector512.WidenUpper(average), Vector512.WidenUpper(next), Vector512.WidenUpper(previous));
+
+            return first - second - Vector512.Narrow(lower, upper);
+        }
+
+        /// <summary>
         /// Restores one sample pair using wide intermediate arithmetic and division toward zero.
         /// </summary>
         /// <param name="average">The pair average.</param>
@@ -593,23 +961,7 @@ internal static class JxlModularSqueeze
         /// <param name="second">The reconstructed odd sample.</param>
         public static void Apply(int average, int residual, int next, int previous, out int first, out int second)
         {
-            long before = (long)previous - average;
-            long after = (long)average - next;
-            long tendency = 0;
-
-            // A tendency is meaningful only along a monotonic sequence. Limit its parity-adjusted magnitude so
-            // zero residual does not introduce a new extremum between the preceding sample and next average.
-            if ((before >= 0 && after >= 0) || (before <= 0 && after <= 0))
-            {
-                long magnitude = (2 + Math.Abs((long)previous - next) + (Math.Abs(before) / 3)) >> 2;
-                long beforeLimit = 2 * Math.Abs(before);
-                long afterLimit = 2 * Math.Abs(after);
-                magnitude = magnitude > beforeLimit + (magnitude & 1) ? beforeLimit + 1 : magnitude;
-                magnitude = magnitude + (magnitude & 1) > afterLimit ? afterLimit : magnitude;
-                tendency = previous < next ? -magnitude : magnitude;
-            }
-
-            long difference = residual + tendency;
+            long difference = residual + GetTendency(average, next, previous);
             first = (int)(average + (difference / 2));
             second = (int)(average + (difference / 2) - difference);
         }
@@ -670,27 +1022,7 @@ internal static class JxlModularSqueeze
             out Vector128<long> first,
             out Vector128<long> second)
         {
-            Vector128<long> before = previous - average;
-            Vector128<long> after = average - next;
-            Vector128<long> beforeMagnitude = Vector128.Abs(before);
-            Vector128<long> afterMagnitude = Vector128.Abs(after);
-            Vector128<long> one = Vector128.Create(1L);
-            Vector128<long> third = ((beforeMagnitude.AsUInt64() * Vector128.Create(DivideByThreeMultiplier)) >>> DivideByThreeShift).AsInt64();
-            Vector128<long> magnitude = (Vector128.Create(2L) + Vector128.Abs(previous - next) + third) >> 2;
-            Vector128<long> beforeLimit = beforeMagnitude << 1;
-            Vector128<long> afterLimit = afterMagnitude << 1;
-            magnitude = Vector128.ConditionalSelect(Vector128.GreaterThan(magnitude, beforeLimit + (magnitude & one)), beforeLimit + one, magnitude);
-            magnitude = Vector128.ConditionalSelect(Vector128.GreaterThan(magnitude + (magnitude & one), afterLimit), afterLimit, magnitude);
-
-            // Equal adjacent values remain monotonic with either sign. Their tendency can be one unit because
-            // the limits account for odd pair differences; testing only the XOR sign would discard that case.
-            Vector128<long> increasing = Vector128.LessThanOrEqual(before, Vector128<long>.Zero)
-                & Vector128.LessThanOrEqual(after, Vector128<long>.Zero);
-            Vector128<long> decreasing = Vector128.GreaterThanOrEqual(before, Vector128<long>.Zero)
-                & Vector128.GreaterThanOrEqual(after, Vector128<long>.Zero);
-            Vector128<long> monotonic = increasing | decreasing;
-            Vector128<long> tendency = Vector128.ConditionalSelect(Vector128.LessThan(previous, next), -magnitude, magnitude) & monotonic;
-            Vector128<long> difference = residual + tendency;
+            Vector128<long> difference = residual + GetTendency(average, next, previous);
 
             // Arithmetic shift rounds negative odd values down. Add the sign bit first to obtain truncation toward zero.
             Vector128<long> halfDifference = (difference + (difference.AsUInt64() >>> 63).AsInt64()) >> 1;
@@ -754,27 +1086,7 @@ internal static class JxlModularSqueeze
             out Vector256<long> first,
             out Vector256<long> second)
         {
-            Vector256<long> before = previous - average;
-            Vector256<long> after = average - next;
-            Vector256<long> beforeMagnitude = Vector256.Abs(before);
-            Vector256<long> afterMagnitude = Vector256.Abs(after);
-            Vector256<long> one = Vector256.Create(1L);
-            Vector256<long> third = ((beforeMagnitude.AsUInt64() * Vector256.Create(DivideByThreeMultiplier)) >>> DivideByThreeShift).AsInt64();
-            Vector256<long> magnitude = (Vector256.Create(2L) + Vector256.Abs(previous - next) + third) >> 2;
-            Vector256<long> beforeLimit = beforeMagnitude << 1;
-            Vector256<long> afterLimit = afterMagnitude << 1;
-            magnitude = Vector256.ConditionalSelect(Vector256.GreaterThan(magnitude, beforeLimit + (magnitude & one)), beforeLimit + one, magnitude);
-            magnitude = Vector256.ConditionalSelect(Vector256.GreaterThan(magnitude + (magnitude & one), afterLimit), afterLimit, magnitude);
-
-            // Equal adjacent values remain monotonic with either sign. Their tendency can be one unit because
-            // the limits account for odd pair differences; testing only the XOR sign would discard that case.
-            Vector256<long> increasing = Vector256.LessThanOrEqual(before, Vector256<long>.Zero)
-                & Vector256.LessThanOrEqual(after, Vector256<long>.Zero);
-            Vector256<long> decreasing = Vector256.GreaterThanOrEqual(before, Vector256<long>.Zero)
-                & Vector256.GreaterThanOrEqual(after, Vector256<long>.Zero);
-            Vector256<long> monotonic = increasing | decreasing;
-            Vector256<long> tendency = Vector256.ConditionalSelect(Vector256.LessThan(previous, next), -magnitude, magnitude) & monotonic;
-            Vector256<long> difference = residual + tendency;
+            Vector256<long> difference = residual + GetTendency(average, next, previous);
 
             // Arithmetic shift rounds negative odd values down. Add the sign bit first to obtain truncation toward zero.
             Vector256<long> halfDifference = (difference + (difference.AsUInt64() >>> 63).AsInt64()) >> 1;
@@ -838,6 +1150,117 @@ internal static class JxlModularSqueeze
             out Vector512<long> first,
             out Vector512<long> second)
         {
+            Vector512<long> difference = residual + GetTendency(average, next, previous);
+
+            // Arithmetic shift rounds negative odd values down. Add the sign bit first to obtain truncation toward zero.
+            Vector512<long> halfDifference = (difference + (difference.AsUInt64() >>> 63).AsInt64()) >> 1;
+            first = average + halfDifference;
+            second = first - difference;
+        }
+
+        /// <summary>
+        /// Gets the parity-limited tendency shared by forward and inverse sample pairs.
+        /// </summary>
+        /// <param name="average">The current pair average.</param>
+        /// <param name="next">The following pair average.</param>
+        /// <param name="previous">The preceding original odd sample.</param>
+        /// <returns>The signed pair difference predicted from neighboring samples.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long GetTendency(long average, long next, long previous)
+        {
+            long before = previous - average;
+            long after = average - next;
+            long tendency = 0;
+
+            // A tendency is meaningful only along a monotonic sequence. Limit its parity-adjusted magnitude so
+            // zero residual does not introduce a new extremum between the preceding sample and next average.
+            if ((before >= 0 && after >= 0) || (before <= 0 && after <= 0))
+            {
+                long magnitude = (2 + Math.Abs(previous - next) + (Math.Abs(before) / 3)) >> 2;
+                long beforeLimit = 2 * Math.Abs(before);
+                long afterLimit = 2 * Math.Abs(after);
+                magnitude = magnitude > beforeLimit + (magnitude & 1) ? beforeLimit + 1 : magnitude;
+                magnitude = magnitude + (magnitude & 1) > afterLimit ? afterLimit : magnitude;
+                tendency = previous < next ? -magnitude : magnitude;
+            }
+
+            return tendency;
+        }
+
+        /// <summary>
+        /// Gets the signed tendency for independent widened pair lanes.
+        /// </summary>
+        /// <param name="average">The current pair-average lanes.</param>
+        /// <param name="next">The following-average lanes.</param>
+        /// <param name="previous">The preceding odd-sample lanes.</param>
+        /// <returns>The parity-limited pair-difference lanes.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector128<long> GetTendency(Vector128<long> average, Vector128<long> next, Vector128<long> previous)
+        {
+            Vector128<long> before = previous - average;
+            Vector128<long> after = average - next;
+            Vector128<long> beforeMagnitude = Vector128.Abs(before);
+            Vector128<long> afterMagnitude = Vector128.Abs(after);
+            Vector128<long> one = Vector128.Create(1L);
+            Vector128<long> third = ((beforeMagnitude.AsUInt64() * Vector128.Create(DivideByThreeMultiplier)) >>> DivideByThreeShift).AsInt64();
+            Vector128<long> magnitude = (Vector128.Create(2L) + Vector128.Abs(previous - next) + third) >> 2;
+            Vector128<long> beforeLimit = beforeMagnitude << 1;
+            Vector128<long> afterLimit = afterMagnitude << 1;
+            magnitude = Vector128.ConditionalSelect(Vector128.GreaterThan(magnitude, beforeLimit + (magnitude & one)), beforeLimit + one, magnitude);
+            magnitude = Vector128.ConditionalSelect(Vector128.GreaterThan(magnitude + (magnitude & one), afterLimit), afterLimit, magnitude);
+
+            // Equal adjacent values remain monotonic with either sign. Their tendency can be one unit because
+            // the limits account for odd pair differences; testing only the XOR sign would discard that case.
+            Vector128<long> increasing = Vector128.LessThanOrEqual(before, Vector128<long>.Zero)
+                & Vector128.LessThanOrEqual(after, Vector128<long>.Zero);
+            Vector128<long> decreasing = Vector128.GreaterThanOrEqual(before, Vector128<long>.Zero)
+                & Vector128.GreaterThanOrEqual(after, Vector128<long>.Zero);
+            Vector128<long> monotonic = increasing | decreasing;
+            return Vector128.ConditionalSelect(Vector128.LessThan(previous, next), -magnitude, magnitude) & monotonic;
+        }
+
+        /// <summary>
+        /// Gets the signed tendency for independent widened pair lanes.
+        /// </summary>
+        /// <param name="average">The current pair-average lanes.</param>
+        /// <param name="next">The following-average lanes.</param>
+        /// <param name="previous">The preceding odd-sample lanes.</param>
+        /// <returns>The parity-limited pair-difference lanes.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector256<long> GetTendency(Vector256<long> average, Vector256<long> next, Vector256<long> previous)
+        {
+            Vector256<long> before = previous - average;
+            Vector256<long> after = average - next;
+            Vector256<long> beforeMagnitude = Vector256.Abs(before);
+            Vector256<long> afterMagnitude = Vector256.Abs(after);
+            Vector256<long> one = Vector256.Create(1L);
+            Vector256<long> third = ((beforeMagnitude.AsUInt64() * Vector256.Create(DivideByThreeMultiplier)) >>> DivideByThreeShift).AsInt64();
+            Vector256<long> magnitude = (Vector256.Create(2L) + Vector256.Abs(previous - next) + third) >> 2;
+            Vector256<long> beforeLimit = beforeMagnitude << 1;
+            Vector256<long> afterLimit = afterMagnitude << 1;
+            magnitude = Vector256.ConditionalSelect(Vector256.GreaterThan(magnitude, beforeLimit + (magnitude & one)), beforeLimit + one, magnitude);
+            magnitude = Vector256.ConditionalSelect(Vector256.GreaterThan(magnitude + (magnitude & one), afterLimit), afterLimit, magnitude);
+
+            // Equal adjacent values remain monotonic with either sign. Their tendency can be one unit because
+            // the limits account for odd pair differences; testing only the XOR sign would discard that case.
+            Vector256<long> increasing = Vector256.LessThanOrEqual(before, Vector256<long>.Zero)
+                & Vector256.LessThanOrEqual(after, Vector256<long>.Zero);
+            Vector256<long> decreasing = Vector256.GreaterThanOrEqual(before, Vector256<long>.Zero)
+                & Vector256.GreaterThanOrEqual(after, Vector256<long>.Zero);
+            Vector256<long> monotonic = increasing | decreasing;
+            return Vector256.ConditionalSelect(Vector256.LessThan(previous, next), -magnitude, magnitude) & monotonic;
+        }
+
+        /// <summary>
+        /// Gets the signed tendency for independent widened pair lanes.
+        /// </summary>
+        /// <param name="average">The current pair-average lanes.</param>
+        /// <param name="next">The following-average lanes.</param>
+        /// <param name="previous">The preceding odd-sample lanes.</param>
+        /// <returns>The parity-limited pair-difference lanes.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector512<long> GetTendency(Vector512<long> average, Vector512<long> next, Vector512<long> previous)
+        {
             Vector512<long> before = previous - average;
             Vector512<long> after = average - next;
             Vector512<long> beforeMagnitude = Vector512.Abs(before);
@@ -857,13 +1280,7 @@ internal static class JxlModularSqueeze
             Vector512<long> decreasing = Vector512.GreaterThanOrEqual(before, Vector512<long>.Zero)
                 & Vector512.GreaterThanOrEqual(after, Vector512<long>.Zero);
             Vector512<long> monotonic = increasing | decreasing;
-            Vector512<long> tendency = Vector512.ConditionalSelect(Vector512.LessThan(previous, next), -magnitude, magnitude) & monotonic;
-            Vector512<long> difference = residual + tendency;
-
-            // Arithmetic shift rounds negative odd values down. Add the sign bit first to obtain truncation toward zero.
-            Vector512<long> halfDifference = (difference + (difference.AsUInt64() >>> 63).AsInt64()) >> 1;
-            first = average + halfDifference;
-            second = first - difference;
+            return Vector512.ConditionalSelect(Vector512.LessThan(previous, next), -magnitude, magnitude) & monotonic;
         }
     }
 }

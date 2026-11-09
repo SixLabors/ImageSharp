@@ -2,9 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
@@ -12,6 +15,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jxl;
 [Trait("Format", "Jxl")]
 public class JxlMetadataTests
 {
+    /// <summary>
+    /// Checks that compact public color values fit their encoded fields.
+    /// </summary>
+    [Fact]
+    public void CompactColorRejectsUnencodableFields()
+    {
+        JxlMetadata metadata = new();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Gamma = default(Rational));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Gamma = new Rational(2, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Gamma = new Rational(1, 9000));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.TransferCharacteristics = CicpTransferCharacteristics.Unspecified);
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.RenderingIntent = (IccRenderingIntent)4);
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.WhitePoint = new CieXyChromaticityCoordinates(float.NaN, 0F));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.Primaries = new RgbPrimariesChromaticityCoordinates(
+            new CieXyChromaticityCoordinates(3F, 0F), default, default));
+
+        foreach (float intensity in new[] { 0F, -1F, float.Epsilon, float.NaN, float.PositiveInfinity, 65536F })
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => metadata.IntensityTarget = intensity);
+        }
+    }
+
     /// <summary>
     /// Verifies the legal unsigned and floating-point precision boundaries.
     /// </summary>
@@ -253,6 +279,12 @@ public class JxlMetadataTests
         JxlMetadata source = imageMetadata.GetFormatMetadata(JxlFormat.Instance);
         source.BitDepth = new JxlBitDepth(32, 8);
         source.ColorType = JxlColorType.Xyb;
+        source.WhitePoint = KnownIlluminants.DciP3Chromaticity;
+        source.Primaries = KnownRgbWorkingSpaces.DisplayP3.ChromaticityCoordinates;
+        source.TransferCharacteristics = CicpTransferCharacteristics.Linear;
+        source.Gamma = new Rational(1, 2);
+        source.RenderingIntent = IccRenderingIntent.Perceptual;
+        source.IntensityTarget = 1000F;
         source.RepeatCount = uint.MaxValue;
         source.ExtraChannels.Add(new JxlExtraChannelMetadata(JxlExtraChannelType.Alpha, new JxlBitDepth(16, 5), PixelAlphaRepresentation.Unassociated));
 
@@ -261,6 +293,12 @@ public class JxlMetadataTests
         Assert.NotSame(source, clone);
         Assert.Equal(new JxlBitDepth(32, 8), clone.BitDepth);
         Assert.Equal(JxlColorType.Xyb, clone.ColorType);
+        Assert.Equal(source.WhitePoint, clone.WhitePoint);
+        Assert.Equal(source.Primaries, clone.Primaries);
+        Assert.Equal(source.TransferCharacteristics, clone.TransferCharacteristics);
+        Assert.Equal(source.Gamma, clone.Gamma);
+        Assert.Equal(source.RenderingIntent, clone.RenderingIntent);
+        Assert.Equal(source.IntensityTarget, clone.IntensityTarget);
         Assert.Equal(uint.MaxValue, clone.RepeatCount);
         JxlExtraChannelMetadata alpha = Assert.Single(clone.ExtraChannels);
         Assert.Equal(new JxlBitDepth(16, 5), alpha.BitDepth);

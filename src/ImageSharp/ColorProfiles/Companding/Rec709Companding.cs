@@ -24,22 +24,22 @@ public static partial class Rec709Companding
     /// <summary>
     /// The scale of the published nonlinear Rec. 709 segment.
     /// </summary>
-    private const float NonlinearScale = 1.099F;
+    internal const float NonlinearScale = 1.099F;
 
     /// <summary>
     /// The offset of the published nonlinear Rec. 709 segment.
     /// </summary>
-    private const float NonlinearOffset = 0.099F;
+    internal const float NonlinearOffset = 0.099F;
 
     /// <summary>
     /// The linear input value at the published Rec. 709 segment junction.
     /// </summary>
-    private const float LinearThreshold = 0.018F;
+    internal const float LinearThreshold = 0.018F;
 
     /// <summary>
     /// The nonlinear input value at the published Rec. 709 segment junction.
     /// </summary>
-    private const float NonlinearThreshold = 0.081F;
+    internal const float NonlinearThreshold = 0.081F;
 
     private const double Epsilon = 1 / 0.45;
 

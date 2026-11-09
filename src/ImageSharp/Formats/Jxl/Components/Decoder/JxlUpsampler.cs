@@ -33,7 +33,9 @@ internal sealed partial class JxlUpsampler : IDisposable
     /// The 25 source weights for one output phase. Expanded kernels store those weights in row-major order.
     /// </summary>
     private const int UpsamplingKernelArea = UpsamplingDiameter * UpsamplingDiameter;
-    private readonly JxlHeader image;
+    private readonly ReadOnlyMemory<float> upsampling2Weights;
+    private readonly ReadOnlyMemory<float> upsampling4Weights;
+    private readonly ReadOnlyMemory<float> upsampling8Weights;
     private readonly IMemoryOwner<float> workspaceOwner;
     private readonly Memory<float> workspace;
     private readonly int kernelCapacity;
@@ -53,8 +55,32 @@ internal sealed partial class JxlUpsampler : IDisposable
     /// <param name="maximumFactor">The largest validated twofold, fourfold or eightfold factor to apply.</param>
     /// <param name="allocator">The tracked allocator for the single combined kernel and row workspace.</param>
     public JxlUpsampler(JxlHeader image, Size targetSize, Size maximumSourceSize, int maximumFactor, MemoryAllocator allocator)
+        : this(image.Upsampling2Weights, image.Upsampling4Weights, image.Upsampling8Weights, targetSize, maximumSourceSize, maximumFactor, allocator)
     {
-        this.image = image;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JxlUpsampler"/> class with explicit compact filter weights.
+    /// </summary>
+    /// <param name="upsampling2Weights">The twofold weights, or empty memory for the format defaults.</param>
+    /// <param name="upsampling4Weights">The fourfold weights, or empty memory for the format defaults.</param>
+    /// <param name="upsampling8Weights">The eightfold weights, or empty memory for the format defaults.</param>
+    /// <param name="targetSize">The visible output dimensions.</param>
+    /// <param name="maximumSourceSize">The largest source dimensions among the planes to expand.</param>
+    /// <param name="maximumFactor">The largest twofold, fourfold or eightfold factor to apply.</param>
+    /// <param name="allocator">The allocator for the retained kernel and row workspace.</param>
+    public JxlUpsampler(
+        ReadOnlyMemory<float> upsampling2Weights,
+        ReadOnlyMemory<float> upsampling4Weights,
+        ReadOnlyMemory<float> upsampling8Weights,
+        Size targetSize,
+        Size maximumSourceSize,
+        int maximumFactor,
+        MemoryAllocator allocator)
+    {
+        this.upsampling2Weights = upsampling2Weights;
+        this.upsampling4Weights = upsampling4Weights;
+        this.upsampling8Weights = upsampling8Weights;
         this.TargetSize = targetSize;
         this.kernelCapacity = maximumFactor * maximumFactor * UpsamplingKernelArea;
         int ringRows = Math.Min(UpsamplingDiameter, maximumSourceSize.Height);
@@ -126,9 +152,9 @@ internal sealed partial class JxlUpsampler : IDisposable
         {
             ReadOnlySpan<float> weights = factor switch
             {
-                2 => this.image.Upsampling2Weights.Span,
-                4 => this.image.Upsampling4Weights.Span,
-                _ => this.image.Upsampling8Weights.Span,
+                2 => this.upsampling2Weights.Span,
+                4 => this.upsampling4Weights.Span,
+                _ => this.upsampling8Weights.Span,
             };
 
             PrepareUpsamplingKernels(factor, weights.IsEmpty ? GetDefaultUpsamplingWeights(factor) : weights, kernels);

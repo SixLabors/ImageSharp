@@ -106,6 +106,17 @@ internal readonly struct JxlHybridUint
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Encode(uint value, out uint token, out int bitCount, out uint extraBits)
     {
+        if (this.splitExponent == 0)
+        {
+            // A zero split also has zero leading and trailing widths. Log2(0) is zero, so direct zero
+            // and expanded values can share the same arithmetic. Only a nonzero value adds the implicit-one token.
+            // This avoids a data-dependent zero branch for the encoder's fixed Zero configuration.
+            bitCount = BitOperations.Log2(value);
+            token = (uint)bitCount + (value == 0 ? 0U : 1U);
+            extraBits = value & ((1U << bitCount) - 1);
+            return;
+        }
+
         if (value < this.splitToken)
         {
             token = value;

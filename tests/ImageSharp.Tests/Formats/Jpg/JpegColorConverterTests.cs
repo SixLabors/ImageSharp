@@ -403,9 +403,12 @@ public partial class JpegColorConverterTests
                 }
 
                 JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, precision);
-                float[] scratch = new float[length * 4];
+                Rgb[] scratch = new Rgb[length];
 
-                jpegConverter.ConvertFromRgb(source, actual, actualConverter, scratch);
+                // The converter takes straight sRGB vectors and uses their storage for its output.
+                Vector4[] vectors = new Vector4[length];
+                Rgb.ToScaledVector4(source, vectors);
+                jpegConverter.ConvertFromRgb(vectors, actual, actualConverter, scratch);
 
                 bool inverted = space is JpegColorSpace.Cmyk or JpegColorSpace.Ycck;
 

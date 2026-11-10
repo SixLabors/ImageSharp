@@ -161,10 +161,18 @@ internal abstract partial class JpegColorConverterBase
         /// <summary>
         /// Deinterleaves normalized profile samples into JPEG planes through the selected operator.
         /// </summary>
+        /// <remarks>
+        /// JPEG stores bounded integer components. The method clamps each profile component to [0,1] before the model conversion.
+        /// A clamp of only YCbCr after the conversion can change the color when RGB is outside the target gamut.
+        /// </remarks>
         /// <param name="source">The packed normalized profile components.</param>
+        /// <param name="stride">
+        /// The number of floats for each sample in <paramref name="source"/>: one, three or four.
+        /// RGB samples in <see cref="Vector4"/> rows have a stride of four. The method ignores the fourth float of these samples.
+        /// </param>
         /// <param name="destination">The destination JPEG component planes.</param>
         /// <param name="profileSpace">The target profile's device space, fixed for the complete row.</param>
-        private void PackProfileComponents(ReadOnlySpan<float> source, in ComponentValues destination, IccColorSpaceType profileSpace)
+        private void PackProfileComponents(ReadOnlySpan<float> source, int stride, in ComponentValues destination, IccColorSpaceType profileSpace)
         {
             int channels = TOperator.ComponentCount;
             int count = destination.Component0.Length;
@@ -177,17 +185,22 @@ internal abstract partial class JpegColorConverterBase
             float halfValue = TOperator.GetProfileChromaOffset(this.MaximumValue, this.HalfValue);
             int i = 0;
 
-            ReadOnlySpan<Vector3> triples = channels == 3 ? MemoryMarshal.Cast<float, Vector3>(source) : default;
-            ReadOnlySpan<Vector4> quadruples = channels == 4 ? MemoryMarshal.Cast<float, Vector4>(source) : default;
+            ReadOnlySpan<Vector3> triples = stride == 3 ? MemoryMarshal.Cast<float, Vector3>(source) : default;
+            ReadOnlySpan<Vector4> quadruples = stride == 4 ? MemoryMarshal.Cast<float, Vector4>(source) : default;
 
             // ComponentCount is constant for each closed converter. The JIT removes unused channel branches.
+            // The stride selects the load. The channel count selects the clamp and the stores.
+            // The clamp uses ColorNumerics.ClampToFinite, as the span clamp of the shared ICC path does.
+            // It sets NaN to 0. It keeps values in [0,1] without a change, also -0.
+            // With a stride of four and three channels, k holds alpha. The operators do not read k.
+            // The method stores k only for four channels. Thus, alpha has no effect on the output.
             // Empty component spans are never read. Each vector lane carries one pixel throughout the operator call.
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<float> maximum = Vector512.Create(this.MaximumValue);
                 Vector512<float> half = Vector512.Create(halfValue);
                 Vector512<float> reciprocal = Vector512.Create(scale);
-                nuint vectorCount = source[(i * channels)..].Vector512Count<float>() / (uint)channels;
+                nuint vectorCount = source[(i * stride)..].Vector512Count<float>() / (uint)stride;
 
                 for (nuint block = 0; block < vectorCount; block++, i += Vector512<float>.Count)
                 {
@@ -196,17 +209,30 @@ internal abstract partial class JpegColorConverterBase
                     Vector512<float> z = default;
                     Vector512<float> k = default;
 
-                    if (channels == 1)
+                    if (stride == 1)
                     {
                         x = Vector512.LoadUnsafe(ref packed, (nuint)i);
                     }
-                    else if (channels == 3)
+                    else if (stride == 3)
                     {
                         SimdUtils.Deinterleave3(triples, i, out x, out y, out z);
                     }
                     else
                     {
                         SimdUtils.Deinterleave4(quadruples, i, out x, out y, out z, out k);
+                    }
+
+                    // Clamp the profile components before the model conversion.
+                    x = ColorNumerics.ClampToFinite(x, Vector512<float>.Zero, Vector512<float>.One);
+                    if (channels >= 3)
+                    {
+                        y = ColorNumerics.ClampToFinite(y, Vector512<float>.Zero, Vector512<float>.One);
+                        z = ColorNumerics.ClampToFinite(z, Vector512<float>.Zero, Vector512<float>.One);
+                    }
+
+                    if (channels == 4)
+                    {
+                        k = ColorNumerics.ClampToFinite(k, Vector512<float>.Zero, Vector512<float>.One);
                     }
 
                     TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
@@ -230,7 +256,7 @@ internal abstract partial class JpegColorConverterBase
                 Vector256<float> maximum = Vector256.Create(this.MaximumValue);
                 Vector256<float> half = Vector256.Create(halfValue);
                 Vector256<float> reciprocal = Vector256.Create(scale);
-                nuint vectorCount = source[(i * channels)..].Vector256Count<float>() / (uint)channels;
+                nuint vectorCount = source[(i * stride)..].Vector256Count<float>() / (uint)stride;
 
                 for (nuint block = 0; block < vectorCount; block++, i += Vector256<float>.Count)
                 {
@@ -239,17 +265,30 @@ internal abstract partial class JpegColorConverterBase
                     Vector256<float> z = default;
                     Vector256<float> k = default;
 
-                    if (channels == 1)
+                    if (stride == 1)
                     {
                         x = Vector256.LoadUnsafe(ref packed, (nuint)i);
                     }
-                    else if (channels == 3)
+                    else if (stride == 3)
                     {
                         SimdUtils.Deinterleave3(triples, i, out x, out y, out z);
                     }
                     else
                     {
                         SimdUtils.Deinterleave4(quadruples, i, out x, out y, out z, out k);
+                    }
+
+                    // Clamp the profile components before the model conversion.
+                    x = ColorNumerics.ClampToFinite(x, Vector256<float>.Zero, Vector256<float>.One);
+                    if (channels >= 3)
+                    {
+                        y = ColorNumerics.ClampToFinite(y, Vector256<float>.Zero, Vector256<float>.One);
+                        z = ColorNumerics.ClampToFinite(z, Vector256<float>.Zero, Vector256<float>.One);
+                    }
+
+                    if (channels == 4)
+                    {
+                        k = ColorNumerics.ClampToFinite(k, Vector256<float>.Zero, Vector256<float>.One);
                     }
 
                     TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
@@ -273,7 +312,7 @@ internal abstract partial class JpegColorConverterBase
                 Vector128<float> maximum = Vector128.Create(this.MaximumValue);
                 Vector128<float> half = Vector128.Create(halfValue);
                 Vector128<float> reciprocal = Vector128.Create(scale);
-                nuint vectorCount = source[(i * channels)..].Vector128Count<float>() / (uint)channels;
+                nuint vectorCount = source[(i * stride)..].Vector128Count<float>() / (uint)stride;
 
                 for (nuint block = 0; block < vectorCount; block++, i += Vector128<float>.Count)
                 {
@@ -282,17 +321,17 @@ internal abstract partial class JpegColorConverterBase
                     Vector128<float> z = default;
                     Vector128<float> k = default;
 
-                    if (channels == 1)
+                    if (stride == 1)
                     {
                         x = Vector128.LoadUnsafe(ref packed, (nuint)i);
                     }
-                    else if (channels == 3)
+                    else if (stride == 3)
                     {
                         SimdUtils.Deinterleave3(triples, i, out x, out y, out z);
                     }
                     else
                     {
-                        // Four [C M Y K] tuples become one register per component. Read the full group before storing.
+                        // Four tuples of four floats become one register per component. Read the full group before storing.
                         nuint offset = (uint)i * 4;
                         SimdUtils.Transpose4(
                             Vector128.LoadUnsafe(ref packed, offset),
@@ -303,6 +342,19 @@ internal abstract partial class JpegColorConverterBase
                             out y,
                             out z,
                             out k);
+                    }
+
+                    // Clamp the profile components before the model conversion.
+                    x = ColorNumerics.ClampToFinite(x, Vector128<float>.Zero, Vector128<float>.One);
+                    if (channels >= 3)
+                    {
+                        y = ColorNumerics.ClampToFinite(y, Vector128<float>.Zero, Vector128<float>.One);
+                        z = ColorNumerics.ClampToFinite(z, Vector128<float>.Zero, Vector128<float>.One);
+                    }
+
+                    if (channels == 4)
+                    {
+                        k = ColorNumerics.ClampToFinite(k, Vector128<float>.Zero, Vector128<float>.One);
                     }
 
                     TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
@@ -325,11 +377,13 @@ internal abstract partial class JpegColorConverterBase
             for (; i < count; i++)
             {
                 nuint offset = (uint)i;
-                nuint packedOffset = offset * (uint)channels;
-                float x = Unsafe.Add(ref packed, packedOffset);
-                float y = channels >= 3 ? Unsafe.Add(ref packed, packedOffset + 1) : 0F;
-                float z = channels >= 3 ? Unsafe.Add(ref packed, packedOffset + 2) : 0F;
-                float k = channels == 4 ? Unsafe.Add(ref packed, packedOffset + 3) : 0F;
+                nuint packedOffset = offset * (uint)stride;
+
+                // The scalar clamp has the same rules as the vector clamp.
+                float x = ColorNumerics.ClampToFinite(Unsafe.Add(ref packed, packedOffset), 0F, 1F);
+                float y = channels >= 3 ? ColorNumerics.ClampToFinite(Unsafe.Add(ref packed, packedOffset + 1), 0F, 1F) : 0F;
+                float z = channels >= 3 ? ColorNumerics.ClampToFinite(Unsafe.Add(ref packed, packedOffset + 2), 0F, 1F) : 0F;
+                float k = channels == 4 ? ColorNumerics.ClampToFinite(Unsafe.Add(ref packed, packedOffset + 3), 0F, 1F) : 0F;
                 TOperator.ConvertFromProfile(ref x, ref y, ref z, ref k, this.MaximumValue, halfValue, scale, profileSpace);
                 Unsafe.Add(ref c0, offset) = x;
 
@@ -373,43 +427,54 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         public override void ConvertFromRgb(
-            ReadOnlySpan<Rgb> source,
+            Span<Vector4> source,
             in ComponentValues destination,
             ColorProfileConverter profileConverter,
-            Span<float> scratch)
+            Span<Rgb> scratch)
         {
-            Span<float> samples = scratch[..(source.Length * TOperator.ComponentCount)];
             IccColorSpaceType profileSpace = profileConverter.Options.TargetIccProfile.Header.DataColorSpace;
+            bool rgbProfile = TOperator.ColorSpace switch
+            {
+                JpegColorSpace.Luminance or JpegColorSpace.Cmyk or JpegColorSpace.TiffCmyk or JpegColorSpace.Ycck or JpegColorSpace.TiffYccK => false,
+                JpegColorSpace.YCbCr => profileSpace != IccColorSpaceType.YCbCr,
+                _ => true
+            };
+
+            if (rgbProfile)
+            {
+                // An RGB profile converts the vectors in place. W is alpha and does not enter the transform.
+                // The operator gets W = 1, the value that Rgb.ToScaledVector4 gives. The copies to and from Rgb do not change R, G or B.
+                // Thus, the result is the same as a conversion through Rgb storage.
+                // The packer reads R, G and B from each vector and ignores W. Thus, no copy to Rgb is necessary.
+                profileConverter.Convert(source);
+                this.PackProfileComponents(MemoryMarshal.Cast<Vector4, float>(source), 4, destination, profileSpace);
+                return;
+            }
+
+            // Other profiles do not give RGB. The shared model conversion reads Rgb and writes the profile components.
+            // The vectors are not necessary after the copy to Rgb. Thus, the components use the same storage.
+            int channels = TOperator.ComponentCount;
+            Span<Rgb> rgb = scratch[..source.Length];
+            Rgb.FromScaledVector4(source, rgb);
+            Span<float> samples = MemoryMarshal.Cast<Vector4, float>(source)[..(source.Length * channels)];
 
             switch (TOperator.ColorSpace)
             {
                 case JpegColorSpace.Luminance:
-                    profileConverter.Convert<Rgb, Y>(source, MemoryMarshal.Cast<float, Y>(samples));
+                    profileConverter.Convert<Rgb, Y>(rgb, MemoryMarshal.Cast<float, Y>(samples));
                     break;
 
-                case JpegColorSpace.Cmyk:
-                case JpegColorSpace.TiffCmyk:
-                case JpegColorSpace.Ycck:
-                case JpegColorSpace.TiffYccK:
-                    profileConverter.Convert<Rgb, Cmyk>(source, MemoryMarshal.Cast<float, Cmyk>(samples));
-                    break;
-
-                case JpegColorSpace.YCbCr when profileSpace == IccColorSpaceType.YCbCr:
-                    profileConverter.Convert<Rgb, YCbCr>(source, MemoryMarshal.Cast<float, YCbCr>(samples));
+                case JpegColorSpace.YCbCr:
+                    profileConverter.Convert<Rgb, YCbCr>(rgb, MemoryMarshal.Cast<float, YCbCr>(samples));
                     break;
 
                 default:
-                    profileConverter.Convert<Rgb, Rgb>(source, MemoryMarshal.Cast<float, Rgb>(samples));
+                    profileConverter.Convert<Rgb, Cmyk>(rgb, MemoryMarshal.Cast<float, Cmyk>(samples));
                     break;
             }
 
-            // JPEG stores bounded integer components. Limit the profile's device samples before model conversion;
-            // clipping only YCbCr afterward can change the color when RGB is outside the target gamut.
-            // Shared ICC conversion stays unclipped for floating-point destinations such as RgbaVector.
-            ColorNumerics.ClampToFinite(samples, 0F, 1F);
-
             // The matching operator applies the model transform, inversion and JPEG scaling after ICC has produced device samples.
-            this.PackProfileComponents(samples, destination, profileSpace);
+            this.PackProfileComponents(samples, channels, destination, profileSpace);
         }
     }
 }

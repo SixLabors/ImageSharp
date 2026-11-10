@@ -103,13 +103,16 @@ internal abstract partial class JpegColorConverterBase
     public abstract void ConvertToRgb(in ComponentValues source, Span<Vector4> destination, ColorProfileConverter profileConverter);
 
     /// <summary>
-    /// Converts straight sRGB to JPEG codes through the destination ICC profile without changing the source colors.
+    /// Converts straight sRGB to JPEG codes through the destination ICC profile.
     /// </summary>
-    /// <param name="source">The straight sRGB input, including any right-edge padding.</param>
+    /// <param name="source">
+    /// The straight, scaled sRGB vectors, including any right-edge padding. W is not color data.
+    /// The method uses this storage for the profile components. Thus, the input values are not kept.
+    /// </param>
     /// <param name="destination">The destination JPEG component planes.</param>
     /// <param name="profileConverter">The transform from sRGB to the destination profile.</param>
-    /// <param name="scratch">Caller-owned storage for one to four normalized components per sample.</param>
-    public abstract void ConvertFromRgb(ReadOnlySpan<Rgb> source, in ComponentValues destination, ColorProfileConverter profileConverter, Span<float> scratch);
+    /// <param name="scratch">Caller-owned storage for one <see cref="Rgb"/> for each vector in <paramref name="source"/>.</param>
+    public abstract void ConvertFromRgb(Span<Vector4> source, in ComponentValues destination, ColorProfileConverter profileConverter, Span<Rgb> scratch);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for all supported color spaces and precisions.

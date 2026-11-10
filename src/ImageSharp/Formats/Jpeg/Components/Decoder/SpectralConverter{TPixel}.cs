@@ -71,14 +71,24 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private Size? targetSize;
 
     /// <summary>
+    /// The factor that the scaled size keeps above the fitted target size. See <see cref="SpectralConverter.CalculateResultingImageSize"/>.
+    /// </summary>
+    private readonly int resizeFactor;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}" /> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
     /// <param name="targetSize">Optional target size for decoded image.</param>
-    public SpectralConverter(Configuration configuration, Size? targetSize = null)
+    /// <param name="resizeFactor">
+    /// The factor that the scaled size keeps above the fitted target size: two when a resize follows the scaled decode,
+    /// and one when the scaled decode is the output.
+    /// </param>
+    public SpectralConverter(Configuration configuration, Size? targetSize = null, int resizeFactor = 1)
     {
         this.Configuration = configuration;
         this.targetSize = targetSize;
+        this.resizeFactor = resizeFactor;
     }
 
     /// <summary>
@@ -200,7 +210,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         this.colorConverter = converter;
 
         // Resulting image size
-        Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, out int blockPixelSize);
+        Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, this.resizeFactor, out int blockPixelSize);
 
         // Iteration data
         int majorBlockWidth = this.frame.Components.Max((component) => component.SizeInBlocks.Width);

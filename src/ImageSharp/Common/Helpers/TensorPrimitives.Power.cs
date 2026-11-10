@@ -14,13 +14,18 @@ internal static partial class TensorPrimitives_
     /// <summary>
     /// Raises components in place to a fixed power.
     /// </summary>
-    /// <param name="values">The power bases.</param>
+    /// <param name="values">The power bases. No base is less than zero.</param>
     /// <param name="exponent">The exponent shared by all components.</param>
     public static void Pow(Span<float> values, float exponent) => Invoke(values, new PowOperator(exponent));
 
     /// <summary>
-    /// Classifies the exponent once and retains the IEEE power rules for every component.
+    /// Classifies the exponent once and raises bases that are zero or more to that exponent.
     /// </summary>
+    /// <remarks>
+    /// No base is less than zero. All callers clamp the base, or use its magnitude and restore the sign themselves.
+    /// Thus, the operator has no rules for negative bases. NaN bases give NaN.
+    /// The sign of the result for a negative zero base is not defined.
+    /// </remarks>
     public readonly struct PowOperator : IUnaryOperator
     {
         /// <summary>
@@ -36,11 +41,6 @@ internal static partial class TensorPrimitives_
                 : exponent == 3F ? PowerKind.Cube
                 : !float.IsFinite(exponent) ? PowerKind.NonFinite
                 : PowerKind.Finite;
-
-            // These are exponent properties, not input properties. Compute them at curve setup.
-            // Register masks apply the resulting sign rules without reclassifying the exponent.
-            this.IntegerMask = float.IsInteger(exponent) ? uint.MaxValue : 0;
-            this.OddMask = float.IsOddInteger(exponent) ? uint.MaxValue : 0;
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ internal static partial class TensorPrimitives_
             NonFinite,
 
             /// <summary>
-            /// Finite exponents use SIMD arithmetic and the precomputed sign masks.
+            /// Other finite exponents use the logarithm and exponential approximations.
             /// </summary>
             Finite
         }
@@ -88,16 +88,6 @@ internal static partial class TensorPrimitives_
         /// Gets the operation selected during exponent classification.
         /// </summary>
         public PowerKind Kind { get; }
-
-        /// <summary>
-        /// Gets an all-bits-set mask when negative finite bases have a real result.
-        /// </summary>
-        public uint IntegerMask { get; }
-
-        /// <summary>
-        /// Gets an all-bits-set mask when the result retains the base sign.
-        /// </summary>
-        public uint OddMask { get; }
 
         /// <inheritdoc/>
         public float Invoke(float value)
@@ -117,14 +107,7 @@ internal static partial class TensorPrimitives_
             }
 
             // Use the SIMD approximation in scalar remainders too. A pixel's result must not depend on row length or SIMD support.
-            float magnitude = MathF.Abs(value);
-            float result = ApproximatePower(magnitude, this.Exponent);
-            if (this.OddMask != 0)
-            {
-                result = MathF.CopySign(result, value);
-            }
-
-            return value < 0F && float.IsFinite(magnitude) && this.IntegerMask == 0 ? float.NaN : result;
+            return ApproximatePower(value, this.Exponent);
         }
 
         /// <summary>
@@ -147,9 +130,15 @@ internal static partial class TensorPrimitives_
             const float SignificandScale = 1 << 23;
             const float SubnormalScale = 1 << 24;
 
-            if (value == 0F || float.IsPositiveInfinity(value))
+            // Zero gives the same result as the SIMD helpers for both zero signs: zero, or infinity for a negative exponent.
+            if (value == 0F)
             {
-                return exponent < 0F ? 1F / value : value;
+                return exponent < 0F ? float.PositiveInfinity : 0F;
+            }
+
+            if (float.IsPositiveInfinity(value))
+            {
+                return exponent < 0F ? 0F : value;
             }
 
             if (value == 1F || float.IsNaN(value))
@@ -209,13 +198,12 @@ internal static partial class TensorPrimitives_
 
             if (this.Kind == PowerKind.NonFinite)
             {
-                // Infinite powers depend only on whether the magnitude is below, equal to, or above one.
+                // Infinite powers depend only on whether the base is below, equal to, or above one.
                 // A negative infinite exponent reverses zero and infinity. No lane needs scalar power evaluation.
-                Vector128<float> absolute = Vector128.Abs(value);
                 Vector128<float> below = Vector128.Create(this.Exponent < 0F ? float.PositiveInfinity : 0F);
                 Vector128<float> above = Vector128.Create(this.Exponent < 0F ? 0F : float.PositiveInfinity);
-                Vector128<float> special = Vector128.ConditionalSelect(Vector128.LessThan(absolute, Vector128<float>.One), below, above);
-                special = Vector128.ConditionalSelect(Vector128.Equals(absolute, Vector128<float>.One), Vector128<float>.One, special);
+                Vector128<float> special = Vector128.ConditionalSelect(Vector128.LessThan(value, Vector128<float>.One), below, above);
+                special = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128<float>.One), Vector128<float>.One, special);
 
                 // NaN bases remain NaN. A NaN exponent also returns NaN, except that positive one always returns one.
                 special = Vector128.ConditionalSelect(Vector128.Equals(value, value), special, value);
@@ -227,20 +215,7 @@ internal static partial class TensorPrimitives_
                 return special;
             }
 
-            // Use one magnitude calculation for all finite exponents. Per-lane masks restore zero and sign rules,
-            // so mixed inputs need no second copy of the log2/exp2 kernel or whole-vector sign test.
-            Vector128<float> magnitude = Vector128.Abs(value);
-            Vector128<float> result = Vector128_.Pow(magnitude, this.Exponent);
-
-            // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
-            // The power of a magnitude has a clear sign bit. Thus, the OR puts the sign bit of the base into odd powers.
-            // This operation is CopySign without the cross-platform Vector128.CopySign of the runtime.
-            // Here, the JIT does not compile Vector128.CopySign to a direct instruction sequence.
-            result |= value & Vector128.Create(this.OddMask & 0x80000000U).AsSingle();
-            Vector128<float> negativeFinite = Vector128.LessThan(value, Vector128<float>.Zero)
-                & Vector128.LessThan(magnitude, Vector128.Create(float.PositiveInfinity));
-            negativeFinite &= ~Vector128.Create(this.IntegerMask).AsSingle();
-            return Vector128.ConditionalSelect(negativeFinite, Vector128.Create(float.NaN), result);
+            return Vector128_.Pow(value, this.Exponent);
         }
 
         /// <inheritdoc/>
@@ -261,13 +236,12 @@ internal static partial class TensorPrimitives_
 
             if (this.Kind == PowerKind.NonFinite)
             {
-                // Infinite powers depend only on whether the magnitude is below, equal to, or above one.
+                // Infinite powers depend only on whether the base is below, equal to, or above one.
                 // A negative infinite exponent reverses zero and infinity. No lane needs scalar power evaluation.
-                Vector256<float> absolute = Vector256.Abs(value);
                 Vector256<float> below = Vector256.Create(this.Exponent < 0F ? float.PositiveInfinity : 0F);
                 Vector256<float> above = Vector256.Create(this.Exponent < 0F ? 0F : float.PositiveInfinity);
-                Vector256<float> special = Vector256.ConditionalSelect(Vector256.LessThan(absolute, Vector256<float>.One), below, above);
-                special = Vector256.ConditionalSelect(Vector256.Equals(absolute, Vector256<float>.One), Vector256<float>.One, special);
+                Vector256<float> special = Vector256.ConditionalSelect(Vector256.LessThan(value, Vector256<float>.One), below, above);
+                special = Vector256.ConditionalSelect(Vector256.Equals(value, Vector256<float>.One), Vector256<float>.One, special);
 
                 // NaN bases remain NaN. A NaN exponent also returns NaN, except that positive one always returns one.
                 special = Vector256.ConditionalSelect(Vector256.Equals(value, value), special, value);
@@ -279,18 +253,7 @@ internal static partial class TensorPrimitives_
                 return special;
             }
 
-            // Use one magnitude calculation for all finite exponents. Per-lane masks restore zero and sign rules,
-            // so mixed inputs need no second copy of the log2/exp2 kernel or whole-vector sign test.
-            Vector256<float> magnitude = Vector256.Abs(value);
-            Vector256<float> result = Vector256_.Pow(magnitude, this.Exponent);
-
-            // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
-            Vector256<float> oddMask = Vector256.Create(this.OddMask).AsSingle();
-            result = Vector256.ConditionalSelect(oddMask, Vector256.CopySign(result, value), result);
-            Vector256<float> negativeFinite = Vector256.LessThan(value, Vector256<float>.Zero)
-                & Vector256.LessThan(magnitude, Vector256.Create(float.PositiveInfinity));
-            negativeFinite &= ~Vector256.Create(this.IntegerMask).AsSingle();
-            return Vector256.ConditionalSelect(negativeFinite, Vector256.Create(float.NaN), result);
+            return Vector256_.Pow(value, this.Exponent);
         }
 
         /// <inheritdoc/>
@@ -311,13 +274,12 @@ internal static partial class TensorPrimitives_
 
             if (this.Kind == PowerKind.NonFinite)
             {
-                // Infinite powers depend only on whether the magnitude is below, equal to, or above one.
+                // Infinite powers depend only on whether the base is below, equal to, or above one.
                 // A negative infinite exponent reverses zero and infinity. No lane needs scalar power evaluation.
-                Vector512<float> absolute = Vector512.Abs(value);
                 Vector512<float> below = Vector512.Create(this.Exponent < 0F ? float.PositiveInfinity : 0F);
                 Vector512<float> above = Vector512.Create(this.Exponent < 0F ? 0F : float.PositiveInfinity);
-                Vector512<float> special = Vector512.ConditionalSelect(Vector512.LessThan(absolute, Vector512<float>.One), below, above);
-                special = Vector512.ConditionalSelect(Vector512.Equals(absolute, Vector512<float>.One), Vector512<float>.One, special);
+                Vector512<float> special = Vector512.ConditionalSelect(Vector512.LessThan(value, Vector512<float>.One), below, above);
+                special = Vector512.ConditionalSelect(Vector512.Equals(value, Vector512<float>.One), Vector512<float>.One, special);
 
                 // NaN bases remain NaN. A NaN exponent also returns NaN, except that positive one always returns one.
                 special = Vector512.ConditionalSelect(Vector512.Equals(value, value), special, value);
@@ -329,18 +291,7 @@ internal static partial class TensorPrimitives_
                 return special;
             }
 
-            // Use one magnitude calculation for all finite exponents. Per-lane masks restore zero and sign rules,
-            // so mixed inputs need no second copy of the log2/exp2 kernel or whole-vector sign test.
-            Vector512<float> magnitude = Vector512.Abs(value);
-            Vector512<float> result = Vector512_.Pow(magnitude, this.Exponent);
-
-            // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
-            Vector512<float> oddMask = Vector512.Create(this.OddMask).AsSingle();
-            result = Vector512.ConditionalSelect(oddMask, Vector512.CopySign(result, value), result);
-            Vector512<float> negativeFinite = Vector512.LessThan(value, Vector512<float>.Zero)
-                & Vector512.LessThan(magnitude, Vector512.Create(float.PositiveInfinity));
-            negativeFinite &= ~Vector512.Create(this.IntegerMask).AsSingle();
-            return Vector512.ConditionalSelect(negativeFinite, Vector512.Create(float.NaN), result);
+            return Vector512_.Pow(value, this.Exponent);
         }
     }
 }

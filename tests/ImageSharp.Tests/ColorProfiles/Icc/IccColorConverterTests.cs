@@ -737,7 +737,12 @@ public class IccColorConverterTests
             // LittleCMS limits negative ICC gamma inputs to zero, except for an identity curve.
             // A matrix can produce negative device values outside the target gamut. HDR companding has a separate signed contract.
             float expected = exponent == 1F ? inputs[i] : (float)Math.Pow(inputs[i] < 0F ? 0F : inputs[i], exponent);
-            if (expected == 0F)
+            if (exponent != 1F && inputs[i] == 0F && float.IsNegative(inputs[i]))
+            {
+                // The clamp keeps negative zero. The power operator does not define the sign of its result.
+                Assert.Equal(MathF.Abs(expected), MathF.Abs(actual[i]));
+            }
+            else if (expected == 0F)
             {
                 int expectedBits = BitConverter.SingleToInt32Bits(expected);
                 int actualBits = BitConverter.SingleToInt32Bits(actual[i]);

@@ -173,15 +173,16 @@ public partial class CompandingTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks zero signs, unit bases, infinities and NaNs with finite and nonfinite exponents.
+    /// Checks zero, unit bases, infinity and NaN with finite and nonfinite exponents.
     /// </summary>
     private static void CheckIeeePowers()
     {
         // Seventeen values exercise a full 512-bit block and a scalar tail, or narrower blocks and their tails.
+        // The power operator requires bases that are zero or more. It does not define the sign of the result for negative zero.
         ReadOnlySpan<float> values =
         [
-            -0F, 0F, 1F, -1F, float.PositiveInfinity, float.NegativeInfinity, float.NaN,
-            -0F, 0F, 1F, -1F, float.PositiveInfinity, float.NegativeInfinity, float.NaN, 1F, -1F, -0F
+            0F, 1F, float.PositiveInfinity, float.NaN, 0F, 1F, float.PositiveInfinity, float.NaN,
+            0F, 1F, float.PositiveInfinity, float.NaN, 0F, 1F, float.PositiveInfinity, float.NaN, 0F
         ];
 
         ReadOnlySpan<float> exponents = [0F, 1F, 2F, 3F, 2.2F, -2F, -3F, float.PositiveInfinity, float.NegativeInfinity, float.NaN];
@@ -317,8 +318,9 @@ public partial class CompandingTests
     private static void CheckPowerExponents(ReadOnlySpan<float> exponents)
     {
         // Seventeen values cover one 512-bit block and a scalar remainder, or narrower blocks and their remainder.
-        ReadOnlySpan<float> source = [-16F, -2F, -1F, -0F, 0F, 0.001F, 0.04F, 0.1F, 0.25F, 0.5F, 0.75F, 1F, 2F, 16F,
-            float.PositiveInfinity, float.NegativeInfinity, float.NaN];
+        // The power operator requires bases that are zero or more.
+        ReadOnlySpan<float> source = [0F, 0.001F, 0.04F, 0.1F, 0.25F, 0.5F, 0.75F, 1F, 1.5F, 2F, 4F, 8F, 16F, 100F,
+            float.PositiveInfinity, float.NaN, 0F];
 
         foreach (float exponent in exponents)
         {

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
 
 /// <summary>
-/// Transforms reusable XYB groups and retains the quantized coefficients needed by the frame sections.
+/// Transforms reusable XYB block rows and retains the quantized coefficients needed by the frame sections.
 /// </summary>
 internal sealed class JxlVarDctEncoder : IDisposable
 {
@@ -27,7 +27,7 @@ internal sealed class JxlVarDctEncoder : IDisposable
     private const int DcGroupBlockWidth = 256;
 
     /// <summary>
-    /// Three padded component planes reused after each group has been transformed.
+    /// Three padded component planes reused after each eight-pixel-high block row has been transformed.
     /// </summary>
     private readonly Buffer2D<float> colors;
 
@@ -119,7 +119,7 @@ internal sealed class JxlVarDctEncoder : IDisposable
         this.blockRows = ((size.Height - 1) / BlockDimension) + 1;
         this.dcTileColumns = ((this.blockColumns - 1) / DcGroupBlockWidth) + 1;
         this.GroupWidth = Math.Min(JxlEncoderCore.GroupDimension, this.blockColumns * BlockDimension);
-        this.GroupHeight = Math.Min(JxlEncoderCore.GroupDimension, this.blockRows * BlockDimension);
+        this.GroupHeight = BlockDimension;
         this.settings = JxlQuantization.CreateEncoderSettings(distance);
 
         // Matrix generation and reconstruction share the decoder's weight and bias owner. Retain both
@@ -134,8 +134,9 @@ internal sealed class JxlVarDctEncoder : IDisposable
         weights[..192].CopyTo(dequantization);
         JxlQuantization.InvertQuantizationWeights(dequantization[..192]);
 
-        // The three input planes are group-sized. Coefficients and DC must outlive that input because
-        // DC sections precede AC sections, and progressive passes revisit the same quantized blocks.
+        // The DCT consumes eight source rows at a time. Reuse one block row per component instead of
+        // retaining converted samples for a whole coding group. Coefficients and DC must outlive this
+        // input because DC sections precede AC sections, and progressive passes revisit the same blocks.
         // Every coefficient row holds one block, so the allocator never needs a full coefficient scanline.
         Buffer2D<float> colors = allocator.Allocate2D<float>(this.GroupWidth, 3 * this.GroupHeight);
         Buffer2D<int>? coefficients = null;
@@ -182,7 +183,7 @@ internal sealed class JxlVarDctEncoder : IDisposable
     public int GroupWidth { get; }
 
     /// <summary>
-    /// Gets the padded height of each reusable input plane.
+    /// Gets the eight-row height of each reusable input plane.
     /// </summary>
     public int GroupHeight { get; }
 
@@ -217,10 +218,10 @@ internal sealed class JxlVarDctEncoder : IDisposable
     public int EpfIterations => this.settings.EpfIterations;
 
     /// <summary>
-    /// Gets one padded group row for pixel conversion. The caller writes only the visible source width.
+    /// Gets one padded input row for pixel conversion. The caller writes only the visible source width.
     /// </summary>
     /// <param name="component">The X, Y or B component index.</param>
-    /// <param name="y">The row relative to the current coding group.</param>
+    /// <param name="y">The row relative to the current block row.</param>
     /// <returns>The borrowed row. It remains valid until this owner is disposed.</returns>
     public Span<float> GetColorRow(int component, int y) => this.colors.DangerousGetRowSpan((component * this.GroupHeight) + y);
 
@@ -279,9 +280,9 @@ internal sealed class JxlVarDctEncoder : IDisposable
     }
 
     /// <summary>
-    /// Pads the visible group edges, transforms its blocks and retains their DC and AC quantization results.
+    /// Pads the visible block row, transforms its blocks and retains their DC and AC quantization results.
     /// </summary>
-    /// <param name="bounds">The visible group rectangle in frame coordinates. Pixel conversion has filled its input rows.</param>
+    /// <param name="bounds">The visible block row in frame coordinates. Pixel conversion has filled its input rows.</param>
     /// <param name="cancellationToken">The token checked between block rows.</param>
     public void ProcessGroup(Rectangle bounds, CancellationToken cancellationToken)
     {

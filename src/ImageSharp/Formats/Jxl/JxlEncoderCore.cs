@@ -1462,26 +1462,33 @@ internal sealed class JxlEncoderCore : IDisposable
             this.sourceFrameIndex = frameIndex;
             this.PrepareExpandedAlpha(alphaOperation, alphaDecodeOperation, cancellationToken);
 
-            // Convert each source pixel once. The DC-first section order and later spectral passes
-            // consume the retained quantized coefficients; the next group reuses the float input planes.
+            // Convert each source pixel once and transform each eight-row strip before reusing its
+            // float planes. Group origins remain aligned to 256 pixels, so alpha tiles and retained
+            // coefficients keep their existing coordinates. Only the final image strip needs bottom padding.
             for (int group = 0; group < this.groupCount; group++)
             {
                 int x = (group % this.groupColumns) * GroupDimension;
                 int y = (group / this.groupColumns) * GroupDimension;
-                Rectangle bounds = new(x, y, Math.Min(GroupDimension, image.Width - x), Math.Min(GroupDimension, image.Height - y));
-                this.ConvertRows(
-                    image,
-                    bounds,
-                    clearTransparent,
-                    pixelRow,
-                    floatRows,
-                    colorOperation,
-                    alphaOperation,
-                    blackOperation,
-                    alphaDecodeOperation,
-                    cancellationToken);
+                int width = Math.Min(GroupDimension, image.Width - x);
+                int bottom = Math.Min(y + GroupDimension, image.Height);
 
-                varDct.ProcessGroup(bounds, cancellationToken);
+                for (; y < bottom; y += varDct.GroupHeight)
+                {
+                    Rectangle bounds = new(x, y, width, Math.Min(varDct.GroupHeight, bottom - y));
+                    this.ConvertRows(
+                        image,
+                        bounds,
+                        clearTransparent,
+                        pixelRow,
+                        floatRows,
+                        colorOperation,
+                        alphaOperation,
+                        blackOperation,
+                        alphaDecodeOperation,
+                        cancellationToken);
+
+                    varDct.ProcessGroup(bounds, cancellationToken);
+                }
             }
 
             this.payload.Position = 0;

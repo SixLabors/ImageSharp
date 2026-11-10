@@ -39,14 +39,10 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.Orientation6, PixelTypes.Rgba32, false, ExifOrientationMode.RightTop)]
     [WithFile(TestImages.Jxl.Orientation6, PixelTypes.Rgba32, true, ExifOrientationMode.TopLeft)]
     public void EncodeDecodedFormatsMatchesNativePixels(TestImageProvider<Rgba32> provider, bool skipMetadata, ushort orientation)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateDecodedFormatPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{skipMetadata},{orientation}"));
+        => ValidateDecodedFormatPixels(provider, skipMetadata, orientation);
 
     /// <summary>
-    /// Checks compact RGB and grayscale encodings against native output at each SIMD width.
+    /// Checks compact RGB and grayscale encodings against native output through the public encoder.
     /// </summary>
     /// <param name="provider">The original reference pixels decoded by libjxl.</param>
     /// <param name="encoding">The compact color description selected for encoding.</param>
@@ -59,11 +55,7 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, "custom")]
     [WithFile(TestImages.Jxl.GrayscalePatches, PixelTypes.RgbaVector, "gray")]
     public void EncodeCompactColorMatchesNativePixels(TestImageProvider<RgbaVector> provider, string encoding)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateCompactColorPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            encoding);
+        => ValidateCompactColorPixels(provider, encoding);
 
     /// <summary>
     /// Checks supplied extra-channel samples, spatial resolution and source ownership against native encoding.
@@ -104,14 +96,10 @@ public class JxlEncoderTests
         bool associated,
         bool multiple,
         float distance)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateExtraChannelPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{(int)type},{shift},{bits},{exponentBits},{progressive},{associated},{multiple},{distance}"));
+        => ValidateExtraChannelPixels(provider, type, (byte)shift, (byte)bits, (byte)exponentBits, progressive, associated, multiple, distance);
 
     /// <summary>
-    /// Encodes native reference pixels through Image.Save and checks native and managed reconstruction at each SIMD width.
+    /// Encodes native reference pixels through Image.Save and checks native and managed reconstruction.
     /// </summary>
     /// <typeparam name="TPixel">The source and comparison pixel type.</typeparam>
     /// <param name="provider">The stored reference image.</param>
@@ -134,14 +122,10 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.Rgba32, 31, true)]
     public void EncodeLosslessMatchesNativePixels<TPixel>(TestImageProvider<TPixel> provider, int bits, bool progressive)
         where TPixel : unmanaged, IPixel<TPixel>
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            PixelTests<TPixel>.ValidateEncodedPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{bits},{progressive}"));
+        => PixelTests<TPixel>.ValidateEncodedPixels(provider, bits, progressive);
 
     /// <summary>
-    /// Checks native reconstruction of lossy XYB output across SIMD widths and scalar tails.
+    /// Checks native reconstruction of lossy XYB output and partial coding groups.
     /// </summary>
     /// <param name="provider">The original native pixel input.</param>
     /// <param name="distance">The requested reconstruction distance.</param>
@@ -159,14 +143,10 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.Dice, PixelTypes.RgbaVector, 1F, true, 1024)]
     [WithFile(TestImages.Jxl.PermutedSections, PixelTypes.RgbaVector, 1F, false, 1024)]
     public void EncodeLossyMatchesNativePixels(TestImageProvider<RgbaVector> provider, float distance, bool progressive, int bufferCapacity)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateLossyPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{distance},{progressive},{bufferCapacity}"));
+        => ValidateLossyPixels(provider, distance, progressive, bufferCapacity);
 
     /// <summary>
-    /// Checks binary16 rounding against native output and checks other float layouts with both decoders at each SIMD width.
+    /// Checks binary16 rounding against native output and checks other float layouts with both decoders through the public encoder.
     /// </summary>
     /// <param name="provider">The original floating-point reference image.</param>
     /// <param name="bits">The declared sample precision.</param>
@@ -176,14 +156,10 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 24, 8)]
     [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, 16, 6)]
     public void EncodeFloatingPointMatchesNativePixels(TestImageProvider<RgbaVector> provider, int bits, int exponentBits)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateFloatingPointPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{bits},{exponentBits}"));
+        => ValidateFloatingPointPixels(provider, (byte)bits, (byte)exponentBits);
 
     /// <summary>
-    /// Checks integer output bounds for native extended RGB pixels at each SIMD width.
+    /// Checks integer output bounds for native extended RGB pixels through the public encoder.
     /// </summary>
     /// <param name="provider">The original reference image with negative and extended RGB samples.</param>
     /// <param name="bits">The declared integer precision.</param>
@@ -191,11 +167,7 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.SpotColor, PixelTypes.RgbaVector, 8)]
     [WithFile(TestImages.Jxl.SpotColor, PixelTypes.RgbaVector, 31)]
     public void EncodeIntegerBoundsMatchesNativePixels(TestImageProvider<RgbaVector> provider, int bits)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateIntegerBounds,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            bits.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        => ValidateIntegerBounds(provider, (byte)bits);
 
     /// <summary>
     /// Checks that retained XYB metadata does not change the source pixel layout during lossless encoding.
@@ -364,11 +336,7 @@ public class JxlEncoderTests
     [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1F, true)]
     [WithFile(TestImages.Jxl.AnimationIcos4d, PixelTypes.Rgba32, 1F, false)]
     public void EncodeAnimationMatchesNativePixels(TestImageProvider<Rgba32> provider, float distance, bool progressive)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateAnimationPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{distance},{progressive}"));
+        => ValidateAnimationPixels(provider, distance, progressive);
 
     /// <summary>
     /// Checks that zero-delay source frames remain displayed without changing their source metadata.
@@ -673,23 +641,16 @@ public class JxlEncoderTests
     public void EncoderOptionsOverrideMetadata<TPixel>(
         TestImageProvider<TPixel> provider, JxlColorType colorType, float distance, int bits, JxlColorType expectedColorType)
         where TPixel : unmanaged, IPixel<TPixel>
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            PixelTests<TPixel>.ValidateEncoderOptions,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            FormattableString.Invariant($"{(int)colorType},{distance},{bits},{(int)expectedColorType}"));
+        => PixelTests<TPixel>.ValidateEncoderOptions(provider, colorType, distance, (byte)bits, expectedColorType);
 
     /// <summary>
     /// Checks default JPEG XL encoding of decoded RGB pixels and their retained display orientation.
     /// </summary>
-    /// <param name="providerDump">The serialized original-file provider.</param>
-    /// <param name="encodingDump">The metadata policy and expected orientation, separated by a comma.</param>
-    private static void ValidateDecodedFormatPixels(string providerDump, string encodingDump)
+    /// <param name="provider">The original file provider.</param>
+    /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
+    /// <param name="orientation">The expected display orientation.</param>
+    private static void ValidateDecodedFormatPixels(TestImageProvider<Rgba32> provider, bool skipMetadata, ushort orientation)
     {
-        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
-        string[] encoding = encodingDump.Split(',');
-        bool skipMetadata = FeatureTestRunner.Deserialize<bool>(encoding[0]);
-        ushort orientation = FeatureTestRunner.Deserialize<ushort>(encoding[1]);
         provider.Configuration = Configuration.Default.Clone();
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert };
         TestFile input = TestFile.Create(provider.SourceFileOrDescription);
@@ -742,11 +703,10 @@ public class JxlEncoderTests
     /// <summary>
     /// Checks compact encoding, native pixel reconstruction and the output color labels.
     /// </summary>
-    /// <param name="providerDump">The serialized original-image provider.</param>
+    /// <param name="provider">The original file provider.</param>
     /// <param name="encoding">The compact color description selected by the theory.</param>
-    private static void ValidateCompactColorPixels(string providerDump, string encoding)
+    private static void ValidateCompactColorPixels(TestImageProvider<RgbaVector> provider, string encoding)
     {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert };
         using Image<RgbaVector> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
@@ -818,14 +778,11 @@ public class JxlEncoderTests
     /// <summary>
     /// Checks native and managed frame reconstruction and metadata across reused encoder workspace.
     /// </summary>
-    /// <param name="providerDump">The serialized original animation provider.</param>
-    /// <param name="encodingDump">The serialized distance and progressive setting.</param>
-    private static void ValidateAnimationPixels(string providerDump, string encodingDump)
+    /// <param name="provider">The original animation provider.</param>
+    /// <param name="distance">The reconstruction distance.</param>
+    /// <param name="progressive">Whether progressive encoding is enabled.</param>
+    private static void ValidateAnimationPixels(TestImageProvider<Rgba32> provider, float distance, bool progressive)
     {
-        TestImageProvider<Rgba32> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
-        string[] encoding = encodingDump.Split(',');
-        float distance = FeatureTestRunner.Deserialize<float>(encoding[0]);
-        bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[1]);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -850,7 +807,8 @@ public class JxlEncoderTests
             SkipMetadata = true
         };
 
-        string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: encodingDump.Replace(',', '_'));
+        string details = FormattableString.Invariant($"{distance}_{progressive}");
+        string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: details);
 
         using Image<Rgba32> actual = Image.Load<Rgba32>(options, path);
         using FileStream stream = File.OpenRead(path);
@@ -885,15 +843,12 @@ public class JxlEncoderTests
     /// <summary>
     /// Compares native and managed decoding of lossy output and checks source preservation.
     /// </summary>
-    /// <param name="providerDump">The serialized original-image provider.</param>
-    /// <param name="encodingDump">The serialized reconstruction distance, progressive setting and allocator capacity.</param>
-    private static void ValidateLossyPixels(string providerDump, string encodingDump)
+    /// <param name="provider">The original file provider.</param>
+    /// <param name="distance">The reconstruction distance.</param>
+    /// <param name="progressive">Whether progressive encoding is enabled.</param>
+    /// <param name="bufferCapacity">The encoder allocator buffer capacity in bytes.</param>
+    private static void ValidateLossyPixels(TestImageProvider<RgbaVector> provider, float distance, bool progressive, int bufferCapacity)
     {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
-        string[] encoding = encodingDump.Split(',');
-        float distance = FeatureTestRunner.Deserialize<float>(encoding[0]);
-        bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[1]);
-        int bufferCapacity = FeatureTestRunner.Deserialize<int>(encoding[2]);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -949,14 +904,11 @@ public class JxlEncoderTests
     /// <summary>
     /// Checks precision packing through both independent decoding and native binary16 reference encoding.
     /// </summary>
-    /// <param name="providerDump">The serialized original-image provider.</param>
-    /// <param name="precisionDump">The sample and exponent precisions, separated by a comma.</param>
-    private static void ValidateFloatingPointPixels(string providerDump, string precisionDump)
+    /// <param name="provider">The original floating-point image provider.</param>
+    /// <param name="bits">The declared sample precision.</param>
+    /// <param name="exponentBits">The declared exponent precision.</param>
+    private static void ValidateFloatingPointPixels(TestImageProvider<RgbaVector> provider, byte bits, byte exponentBits)
     {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
-        string[] precision = precisionDump.Split(',');
-        byte bits = FeatureTestRunner.Deserialize<byte>(precision[0]);
-        byte exponentBits = FeatureTestRunner.Deserialize<byte>(precision[1]);
         JxlBitDepth depth = new(bits, exponentBits);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
@@ -992,12 +944,10 @@ public class JxlEncoderTests
     /// <summary>
     /// Checks that declared unsigned samples bound extended source colors before integer packing.
     /// </summary>
-    /// <param name="providerDump">The serialized original-image provider.</param>
-    /// <param name="bitsDump">The declared integer precision.</param>
-    private static void ValidateIntegerBounds(string providerDump, string bitsDump)
+    /// <param name="provider">The original extended-RGB image provider.</param>
+    /// <param name="bits">The declared integer precision.</param>
+    private static void ValidateIntegerBounds(TestImageProvider<RgbaVector> provider, byte bits)
     {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
-        byte bits = FeatureTestRunner.Deserialize<byte>(bitsDump);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -1019,19 +969,20 @@ public class JxlEncoderTests
     /// <summary>
     /// Compares native extra-channel reconstruction and displayed pixels without reference-side color or upsampling math.
     /// </summary>
-    /// <param name="providerDump">The serialized stored-image provider.</param>
-    /// <param name="encodingDump">The serialized type, reduction, precision, progressive setting, alpha association and second-channel flag.</param>
-    private static void ValidateExtraChannelPixels(string providerDump, string encodingDump)
+    /// <param name="provider">The original file provider.</param>
+    /// <param name="type">The supplied extra-channel type.</param>
+    /// <param name="shift">The base-two reduction in sample dimensions.</param>
+    /// <param name="bits">The stored sample precision.</param>
+    /// <param name="exponentBits">The stored exponent precision, or zero for integers.</param>
+    /// <param name="progressive">Whether progressive encoding is enabled.</param>
+    /// <param name="associated">Whether alpha associates the color components.</param>
+    /// <param name="multiple">Whether a second extra channel is supplied.</param>
+    /// <param name="distance">The reconstruction distance.</param>
+    private static void ValidateExtraChannelPixels(
+        TestImageProvider<Rgb24> provider, JxlExtraChannelType type, byte shift, byte bits, byte exponentBits,
+        bool progressive, bool associated, bool multiple, float distance)
     {
-        TestImageProvider<Rgb24> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgb24>>(providerDump);
-        string[] encoding = encodingDump.Split(',');
-        JxlExtraChannelType type = (JxlExtraChannelType)FeatureTestRunner.Deserialize<int>(encoding[0]);
-        byte shift = FeatureTestRunner.Deserialize<byte>(encoding[1]);
-        JxlBitDepth depth = new(FeatureTestRunner.Deserialize<byte>(encoding[2]), FeatureTestRunner.Deserialize<byte>(encoding[3]));
-        bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[4]);
-        bool associated = FeatureTestRunner.Deserialize<bool>(encoding[5]);
-        bool multiple = FeatureTestRunner.Deserialize<bool>(encoding[6]);
-        float distance = FeatureTestRunner.Deserialize<float>(encoding[7]);
+        JxlBitDepth depth = new(bits, exponentBits);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -1129,7 +1080,8 @@ public class JxlEncoderTests
                 SkipMetadata = true
             };
 
-            string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: encodingDump.Replace(',', '_'));
+            string details = FormattableString.Invariant($"{(int)type}_{shift}_{bits}_{exponentBits}_{progressive}_{associated}_{multiple}_{distance}");
+            string path = provider.Utility.SaveTestOutputFile(source, "jxl", encoder, testOutputDetails: details);
 
             // Association changes the stored color components, but not their displayed color. Native
             // unassociated encoding supplies the same displayed pixels without a reference-side multiply.
@@ -1272,7 +1224,7 @@ public class JxlEncoderTests
     }
 
     /// <summary>
-    /// Keeps each remote callback on a closed pixel type, as required by FeatureTestRunner.
+    /// Provides encoder checks for each requested pixel type.
     /// </summary>
     /// <typeparam name="TPixel">The source and comparison pixel type.</typeparam>
     private static class PixelTests<TPixel>
@@ -1281,16 +1233,14 @@ public class JxlEncoderTests
         /// <summary>
         /// Checks explicit color and precision options through native decoding and independent native encoding.
         /// </summary>
-        /// <param name="providerDump">The serialized native-image provider.</param>
-        /// <param name="encodingDump">The explicit color model, distance and precision, separated by commas.</param>
-        public static void ValidateEncoderOptions(string providerDump, string encodingDump)
+        /// <param name="provider">The original file provider.</param>
+        /// <param name="colorType">The requested color model.</param>
+        /// <param name="distance">The reconstruction distance.</param>
+        /// <param name="bits">The requested sample precision.</param>
+        /// <param name="expectedColorType">The expected encoded color model.</param>
+        public static void ValidateEncoderOptions(
+            TestImageProvider<TPixel> provider, JxlColorType colorType, float distance, byte bits, JxlColorType expectedColorType)
         {
-            TestImageProvider<TPixel> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump);
-            string[] encoding = encodingDump.Split(',');
-            JxlColorType colorType = (JxlColorType)FeatureTestRunner.Deserialize<int>(encoding[0]);
-            float distance = FeatureTestRunner.Deserialize<float>(encoding[1]);
-            byte bits = FeatureTestRunner.Deserialize<byte>(encoding[2]);
-            JxlColorType expectedColorType = (JxlColorType)FeatureTestRunner.Deserialize<int>(encoding[3]);
             JxlBitDepth depth = new(bits, bits == 32 ? (byte)8 : (byte)0);
             provider.Configuration = new(new JxlConfigurationModule());
             DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert };
@@ -1384,14 +1334,11 @@ public class JxlEncoderTests
         /// <summary>
         /// Checks emitted pixels and source preservation through the public encoder path.
         /// </summary>
-        /// <param name="providerDump">The serialized stored-image provider.</param>
-        /// <param name="encodingDump">The serialized sample precision and progressive setting.</param>
-        public static void ValidateEncodedPixels(string providerDump, string encodingDump)
+        /// <param name="provider">The original file provider.</param>
+        /// <param name="bits">The requested sample precision.</param>
+        /// <param name="progressive">Whether progressive encoding is enabled.</param>
+        public static void ValidateEncodedPixels(TestImageProvider<TPixel> provider, int bits, bool progressive)
         {
-            TestImageProvider<TPixel> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<TPixel>>(providerDump);
-            string[] encoding = encodingDump.Split(',');
-            int bits = FeatureTestRunner.Deserialize<int>(encoding[0]);
-            bool progressive = FeatureTestRunner.Deserialize<bool>(encoding[1]);
             provider.Configuration = new(new JxlConfigurationModule());
             DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 

@@ -94,7 +94,7 @@ public class HeifDecoderTests
         }
         else
         {
-            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+            image.DebugSaveMultiFrame(provider, encoder: new PngEncoder(), predicate: FramePredicate);
             image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
         }
     }
@@ -265,7 +265,7 @@ public class HeifDecoderTests
             Assert.Equal(preservedIccProfile.ToByteArray(), Assert.IsType<IccProfile>(frame.Metadata.IccProfile).ToByteArray());
         }
 
-        converted.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+        converted.DebugSaveMultiFrame(provider, encoder: new PngEncoder(), predicate: FramePredicate);
 
         // Approximate ICC curves can move final rounding. Limit the total RGB error to three eight-bit codes per pixel.
         // The per-pixel limit uses sixteen-bit units; Preserve/Convert agreement above remains exact.
@@ -328,7 +328,7 @@ public class HeifDecoderTests
             Assert.Null(image.Frames[i].Metadata.CicpProfile);
         }
 
-        image.DebugSaveMultiFrame(provider, encoder: new PngEncoder());
+        image.DebugSaveMultiFrame(provider, encoder: new PngEncoder(), predicate: FramePredicate);
     }
 
     /// <summary>
@@ -1114,4 +1114,12 @@ public class HeifDecoderTests
         public override int Read(Span<byte> buffer)
             => base.Read(buffer[..Math.Min(buffer.Length, MaximumReadLength)]);
     }
+
+    /// <summary>
+    /// Selects the first nine frames and every eighth later frame for diagnostic output, as in the PNG decoder tests.
+    /// </summary>
+    /// <param name="index">The zero-based frame index.</param>
+    /// <param name="_">The frame count, which does not affect this selection.</param>
+    /// <returns>Whether to save this frame.</returns>
+    private static bool FramePredicate(int index, int _) => index <= 8 || index % 8 == 0;
 }

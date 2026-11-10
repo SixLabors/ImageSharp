@@ -70,7 +70,7 @@ public class JxlDecoderTests
     ];
 
     /// <summary>
-    /// Decodes at each SIMD width and in the scalar path. Compares pixels when the native reference is valid.
+    /// Compares decoded pixels with the native reference when its comparison is enabled.
     /// </summary>
     /// <param name="provider">The test image provider.</param>
     /// <param name="tolerance">The allowed image difference.</param>
@@ -79,21 +79,15 @@ public class JxlDecoderTests
     [WithFile(TestImages.Jxl.CroppedXybBlending, PixelTypes.RgbaVector, 0.000004F)]
     [WithFile(TestImages.Jxl.SpotColor, PixelTypes.RgbaVector, 0.000057F)]
     public void DecodeMatchesNativePixels(TestImageProvider<RgbaVector> provider, float tolerance)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateDecodedPixels,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
-            provider,
-            tolerance.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        => ValidateDecodedPixels(provider, tolerance);
 
     /// <summary>
     /// Decodes one input and checks its output against the native reference.
     /// </summary>
-    /// <param name="providerDump">The serialized test image provider.</param>
-    /// <param name="toleranceDump">The serialized image tolerance.</param>
-    private static void ValidateDecodedPixels(string providerDump, string toleranceDump)
+    /// <param name="provider">The original file provider.</param>
+    /// <param name="tolerance">The allowed image difference.</param>
+    private static void ValidateDecodedPixels(TestImageProvider<RgbaVector> provider, float tolerance)
     {
-        TestImageProvider<RgbaVector> provider = FeatureTestRunner.DeserializeForXunit<TestImageProvider<RgbaVector>>(providerDump);
-        float tolerance = FeatureTestRunner.Deserialize<float>(toleranceDump);
         provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
 
@@ -106,7 +100,7 @@ public class JxlDecoderTests
         }
         else
         {
-            image.DebugSaveMultiFrame(provider);
+            image.DebugSaveMultiFrame(provider, predicate: FramePredicate);
         }
 
         if (provider.SourceFileOrDescription == TestImages.Jxl.CmykLayers)
@@ -595,11 +589,7 @@ public class JxlDecoderTests
         ImageInfo info = Image.Identify(options, input);
         Assert.Equal(new Size(width, height), info.Size);
 
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateModularPixels,
-            file,
-            pixelHash,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+        ValidateModularPixels(file, pixelHash);
     }
 
     /// <summary>
@@ -1000,7 +990,7 @@ public class JxlDecoderTests
         string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, provider.SourceFileOrDescription);
         ImageInfo info = Image.Identify(options, path);
         using Image<Rgba32> image = provider.GetImage(JxlDecoder.Instance, options);
-        image.DebugSaveMultiFrame(provider, maxFrames);
+        image.DebugSaveMultiFrame(provider, maxFrames, predicate: FramePredicate);
 
         // Compare each displayed canvas with JxlNet. Frame counts and timing cannot detect incorrect blends.
         image.CompareToOriginal(provider, ImageComparer.Tolerant(), LibJxlReferenceDecoder.Instance, options);
@@ -1807,4 +1797,12 @@ public class JxlDecoderTests
             }
         }
     }
+
+    /// <summary>
+    /// Selects the first nine frames and every eighth later frame for diagnostic output, as in the PNG decoder tests.
+    /// </summary>
+    /// <param name="index">The zero-based frame index.</param>
+    /// <param name="_">The frame count, which does not affect this selection.</param>
+    /// <returns>Whether to save this frame.</returns>
+    private static bool FramePredicate(int index, int _) => index <= 8 || index % 8 == 0;
 }

@@ -224,12 +224,14 @@ public sealed partial class HlgWorkingSpace
             float light = this.luminance.Z * blue;
             light = float.MultiplyAddEstimate(this.luminance.Y, green, light);
             light = float.MultiplyAddEstimate(this.luminance.X, red, light);
-            float power = this.power.Invoke(light);
 
-            // A negative physical luminance has no real fractional power. Native original-color CMS
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            float power = this.power.Invoke(MathF.Abs(light));
+
+            // A negative finite physical luminance has no real fractional power. Native original-color CMS
             // keeps RGB unchanged when that scale is not finite. Preserve those finite colors instead
             // of turning all three channels into NaN before the final component bounds.
-            float ratio = float.IsFinite(power) ? MathF.Min(power, MaximumLuminanceRatio) : 1F;
+            float ratio = (light < 0F && float.IsFinite(light)) || !float.IsFinite(power) ? 1F : MathF.Min(power, MaximumLuminanceRatio);
             red *= ratio;
             green *= ratio;
             blue *= ratio;
@@ -248,11 +250,17 @@ public sealed partial class HlgWorkingSpace
             Vector128<float> light = Vector128.Multiply(Vector128.Create(this.luminance.Z), blue);
             light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.Y), green, light);
             light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.X), red, light);
-            Vector128<float> power = this.power.Invoke(light);
 
-            // Each lane represents one RGB color. Select identity for a nonfinite scale before the
-            // three multiplies, matching the scalar path and native original-color CMS.
-            Vector128<float> finite = Vector128.LessThanOrEqual(Vector128.Abs(power), Vector128.Create(float.MaxValue));
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            Vector128<float> magnitude = Vector128.Abs(light);
+            Vector128<float> power = this.power.Invoke(magnitude);
+
+            // Each lane represents one RGB color. Select identity for a negative finite luminance, which has no
+            // real fractional power, and for a nonfinite scale. Do this before the three multiplies,
+            // matching the scalar path and native original-color CMS.
+            Vector128<float> negativeFinite = Vector128.LessThan(light, Vector128<float>.Zero)
+                & Vector128.LessThan(magnitude, Vector128.Create(float.PositiveInfinity));
+            Vector128<float> finite = Vector128.LessThanOrEqual(Vector128.Abs(power), Vector128.Create(float.MaxValue)) & ~negativeFinite;
             Vector128<float> ratio = Vector128.ConditionalSelect(
                 finite, Vector128.Min(power, Vector128.Create(MaximumLuminanceRatio)), Vector128.Create(1F));
 
@@ -274,11 +282,17 @@ public sealed partial class HlgWorkingSpace
             Vector256<float> light = Vector256.Multiply(Vector256.Create(this.luminance.Z), blue);
             light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.Y), green, light);
             light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.X), red, light);
-            Vector256<float> power = this.power.Invoke(light);
 
-            // Each lane represents one RGB color. Select identity for a nonfinite scale before the
-            // three multiplies, matching the scalar path and native original-color CMS.
-            Vector256<float> finite = Vector256.LessThanOrEqual(Vector256.Abs(power), Vector256.Create(float.MaxValue));
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            Vector256<float> magnitude = Vector256.Abs(light);
+            Vector256<float> power = this.power.Invoke(magnitude);
+
+            // Each lane represents one RGB color. Select identity for a negative finite luminance, which has no
+            // real fractional power, and for a nonfinite scale. Do this before the three multiplies,
+            // matching the scalar path and native original-color CMS.
+            Vector256<float> negativeFinite = Vector256.LessThan(light, Vector256<float>.Zero)
+                & Vector256.LessThan(magnitude, Vector256.Create(float.PositiveInfinity));
+            Vector256<float> finite = Vector256.LessThanOrEqual(Vector256.Abs(power), Vector256.Create(float.MaxValue)) & ~negativeFinite;
             Vector256<float> ratio = Vector256.ConditionalSelect(
                 finite, Vector256.Min(power, Vector256.Create(MaximumLuminanceRatio)), Vector256.Create(1F));
 
@@ -300,11 +314,17 @@ public sealed partial class HlgWorkingSpace
             Vector512<float> light = Vector512.Multiply(Vector512.Create(this.luminance.Z), blue);
             light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.Y), green, light);
             light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.X), red, light);
-            Vector512<float> power = this.power.Invoke(light);
 
-            // Each lane represents one RGB color. Select identity for a nonfinite scale before the
-            // three multiplies, matching the scalar path and native original-color CMS.
-            Vector512<float> finite = Vector512.LessThanOrEqual(Vector512.Abs(power), Vector512.Create(float.MaxValue));
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            Vector512<float> magnitude = Vector512.Abs(light);
+            Vector512<float> power = this.power.Invoke(magnitude);
+
+            // Each lane represents one RGB color. Select identity for a negative finite luminance, which has no
+            // real fractional power, and for a nonfinite scale. Do this before the three multiplies,
+            // matching the scalar path and native original-color CMS.
+            Vector512<float> negativeFinite = Vector512.LessThan(light, Vector512<float>.Zero)
+                & Vector512.LessThan(magnitude, Vector512.Create(float.PositiveInfinity));
+            Vector512<float> finite = Vector512.LessThanOrEqual(Vector512.Abs(power), Vector512.Create(float.MaxValue)) & ~negativeFinite;
             Vector512<float> ratio = Vector512.ConditionalSelect(
                 finite, Vector512.Min(power, Vector512.Create(MaximumLuminanceRatio)), Vector512.Create(1F));
 

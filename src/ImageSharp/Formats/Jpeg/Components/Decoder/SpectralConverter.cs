@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
@@ -91,19 +93,31 @@ internal abstract class SpectralConverter
     /// </summary>
     /// <remarks>
     /// Does not apply scaling if <paramref name="targetSize"/> is null.
+    /// The method fits the image into <paramref name="targetSize"/> with <see cref="ResizeMode.Max"/>, as the decoder resize does.
+    /// Then it selects the smallest block scale that is at least <paramref name="resizeFactor"/> times that fitted size.
     /// </remarks>
     /// <param name="size">Size of the image.</param>
     /// <param name="targetSize">Target size of the image.</param>
+    /// <param name="resizeFactor">
+    /// The factor that the scaled size must keep above the fitted size: two when a resize follows the scaled decode,
+    /// and one when the scaled decode is the output.
+    /// </param>
     /// <param name="blockPixelSize">Spectral block size, equals to 8 if scaling is not applied.</param>
     /// <returns>Resulting image size, equals to <paramref name="size"/> if scaling is not applied.</returns>
-    public static Size CalculateResultingImageSize(Size size, Size? targetSize, out int blockPixelSize)
+    public static Size CalculateResultingImageSize(Size size, Size? targetSize, int resizeFactor, out int blockPixelSize)
     {
         const int blockNativePixelSize = 8;
 
         blockPixelSize = blockNativePixelSize;
         if (targetSize != null)
         {
-            Size tSize = targetSize.Value;
+            // TargetSize uses ResizeMode.Max, as ImageDecoder.ScaleToTargetSize does. The final image fits into the target,
+            // so one dimension is usually smaller than the target. The scaled image is compared with that fitted size.
+            // The block scale is a box filter inside each 8x8 block. Thus, when a resize follows, the scaled image keeps
+            // at least two times the fitted size, and the resize filter makes the final reduction. libvips uses the same rule.
+            ResizeOptions fitOptions = new() { Size = targetSize.Value, Mode = ResizeMode.Max };
+            Size fitted = ResizeHelper.CalculateTargetLocationAndBounds(size, fitOptions).Size;
+            Size tSize = new(fitted.Width * resizeFactor, fitted.Height * resizeFactor);
 
             int fullBlocksWidth = (int)((uint)size.Width / blockNativePixelSize);
             int fullBlocksHeight = (int)((uint)size.Height / blockNativePixelSize);

@@ -17,7 +17,7 @@ public class SpectralConverterTests
     {
         Size inputSize = new(width, height);
 
-        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, null, out int blockPixelSize);
+        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, null, 1, out int blockPixelSize);
 
         Assert.Equal(expected: 8, blockPixelSize);
         Assert.Equal(inputSize, outputSize);
@@ -34,7 +34,7 @@ public class SpectralConverterTests
         Size inputSize = new(inW, inH);
         Size targetSize = new(tW, tH);
 
-        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, out int blockPixelSize);
+        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, 1, out int blockPixelSize);
 
         Assert.Equal(expectedBlockSize, blockPixelSize);
         Assert.Equal(outputSize, targetSize);
@@ -51,7 +51,7 @@ public class SpectralConverterTests
         Size inputSize = new(inW, inH);
         Size targetSize = new(tW, tH);
 
-        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, out int blockPixelSize);
+        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, 1, out int blockPixelSize);
 
         Assert.Equal(expectedBlockSize, blockPixelSize);
         Assert.Equal(outputSize, targetSize);
@@ -64,13 +64,33 @@ public class SpectralConverterTests
     [InlineData(800, 400, 999, 600, 800, 400, 8)]
     [InlineData(800, 400, 390, 150, 400, 200, 4)]
     [InlineData(804, 1198, 500, 800, 804, 1198, 8)]
+
+    // TargetSize uses ResizeMode.Max: 1280x853 fits into 150x150 as 150x100, so 1/8 scale (160x107) is sufficient.
+    [InlineData(1280, 853, 150, 150, 160, 107, 1)]
     public void CalculateResultingImageSize_Inexact_Target_Size(int inW, int inH, int tW, int tH, int exW, int exH, int expectedBlockSize)
     {
         Size inputSize = new(inW, inH);
         Size targetSize = new(tW, tH);
         Size expectedSize = new(exW, exH);
 
-        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, out int blockPixelSize);
+        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, 1, out int blockPixelSize);
+
+        Assert.Equal(expectedBlockSize, blockPixelSize);
+        Assert.Equal(expectedSize, outputSize);
+    }
+
+    // When a resize follows the scaled decode, the scaled size keeps at least two times the fitted target size.
+    [Theory]
+    [InlineData(1280, 853, 150, 150, 320, 214, 2)]
+    [InlineData(1280, 1280, 150, 150, 320, 320, 2)]
+    [InlineData(800, 400, 390, 150, 800, 400, 8)]
+    public void CalculateResultingImageSize_ResizeFactor_KeepsTwiceFittedSize(int inW, int inH, int tW, int tH, int exW, int exH, int expectedBlockSize)
+    {
+        Size inputSize = new(inW, inH);
+        Size targetSize = new(tW, tH);
+        Size expectedSize = new(exW, exH);
+
+        Size outputSize = SpectralConverter.CalculateResultingImageSize(inputSize, targetSize, 2, out int blockPixelSize);
 
         Assert.Equal(expectedBlockSize, blockPixelSize);
         Assert.Equal(expectedSize, outputSize);

@@ -24,7 +24,8 @@ public enum JxlColorType : byte
     Xyb,
 
     /// <summary>
-    /// Three components retained in a color model defined by the embedded ICC profile.
+    /// A color model defined by the embedded ICC profile.
     /// </summary>
+    /// <remarks>Encoding uses RGB or luminance when the profile declares that color model. CMYK uses RGB with a black extra channel.</remarks>
     Other
 }

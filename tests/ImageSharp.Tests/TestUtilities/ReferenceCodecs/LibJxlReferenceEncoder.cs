@@ -6,9 +6,12 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using JxlNet;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using ExtraChannelType = SixLabors.ImageSharp.Formats.Jxl.JxlExtraChannelType;
 using NativeJxl = JxlNet.Jxl;
@@ -42,6 +45,11 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
     public bool Progressive { get; init; }
 
     /// <summary>
+    /// Gets the RGB or grayscale output profile. Null selects sRGB. Source pixels are converted from working sRGB before native encoding.
+    /// </summary>
+    public IccProfile IccProfile { get; init; }
+
+    /// <summary>
     /// Gets the optional caller-owned extra channel used by the reference encoding.
     /// </summary>
     public JxlExtraChannel ExtraChannel { get; init; }
@@ -50,11 +58,25 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        bool halfInput = this.Distance == 0 && this.BitDepth == new SampleBitDepth(16, 5);
+        // ICC conversion uses full-precision RGB input. Libjxl applies the declared output precision after conversion.
+        bool halfInput = this.IccProfile is null && this.Distance == 0 && this.BitDepth == new SampleBitDepth(16, 5);
+        ColorProfileConverter profileConverter = this.IccProfile is null ? null : new(new ColorConversionOptions
+        {
+            SourceIccProfile = CompactSrgbV4Profile.Profile,
+            TargetIccProfile = this.IccProfile,
+            MemoryAllocator = image.Configuration.MemoryAllocator
+        });
+
         int bytesPerPixel = 3 * (halfInput ? sizeof(ushort) : sizeof(float));
         int inputLength = checked(image.Width * image.Height * bytesPerPixel);
         using IMemoryOwner<byte> inputOwner = image.Configuration.MemoryAllocator.Allocate<byte>(inputLength);
         Span<byte> input = inputOwner.Memory.Span[..inputLength];
+        bool grayscale = this.IccProfile?.Header.DataColorSpace == IccColorSpaceType.Gray;
+
+        // Grayscale ICC input has one component per pixel. Keep its destination separate from the
+        // three-component RGB source so conversion does not depend on overlapping spans of different element sizes.
+        using IMemoryOwner<byte> grayscaleOwner = grayscale ? image.Configuration.MemoryAllocator.Allocate<byte>(inputLength / 3) : null;
+        Span<byte> nativeInput = grayscale ? grayscaleOwner.Memory.Span[..(inputLength / 3)] : input;
         using IMemoryOwner<Vector4> rowOwner = image.Configuration.MemoryAllocator.Allocate<Vector4>(image.Width);
         bool halfExtra = this.ExtraChannel is null ? halfInput : this.ExtraChannel.Metadata.BitDepth == new SampleBitDepth(16, 5);
         int extraLength = checked(image.Width * image.Height * (halfExtra ? sizeof(ushort) : sizeof(float)));
@@ -80,7 +102,7 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
             info.ysize = (uint)image.Height;
             info.bits_per_sample = this.BitDepth.BitsPerSample;
             info.exponent_bits_per_sample = this.BitDepth.ExponentBits;
-            info.num_color_channels = 3;
+            info.num_color_channels = grayscale ? 1U : 3U;
             info.num_extra_channels = 1;
             JxlExtraChannelMetadata extra = this.ExtraChannel?.Metadata;
             bool hasAlpha = extra is null || extra.Type == ExtraChannelType.Alpha;
@@ -113,9 +135,21 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
                 }
             }
 
-            JxlColorEncoding color;
-            NativeJxl.JxlColorEncodingSetToSRGB(&color, 0);
-            Check(encoder, NativeJxl.JxlEncoderSetColorEncoding(encoder, &color));
+            if (this.IccProfile is not null)
+            {
+                ReadOnlySpan<byte> profileData = this.IccProfile.GetData().Span;
+
+                fixed (byte* profileBytes = profileData)
+                {
+                    Check(encoder, NativeJxl.JxlEncoderSetICCProfile(encoder, profileBytes, (nuint)profileData.Length));
+                }
+            }
+            else
+            {
+                JxlColorEncoding color;
+                NativeJxl.JxlColorEncodingSetToSRGB(&color, 0);
+                Check(encoder, NativeJxl.JxlEncoderSetColorEncoding(encoder, &color));
+            }
 
             JxlEncoderFrameSettings* settings = NativeJxl.JxlEncoderFrameSettingsCreate(encoder, null);
             if (settings is null)
@@ -169,7 +203,7 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
 
             JxlPixelFormat format = new()
             {
-                num_channels = 3,
+                num_channels = info.num_color_channels,
                 data_type = halfInput ? JxlDataType.JXL_TYPE_FLOAT16 : JxlDataType.JXL_TYPE_FLOAT,
                 endianness = JxlEndianness.JXL_NATIVE_ENDIAN
             };
@@ -184,12 +218,28 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
             using IMemoryOwner<byte> outputOwner = image.Configuration.MemoryAllocator.Allocate<byte>(image.Configuration.StreamProcessingBufferSize);
             Span<byte> output = outputOwner.Memory.Span;
 
-            fixed (byte* pixels = input, extraPixels = extraInput, buffer = output)
+            fixed (byte* pixels = nativeInput, extraPixels = extraInput, buffer = output)
             {
                 for (int frameIndex = 0; frameIndex < image.Frames.Count; frameIndex++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     CopyInput(image.Frames[frameIndex], input, this.ExtraChannel is null ? extraInput : [], rowOwner.Memory.Span, halfInput);
+
+                    if (profileConverter is not null)
+                    {
+                        // The source buffer contains float RGB triples. The ICC color space selects
+                        // one grayscale value or three RGB values per pixel for the native input format.
+                        Span<Rgb> rgb = MemoryMarshal.Cast<byte, Rgb>(input);
+
+                        if (grayscale)
+                        {
+                            profileConverter.Convert<Rgb, Y>(rgb, MemoryMarshal.Cast<byte, Y>(nativeInput));
+                        }
+                        else
+                        {
+                            profileConverter.Convert<Rgb, Rgb>(rgb, rgb);
+                        }
+                    }
 
                     if (info.have_animation != 0)
                     {
@@ -199,7 +249,7 @@ public sealed unsafe class LibJxlReferenceEncoder : ImageEncoder
                         Check(encoder, NativeJxl.JxlEncoderSetFrameHeader(settings, &header));
                     }
 
-                    Check(encoder, NativeJxl.JxlEncoderAddImageFrame(settings, &format, pixels, (nuint)input.Length));
+                    Check(encoder, NativeJxl.JxlEncoderAddImageFrame(settings, &format, pixels, (nuint)nativeInput.Length));
 
                     if (this.ExtraChannel is JxlExtraChannel supplied)
                     {

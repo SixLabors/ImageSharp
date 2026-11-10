@@ -434,6 +434,17 @@ internal sealed class JxlEncoderCore : IDisposable
         // XYB selects the coding transform, not an original device profile. A lossless replacement
         // uses decoded working RGB. Coding XYB keeps a gray ICC declaration when that profile requires it.
         IccProfile? sourceProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+
+        // An ICC-defined request takes its color model from the profile, as in libjxl. Reuse the
+        // shared ICC mapping and the metadata mapping so grayscale has one component and CMYK retains its black channel.
+        // Other ICC data spaces keep Other; decoded YCbCr pixels map to RGB, but a YCbCr device profile does not.
+        if (colorType == JxlColorType.Other && sourceProfile is not null
+            && PixelColorTypeIccMapping.TryGetColorType(sourceProfile.Header.DataColorSpace, out PixelColorType profileColorType)
+            && profileColorType is PixelColorType.Luminance or PixelColorType.RGB or PixelColorType.CMYK)
+        {
+            colorType = JxlMetadata.GetColorType(profileColorType);
+        }
+
         bool useWorkingRgb = colorType == JxlColorType.Xyb && !encoder.ColorType.HasValue && encoder.Distance == 0F;
         this.colorType = colorType switch
         {

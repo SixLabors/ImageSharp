@@ -660,22 +660,24 @@ public class JxlEncoderTests
     /// <param name="colorType">The explicit output color model.</param>
     /// <param name="distance">The reconstruction distance.</param>
     /// <param name="bits">The explicit sample precision.</param>
+    /// <param name="expectedColorType">The expected encoded color model.</param>
     [Theory]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.L16, JxlColorType.Luminance, 0F, 16)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Rgb, 0F, 32)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Luminance, 0F, 32)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Rgb, 1F, 32)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Xyb, 1F, 32)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Luminance, 1F, 32)]
-    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, JxlColorType.Luminance, 1F, 32)]
-    [WithFile(TestImages.Jxl.WithIcc, PixelTypes.RgbaVector, JxlColorType.Other, 0F, 32)]
-    public void EncoderOptionsOverrideMetadata<TPixel>(TestImageProvider<TPixel> provider, JxlColorType colorType, float distance, int bits)
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.L16, JxlColorType.Luminance, 0F, 16, JxlColorType.Luminance)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Rgb, 0F, 32, JxlColorType.Rgb)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Luminance, 0F, 32, JxlColorType.Luminance)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Rgb, 1F, 32, JxlColorType.Rgb)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Xyb, 1F, 32, JxlColorType.Rgb)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.RgbaVector, JxlColorType.Luminance, 1F, 32, JxlColorType.Luminance)]
+    [WithFile(TestImages.Jxl.LosslessFloat, PixelTypes.RgbaVector, JxlColorType.Luminance, 1F, 32, JxlColorType.Luminance)]
+    [WithFile(TestImages.Jxl.WithIcc, PixelTypes.RgbaVector, JxlColorType.Other, 0F, 32, JxlColorType.Luminance)]
+    public void EncoderOptionsOverrideMetadata<TPixel>(
+        TestImageProvider<TPixel> provider, JxlColorType colorType, float distance, int bits, JxlColorType expectedColorType)
         where TPixel : unmanaged, IPixel<TPixel>
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             PixelTests<TPixel>.ValidateEncoderOptions,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic,
             provider,
-            FormattableString.Invariant($"{(int)colorType},{distance},{bits}"));
+            FormattableString.Invariant($"{(int)colorType},{distance},{bits},{(int)expectedColorType}"));
 
     /// <summary>
     /// Checks default JPEG XL encoding of decoded RGB pixels and their retained display orientation.
@@ -1288,6 +1290,7 @@ public class JxlEncoderTests
             JxlColorType colorType = (JxlColorType)FeatureTestRunner.Deserialize<int>(encoding[0]);
             float distance = FeatureTestRunner.Deserialize<float>(encoding[1]);
             byte bits = FeatureTestRunner.Deserialize<byte>(encoding[2]);
+            JxlColorType expectedColorType = (JxlColorType)FeatureTestRunner.Deserialize<int>(encoding[3]);
             JxlBitDepth depth = new(bits, bits == 32 ? (byte)8 : (byte)0);
             provider.Configuration = new(new JxlConfigurationModule());
             DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert };
@@ -1312,7 +1315,7 @@ public class JxlEncoderTests
 
             using Image<TPixel> original = source.Clone();
             JxlMetadata metadata = source.Metadata.GetFormatMetadata(JxlFormat.Instance);
-            JxlColorType metadataColorType = colorType == JxlColorType.Luminance ? JxlColorType.Rgb : JxlColorType.Luminance;
+            JxlColorType metadataColorType = expectedColorType == JxlColorType.Luminance ? JxlColorType.Rgb : JxlColorType.Luminance;
             metadata.ColorType = metadataColorType;
             metadata.BitDepth = new JxlBitDepth(8, 0);
             JxlEncoder encoder = new() { ColorType = colorType, Distance = distance, BitDepth = depth, SkipMetadata = true };
@@ -1330,7 +1333,7 @@ public class JxlEncoderTests
             JxlBitReader reader = new(new JxlCodestreamReader(buffered));
             JxlHeader header = JxlHeader.Read(ref reader, provider.Configuration.MemoryAllocator, SegmentIntegrityHandling.Strict, CancellationToken.None);
 
-            Assert.Equal(colorType == JxlColorType.Xyb ? JxlColorType.Rgb : colorType, header.ProfileColorType);
+            Assert.Equal(expectedColorType, header.ProfileColorType);
             Assert.Equal(distance > 0, header.UsesXybTransform);
             Assert.Equal(depth, header.Metadata.BitDepth);
 
@@ -1351,7 +1354,22 @@ public class JxlEncoderTests
                 }
 
                 using MemoryStream referenceStream = new();
-                referenceInput.Save(referenceStream, new LibJxlReferenceEncoder { BitDepth = depth, Distance = distance });
+                LibJxlReferenceEncoder referenceEncoder = new()
+                {
+                    BitDepth = depth,
+                    Distance = distance,
+                    IccProfile = colorType == JxlColorType.Other ? source.Metadata.IccProfile : null
+                };
+
+                referenceInput.Save(referenceStream, referenceEncoder);
+
+                if (colorType == JxlColorType.Other)
+                {
+                    // Retain the native file beside the managed output for independent decoding with the same ICC and sample settings.
+                    using FileStream referenceOutput = File.Create(Path.ChangeExtension(path, ".libjxl.jxl"));
+                    referenceStream.WriteTo(referenceOutput);
+                }
+
                 referenceStream.Position = 0;
                 using Image<TPixel> expected = LibJxlReferenceDecoder.Instance.Decode<TPixel>(options, referenceStream);
 

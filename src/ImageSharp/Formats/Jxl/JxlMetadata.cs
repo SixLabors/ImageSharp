@@ -244,13 +244,7 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
         JxlMetadata result = new()
         {
             BitDepth = bitDepth,
-            ColorType = color switch
-            {
-                PixelColorType.Luminance => JxlColorType.Luminance,
-                PixelColorType.RGB or PixelColorType.BGR or PixelColorType.CMYK
-                    or PixelColorType.YCbCr or PixelColorType.YCCK or PixelColorType.Indexed => JxlColorType.Rgb,
-                _ => JxlColorType.Other
-            },
+            ColorType = GetColorType(color),
             RepeatCount = metadata.RepeatCount
         };
 
@@ -268,6 +262,20 @@ public class JxlMetadata : IFormatMetadata<JxlMetadata>
 
         return result;
     }
+
+    /// <summary>
+    /// Gets the JPEG XL color type for pixel color components or an ICC data space mapped to those components.
+    /// </summary>
+    /// <param name="colorType">The pixel color type without alpha.</param>
+    /// <returns>The corresponding JPEG XL color type, or Other for an ICC-defined model.</returns>
+    internal static JxlColorType GetColorType(PixelColorType colorType)
+        => colorType switch
+        {
+            PixelColorType.Luminance => JxlColorType.Luminance,
+            PixelColorType.RGB or PixelColorType.BGR or PixelColorType.CMYK
+                or PixelColorType.YCbCr or PixelColorType.YCCK or PixelColorType.Indexed => JxlColorType.Rgb,
+            _ => JxlColorType.Other
+        };
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()

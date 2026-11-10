@@ -855,27 +855,42 @@ internal sealed class JxlEncoderCore : IDisposable
         const ulong MaximumRateNumerator = 1UL << 30;
         const uint MaximumRateDenominator = 1024;
         ulong numerator = 1;
-        LongRational longest = new(0, 1);
+        ulong longestNumerator = 0;
+        ulong longestDenominator = 1;
         bool zeroDelay = false;
 
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
-            LongRational delay = frame.Metadata.GetJxlMetadata().FrameDelay.Simplify();
-            ulong denominator = (ulong)delay.Denominator;
+            LongRational delay = frame.Metadata.GetJxlMetadata().FrameDelay;
+
+            // Metadata retains signed fractions and special values. The unsigned file clock requires
+            // a finite, nonnegative duration. Validate once before division or unsigned conversion.
+            Guard.IsTrue(
+                delay.Denominator != 0 && (delay.Numerator == 0 || (delay.Numerator > 0) == (delay.Denominator > 0)),
+                nameof(JxlFrameMetadata.FrameDelay),
+                "The frame delay must be a finite, nonnegative duration.");
+
+            delay = delay.Simplify();
+
+            // Equivalent positive fractions can have two negative components. Widen before taking
+            // their magnitudes so long.MinValue remains representable, without changing source metadata.
+            ulong durationNumerator = (ulong)Int128.Abs(delay.Numerator);
+            ulong denominator = (ulong)Int128.Abs(delay.Denominator);
             UInt128 multiple = (UInt128)numerator * (denominator / Numerics.GreatestCommonDivisor(numerator, denominator));
             numerator = (ulong)UInt128.Min(multiple, MaximumRateNumerator);
-            zeroDelay |= delay.Numerator == 0;
+            zeroDelay |= durationNumerator == 0;
 
-            if ((Int128)delay.Numerator * longest.Denominator > (Int128)longest.Numerator * delay.Denominator)
+            if ((UInt128)durationNumerator * longestDenominator > (UInt128)longestNumerator * denominator)
             {
-                longest = delay;
+                longestNumerator = durationNumerator;
+                longestDenominator = denominator;
             }
         }
 
-        if (longest.Numerator != 0)
+        if (longestNumerator != 0)
         {
             // A frame duration occupies uint ticks. Coarsen the clock only when the longest source duration needs it.
-            UInt128 limit = (UInt128)uint.MaxValue * MaximumRateDenominator * (ulong)longest.Denominator / (ulong)longest.Numerator;
+            UInt128 limit = (UInt128)uint.MaxValue * MaximumRateDenominator * longestDenominator / longestNumerator;
             numerator = Math.Max(1UL, (ulong)UInt128.Min(numerator, limit));
         }
 
@@ -884,11 +899,13 @@ internal sealed class JxlEncoderCore : IDisposable
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
             LongRational delay = frame.Metadata.GetJxlMetadata().FrameDelay;
-            ulong duration = (ulong)((UInt128)(ulong)delay.Numerator * numerator / (ulong)delay.Denominator);
+            ulong durationNumerator = (ulong)Int128.Abs(delay.Numerator);
+            ulong durationDenominator = (ulong)Int128.Abs(delay.Denominator);
+            ulong duration = (ulong)((UInt128)durationNumerator * numerator / durationDenominator);
             common = Numerics.GreatestCommonDivisor(common, duration);
         }
 
-        ulong maximum = (ulong)((UInt128)(ulong)longest.Numerator * numerator / (ulong)longest.Denominator);
+        ulong maximum = (ulong)((UInt128)longestNumerator * numerator / longestDenominator);
         ulong required = maximum == 0 ? 1 : ((maximum - 1) / uint.MaxValue) + 1;
         uint selected = (uint)Math.Min(required, MaximumRateDenominator);
 
@@ -912,7 +929,9 @@ internal sealed class JxlEncoderCore : IDisposable
 
             if (maximumTicks != 0)
             {
-                factor = Math.Min(factor, uint.MaxValue / maximumTicks);
+                // Durations beyond the file's range are already saturated. They cannot refine the
+                // clock, but must retain its identity multiplier rather than reduce the rate to zero.
+                factor = Math.Min(factor, Math.Max(1UL, uint.MaxValue / maximumTicks));
             }
 
             numerator *= factor;
@@ -934,13 +953,17 @@ internal sealed class JxlEncoderCore : IDisposable
     /// <summary>
     /// Expresses one source delay in the prepared file clock, retaining non-final frames as displayed frames.
     /// </summary>
-    /// <param name="delay">The source delay in seconds.</param>
+    /// <param name="delay">The source delay in seconds, validated as finite and nonnegative during animation setup.</param>
     /// <param name="last">Whether this is the final displayed frame.</param>
     /// <returns>The serialized unsigned tick count.</returns>
     private uint GetFrameDuration(LongRational delay, bool last)
     {
-        UInt128 ticks = (UInt128)(ulong)delay.Numerator * this.ticksPerSecondNumerator
-            / ((UInt128)(ulong)delay.Denominator * this.ticksPerSecondDenominator);
+        // Setup validated the value. Use component magnitudes here too, so signed equivalents
+        // and long.MinValue components have the same tick count as their positive fractions.
+        ulong numerator = (ulong)Int128.Abs(delay.Numerator);
+        ulong denominator = (ulong)Int128.Abs(delay.Denominator);
+        UInt128 ticks = (UInt128)numerator * this.ticksPerSecondNumerator
+            / ((UInt128)denominator * this.ticksPerSecondDenominator);
         uint duration = (uint)UInt128.Min(ticks, uint.MaxValue);
 
         // A non-final zero duration denotes a hidden reference frame. Source image frames are displayed.

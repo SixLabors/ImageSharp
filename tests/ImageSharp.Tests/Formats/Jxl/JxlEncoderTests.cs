@@ -413,6 +413,106 @@ public class JxlEncoderTests
     }
 
     /// <summary>
+    /// Checks that animation setup rejects undefined and negative delays without writing output or retaining workspace.
+    /// </summary>
+    /// <param name="provider">The stored animation that supplies two frames.</param>
+    /// <param name="numerator">The invalid duration numerator.</param>
+    /// <param name="denominator">The invalid duration denominator.</param>
+    [Theory]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 0L, 0L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1L, 0L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, -1L, 0L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, -1L, 1L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1L, -1L)]
+    public void EncodeRejectsInvalidAnimationDelay(TestImageProvider<Rgba32> provider, long numerator, long denominator)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        provider.Configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
+        DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
+        source.Frames.RootFrame.Metadata.GetJxlMetadata().FrameDelay = new LongRational(numerator, denominator);
+        long sourceBytes = allocator.LiveBufferBytes;
+        JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, Distance = 0F, SkipMetadata = true };
+        using MemoryStream stream = new();
+
+        Assert.Throws<ArgumentException>(() => source.Save(stream, encoder));
+
+        Assert.Equal(sourceBytes, allocator.LiveBufferBytes);
+        Assert.Equal(0, stream.Length);
+    }
+
+    /// <summary>
+    /// Checks that equivalent positive fractions retain their duration and leave source metadata unchanged.
+    /// </summary>
+    /// <param name="provider">The stored animation that supplies two frames.</param>
+    /// <param name="numerator">The original signed duration numerator.</param>
+    /// <param name="denominator">The original signed duration denominator.</param>
+    /// <param name="expectedDenominator">The denominator of the expected duration with numerator one.</param>
+    [Theory]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1L, 2L, 2L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, -1L, -2L, 2L)]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, long.MinValue, long.MinValue, 1L)]
+    public void EncodeAnimationRetainsEquivalentDelays(TestImageProvider<Rgba32> provider, long numerator, long denominator, long expectedDenominator)
+    {
+        provider.Configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
+        LongRational delay = new(numerator, denominator);
+
+        foreach (ImageFrame<Rgba32> frame in source.Frames)
+        {
+            frame.Metadata.GetJxlMetadata().FrameDelay = delay;
+        }
+
+        JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, Distance = 0F, SkipMetadata = true };
+        using MemoryStream stream = new();
+        source.Save(stream, encoder);
+        stream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, stream);
+        stream.Position = 0;
+        using Image<Rgba32> native = LibJxlReferenceDecoder.Instance.Decode<Rgba32>(options, stream);
+
+        Assert.Equal(source.Frames.Count, actual.Frames.Count);
+        Assert.Equal(source.Frames.Count, native.Frames.Count);
+
+        for (int i = 0; i < source.Frames.Count; i++)
+        {
+            Assert.Equal(new LongRational(1, expectedDenominator), actual.Frames[i].Metadata.GetJxlMetadata().FrameDelay);
+            Assert.Equal(delay, source.Frames[i].Metadata.GetJxlMetadata().FrameDelay);
+        }
+    }
+
+    /// <summary>
+    /// Checks that a displayed zero-delay frame cannot erase the clock used for a saturated long duration.
+    /// </summary>
+    /// <param name="provider">The stored animation that supplies two frames.</param>
+    [Theory]
+    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32)]
+    public void EncodeAnimationRetainsClockForSaturatedAndZeroDelays(TestImageProvider<Rgba32> provider)
+    {
+        provider.Configuration = new(new JxlConfigurationModule());
+        DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
+        source.Frames[0].Metadata.GetJxlMetadata().FrameDelay = new LongRational(long.MaxValue, 1);
+        source.Frames[1].Metadata.GetJxlMetadata().FrameDelay = new LongRational(0, 1);
+        JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, Distance = 0F, SkipMetadata = true };
+        using MemoryStream stream = new();
+        source.Save(stream, encoder);
+        stream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, stream);
+        stream.Position = 0;
+        using Image<Rgba32> native = LibJxlReferenceDecoder.Instance.Decode<Rgba32>(options, stream);
+
+        // A uint duration at the slowest allowed clock, one tick per 1024 seconds, defines the encoded maximum.
+        LongRational maximum = new((long)uint.MaxValue * 1024, 1);
+        Assert.Equal(maximum, actual.Frames[0].Metadata.GetJxlMetadata().FrameDelay);
+        Assert.Equal(new LongRational(0, 1), actual.Frames[1].Metadata.GetJxlMetadata().FrameDelay);
+        Assert.Equal(new LongRational(long.MaxValue, 1), source.Frames[0].Metadata.GetJxlMetadata().FrameDelay);
+        Assert.Equal(source.Frames.Count, native.Frames.Count);
+    }
+
+    /// <summary>
     /// Checks that failed workspace rents release encoder buffers and retain the caller's image and stream.
     /// </summary>
     /// <param name="provider">The stored native pixel input.</param>

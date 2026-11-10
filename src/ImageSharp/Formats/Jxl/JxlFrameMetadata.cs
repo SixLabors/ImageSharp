@@ -32,6 +32,7 @@ public class JxlFrameMetadata : IFormatFrameMetadata<JxlFrameMetadata>
     /// The fraction retains the exact JPEG XL duration. Conversion to shared frame metadata truncates partial
     /// <see cref="TimeSpan"/> ticks and bounds the duration to zero through <see cref="TimeSpan.MaxValue"/>.
     /// Negative and indeterminate durations become zero. Positive infinity becomes <see cref="TimeSpan.MaxValue"/>.
+    /// JPEG XL animation encoding requires a finite, nonnegative duration.
     /// </remarks>
     public LongRational FrameDelay { get; set; } = new(0, 1);
 

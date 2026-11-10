@@ -552,6 +552,33 @@ public class JxlEncoderTests
     }
 
     /// <summary>
+    /// Checks that a truncated retained ICC header is rejected before encoder workspace or output is written.
+    /// </summary>
+    /// <param name="provider">The stored native pixel input.</param>
+    /// <param name="profileLength">The profile length below the fixed ICC header size.</param>
+    [Theory]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 0)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 1)]
+    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 127)]
+    public void EncodeRejectsTruncatedIccHeader(TestImageProvider<Rgba32> provider, int profileLength)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        provider.Configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
+        DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
+        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
+        source.Frames.RootFrame.Metadata.IccProfile = new IccProfile(new byte[profileLength]);
+        JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, Distance = 1F, SkipMetadata = true };
+        int allocations = allocator.AllocationLog.Count;
+        using MemoryStream stream = new();
+
+        Assert.Throws<InvalidIccProfileException>(() => source.Save(stream, encoder));
+
+        Assert.Equal(allocations, allocator.AllocationLog.Count);
+        Assert.Equal(0, stream.Length);
+    }
+
+    /// <summary>
     /// Checks that explicit color and precision options take precedence without changing source metadata.
     /// </summary>
     /// <typeparam name="TPixel">The source and comparison pixel type.</typeparam>

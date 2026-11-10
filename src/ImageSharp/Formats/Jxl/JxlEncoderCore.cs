@@ -541,6 +541,13 @@ internal sealed class JxlEncoderCore : IDisposable
         this.profileConverter = profileConverter;
         this.profileData = this.profile?.GetData() ?? ReadOnlyMemory<byte>.Empty;
 
+        // ICC prediction reads the complete fixed header before its tag data. A retained profile must
+        // contain that header, even when its raw data is empty. Validate before renting workspace or writing output.
+        if (this.profile is not null && this.profileData.Length < JxlIccPrediction.HeaderSize)
+        {
+            throw new InvalidIccProfileException("The ICC profile header is truncated.");
+        }
+
         // The Level 10 bound applies to the original ICC bytes, independently of their entropy-coded size.
         // Check it before preparing a profile transform or renting encoder workspace.
         if (this.profileData.Length > (1 << 28))

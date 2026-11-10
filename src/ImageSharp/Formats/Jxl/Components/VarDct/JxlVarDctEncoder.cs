@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.VarDct;
@@ -22,24 +25,14 @@ internal sealed class JxlVarDctEncoder : IDisposable
     private const int CoefficientsPerBlock = BlockDimension * BlockDimension;
 
     /// <summary>
-    /// The maximum DC samples across a default DC group: eight 256-pixel groups divided into eight-pixel blocks.
-    /// </summary>
-    private const int DcGroupBlockWidth = 256;
-
-    /// <summary>
     /// Three padded component planes reused after each eight-pixel-high block row has been transformed.
     /// </summary>
     private readonly Buffer2D<float> colors;
 
     /// <summary>
-    /// One 64-value row per component and spatial block. Small rows preserve segmented allocator support.
+    /// One 64-value row per component and spatial block, including DC in slot zero. Small rows preserve segmented allocator support.
     /// </summary>
     private readonly Buffer2D<int> coefficients;
-
-    /// <summary>
-    /// Quantized DC residuals in X, Y and B plane order, retained until all DC sections have been written.
-    /// </summary>
-    private readonly Buffer2D<int> dc;
 
     /// <summary>
     /// The optional derived alpha samples. Supplied extra channels retain their existing owners.
@@ -65,11 +58,6 @@ internal sealed class JxlVarDctEncoder : IDisposable
     /// The frame height in eight-sample blocks.
     /// </summary>
     private readonly int blockRows;
-
-    /// <summary>
-    /// The horizontal DC tiles retained for each component and full-frame block row.
-    /// </summary>
-    private readonly int dcTileColumns;
 
     /// <summary>
     /// The quantizers and component multipliers prepared once for the frame.
@@ -117,7 +105,6 @@ internal sealed class JxlVarDctEncoder : IDisposable
     {
         this.blockColumns = ((size.Width - 1) / BlockDimension) + 1;
         this.blockRows = ((size.Height - 1) / BlockDimension) + 1;
-        this.dcTileColumns = ((this.blockColumns - 1) / DcGroupBlockWidth) + 1;
         this.GroupWidth = Math.Min(JxlEncoderCore.GroupDimension, this.blockColumns * BlockDimension);
         this.GroupHeight = BlockDimension;
         this.settings = JxlQuantization.CreateEncoderSettings(distance);
@@ -140,16 +127,10 @@ internal sealed class JxlVarDctEncoder : IDisposable
         // Every coefficient row holds one block, so the allocator never needs a full coefficient scanline.
         Buffer2D<float> colors = allocator.Allocate2D<float>(this.GroupWidth, 3 * this.GroupHeight);
         Buffer2D<int>? coefficients = null;
-        Buffer2D<int>? dc = null;
         Buffer2D<int>? alpha = null;
         try
         {
             coefficients = allocator.Allocate2D<int>(CoefficientsPerBlock, checked(3 * this.blockColumns * this.blockRows));
-
-            // DC sections consume at most 256 block samples across. Store that same bounded tile row
-            // instead of requiring the allocator to align a full image-width DC scanline.
-            // Only the final horizontal tile has unused columns, which are excluded from serialization.
-            dc = allocator.Allocate2D<int>(Math.Min(this.blockColumns, DcGroupBlockWidth), checked(3 * this.blockRows * this.dcTileColumns));
 
             if (retainAlpha)
             {
@@ -164,13 +145,11 @@ internal sealed class JxlVarDctEncoder : IDisposable
 
             this.colors = colors;
             this.coefficients = coefficients;
-            this.dc = dc;
             this.alpha = alpha;
         }
         catch
         {
             alpha?.Dispose();
-            dc?.Dispose();
             coefficients?.Dispose();
             colors.Dispose();
             throw;
@@ -235,12 +214,12 @@ internal sealed class JxlVarDctEncoder : IDisposable
         => this.alphaRegion.DangerousGetRowSpan((y * this.alphaGroupColumns) + (groupX / JxlEncoderCore.GroupDimension));
 
     /// <summary>
-    /// Gets the retained quantized AC coefficients of one eight-by-eight block.
+    /// Gets the retained quantized coefficients of one eight-by-eight block.
     /// </summary>
     /// <param name="component">The X, Y or B component index.</param>
     /// <param name="blockX">The horizontal block coordinate in the frame.</param>
     /// <param name="blockY">The vertical block coordinate in the frame.</param>
-    /// <returns>The 64 coefficients in the shared DCT layout. Slot zero belongs to the separate DC plane and remains zero here.</returns>
+    /// <returns>The 64 coefficients in the shared DCT layout. Slot zero holds DC; the AC stream visits only slots one through sixty-three.</returns>
     public Span<int> GetCoefficientBlock(int component, int blockX, int blockY)
         => this.coefficients.DangerousGetRowSpan((((component * this.blockRows) + blockY) * this.blockColumns) + blockX);
 
@@ -263,20 +242,68 @@ internal sealed class JxlVarDctEncoder : IDisposable
     }
 
     /// <summary>
-    /// Gets one retained quantized DC tile row, starting at the requested block column.
+    /// Copies the retained DC coefficients of one block row into the caller's reusable row scratch.
     /// </summary>
     /// <param name="component">The X, Y or B component index.</param>
-    /// <param name="blockX">The first block column. The caller stays within its 256-block DC tile.</param>
+    /// <param name="blockX">The first block column.</param>
     /// <param name="blockY">The vertical block coordinate in the frame.</param>
-    /// <returns>The borrowed remainder of that tile row. Serialization excludes edge padding and writes Y before X and B.</returns>
-    public Span<int> GetDcRow(int component, int blockX, int blockY)
+    /// <param name="destination">The DC row to fill. Its length stays within the selected component's block row.</param>
+    public void CopyDcRow(int component, int blockX, int blockY, Span<int> destination)
     {
-        // Rows are ordered by component, image block row, then horizontal DC tile.
-        // The slice places the caller's first block at index zero without copying samples.
-        int tile = blockX / DcGroupBlockWidth;
-        int row = (((component * this.blockRows) + blockY) * this.dcTileColumns) + tile;
+        long offset = (((((long)component * this.blockRows) + blockY) * this.blockColumns) + blockX) * CoefficientsPerBlock;
 
-        return this.dc.DangerousGetRowSpan(row)[(blockX % DcGroupBlockWidth)..];
+        while (!destination.IsEmpty)
+        {
+            // Every allocator segment contains complete 64-value blocks. Limit this run to its
+            // current segment, so no gather lane can read through a segment boundary.
+            Span<int> source = this.coefficients.FastMemoryGroup.GetRemainingSliceOfBuffer(offset);
+            int count = Math.Min(destination.Length, source.Length / CoefficientsPerBlock);
+            ref int input = ref MemoryMarshal.GetReference(source);
+            ref int output = ref MemoryMarshal.GetReference(destination);
+            int i = 0;
+
+            // Lane k reads slot zero of block i+k, at element offset (i+k)*64. The shared gather
+            // helpers handle each supported architecture; stores pack those DC values contiguously.
+            // Descending vector widths process complete batches. Scalar loads handle the remainder
+            // and the whole run on targets without hardware intrinsics.
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint vectors = (count - i).Vector512Count<int>();
+                for (nuint vector = 0; vector < vectors; vector++, i += Vector512<int>.Count)
+                {
+                    Vector512<int> indices = (Vector512.Create(i) + Vector512<int>.Indices) * Vector512.Create(CoefficientsPerBlock);
+                    Vector512_.Gather(ref input, indices).StoreUnsafe(ref output, (nuint)i);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint vectors = (count - i).Vector256Count<int>();
+                for (nuint vector = 0; vector < vectors; vector++, i += Vector256<int>.Count)
+                {
+                    Vector256<int> indices = (Vector256.Create(i) + Vector256<int>.Indices) * Vector256.Create(CoefficientsPerBlock);
+                    Vector256_.Gather(ref input, indices).StoreUnsafe(ref output, (nuint)i);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint vectors = (count - i).Vector128Count<int>();
+                for (nuint vector = 0; vector < vectors; vector++, i += Vector128<int>.Count)
+                {
+                    Vector128<int> indices = (Vector128.Create(i) + Vector128<int>.Indices) * Vector128.Create(CoefficientsPerBlock);
+                    Vector128_.Gather(ref input, indices).StoreUnsafe(ref output, (nuint)i);
+                }
+            }
+
+            for (; i < count; i++)
+            {
+                destination[i] = source[i * CoefficientsPerBlock];
+            }
+
+            offset += (long)count * CoefficientsPerBlock;
+            destination = destination[count..];
+        }
     }
 
     /// <summary>
@@ -323,9 +350,6 @@ internal sealed class JxlVarDctEncoder : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             int blockY = (bounds.Y + y) / BlockDimension;
-            Span<int> dcX = this.GetDcRow(0, firstBlock, blockY);
-            Span<int> dcY = this.GetDcRow(1, firstBlock, blockY);
-            Span<int> dcB = this.GetDcRow(2, firstBlock, blockY);
 
             // The eight-row footprint stays the same across this block row. Resolve its allocator
             // segment once per component. A failed query returns an empty span and uses the retained tile below.
@@ -390,20 +414,28 @@ internal sealed class JxlVarDctEncoder : IDisposable
                 // The DC path rounds halves away from zero. Its B residual uses rounded Y, while
                 // AC uses bias-adjusted Y reconstruction inside the shared quantizer. Keep those stages distinct.
                 int quantizedY = (int)MathF.Round(transformed[64] * inverseDcStep.Y, MidpointRounding.AwayFromZero);
-                dcY[localBlockX] = quantizedY;
-                dcX[localBlockX] = (int)MathF.Round(transformed[0] * inverseDcStep.X, MidpointRounding.AwayFromZero);
-                dcB[localBlockX] =
+                int quantizedX = (int)MathF.Round(transformed[0] * inverseDcStep.X, MidpointRounding.AwayFromZero);
+                int quantizedB =
                     (int)MathF.Round((transformed[128] - (quantizedY * yDcStep)) * inverseDcStep.Z, MidpointRounding.AwayFromZero);
 
+                Span<int> coefficientsX = this.GetCoefficientBlock(0, blockX, blockY);
+                Span<int> coefficientsY = this.GetCoefficientBlock(1, blockX, blockY);
+                Span<int> coefficientsB = this.GetCoefficientBlock(2, blockX, blockY);
                 JxlQuantization.QuantizeDct8Block(
                     transformed[..192],
                     weights[..192],
                     dequantization[..192],
-                    this.GetCoefficientBlock(0, blockX, blockY),
-                    this.GetCoefficientBlock(1, blockX, blockY),
-                    this.GetCoefficientBlock(2, blockX, blockY),
+                    coefficientsX,
+                    coefficientsY,
+                    coefficientsB,
                     in this.settings,
                     new Vector2(0F, 1F));
+
+                // AC quantization clears slot zero. Store the separately quantized DC values after
+                // that call, in the blocks already retained for every pass, without another DC plane.
+                coefficientsX[0] = quantizedX;
+                coefficientsY[0] = quantizedY;
+                coefficientsB[0] = quantizedB;
             }
         }
     }
@@ -412,7 +444,6 @@ internal sealed class JxlVarDctEncoder : IDisposable
     public void Dispose()
     {
         this.alpha?.Dispose();
-        this.dc.Dispose();
         this.coefficients.Dispose();
         this.colors.Dispose();
     }

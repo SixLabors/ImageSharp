@@ -60,7 +60,7 @@ internal static partial class JxlQuantization
     /// <summary>
     /// Quantizes one DCT8 block in Y, X, B order and replaces its Y plane with reconstructed AC values.
     /// </summary>
-    /// <param name="coefficients">Three contiguous 64-value X, Y and B planes. DC values have already been retained.</param>
+    /// <param name="coefficients">Three contiguous 64-value X, Y and B planes. DC values are quantized separately.</param>
     /// <param name="weights">Three disjoint 64-value forward quantization weight planes.</param>
     /// <param name="dequantization">The corresponding three disjoint reciprocal weight planes.</param>
     /// <param name="x">The caller-owned 64-value X coefficient output.</param>
@@ -78,7 +78,8 @@ internal static partial class JxlQuantization
         in EncoderSettings settings,
         Vector2 correlation)
     {
-        // DC belongs to the separate modular planes. Its forward matrix weight is implicitly zero,
+        // DC is serialized through its modular stream. This AC quantizer clears its output slots;
+        // the caller fills them with separately quantized DC values after this call. The forward weight is zero,
         // so reconstructed AC Y at DC is zero and cannot change X or B DC through correlation.
         x[0] = y[0] = b[0] = 0;
         coefficients[64] = 0F;

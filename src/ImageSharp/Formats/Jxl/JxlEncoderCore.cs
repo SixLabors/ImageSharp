@@ -1540,17 +1540,20 @@ internal sealed class JxlEncoderCore : IDisposable
                 {
                     int component = encodedComponent < 2 ? encodedComponent ^ 1 : encodedComponent;
 
+                    // Pixel conversion has finished. Reuse two of its component rows for DC prediction;
+                    // the disjoint first row still holds packed residuals for entropy emission.
+                    Span<int> values = MemoryMarshal.Cast<float, int>(floatRows.Slice(this.groupWidth, rectangle.Width));
+                    Span<int> previous = MemoryMarshal.Cast<float, int>(floatRows.Slice(2 * this.groupWidth, rectangle.Width));
+
                     for (int row = 0; row < rectangle.Height; row++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        ReadOnlySpan<int> values = varDct.GetDcRow(component, rectangle.X, rectangle.Y + row)[..rectangle.Width];
-                        ReadOnlySpan<int> previous = row == 0 ? []
-                            : varDct.GetDcRow(component, rectangle.X, rectangle.Y + row - 1)[..rectangle.Width];
+                        varDct.CopyDcRow(component, rectangle.X, rectangle.Y + row, values);
                         Span<uint> packed = residuals[..rectangle.Width];
 
                         if (gradient)
                         {
-                            JxlModularPredictor.PackGradientResiduals(values, previous, packed);
+                            JxlModularPredictor.PackGradientResiduals(values, row == 0 ? [] : previous, packed);
                         }
                         else
                         {
@@ -1558,6 +1561,12 @@ internal sealed class JxlEncoderCore : IDisposable
                         }
 
                         this.WriteValues(packed, codeLength, prefixCodes, output);
+
+                        // Retain the previous row by swapping scratch spans. Each component and DC
+                        // group starts with an empty predictor row, so old scratch values are never read.
+                        Span<int> next = previous;
+                        previous = values;
+                        values = next;
                     }
                 }
 

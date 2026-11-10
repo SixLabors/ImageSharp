@@ -238,7 +238,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// so those tables do not need to be duplicated with segmented tiff's (tiff's with multiple strips).
     /// </summary>
     /// <param name="tableBytes">The table bytes.</param>
-    /// <param name="scanDecoder">The scan decoder. This instance takes ownership and disposes it.</param>
+    /// <param name="scanDecoder">The scan decoder. This instance owns the scan decoder and disposes it.</param>
     public void LoadTables(byte[] tableBytes, IJpegScanDecoder scanDecoder)
     {
         this.Metadata ??= new ImageMetadata();
@@ -388,7 +388,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     case JpegConstants.Markers.SOF10:
                     case JpegConstants.Markers.SOF13:
                     case JpegConstants.Markers.SOF14:
-                        // The Huffman decoder created in ParseStream can hold pooled tables from a DHT marker.
+                        // ParseStream makes a Huffman decoder. That decoder can hold pooled tables from a DHT marker.
                         this.scanDecoder?.Dispose();
                         this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, this.configuration.MemoryAllocator, cancellationToken)
                         {

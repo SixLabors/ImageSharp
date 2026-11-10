@@ -219,7 +219,7 @@ public partial class JpegColorConverterTests
         };
 
         // The converter under test gets its own instance, so the reference below uses independently built transforms.
-        // The decoder converts each row in place in one vector per sample. Cover every source model in that storage.
+        // The decoder converts each row in place, with one vector for each sample. The test covers all source models in that storage.
         Vector4[] actualRgb = new Vector4[length];
         converter.ConvertToRgb(actual, actualRgb, new ColorProfileConverter(options));
         ColorProfileConverter profileConverter = new(options);

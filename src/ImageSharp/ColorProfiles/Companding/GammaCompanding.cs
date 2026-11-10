@@ -32,7 +32,7 @@ public static partial class GammaCompanding
         => CompressCore(vectors, gamma, PixelColorRange.Extended);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma value.</param>
@@ -51,7 +51,7 @@ public static partial class GammaCompanding
         => ExpandCore(vectors, gamma, PixelColorRange.Extended);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma value.</param>
@@ -71,7 +71,7 @@ public static partial class GammaCompanding
         => CompressCore(vector, gamma, PixelColorRange.Extended);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma value.</param>
@@ -92,7 +92,7 @@ public static partial class GammaCompanding
         => ExpandCore(vector, gamma, PixelColorRange.Extended);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma value.</param>
@@ -104,7 +104,7 @@ public static partial class GammaCompanding
     }
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
@@ -113,7 +113,7 @@ public static partial class GammaCompanding
         => CompandingUtilities.Compand(vectors, new ExpandOperator(gamma), colorRange);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
@@ -123,7 +123,7 @@ public static partial class GammaCompanding
         => CompandingUtilities.Compand(vector, new ExpandOperator(gamma), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>
@@ -132,7 +132,7 @@ public static partial class GammaCompanding
         => CompandingUtilities.Compand(vectors, new CompressOperator(gamma), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="gamma">The gamma of the nonlinear signal.</param>

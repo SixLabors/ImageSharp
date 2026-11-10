@@ -26,13 +26,13 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private readonly MemoryAllocator allocator;
 
     /// <summary>
-    /// The combined lookup tables of the Huffman tables, allocated on first use.
+    /// The combined lookup tables of the Huffman tables. The decoder allocates them on first use.
     /// DC table i starts at entry i * FastSize. AC table i starts at entry (MaxTables + i) * FastSize.
     /// </summary>
     private IMemoryOwner<int> fastLookups;
 
     /// <summary>
-    /// The read-ahead byte buffer of the bit reader, allocated on first use.
+    /// The byte buffer of the bit reader. The decoder allocates it on first use.
     /// </summary>
     private IMemoryOwner<byte> entropyBuffer;
 
@@ -92,7 +92,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="converter">Spectral to pixel converter.</param>
-    /// <param name="allocator">The allocator for the combined Huffman lookup tables and the read-ahead byte buffer.</param>
+    /// <param name="allocator">The allocator for the combined Huffman lookup tables and the byte buffer of the bit reader.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
     public HuffmanScanDecoder(
         BufferedReadStream stream,
@@ -167,7 +167,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             this.ParseProgressiveData();
         }
 
-        // The bit reader reads ahead. This moves the stream to the detected marker or to the next unread byte.
+        // The bit reader reads bytes before it needs them.
+        // EndScan moves the stream to the marker that the reader found, or to the next byte that the reader did not decode.
         this.scanBuffer.EndScan();
     }
 
@@ -821,9 +822,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     }
 
     /// <summary>
-    /// Gets the combined lookup tables of all Huffman tables. The buffer is allocated clean on first use.
-    /// A table that the stream does not define then has only zero entries, so it decodes through the slow path,
-    /// the same as its zeroed <see cref="HuffmanTable"/>.
+    /// Gets the combined lookup tables of all Huffman tables. The decoder allocates the clean buffer on first use.
+    /// Thus, a table that the stream does not define has only zero entries, and it goes to the slow path.
+    /// The zeroed <see cref="HuffmanTable"/> of such a table also goes to the slow path.
     /// </summary>
     /// <returns>The combined lookup tables.</returns>
     private Span<int> GetFastLookups()
@@ -834,7 +835,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// </summary>
     /// <param name="fastLookups">The combined lookup tables from <see cref="GetFastLookups"/>.</param>
     /// <param name="type">The table type. 0 is DC, 1 is AC.</param>
-    /// <param name="index">The table index. JpegDecoderCore has checked that it is less than <see cref="MaxTables"/>.</param>
+    /// <param name="index">The table index. JpegDecoderCore makes sure that it is less than <see cref="MaxTables"/>.</param>
     /// <returns>The first entry of the table.</returns>
     private static ref int GetFastLookup(Span<int> fastLookups, int type, int index)
         => ref Unsafe.Add(ref MemoryMarshal.GetReference(fastLookups), (uint)(((type * MaxTables) + index) * JpegConstants.Huffman.FastSize));

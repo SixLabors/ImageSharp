@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats;
 
@@ -139,42 +140,33 @@ public abstract class ImageDecoder : IImageDecoder
     protected abstract ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Performs a scaling operation against the decoded image. If the target size is not set, or the image size
-    /// already matches the target size, the image is untouched.
+    /// Resizes the decoded image to fit in the target size. The resize keeps the aspect ratio, as <see cref="ResizeMode.Max"/> does.
+    /// If the target size is not set, the image does not change. If the image already has the fitted size, the image does not change.
     /// </summary>
     /// <param name="options">The decoder options.</param>
     /// <param name="image">The decoded image.</param>
     protected static void ScaleToTargetSize(DecoderOptions options, Image image)
     {
-        if (ShouldResize(options, image))
-        {
-            ResizeOptions resizeOptions = new()
-            {
-                Size = options.TargetSize!.Value,
-                Sampler = options.Sampler,
-                Mode = ResizeMode.Max
-            };
-
-            image.Mutate(x => x.Resize(resizeOptions));
-        }
-    }
-
-    /// <summary>
-    /// Determines whether the decoded image should be resized.
-    /// </summary>
-    /// <param name="options">The decoder options.</param>
-    /// <param name="image">The decoded image.</param>
-    /// <returns><see langword="true"/> if the image should be resized, otherwise; <see langword="false"/>.</returns>
-    private static bool ShouldResize(DecoderOptions options, Image image)
-    {
         if (options.TargetSize is null)
         {
-            return false;
+            return;
         }
 
-        Size targetSize = options.TargetSize.Value;
-        Size currentSize = image.Size;
-        return currentSize.Width != targetSize.Width && currentSize.Height != targetSize.Height;
+        ResizeOptions resizeOptions = new()
+        {
+            Size = options.TargetSize.Value,
+            Sampler = options.Sampler,
+            Mode = ResizeMode.Max
+        };
+
+        // A decoder can return the fitted size, for example after JPEG IDCT scaling.
+        // One equal dimension does not show a fit. For example, 500 x 150 does not fit in 150 x 150.
+        // The resize processor uses the same helper to calculate its size. Thus, the two sizes are always equal.
+        // A resize to the same size clones and copies each frame. Thus, this method does not do that resize.
+        if (ResizeHelper.CalculateTargetLocationAndBounds(image.Size, resizeOptions).Size != image.Size)
+        {
+            image.Mutate(x => x.Resize(resizeOptions));
+        }
     }
 
     internal static T WithSeekableStream<T>(

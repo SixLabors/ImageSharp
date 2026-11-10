@@ -19,9 +19,9 @@ internal abstract partial class JpegColorConverterBase
         /// Interleaves JPEG planes into normalized profile samples through the selected operator.
         /// </summary>
         /// <remarks>
-        /// Every sample uses one <see cref="Vector4"/>: [Y Y Y 1] for one component, [C0 C1 C2 1] for three,
-        /// and [C M Y K] for four. W is 1, the opaque JPEG alpha, unless it holds K.
-        /// The ICC transform then reads the vectors without another model conversion.
+        /// Each sample uses one <see cref="Vector4"/>: [Y Y Y 1] for one component, [C0 C1 C2 1] for three,
+        /// and [C M Y K] for four. W is 1, the opaque JPEG alpha, if it does not hold K.
+        /// Thus, the ICC transform reads the vectors without another model conversion.
         /// </remarks>
         /// <param name="source">The JPEG component planes.</param>
         /// <param name="destination">Caller-owned storage for one vector per sample.</param>
@@ -41,7 +41,7 @@ internal abstract partial class JpegColorConverterBase
 
             // ComponentCount is constant for each closed converter. The JIT removes unused channel branches.
             // Empty component spans are never read. Each vector lane carries one pixel throughout the operator call.
-            // The fourth register is K for four components and one, the opaque alpha, otherwise.
+            // The fourth register is K for four components. For other component counts, it is 1, the opaque alpha.
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<float> maximum = Vector512.Create(this.MaximumValue);
@@ -118,7 +118,7 @@ internal abstract partial class JpegColorConverterBase
                         k = Vector128<float>.One;
                     }
 
-                    // Transpose four component registers into four component tuples, then store them contiguously.
+                    // The method transposes four component registers into four component tuples. Then it stores the tuples in sequence.
                     SimdUtils.Transpose4(
                         x,
                         y,
@@ -353,14 +353,15 @@ internal abstract partial class JpegColorConverterBase
             IccColorSpaceType profileSpace = profileConverter.Options.SourceIccProfile.Header.DataColorSpace;
 
             // Apply scaling, inversion and the profile's model in the same traversal that interleaves the planes.
-            // The vectors already have the color model's scaled layout, so the ICC operator reads them directly.
+            // The vectors have the scaled layout of the color model. Thus, the ICC operator reads them directly.
             this.UnpackProfileComponents(source, vectors, profileSpace);
 
             ColorProfileConverterExtensionsIcc.IccTransform transform = profileConverter.GetIccTransform();
             transform.Converter.Convert(vectors, vectors, transform.ConvertsW);
 
-            // A four-channel profile reads W as K and leaves no alpha. JPEG pixels are opaque, so set W after the transform.
-            // For other profiles W is not color data, and the transform keeps the opaque W written by the unpack step.
+            // A four-channel profile reads W as K, and the result has no alpha. JPEG pixels are opaque.
+            // Thus, the method sets W after the transform.
+            // For other profiles, W is not color data. The transform keeps the opaque W from the unpack step.
             if (transform.ConvertsW)
             {
                 for (int i = 0; i < vectors.Length; i++)

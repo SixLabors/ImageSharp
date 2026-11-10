@@ -154,6 +154,36 @@ public static class DCTTests
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
 
+        [Fact]
+        public void TransformIDCT_DcOnlyBlock_SetsAllElementsToDc()
+        {
+            // For a block without AC coefficients, the baseline decoder does not do the transform.
+            // It fills the block with the dequantized DC. This is correct only if the transform gives exactly that value.
+            static void RunTest()
+            {
+                Block8x8F dequantMatrix = CreateBlockFromScalar(1);
+                FloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
+
+                for (int dc = -2048; dc <= 2047; dc++)
+                {
+                    float expected = dc * dequantMatrix[0];
+                    Block8x8F block = default;
+                    block[0] = expected;
+
+                    FloatingPointDCT.TransformIDCT(ref block);
+
+                    for (int i = 0; i < Block8x8F.Size; i++)
+                    {
+                        Assert.Equal(expected, block[i]);
+                    }
+                }
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(2)]

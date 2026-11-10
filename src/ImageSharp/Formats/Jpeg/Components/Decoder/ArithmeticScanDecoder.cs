@@ -55,7 +55,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private JpegBitReader scanBuffer;
 
     /// <summary>
-    /// The read-ahead byte buffer of the bit reader, allocated on first use.
+    /// The byte buffer of the bit reader. The decoder allocates it on first use.
     /// </summary>
     private IMemoryOwner<byte> entropyBuffer;
 
@@ -201,7 +201,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="converter">Spectral to pixel converter.</param>
-    /// <param name="allocator">The allocator for the read-ahead byte buffer.</param>
+    /// <param name="allocator">The allocator for the byte buffer of the bit reader.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
     public ArithmeticScanDecoder(BufferedReadStream stream, SpectralConverter converter, MemoryAllocator allocator, CancellationToken cancellationToken)
     {
@@ -286,7 +286,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             this.ParseBaselineData(iccProfile);
         }
 
-        // The bit reader reads ahead. This moves the stream to the detected marker or to the next unread byte.
+        // The bit reader reads bytes before it needs them.
+        // EndScan moves the stream to the marker that the reader found, or to the next byte that the reader did not decode.
         this.scanBuffer.EndScan();
     }
 

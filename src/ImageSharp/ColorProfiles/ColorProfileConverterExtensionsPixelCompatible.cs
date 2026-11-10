@@ -47,7 +47,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
 
         // Process the rows in parallel chunks, the converter itself is thread safe.
         // Request straight scaled vectors on both sides of ICC. The processor uses the destination pixel's rules to restore association.
-        // The converter transforms RGB in the processor's vector row and keeps its alpha, so no other row storage is needed.
+        // The converter converts RGB in the vector row of the processor and keeps its alpha. Thus, no other row storage is necessary.
         source.Mutate(o => o.ProcessPixelRowsAsVector4(
             row => converter.Convert(row),
             PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
@@ -61,7 +61,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     /// <param name="configuration">The configuration used for pixel conversion.</param>
     /// <param name="source">The source pixels, which remain unchanged.</param>
     /// <param name="destination">The destination vectors.</param>
-    /// <param name="rgb">Caller-owned storage that receives a copy of the converted RGB components.</param>
+    /// <param name="rgb">Caller-owned storage that gets a copy of the converted RGB components.</param>
     public static void Convert<TPixel>(
         this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination, Span<Rgb> rgb)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -140,9 +140,10 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
             throw new InvalidOperationException("Target ICC profile is missing.");
         }
 
-        // The ICC operator reads one RGB color per lane. For an RGB profile W is not color data, so the row keeps its alpha.
-        // This gives the same RGB as a conversion through Rgb storage, without the copies to and from that storage.
+        // The row holds RGB colors. Thus, W is alpha and not color data, also when a profile has four channels.
+        // The operator gets W = 1, and the row keeps its alpha.
+        // The result is the same as a conversion through Rgb storage, which has W = 1. But this method does not copy the row.
         ColorProfileConverterExtensionsIcc.IccTransform transform = converter.GetIccTransform();
-        transform.Converter.Convert(row, row, transform.ConvertsW);
+        transform.Converter.Convert(row, row, false);
     }
 }

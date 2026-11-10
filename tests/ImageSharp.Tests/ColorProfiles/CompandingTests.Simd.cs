@@ -99,7 +99,7 @@ public partial class CompandingTests
     }
 
     /// <summary>
-    /// Checks every eight-bit code against the curve formulas and verifies the SDR bounds.
+    /// Compares all eight-bit codes with the curve formulas, and examines the SDR bounds.
     /// </summary>
     [Fact]
     public void EightBitCompanding_MatchesFormulas() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -107,7 +107,7 @@ public partial class CompandingTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Uses half an eight-bit channel level as the error bound and checks alpha exactly.
+    /// Uses half of an eight-bit channel level as the error bound. Alpha must not change.
     /// </summary>
     private static void CheckEightBitCompanding()
     {
@@ -119,7 +119,7 @@ public partial class CompandingTests
             source[i] = new Vector4(value, value, value, 1.25F);
         }
 
-        // SDR companding clips RGB to [0,1] and leaves alpha unchanged.
+        // SDR companding clips RGB to [0,1]. Alpha does not change.
         source[^1] = new Vector4(-1F, 2F, 0.5F, -0.25F);
 
         foreach (string curve in CompandingCurves)
@@ -220,7 +220,7 @@ public partial class CompandingTests
             {
                 foreach (int length in lengths)
                 {
-                    // Negative RGB checks the curve's lower segment. Values above one detect unintended SDR clipping.
+                    // Negative RGB tests the lower segment of the curve. Values above one find SDR clipping that is not intended.
                     Vector4[] source = random.GenerateRandomVectorArray(length, -2F, 16F);
                     Vector4[] actual = source.ToArray();
                     ApplyCompanding(curve, compress, actual, PixelColorRange.Extended);
@@ -236,8 +236,8 @@ public partial class CompandingTests
 
                         Vector4 single = ApplyCompanding(curve, compress, input, PixelColorRange.Extended);
 
-                        // The direct path uses the measured power approximation bound. Scaling retains the
-                        // relative bound for HDR values and the absolute bound near zero.
+                        // The direct path uses the measured error bound of the power approximation.
+                        // The scaling keeps the relative bound for HDR values and the absolute bound near zero.
                         Vector4 scale = Vector4.Max(Vector4.Abs(expected), Vector4.One);
                         scale.W = 1F;
                         Assert.True(
@@ -246,10 +246,10 @@ public partial class CompandingTests
 
                         Assert.Equal(expected / scale, single / scale, DirectComparer);
 
-                        // Scalar and bulk entry points use the same approximation. Keep their tighter agreement check.
+                        // The scalar and bulk entry points use the same approximation. Thus, the test keeps their tighter agreement test.
                         Assert.Equal(single / scale, actual[i] / scale, Comparer);
 
-                        // Alpha can be signed or above one too. Companding must preserve its exact stored bits.
+                        // Alpha can also be negative or above one. Companding must keep its exact stored bits.
                         Assert.Equal(BitConverter.SingleToInt32Bits(input.W), BitConverter.SingleToInt32Bits(actual[i].W));
                         Assert.Equal(BitConverter.SingleToInt32Bits(input.W), BitConverter.SingleToInt32Bits(single.W));
                     }

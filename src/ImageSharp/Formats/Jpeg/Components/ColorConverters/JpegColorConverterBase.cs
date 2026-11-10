@@ -96,7 +96,8 @@ internal abstract partial class JpegColorConverterBase
     /// </summary>
     /// <param name="source">The source JPEG component planes.</param>
     /// <param name="destination">
-    /// The output, one scaled straight sRGB vector per sample with W set to one. The span is also the profile input storage.
+    /// The output, with one scaled straight sRGB vector for each sample, and W equal to one.
+    /// The span is also the input storage for the profile.
     /// </param>
     /// <param name="profileConverter">The transform from the source profile to sRGB.</param>
     public abstract void ConvertToRgb(in ComponentValues source, Span<Vector4> destination, ColorProfileConverter profileConverter);

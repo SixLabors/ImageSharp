@@ -94,3 +94,22 @@ WarmupCount=3
 | SkiaBitmapDecodeToTargetSize |                      1 |   892.3 ms |   115.54 ms |   6.33 ms |  0.81 |    0.01 |     - |     - |     - |     48 KB |
 |                      NetVips |                      1 |   806.8 ms |    86.23 ms |   4.73 ms |  0.73 |    0.01 |     - |     - |     - |     42 KB |
 */
+
+/*
+Results 10.11.2026, for the ImageSharp cases only. ImageSharp uses decoder scaling.
+ImageSharpFullDecode decodes the full image with the default ICC conversion. Then it resizes the image in a separate step.
+
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
+AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 11.0.100-preview.7.26381.103
+  [Host]   : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+  ShortRun : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+Job=ShortRun  IterationCount=3  LaunchCount=1
+WarmupCount=3
+
+| Method               | maxDegreeOfParallelism | Mean     | Error    | StdDev   | Ratio | RatioSD | Gen0     | Gen1     | Gen2     | Allocated | Alloc Ratio |
+|--------------------- |----------------------- |---------:|---------:|---------:|------:|--------:|---------:|---------:|---------:|----------:|------------:|
+| ImageSharp           | 1                      | 44.41 ms | 44.71 ms | 2.451 ms |  1.00 |    0.07 |        - |        - |        - |   1.68 MB |        1.00 |
+| ImageSharpFullDecode | 1                      | 94.51 ms | 26.91 ms | 1.475 ms |  2.13 |    0.10 | 166.6667 | 166.6667 | 166.6667 |   1.66 MB |        0.99 |
+*/

@@ -62,7 +62,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private ColorProfileConverter iccConverter;
 
     /// <summary>
-    /// Reusable ICC row of scaled vectors, allocated only when decoding with a profile.
+    /// The ICC row of scaled vectors. The converter allocates it only for an image with a profile, and uses it again for each row.
     /// </summary>
     private IMemoryOwner<Vector4> iccRowBuffer;
 
@@ -169,7 +169,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             this.iccConverterProfile = iccProfile;
 
-            // One vector per pixel holds every JPEG source model and the RGB result in place.
+            // One vector for each pixel can hold all JPEG source models, and the RGB result in the same place.
             this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<Vector4>(width);
         }
 
@@ -186,13 +186,13 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             {
                 Span<Vector4> row = this.iccRowBuffer.GetSpan()[..width];
 
-                // Convert only visible samples. The row receives straight sRGB vectors with opaque alpha.
+                // The method converts only the visible samples. The row gets straight sRGB vectors with opaque alpha.
                 this.colorConverter.ConvertToRgb(values.Slice(0, width), row, this.iccConverter);
 
                 // ICC can produce fractional RGB and values outside [0,1], even from bounded JPEG components.
                 // Let TPixel apply its own range and precision instead of clipping every destination through bytes.
-                // Pack the complete row in one call. Bulk pixel operations use SIMD only above a minimum length,
-                // and the row is not needed after this call, so the destructive packer can reuse it.
+                // The method packs the full row in one call, because bulk pixel operations use SIMD only above a minimum length.
+                // The row is not necessary after this call. Thus, the destructive packer can use it again.
                 PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.Configuration, row, this.pixelBuffer.DangerousGetRowSpan(yy));
 
                 continue;

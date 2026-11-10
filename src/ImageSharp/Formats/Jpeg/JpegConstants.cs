@@ -345,7 +345,7 @@ internal static class JpegConstants
 
         /// <summary>
         /// The number of bits that index the combined lookup table of the baseline block decoder.
-        /// A code and its value bits are decoded with one table read when together they fit in this number of bits.
+        /// When a code and its value bits together fit in this number of bits, one table read decodes them.
         /// </summary>
         public const int FastBits = 11;
 

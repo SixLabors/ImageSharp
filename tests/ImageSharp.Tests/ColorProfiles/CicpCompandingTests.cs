@@ -100,7 +100,7 @@ public class CicpCompandingTests
 
             for (int i = 0; i < source.Length; i++)
             {
-                // Direct evaluation checks the single-color and bulk SDR entry points. SDR results stay within [0,1].
+                // The direct evaluation tests the single-color and bulk SDR entry points. SDR results stay in [0,1].
                 float linear = Math.Clamp(CicpCompanding.ToLinear(characteristic, source[i].X), 0F, 1F);
                 float nonlinear = Math.Clamp(CicpCompanding.ToGamma(characteristic, source[i].X), 0F, 1F);
                 Vector4 expectedExpanded = new(linear, linear, linear, source[i].W);
@@ -168,7 +168,7 @@ public class CicpCompandingTests
             AssertVectorMatchesScalar(expected.AsSpan(offset), actual, transferCharacteristics);
         }
 
-        // Higher-precision entry points must retain extended values and the analytic accuracy bound.
+        // Entry points with higher precision must keep extended values and the analytic accuracy bound.
         Vector4[] colors = SignalValues.Select(value => new Vector4(value, value, value, 0.25F)).ToArray();
         CicpCompanding.Expand(colors, transferCharacteristics, PixelColorRange.Extended);
 
@@ -236,7 +236,7 @@ public class CicpCompandingTests
             AssertVectorMatchesScalar(expected.AsSpan(offset), actual, transferCharacteristics);
         }
 
-        // Higher-precision entry points must retain extended values and the analytic accuracy bound.
+        // Entry points with higher precision must keep extended values and the analytic accuracy bound.
         Vector4[] colors = SignalValues.Select(value => new Vector4(value, value, value, 0.25F)).ToArray();
         CicpCompanding.Compress(colors, transferCharacteristics, PixelColorRange.Extended);
 

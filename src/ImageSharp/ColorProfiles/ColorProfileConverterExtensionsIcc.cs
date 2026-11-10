@@ -156,7 +156,7 @@ internal static class ColorProfileConverterExtensionsIcc
 
         /// <summary>
         /// Gets a value indicating whether W is a color component of the source or target profile.
-        /// Pass this value to <see cref="IIccColorConverter.Convert(ReadOnlySpan{Vector4}, Span{Vector4}, bool)"/>.
+        /// Callers give this value to <see cref="IIccColorConverter.Convert(ReadOnlySpan{Vector4}, Span{Vector4}, bool)"/>.
         /// </summary>
         public bool ConvertsW { get; }
 

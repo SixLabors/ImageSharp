@@ -193,10 +193,11 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
         }
         else
         {
-            // Three-byte output has no room for an RGBA intermediate, but the destructive source row has 16 bytes per pixel.
-            // Stage the 4-byte RGBA values at the start of that row. Every SIMD block loads its 4 source vectors before it
-            // stores 1 byte vector, and each later store ends below the next unread source vector. The scalar remainder
-            // reads float i before it writes byte i. So the staged bytes never overwrite unread floats.
+            // Three-byte output has no space for an RGBA intermediate. But the destructive source row has 16 bytes for each pixel.
+            // The method puts the 4-byte RGBA values at the start of that row.
+            // Each SIMD block loads its 4 source vectors before it stores 1 byte vector.
+            // Each later store ends before the next source vector that the method did not read.
+            // The scalar remainder reads float i before it writes byte i. Thus, the RGBA bytes never overwrite floats that the method did not read.
             Span<Rgba32> packed = MemoryMarshal.Cast<Vector4, Rgba32>(source)[..source.Length];
             SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.AsBytes(packed));
             this.FromRgba32(configuration, packed, destination);

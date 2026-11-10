@@ -51,15 +51,15 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
 
         // Each operator sees one component per register and one independent color per lane.
         // Read a whole block before writing it, so the source and destination can share storage.
-        // When W is not color data, save it before the operator runs and store the saved value afterward.
-        // convertW is fixed for the whole span, so its branches do not change inside a loop.
+        // When W is not color data, the method saves W before the operator runs. Then it stores the saved value.
+        // convertW does not change in the span. Thus, its branches do not change in a loop.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint count = (source.Length - i).Vector512Count<float>();
             nuint block = 0;
 
-            // Profile stages form one long dependency chain per block: curves, matrix, then curves again.
-            // Two independent blocks per iteration give the processor a second chain to run while the first waits.
+            // The profile stages make one long dependency chain for each block: curves, matrix, then curves again.
+            // Each iteration has two independent blocks. Thus, the processor can run the second chain while the first chain waits.
             for (; block + 1 < count; block += 2, i += 2 * Vector512<float>.Count)
             {
                 SimdUtils.Deinterleave4(source, i, out Vector512<float> x0, out Vector512<float> y0, out Vector512<float> z0, out Vector512<float> w0);

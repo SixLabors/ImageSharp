@@ -269,6 +269,14 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <summary>
+    /// Sets all elements of the block to a value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void Fill(float value)
+        => MemoryMarshal.CreateSpan(ref Unsafe.As<Block8x8F, float>(ref this), Size).Fill(value);
+
+    /// <summary>
     /// Quantize input block, transpose, apply zig-zag ordering and store as <see cref="Block8x8"/>.
     /// </summary>
     /// <param name="block">Source block.</param>

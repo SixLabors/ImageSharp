@@ -12,22 +12,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 /// Used to buffer and track the bits read from the Huffman entropy encoded data.
 /// </summary>
 /// <remarks>
-/// The reader reads entropy-coded bytes ahead from the stream into its own byte buffer, so a refill can load six
-/// bytes at once. The stream position is then ahead of the next unread byte. Call <see cref="EndScan"/> at the end
-/// of a scan and <see cref="RewindToMarker"/> instead of setting the stream position, so the stream is at the same
-/// position as without the read-ahead buffer.
+/// The reader reads entropy-coded bytes from the stream into its own byte buffer before it needs them.
+/// Thus, a refill can load six bytes in one operation.
+/// The stream position is then after the last byte in this buffer, not at the next byte to decode.
+/// The scan decoders call <see cref="EndScan"/> at the end of a scan. To go back to a marker, they call
+/// <see cref="RewindToMarker"/> and do not set the stream position. Then the stream position is correct.
 /// </remarks>
 internal unsafe struct JpegBitReader
 {
     /// <summary>
-    /// The length of the read-ahead byte buffer that the scan decoders give to the reader.
+    /// The length of the byte buffer that the scan decoders give to the reader.
     /// </summary>
     public const int EntropyBufferSize = 4096;
 
     private readonly BufferedReadStream stream;
 
-    // Entropy-coded bytes read ahead from the stream. Bytes from entropyIndex to entropyCount are not read yet.
-    // The stream position is after the last of them. The scan decoder keeps the memory pinned.
+    // This byte buffer holds entropy-coded bytes from the stream. The bytes from entropyIndex to entropyCount are not decoded.
+    // The stream position is after the last of these bytes. The scan decoder keeps the memory pinned.
     private readonly byte* entropyBuffer;
 
     private readonly int entropyBufferLength;
@@ -53,8 +54,8 @@ internal unsafe struct JpegBitReader
     /// </summary>
     /// <param name="stream">The input stream, at the first entropy-coded byte of the scan.</param>
     /// <param name="entropyBuffer">
-    /// The read-ahead byte buffer, can be dirty. The scan decoder owns the memory and keeps it pinned
-    /// until the end of the scan.
+    /// The byte buffer for bytes that the reader reads before it needs them. The buffer can contain old data.
+    /// The scan decoder owns the memory and keeps it pinned until the end of the scan.
     /// </param>
     /// <param name="entropyBufferLength">The length of <paramref name="entropyBuffer"/> in bytes.</param>
     public JpegBitReader(BufferedReadStream stream, byte* entropyBuffer, int entropyBufferLength)
@@ -89,13 +90,13 @@ internal unsafe struct JpegBitReader
     public bool NoData { get; private set; }
 
     /// <summary>
-    /// Gets the stream position of the next unread entropy-coded byte.
+    /// Gets the stream position of the next entropy-coded byte that the reader did not decode.
     /// </summary>
     private readonly long Position => this.stream.Position - (this.entropyCount - this.entropyIndex);
 
     /// <summary>
-    /// Moves the stream to the start of the detected marker and drops the read-ahead bytes.
-    /// Later reads continue from the marker.
+    /// Moves the stream to the start of the marker that the reader found, and deletes the bytes in the byte buffer.
+    /// The next read starts at the marker.
     /// </summary>
     public void RewindToMarker()
     {
@@ -105,9 +106,9 @@ internal unsafe struct JpegBitReader
     }
 
     /// <summary>
-    /// Ends the scan. Moves the stream to the start of a detected marker that is not a restart marker,
-    /// or else to the next unread byte, and drops the read-ahead bytes.
-    /// The segment parser then continues from the same position as without the read-ahead buffer.
+    /// Ends the scan. If the reader found a marker that is not a restart marker, the method moves the stream
+    /// to the start of that marker. If not, it moves the stream to the next byte that the reader did not decode.
+    /// Then it deletes the bytes in the byte buffer. Thus, the segment parser continues from the correct position.
     /// </summary>
     public void EndScan()
     {
@@ -174,14 +175,18 @@ internal unsafe struct JpegBitReader
     /// Decodes the Huffman-coded DC difference and AC coefficients of one baseline block.
     /// </summary>
     /// <remarks>
-    /// The bit buffer is copied to locals for the whole block. The fields live in the scan decoder object,
-    /// so the JIT cannot keep them in registers. Each peek and consume would otherwise be a memory
-    /// read-modify-write on the critical dependency chain.
-    /// The local buffer is left-justified: the next bit is bit 63. The lookup index is then one shift, and
-    /// consuming bits is one shift. The refill points are the same as in <see cref="DecodeHuffman(ref HuffmanTable)"/>
-    /// and <see cref="Receive(int)"/>: before each symbol, and before value bits that are past the lookup index.
+    /// The method copies the bit buffer to locals for the full block. The fields are in the scan decoder object,
+    /// so the JIT cannot keep them in registers. Without the locals, each peek and each consume is a memory
+    /// read and write on the critical dependency chain.
+    /// The local buffer is left-justified: the next bit is bit 63. Thus, the lookup index needs one shift,
+    /// and a consume needs one shift.
+    /// Before each symbol, and before each value that is past the lookup index, the method refills as
+    /// <see cref="DecodeHuffman(ref HuffmanTable)"/> and <see cref="Receive(int)"/> do.
+    /// A complete lookup entry reads its value bits together with its code. Thus, the refill that
+    /// <see cref="Receive(int)"/> does before those bits occurs at the next symbol, or at the block end.
+    /// The bytes that the method reads, their order, and the state at each block boundary do not change.
     /// </remarks>
-    /// <param name="block">The first coefficient of the block in natural order. The AC coefficients are written here.</param>
+    /// <param name="block">The first coefficient of the block, in natural order. The method writes the AC coefficients here.</param>
     /// <param name="dcTable">The DC Huffman table.</param>
     /// <param name="dcLookup">
     /// The first of <see cref="JpegConstants.Huffman.FastSize"/> combined lookup entries for <paramref name="dcTable"/>.
@@ -193,13 +198,13 @@ internal unsafe struct JpegBitReader
     /// <returns>The DC difference. The caller adds the predictor and writes the DC coefficient.</returns>
     public int DecodeBlockBaseline(ref short block, ref HuffmanTable dcTable, ref int dcLookup, ref HuffmanTable acTable, ref int acLookup)
     {
-        // The data field keeps all fetched bits, right-justified, because the end-of-data check in GetBytes
-        // reads it. Refill updates the field, so only the bit count must be written back.
+        // The data field keeps all fetched bits, right-justified, because the end-of-data check in GetBytes reads it.
+        // Refill updates the field. Thus, the method must write back only the bit count.
         int bits = this.remainingBits;
         ulong buffer = LeftJustify(this.data, bits);
 
-        // DC. A complete entry gives the difference. Symbols above 15 are not valid DC sizes.
-        // They and the other cases use the field-based decoder.
+        // DC. A complete entry gives the difference. A symbol above 15 is not a valid DC size.
+        // These symbols, and the entries that are not complete, go to the decoder that uses the fields.
         if (bits < JpegConstants.Huffman.MinBits)
         {
             buffer |= this.Refill() << (JpegConstants.Huffman.MinBits - bits);
@@ -224,8 +229,9 @@ internal unsafe struct JpegBitReader
             buffer = LeftJustify(this.data, bits);
         }
 
-        // AC. The loop starts with i < 64 and a run adds at most 15, so i stays below the 80 entries of
-        // TransposingOrder. The extra entries map to 63, so corrupt runs cannot write outside the block.
+        // AC. At the start of each loop, i is less than 64, and a run adds a maximum of 15.
+        // Thus, i is always less than the 80 entries of TransposingOrder.
+        // The extra entries are 63. Thus, a corrupt run cannot write outside the block.
         ref byte zigZag = ref MemoryMarshal.GetReference(ZigZag.TransposingOrder);
         for (int i = 1; i < 64;)
         {
@@ -247,10 +253,26 @@ internal unsafe struct JpegBitReader
                 {
                     i += (entry >> 12) & 15;
                     Unsafe.Add(ref block, Unsafe.Add(ref zigZag, (uint)i++)) = (short)(entry >> 16);
-                    continue;
+                    if (i < 64)
+                    {
+                        continue;
+                    }
+
+                    // The block ends without an end-of-block code.
+                    // Receive refills before the value bits when less than MinBits remain after the code.
+                    // Inside a block, the check for the next symbol does this refill, with the same bytes in the same order.
+                    // At the block end there is no next check, and the scan decoder reads NoData between blocks.
+                    // Thus, this code does the refill here.
+                    if (bits + ((entry >> 8) & 15) < JpegConstants.Huffman.MinBits)
+                    {
+                        buffer |= this.Refill() << (JpegConstants.Huffman.MinBits - bits);
+                        bits += JpegConstants.Huffman.FetchBits;
+                    }
+
+                    break;
                 }
 
-                // A zero value bit count: run 0 is the end of the block, other runs skip 16 zeros (ZRL).
+                // The value bit count is zero. Run 0 is the end of the block. The other runs skip 16 zeros (ZRL).
                 if ((entry & 0xFF00) == 0)
                 {
                     break;
@@ -317,7 +339,8 @@ internal unsafe struct JpegBitReader
     }
 
     /// <summary>
-    /// Decodes a DC difference with the field state. Used when the combined lookup table has no complete entry.
+    /// Decodes a DC difference with the fields of the reader.
+    /// The block decoder uses this method when the combined lookup table has no complete entry.
     /// </summary>
     /// <param name="dcTable">The DC Huffman table.</param>
     /// <returns>The DC difference.</returns>
@@ -329,12 +352,13 @@ internal unsafe struct JpegBitReader
     }
 
     /// <summary>
-    /// Decodes one AC symbol and its value with the field state. Used for codes longer than the lookup index.
+    /// Decodes one AC symbol and its value with the fields of the reader.
+    /// The block decoder uses this method for codes that are longer than the lookup index.
     /// </summary>
     /// <param name="acTable">The AC Huffman table.</param>
     /// <param name="block">The first coefficient of the block in natural order.</param>
     /// <param name="i">The zigzag index of the next coefficient.</param>
-    /// <returns>The zigzag index after the symbol. 64 at the end of the block.</returns>
+    /// <returns>The zigzag index after the symbol, or 64 at the end of the block.</returns>
     [MethodImpl(InliningOptions.ColdPath)]
     private int DecodeAcSlow(ref HuffmanTable acTable, ref short block, int i)
     {
@@ -354,11 +378,16 @@ internal unsafe struct JpegBitReader
     }
 
     /// <summary>
-    /// Adds <see cref="JpegConstants.Huffman.FetchBits"/> bits to the field buffer and returns them.
-    /// The block decoder places the returned bits below its valid local bits and adds the count to its bit count.
+    /// Adds <see cref="JpegConstants.Huffman.FetchBits"/> bits to the data field and returns these bits.
+    /// The block decoder puts the bits below its valid local bits. Then it adds the count to its bit count.
     /// </summary>
     /// <returns>The fetched bits in the low <see cref="JpegConstants.Huffman.FetchBits"/> bits.</returns>
-    [MethodImpl(InliningOptions.ColdPath)]
+    /// <remarks>
+    /// The method is inlined. Thus, the six-byte fast path of <see cref="GetBytes(ulong)"/> adds no call to the
+    /// critical path of the block decoder. The slow path reads one byte at a time in <see cref="GetBytesSlow(ulong)"/>,
+    /// which is not inlined.
+    /// </remarks>
+    [MethodImpl(InliningOptions.ShortMethod)]
     private ulong Refill()
     {
         ulong bytes = this.GetBytes(this.data);
@@ -414,10 +443,10 @@ internal unsafe struct JpegBitReader
     [MethodImpl(InliningOptions.ShortMethod)]
     private ulong GetBytes(ulong data)
     {
-        // Fast path: most entropy-coded bytes are not 0xFF. When the read-ahead buffer holds the next six bytes
-        // (FetchLoop) and none of them is 0xFF, there is no stuffed byte and no marker, so one big-endian load
-        // gives the same result as six ReadStream calls. The buffer holds only bytes before the stream end,
-        // so no EOF is hit.
+        // Fast path. Most entropy-coded bytes are not 0xFF.
+        // If the byte buffer holds the next six bytes (FetchLoop) and no byte is 0xFF, there is no stuffed byte and no marker.
+        // Then one big-endian load gives the same result as six ReadStream calls.
+        // The buffer holds only bytes before the stream end. Thus, this path does not get to the end of the stream.
         int index = this.entropyIndex;
         if (!this.badData && this.entropyCount - index >= JpegConstants.Huffman.FetchLoop)
         {
@@ -425,9 +454,9 @@ internal unsafe struct JpegBitReader
             ulong value = ((ulong)BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<uint>(source)) << 16)
                 | BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<ushort>(source + 4));
 
-            // A byte is 0xFF when its complement is zero. The SWAR zero-byte test (v - 0x01..) & ~v & 0x80..
-            // is nonzero only when some byte of v is zero. The top 16 bits are outside the mask, and a borrow
-            // reaches them only after a zero byte is already found.
+            // A byte is 0xFF when its complement is zero.
+            // The SWAR zero-byte test (v - 0x01..) & ~v & 0x80.. is not zero only if a byte of v is zero.
+            // The mask does not include the top 16 bits. A borrow gets to these bits only after the test finds a zero byte.
             ulong inverted = ~value & 0xFFFF_FFFF_FFFFUL;
             if (((inverted - 0x0101_0101_0101UL) & ~inverted & 0x8080_8080_8080UL) == 0)
             {
@@ -441,7 +470,7 @@ internal unsafe struct JpegBitReader
 
     /// <summary>
     /// Reads the next <see cref="JpegConstants.Huffman.FetchLoop"/> entropy-coded bytes one at a time.
-    /// Used near a stuffed byte, a marker, the end of the read-ahead buffer, or the end of the stream.
+    /// The reader uses this method near a stuffed byte, a marker, the end of the byte buffer, or the end of the stream.
     /// </summary>
     /// <param name="data">The bit buffer before the refill. The end-of-data check reads it.</param>
     /// <returns>The bytes in big-endian order.</returns>
@@ -561,7 +590,7 @@ internal unsafe struct JpegBitReader
     }
 
     /// <summary>
-    /// Reads the next entropy-coded byte from the read-ahead buffer.
+    /// Reads the next entropy-coded byte from the byte buffer.
     /// </summary>
     /// <returns>The byte, or -1 at the end of the stream.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -578,20 +607,23 @@ internal unsafe struct JpegBitReader
     }
 
     /// <summary>
-    /// Reads the next block of entropy-coded bytes into the empty read-ahead buffer and returns the first byte.
+    /// Reads the next block of entropy-coded bytes into the empty byte buffer and returns the first byte.
     /// </summary>
     /// <returns>The byte, or -1 at the end of the stream.</returns>
     [MethodImpl(InliningOptions.ColdPath)]
     private int FillEntropyBuffer()
     {
-        // At the stream end ReadByte returns -1 and counts the EOF hit once, the same as before the read-ahead
-        // buffer. Read would count one more EOF hit for its zero-byte result.
+        // At the stream end, ReadByte returns -1 and counts one EOF hit. This count is the same as before the byte buffer.
+        // Read also counts an EOF hit for its zero-byte result. Thus, the method does not call Read here.
         if (this.stream.RemainingBytes <= 0)
         {
             return this.stream.ReadByte();
         }
 
         // Read returns at least one byte here, because bytes remain before the stream end.
+        // Read also examines the cancellation token of the stream, one time for each EntropyBufferSize bytes.
+        // Thus, a cancellation can stop the decode inside a scan.
+        // After a cancellation, the decode stops, so the stream position is not important.
         this.entropyCount = this.stream.Read(new Span<byte>(this.entropyBuffer, this.entropyBufferLength));
         this.entropyIndex = 1;
         return this.entropyBuffer[0];

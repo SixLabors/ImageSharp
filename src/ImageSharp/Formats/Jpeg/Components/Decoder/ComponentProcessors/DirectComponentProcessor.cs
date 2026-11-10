@@ -49,14 +49,26 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
 
             for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
             {
-                // Integer to float
-                workspaceBlock.LoadFrom(ref blockRow[xBlock]);
+                ref Block8x8 block = ref blockRow[xBlock];
+                if (block.IsDcOnly())
+                {
+                    // This block has only a DC coefficient.
+                    // In the two 1-D passes of TransformIDCT, the only operations on the DC term are x + 0 and x - 0.
+                    // Each multiplication has a zero input. Thus, all 64 outputs are equal to the dequantized DC.
+                    // This shortcut gives the same floats as the full transform.
+                    workspaceBlock.Fill(block[0] * this.dequantizationTable[0]);
+                }
+                else
+                {
+                    // Integer to float
+                    workspaceBlock.LoadFrom(ref block);
 
-                // Dequantize
-                workspaceBlock.MultiplyInPlace(ref this.dequantizationTable);
+                    // Dequantize
+                    workspaceBlock.MultiplyInPlace(ref this.dequantizationTable);
 
-                // Convert from spectral to color
-                FloatingPointDCT.TransformIDCT(ref workspaceBlock);
+                    // Convert from spectral to color
+                    FloatingPointDCT.TransformIDCT(ref workspaceBlock);
+                }
 
                 // Normalize into the component sample range without quantizing away
                 // fractional precision. The later color conversion / final pack stage

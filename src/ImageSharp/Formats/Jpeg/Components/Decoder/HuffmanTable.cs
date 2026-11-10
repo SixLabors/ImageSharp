@@ -64,20 +64,20 @@ internal struct HuffmanTable
     /// <param name="values">The huffman values.</param>
     /// <param name="workspace">The provided spare workspace memory, can be dirty.</param>
     /// <param name="fastLookup">
-    /// The combined lookup table to fill, <see cref="JpegConstants.Huffman.FastSize"/> entries, can be dirty.
-    /// It is indexed by the next <see cref="JpegConstants.Huffman.FastBits"/> bits of the stream.
-    /// The table is kept outside the struct because it is 8 KB. The scan decoder owns it in pooled memory.
+    /// The combined lookup table to fill, with <see cref="JpegConstants.Huffman.FastSize"/> entries. It can contain old data.
+    /// The next <see cref="JpegConstants.Huffman.FastBits"/> bits of the stream are the index into the table.
+    /// The table is outside the struct because it is 8 KB. The scan decoder owns it in pooled memory.
     /// <list type="bullet">
-    /// <item>Bits 0 to 4: the bits to consume. Bit 5 is always zero, so a 64-bit shift by the entry consumes them.</item>
-    /// <item>Bit 6: <see cref="FastComplete"/>. Set when the symbol has no value bits, or when the code and its
+    /// <item>Bits 0 to 4: the bits to consume. Bit 5 is always zero, so a 64-bit shift by the entry consumes these bits.</item>
+    /// <item>Bit 6: <see cref="FastComplete"/>. The bit is set when the symbol has no value bits, or when the code and its
     /// value bits fit in the index. Then bits 0 to 4 count the code and the value bits.
-    /// Clear when the value bits are past the index. Then bits 0 to 4 count only the code.</item>
+    /// The bit is clear when the value bits are past the index. Then bits 0 to 4 count only the code.</item>
     /// <item>Bits 8 to 15: the symbol.</item>
     /// <item>Bits 16 to 31: the signed value of a complete entry.</item>
     /// </list>
-    /// Zero means the code is longer than <see cref="JpegConstants.Huffman.FastBits"/> bits, or is not valid.
-    /// The value is decoded from the low nibble of the symbol. This is the AC run/size layout (ITU T.81, F.1.2.2)
-    /// and also the DC size layout for symbols up to 15.
+    /// A zero entry means that the code is longer than <see cref="JpegConstants.Huffman.FastBits"/> bits, or that the code is not valid.
+    /// The table decodes the value from the low nibble of the symbol. This is the AC run/size layout (ITU T.81, F.1.2.2).
+    /// It is also the DC size layout for symbols up to 15.
     /// </param>
     public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace, Span<int> fastLookup)
     {
@@ -158,10 +158,10 @@ internal struct HuffmanTable
             }
         }
 
-        // Build the combined table the same way: each code of at most FastBits bits fills all entries it prefixes.
-        // The low nibble of the symbol is the count of value bits that follow the code. When code and value bits
-        // fit in the index, the index already holds the value bits, so one table read decodes the value too.
-        // Entries that no code of at most FastBits bits prefixes stay zero and select the slow path.
+        // The method builds the combined table in the same way. Each code of at most FastBits bits fills all entries that it prefixes.
+        // The low nibble of the symbol is the count of value bits that follow the code.
+        // When the code and the value bits fit in the index, the index holds the value bits. Thus, one table read also decodes the value.
+        // An entry that no code of at most FastBits bits prefixes stays zero. A zero entry selects the slow path.
         fastLookup.Clear();
         p = 0;
         for (int length = 1; length <= JpegConstants.Huffman.FastBits; length++)

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -104,6 +105,33 @@ public class Block8x8Tests : JpegFixture
         long d = Block8x8.TotalDifference(ref block1, ref block2);
 
         Assert.Equal(15, d);
+    }
+
+    [Fact]
+    public void IsDcOnly_IsFalseForAnyNonZeroAcCoefficient()
+    {
+        static void RunTest()
+        {
+            // Zero and DC-only blocks have no AC coefficients.
+            Block8x8 data = default;
+            Assert.True(data.IsDcOnly());
+
+            data[0] = -1;
+            Assert.True(data.IsDcOnly());
+
+            // If the method gives a false positive, the decoder deletes the AC coefficients of the block.
+            for (int i = 1; i < Block8x8.Size; i++)
+            {
+                Block8x8 block = default;
+                block[0] = 1;
+                block[i] = short.MinValue;
+                Assert.False(block.IsDcOnly(), $"Index {i}, Vector256 {Vector256.IsHardwareAccelerated}, Vector128 {Vector128.IsHardwareAccelerated}");
+            }
+        }
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Fact]

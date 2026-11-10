@@ -234,8 +234,8 @@ public class LoadResizeSaveStressRunner
     }
 
     /// <summary>
-    /// Decodes the full image, resizes it in a separate processing step, and saves the result.
-    /// This measures the default load path without decoder scaling.
+    /// Decodes the full image, resizes it in a separate step, and saves the result.
+    /// This method measures the default load path without decoder scaling.
     /// </summary>
     /// <param name="input">The input file path.</param>
     public void ImageSharpFullDecodeResize(string input)

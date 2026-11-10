@@ -264,12 +264,13 @@ public sealed partial class IccProfile
     private readonly struct Trc : IEquatable<Trc>
     {
         /// <summary>
-        /// The IEC sRGB expansion curve at 65,537 evenly spaced inputs, plus one padding sample after input one.
+        /// The IEC sRGB expansion curve at 65,537 inputs with equal spacing. One padding sample follows the input 1.
         /// </summary>
         /// <remarks>
-        /// Recognition compares profile curves with sRGB to within one sixteen-bit level. The shared SIMD power
-        /// approximation is not accurate enough for that, so the reference is sampled once in double precision.
-        /// Linear interpolation between these samples stays within 0.031 of a sixteen-bit level.
+        /// The sRGB recognition compares profile curves with sRGB to one sixteen-bit level.
+        /// The shared SIMD power approximation is not sufficiently accurate for that.
+        /// Thus, the method samples the reference one time in double precision.
+        /// Linear interpolation between these samples has a maximum error of 0.031 of a sixteen-bit level.
         /// </remarks>
         private static readonly Lazy<float[]> SRgbExpansion = new(CreateSRgbExpansion);
 
@@ -392,7 +393,7 @@ public sealed partial class IccProfile
         /// <summary>
         /// Samples the IEC sRGB expansion curve in double precision for <see cref="SRgbExpansion"/>.
         /// </summary>
-        /// <returns>The samples, bounded to [0,1].</returns>
+        /// <returns>The samples, in the range [0,1].</returns>
         private static float[] CreateSRgbExpansion()
         {
             const int scale = ushort.MaxValue;

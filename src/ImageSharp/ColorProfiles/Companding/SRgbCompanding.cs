@@ -31,7 +31,7 @@ public static partial class SRgbCompanding
         => CompressCore(vectors, PixelColorRange.Extended);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
@@ -48,7 +48,7 @@ public static partial class SRgbCompanding
         => ExpandCore(vectors, PixelColorRange.Extended);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
@@ -66,7 +66,7 @@ public static partial class SRgbCompanding
         => CompressCore(vector, PixelColorRange.Extended);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
@@ -85,7 +85,7 @@ public static partial class SRgbCompanding
         => ExpandCore(vector, PixelColorRange.Extended);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
@@ -96,7 +96,7 @@ public static partial class SRgbCompanding
     }
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
@@ -104,7 +104,7 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vectors, new ExpandOperator(1.055F, 0.055F, 0.04045F), colorRange);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
@@ -113,7 +113,7 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vector, new ExpandOperator(1.055F, 0.055F, 0.04045F), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
@@ -121,7 +121,7 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vectors, new CompressOperator(1.055F, 0.055F, 0.04045F / 12.92F), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>

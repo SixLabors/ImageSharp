@@ -156,6 +156,44 @@ internal partial struct Block8x8
     }
 
     /// <summary>
+    /// Tells if all elements after the first element are zero.
+    /// In a coefficient block, this means that only the DC coefficient can be not zero.
+    /// </summary>
+    /// <returns><see langword="true"/> when elements 1 to 63 are zero.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly bool IsDcOnly()
+    {
+        // The method clears element 0 in the first vector. Then it ORs all vectors and does one test of the result.
+        // The mask must apply before the OR, because lane 0 of the result also holds elements 8, 16 and more.
+        // A scan for the last non-zero element has branches that change with the data. This method has no such branch.
+        ref short first = ref Unsafe.As<Block8x8, short>(ref Unsafe.AsRef(in this));
+        if (Vector256.IsHardwareAccelerated)
+        {
+            ref Vector256<short> v = ref Unsafe.As<short, Vector256<short>>(ref first);
+            Vector256<short> ac0 = Unsafe.Add(ref v, 0) & Vector256.Create(0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+            Vector256<short> any = (ac0 | Unsafe.Add(ref v, 1)) | (Unsafe.Add(ref v, 2) | Unsafe.Add(ref v, 3));
+            return any == Vector256<short>.Zero;
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            ref Vector128<short> v = ref Unsafe.As<short, Vector128<short>>(ref first);
+            Vector128<short> ac0 = Unsafe.Add(ref v, 0) & Vector128.Create(0, -1, -1, -1, -1, -1, -1, -1);
+            Vector128<short> any = (ac0 | Unsafe.Add(ref v, 1)) | (Unsafe.Add(ref v, 2) | Unsafe.Add(ref v, 3))
+                | (Unsafe.Add(ref v, 4) | Unsafe.Add(ref v, 5)) | (Unsafe.Add(ref v, 6) | Unsafe.Add(ref v, 7));
+            return any == Vector128<short>.Zero;
+        }
+
+        int accumulator = 0;
+        for (nint i = 1; i < Size; i++)
+        {
+            accumulator |= (ushort)Unsafe.Add(ref first, i);
+        }
+
+        return accumulator == 0;
+    }
+
+    /// <summary>
     /// Returns index of the last non-zero element in given matrix.
     /// </summary>
     /// <returns>

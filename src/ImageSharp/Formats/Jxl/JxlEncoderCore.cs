@@ -541,13 +541,6 @@ internal sealed class JxlEncoderCore : IDisposable
         this.profileConverter = profileConverter;
         this.profileData = this.profile?.GetData() ?? ReadOnlyMemory<byte>.Empty;
 
-        // ICC prediction reads the complete fixed header before its tag data. A retained profile must
-        // contain that header, even when its raw data is empty. Validate before renting workspace or writing output.
-        if (this.profile is not null && this.profileData.Length < JxlIccPrediction.HeaderSize)
-        {
-            throw new InvalidIccProfileException("The ICC profile header is truncated.");
-        }
-
         // The Level 10 bound applies to the original ICC bytes, independently of their entropy-coded size.
         // Check it before preparing a profile transform or renting encoder workspace.
         if (this.profileData.Length > (1 << 28))
@@ -861,16 +854,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
-            LongRational delay = frame.Metadata.GetJxlMetadata().FrameDelay;
-
-            // Metadata retains signed fractions and special values. The unsigned file clock requires
-            // a finite, nonnegative duration. Validate once before division or unsigned conversion.
-            Guard.IsTrue(
-                delay.Denominator != 0 && (delay.Numerator == 0 || (delay.Numerator > 0) == (delay.Denominator > 0)),
-                nameof(JxlFrameMetadata.FrameDelay),
-                "The frame delay must be a finite, nonnegative duration.");
-
-            delay = delay.Simplify();
+            LongRational delay = frame.Metadata.GetJxlMetadata().GetDisplayDuration().Simplify();
 
             // Equivalent positive fractions can have two negative components. Widen before taking
             // their magnitudes so long.MinValue remains representable, without changing source metadata.
@@ -898,7 +882,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
-            LongRational delay = frame.Metadata.GetJxlMetadata().FrameDelay;
+            LongRational delay = frame.Metadata.GetJxlMetadata().GetDisplayDuration();
             ulong durationNumerator = (ulong)Int128.Abs(delay.Numerator);
             ulong durationDenominator = (ulong)Int128.Abs(delay.Denominator);
             ulong duration = (ulong)((UInt128)durationNumerator * numerator / durationDenominator);
@@ -942,7 +926,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
-            uint duration = this.GetFrameDuration(image.Frames[i].Metadata.GetJxlMetadata().FrameDelay, i == image.Frames.Count - 1);
+            uint duration = this.GetFrameDuration(image.Frames[i].Metadata.GetJxlMetadata().GetDisplayDuration(), i == image.Frames.Count - 1);
 
             // Level 5 permits displayed frames at no more than 120 fps. The encoded clock and duration,
             // including the one tick used for a displayed zero-delay source frame, determine that rate.
@@ -953,13 +937,13 @@ internal sealed class JxlEncoderCore : IDisposable
     /// <summary>
     /// Expresses one source delay in the prepared file clock, retaining non-final frames as displayed frames.
     /// </summary>
-    /// <param name="delay">The source delay in seconds, validated as finite and nonnegative during animation setup.</param>
+    /// <param name="delay">The finite, nonnegative delay supplied by frame metadata, in seconds.</param>
     /// <param name="last">Whether this is the final displayed frame.</param>
     /// <returns>The serialized unsigned tick count.</returns>
     private uint GetFrameDuration(LongRational delay, bool last)
     {
-        // Setup validated the value. Use component magnitudes here too, so signed equivalents
-        // and long.MinValue components have the same tick count as their positive fractions.
+        // Metadata supplies a nonnegative duration. Component magnitudes retain signed equivalents
+        // and long.MinValue components without changing the source fraction.
         ulong numerator = (ulong)Int128.Abs(delay.Numerator);
         ulong denominator = (ulong)Int128.Abs(delay.Denominator);
         UInt128 ticks = (UInt128)numerator * this.ticksPerSecondNumerator
@@ -1419,7 +1403,7 @@ internal sealed class JxlEncoderCore : IDisposable
 
             if (this.animated)
             {
-                duration = this.GetFrameDuration(image.Metadata.GetJxlMetadata().FrameDelay, last);
+                duration = this.GetFrameDuration(image.Metadata.GetJxlMetadata().GetDisplayDuration(), last);
             }
 
             this.WriteFrameHeader(sectionSizes, duration, last, output);
@@ -1671,7 +1655,7 @@ internal sealed class JxlEncoderCore : IDisposable
             long length = this.payload.Position;
             this.outputStream = stream;
             bool last = ++frameIndex == source.Frames.Count;
-            uint duration = this.animated ? this.GetFrameDuration(image.Metadata.GetJxlMetadata().FrameDelay, last) : 0;
+            uint duration = this.animated ? this.GetFrameDuration(image.Metadata.GetJxlMetadata().GetDisplayDuration(), last) : 0;
             this.WriteFrameHeader(sectionSizes, duration, last, output);
             this.payload.WriteTo(stream, length, cancellationToken);
         }

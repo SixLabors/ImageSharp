@@ -413,33 +413,34 @@ public class JxlEncoderTests
     }
 
     /// <summary>
-    /// Checks that animation setup rejects undefined and negative delays without writing output or retaining workspace.
+    /// Checks that encoding uses zero for negative and indeterminate durations without changing source metadata.
     /// </summary>
     /// <param name="provider">The stored animation that supplies two frames.</param>
-    /// <param name="numerator">The invalid duration numerator.</param>
-    /// <param name="denominator">The invalid duration denominator.</param>
+    /// <param name="numerator">The stored duration numerator.</param>
+    /// <param name="denominator">The stored duration denominator.</param>
     [Theory]
     [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 0L, 0L)]
-    [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1L, 0L)]
     [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, -1L, 0L)]
     [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, -1L, 1L)]
     [WithFile(TestImages.Jxl.CroppedTrafficLight, PixelTypes.Rgba32, 1L, -1L)]
-    public void EncodeRejectsInvalidAnimationDelay(TestImageProvider<Rgba32> provider, long numerator, long denominator)
+    public void EncodeAnimationNormalizesSpecialDelays(TestImageProvider<Rgba32> provider, long numerator, long denominator)
     {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        provider.Configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
+        provider.Configuration = new(new JxlConfigurationModule());
         DecoderOptions options = new(provider.Configuration) { MaxFrames = 2, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
         using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
-        source.Frames.RootFrame.Metadata.GetJxlMetadata().FrameDelay = new LongRational(numerator, denominator);
-        long sourceBytes = allocator.LiveBufferBytes;
+        LongRational delay = new(numerator, denominator);
+        source.Frames[1].Metadata.GetJxlMetadata().FrameDelay = delay;
         JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, Distance = 0F, SkipMetadata = true };
         using MemoryStream stream = new();
+        source.Save(stream, encoder);
+        stream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, stream);
+        stream.Position = 0;
+        using Image<Rgba32> native = LibJxlReferenceDecoder.Instance.Decode<Rgba32>(options, stream);
 
-        Assert.Throws<ArgumentException>(() => source.Save(stream, encoder));
-
-        Assert.Equal(sourceBytes, allocator.LiveBufferBytes);
-        Assert.Equal(0, stream.Length);
+        Assert.Equal(new LongRational(0, 1), actual.Frames[1].Metadata.GetJxlMetadata().FrameDelay);
+        Assert.Equal(delay, source.Frames[1].Metadata.GetJxlMetadata().FrameDelay);
+        Assert.Equal(source.Frames.Count, native.Frames.Count);
     }
 
     /// <summary>
@@ -649,33 +650,6 @@ public class JxlEncoderTests
         using MemoryStream stream = new();
 
         Assert.Throws<ArgumentException>(() => source.Save(stream, encoder));
-    }
-
-    /// <summary>
-    /// Checks that a truncated retained ICC header is rejected before encoder workspace or output is written.
-    /// </summary>
-    /// <param name="provider">The stored native pixel input.</param>
-    /// <param name="profileLength">The profile length below the fixed ICC header size.</param>
-    [Theory]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 0)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 1)]
-    [WithFile(TestImages.Jxl.LossyRgb3x3, PixelTypes.Rgba32, 127)]
-    public void EncodeRejectsTruncatedIccHeader(TestImageProvider<Rgba32> provider, int profileLength)
-    {
-        TestMemoryAllocator allocator = new();
-        allocator.EnableNonThreadSafeLogging();
-        provider.Configuration = new(new JxlConfigurationModule()) { MemoryAllocator = allocator };
-        DecoderOptions options = new(provider.Configuration) { MaxFrames = 1, ColorProfileHandling = ColorProfileHandling.Convert, SkipMetadata = true };
-        using Image<Rgba32> source = provider.GetImage(LibJxlReferenceDecoder.Instance, options);
-        source.Frames.RootFrame.Metadata.IccProfile = new IccProfile(new byte[profileLength]);
-        JxlEncoder encoder = new() { ColorType = JxlColorType.Rgb, Distance = 1F, SkipMetadata = true };
-        int allocations = allocator.AllocationLog.Count;
-        using MemoryStream stream = new();
-
-        Assert.Throws<InvalidIccProfileException>(() => source.Save(stream, encoder));
-
-        Assert.Equal(allocations, allocator.AllocationLog.Count);
-        Assert.Equal(0, stream.Length);
     }
 
     /// <summary>

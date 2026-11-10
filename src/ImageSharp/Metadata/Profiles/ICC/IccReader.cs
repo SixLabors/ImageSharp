@@ -93,14 +93,25 @@ internal sealed class IccReader
     }
 
     /// <summary>
+    /// Checks that raw ICC data contains the complete fixed header without parsing it.
+    /// </summary>
+    /// <param name="data">The raw ICC profile data.</param>
+    /// <exception cref="ArgumentNullException">The data is null.</exception>
+    /// <exception cref="ArgumentException">The data does not contain a complete ICC header.</exception>
+    public static void ValidateHeader(byte[] data)
+    {
+        Guard.NotNull(data, nameof(data));
+        Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
+    }
+
+    /// <summary>
     /// Reads an ICC profile header
     /// </summary>
     /// <param name="data">The raw ICC data</param>
     /// <returns>The read ICC profile header</returns>
     public static IccProfileHeader ReadHeader(byte[] data)
     {
-        Guard.NotNull(data, nameof(data));
-        Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
+        ValidateHeader(data);
 
         IccDataReader reader = new(data);
         return ReadHeader(reader);
@@ -113,8 +124,7 @@ internal sealed class IccReader
     /// <returns>The read ICC profile tag data</returns>
     public static IccTagDataEntry[] ReadTagData(byte[] data)
     {
-        Guard.NotNull(data, nameof(data));
-        Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
+        ValidateHeader(data);
 
         if (!IsTagTableValid(data))
         {

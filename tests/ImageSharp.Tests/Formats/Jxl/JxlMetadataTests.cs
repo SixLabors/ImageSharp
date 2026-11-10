@@ -314,16 +314,22 @@ public class JxlMetadataTests
     /// <param name="numerator">The exact duration numerator.</param>
     /// <param name="denominator">The exact duration denominator.</param>
     /// <param name="ticks">The expected bounded duration in TimeSpan ticks.</param>
+    /// <param name="encodingNumerator">The expected encoding duration numerator.</param>
+    /// <param name="encodingDenominator">The expected encoding duration denominator.</param>
     [Theory]
-    [InlineData(1L, 25L, 400000L)]
-    [InlineData(5004998999L, 1000000000L, 50049989L)]
-    [InlineData(long.MaxValue, long.MaxValue, 10000000L)]
-    [InlineData(4398046510080L, 1L, long.MaxValue)]
-    [InlineData(-1L, 1L, 0L)]
-    [InlineData(0L, 0L, 0L)]
-    [InlineData(1L, 0L, long.MaxValue)]
-    [InlineData(-1L, 0L, 0L)]
-    public void FrameMetadataRetainsDisplayDelayWithoutRepeatingNativeBlending(long numerator, long denominator, long ticks)
+    [InlineData(1L, 25L, 400000L, 1L, 25L)]
+    [InlineData(5004998999L, 1000000000L, 50049989L, 5004998999L, 1000000000L)]
+    [InlineData(long.MaxValue, long.MaxValue, 10000000L, long.MaxValue, long.MaxValue)]
+    [InlineData(4398046510080L, 1L, long.MaxValue, 4398046510080L, 1L)]
+    [InlineData(-1L, 1L, 0L, 0L, 1L)]
+    [InlineData(0L, 0L, 0L, 0L, 1L)]
+    [InlineData(1L, 0L, long.MaxValue, long.MaxValue, TimeSpan.TicksPerSecond)]
+    [InlineData(-1L, 0L, 0L, 0L, 1L)]
+    [InlineData(-1L, -2L, 5000000L, -1L, -2L)]
+    [InlineData(long.MinValue, long.MinValue, 10000000L, long.MinValue, long.MinValue)]
+    [InlineData(1L, long.MaxValue, 0L, 1L, long.MaxValue)]
+    public void FrameMetadataRetainsDisplayDelayWithoutRepeatingNativeBlending(
+        long numerator, long denominator, long ticks, long encodingNumerator, long encodingDenominator)
     {
         ImageFrameMetadata frameMetadata = new();
         JxlFrameMetadata source = frameMetadata.GetFormatMetadata(JxlFormat.Instance);
@@ -343,5 +349,9 @@ public class JxlMetadataTests
         // Cloning and conversion must leave the original JPEG XL fraction unchanged.
         Assert.Equal(new LongRational(ticks, TimeSpan.TicksPerSecond).Simplify(), restored.FrameDelay);
         Assert.Equal(new LongRational(numerator, denominator), source.FrameDelay);
+
+        // Encoding uses the shared special-value policy but preserves finite positive fractions,
+        // including durations beyond TimeSpan's range and durations between TimeSpan ticks.
+        Assert.Equal(new LongRational(encodingNumerator, encodingDenominator), source.GetDisplayDuration());
     }
 }

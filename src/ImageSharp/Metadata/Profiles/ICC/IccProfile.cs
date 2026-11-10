@@ -42,8 +42,19 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
     /// <summary>
     /// Initializes a new instance of the <see cref="IccProfile"/> class.
     /// </summary>
-    /// <param name="data">The raw ICC profile data</param>
-    public IccProfile(byte[] data) => this.data = data;
+    /// <param name="data">The raw ICC profile data, or null to create a profile from entries.</param>
+    /// <exception cref="ArgumentException">The supplied data does not contain a complete ICC header.</exception>
+    public IccProfile(byte[] data)
+    {
+        // A null array creates an entry-based profile. Supplied bytes must contain the fixed header,
+        // but parsing stays lazy so retaining a profile does not allocate header or tag objects.
+        if (data != null)
+        {
+            IccReader.ValidateHeader(data);
+        }
+
+        this.data = data;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IccProfile"/> class.
@@ -105,8 +116,7 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
     /// <returns>The calculated hash</returns>
     public static IccProfileId CalculateHash(byte[] data)
     {
-        Guard.NotNull(data, nameof(data));
-        Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
+        IccReader.ValidateHeader(data);
 
         const int profileFlagPos = 44;
         const int renderingIntentPos = 64;
@@ -153,8 +163,7 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
         bool arrayValid = true;
         if (this.data != null)
         {
-            arrayValid = this.data.Length >= minSize &&
-                         this.data.Length >= this.Header.Size;
+            arrayValid = this.data.Length >= this.Header.Size;
         }
 
         return arrayValid &&

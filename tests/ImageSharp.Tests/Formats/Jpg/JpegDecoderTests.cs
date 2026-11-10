@@ -130,6 +130,20 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Jpeg.ICC.YCCK, PixelTypes.Rgb24)]
+    public void JpegDecoder_Decode_Resize_FitsTargetSizeWhenIdctScaleMatchesOneDimension<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // At 1/4 IDCT scale, the decoder decodes the 2000 x 600 source to 500 x 150.
+        // Only the height is equal to the target height.
+        // TargetSize fits the image in the target and keeps the aspect ratio. Thus, the result is 150 x 45.
+        DecoderOptions options = new(Configuration.Default) { TargetSize = new Size(150, 150) };
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+
+        Assert.Equal(new Size(150, 45), image.Size);
+    }
+
+    [Theory]
     [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
     public void JpegDecoder_Decode_Resize_Bicubic<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

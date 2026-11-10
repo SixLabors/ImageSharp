@@ -10,13 +10,13 @@ using SixLabors.ImageSharp.Tests;
 namespace SixLabors.ImageSharp.Benchmarks;
 
 /// <summary>
-/// Compares the current sRGB table with direct SIMD math, using identical curve coefficients.
+/// Measures direct SIMD sRGB companding and checks it against the scalar curve formulas.
 /// </summary>
 [Config(typeof(Config.Short))]
 public abstract class CompandingComparison
 {
     // Match the direct-formula accuracy bound documented and checked by CompandingTests.
-    // Table interpolation and scalar/SIMD agreement have separate, tighter checks in that test suite.
+    // Scalar/SIMD agreement has a separate, tighter check in that test suite.
     private const float DirectApproximationTolerance = 5E-4F;
 
     private Vector4[] source;
@@ -60,10 +60,8 @@ public abstract class CompandingComparison
             }
         }
 
-        // Table construction is setup work. Both measured methods include the same input copy,
+        // Measured methods include the same input copy,
         // because repeated in-place companding would otherwise change the input distribution.
-        SRgbCompanding.Compress(this.destination, 8, PixelColorRange.Sdr);
-        SRgbCompanding.Expand(this.destination, 8, PixelColorRange.Sdr);
         this.Simd();
 
         for (int i = 0; i < this.source.Length; i++)
@@ -131,45 +129,13 @@ public abstract class CompandingComparison
         return MathF.CopySign(result, value);
     }
 
-    // Measured 2026-10-15.
-    // | Method | Count | Compress | Mean         | Error       | StdDev      | Ratio | RatioSD | Allocated | Alloc Ratio |
-    // |------- |------ |--------- |-------------:|------------:|------------:|------:|--------:|----------:|------------:|
-    // | Simd   | 256   | False    |     868.9 ns |    30.81 ns |     8.00 ns |  1.31 |    0.01 |         - |          NA |
-    // | Table  | 256   | False    |     664.6 ns |    21.76 ns |     5.65 ns |  1.00 |    0.01 |         - |          NA |
-    // |        |       |          |              |             |             |       |         |           |             |
-    // | Simd   | 256   | True     |     798.0 ns |    23.29 ns |     6.05 ns |  1.13 |    0.01 |         - |          NA |
-    // | Table  | 256   | True     |     706.3 ns |    10.87 ns |     2.82 ns |  1.00 |    0.01 |         - |          NA |
-    // |        |       |          |              |             |             |       |         |           |             |
-    // | Simd   | 65536 | False    | 226,537.8 ns | 7,980.83 ns | 1,235.04 ns |  1.28 |    0.01 |         - |          NA |
-    // | Table  | 65536 | False    | 177,612.6 ns | 8,492.46 ns | 1,314.22 ns |  1.00 |    0.01 |         - |          NA |
-    // |        |       |          |              |             |             |       |         |           |             |
-    // | Simd   | 65536 | True     | 209,825.4 ns | 9,590.05 ns | 2,490.51 ns |  1.17 |    0.02 |         - |          NA |
-    // | Table  | 65536 | True     | 179,227.6 ns | 8,560.71 ns | 2,223.19 ns |  1.00 |    0.02 |         - |          NA |
-
     /// <summary>
-    /// Compares the existing table implementation with direct SIMD on normalized input.
+    /// Measures direct SIMD on normalized input.
     /// </summary>
     public class Sdr : CompandingComparison
     {
         /// <inheritdoc/>
         protected override bool HasHdrValues => false;
-
-        /// <summary>
-        /// Applies the existing public companding table.
-        /// </summary>
-        [Benchmark(Baseline = true)]
-        public void Table()
-        {
-            this.CopySource();
-            if (this.Compress)
-            {
-                SRgbCompanding.Compress(this.destination, 8, PixelColorRange.Sdr);
-            }
-            else
-            {
-                SRgbCompanding.Expand(this.destination, 8, PixelColorRange.Sdr);
-            }
-        }
     }
 
     // Measured 2026-10-15.

@@ -342,5 +342,16 @@ internal static class JpegConstants
         /// The size of the lookup table.
         /// </summary>
         public const int LookupSize = 1 << LookupBits;
+
+        /// <summary>
+        /// The number of bits that index the combined lookup table of the baseline block decoder.
+        /// A code and its value bits are decoded with one table read when together they fit in this number of bits.
+        /// </summary>
+        public const int FastBits = 11;
+
+        /// <summary>
+        /// The size of the combined lookup table.
+        /// </summary>
+        public const int FastSize = 1 << FastBits;
     }
 }

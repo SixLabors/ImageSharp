@@ -64,14 +64,14 @@ public class CicpCompandingTests
     /// Checks eight-bit table accuracy, scalar/bulk parity, and unchanged alpha under each hardware configuration.
     /// </summary>
     [Fact]
-    public void EightBitTablesMatchTransferCurves() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-        CheckEightBitTables,
+    public void EightBitCodesMatchTransferCurves() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+        CheckEightBitCodes,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Checks every eight-bit input code and the logarithmic cutoffs against the direct curves.
     /// </summary>
-    private static void CheckEightBitTables()
+    private static void CheckEightBitCodes()
     {
         // Half of one eight-bit level is the rounding interval for an output channel.
         // The analytic tests retain their existing, tighter floating-point tolerance.
@@ -95,19 +95,18 @@ public class CicpCompandingTests
             Vector4[] expanded = source.ToArray();
             Vector4[] compressed = source.ToArray();
 
-            CicpCompanding.Expand(expanded, characteristic, 8, PixelColorRange.Sdr);
-            CicpCompanding.Compress(compressed, characteristic, 8, PixelColorRange.Sdr);
+            CicpCompanding.Expand(expanded, characteristic, PixelColorRange.Sdr);
+            CicpCompanding.Compress(compressed, characteristic, PixelColorRange.Sdr);
 
             for (int i = 0; i < source.Length; i++)
             {
-                // Direct evaluation checks the table coefficients and cache key independently
-                // of the single-color and bulk table entry points. SDR results stay within [0,1].
+                // Direct evaluation checks the single-color and bulk SDR entry points. SDR results stay within [0,1].
                 float linear = Math.Clamp(CicpCompanding.ToLinear(characteristic, source[i].X), 0F, 1F);
                 float nonlinear = Math.Clamp(CicpCompanding.ToGamma(characteristic, source[i].X), 0F, 1F);
                 Vector4 expectedExpanded = new(linear, linear, linear, source[i].W);
                 Vector4 expectedCompressed = new(nonlinear, nonlinear, nonlinear, source[i].W);
-                Vector4 scalarExpanded = CicpCompanding.Expand(source[i], characteristic, 8, PixelColorRange.Sdr);
-                Vector4 scalarCompressed = CicpCompanding.Compress(source[i], characteristic, 8, PixelColorRange.Sdr);
+                Vector4 scalarExpanded = CicpCompanding.Expand(source[i], characteristic, PixelColorRange.Sdr);
+                Vector4 scalarCompressed = CicpCompanding.Compress(source[i], characteristic, PixelColorRange.Sdr);
 
                 Assert.Equal(expectedExpanded, expanded[i], comparer);
                 Assert.Equal(expectedCompressed, compressed[i], comparer);
@@ -169,28 +168,24 @@ public class CicpCompandingTests
             AssertVectorMatchesScalar(expected.AsSpan(offset), actual, transferCharacteristics);
         }
 
-        ReadOnlySpan<int> bitDepths = [10, 12, 16, 32];
-        foreach (int bitDepth in bitDepths)
+        // Higher-precision entry points must retain extended values and the analytic accuracy bound.
+        Vector4[] colors = SignalValues.Select(value => new Vector4(value, value, value, 0.25F)).ToArray();
+        CicpCompanding.Expand(colors, transferCharacteristics, PixelColorRange.Extended);
+
+        for (int i = 0; i < colors.Length; i++)
         {
-            // Higher-precision entry points must retain extended values and the analytic accuracy bound.
-            Vector4[] colors = SignalValues.Select(value => new Vector4(value, value, value, 0.25F)).ToArray();
-            CicpCompanding.Expand(colors, transferCharacteristics, bitDepth, PixelColorRange.Extended);
+            Vector4 input = new(SignalValues[i], SignalValues[i], SignalValues[i], 0.25F);
+            Vector4 single = CicpCompanding.Expand(input, transferCharacteristics, PixelColorRange.Extended);
 
-            for (int i = 0; i < colors.Length; i++)
-            {
-                Vector4 input = new(SignalValues[i], SignalValues[i], SignalValues[i], 0.25F);
-                Vector4 single = CicpCompanding.Expand(input, transferCharacteristics, bitDepth, PixelColorRange.Extended);
+            AssertClose(expected[i], single.X, transferCharacteristics, i, 0);
+            AssertClose(expected[i], single.Y, transferCharacteristics, i, 0);
+            AssertClose(expected[i], single.Z, transferCharacteristics, i, 0);
+            Assert.Equal(0.25F, single.W);
 
-                AssertClose(expected[i], single.X, transferCharacteristics, i, 0);
-                AssertClose(expected[i], single.Y, transferCharacteristics, i, 0);
-                AssertClose(expected[i], single.Z, transferCharacteristics, i, 0);
-                Assert.Equal(0.25F, single.W);
-
-                AssertClose(expected[i], colors[i].X, transferCharacteristics, i, 0);
-                AssertClose(expected[i], colors[i].Y, transferCharacteristics, i, 0);
-                AssertClose(expected[i], colors[i].Z, transferCharacteristics, i, 0);
-                Assert.Equal(0.25F, colors[i].W);
-            }
+            AssertClose(expected[i], colors[i].X, transferCharacteristics, i, 0);
+            AssertClose(expected[i], colors[i].Y, transferCharacteristics, i, 0);
+            AssertClose(expected[i], colors[i].Z, transferCharacteristics, i, 0);
+            Assert.Equal(0.25F, colors[i].W);
         }
     }
 
@@ -241,28 +236,24 @@ public class CicpCompandingTests
             AssertVectorMatchesScalar(expected.AsSpan(offset), actual, transferCharacteristics);
         }
 
-        ReadOnlySpan<int> bitDepths = [10, 12, 16, 32];
-        foreach (int bitDepth in bitDepths)
+        // Higher-precision entry points must retain extended values and the analytic accuracy bound.
+        Vector4[] colors = SignalValues.Select(value => new Vector4(value, value, value, 0.25F)).ToArray();
+        CicpCompanding.Compress(colors, transferCharacteristics, PixelColorRange.Extended);
+
+        for (int i = 0; i < colors.Length; i++)
         {
-            // Higher-precision entry points must retain extended values and the analytic accuracy bound.
-            Vector4[] colors = SignalValues.Select(value => new Vector4(value, value, value, 0.25F)).ToArray();
-            CicpCompanding.Compress(colors, transferCharacteristics, bitDepth, PixelColorRange.Extended);
+            Vector4 input = new(SignalValues[i], SignalValues[i], SignalValues[i], 0.25F);
+            Vector4 single = CicpCompanding.Compress(input, transferCharacteristics, PixelColorRange.Extended);
 
-            for (int i = 0; i < colors.Length; i++)
-            {
-                Vector4 input = new(SignalValues[i], SignalValues[i], SignalValues[i], 0.25F);
-                Vector4 single = CicpCompanding.Compress(input, transferCharacteristics, bitDepth, PixelColorRange.Extended);
+            AssertClose(expected[i], single.X, transferCharacteristics, i, 0);
+            AssertClose(expected[i], single.Y, transferCharacteristics, i, 0);
+            AssertClose(expected[i], single.Z, transferCharacteristics, i, 0);
+            Assert.Equal(0.25F, single.W);
 
-                AssertClose(expected[i], single.X, transferCharacteristics, i, 0);
-                AssertClose(expected[i], single.Y, transferCharacteristics, i, 0);
-                AssertClose(expected[i], single.Z, transferCharacteristics, i, 0);
-                Assert.Equal(0.25F, single.W);
-
-                AssertClose(expected[i], colors[i].X, transferCharacteristics, i, 0);
-                AssertClose(expected[i], colors[i].Y, transferCharacteristics, i, 0);
-                AssertClose(expected[i], colors[i].Z, transferCharacteristics, i, 0);
-                Assert.Equal(0.25F, colors[i].W);
-            }
+            AssertClose(expected[i], colors[i].X, transferCharacteristics, i, 0);
+            AssertClose(expected[i], colors[i].Y, transferCharacteristics, i, 0);
+            AssertClose(expected[i], colors[i].Z, transferCharacteristics, i, 0);
+            Assert.Equal(0.25F, colors[i].W);
         }
     }
 

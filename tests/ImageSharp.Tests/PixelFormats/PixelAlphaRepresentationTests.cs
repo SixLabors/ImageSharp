@@ -307,13 +307,12 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
         // This test checks row-processing order and alpha handling. Use the scalar companding API with the same
         // requested precision and range. Separate formula tests check accuracy; table and direct results can pack differently.
         PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
-        int componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
 
         for (int i = 0; i < pixels.Length; i++)
         {
             Vector4 expected = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
             expected = scaled
-                ? SRgbCompanding.Expand(expected, componentBitDepth, pixelInfo.ColorRange)
+                ? SRgbCompanding.Expand(expected, pixelInfo.ColorRange)
                 : SRgbCompanding.Expand(expected);
 
             if (associated)
@@ -329,7 +328,7 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
             }
 
             expected = scaled
-                ? SRgbCompanding.Compress(expected, componentBitDepth, pixelInfo.ColorRange)
+                ? SRgbCompanding.Compress(expected, pixelInfo.ColorRange)
                 : SRgbCompanding.Compress(expected);
 
             TPixel expectedPixel = scaled

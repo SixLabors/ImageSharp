@@ -238,7 +238,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// so those tables do not need to be duplicated with segmented tiff's (tiff's with multiple strips).
     /// </summary>
     /// <param name="tableBytes">The table bytes.</param>
-    /// <param name="scanDecoder">The scan decoder.</param>
+    /// <param name="scanDecoder">The scan decoder. This instance takes ownership and disposes it.</param>
     public void LoadTables(byte[] tableBytes, IJpegScanDecoder scanDecoder)
     {
         this.Metadata ??= new ImageMetadata();
@@ -321,7 +321,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         bool metadataOnly = spectralConverter == null;
 
-        this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
+        this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, this.configuration.MemoryAllocator, cancellationToken);
 
         // Apply the image-data policy to the active decoder, including one supplied by TIFF.
         this.scanDecoder.SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling;
@@ -388,7 +388,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     case JpegConstants.Markers.SOF10:
                     case JpegConstants.Markers.SOF13:
                     case JpegConstants.Markers.SOF14:
-                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, cancellationToken)
+                        // The Huffman decoder created in ParseStream can hold pooled tables from a DHT marker.
+                        this.scanDecoder?.Dispose();
+                        this.scanDecoder = new ArithmeticScanDecoder(stream, spectralConverter, this.configuration.MemoryAllocator, cancellationToken)
                         {
                             SegmentIntegrityHandling = this.Options.SegmentIntegrityHandling
                         };
@@ -537,6 +539,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     public void Dispose()
     {
         this.Frame?.Dispose();
+        this.scanDecoder?.Dispose();
 
         // Set large fields to null.
         this.Frame = null;

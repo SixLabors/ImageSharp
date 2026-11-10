@@ -18,10 +18,15 @@ internal abstract partial class JpegColorConverterBase
         /// <summary>
         /// Interleaves JPEG planes into normalized profile samples through the selected operator.
         /// </summary>
+        /// <remarks>
+        /// Every sample uses one <see cref="Vector4"/>: [Y Y Y 1] for one component, [C0 C1 C2 1] for three,
+        /// and [C M Y K] for four. W is 1, the opaque JPEG alpha, unless it holds K.
+        /// The ICC transform then reads the vectors without another model conversion.
+        /// </remarks>
         /// <param name="source">The JPEG component planes.</param>
-        /// <param name="destination">Caller-owned packed profile storage.</param>
+        /// <param name="destination">Caller-owned storage for one vector per sample.</param>
         /// <param name="profileSpace">The source profile's device space, fixed for the complete row.</param>
-        private void UnpackProfileComponents(in ComponentValues source, Span<float> destination, IccColorSpaceType profileSpace)
+        private void UnpackProfileComponents(in ComponentValues source, Span<Vector4> destination, IccColorSpaceType profileSpace)
         {
             int channels = TOperator.ComponentCount;
             int count = source.Component0.Length;
@@ -29,13 +34,14 @@ internal abstract partial class JpegColorConverterBase
             ref float c1 = ref MemoryMarshal.GetReference(source.Component1);
             ref float c2 = ref MemoryMarshal.GetReference(source.Component2);
             ref float c3 = ref MemoryMarshal.GetReference(source.Component3);
-            ref float packed = ref MemoryMarshal.GetReference(destination);
+            ref float packed = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
             float scale = 1F / this.MaximumValue;
             float halfValue = this.HalfValue;
             int i = 0;
 
             // ComponentCount is constant for each closed converter. The JIT removes unused channel branches.
             // Empty component spans are never read. Each vector lane carries one pixel throughout the operator call.
+            // The fourth register is K for four components and one, the opaque alpha, otherwise.
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<float> maximum = Vector512.Create(this.MaximumValue);
@@ -50,20 +56,14 @@ internal abstract partial class JpegColorConverterBase
                     Vector512<float> z = channels >= 3 ? Vector512.LoadUnsafe(ref c2, (nuint)i) : default;
                     Vector512<float> k = channels == 4 ? Vector512.LoadUnsafe(ref c3, (nuint)i) : default;
                     TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
-                    nuint offset = (uint)i * (uint)channels;
 
                     if (channels == 1)
                     {
-                        x.StoreUnsafe(ref packed, offset);
+                        y = x;
+                        z = x;
                     }
-                    else if (channels == 3)
-                    {
-                        SimdUtils.Interleave3(x, y, z, ref Unsafe.Add(ref packed, offset));
-                    }
-                    else
-                    {
-                        SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref packed, offset));
-                    }
+
+                    SimdUtils.Interleave4(x, y, z, channels == 4 ? k : Vector512<float>.One, ref Unsafe.Add(ref packed, (uint)i * 4));
                 }
             }
 
@@ -81,20 +81,14 @@ internal abstract partial class JpegColorConverterBase
                     Vector256<float> z = channels >= 3 ? Vector256.LoadUnsafe(ref c2, (nuint)i) : default;
                     Vector256<float> k = channels == 4 ? Vector256.LoadUnsafe(ref c3, (nuint)i) : default;
                     TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
-                    nuint offset = (uint)i * (uint)channels;
 
                     if (channels == 1)
                     {
-                        x.StoreUnsafe(ref packed, offset);
+                        y = x;
+                        z = x;
                     }
-                    else if (channels == 3)
-                    {
-                        SimdUtils.Interleave3(x, y, z, ref Unsafe.Add(ref packed, offset));
-                    }
-                    else
-                    {
-                        SimdUtils.Interleave4(x, y, z, k, ref Unsafe.Add(ref packed, offset));
-                    }
+
+                    SimdUtils.Interleave4(x, y, z, channels == 4 ? k : Vector256<float>.One, ref Unsafe.Add(ref packed, (uint)i * 4));
                 }
             }
 
@@ -112,59 +106,55 @@ internal abstract partial class JpegColorConverterBase
                     Vector128<float> z = channels >= 3 ? Vector128.LoadUnsafe(ref c2, (nuint)i) : default;
                     Vector128<float> k = channels == 4 ? Vector128.LoadUnsafe(ref c3, (nuint)i) : default;
                     TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, maximum, half, reciprocal, profileSpace);
-                    nuint offset = (uint)i * (uint)channels;
 
                     if (channels == 1)
                     {
-                        x.StoreUnsafe(ref packed, offset);
+                        y = x;
+                        z = x;
                     }
-                    else if (channels == 3)
-                    {
-                        SimdUtils.Interleave3(x, y, z, ref Unsafe.Add(ref packed, offset));
-                    }
-                    else
-                    {
-                        // Transpose four component registers into four [C M Y K] tuples, then store them contiguously.
-                        SimdUtils.Transpose4(
-                            x,
-                            y,
-                            z,
-                            k,
-                            out Vector128<float> pixel0,
-                            out Vector128<float> pixel1,
-                            out Vector128<float> pixel2,
-                            out Vector128<float> pixel3);
 
-                        pixel0.StoreUnsafe(ref packed, offset);
-                        pixel1.StoreUnsafe(ref packed, offset + 4);
-                        pixel2.StoreUnsafe(ref packed, offset + 8);
-                        pixel3.StoreUnsafe(ref packed, offset + 12);
+                    if (channels != 4)
+                    {
+                        k = Vector128<float>.One;
                     }
+
+                    // Transpose four component registers into four component tuples, then store them contiguously.
+                    SimdUtils.Transpose4(
+                        x,
+                        y,
+                        z,
+                        k,
+                        out Vector128<float> pixel0,
+                        out Vector128<float> pixel1,
+                        out Vector128<float> pixel2,
+                        out Vector128<float> pixel3);
+
+                    nuint offset = (uint)i * 4;
+                    pixel0.StoreUnsafe(ref packed, offset);
+                    pixel1.StoreUnsafe(ref packed, offset + 4);
+                    pixel2.StoreUnsafe(ref packed, offset + 8);
+                    pixel3.StoreUnsafe(ref packed, offset + 12);
                 }
             }
 
             // Finish with the same scalar operator. With SIMD disabled, this loop handles every pixel.
+            ref Vector4 vectors = ref MemoryMarshal.GetReference(destination);
+
             for (; i < count; i++)
             {
                 nuint offset = (uint)i;
-                nuint packedOffset = offset * (uint)channels;
                 float x = Unsafe.Add(ref c0, offset);
                 float y = channels >= 3 ? Unsafe.Add(ref c1, offset) : 0F;
                 float z = channels >= 3 ? Unsafe.Add(ref c2, offset) : 0F;
                 float k = channels == 4 ? Unsafe.Add(ref c3, offset) : 0F;
                 TOperator.ConvertToProfile(ref x, ref y, ref z, ref k, this.MaximumValue, halfValue, scale, profileSpace);
-                Unsafe.Add(ref packed, packedOffset) = x;
 
-                if (channels >= 3)
+                Unsafe.Add(ref vectors, offset) = channels switch
                 {
-                    Unsafe.Add(ref packed, packedOffset + 1) = y;
-                    Unsafe.Add(ref packed, packedOffset + 2) = z;
-                }
-
-                if (channels == 4)
-                {
-                    Unsafe.Add(ref packed, packedOffset + 3) = k;
-                }
+                    1 => new Vector4(x, x, x, 1F),
+                    3 => new Vector4(x, y, z, 1F),
+                    _ => new Vector4(x, y, z, k),
+                };
             }
         }
 
@@ -357,39 +347,26 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgb(in ComponentValues source, Span<Rgb> destination, ColorProfileConverter profileConverter, Span<float> scratch)
+        public override void ConvertToRgb(in ComponentValues source, Span<Vector4> destination, ColorProfileConverter profileConverter)
         {
-            int length = source.Component0.Length;
-
-            // Grayscale expands from one component to three. Keep its source in the spare final row segment,
-            // beyond the RGB destination, so packing one block cannot overwrite the next block's luminance.
-            Span<float> samples = TOperator.ComponentCount == 1 ? scratch.Slice(length * 3, length) : scratch[..(length * TOperator.ComponentCount)];
+            Span<Vector4> vectors = destination[..source.Component0.Length];
             IccColorSpaceType profileSpace = profileConverter.Options.SourceIccProfile.Header.DataColorSpace;
 
             // Apply scaling, inversion and the profile's model in the same traversal that interleaves the planes.
-            // The operator receives the existing profile space; no second packed-row model conversion is required.
-            this.UnpackProfileComponents(source, samples, profileSpace);
+            // The vectors already have the color model's scaled layout, so the ICC operator reads them directly.
+            this.UnpackProfileComponents(source, vectors, profileSpace);
 
-            switch (TOperator.ColorSpace)
+            ColorProfileConverterExtensionsIcc.IccTransform transform = profileConverter.GetIccTransform();
+            transform.Converter.Convert(vectors, vectors, transform.ConvertsW);
+
+            // A four-channel profile reads W as K and leaves no alpha. JPEG pixels are opaque, so set W after the transform.
+            // For other profiles W is not color data, and the transform keeps the opaque W written by the unpack step.
+            if (transform.ConvertsW)
             {
-                case JpegColorSpace.Luminance:
-                    profileConverter.Convert<Y, Rgb>(MemoryMarshal.Cast<float, Y>(samples), destination);
-                    break;
-
-                case JpegColorSpace.Cmyk:
-                case JpegColorSpace.TiffCmyk:
-                case JpegColorSpace.Ycck:
-                case JpegColorSpace.TiffYccK:
-                    profileConverter.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(samples), destination);
-                    break;
-
-                case JpegColorSpace.YCbCr when profileSpace == IccColorSpaceType.YCbCr:
-                    profileConverter.Convert<YCbCr, Rgb>(MemoryMarshal.Cast<float, YCbCr>(samples), destination);
-                    break;
-
-                default:
-                    profileConverter.Convert<Rgb, Rgb>(MemoryMarshal.Cast<float, Rgb>(samples), destination);
-                    break;
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    vectors[i].W = 1F;
+                }
             }
         }
 

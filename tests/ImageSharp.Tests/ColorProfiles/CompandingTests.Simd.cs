@@ -14,8 +14,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <content>
 /// Verifies extended companding through the single-color and bulk APIs.
 /// </content>
-/// <param name="testOutputHelper">Receives table precision measurements.</param>
-public partial class CompandingTests(ITestOutputHelper testOutputHelper)
+public partial class CompandingTests
 {
     private static readonly string[] CompandingCurves =
     [
@@ -67,38 +66,6 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks table endpoints for nonfinite RGB in complete SIMD pairs and the remaining color.
-    /// </summary>
-    [Fact]
-    public void TableCompanding_BoundsNonfiniteRgb() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-        CheckTableCompandingNonfiniteRgb,
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-
-    /// <summary>
-    /// Checks the bounded table contract independently of transfer-curve approximation.
-    /// </summary>
-    private static void CheckTableCompandingNonfiniteRgb()
-    {
-        // An identity table exposes endpoint selection directly. The third color exercises the scalar tail after an AVX2 pair.
-        float[] table = CompandingUtilities.GetExpandLookupTable<CompandingTests>(static (value, _) => value);
-        Vector4[] colors =
-        [
-            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 0.25F),
-            new(float.PositiveInfinity, float.NegativeInfinity, float.NaN, -0.25F),
-            new(float.NaN, float.PositiveInfinity, float.NegativeInfinity, 1.25F)
-        ];
-
-        Vector4[] expected = [new(0F, 1F, 0F, 0.25F), new(1F, 0F, 0F, -0.25F), new(0F, 1F, 0F, 1.25F)];
-        for (int i = 0; i < colors.Length; i++)
-        {
-            Assert.Equal(expected[i], CompandingUtilities.Compand(colors[i], table));
-        }
-
-        CompandingUtilities.Compand(colors, table);
-        Assert.Equal(expected, colors);
-    }
-
-    /// <summary>
     /// Checks finite and IEEE alpha values across complete SIMD blocks and remaining colors.
     /// </summary>
     private static void CheckOperatorCompanding()
@@ -132,91 +99,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
     }
 
     /// <summary>
-    /// Checks table interpolation between sixteen-bit codes and reports error in sixteen-bit channel levels.
-    /// </summary>
-    [Fact]
-    public void TableInterpolation_PreservesSelectedPrecision()
-    {
-        foreach (int bitDepth in new[] { 8, 16 })
-        {
-            foreach ((string curve, bool compress, float input, float error) in CheckTableInterpolation(bitDepth))
-            {
-                testOutputHelper.WriteLine(
-                    $"{curve}, bitDepth={bitDepth}, compress={compress}: error={error * ushort.MaxValue:R} sixteen-bit levels at input={input:R}.");
-            }
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            static () =>
-            {
-                CheckTableInterpolation(8);
-                CheckTableInterpolation(16);
-            },
-            HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-    }
-
-    /// <summary>
-    /// Compares table nodes and quarter intervals with the curve formulas at each supported table precision.
-    /// </summary>
-    /// <param name="bitDepth">The table precision to verify.</param>
-    /// <returns>The largest absolute error and its input for each curve and direction.</returns>
-    private static (string Curve, bool Compress, float Input, float Error)[] CheckTableInterpolation(int bitDepth)
-    {
-        // Processing produces fractional codes. Four samples per table interval check interpolation as well as stored entries.
-        // Include the endpoint and an odd sample count to cover the table's scalar remainder.
-        const int samplesPerInterval = 4;
-        const int intervals = ushort.MaxValue * samplesPerInterval;
-        Vector4[] source = new Vector4[intervals + 1];
-        for (int i = 0; i < source.Length; i++)
-        {
-            source[i] = new Vector4(i / (float)intervals, 0F, 0F, 1.25F);
-        }
-
-        List<(string Curve, bool Compress, float Input, float Error)> measurements = [];
-
-        // Gamma and Rec.709 retain the eight-bit table limit. The other curves also support sixteen-bit SDR tables.
-        // Keep the existing eight-bit error bound and the existing one-millionth bound for higher precision.
-        ReadOnlySpan<string> curves = bitDepth == 8
-            ? CompandingCurves
-            : [nameof(SRgbCompanding), nameof(Rec2020Companding), nameof(LCompanding)];
-
-        ApproximateFloatComparer comparer = bitDepth == 8 ? new(0.5F / byte.MaxValue) : Comparer;
-        foreach (string curve in curves)
-        {
-            foreach (bool compress in new[] { false, true })
-            {
-                Vector4[] actual = source.ToArray();
-                ApplyCompanding(curve, compress, actual, bitDepth, PixelColorRange.Sdr);
-
-                float maximumError = 0F;
-                float worstInput = 0F;
-                for (int i = 0; i < source.Length; i++)
-                {
-                    float input = source[i].X;
-                    float expected = ExpectedComponent(curve, compress, input);
-                    Vector4 single = ApplyCompanding(curve, compress, source[i], bitDepth, PixelColorRange.Sdr);
-                    Assert.Equal(expected, actual[i].X, comparer);
-                    Assert.Equal(expected, single.X, comparer);
-                    Assert.Equal(source[i].W, actual[i].W);
-                    Assert.Equal(source[i].W, single.W);
-
-                    float error = MathF.Max(MathF.Abs(expected - actual[i].X), MathF.Abs(expected - single.X));
-                    if (error > maximumError)
-                    {
-                        maximumError = error;
-                        worstInput = input;
-                    }
-                }
-
-                measurements.Add((curve, compress, worstInput, maximumError));
-            }
-        }
-
-        return measurements.ToArray();
-    }
-
-    /// <summary>
-    /// Checks every eight-bit code against the curve formulas and verifies the bounded table behavior.
+    /// Checks every eight-bit code against the curve formulas and verifies the SDR bounds.
     /// </summary>
     [Fact]
     public void EightBitCompanding_MatchesFormulas() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -224,7 +107,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Uses half an eight-bit channel level as the table error bound and checks alpha exactly.
+    /// Uses half an eight-bit channel level as the error bound and checks alpha exactly.
     /// </summary>
     private static void CheckEightBitCompanding()
     {
@@ -236,7 +119,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
             source[i] = new Vector4(value, value, value, 1.25F);
         }
 
-        // Eight-bit tables clip RGB to their input range and leave alpha unchanged.
+        // SDR companding clips RGB to [0,1] and leaves alpha unchanged.
         source[^1] = new Vector4(-1F, 2F, 0.5F, -0.25F);
 
         foreach (string curve in CompandingCurves)
@@ -244,7 +127,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
             foreach (bool compress in new[] { false, true })
             {
                 Vector4[] actual = source.ToArray();
-                ApplyCompanding(curve, compress, actual, 8, PixelColorRange.Sdr);
+                ApplyCompanding(curve, compress, actual, PixelColorRange.Sdr);
 
                 for (int i = 0; i < source.Length; i++)
                 {
@@ -255,7 +138,7 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
                         ExpectedComponent(curve, compress, input.Z),
                         source[i].W);
 
-                    Vector4 single = ApplyCompanding(curve, compress, source[i], 8, PixelColorRange.Sdr);
+                    Vector4 single = ApplyCompanding(curve, compress, source[i], PixelColorRange.Sdr);
                     Assert.Equal(expected, actual[i], comparer);
                     Assert.Equal(expected, single, comparer);
                     Assert.Equal(source[i].W, actual[i].W);
@@ -331,48 +214,44 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
         ReadOnlySpan<int> lengths = [0, 1, 2, 3, 4, 5, 7, 31, 257];
         Random random = new(42);
 
-        ReadOnlySpan<int> bitDepths = [8, 10, 12, 16, 32];
-        foreach (int bitDepth in bitDepths)
+        foreach (string curve in CompandingCurves)
         {
-            foreach (string curve in CompandingCurves)
+            foreach (bool compress in new[] { false, true })
             {
-                foreach (bool compress in new[] { false, true })
+                foreach (int length in lengths)
                 {
-                    foreach (int length in lengths)
+                    // Negative RGB checks the curve's lower segment. Values above one detect unintended SDR clipping.
+                    Vector4[] source = random.GenerateRandomVectorArray(length, -2F, 16F);
+                    Vector4[] actual = source.ToArray();
+                    ApplyCompanding(curve, compress, actual, PixelColorRange.Extended);
+
+                    for (int i = 0; i < source.Length; i++)
                     {
-                        // Negative RGB checks the curve's lower segment. Values above one detect unintended SDR clipping.
-                        Vector4[] source = random.GenerateRandomVectorArray(length, -2F, 16F);
-                        Vector4[] actual = source.ToArray();
-                        ApplyCompanding(curve, compress, actual, bitDepth, PixelColorRange.Extended);
+                        Vector4 input = source[i];
+                        Vector4 expected = new(
+                            ExpectedComponent(curve, compress, input.X),
+                            ExpectedComponent(curve, compress, input.Y),
+                            ExpectedComponent(curve, compress, input.Z),
+                            input.W);
 
-                        for (int i = 0; i < source.Length; i++)
-                        {
-                            Vector4 input = source[i];
-                            Vector4 expected = new(
-                                ExpectedComponent(curve, compress, input.X),
-                                ExpectedComponent(curve, compress, input.Y),
-                                ExpectedComponent(curve, compress, input.Z),
-                                input.W);
+                        Vector4 single = ApplyCompanding(curve, compress, input, PixelColorRange.Extended);
 
-                            Vector4 single = ApplyCompanding(curve, compress, input, bitDepth, PixelColorRange.Extended);
+                        // The direct path uses the measured power approximation bound. Scaling retains the
+                        // relative bound for HDR values and the absolute bound near zero.
+                        Vector4 scale = Vector4.Max(Vector4.Abs(expected), Vector4.One);
+                        scale.W = 1F;
+                        Assert.True(
+                            DirectComparer.Equals(expected / scale, actual[i] / scale),
+                            $"{curve}, compress={compress}, input={input}, expected={expected}, actual={actual[i]}.");
 
-                            // The direct path uses the measured power approximation bound. Scaling retains the
-                            // relative bound for HDR values and the absolute bound near zero. Tables use separate checks.
-                            Vector4 scale = Vector4.Max(Vector4.Abs(expected), Vector4.One);
-                            scale.W = 1F;
-                            Assert.True(
-                                DirectComparer.Equals(expected / scale, actual[i] / scale),
-                                $"{curve}, compress={compress}, bitDepth={bitDepth}, input={input}, expected={expected}, actual={actual[i]}.");
+                        Assert.Equal(expected / scale, single / scale, DirectComparer);
 
-                            Assert.Equal(expected / scale, single / scale, DirectComparer);
+                        // Scalar and bulk entry points use the same approximation. Keep their tighter agreement check.
+                        Assert.Equal(single / scale, actual[i] / scale, Comparer);
 
-                            // Scalar and bulk entry points use the same approximation. Keep their tighter agreement check.
-                            Assert.Equal(single / scale, actual[i] / scale, Comparer);
-
-                            // Alpha can be signed or above one too. Companding must preserve its exact stored bits.
-                            Assert.Equal(BitConverter.SingleToInt32Bits(input.W), BitConverter.SingleToInt32Bits(actual[i].W));
-                            Assert.Equal(BitConverter.SingleToInt32Bits(input.W), BitConverter.SingleToInt32Bits(single.W));
-                        }
+                        // Alpha can be signed or above one too. Companding must preserve its exact stored bits.
+                        Assert.Equal(BitConverter.SingleToInt32Bits(input.W), BitConverter.SingleToInt32Bits(actual[i].W));
+                        Assert.Equal(BitConverter.SingleToInt32Bits(input.W), BitConverter.SingleToInt32Bits(single.W));
                     }
                 }
             }
@@ -478,41 +357,40 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
     /// <param name="curve">The compander under test.</param>
     /// <param name="compress">Whether to encode linear values.</param>
     /// <param name="values">The colors to transform in place.</param>
-    /// <param name="bitDepth">The requested component precision.</param>
     /// <param name="colorRange">The input color range.</param>
-    private static void ApplyCompanding(string curve, bool compress, Span<Vector4> values, int bitDepth, PixelColorRange colorRange)
+    private static void ApplyCompanding(string curve, bool compress, Span<Vector4> values, PixelColorRange colorRange)
     {
         switch ((curve, compress))
         {
             case (nameof(SRgbCompanding), false):
-                SRgbCompanding.Expand(values, bitDepth, colorRange);
+                SRgbCompanding.Expand(values, colorRange);
                 break;
             case (nameof(SRgbCompanding), true):
-                SRgbCompanding.Compress(values, bitDepth, colorRange);
+                SRgbCompanding.Compress(values, colorRange);
                 break;
             case (nameof(GammaCompanding), false):
-                GammaCompanding.Expand(values, 2.2, bitDepth, colorRange);
+                GammaCompanding.Expand(values, 2.2, colorRange);
                 break;
             case (nameof(GammaCompanding), true):
-                GammaCompanding.Compress(values, 2.2, bitDepth, colorRange);
+                GammaCompanding.Compress(values, 2.2, colorRange);
                 break;
             case (nameof(Rec709Companding), false):
-                Rec709Companding.Expand(values, bitDepth, colorRange);
+                Rec709Companding.Expand(values, colorRange);
                 break;
             case (nameof(Rec709Companding), true):
-                Rec709Companding.Compress(values, bitDepth, colorRange);
+                Rec709Companding.Compress(values, colorRange);
                 break;
             case (nameof(Rec2020Companding), false):
-                Rec2020Companding.Expand(values, bitDepth, colorRange);
+                Rec2020Companding.Expand(values, colorRange);
                 break;
             case (nameof(Rec2020Companding), true):
-                Rec2020Companding.Compress(values, bitDepth, colorRange);
+                Rec2020Companding.Compress(values, colorRange);
                 break;
             case (nameof(LCompanding), false):
-                LCompanding.Expand(values, bitDepth, colorRange);
+                LCompanding.Expand(values, colorRange);
                 break;
             case (nameof(LCompanding), true):
-                LCompanding.Compress(values, bitDepth, colorRange);
+                LCompanding.Compress(values, colorRange);
                 break;
         }
     }
@@ -523,22 +401,21 @@ public partial class CompandingTests(ITestOutputHelper testOutputHelper)
     /// <param name="curve">The compander under test.</param>
     /// <param name="compress">Whether to encode linear values.</param>
     /// <param name="value">The input color.</param>
-    /// <param name="bitDepth">The requested component precision.</param>
     /// <param name="colorRange">The input color range.</param>
     /// <returns>The converted color.</returns>
-    private static Vector4 ApplyCompanding(string curve, bool compress, Vector4 value, int bitDepth, PixelColorRange colorRange)
+    private static Vector4 ApplyCompanding(string curve, bool compress, Vector4 value, PixelColorRange colorRange)
         => (curve, compress) switch
         {
-            (nameof(SRgbCompanding), false) => SRgbCompanding.Expand(value, bitDepth, colorRange),
-            (nameof(SRgbCompanding), true) => SRgbCompanding.Compress(value, bitDepth, colorRange),
-            (nameof(GammaCompanding), false) => GammaCompanding.Expand(value, 2.2, bitDepth, colorRange),
-            (nameof(GammaCompanding), true) => GammaCompanding.Compress(value, 2.2, bitDepth, colorRange),
-            (nameof(Rec709Companding), false) => Rec709Companding.Expand(value, bitDepth, colorRange),
-            (nameof(Rec709Companding), true) => Rec709Companding.Compress(value, bitDepth, colorRange),
-            (nameof(Rec2020Companding), false) => Rec2020Companding.Expand(value, bitDepth, colorRange),
-            (nameof(Rec2020Companding), true) => Rec2020Companding.Compress(value, bitDepth, colorRange),
-            (nameof(LCompanding), false) => LCompanding.Expand(value, bitDepth, colorRange),
-            (nameof(LCompanding), true) => LCompanding.Compress(value, bitDepth, colorRange),
+            (nameof(SRgbCompanding), false) => SRgbCompanding.Expand(value, colorRange),
+            (nameof(SRgbCompanding), true) => SRgbCompanding.Compress(value, colorRange),
+            (nameof(GammaCompanding), false) => GammaCompanding.Expand(value, 2.2, colorRange),
+            (nameof(GammaCompanding), true) => GammaCompanding.Compress(value, 2.2, colorRange),
+            (nameof(Rec709Companding), false) => Rec709Companding.Expand(value, colorRange),
+            (nameof(Rec709Companding), true) => Rec709Companding.Compress(value, colorRange),
+            (nameof(Rec2020Companding), false) => Rec2020Companding.Expand(value, colorRange),
+            (nameof(Rec2020Companding), true) => Rec2020Companding.Compress(value, colorRange),
+            (nameof(LCompanding), false) => LCompanding.Expand(value, colorRange),
+            (nameof(LCompanding), true) => LCompanding.Compress(value, colorRange),
             _ => throw new ArgumentException("Unknown compander.", nameof(curve))
         };
 

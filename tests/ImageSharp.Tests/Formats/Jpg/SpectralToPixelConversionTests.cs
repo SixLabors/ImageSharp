@@ -41,7 +41,7 @@ public class SpectralToPixelConversionTests
         JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default));
         using SpectralConverter<TPixel> converter = new(Configuration.Default);
         using JpegDecoderCore decoder = new(options);
-        HuffmanScanDecoder scanDecoder = new(bufferedStream, converter, cancellationToken: default);
+        using HuffmanScanDecoder scanDecoder = new(bufferedStream, converter, Configuration.Default.MemoryAllocator, cancellationToken: default);
         decoder.ParseStream(bufferedStream, converter, cancellationToken: default);
 
         // Test metadata

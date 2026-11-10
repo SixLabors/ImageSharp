@@ -11,6 +11,7 @@ using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
 using SkiaSharp;
 using ImageSharpImage = SixLabors.ImageSharp.Image;
@@ -221,6 +222,36 @@ public class LoadResizeSaveStressRunner
 
         using ImageSharpImage image = JpegDecoder.Instance.Decode(options, inputStream);
         this.LogImageProcessed(image.Width, image.Height);
+
+        // Reduce the size of the file
+        image.Metadata.ExifProfile = null;
+        image.Metadata.XmpProfile = null;
+        image.Metadata.IccProfile = null;
+        image.Metadata.IptcProfile = null;
+
+        // Save the results
+        image.Save(outputStream, this.imageSharpJpegEncoder);
+    }
+
+    /// <summary>
+    /// Decodes the full image, resizes it in a separate processing step, and saves the result.
+    /// This measures the default load path without decoder scaling.
+    /// </summary>
+    /// <param name="input">The input file path.</param>
+    public void ImageSharpFullDecodeResize(string input)
+    {
+        using FileStream inputStream = File.Open(input, FileMode.Open);
+        using FileStream outputStream = File.Open(this.OutputPath(input), FileMode.Create);
+
+        using ImageSharpImage image = ImageSharpImage.Load(DecoderOptions.Default, inputStream);
+        this.LogImageProcessed(image.Width, image.Height);
+
+        // Resize it to fit a 150x150 square
+        image.Mutate(x => x.Resize(new ResizeOptions
+        {
+            Size = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize),
+            Mode = ResizeMode.Max
+        }));
 
         // Reduce the size of the file
         image.Metadata.ExifProfile = null;

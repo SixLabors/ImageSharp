@@ -62,9 +62,9 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private ColorProfileConverter iccConverter;
 
     /// <summary>
-    /// Reusable ICC output and scratch storage, allocated only when decoding with a profile.
+    /// Reusable ICC row of scaled vectors, allocated only when decoding with a profile.
     /// </summary>
-    private IMemoryOwner<float> iccRowBuffer;
+    private IMemoryOwner<Vector4> iccRowBuffer;
 
     /// <summary>
     /// The profile <see cref="iccConverter"/> was built for.
@@ -169,9 +169,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             this.iccConverterProfile = iccProfile;
 
-            // Four floats per pixel fit every JPEG source model and the three-channel RGB result.
-            // The converter keeps grayscale input beyond the RGB destination and compacts four-channel input in place.
-            this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<float>(width * 4);
+            // One vector per pixel holds every JPEG source model and the RGB result in place.
+            this.iccRowBuffer ??= this.Configuration.MemoryAllocator.Allocate<Vector4>(width);
         }
 
         for (int yy = this.pixelRowCounter; yy < maxY; yy++)
@@ -185,29 +184,16 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             if (iccProfile != null)
             {
-                Span<float> row = this.iccRowBuffer.GetSpan();
-                Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(row[..(width * 3)]);
-                Span<float> scratch = row[..(width * 4)];
+                Span<Vector4> row = this.iccRowBuffer.GetSpan()[..width];
 
-                // Convert only visible samples. The explicit RGB destination also handles grayscale
-                // without writing through its aliased component planes.
-                this.colorConverter.ConvertToRgb(values.Slice(0, width), rgb, this.iccConverter, scratch);
+                // Convert only visible samples. The row receives straight sRGB vectors with opaque alpha.
+                this.colorConverter.ConvertToRgb(values.Slice(0, width), row, this.iccConverter);
 
                 // ICC can produce fractional RGB and values outside [0,1], even from bounded JPEG components.
                 // Let TPixel apply its own range and precision instead of clipping every destination through bytes.
-                // Sixteen vectors hold one full Vector512 batch. Separate stack storage protects the packed RGB row
-                // while RGB expands from three floats to four and the destructive pixel packer reuses its input.
-                InlineArray16<Vector4> storage = default;
-                Span<Vector4> vectors = storage;
-                Span<TPixel> pixelRow = this.pixelBuffer.DangerousGetRowSpan(yy);
-
-                for (int x = 0; x < width; x += vectors.Length)
-                {
-                    int count = Math.Min(vectors.Length, width - x);
-                    Span<Vector4> block = vectors[..count];
-                    Rgb.ToScaledVector4(rgb.Slice(x, count), block);
-                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.Configuration, block, pixelRow.Slice(x, count));
-                }
+                // Pack the complete row in one call. Bulk pixel operations use SIMD only above a minimum length,
+                // and the row is not needed after this call, so the destructive packer can reuse it.
+                PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.Configuration, row, this.pixelBuffer.DangerousGetRowSpan(yy));
 
                 continue;
             }

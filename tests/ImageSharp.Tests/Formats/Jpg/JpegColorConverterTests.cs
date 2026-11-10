@@ -219,11 +219,9 @@ public partial class JpegColorConverterTests
         };
 
         // The converter under test gets its own instance, so the reference below uses independently built transforms.
-        float[] scratch = new float[length * 4];
-        Span<Rgb> actualRgb = MemoryMarshal.Cast<float, Rgb>(scratch.AsSpan())[..length];
-
-        // The decoder reuses packed profile storage for RGB. Cover overlap, including expanding one-channel grayscale.
-        converter.ConvertToRgb(actual, actualRgb, new ColorProfileConverter(options), scratch);
+        // The decoder converts each row in place in one vector per sample. Cover every source model in that storage.
+        Vector4[] actualRgb = new Vector4[length];
+        converter.ConvertToRgb(actual, actualRgb, new ColorProfileConverter(options));
         ColorProfileConverter profileConverter = new(options);
         ColorProfileConverter modelConverter = new();
         float maximumValue = MathF.Pow(2, precision) - 1;
@@ -298,9 +296,12 @@ public partial class JpegColorConverterTests
             }
 
             // Direct model conversion applies only the coding matrix; it must not add a working-space round trip.
-            Assert.Equal(expected.R, actualRgb[i].R, ToRgbTolerance);
-            Assert.Equal(expected.G, actualRgb[i].G, ToRgbTolerance);
-            Assert.Equal(expected.B, actualRgb[i].B, ToRgbTolerance);
+            Assert.Equal(expected.R, actualRgb[i].X, ToRgbTolerance);
+            Assert.Equal(expected.G, actualRgb[i].Y, ToRgbTolerance);
+            Assert.Equal(expected.B, actualRgb[i].Z, ToRgbTolerance);
+
+            // JPEG pixels are opaque. The decoder packs W as alpha for pixel formats that store it.
+            Assert.Equal(1F, actualRgb[i].W);
         }
     }
 

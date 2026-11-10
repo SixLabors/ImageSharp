@@ -91,9 +91,9 @@ internal abstract partial class HeifColorConverterBase
                 Numerics.UnPremultiply(vectors);
             }
 
-            // The shared converter uses rgbSpan for the profile transform and writes RGB back into vectors without changing alpha.
+            // The shared converter transforms RGB in vectors without changing alpha.
             // The decoder then packs vectors into TPixel, including the destination's alpha representation.
-            profileConverter.Convert(vectors, rgbSpan);
+            profileConverter.Convert(vectors);
         }
 
         /// <inheritdoc />

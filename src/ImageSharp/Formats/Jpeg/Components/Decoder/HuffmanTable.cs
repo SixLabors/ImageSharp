@@ -53,12 +53,33 @@ internal struct HuffmanTable
     public InlineArray256<byte> LookaheadValue;
 
     /// <summary>
+    /// The flag of a combined lookup entry that holds the decoded value.
+    /// </summary>
+    public const int FastComplete = 1 << 6;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
     /// </summary>
     /// <param name="codeLengths">The code lengths.</param>
     /// <param name="values">The huffman values.</param>
     /// <param name="workspace">The provided spare workspace memory, can be dirty.</param>
-    public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
+    /// <param name="fastLookup">
+    /// The combined lookup table to fill, <see cref="JpegConstants.Huffman.FastSize"/> entries, can be dirty.
+    /// It is indexed by the next <see cref="JpegConstants.Huffman.FastBits"/> bits of the stream.
+    /// The table is kept outside the struct because it is 8 KB. The scan decoder owns it in pooled memory.
+    /// <list type="bullet">
+    /// <item>Bits 0 to 4: the bits to consume. Bit 5 is always zero, so a 64-bit shift by the entry consumes them.</item>
+    /// <item>Bit 6: <see cref="FastComplete"/>. Set when the symbol has no value bits, or when the code and its
+    /// value bits fit in the index. Then bits 0 to 4 count the code and the value bits.
+    /// Clear when the value bits are past the index. Then bits 0 to 4 count only the code.</item>
+    /// <item>Bits 8 to 15: the symbol.</item>
+    /// <item>Bits 16 to 31: the signed value of a complete entry.</item>
+    /// </list>
+    /// Zero means the code is longer than <see cref="JpegConstants.Huffman.FastBits"/> bits, or is not valid.
+    /// The value is decoded from the low nibble of the symbol. This is the AC run/size layout (ITU T.81, F.1.2.2)
+    /// and also the DC size layout for symbols up to 15.
+    /// </param>
+    public HuffmanTable(ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace, Span<int> fastLookup)
     {
         Unsafe.CopyBlockUnaligned(ref this.Values[0], ref MemoryMarshal.GetReference(values), (uint)values.Length);
 
@@ -133,6 +154,43 @@ internal struct HuffmanTable
                     this.LookaheadSize[lookBits] = (byte)length;
                     this.LookaheadValue[lookBits] = this.Values[p];
                     lookBits++;
+                }
+            }
+        }
+
+        // Build the combined table the same way: each code of at most FastBits bits fills all entries it prefixes.
+        // The low nibble of the symbol is the count of value bits that follow the code. When code and value bits
+        // fit in the index, the index already holds the value bits, so one table read decodes the value too.
+        // Entries that no code of at most FastBits bits prefixes stay zero and select the slow path.
+        fastLookup.Clear();
+        p = 0;
+        for (int length = 1; length <= JpegConstants.Huffman.FastBits; length++)
+        {
+            int shift = JpegConstants.Huffman.FastBits - length;
+            for (int i = 1; i <= codeLengths[length]; i++, p++)
+            {
+                int symbol = this.Values[p];
+                int magnitude = symbol & 15;
+                int first = (int)(workspace[p] << shift);
+                for (int j = 0; j < 1 << shift; j++)
+                {
+                    int entry;
+                    if (magnitude == 0)
+                    {
+                        entry = length | FastComplete | (symbol << 8);
+                    }
+                    else if (length + magnitude <= JpegConstants.Huffman.FastBits)
+                    {
+                        // The value bits follow the code in the low bits of the index.
+                        int bits = (j >> (shift - magnitude)) & ((1 << magnitude) - 1);
+                        entry = (length + magnitude) | FastComplete | (symbol << 8) | (JpegBitReader.Extend(bits, magnitude) << 16);
+                    }
+                    else
+                    {
+                        entry = length | (symbol << 8);
+                    }
+
+                    fastLookup[first + j] = entry;
                 }
             }
         }

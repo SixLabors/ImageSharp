@@ -105,19 +105,28 @@ internal static class Vector128_
         const float Numerator = 1.725879990F;
         const float Denominator = 0.3520887068F;
         const uint SmallestNormalBits = 0x00800000;
+        const uint InfinityBits = 0x7F800000;
         const float SubnormalScale = 1 << 24;
 
-        // Zero uses a safe logarithm input and is restored after exponentiation. Keep this rule in
-        // the shared helper so finite gamma stages do not need the general power dispatcher.
+        // Positive normal finite bases have bit patterns in [SmallestNormalBits, InfinityBits). Subtracting the lower
+        // bound maps that range to [0, InfinityBits - SmallestNormalBits) as unsigned integers. Subnormal, infinite,
+        // NaN and negative bases fall outside it. Zero also falls outside it, but black pixels make zero common, so the
+        // fast path restores zero lanes with the same selection as the special path. One test per block finds blocks
+        // where no other special handling changes any lane. Ordinary lanes use the same arithmetic on both paths.
         Vector128<float> zero = Vector128.Equals(value, Vector128<float>.Zero);
-        Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, value);
-        Vector128<uint> small = Vector128.LessThan(positive.AsUInt32(), Vector128.Create(SmallestNormalBits));
-        bool hasSmall = small != Vector128<uint>.Zero;
+        Vector128<uint> ordinary = Vector128.LessThan(
+            value.AsUInt32() - Vector128.Create(SmallestNormalBits),
+            Vector128.Create(InfinityBits - SmallestNormalBits));
+        bool special = (ordinary | zero.AsUInt32()) != Vector128<uint>.AllBitsSet;
 
-        // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
-        Vector128<float> normalized = positive;
-        if (hasSmall)
+        Vector128<uint> small = default;
+        Vector128<float> normalized = value;
+        if (special)
         {
+            // Zero uses a safe logarithm input in this path. The selection after exponentiation restores its result.
+            // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
+            Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, value);
+            small = Vector128.LessThan(positive.AsUInt32(), Vector128.Create(SmallestNormalBits));
             normalized = Vector128.ConditionalSelect(small.AsSingle(), positive * Vector128.Create(SubnormalScale), positive);
         }
 
@@ -128,7 +137,7 @@ internal static class Vector128_
         Vector128<float> logarithm = (Vector128.ConvertToSingle(bits) * Vector128.Create(ExponentScale)) - Vector128.Create(Offset);
         logarithm -= Vector128.Create(Linear) * mantissa;
         logarithm -= Vector128.Create(Numerator) / (Vector128.Create(Denominator) + mantissa);
-        if (hasSmall)
+        if (special)
         {
             logarithm -= Vector128.ConditionalSelect(small.AsSingle(), Vector128.Create(24F), Vector128<float>.Zero);
         }
@@ -136,18 +145,21 @@ internal static class Vector128_
         Vector128<float> result = Exp2(logarithm * Vector128.Create(exponent));
 
         // Exponent zero is handled before this helper. Other powers of zero give zero or positive infinity.
+        // A zero lane's logarithm input is not meaningful on the fast path. This selection replaces its result on both paths.
         float zeroResult = exponent < 0F ? float.PositiveInfinity : 0F;
         result = Vector128.ConditionalSelect(zero, Vector128.Create(zeroResult), result);
 
-        if (Vector128.EqualsAny(value, Vector128.Create(float.PositiveInfinity)))
+        if (special)
         {
             float infinityResult = exponent < 0F ? 0F : float.PositiveInfinity;
             result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128.Create(float.PositiveInfinity)), Vector128.Create(infinityResult), result);
+
+            // These selections also keep an exceptional neighbor from changing an ordinary lane's calculation.
+            result = Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
         }
 
-        // These selections also keep an exceptional neighbor from changing an ordinary lane's calculation.
-        result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128<float>.One), value, result);
-        return Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
+        // The logarithm approximation is not exactly zero at one. Keep one exact on both paths.
+        return Vector128.ConditionalSelect(Vector128.Equals(value, Vector128<float>.One), value, result);
     }
 
     /// <summary>

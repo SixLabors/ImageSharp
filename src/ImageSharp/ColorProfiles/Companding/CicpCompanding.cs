@@ -27,14 +27,6 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// </remarks>
 internal static partial class CicpCompanding
 {
-    // The modifier separates H.273 code points in the existing companding cache. Each table
-    // samples the same scalar curve as the direct path, including the H.273 coefficients.
-    private static readonly Func<double, double, double> ExpandFunction = static (value, characteristic)
-        => ToLinear((CicpTransferCharacteristics)(int)characteristic, (float)value);
-
-    private static readonly Func<double, double, double> CompressFunction = static (value, characteristic)
-        => ToGamma((CicpTransferCharacteristics)(int)characteristic, (float)value);
-
     /// <summary>
     /// The BT.709 and BT.2020 nonlinear scale factor.
     /// </summary>
@@ -111,89 +103,49 @@ internal static partial class CicpCompanding
     private const float HlgC = 0.55991073F;
 
     /// <summary>
-    /// Expands RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
+    /// Expands RGB with the H.273 curve.
     /// </summary>
     /// <param name="values">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and final result limits. The H.273 curve can impose narrower limits.</param>
-    public static void Expand(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
+    public static void Expand(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, PixelColorRange colorRange)
     {
-        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
-        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
-        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
-        {
-            CompandingUtilities.Compand(values, CompandingUtilities.GetExpandLookupTable<CicpCompandingKey>(ExpandFunction, (int)transferCharacteristics));
-        }
-        else
-        {
-            ExpandCore(values, transferCharacteristics, colorRange);
-        }
+        ExpandCore(values, transferCharacteristics, colorRange);
     }
 
     /// <summary>
-    /// Expands RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
+    /// Expands RGB with the H.273 curve.
     /// </summary>
     /// <param name="value">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and final result limits. The H.273 curve can impose narrower limits.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Expand(Vector4 value, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
+    public static Vector4 Expand(Vector4 value, CicpTransferCharacteristics transferCharacteristics, PixelColorRange colorRange)
     {
-        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
-        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
-        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
-        {
-            return CompandingUtilities.Compand(
-                value,
-                CompandingUtilities.GetExpandLookupTable<CicpCompandingKey>(ExpandFunction, (int)transferCharacteristics));
-        }
-
         ExpandCore(MemoryMarshal.CreateSpan(ref value, 1), transferCharacteristics, colorRange);
         return value;
     }
 
     /// <summary>
-    /// Compresses RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
+    /// Compresses RGB with the H.273 curve.
     /// </summary>
     /// <param name="values">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and final result limits. The H.273 curve can impose narrower limits.</param>
-    public static void Compress(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
+    public static void Compress(Span<Vector4> values, CicpTransferCharacteristics transferCharacteristics, PixelColorRange colorRange)
     {
-        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
-        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
-        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
-        {
-            CompandingUtilities.Compand(values, CompandingUtilities.GetCompressLookupTable<CicpCompandingKey>(CompressFunction, (int)transferCharacteristics));
-        }
-        else
-        {
-            CompressCore(values, transferCharacteristics, colorRange);
-        }
+        CompressCore(values, transferCharacteristics, colorRange);
     }
 
     /// <summary>
-    /// Compresses RGB with the H.273 curve. Eight-bit SDR conversion uses tables. Other ranges and precisions use direct arithmetic.
+    /// Compresses RGB with the H.273 curve.
     /// </summary>
     /// <param name="value">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="transferCharacteristics">The signaled transfer curve.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and final result limits. The H.273 curve can impose narrower limits.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Compress(Vector4 value, CicpTransferCharacteristics transferCharacteristics, int bitDepth, PixelColorRange colorRange)
+    public static Vector4 Compress(Vector4 value, CicpTransferCharacteristics transferCharacteristics, PixelColorRange colorRange)
     {
-        // H.273 includes power and logarithmic curves that lose precision with table interpolation.
-        // Retain the eight-bit SDR limit until each curve is verified at higher precision.
-        if (bitDepth == 8 && colorRange == PixelColorRange.Sdr)
-        {
-            return CompandingUtilities.Compand(
-                value,
-                CompandingUtilities.GetCompressLookupTable<CicpCompandingKey>(CompressFunction, (int)transferCharacteristics));
-        }
-
         CompressCore(MemoryMarshal.CreateSpan(ref value, 1), transferCharacteristics, colorRange);
         return value;
     }
@@ -477,9 +429,4 @@ internal static partial class CicpCompanding
                 break;
         }
     }
-
-    /// <summary>
-    /// Separates H.273 tables from the other companders in the shared cache.
-    /// </summary>
-    private sealed class CicpCompandingKey;
 }

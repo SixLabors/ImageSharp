@@ -243,7 +243,6 @@ public class BokehBlurTest
                 x.BokehBlur(bounds, value.Radius, value.Components, value.Gamma);
             },
             testOutputDetails: value.ToString(),
-            ImageComparer.TolerantPercentage(0.05f),
             appendPixelTypeToFileName: false);
         }
 

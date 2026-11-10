@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -194,11 +193,11 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
         }
         else
         {
-            Guard.NotNull(configuration, nameof(configuration));
-
-            // RGB24 output has no room for an RGBA intermediate. Retain one allocator-owned packed row for this conversion.
-            using IMemoryOwner<Rgba32> owner = configuration.MemoryAllocator.Allocate<Rgba32>(source.Length);
-            Span<Rgba32> packed = owner.Memory.Span;
+            // Three-byte output has no room for an RGBA intermediate, but the destructive source row has 16 bytes per pixel.
+            // Stage the 4-byte RGBA values at the start of that row. Every SIMD block loads its 4 source vectors before it
+            // stores 1 byte vector, and each later store ends below the next unread source vector. The scalar remainder
+            // reads float i before it writes byte i. So the staged bytes never overwrite unread floats.
+            Span<Rgba32> packed = MemoryMarshal.Cast<Vector4, Rgba32>(source)[..source.Length];
             SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.AsBytes(packed));
             this.FromRgba32(configuration, packed, destination);
         }

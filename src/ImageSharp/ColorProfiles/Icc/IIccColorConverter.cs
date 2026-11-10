@@ -32,5 +32,12 @@ internal interface IIccColorConverter
     /// </summary>
     /// <param name="source">The source components.</param>
     /// <param name="destination">Storage for at least as many colors as the source.</param>
-    void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination);
+    /// <param name="convertW">
+    /// <see langword="true"/> when W is a color component of the source or target profile, as K is for CMYK.
+    /// The operator then reads and writes W.
+    /// <see langword="false"/> when W is not color data, for example the alpha of an RGB pixel.
+    /// The operator then receives W = 1, the value that <see cref="Rgb.ToScaledVector4()"/> supplies,
+    /// and the destination keeps the source W.
+    /// </param>
+    void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination, bool convertW);
 }

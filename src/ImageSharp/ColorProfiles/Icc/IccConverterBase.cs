@@ -37,5 +37,6 @@ internal abstract partial class IccConverterBase
     /// </summary>
     /// <param name="source">The source components.</param>
     /// <param name="destination">The destination components.</param>
-    public void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination) => this.calculator.Convert(source, destination);
+    /// <remarks>W passes to the profile transform as a color component, as for the scalar overload.</remarks>
+    public void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination) => this.calculator.Convert(source, destination, true);
 }

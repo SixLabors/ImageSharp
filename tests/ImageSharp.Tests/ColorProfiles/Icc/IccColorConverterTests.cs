@@ -84,7 +84,7 @@ public class IccColorConverterTests
             inputs[i] = new Vector4((i - 16) / 16F, (8 - i) / 16F, i / 16F, 1F);
         }
 
-        new IccColorConverter<PcsOperator>(operation).Convert(inputs, actual);
+        new IccColorConverter<PcsOperator>(operation).Convert(inputs, actual, true);
 
         // The stored adjustment coefficients are rounded floats. Their forward/reverse composition
         // left at most 1.686E-7 error across scalar and SIMD paths. Round upward to 2E-7 for float differences.
@@ -130,8 +130,8 @@ public class IccColorConverterTests
                 // Compare the same formula and power implementation. Specialization must only remove setup decisions.
                 Vector4[] expected = new Vector4[source.Length];
                 Vector4[] actual = new Vector4[source.Length];
-                new IccColorConverter<TrcOperator>(general).Convert(source, expected);
-                new IccColorConverter<SRgbTrcOperator>(selected).Convert(source, actual);
+                new IccColorConverter<TrcOperator>(general).Convert(source, expected, true);
+                new IccColorConverter<SRgbTrcOperator>(selected).Convert(source, actual, true);
                 Assert.Equal(expected, actual, new ApproximateFloatComparer(0F));
             }
         }
@@ -199,7 +199,7 @@ public class IccColorConverterTests
                         IccColorConverter<LutColorOperator> converter = new(new LutColorOperator(entry, trilinear));
                         ClutOperator expected = new(reference, trilinear);
                         Vector4[] actual = new Vector4[source.Length];
-                        converter.Convert(source, actual);
+                        converter.Convert(source, actual, true);
 
                         for (int i = 0; i < source.Length; i++)
                         {
@@ -215,7 +215,7 @@ public class IccColorConverterTests
                             channels > 2 ? referenceValues[2] : 0F,
                             channels > 3 ? referenceValues[3] : 0F);
 
-                        converter.Convert(vertexSource, vertexActual);
+                        converter.Convert(vertexSource, vertexActual, true);
                         foreach (Vector4 value in vertexActual)
                         {
                             Assert.Equal(firstNode, value, new ApproximateFloatComparer(1E-6F));
@@ -282,7 +282,7 @@ public class IccColorConverterTests
                 Vector4[] source = Enumerable.Repeat((Vector4)test[1], 31).ToArray();
                 Vector4[] actual = new Vector4[source.Length];
                 IccColorConverter<SampledLutColorOperator> converter = new(actualOperator);
-                converter.Convert(source, actual);
+                converter.Convert(source, actual, true);
 
                 for (int i = 0; i < source.Length; i++)
                 {
@@ -409,7 +409,7 @@ public class IccColorConverterTests
                     source[i] = samples[i % samples.Length];
                 }
 
-                converter.Convert(source, actual);
+                converter.Convert(source, actual, true);
                 for (int i = 0; i < source.Length; i++)
                 {
                     Vector4 bounded = ColorNumerics.ClampToFinite(source[i], Vector4.Zero, Vector4.One);
@@ -452,7 +452,7 @@ public class IccColorConverterTests
                 source[i] = new Vector4(samples[i % samples.Length]);
             }
 
-            converter.Convert(source, actual);
+            converter.Convert(source, actual, true);
             for (int i = 0; i < source.Length; i++)
             {
                 // The identity ramp returns bounded X; NaN follows the existing clamp rule and becomes zero.
@@ -495,7 +495,7 @@ public class IccColorConverterTests
                     }
                 }
 
-                converter.Convert(source, actual);
+                converter.Convert(source, actual, true);
                 for (int i = 0; i < source.Length; i++)
                 {
                     // The forward square is exact; the inverse square root uses the measured approximation bound.
@@ -706,7 +706,7 @@ public class IccColorConverterTests
                 source[i] = (Vector4)cases[i % cases.Length][1];
             }
 
-            converter.Convert(source, actual);
+            converter.Convert(source, actual, true);
             for (int i = 0; i < source.Length; i++)
             {
                 VectorAssert.Equal((Vector4)cases[i % cases.Length][2], actual[i], 4);
@@ -714,7 +714,7 @@ public class IccColorConverterTests
 
             // ICC callers reuse their PCS row in place. Conversion must also leave storage beyond that row untouched.
             Assert.Equal(sentinel, actual[^1]);
-            converter.Convert(source, source);
+            converter.Convert(source, source, true);
             for (int i = 0; i < source.Length; i++)
             {
                 VectorAssert.Equal((Vector4)cases[i % cases.Length][2], source[i], 4);

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 
@@ -94,10 +95,11 @@ internal abstract partial class JpegColorConverterBase
     /// Converts JPEG codes to straight sRGB through the source ICC profile without changing the source planes.
     /// </summary>
     /// <param name="source">The source JPEG component planes.</param>
-    /// <param name="destination">The straight sRGB output.</param>
+    /// <param name="destination">
+    /// The output, one scaled straight sRGB vector per sample with W set to one. The span is also the profile input storage.
+    /// </param>
     /// <param name="profileConverter">The transform from the source profile to sRGB.</param>
-    /// <param name="scratch">Caller-owned storage for one to four normalized components per sample.</param>
-    public abstract void ConvertToRgb(in ComponentValues source, Span<Rgb> destination, ColorProfileConverter profileConverter, Span<float> scratch);
+    public abstract void ConvertToRgb(in ComponentValues source, Span<Vector4> destination, ColorProfileConverter profileConverter);
 
     /// <summary>
     /// Converts straight sRGB to JPEG codes through the destination ICC profile without changing the source colors.

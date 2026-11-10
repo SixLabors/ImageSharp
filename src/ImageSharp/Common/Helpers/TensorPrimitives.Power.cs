@@ -233,8 +233,10 @@ internal static partial class TensorPrimitives_
             Vector128<float> result = Vector128_.Pow(magnitude, this.Exponent);
 
             // Odd integer powers retain the base sign. Fractional powers reject finite negative bases.
-            Vector128<float> oddMask = Vector128.Create(this.OddMask).AsSingle();
-            result = Vector128.ConditionalSelect(oddMask, Vector128.CopySign(result, value), result);
+            // The power of a magnitude has a clear sign bit, so OR inserts the base sign bit for odd powers.
+            // This is CopySign without the runtime's cross-platform Vector128.CopySign, which the JIT does not
+            // compile to a direct instruction sequence here.
+            result |= value & Vector128.Create(this.OddMask & 0x80000000U).AsSingle();
             Vector128<float> negativeFinite = Vector128.LessThan(value, Vector128<float>.Zero)
                 & Vector128.LessThan(magnitude, Vector128.Create(float.PositiveInfinity));
             negativeFinite &= ~Vector128.Create(this.IntegerMask).AsSingle();

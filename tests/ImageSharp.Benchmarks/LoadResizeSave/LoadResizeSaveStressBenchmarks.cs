@@ -51,6 +51,10 @@ public class LoadResizeSaveStressBenchmarks
 
     [Benchmark]
     [ArgumentsSource(nameof(ParallelismValues))]
+    public void ImageSharpFullDecode(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.ImageSharpFullDecodeResize, maxDegreeOfParallelism);
+
+    [Benchmark]
+    [ArgumentsSource(nameof(ParallelismValues))]
     public void Magick(int maxDegreeOfParallelism) => this.ForEachImage(this.runner.MagickResize, maxDegreeOfParallelism);
 
     [Benchmark]

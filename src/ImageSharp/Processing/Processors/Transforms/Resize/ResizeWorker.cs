@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -17,12 +16,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 /// maximized by <see cref="Configuration.WorkingBufferSizeHintInBytes"/>.
 /// The height of the window is a multiple of the vertical kernel's maximum diameter.
 /// When sliding the window, the contents of the bottom window band are copied to the new top band.
-/// For more details, and visual explanation, see "ResizeWorker.pptx".
+/// For more details, and diagrams of the buffers and the SIMD operators, see "ResizeWorker.md".
 /// </summary>
 internal sealed class ResizeWorker<TPixel> : IDisposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
+    /// <summary>
+    /// The first-pass rows of the window. Row Y holds the horizontally filtered pixels of source row
+    /// <c>currentWindow.Min + Y</c>, one pixel for each destination X.
+    /// </summary>
+    private readonly IMemoryOwner<Vector4> firstPassBuffer;
 
     private readonly Configuration configuration;
 
@@ -38,7 +41,20 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
     private readonly Rectangle sourceRectangle;
 
-    private readonly IMemoryOwner<Vector4> tempRowBuffer;
+    /// <summary>
+    /// The two source rows that the horizontal pass converts to vectors and convolves at the same time.
+    /// </summary>
+    /// <remarks>
+    /// The buffer holds floats, not vectors, so that the rows can start at any multiple of 4 bytes. Each row starts on
+    /// a 64-byte boundary in the buffer. See <see cref="CalculateFirstPassValues"/>.
+    /// </remarks>
+    private readonly IMemoryOwner<float> tempRowsBuffer;
+
+    /// <summary>
+    /// The distance in floats from the first source row in <see cref="tempRowsBuffer"/> to the second. This is a
+    /// multiple of 16 floats (64 bytes), so that both rows start on a 64-byte boundary.
+    /// </summary>
+    private readonly int tempRowStride;
 
     private readonly IMemoryOwner<Vector4> tempColumnBuffer;
 
@@ -102,42 +118,52 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
         this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
-        this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
-            this.workerHeight,
-            targetWorkingRect.Width,
-            preferContiguosImageBuffers: true,
-            options: AllocationOptions.Clean);
+        // The first pass writes every pixel of a window row before the vertical pass reads it, so the buffer needs no clear.
+        this.firstPassBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.workerHeight * targetWorkingRect.Width);
 
-        this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
+        // The horizontal operators read PaddedLength taps. The taps after the length of each kernel have the weight zero,
+        // but a kernel at the end of the row reads up to PaddedLength - MaxDiameter pixels after the row. These pixels
+        // must be finite, because a weight of zero times a finite value is zero. The clean buffer gives them the value
+        // zero, and the conversion of a source row never writes them.
+        //
+        // Each row has the source pixels and then this padding. The stride rounds the row up to a multiple of
+        // 4 pixels (64 bytes), so that the second row starts on a 64-byte boundary when the first row does.
+        // The memory allocator does not align its buffers, so the buffer has 15 more floats. The rows start at the
+        // first 64-byte boundary in the buffer, 0 to 15 floats after its start.
+        int padding = horizontalKernelMap.PaddedLength - horizontalKernelMap.MaxDiameter;
+        this.tempRowStride = ((this.sourceRectangle.Width + padding + 3) & ~3) * 4;
+        this.tempRowsBuffer = configuration.MemoryAllocator.Allocate<float>((this.tempRowStride * 2) + 15, AllocationOptions.Clean);
         this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
 
         this.currentWindow = new RowInterval(0, this.workerHeight);
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
-        this.transposedFirstPassBuffer.Dispose();
-        this.tempRowBuffer.Dispose();
+        this.firstPassBuffer.Dispose();
+        this.tempRowsBuffer.Dispose();
         this.tempColumnBuffer.Dispose();
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public Span<Vector4> GetColumnSpan(int x, int startY)
-        => this.transposedFirstPassBuffer.DangerousGetRowSpan(x)[(startY - this.currentWindow.Min)..];
-
+    /// <summary>
+    /// Calculates the first-pass rows of the first window.
+    /// </summary>
     public void Initialize()
         => this.CalculateFirstPassValues(this.currentWindow);
 
+    /// <summary>
+    /// Calculates the destination pixels of <paramref name="rowInterval"/> with the vertical kernels.
+    /// </summary>
+    /// <param name="rowInterval">The destination rows.</param>
+    /// <param name="destination">The destination buffer.</param>
     public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
     {
         Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
-
-        // When creating transposedFirstPassBuffer, we made sure it's contiguous.
-        Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
+        Span<Vector4> firstPass = this.firstPassBuffer.GetSpan();
 
         int left = this.targetWorkingRect.Left;
         int width = this.targetWorkingRect.Width;
-        nuint widthCount = (uint)width;
 
         // Normalize destination-space Y to kernel indices using uint arithmetic.
         // This relies on the contract that processing addresses are normalized (cropping/padding handled by targetOrigin).
@@ -146,14 +172,16 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         // Hoist invariant calculations outside the loop.
         int currentWindowMax = this.currentWindow.Max;
         int currentWindowMin = this.currentWindow.Min;
-        nuint workerHeight = (uint)this.workerHeight;
-        nuint workerHeight2 = workerHeight * 2;
+
+        // The kernels address floats. A pixel is 4 floats, so one first-pass row is width * 4 floats long.
+        nuint rowStride = (uint)width * 4;
+        int length = this.verticalKernelMap.MaxDiameter;
 
         // Ref-walk the kernel table to avoid bounds checks in the tight loop.
         ReadOnlySpan<ResizeKernel> vKernels = this.verticalKernelMap.GetKernelSpan();
         ref ResizeKernel vKernelBase = ref MemoryMarshal.GetReference(vKernels);
-
-        ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
+        ref float weightsBase = ref this.verticalKernelMap.GetWeightsReference();
+        ref float tempRowBase = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(tempColSpan));
 
         for (int y = rowInterval.Min; y < rowInterval.Max; y++)
         {
@@ -170,25 +198,15 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
                 currentWindowMin = this.currentWindow.Min;
             }
 
-            int top = kernel.StartIndex - currentWindowMin;
-            ref Vector4 colRef0 = ref transposedFirstPassBufferSpan[top];
-
-            // Unroll by 2 and advance column refs via arithmetic to reduce inner-loop overhead.
-            nuint i = 0;
-            for (; i + 1 < widthCount; i += 2)
-            {
-                ref Vector4 colRef1 = ref Unsafe.Add(ref colRef0, workerHeight);
-
-                Unsafe.Add(ref tempRowBase, i) = kernel.ConvolveCore(ref colRef0);
-                Unsafe.Add(ref tempRowBase, i + 1) = kernel.ConvolveCore(ref colRef1);
-
-                colRef0 = ref Unsafe.Add(ref colRef0, workerHeight2);
-            }
-
-            if (i < widthCount)
-            {
-                Unsafe.Add(ref tempRowBase, i) = kernel.ConvolveCore(ref colRef0);
-            }
+            // The kernel reads its rows of the window. Neighboring destination pixels are neighbors in each row.
+            ref float rows = ref Unsafe.As<Vector4, float>(ref firstPass[(kernel.StartIndex - currentWindowMin) * width]);
+            ResizeKernel.ConvolveColumns(
+                ref Unsafe.Add(ref weightsBase, (uint)kernel.WeightsOffset),
+                ref rows,
+                rowStride,
+                length,
+                width,
+                ref tempRowBase);
 
             Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
             if (this.compand)
@@ -213,17 +231,19 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         }
     }
 
+    /// <summary>
+    /// Moves the window down. The bottom band of rows becomes the top band, and the first pass calculates the other rows.
+    /// </summary>
     private void Slide()
     {
         int minY = this.currentWindow.Max - this.windowBandHeight;
         int maxY = Math.Min(minY + this.workerHeight, this.sourceRectangle.Height);
 
-        // Copy previous bottom band to the new top:
-        // (rows <--> columns, because the buffer is transposed)
-        this.transposedFirstPassBuffer.DangerousCopyColumns(
-            this.workerHeight - this.windowBandHeight,
-            0,
-            this.windowBandHeight);
+        // The rows are contiguous, so the bottom band is one block. A slide occurs only when the window holds at least
+        // 2 bands, so the source and destination blocks do not overlap.
+        int width = this.targetWorkingRect.Width;
+        Span<Vector4> firstPass = this.firstPassBuffer.GetSpan();
+        firstPass.Slice((this.workerHeight - this.windowBandHeight) * width, this.windowBandHeight * width).CopyTo(firstPass);
 
         this.currentWindow = new RowInterval(minY, maxY);
 
@@ -231,74 +251,89 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         this.CalculateFirstPassValues(this.currentWindow.Slice(this.windowBandHeight));
     }
 
+    /// <summary>
+    /// Calculates the first-pass rows of the source rows of <paramref name="calculationInterval"/> with the horizontal kernels.
+    /// </summary>
+    /// <param name="calculationInterval">The source rows.</param>
     private void CalculateFirstPassValues(RowInterval calculationInterval)
     {
-        Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-        Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
+        // Start the two rows at the first 64-byte boundary of the buffer. The horizontal map aligns each kernel start
+        // to a multiple of 4 pixels (64 bytes), so all pixel loads of the operators then start on a cache line.
+        // The offset is calculated again for each call, because the garbage collector can move a managed buffer.
+        // If the offset changes, the padding after a row can contain old pixels of an earlier row. These pixels are
+        // finite, and their weights are zero, so the results do not change.
+        Span<float> rowsBuffer = this.tempRowsBuffer.GetSpan();
+        int rowsStart = ResizeKernel.GetCacheLineOffset(rowsBuffer);
+        int sourceWidth = this.sourceRectangle.Width;
+        Span<Vector4> row0 = MemoryMarshal.Cast<float, Vector4>(rowsBuffer.Slice(rowsStart, sourceWidth * 4));
+        Span<Vector4> row1 = MemoryMarshal.Cast<float, Vector4>(rowsBuffer.Slice(rowsStart + this.tempRowStride, sourceWidth * 4));
+        ref float row0Base = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(row0));
+        ref float row1Base = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(row1));
+        Span<Vector4> firstPass = this.firstPassBuffer.GetSpan();
 
-        nuint left = (uint)this.targetWorkingRect.Left;
-        nuint right = (uint)this.targetWorkingRect.Right;
-        nuint widthCount = right - left;
-
-        // Normalize destination-space X to kernel indices using uint arithmetic.
+        // Normalize destination-space X to kernel indices. The kernel of the first working column is at left - targetOriginX.
         // This relies on the contract that processing addresses are normalized (cropping/padding handled by targetOrigin).
-        nuint targetOriginX = (uint)this.targetOrigin.X;
-
-        nuint workerHeight = (uint)this.workerHeight;
-        int currentWindowMin = this.currentWindow.Min;
-
-        // Ref-walk the kernel table to avoid bounds checks in the tight loop.
         ReadOnlySpan<ResizeKernel> hKernels = this.horizontalKernelMap.GetKernelSpan();
-        ref ResizeKernel hKernelBase = ref MemoryMarshal.GetReference(hKernels);
+        ref ResizeKernel kernelBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(hKernels), this.targetWorkingRect.Left - this.targetOrigin.X);
+        int width = this.targetWorkingRect.Width;
+        int currentWindowMin = this.currentWindow.Min;
+        int length = this.horizontalKernelMap.PaddedLength;
+        ref float weightsBase = ref this.horizontalKernelMap.GetWeightsReference();
 
-        for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
+        // The operators convolve 2 source rows at the same time, so that each weight load serves both rows.
+        // If the interval has an odd number of rows, the last step has 1 row. That step gives the same row and the same
+        // first-pass row to both inputs of the operators. They calculate the same values twice and store them to the
+        // same place. This costs one extra row of work for each interval, and keeps one code path.
+        for (int y = calculationInterval.Min; y < calculationInterval.Max; y += 2)
         {
-            Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
-            if (this.compand)
+            bool pair = y + 1 < calculationInterval.Max;
+            this.ConvertSourceRow(y, row0);
+            if (pair)
             {
-                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
-                SRgbCompanding.Expand(tempRowSpan, this.colorRange);
-
-                // Interpolate in associated alpha only after expanding the straight color values.
-                if (this.premultiply)
-                {
-                    Numerics.Premultiply(tempRowSpan);
-                }
-            }
-            else if (this.premultiply)
-            {
-                PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
-            }
-            else
-            {
-                PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, tempRowSpan);
+                this.ConvertSourceRow(y + 1, row1);
             }
 
-            ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - currentWindowMin];
+            // The pixels of destination X go to window row y - currentWindowMin, one pixel for each X.
+            int y1 = pair ? y + 1 : y;
+            ResizeKernel.ConvolveRows(
+                ref kernelBase,
+                ref weightsBase,
+                ref row0Base,
+                ref pair ? ref row1Base : ref row0Base,
+                length,
+                width,
+                ref Unsafe.As<Vector4, float>(ref firstPass[(y - currentWindowMin) * width]),
+                ref Unsafe.As<Vector4, float>(ref firstPass[(y1 - currentWindowMin) * width]));
+        }
+    }
 
-            // Unroll by 2 to reduce loop and kernel lookup overhead.
-            nuint x = left;
-            nuint z = 0;
+    /// <summary>
+    /// Converts one source row to scaled vectors in the representation of the resize: straight or associated alpha,
+    /// and companded to linear light if requested.
+    /// </summary>
+    /// <param name="y">The source row, relative to the source region.</param>
+    /// <param name="destination">The vectors, one for each source pixel.</param>
+    private void ConvertSourceRow(int y, Span<Vector4> destination)
+    {
+        Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
+        if (this.compand)
+        {
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, destination);
+            SRgbCompanding.Expand(destination, this.colorRange);
 
-            for (; z + 1 < widthCount; x += 2, z += 2)
+            // Interpolate in associated alpha only after expanding the straight color values.
+            if (this.premultiply)
             {
-                nuint hIdx0 = (uint)(x - targetOriginX);
-                nuint hIdx1 = (uint)((x + 1) - targetOriginX);
-
-                ref ResizeKernel kernel0 = ref Unsafe.Add(ref hKernelBase, (nint)hIdx0);
-                ref ResizeKernel kernel1 = ref Unsafe.Add(ref hKernelBase, (nint)hIdx1);
-
-                Unsafe.Add(ref firstPassBaseRef, z * workerHeight) = kernel0.Convolve(tempRowSpan);
-                Unsafe.Add(ref firstPassBaseRef, (z + 1) * workerHeight) = kernel1.Convolve(tempRowSpan);
+                Numerics.Premultiply(destination);
             }
-
-            if (z < widthCount)
-            {
-                nuint hIdx = (uint)(x - targetOriginX);
-                ref ResizeKernel kernel = ref Unsafe.Add(ref hKernelBase, (nint)hIdx);
-
-                Unsafe.Add(ref firstPassBaseRef, z * workerHeight) = kernel.Convolve(tempRowSpan);
-            }
+        }
+        else if (this.premultiply)
+        {
+            PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, destination);
+        }
+        else
+        {
+            PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(this.configuration, sourceRow, destination);
         }
     }
 }

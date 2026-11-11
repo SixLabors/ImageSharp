@@ -121,7 +121,8 @@ public class ResizeTests
             default,
             destSize.Height,
             image0.Height,
-            Configuration.Default.MemoryAllocator);
+            Configuration.Default.MemoryAllocator,
+            false);
         int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
         verticalKernelMap.Dispose();
 

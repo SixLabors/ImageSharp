@@ -773,6 +773,57 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Widens sixteen unsigned bytes to four vectors of signed 32-bit integers, in source order.
+    /// </summary>
+    /// <remarks>Element j of vector k holds byte 4k + j.</remarks>
+    /// <param name="value">The sixteen byte lanes.</param>
+    /// <param name="v0">The values of bytes 0 to 3.</param>
+    /// <param name="v1">The values of bytes 4 to 7.</param>
+    /// <param name="v2">The values of bytes 8 to 11.</param>
+    /// <param name="v3">The values of bytes 12 to 15.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Widen(
+        Vector128<byte> value,
+        out Vector128<int> v0,
+        out Vector128<int> v1,
+        out Vector128<int> v2,
+        out Vector128<int> v3)
+    {
+        if (Sse41.IsSupported)
+        {
+            // pmovzxbd widens the four lowest bytes. A byte shift of 4, 8, or 12 moves the next group of four bytes to the lowest position.
+            v0 = Sse41.ConvertToVector128Int32(value);
+            v1 = Sse41.ConvertToVector128Int32(Sse2.ShiftRightLogical128BitLane(value, 4));
+            v2 = Sse41.ConvertToVector128Int32(Sse2.ShiftRightLogical128BitLane(value, 8));
+            v3 = Sse41.ConvertToVector128Int32(Sse2.ShiftRightLogical128BitLane(value, 12));
+            return;
+        }
+
+        // Bytes widen to words, then words to 32-bit integers. On Arm64, the first step uses uxtl and uxtl2,
+        // and the second step uses sxtl and sxtl2. Each word is in [0, 255]. Thus, the signed widening gives
+        // the same values as an unsigned widening.
+        (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(value);
+        (v0, v1) = Vector128.Widen(lower.AsInt16());
+        (v2, v3) = Vector128.Widen(upper.AsInt16());
+    }
+
+    /// <summary>
+    /// Narrows four vectors of signed 32-bit integers to one vector of bytes, in source order, with unsigned saturation.
+    /// </summary>
+    /// <remarks>
+    /// A negative value becomes 0, and a value above 255 becomes 255. Byte k holds element k % 4 of vector k / 4.
+    /// The 128-bit packs keep the source order on every platform.
+    /// </remarks>
+    /// <param name="v0">The values for bytes 0 to 3.</param>
+    /// <param name="v1">The values for bytes 4 to 7.</param>
+    /// <param name="v2">The values for bytes 8 to 11.</param>
+    /// <param name="v3">The values for bytes 12 to 15.</param>
+    /// <returns>The <see cref="Vector128{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> NarrowToByteWithSaturation(Vector128<int> v0, Vector128<int> v1, Vector128<int> v2, Vector128<int> v3)
+        => PackUnsignedSaturate(PackSignedSaturate(v0, v1), PackSignedSaturate(v2, v3));
+
+    /// <summary>
     /// Packs signed 16-bit integers to signed 8-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

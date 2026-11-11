@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -24,7 +25,7 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
         FloatingPointDCT.AdjustToIDCT(ref this.dequantizationTable);
     }
 
-    public override void CopyBlocksToColorBuffer(int spectralStep)
+    public override void CopyBlocksToColorBuffer(int spectralStep, bool clearBlocks)
     {
         Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
 
@@ -33,12 +34,9 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
         int destAreaStride = this.ColorBuffer.Width;
 
         int blocksRowsPerStep = this.Component.SamplingFactors.Height;
-
-        int yBlockStart = spectralStep * blocksRowsPerStep;
-
         Size subSamplingDivisors = this.Component.SubSamplingDivisors;
 
-        Block8x8F workspaceBlock = default;
+        int yBlockStart = spectralStep * blocksRowsPerStep;
 
         for (int y = 0; y < blocksRowsPerStep; y++)
         {
@@ -47,42 +45,17 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
             Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
             Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
 
-            for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
-            {
-                ref Block8x8 block = ref blockRow[xBlock];
-                if (block.IsDcOnly())
-                {
-                    // This block has only a DC coefficient.
-                    // In the two 1-D passes of TransformIDCT, the only operations on the DC term are x + 0 and x - 0.
-                    // Each multiplication has a zero input. Thus, all 64 outputs are equal to the dequantized DC.
-                    // This shortcut gives the same floats as the full transform.
-                    workspaceBlock.Fill(block[0] * this.dequantizationTable[0]);
-                }
-                else
-                {
-                    // Integer to float
-                    workspaceBlock.LoadFrom(ref block);
-
-                    // Dequantize
-                    workspaceBlock.MultiplyInPlace(ref this.dequantizationTable);
-
-                    // Convert from spectral to color
-                    FloatingPointDCT.TransformIDCT(ref workspaceBlock);
-                }
-
-                // Normalize into the component sample range without quantizing away
-                // fractional precision. The later color conversion / final pack stage
-                // performs the only rounding we actually need for output samples.
-                workspaceBlock.NormalizeColorsInPlace(maximumValue);
-
-                // Write to color buffer acording to sampling factors
-                int xColorBufferStart = xBlock * this.BlockAreaSize.Width;
-                workspaceBlock.ScaledCopyTo(
-                    ref colorBufferRow[xColorBufferStart],
-                    destAreaStride,
-                    subSamplingDivisors.Width,
-                    subSamplingDivisors.Height);
-            }
+            // Each block covers 8x8 samples, multiplied by the subsampling divisors of the component.
+            // The transform writes the samples directly into the color buffer.
+            FloatingPointDCT.TransformIDCT(
+                blockRow,
+                ref this.dequantizationTable,
+                maximumValue,
+                ref MemoryMarshal.GetReference(colorBufferRow),
+                destAreaStride,
+                subSamplingDivisors.Width,
+                subSamplingDivisors.Height,
+                clearBlocks);
         }
     }
 }

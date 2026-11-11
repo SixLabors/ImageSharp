@@ -34,22 +34,11 @@ internal abstract class ComponentProcessor : IDisposable
     /// Converts spectral data to color data accessible via <see cref="GetColorBufferRowSpan(int)"/>.
     /// </summary>
     /// <param name="row">Spectral row index to convert.</param>
-    public abstract void CopyBlocksToColorBuffer(int row);
-
-    /// <summary>
-    /// Clears spectral buffers.
-    /// </summary>
-    /// <remarks>
-    /// Should only be called during baseline interleaved decoding.
-    /// </remarks>
-    public void ClearSpectralBuffers()
-    {
-        Buffer2D<Block8x8> spectralBlocks = this.Component.SpectralBlocks;
-        for (int i = 0; i < spectralBlocks.Height; i++)
-        {
-            spectralBlocks.DangerousGetRowSpan(i).Clear();
-        }
-    }
+    /// <param name="clearBlocks">
+    /// <see langword="true"/> to clear each spectral block after the transform reads it. Baseline interleaved decoding
+    /// uses this, because it decodes the next MCU row into the same blocks. It writes the DC coefficient and only the non-zero AC coefficients.
+    /// </param>
+    public abstract void CopyBlocksToColorBuffer(int row, bool clearBlocks);
 
     /// <summary>
     /// Gets converted color buffer row.

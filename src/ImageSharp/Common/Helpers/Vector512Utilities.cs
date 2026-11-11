@@ -268,6 +268,40 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Narrows four vectors of signed 32-bit integers to one vector of bytes, in source order, with unsigned saturation.
+    /// </summary>
+    /// <remarks>
+    /// A negative value becomes 0, and a value above 255 becomes 255. Byte k holds element k % 16 of vector k / 16.
+    /// </remarks>
+    /// <param name="v0">The values for bytes 0 to 15.</param>
+    /// <param name="v1">The values for bytes 16 to 31.</param>
+    /// <param name="v2">The values for bytes 32 to 47.</param>
+    /// <param name="v3">The values for bytes 48 to 63.</param>
+    /// <returns>The <see cref="Vector512{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> NarrowToByteWithSaturation(Vector512<int> v0, Vector512<int> v1, Vector512<int> v2, Vector512<int> v3)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            // The packs work in each 128-bit lane L. After the two steps, dword 4L + j of the result holds the four
+            // narrowed bytes of elements 4L to 4L + 3 of vj. The permute moves these dwords back to source order.
+            Vector512<short> low = Avx512BW.PackSignedSaturate(v0, v1);
+            Vector512<short> high = Avx512BW.PackSignedSaturate(v2, v3);
+            Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(low, high);
+            Vector512<int> order = Vector512.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15);
+            return Vector512.ShuffleNative(packed.AsInt32(), order).AsByte();
+        }
+
+        // The portable narrowing keeps the source order. The signed step saturates to the 16-bit range. The maximum with
+        // zero then makes each value non-negative, so the unsigned step saturates it to [0, 255].
+        Vector512<short> lower = Vector512.NarrowWithSaturation(v0, v1);
+        Vector512<short> upper = Vector512.NarrowWithSaturation(v2, v3);
+        return Vector512.NarrowWithSaturation(
+            Vector512.Max(lower, Vector512<short>.Zero).AsUInt16(),
+            Vector512.Max(upper, Vector512<short>.Zero).AsUInt16());
+    }
+
+    /// <summary>
     /// Interleaves the lower signed 64-bit integers of each 128-bit lane.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>
@@ -441,6 +475,34 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Adds adjacent pairs of single-precision values in <paramref name="left"/>, then in <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The values whose pair sums fill the lower half of the result.</param>
+    /// <param name="right">The values whose pair sums fill the upper half of the result.</param>
+    /// <returns>
+    /// The vector (l0 + l1, l2 + l3, ..., l14 + l15, r0 + r1, ..., r14 + r15).
+    /// </returns>
+    /// <remarks>
+    /// Two two-source permutes gather the even values and the odd values of both sources in order. Indices 0 to 15
+    /// select from left and 16 to 31 from right. One addition then adds each pair. The portable form calls the
+    /// 256-bit operation once for each source, with the lower and upper halves of that source as the two operands.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> AddPairwise(Vector512<float> left, Vector512<float> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            Vector512<int> even = Vector512.Create(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30);
+            Vector512<int> odd = Vector512.Create(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
+            return Avx512F.PermuteVar16x32x2(left, even, right) + Avx512F.PermuteVar16x32x2(left, odd, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.AddPairwise(left.GetLower(), left.GetUpper()),
+            Vector256_.AddPairwise(right.GetLower(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Selects each 64-bit element from one of two vectors by index.
     /// </summary>
     /// <param name="lower">The vector that supplies indices 0 through 7.</param>
@@ -458,6 +520,28 @@ internal static class Vector512_
         // All masked indices are valid, so the native shuffles do not need out-of-range zeroing.
         Vector512<long> within = indices & Vector512.Create(7L);
         Vector512<long> selector = Vector512.Equals(indices & Vector512.Create(8L), Vector512.Create(8L));
+        return Vector512.ConditionalSelect(selector, Vector512.ShuffleNative(upper, within), Vector512.ShuffleNative(lower, within));
+    }
+
+    /// <summary>
+    /// Selects each 16-bit element from one of two vectors by index.
+    /// </summary>
+    /// <param name="lower">The vector that supplies indices 0 through 31.</param>
+    /// <param name="indices">The source index of each destination element.</param>
+    /// <param name="upper">The vector that supplies indices 32 through 63.</param>
+    /// <returns>The <see cref="Vector512{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> PermuteVar32x16x2(Vector512<short> lower, Vector512<short> indices, Vector512<short> upper)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.PermuteVar32x16x2(lower, indices, upper);
+        }
+
+        // The low five bits select an element. Bit 5 selects the source vector.
+        // All masked indices are valid, so the native shuffles do not need out-of-range zeroing.
+        Vector512<short> within = indices & Vector512.Create((short)31);
+        Vector512<short> selector = Vector512.Equals(indices & Vector512.Create((short)32), Vector512.Create((short)32));
         return Vector512.ConditionalSelect(selector, Vector512.ShuffleNative(upper, within), Vector512.ShuffleNative(lower, within));
     }
 

@@ -77,10 +77,17 @@ internal abstract partial class JpegColorConverterBase
         ?? throw new InvalidImageContentException($"Could not find any converter for JpegColorSpace {colorSpace}!");
 
     /// <summary>
-    /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place.
+    /// Converts planar JPEG component values to 8-bit RGB planes.
     /// </summary>
-    /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct</param>
-    public abstract void ConvertToRgb(in ComponentValues values);
+    /// <remarks>
+    /// The method converts the first <c>red.Length</c> samples of each component. It does not change the components.
+    /// Each byte is the normalized RGB value scaled to [0, 255], rounded to nearest with midpoint values away from zero, and saturated.
+    /// </remarks>
+    /// <param name="values">The source component planes. Each plane holds at least <c>red.Length</c> samples.</param>
+    /// <param name="red">The destination red plane.</param>
+    /// <param name="green">The destination green plane, with the length of <paramref name="red"/>.</param>
+    /// <param name="blue">The destination blue plane, with the length of <paramref name="red"/>.</param>
+    public abstract void ConvertToRgb(in ComponentValues values, Span<byte> red, Span<byte> green, Span<byte> blue);
 
     /// <summary>
     /// Converts RGB lanes to jpeg component values.

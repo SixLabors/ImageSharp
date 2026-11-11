@@ -415,6 +415,24 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Adds adjacent pairs of single-precision values in <paramref name="left"/>, then in <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The values whose pair sums fill the lower half of the result.</param>
+    /// <param name="right">The values whose pair sums fill the upper half of the result.</param>
+    /// <returns>
+    /// The vector (l0 + l1, l2 + l3, l4 + l5, l6 + l7, r0 + r1, r2 + r3, r4 + r5, r6 + r7).
+    /// </returns>
+    /// <remarks>
+    /// <see cref="HorizontalAdd(Vector256{float}, Vector256{float})"/> gives the same sums in 128-bit lane order:
+    /// (l01, l23, r01, r23 | l45, l67, r45, r67), where l01 is l0 + l1. Each 64-bit element holds two sums of one source.
+    /// The 64-bit permute (0, 2, 1, 3) puts the left elements first. The permute moves whole sums.
+    /// Thus, each sum is the same as the scalar sum of the same two values.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> AddPairwise(Vector256<float> left, Vector256<float> right)
+        => Vector256.ShuffleNative(HorizontalAdd(left, right).AsUInt64(), Vector256.Create(0UL, 2, 1, 3)).AsSingle();
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.
@@ -835,6 +853,69 @@ internal static class Vector256_
         Vector256<short> lefClamped = Vector256.Clamp(left, min, max);
         Vector256<short> rightClamped = Vector256.Clamp(right, min, max);
         return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
+    /// Narrows four vectors of signed 32-bit integers to one vector of bytes, in source order, with unsigned saturation.
+    /// </summary>
+    /// <remarks>
+    /// A negative value becomes 0, and a value above 255 becomes 255. Byte k holds element k % 8 of vector k / 8.
+    /// </remarks>
+    /// <param name="v0">The values for bytes 0 to 7.</param>
+    /// <param name="v1">The values for bytes 8 to 15.</param>
+    /// <param name="v2">The values for bytes 16 to 23.</param>
+    /// <param name="v3">The values for bytes 24 to 31.</param>
+    /// <returns>The <see cref="Vector256{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> NarrowToByteWithSaturation(Vector256<int> v0, Vector256<int> v1, Vector256<int> v2, Vector256<int> v3)
+    {
+        if (Avx2.IsSupported)
+        {
+            // The packs work in each 128-bit lane L. After the two steps, dword 4L + j of the result holds the four
+            // narrowed bytes of elements 4L to 4L + 3 of vj. The permute moves these dwords back to source order.
+            Vector256<short> low = Avx2.PackSignedSaturate(v0, v1);
+            Vector256<short> high = Avx2.PackSignedSaturate(v2, v3);
+            Vector256<byte> packed = Avx2.PackUnsignedSaturate(low, high);
+            return Vector256.ShuffleNative(packed.AsInt32(), Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7)).AsByte();
+        }
+
+        // The portable narrowing keeps the source order. The signed step saturates to the 16-bit range. The maximum with
+        // zero then makes each value non-negative, so the unsigned step saturates it to [0, 255].
+        Vector256<short> lower = Vector256.NarrowWithSaturation(v0, v1);
+        Vector256<short> upper = Vector256.NarrowWithSaturation(v2, v3);
+        return Vector256.NarrowWithSaturation(
+            Vector256.Max(lower, Vector256<short>.Zero).AsUInt16(),
+            Vector256.Max(upper, Vector256<short>.Zero).AsUInt16());
+    }
+
+    /// <summary>
+    /// Returns the lower 128 bits of <paramref name="left"/>, then the lower 128 bits of <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The source of the lower half of the result.</param>
+    /// <param name="right">The source of the upper half of the result.</param>
+    /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> CombineLower(Vector256<float> left, Vector256<float> right)
+
+        // The lower half of left stays in place. One insert puts the lower half of right into the upper half of the result.
+        => Vector256.Create(left.GetLower(), right.GetLower());
+
+    /// <summary>
+    /// Returns the upper 128 bits of <paramref name="left"/>, then the upper 128 bits of <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The source of the lower half of the result.</param>
+    /// <param name="right">The source of the upper half of the result.</param>
+    /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> CombineUpper(Vector256<float> left, Vector256<float> right)
+    {
+        // Control 0x31 selects the upper half of each source. One instruction replaces an extract and an insert.
+        if (Avx.IsSupported)
+        {
+            return Avx.Permute2x128(left, right, 0x31);
+        }
+
+        return Vector256.Create(left.GetUpper(), right.GetUpper());
     }
 
     /// <summary>

@@ -49,7 +49,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
     /// </summary>
-    private IJpegComponent[] components;
+    private JpegComponent[] components;
 
     /// <summary>
     /// Number of component in the current scan.
@@ -203,7 +203,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataInterleaved(IccProfile iccProfile)
     {
-        int mcu = 0;
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader buffer = ref this.scanBuffer;
@@ -216,12 +215,12 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             // decode from binary to spectral
             for (int i = 0; i < mcusPerLine; i++)
             {
-                // Scan an interleaved mcu... process components in order
-                int mcuCol = mcu % mcusPerLine;
+                // This loop decodes one interleaved MCU. It reads the components in scan order.
+                // The MCU column is i. The MCU row is j, and the spectral buffer holds only this MCU row.
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    JpegComponent component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order];
 
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                     ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
@@ -248,7 +247,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                                 return;
                             }
 
-                            int blockCol = (mcuCol * h) + x;
+                            int blockCol = (i * h) + x;
 
                             this.DecodeBlockBaseline(
                                 component,
@@ -263,7 +262,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 // After all interleaved components, that's an interleaved MCU,
                 // so now count down the restart interval
-                mcu++;
                 this.HandleRestart();
             }
 
@@ -274,7 +272,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
-        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]];
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;
@@ -430,7 +428,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private void ParseProgressiveDataInterleaved()
     {
         // Interleaved
-        int mcu = 0;
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader buffer = ref this.scanBuffer;
@@ -439,13 +436,12 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         {
             for (int i = 0; i < mcusPerLine; i++)
             {
-                // Scan an interleaved mcu... process components in order
-                int mcuRow = mcu / mcusPerLine;
-                int mcuCol = mcu % mcusPerLine;
+                // This loop decodes one interleaved MCU. It reads the components in scan order.
+                // The MCU row is j, and the MCU column is i.
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    JpegComponent component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order];
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
 
                     int h = component.HorizontalSamplingFactor;
@@ -455,7 +451,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     // by the basic H and V specified for the component
                     for (int y = 0; y < v; y++)
                     {
-                        int blockRow = (mcuRow * v) + y;
+                        int blockRow = (j * v) + y;
                         Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(blockRow);
                         ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
@@ -466,7 +462,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                                 return;
                             }
 
-                            int blockCol = (mcuCol * h) + x;
+                            int blockCol = (i * h) + x;
 
                             this.DecodeBlockProgressiveDC(
                                 component,
@@ -478,7 +474,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 // After all interleaved components, that's an interleaved MCU,
                 // so now count down the restart interval
-                mcu++;
                 this.HandleRestart();
             }
         }
@@ -486,7 +481,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]];
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;

@@ -201,9 +201,13 @@ internal abstract partial class JpegColorConverterBase
 
             // YccK first reconstructs inverted RGB in the integer sample domain. Rounding must occur before
             // subtracting from max and applying K because changing that order changes encoded JPEG semantics.
-            c0 = (maximumValue - MathF.Round(y + (YCbCrOperator.RCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
-            c1 = (maximumValue - MathF.Round(y - (YCbCrOperator.GCbMult * cb) - (YCbCrOperator.GCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
-            c2 = (maximumValue - MathF.Round(y + (YCbCrOperator.BCbMult * cb), MidpointRounding.AwayFromZero)) * scaledK;
+            // The multiply-add estimates and the ties-to-even rounding are the same operations as in the vector forms.
+            float r = float.MultiplyAddEstimate(cr, YCbCrOperator.RCrMult, y);
+            float g = float.MultiplyAddEstimate(cr, -YCbCrOperator.GCrMult, float.MultiplyAddEstimate(cb, -YCbCrOperator.GCbMult, y));
+            float b = float.MultiplyAddEstimate(cb, YCbCrOperator.BCbMult, y);
+            c0 = (maximumValue - MathF.Round(r)) * scaledK;
+            c1 = (maximumValue - MathF.Round(g)) * scaledK;
+            c2 = (maximumValue - MathF.Round(b)) * scaledK;
         }
 
         /// <inheritdoc/>

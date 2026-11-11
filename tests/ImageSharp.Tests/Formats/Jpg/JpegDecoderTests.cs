@@ -145,13 +145,14 @@ public partial class JpegDecoderTests
 
     [Theory]
     [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgb24)]
-    public void JpegDecoder_Decode_Resize_Bicubic<TPixel>(TestImageProvider<TPixel> provider)
+    public void JpegDecoder_Decode_Resize_Box<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new(Configuration.Default)
         {
-            TargetSize = new Size { Width = 150, Height = 150 },
-            Sampler = KnownResamplers.Bicubic
+            // The 1/8 decode is 101 x 150 and the fitted size is 94 x 140. Thus, the decoder resizes with the sampler.
+            TargetSize = new Size { Width = 140, Height = 140 },
+            Sampler = KnownResamplers.Box
         };
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
 

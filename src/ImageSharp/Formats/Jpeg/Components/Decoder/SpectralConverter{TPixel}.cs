@@ -90,24 +90,14 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private Size? targetSize;
 
     /// <summary>
-    /// The factor that the scaled size keeps above the fitted target size. See <see cref="SpectralConverter.CalculateResultingImageSize"/>.
-    /// </summary>
-    private readonly int resizeFactor;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="SpectralConverter{TPixel}" /> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
     /// <param name="targetSize">Optional target size for decoded image.</param>
-    /// <param name="resizeFactor">
-    /// The factor that the scaled size keeps above the fitted target size: two when a resize follows the scaled decode,
-    /// and one when the scaled decode is the output.
-    /// </param>
-    public SpectralConverter(Configuration configuration, Size? targetSize = null, int resizeFactor = 1)
+    public SpectralConverter(Configuration configuration, Size? targetSize = null)
     {
         this.Configuration = configuration;
         this.targetSize = targetSize;
-        this.resizeFactor = resizeFactor;
     }
 
     /// <summary>
@@ -142,11 +132,19 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             for (int step = 0; step < steps; step++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                this.ConvertStride(step, iccProfile);
+                this.ConvertStride(step, iccProfile, false);
             }
         }
 
         Buffer2D<TPixel> buffer = this.pixelBuffer;
+
+        // PrepareForDecoding does not clear the pixel buffer, because each stride writes all of its rows.
+        // A truncated baseline scan stops before the last stride. The loop clears the rows that no stride wrote.
+        for (int y = this.pixelRowCounter; y < buffer.Height; y++)
+        {
+            buffer.DangerousGetRowSpan(y).Clear();
+        }
+
         this.pixelBuffer = null;
         return buffer;
     }
@@ -156,13 +154,14 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// </summary>
     /// <param name="spectralStep">Spectral stride index.</param>
     /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
-    private void ConvertStride(int spectralStep, IccProfile iccProfile)
+    /// <param name="clearBlocks"><see langword="true"/> to clear each spectral block after the transform reads it.</param>
+    private void ConvertStride(int spectralStep, IccProfile iccProfile, bool clearBlocks)
     {
         int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
         for (int i = 0; i < this.componentProcessors.Length; i++)
         {
-            this.componentProcessors[i].CopyBlocksToColorBuffer(spectralStep);
+            this.componentProcessors[i].CopyBlocksToColorBuffer(spectralStep, clearBlocks);
         }
 
         int width = this.pixelBuffer.Width;
@@ -207,20 +206,13 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
                 continue;
             }
-            else
-            {
-                this.colorConverter.ConvertToRgb(in values);
-            }
-
-            values = values.Slice(0, width); // slice away Jpeg padding
 
             Span<byte> r = this.rgbBuffer.Slice(0, width);
             Span<byte> g = this.rgbBuffer.Slice(width, width);
             Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
 
-            SimdUtils.NormalizedFloatToByteSaturate(values.Component0, r);
-            SimdUtils.NormalizedFloatToByteSaturate(values.Component1, g);
-            SimdUtils.NormalizedFloatToByteSaturate(values.Component2, b);
+            // One pass converts the visible samples to RGB bytes. In the SIMD steps, the normalized RGB values stay in registers.
+            this.colorConverter.ConvertToRgb(in values, r, g, b);
 
             // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
             // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
@@ -269,7 +261,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         this.colorConverter = converter;
 
         // Resulting image size
-        Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, this.resizeFactor, out int blockPixelSize);
+        Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, out int blockPixelSize);
 
         // Iteration data
         int majorBlockWidth = this.frame.Components.Max((component) => component.SizeInBlocks.Width);
@@ -277,12 +269,13 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
         this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelSize;
 
-        // Pixel buffer for resulting image
+        // This is the pixel buffer for the resulting image.
+        // Each stride writes all of its rows, and GetPixelBuffer clears the rows that a truncated scan does not reach.
+        // Thus, the buffer does not need a clean allocation.
         this.pixelBuffer = allocator.Allocate2D<TPixel>(
             pixelSize.Width,
             pixelSize.Height,
-            this.Configuration.PreferContiguousImageBuffers,
-            AllocationOptions.Clean);
+            this.Configuration.PreferContiguousImageBuffers);
 
         this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
@@ -305,14 +298,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// <inheritdoc/>
     public override void ConvertStrideBaseline(IccProfile iccProfile)
     {
-        // Convert next pixel stride using single spectral `stride'
-        // Note that zero passing eliminates extra virtual call
-        this.ConvertStride(spectralStep: 0, iccProfile);
-
-        foreach (ComponentProcessor cpp in this.componentProcessors)
-        {
-            cpp.ClearSpectralBuffers();
-        }
+        // This call converts the next pixel stride from the single spectral stride.
+        // The scan decoder writes the DC coefficient and only the non-zero AC coefficients, and it decodes the next MCU row into the same blocks.
+        // Thus, the transform clears each block after it reads it.
+        this.ConvertStride(0, iccProfile, true);
     }
 
     protected ComponentProcessor[] CreateComponentProcessors(JpegFrame frame, IRawJpegData jpegData, int blockPixelSize, Size processorBufferSize)

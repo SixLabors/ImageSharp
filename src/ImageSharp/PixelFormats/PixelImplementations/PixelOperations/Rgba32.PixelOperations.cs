@@ -28,9 +28,12 @@ public partial struct Rgba32
         /// <inheritdoc />
         public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Vector4> destination)
         {
-            // Canonical RGBA needs no staging threshold. Retain bulk normalization before association at every row length.
-            this.ToUnassociatedVector4(configuration, source, destination);
-            Numerics.Premultiply(destination[..source.Length]);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Canonical RGBA needs no staging threshold. The conversion normalizes and associates each pixel in one pass.
+            SimdUtils.ByteToNormalizedFloat<PixelFormats.PixelOperations.AssociateOperator>(
+                MemoryMarshal.AsBytes(source),
+                MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
         }
 
         /// <inheritdoc />

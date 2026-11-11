@@ -108,7 +108,7 @@ internal static class ColorProfileConverterExtensionsIcc
             // The model APIs retain their existing component units and packing rules. The ICC loop transforms
             // this block in place, with SIMD traversal and profile stages in the same implementation.
             TFrom.ToScaledVector4(source[..length], block);
-            transform.Converter.Convert(block, block);
+            transform.Converter.Convert(block, block, transform.ConvertsW);
             TTo.FromScaledVector4(block, destination[..length]);
 
             source = source[length..];
@@ -144,12 +144,29 @@ internal static class ColorProfileConverterExtensionsIcc
 
             PcsOperator pcs = new(source, target, pcsOptions);
             this.Converter = source.Converter.Connect(target.Converter, pcs);
+
+            // ICC operators read or write W only for a four-channel device space. For every other space, W is not color data.
+            this.ConvertsW = HasFourChannels(sourceProfile.Header.DataColorSpace) || HasFourChannels(targetProfile.Header.DataColorSpace);
         }
 
         /// <summary>
         /// Gets the complete source-to-target connection.
         /// </summary>
         public IIccColorConverter Converter { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether W is a color component of the source or target profile.
+        /// Callers give this value to <see cref="IIccColorConverter.Convert(ReadOnlySpan{Vector4}, Span{Vector4}, bool)"/>.
+        /// </summary>
+        public bool ConvertsW { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether a profile device space has four channels, so that W holds its fourth component.
+        /// </summary>
+        /// <param name="colorSpace">The profile device space.</param>
+        /// <returns><see langword="true"/> for CMYK and other four-channel spaces; otherwise, <see langword="false"/>.</returns>
+        private static bool HasFourChannels(IccColorSpaceType colorSpace)
+            => colorSpace is IccColorSpaceType.Cmyk or IccColorSpaceType.Color4;
     }
 
     /// <summary>

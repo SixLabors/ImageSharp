@@ -44,13 +44,20 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
     /// <inheritdoc />
     public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
     {
-        this.ToUnassociatedVector4(configuration, source, destination);
-
-        // Apply stored straight alpha. Formats without alpha already supply opaque output.
-        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+        // Formats without alpha supply opaque output, so the associated vectors are the straight vectors.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.Unassociated)
         {
-            Numerics.Premultiply(destination[..source.Length]);
+            this.ToUnassociatedVector4(configuration, source, destination);
+            return;
         }
+
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // RGBA words already have vector component order. The conversion normalizes and associates each pixel in one pass.
+        SimdUtils.UInt16ToNormalizedFloat<PixelFormats.PixelOperations.AssociateOperator>(
+            MemoryMarshal.Cast<TPixel, ushort>(source),
+            MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
     }
 
     /// <inheritdoc />
@@ -113,8 +120,8 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
                 // Unassociate before destination bounds. This also preserves the single-pixel rule for zero or tiny alpha.
                 if (associated)
                 {
-                    lower = PixelFormats.PixelOperations.UnPremultiplyForPacking(lower);
-                    upper = PixelFormats.PixelOperations.UnPremultiplyForPacking(upper);
+                    lower = PixelFormats.PixelOperations.UnassociateOperator.Apply(lower);
+                    upper = PixelFormats.PixelOperations.UnassociateOperator.Apply(upper);
                 }
 
                 Vector512<ushort> packed = Vector512.Create(
@@ -139,8 +146,8 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
                 // Unassociate before destination bounds. This also preserves the single-pixel rule for zero or tiny alpha.
                 if (associated)
                 {
-                    lower = PixelFormats.PixelOperations.UnPremultiplyForPacking(lower);
-                    upper = PixelFormats.PixelOperations.UnPremultiplyForPacking(upper);
+                    lower = PixelFormats.PixelOperations.UnassociateOperator.Apply(lower);
+                    upper = PixelFormats.PixelOperations.UnassociateOperator.Apply(upper);
                 }
 
                 Vector256<ushort> packed = Vector256.Create(
@@ -165,8 +172,8 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
                 // Unassociate before destination bounds. This also preserves the single-pixel rule for zero or tiny alpha.
                 if (associated)
                 {
-                    lower = PixelFormats.PixelOperations.UnPremultiplyForPacking(lower);
-                    upper = PixelFormats.PixelOperations.UnPremultiplyForPacking(upper);
+                    lower = PixelFormats.PixelOperations.UnassociateOperator.Apply(lower);
+                    upper = PixelFormats.PixelOperations.UnassociateOperator.Apply(upper);
                 }
 
                 Vector128<ushort> packed = Vector128.Create(

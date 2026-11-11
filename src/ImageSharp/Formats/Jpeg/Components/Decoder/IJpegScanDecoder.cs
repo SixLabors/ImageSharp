@@ -6,9 +6,9 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 /// <summary>
-/// Interface for a JPEG scan decoder.
+/// Interface for a JPEG scan decoder. The <see cref="JpegDecoderCore"/> that uses the decoder disposes it.
 /// </summary>
-internal interface IJpegScanDecoder
+internal interface IJpegScanDecoder : IDisposable
 {
     /// <summary>
     /// Sets the recovery policy for errors in compressed scan data.

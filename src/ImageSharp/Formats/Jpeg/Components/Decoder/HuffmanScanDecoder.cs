@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -16,7 +18,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 /// </summary>
 internal class HuffmanScanDecoder : IJpegScanDecoder
 {
+    // A DHT table identifier is 0 to 3 (ITU T.81, B.2.4.2). JpegDecoderCore rejects larger identifiers in DHT and SOS.
+    private const int MaxTables = 4;
+
     private readonly BufferedReadStream stream;
+
+    private readonly MemoryAllocator allocator;
+
+    /// <summary>
+    /// The combined lookup tables of the Huffman tables. The decoder allocates them on first use.
+    /// DC table i starts at entry i * FastSize. AC table i starts at entry (MaxTables + i) * FastSize.
+    /// </summary>
+    private IMemoryOwner<int> fastLookups;
+
+    /// <summary>
+    /// The byte buffer of the bit reader. The decoder allocates it on first use.
+    /// </summary>
+    private IMemoryOwner<byte> entropyBuffer;
+
+    /// <summary>
+    /// Keeps <see cref="entropyBuffer"/> pinned while the decoder owns it. The bit reader holds its pointer.
+    /// </summary>
+    private MemoryHandle entropyBufferHandle;
 
     /// <summary>
     /// <see cref="JpegFrame"/> instance containing decoding-related information.
@@ -26,7 +49,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
     /// </summary>
-    private IJpegComponent[] components;
+    private JpegComponent[] components;
 
     /// <summary>
     /// Number of component in the current scan.
@@ -69,20 +92,21 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="converter">Spectral to pixel converter.</param>
+    /// <param name="allocator">The allocator for the combined Huffman lookup tables and the byte buffer of the bit reader.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
     public HuffmanScanDecoder(
         BufferedReadStream stream,
         SpectralConverter converter,
+        MemoryAllocator allocator,
         CancellationToken cancellationToken)
     {
         this.stream = stream;
         this.spectralConverter = converter;
+        this.allocator = allocator;
         this.cancellationToken = cancellationToken;
 
-        // TODO: this is actually a variable value depending on component count
-        const int maxTables = 4;
-        this.dcHuffmanTables = new HuffmanTable[maxTables];
-        this.acHuffmanTables = new HuffmanTable[maxTables];
+        this.dcHuffmanTables = new HuffmanTable[MaxTables];
+        this.acHuffmanTables = new HuffmanTable[MaxTables];
     }
 
     /// <inheritdoc/>
@@ -119,7 +143,16 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         this.scanComponentCount = scanComponentCount;
 
-        this.scanBuffer = new JpegBitReader(this.stream);
+        if (this.entropyBuffer is null)
+        {
+            this.entropyBuffer = this.allocator.Allocate<byte>(JpegBitReader.EntropyBufferSize);
+            this.entropyBufferHandle = this.entropyBuffer.Memory.Pin();
+        }
+
+        unsafe
+        {
+            this.scanBuffer = new JpegBitReader(this.stream, (byte*)this.entropyBufferHandle.Pointer, JpegBitReader.EntropyBufferSize);
+        }
 
         this.frame.AllocateComponents();
 
@@ -134,10 +167,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             this.ParseProgressiveData();
         }
 
-        if (this.scanBuffer.HasBadMarker())
-        {
-            this.stream.Position = this.scanBuffer.MarkerPosition;
-        }
+        // The bit reader reads bytes before it needs them.
+        // EndScan moves the stream to the marker that the reader found, or to the next byte that the reader did not decode.
+        this.scanBuffer.EndScan();
     }
 
     /// <inheritdoc/>
@@ -171,10 +203,10 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataInterleaved(IccProfile iccProfile)
     {
-        int mcu = 0;
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader buffer = ref this.scanBuffer;
+        Span<int> fastLookups = this.GetFastLookups();
 
         for (int j = 0; j < mcusPerColumn; j++)
         {
@@ -183,15 +215,17 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             // decode from binary to spectral
             for (int i = 0; i < mcusPerLine; i++)
             {
-                // Scan an interleaved mcu... process components in order
-                int mcuCol = mcu % mcusPerLine;
+                // This loop decodes one interleaved MCU. It reads the components in scan order.
+                // The MCU column is i. The MCU row is j, and the spectral buffer holds only this MCU row.
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    JpegComponent component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order];
 
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                     ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+                    ref int dcLookup = ref GetFastLookup(fastLookups, 0, component.DcTableId);
+                    ref int acLookup = ref GetFastLookup(fastLookups, 1, component.AcTableId);
 
                     int h = component.HorizontalSamplingFactor;
                     int v = component.VerticalSamplingFactor;
@@ -213,20 +247,21 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                                 return;
                             }
 
-                            int blockCol = (mcuCol * h) + x;
+                            int blockCol = (i * h) + x;
 
                             this.DecodeBlockBaseline(
                                 component,
                                 ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref dcHuffmanTable,
-                                ref acHuffmanTable);
+                                ref dcLookup,
+                                ref acHuffmanTable,
+                                ref acLookup);
                         }
                     }
                 }
 
                 // After all interleaved components, that's an interleaved MCU,
                 // so now count down the restart interval
-                mcu++;
                 this.HandleRestart();
             }
 
@@ -237,7 +272,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
-        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]];
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;
@@ -245,6 +280,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
         ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+        Span<int> fastLookups = this.GetFastLookups();
+        ref int dcLookup = ref GetFastLookup(fastLookups, 0, component.DcTableId);
+        ref int acLookup = ref GetFastLookup(fastLookups, 1, component.AcTableId);
 
         for (int j = 0; j < h; j++)
         {
@@ -263,7 +301,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     component,
                     ref Unsafe.Add(ref blockRef, (uint)i),
                     ref dcHuffmanTable,
-                    ref acHuffmanTable);
+                    ref dcLookup,
+                    ref acHuffmanTable,
+                    ref acLookup);
 
                 this.HandleRestart();
             }
@@ -278,6 +318,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         int h = component.SamplingFactors.Height;
         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
         ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+        Span<int> fastLookups = this.GetFastLookups();
+        ref int dcLookup = ref GetFastLookup(fastLookups, 0, component.DcTableId);
+        ref int acLookup = ref GetFastLookup(fastLookups, 1, component.AcTableId);
 
         ref JpegBitReader buffer = ref this.scanBuffer;
 
@@ -305,7 +348,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                         component,
                         ref Unsafe.Add(ref blockRef, (uint)k),
                         ref dcHuffmanTable,
-                        ref acHuffmanTable);
+                        ref dcLookup,
+                        ref acHuffmanTable,
+                        ref acLookup);
 
                     this.HandleRestart();
                 }
@@ -383,7 +428,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private void ParseProgressiveDataInterleaved()
     {
         // Interleaved
-        int mcu = 0;
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader buffer = ref this.scanBuffer;
@@ -392,13 +436,12 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         {
             for (int i = 0; i < mcusPerLine; i++)
             {
-                // Scan an interleaved mcu... process components in order
-                int mcuRow = mcu / mcusPerLine;
-                int mcuCol = mcu % mcusPerLine;
+                // This loop decodes one interleaved MCU. It reads the components in scan order.
+                // The MCU row is j, and the MCU column is i.
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    JpegComponent component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order];
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
 
                     int h = component.HorizontalSamplingFactor;
@@ -408,7 +451,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     // by the basic H and V specified for the component
                     for (int y = 0; y < v; y++)
                     {
-                        int blockRow = (mcuRow * v) + y;
+                        int blockRow = (j * v) + y;
                         Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(blockRow);
                         ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
@@ -419,7 +462,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                                 return;
                             }
 
-                            int blockCol = (mcuCol * h) + x;
+                            int blockCol = (i * h) + x;
 
                             this.DecodeBlockProgressiveDC(
                                 component,
@@ -431,7 +474,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 // After all interleaved components, that's an interleaved MCU,
                 // so now count down the restart interval
-                mcu++;
                 this.HandleRestart();
             }
         }
@@ -439,7 +481,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]];
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;
@@ -504,46 +546,17 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         JpegComponent component,
         ref Block8x8 block,
         ref HuffmanTable dcTable,
-        ref HuffmanTable acTable)
+        ref int dcLookup,
+        ref HuffmanTable acTable,
+        ref int acLookup)
     {
         ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
-        ref JpegBitReader buffer = ref this.scanBuffer;
 
-        // DC
-        int t = buffer.DecodeHuffman(ref dcTable);
-        if (t != 0)
-        {
-            t = buffer.Receive(t);
-        }
+        int t = this.scanBuffer.DecodeBlockBaseline(ref blockDataRef, ref dcTable, ref dcLookup, ref acTable, ref acLookup);
 
         t += component.DcPredictor;
         component.DcPredictor = t;
         blockDataRef = (short)t;
-
-        // AC
-        for (int i = 1; i < 64;)
-        {
-            int s = buffer.DecodeHuffman(ref acTable);
-
-            int r = s >> 4;
-            s &= 15;
-
-            if (s != 0)
-            {
-                i += r;
-                s = buffer.Receive(s);
-                Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i++]) = (short)s;
-            }
-            else
-            {
-                if (r == 0)
-                {
-                    break;
-                }
-
-                i += 16;
-            }
-        }
     }
 
     private void DecodeBlockProgressiveDC(JpegComponent component, ref Block8x8 block, ref HuffmanTable dcTable)
@@ -767,7 +780,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
             if (this.scanBuffer.HasBadMarker())
             {
-                this.stream.Position = this.scanBuffer.MarkerPosition;
+                this.scanBuffer.RewindToMarker();
                 this.Reset();
                 return true;
             }
@@ -788,6 +801,37 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
     {
         HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-        tables[index] = new HuffmanTable(codeLengths, values, workspace);
+        Span<int> fastLookup = this.GetFastLookups().Slice(((type * MaxTables) + index) * JpegConstants.Huffman.FastSize, JpegConstants.Huffman.FastSize);
+        tables[index] = new HuffmanTable(codeLengths, values, workspace, fastLookup);
     }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        this.fastLookups?.Dispose();
+        this.fastLookups = null;
+
+        this.entropyBufferHandle.Dispose();
+        this.entropyBuffer?.Dispose();
+        this.entropyBuffer = null;
+    }
+
+    /// <summary>
+    /// Gets the combined lookup tables of all Huffman tables. The decoder allocates the clean buffer on first use.
+    /// Thus, a table that the stream does not define has only zero entries, and it goes to the slow path.
+    /// The zeroed <see cref="HuffmanTable"/> of such a table also goes to the slow path.
+    /// </summary>
+    /// <returns>The combined lookup tables.</returns>
+    private Span<int> GetFastLookups()
+        => (this.fastLookups ??= this.allocator.Allocate<int>(2 * MaxTables * JpegConstants.Huffman.FastSize, AllocationOptions.Clean)).Memory.Span;
+
+    /// <summary>
+    /// Gets the first combined lookup entry of a Huffman table.
+    /// </summary>
+    /// <param name="fastLookups">The combined lookup tables from <see cref="GetFastLookups"/>.</param>
+    /// <param name="type">The table type. 0 is DC, 1 is AC.</param>
+    /// <param name="index">The table index. JpegDecoderCore makes sure that it is less than <see cref="MaxTables"/>.</param>
+    /// <returns>The first entry of the table.</returns>
+    private static ref int GetFastLookup(Span<int> fastLookups, int type, int index)
+        => ref Unsafe.Add(ref MemoryMarshal.GetReference(fastLookups), (uint)(((type * MaxTables) + index) * JpegConstants.Huffman.FastSize));
 }

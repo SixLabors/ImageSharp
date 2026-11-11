@@ -402,123 +402,100 @@ internal abstract partial class JpegColorConverterBase
                 : Vector256.IsHardwareAccelerated ? Vector256<float>.Count : Vector128.IsHardwareAccelerated ? Vector128<float>.Count : 1;
 
         /// <inheritdoc/>
-        public override void ConvertToRgb(in ComponentValues values)
+        public override void ConvertToRgb(in ComponentValues values, Span<byte> red, Span<byte> green, Span<byte> blue)
         {
-            // JPEG component processors own equally sized planar buffers. Capturing their first elements
-            // as byrefs lets every width share the same offset without introducing Span bounds checks in
-            // the hot loops. Component3 may be empty; its byref is only dereferenced for four-component operators.
-            ref float c0Base = ref MemoryMarshal.GetReference(values.Component0);
-            ref float c1Base = ref MemoryMarshal.GetReference(values.Component1);
-            ref float c2Base = ref MemoryMarshal.GetReference(values.Component2);
-            ref float c3Base = ref MemoryMarshal.GetReference(values.Component3);
-
-            int length = values.Component0.Length;
+            // JPEG component processors own equally sized planar buffers, and the destination planes have the
+            // visible row length. Byrefs let every width share one offset without Span bounds checks in the hot loops.
+            // Component3 can be empty. Only four-component operators read it.
+            RowPlanes planes = new(in values, red, green, blue);
+            int length = red.Length;
             int i = 0;
             float scale = 1F / this.MaximumValue;
 
-            // Descending widths keep one traversal while allowing an AVX-512 machine to process
-            // an eight-pixel JPEG block with AVX2 rather than sending the entire block to scalar code.
+            // Each step converts four float vectors of each component in registers, then packs them to one byte
+            // vector for each RGB plane. The normalized RGB values never go back to memory.
+            // The component processors clamp every sample to [0, MaximumValue], and each operator is a bounded
+            // function of its samples. Thus, all normalized values are finite and small. The finite byte conversion
+            // then gives the same bytes as the span conversion, which clamps, because its saturating narrowing does the clamp.
+            // The widths go from widest to narrowest in one traversal. A row remainder goes to the next narrower width.
             if (Vector512.IsHardwareAccelerated)
             {
-                // Subtracting the lane count turns the loop condition into a single signed comparison.
-                // A negative value naturally skips this width, and i <= end proves every unaligned
-                // 64-byte reinterpretation remains entirely inside its component buffer.
-                int oneVectorFromEnd = length - Vector512<float>.Count;
-
-                if (i <= oneVectorFromEnd)
+                // A negative end skips this width. The condition i <= end proves that all 64 samples are in the row.
+                int end = length - Vector512<byte>.Count;
+                if (i <= end)
                 {
-                    // Precision-derived values are broadcast only when this width has work. Keeping them outside
-                    // the loop avoids repeated setup without penalizing rows handled entirely by narrower widths.
                     Vector512<float> maximumValue = Vector512.Create(this.MaximumValue);
                     Vector512<float> halfValue = Vector512.Create(this.HalfValue);
                     Vector512<float> scaleVector = Vector512.Create(scale);
-
-                    for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
+                    for (; i <= end; i += Vector512<byte>.Count)
                     {
-                        ref Vector512<float> c0 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref c0Base, i));
-                        ref Vector512<float> c1 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref c1Base, i));
-                        ref Vector512<float> c2 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref c2Base, i));
-
-                        // ComponentCount is a static property on the closed operator type, so the JIT removes
-                        // this choice. Three-component models never dereference the empty Component3 byref.
-                        Vector512<float> c3 = TOperator.ComponentCount == 4 ? Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref c3Base, i)) : default;
-
-                        // c0-c2 alias the planar source vectors and are replaced in place with normalized RGB.
-                        // c3 is passed by value because the fourth JPEG component must remain unchanged.
-                        TOperator.ConvertToRgb(ref c0, ref c1, ref c2, c3, maximumValue, halfValue, scaleVector);
+                        ConvertToRgbStep(in planes, (uint)i, maximumValue, halfValue, scaleVector);
                     }
                 }
             }
 
             if (Vector256.IsHardwareAccelerated)
             {
-                // The shared offset continues where AVX-512 stopped. At this point fewer than sixteen
-                // samples remain, so this stage consumes the complete eight-sample remainder when present.
-                int oneVectorFromEnd = length - Vector256<float>.Count;
-
-                if (i <= oneVectorFromEnd)
+                // If Vector512 is accelerated, fewer than 64 samples remain. This width converts one step of 32 samples
+                // if 32 samples remain. Otherwise, this width starts at the start of the row.
+                int end = length - Vector256<byte>.Count;
+                if (i <= end)
                 {
-                    // YMM precision state is materialized only for an eight-sample remainder or an AVX2-only loop.
                     Vector256<float> maximumValue = Vector256.Create(this.MaximumValue);
                     Vector256<float> halfValue = Vector256.Create(this.HalfValue);
                     Vector256<float> scaleVector = Vector256.Create(scale);
-
-                    for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
+                    for (; i <= end; i += Vector256<byte>.Count)
                     {
-                        ref Vector256<float> c0 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref c0Base, i));
-                        ref Vector256<float> c1 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref c1Base, i));
-                        ref Vector256<float> c2 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref c2Base, i));
-
-                        // The closed operator makes this a compile-time color-model choice, not a per-vector
-                        // runtime abstraction or interface dispatch.
-                        Vector256<float> c3 = TOperator.ComponentCount == 4 ? Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref c3Base, i)) : default;
-
-                        TOperator.ConvertToRgb(ref c0, ref c1, ref c2, c3, maximumValue, halfValue, scaleVector);
+                        ConvertToRgbStep(in planes, (uint)i, maximumValue, halfValue, scaleVector);
                     }
                 }
             }
 
             if (Vector128.IsHardwareAccelerated)
             {
-                // SSE/AdvSimd handles the final four complete samples. This also gives non-AVX machines
-                // the same traversal without duplicating the control flow for another register width.
-                int oneVectorFromEnd = length - Vector128<float>.Count;
-
-                if (i <= oneVectorFromEnd)
+                // If Vector256 is accelerated, fewer than 32 samples remain. This width converts one step of 16 samples
+                // if 16 samples remain. Otherwise, this width starts at the start of the row.
+                int end = length - Vector128<byte>.Count;
+                if (i <= end)
                 {
-                    // XMM state is likewise created only when four samples remain for this stage.
                     Vector128<float> maximumValue = Vector128.Create(this.MaximumValue);
                     Vector128<float> halfValue = Vector128.Create(this.HalfValue);
                     Vector128<float> scaleVector = Vector128.Create(scale);
-
-                    for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
+                    for (; i <= end; i += Vector128<byte>.Count)
                     {
-                        ref Vector128<float> c0 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref c0Base, i));
-                        ref Vector128<float> c1 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref c1Base, i));
-                        ref Vector128<float> c2 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref c2Base, i));
-
-                        // As at the wider stages, the fourth vector is loaded only for CMYK-shaped operators.
-                        Vector128<float> c3 = TOperator.ComponentCount == 4 ? Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref c3Base, i)) : default;
-
-                        TOperator.ConvertToRgb(ref c0, ref c1, ref c2, c3, maximumValue, halfValue, scaleVector);
+                        ConvertToRgbStep(in planes, (uint)i, maximumValue, halfValue, scaleVector);
                     }
                 }
             }
 
-            // Fewer than four samples remain after the SIMD cascade. Processing from the shared offset
-            // guarantees each sample is visited exactly once for arbitrary test lengths and JPEG block rows.
-            for (; i < length; i++)
+            // Fewer than 16 samples remain after the SIMD cascade, or the full row remains without SIMD.
+            // The scalar operator writes normalized RGB to small stack planes. SimdUtils then converts each plane
+            // to bytes with its own rule, so the converter does not repeat the byte rounding rule.
+            const int chunkLength = 16;
+            Span<float> rChunk = stackalloc float[chunkLength];
+            Span<float> gChunk = stackalloc float[chunkLength];
+            Span<float> bChunk = stackalloc float[chunkLength];
+            while (i < length)
             {
-                float c3 = TOperator.ComponentCount == 4 ? Unsafe.Add(ref c3Base, i) : 0;
+                int count = Math.Min(chunkLength, length - i);
+                for (int j = 0; j < count; j++)
+                {
+                    nuint o = (uint)(i + j);
+                    float c0 = Unsafe.Add(ref planes.Component0, o);
+                    float c1 = Unsafe.Add(ref planes.Component1, o);
+                    float c2 = Unsafe.Add(ref planes.Component2, o);
+                    float c3 = TOperator.ComponentCount == 4 ? Unsafe.Add(ref planes.Component3, o) : 0;
 
-                TOperator.ConvertToRgb(
-                    ref Unsafe.Add(ref c0Base, i),
-                    ref Unsafe.Add(ref c1Base, i),
-                    ref Unsafe.Add(ref c2Base, i),
-                    c3,
-                    this.MaximumValue,
-                    this.HalfValue,
-                    scale);
+                    TOperator.ConvertToRgb(ref c0, ref c1, ref c2, c3, this.MaximumValue, this.HalfValue, scale);
+                    rChunk[j] = c0;
+                    gChunk[j] = c1;
+                    bChunk[j] = c2;
+                }
+
+                SimdUtils.NormalizedFloatToByteSaturate(rChunk[..count], red.Slice(i, count));
+                SimdUtils.NormalizedFloatToByteSaturate(gChunk[..count], green.Slice(i, count));
+                SimdUtils.NormalizedFloatToByteSaturate(bChunk[..count], blue.Slice(i, count));
+                i += count;
             }
         }
 
@@ -730,6 +707,244 @@ internal abstract partial class JpegColorConverterBase
                 {
                     Unsafe.Add(ref c3Base, i) = c3;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Converts 64 samples of each component to one <see cref="Vector512{T}"/> of bytes for each RGB plane.
+        /// </summary>
+        /// <param name="planes">The source and destination planes.</param>
+        /// <param name="offset">The first sample of the step.</param>
+        /// <param name="max">The maximum component value for the configured precision.</param>
+        /// <param name="half">The midpoint component value for the configured precision.</param>
+        /// <param name="scale">The reciprocal of <paramref name="max"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ConvertToRgbStep(
+            in RowPlanes planes,
+            nuint offset,
+            Vector512<float> max,
+            Vector512<float> half,
+            Vector512<float> scale)
+        {
+            // Vector k holds the samples offset + 16k to offset + 16k + 15 of each component.
+            LoadRgb(in planes, offset, max, half, scale, out Vector512<float> r0, out Vector512<float> g0, out Vector512<float> b0);
+            LoadRgb(in planes, offset + 16, max, half, scale, out Vector512<float> r1, out Vector512<float> g1, out Vector512<float> b1);
+            LoadRgb(in planes, offset + 32, max, half, scale, out Vector512<float> r2, out Vector512<float> g2, out Vector512<float> b2);
+            LoadRgb(in planes, offset + 48, max, half, scale, out Vector512<float> r3, out Vector512<float> g3, out Vector512<float> b3);
+
+            // One byte vector holds the bytes of the four float vectors of one plane, in source order.
+            Vector512<float> byteScale = Vector512.Create((float)byte.MaxValue);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(r0, r1, r2, r3, byteScale).StoreUnsafe(ref planes.Red, offset);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(g0, g1, g2, g3, byteScale).StoreUnsafe(ref planes.Green, offset);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(b0, b1, b2, b3, byteScale).StoreUnsafe(ref planes.Blue, offset);
+        }
+
+        /// <summary>
+        /// Converts 32 samples of each component to one <see cref="Vector256{T}"/> of bytes for each RGB plane.
+        /// </summary>
+        /// <param name="planes">The source and destination planes.</param>
+        /// <param name="offset">The first sample of the step.</param>
+        /// <param name="max">The maximum component value for the configured precision.</param>
+        /// <param name="half">The midpoint component value for the configured precision.</param>
+        /// <param name="scale">The reciprocal of <paramref name="max"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ConvertToRgbStep(
+            in RowPlanes planes,
+            nuint offset,
+            Vector256<float> max,
+            Vector256<float> half,
+            Vector256<float> scale)
+        {
+            // Vector k holds the samples offset + 8k to offset + 8k + 7 of each component.
+            LoadRgb(in planes, offset, max, half, scale, out Vector256<float> r0, out Vector256<float> g0, out Vector256<float> b0);
+            LoadRgb(in planes, offset + 8, max, half, scale, out Vector256<float> r1, out Vector256<float> g1, out Vector256<float> b1);
+            LoadRgb(in planes, offset + 16, max, half, scale, out Vector256<float> r2, out Vector256<float> g2, out Vector256<float> b2);
+            LoadRgb(in planes, offset + 24, max, half, scale, out Vector256<float> r3, out Vector256<float> g3, out Vector256<float> b3);
+
+            // One byte vector holds the bytes of the four float vectors of one plane, in source order.
+            Vector256<float> byteScale = Vector256.Create((float)byte.MaxValue);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(r0, r1, r2, r3, byteScale).StoreUnsafe(ref planes.Red, offset);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(g0, g1, g2, g3, byteScale).StoreUnsafe(ref planes.Green, offset);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(b0, b1, b2, b3, byteScale).StoreUnsafe(ref planes.Blue, offset);
+        }
+
+        /// <summary>
+        /// Converts 16 samples of each component to one <see cref="Vector128{T}"/> of bytes for each RGB plane.
+        /// </summary>
+        /// <param name="planes">The source and destination planes.</param>
+        /// <param name="offset">The first sample of the step.</param>
+        /// <param name="max">The maximum component value for the configured precision.</param>
+        /// <param name="half">The midpoint component value for the configured precision.</param>
+        /// <param name="scale">The reciprocal of <paramref name="max"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ConvertToRgbStep(
+            in RowPlanes planes,
+            nuint offset,
+            Vector128<float> max,
+            Vector128<float> half,
+            Vector128<float> scale)
+        {
+            // Vector k holds the samples offset + 4k to offset + 4k + 3 of each component.
+            LoadRgb(in planes, offset, max, half, scale, out Vector128<float> r0, out Vector128<float> g0, out Vector128<float> b0);
+            LoadRgb(in planes, offset + 4, max, half, scale, out Vector128<float> r1, out Vector128<float> g1, out Vector128<float> b1);
+            LoadRgb(in planes, offset + 8, max, half, scale, out Vector128<float> r2, out Vector128<float> g2, out Vector128<float> b2);
+            LoadRgb(in planes, offset + 12, max, half, scale, out Vector128<float> r3, out Vector128<float> g3, out Vector128<float> b3);
+
+            // One byte vector holds the bytes of the four float vectors of one plane, in source order.
+            Vector128<float> byteScale = Vector128.Create((float)byte.MaxValue);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(r0, r1, r2, r3, byteScale).StoreUnsafe(ref planes.Red, offset);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(g0, g1, g2, g3, byteScale).StoreUnsafe(ref planes.Green, offset);
+            SimdUtils.HwIntrinsics.FloatToByteSaturate(b0, b1, b2, b3, byteScale).StoreUnsafe(ref planes.Blue, offset);
+        }
+
+        /// <summary>
+        /// Loads one <see cref="Vector512{T}"/> of each component and converts it to normalized RGB in registers.
+        /// </summary>
+        /// <param name="planes">The source planes.</param>
+        /// <param name="offset">The first sample of the vector.</param>
+        /// <param name="maximumValue">The maximum component value for the configured precision.</param>
+        /// <param name="halfValue">The midpoint component value for the configured precision.</param>
+        /// <param name="scale">The reciprocal of <paramref name="maximumValue"/>.</param>
+        /// <param name="r">The normalized red values.</param>
+        /// <param name="g">The normalized green values.</param>
+        /// <param name="b">The normalized blue values.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LoadRgb(
+            in RowPlanes planes,
+            nuint offset,
+            Vector512<float> maximumValue,
+            Vector512<float> halfValue,
+            Vector512<float> scale,
+            out Vector512<float> r,
+            out Vector512<float> g,
+            out Vector512<float> b)
+        {
+            // The operator replaces the component locals with RGB. The locals do not alias,
+            // so a grayscale row, where the three planes are one buffer, is also safe.
+            // ComponentCount is a constant of the closed operator type. The JIT removes the c3 load for three-component models.
+            r = Vector512.LoadUnsafe(ref planes.Component0, offset);
+            g = Vector512.LoadUnsafe(ref planes.Component1, offset);
+            b = Vector512.LoadUnsafe(ref planes.Component2, offset);
+            Vector512<float> c3 = TOperator.ComponentCount == 4 ? Vector512.LoadUnsafe(ref planes.Component3, offset) : default;
+            TOperator.ConvertToRgb(ref r, ref g, ref b, c3, maximumValue, halfValue, scale);
+        }
+
+        /// <summary>
+        /// Loads one <see cref="Vector256{T}"/> of each component and converts it to normalized RGB in registers.
+        /// </summary>
+        /// <param name="planes">The source planes.</param>
+        /// <param name="offset">The first sample of the vector.</param>
+        /// <param name="maximumValue">The maximum component value for the configured precision.</param>
+        /// <param name="halfValue">The midpoint component value for the configured precision.</param>
+        /// <param name="scale">The reciprocal of <paramref name="maximumValue"/>.</param>
+        /// <param name="r">The normalized red values.</param>
+        /// <param name="g">The normalized green values.</param>
+        /// <param name="b">The normalized blue values.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LoadRgb(
+            in RowPlanes planes,
+            nuint offset,
+            Vector256<float> maximumValue,
+            Vector256<float> halfValue,
+            Vector256<float> scale,
+            out Vector256<float> r,
+            out Vector256<float> g,
+            out Vector256<float> b)
+        {
+            // See the Vector512 overload.
+            r = Vector256.LoadUnsafe(ref planes.Component0, offset);
+            g = Vector256.LoadUnsafe(ref planes.Component1, offset);
+            b = Vector256.LoadUnsafe(ref planes.Component2, offset);
+            Vector256<float> c3 = TOperator.ComponentCount == 4 ? Vector256.LoadUnsafe(ref planes.Component3, offset) : default;
+            TOperator.ConvertToRgb(ref r, ref g, ref b, c3, maximumValue, halfValue, scale);
+        }
+
+        /// <summary>
+        /// Loads one <see cref="Vector128{T}"/> of each component and converts it to normalized RGB in registers.
+        /// </summary>
+        /// <param name="planes">The source planes.</param>
+        /// <param name="offset">The first sample of the vector.</param>
+        /// <param name="maximumValue">The maximum component value for the configured precision.</param>
+        /// <param name="halfValue">The midpoint component value for the configured precision.</param>
+        /// <param name="scale">The reciprocal of <paramref name="maximumValue"/>.</param>
+        /// <param name="r">The normalized red values.</param>
+        /// <param name="g">The normalized green values.</param>
+        /// <param name="b">The normalized blue values.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LoadRgb(
+            in RowPlanes planes,
+            nuint offset,
+            Vector128<float> maximumValue,
+            Vector128<float> halfValue,
+            Vector128<float> scale,
+            out Vector128<float> r,
+            out Vector128<float> g,
+            out Vector128<float> b)
+        {
+            // See the Vector512 overload.
+            r = Vector128.LoadUnsafe(ref planes.Component0, offset);
+            g = Vector128.LoadUnsafe(ref planes.Component1, offset);
+            b = Vector128.LoadUnsafe(ref planes.Component2, offset);
+            Vector128<float> c3 = TOperator.ComponentCount == 4 ? Vector128.LoadUnsafe(ref planes.Component3, offset) : default;
+            TOperator.ConvertToRgb(ref r, ref g, ref b, c3, maximumValue, halfValue, scale);
+        }
+
+        /// <summary>
+        /// The first samples of the component planes of a row, and of its destination RGB planes.
+        /// </summary>
+        private readonly ref struct RowPlanes
+        {
+            /// <summary>
+            /// The first sample of the first component.
+            /// </summary>
+            public readonly ref float Component0;
+
+            /// <summary>
+            /// The first sample of the second component.
+            /// </summary>
+            public readonly ref float Component1;
+
+            /// <summary>
+            /// The first sample of the third component.
+            /// </summary>
+            public readonly ref float Component2;
+
+            /// <summary>
+            /// The first sample of the fourth component. It is valid only for four-component operators.
+            /// </summary>
+            public readonly ref float Component3;
+
+            /// <summary>
+            /// The first red byte.
+            /// </summary>
+            public readonly ref byte Red;
+
+            /// <summary>
+            /// The first green byte.
+            /// </summary>
+            public readonly ref byte Green;
+
+            /// <summary>
+            /// The first blue byte.
+            /// </summary>
+            public readonly ref byte Blue;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="RowPlanes"/> struct.
+            /// </summary>
+            /// <param name="values">The component planes.</param>
+            /// <param name="red">The destination red plane.</param>
+            /// <param name="green">The destination green plane.</param>
+            /// <param name="blue">The destination blue plane.</param>
+            public RowPlanes(in ComponentValues values, Span<byte> red, Span<byte> green, Span<byte> blue)
+            {
+                this.Component0 = ref MemoryMarshal.GetReference(values.Component0);
+                this.Component1 = ref MemoryMarshal.GetReference(values.Component1);
+                this.Component2 = ref MemoryMarshal.GetReference(values.Component2);
+                this.Component3 = ref MemoryMarshal.GetReference(values.Component3);
+                this.Red = ref MemoryMarshal.GetReference(red);
+                this.Green = ref MemoryMarshal.GetReference(green);
+                this.Blue = ref MemoryMarshal.GetReference(blue);
             }
         }
     }

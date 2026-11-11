@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.Bulk;
@@ -33,7 +34,7 @@ public class UnPremultiplyVector4
         for (nuint i = 0; i < (uint)Vectors.Length; i++)
         {
             ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-            Numerics.UnPremultiply(ref v);
+            v = Numerics.UnPremultiply(v.AsVector128()).AsVector4();
         }
     }
 

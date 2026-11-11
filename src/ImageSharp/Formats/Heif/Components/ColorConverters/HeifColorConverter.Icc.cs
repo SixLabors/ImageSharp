@@ -27,7 +27,6 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="premultiplied">Whether the color components are associated with <paramref name="alpha"/>.</param>
     /// <param name="profileConverter">The converter from the embedded ICC profile to sRGB.</param>
     /// <param name="vectors">The destination pixel vectors.</param>
-    /// <param name="rgbSpan">RGB storage of the same length as <paramref name="vectors"/> for the profile transform.</param>
     public abstract void ConvertToRgb(
         Span<float> component0,
         Span<float> component1,
@@ -35,8 +34,7 @@ internal abstract partial class HeifColorConverterBase
         ReadOnlySpan<float> alpha,
         bool premultiplied,
         ColorProfileConverter profileConverter,
-        Span<Vector4> vectors,
-        Span<Rgb> rgbSpan);
+        Span<Vector4> vectors);
 
     /// <summary>
     /// Converts working sRGB pixels through ICC and writes normalized native component rows.
@@ -76,8 +74,7 @@ internal abstract partial class HeifColorConverterBase
             ReadOnlySpan<float> alpha,
             bool premultiplied,
             ColorProfileConverter profileConverter,
-            Span<Vector4> vectors,
-            Span<Rgb> rgbSpan)
+            Span<Vector4> vectors)
         {
             // The sample loader supplies normalized native components. The RGB profile describes the RGB produced by the model,
             // so run the selected model before ICC. Monochrome conversion repeats its intensity in all three RGB planes.
@@ -91,9 +88,9 @@ internal abstract partial class HeifColorConverterBase
                 Numerics.UnPremultiply(vectors);
             }
 
-            // The shared converter uses rgbSpan for the profile transform and writes RGB back into vectors without changing alpha.
+            // The shared converter converts RGB in the vectors. It does not change alpha.
             // The decoder then packs vectors into TPixel, including the destination's alpha representation.
-            profileConverter.Convert(vectors, rgbSpan);
+            profileConverter.Convert(vectors);
         }
 
         /// <inheritdoc />

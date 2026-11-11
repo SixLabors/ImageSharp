@@ -105,19 +105,29 @@ internal static class Vector128_
         const float Numerator = 1.725879990F;
         const float Denominator = 0.3520887068F;
         const uint SmallestNormalBits = 0x00800000;
+        const uint InfinityBits = 0x7F800000;
         const float SubnormalScale = 1 << 24;
 
-        // Zero uses a safe logarithm input and is restored after exponentiation. Keep this rule in
-        // the shared helper so finite gamma stages do not need the general power dispatcher.
+        // A positive, normal, finite base has a bit pattern in [SmallestNormalBits, InfinityBits).
+        // A subtraction of the lower bound moves that range to [0, InfinityBits - SmallestNormalBits) as unsigned integers.
+        // Subnormal, infinite, NaN and negative bases are outside this range. Zero is also outside it.
+        // Black pixels make zero frequent. Thus, the fast path also puts back zero lanes, with the same selection as the special path.
+        // One test for each block finds the blocks where no other special handling changes a lane.
+        // Ordinary lanes use the same arithmetic on the two paths.
         Vector128<float> zero = Vector128.Equals(value, Vector128<float>.Zero);
-        Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, value);
-        Vector128<uint> small = Vector128.LessThan(positive.AsUInt32(), Vector128.Create(SmallestNormalBits));
-        bool hasSmall = small != Vector128<uint>.Zero;
+        Vector128<uint> ordinary = Vector128.LessThan(
+            value.AsUInt32() - Vector128.Create(SmallestNormalBits),
+            Vector128.Create(InfinityBits - SmallestNormalBits));
+        bool special = (ordinary | zero.AsUInt32()) != Vector128<uint>.AllBitsSet;
 
-        // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
-        Vector128<float> normalized = positive;
-        if (hasSmall)
+        Vector128<uint> small = default;
+        Vector128<float> normalized = value;
+        if (special)
         {
+            // In this path, zero uses a safe logarithm input. The selection after the exponentiation puts back its result.
+            // A multiplication by 2^24 makes positive subnormal inputs normal. The code below subtracts 24 from their logarithms.
+            Vector128<float> positive = Vector128.ConditionalSelect(zero, Vector128<float>.One, value);
+            small = Vector128.LessThan(positive.AsUInt32(), Vector128.Create(SmallestNormalBits));
             normalized = Vector128.ConditionalSelect(small.AsSingle(), positive * Vector128.Create(SubnormalScale), positive);
         }
 
@@ -128,7 +138,7 @@ internal static class Vector128_
         Vector128<float> logarithm = (Vector128.ConvertToSingle(bits) * Vector128.Create(ExponentScale)) - Vector128.Create(Offset);
         logarithm -= Vector128.Create(Linear) * mantissa;
         logarithm -= Vector128.Create(Numerator) / (Vector128.Create(Denominator) + mantissa);
-        if (hasSmall)
+        if (special)
         {
             logarithm -= Vector128.ConditionalSelect(small.AsSingle(), Vector128.Create(24F), Vector128<float>.Zero);
         }
@@ -136,18 +146,22 @@ internal static class Vector128_
         Vector128<float> result = Exp2(logarithm * Vector128.Create(exponent));
 
         // Exponent zero is handled before this helper. Other powers of zero give zero or positive infinity.
+        // On the fast path, the logarithm input of a zero lane has no meaning.
+        // This selection replaces the result of a zero lane on the two paths.
         float zeroResult = exponent < 0F ? float.PositiveInfinity : 0F;
         result = Vector128.ConditionalSelect(zero, Vector128.Create(zeroResult), result);
 
-        if (Vector128.EqualsAny(value, Vector128.Create(float.PositiveInfinity)))
+        if (special)
         {
             float infinityResult = exponent < 0F ? 0F : float.PositiveInfinity;
             result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128.Create(float.PositiveInfinity)), Vector128.Create(infinityResult), result);
+
+            // These selections also prevent a change to the calculation of an ordinary lane by a special lane next to it.
+            result = Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
         }
 
-        // These selections also keep an exceptional neighbor from changing an ordinary lane's calculation.
-        result = Vector128.ConditionalSelect(Vector128.Equals(value, Vector128<float>.One), value, result);
-        return Vector128.ConditionalSelect(Vector128.Equals(value, value), result, value);
+        // The logarithm approximation is not exactly zero at one. Thus, the code keeps an exact result for one on the two paths.
+        return Vector128.ConditionalSelect(Vector128.Equals(value, Vector128<float>.One), value, result);
     }
 
     /// <summary>
@@ -757,6 +771,57 @@ internal static class Vector128_
         Vector128<int> max = Vector128.Create((int)short.MaxValue);
         return Vector128.Narrow(Vector128.Clamp(left, min, max), Vector128.Clamp(right, min, max));
     }
+
+    /// <summary>
+    /// Widens sixteen unsigned bytes to four vectors of signed 32-bit integers, in source order.
+    /// </summary>
+    /// <remarks>Element j of vector k holds byte 4k + j.</remarks>
+    /// <param name="value">The sixteen byte lanes.</param>
+    /// <param name="v0">The values of bytes 0 to 3.</param>
+    /// <param name="v1">The values of bytes 4 to 7.</param>
+    /// <param name="v2">The values of bytes 8 to 11.</param>
+    /// <param name="v3">The values of bytes 12 to 15.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Widen(
+        Vector128<byte> value,
+        out Vector128<int> v0,
+        out Vector128<int> v1,
+        out Vector128<int> v2,
+        out Vector128<int> v3)
+    {
+        if (Sse41.IsSupported)
+        {
+            // pmovzxbd widens the four lowest bytes. A byte shift of 4, 8, or 12 moves the next group of four bytes to the lowest position.
+            v0 = Sse41.ConvertToVector128Int32(value);
+            v1 = Sse41.ConvertToVector128Int32(Sse2.ShiftRightLogical128BitLane(value, 4));
+            v2 = Sse41.ConvertToVector128Int32(Sse2.ShiftRightLogical128BitLane(value, 8));
+            v3 = Sse41.ConvertToVector128Int32(Sse2.ShiftRightLogical128BitLane(value, 12));
+            return;
+        }
+
+        // Bytes widen to words, then words to 32-bit integers. On Arm64, the first step uses uxtl and uxtl2,
+        // and the second step uses sxtl and sxtl2. Each word is in [0, 255]. Thus, the signed widening gives
+        // the same values as an unsigned widening.
+        (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(value);
+        (v0, v1) = Vector128.Widen(lower.AsInt16());
+        (v2, v3) = Vector128.Widen(upper.AsInt16());
+    }
+
+    /// <summary>
+    /// Narrows four vectors of signed 32-bit integers to one vector of bytes, in source order, with unsigned saturation.
+    /// </summary>
+    /// <remarks>
+    /// A negative value becomes 0, and a value above 255 becomes 255. Byte k holds element k % 4 of vector k / 4.
+    /// The 128-bit packs keep the source order on every platform.
+    /// </remarks>
+    /// <param name="v0">The values for bytes 0 to 3.</param>
+    /// <param name="v1">The values for bytes 4 to 7.</param>
+    /// <param name="v2">The values for bytes 8 to 11.</param>
+    /// <param name="v3">The values for bytes 12 to 15.</param>
+    /// <returns>The <see cref="Vector128{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> NarrowToByteWithSaturation(Vector128<int> v0, Vector128<int> v1, Vector128<int> v2, Vector128<int> v3)
+        => PackUnsignedSaturate(PackSignedSaturate(v0, v1), PackSignedSaturate(v2, v3));
 
     /// <summary>
     /// Packs signed 16-bit integers to signed 8-bit integers and saturates.

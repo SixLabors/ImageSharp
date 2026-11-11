@@ -204,16 +204,16 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
     /// <inheritdoc />
-    public static Rgba64 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Rgba64 FromAbgr32P(Abgr32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Rgba64 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Rgba64 FromArgb32P(Argb32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Rgba64 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Rgba64 FromBgra32P(Bgra32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Rgba64 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Rgba64 FromRgba32P(Rgba32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
@@ -247,12 +247,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4()
-    {
-        Vector4 vector = this.ToScaledVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToAssociatedScaledVector4() => PixelOperations.ToAssociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

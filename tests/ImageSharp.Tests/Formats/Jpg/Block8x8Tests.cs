@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -67,15 +68,20 @@ public class Block8x8Tests : JpegFixture
         Assert.Equal(data, result);
     }
 
-    [Fact]
-    public void Equality_WhenFalse()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(31)]
+    [InlineData(32)]
+    [InlineData(63)]
+    public void Equality_WhenFalse(int index)
     {
+        // Two blocks that differ in one value are not equal, at any position of the 64 values.
         short[] data = Create8x8ShortData();
         Block8x8 block1 = Block8x8.Load(data);
         Block8x8 block2 = Block8x8.Load(data);
 
-        block1[0] = 42;
-        block2[0] = 666;
+        block1[index] = 42;
+        block2[index] = 666;
 
         Assert.NotEqual(block1, block2);
     }
@@ -107,181 +113,66 @@ public class Block8x8Tests : JpegFixture
     }
 
     [Fact]
-    public void GetLastNonZeroIndex_AllZero()
+    public void IsDcOnly_IsFalseForAnyNonZeroAcCoefficient()
     {
         static void RunTest()
         {
+            // Zero and DC-only blocks have no AC coefficients.
             Block8x8 data = default;
+            Assert.True(data.IsDcOnly());
 
-            nint expected = -1;
+            data[0] = -1;
+            Assert.True(data.IsDcOnly());
 
-            nint actual = data.GetLastNonZeroIndex();
-
-            Assert.Equal(expected, actual);
+            // If the method gives a false positive, the decoder deletes the AC coefficients of the block.
+            for (int i = 1; i < Block8x8.Size; i++)
+            {
+                Block8x8 block = default;
+                block[0] = 1;
+                block[i] = short.MinValue;
+                Assert.False(block.IsDcOnly(), $"Index {i}, Vector256 {Vector256.IsHardwareAccelerated}, Vector128 {Vector128.IsHardwareAccelerated}");
+            }
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Fact]
-    public void GetLastNonZeroIndex_AllNonZero()
+    public void GetNonZeroMask_SetsTheBitOfEachNonZeroElement()
     {
         static void RunTest()
         {
-            Block8x8 data = default;
+            Assert.Equal(0UL, default(Block8x8).GetNonZeroMask());
+
+            // The Huffman encoder emits a coefficient only when its bit is set. Each element must map to its own bit.
             for (int i = 0; i < Block8x8.Size; i++)
             {
-                data[i] = 10;
+                Block8x8 block = default;
+                block[i] = short.MinValue;
+                Assert.Equal(1UL << i, block.GetNonZeroMask());
+
+                block[i] = 1;
+                Assert.Equal(1UL << i, block.GetNonZeroMask());
             }
 
-            nint expected = Block8x8.Size - 1;
-
-            nint actual = data.GetLastNonZeroIndex();
-
-            Assert.Equal(expected, actual);
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void GetLastNonZeroIndex_RandomFilledSingle(int seed)
-    {
-        static void RunTest(string seedSerialized)
-        {
-            int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            Random rng = new(seed);
-
-            for (int i = 0; i < 1000; i++)
+            short[] data = Create8x8ShortData();
+            Block8x8 mixed = Block8x8.Load(data);
+            ulong expected = 0;
+            for (int i = 0; i < data.Length; i++)
             {
-                Block8x8 data = default;
-
-                int setIndex = rng.Next(1, Block8x8.Size);
-                data[setIndex] = (short)rng.Next(-2000, 2000);
-
-                nint expected = setIndex;
-
-                nint actual = data.GetLastNonZeroIndex();
-
-                Assert.Equal(expected, actual);
-            }
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            seed,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void GetLastNonZeroIndex_RandomFilledPartially(int seed)
-    {
-        static void RunTest(string seedSerialized)
-        {
-            int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            Random rng = new(seed);
-
-            for (int i = 0; i < 1000; i++)
-            {
-                Block8x8 data = default;
-
-                int lastIndex = rng.Next(1, Block8x8.Size);
-                short fillValue = (short)rng.Next(-2000, 2000);
-                for (int dataIndex = 0; dataIndex <= lastIndex; dataIndex++)
+                if (data[i] != 0)
                 {
-                    data[dataIndex] = fillValue;
+                    expected |= 1UL << i;
                 }
-
-                int expected = lastIndex;
-
-                nint actual = data.GetLastNonZeroIndex();
-
-                Assert.Equal(expected, actual);
             }
+
+            Assert.Equal(expected, mixed.GetNonZeroMask());
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            seed,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void GetLastNonZeroIndex_RandomFilledFragmented(int seed)
-    {
-        static void RunTest(string seedSerialized)
-        {
-            int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            Random rng = new(seed);
-
-            for (int i = 0; i < 1000; i++)
-            {
-                Block8x8 data = default;
-
-                short fillValue = (short)rng.Next(-2000, 2000);
-
-                // first filled chunk
-                int firstChunkStart = rng.Next(0, Block8x8.Size / 2);
-                int firstChunkEnd = rng.Next(firstChunkStart, Block8x8.Size / 2);
-                for (int dataIdx = firstChunkStart; dataIdx <= firstChunkEnd; dataIdx++)
-                {
-                    data[dataIdx] = fillValue;
-                }
-
-                // second filled chunk, there might be a spot with zero(s) between first and second chunk
-                int secondChunkStart = rng.Next(firstChunkEnd, Block8x8.Size);
-                int secondChunkEnd = rng.Next(secondChunkStart, Block8x8.Size);
-                for (int dataIdx = secondChunkStart; dataIdx <= secondChunkEnd; dataIdx++)
-                {
-                    data[dataIdx] = fillValue;
-                }
-
-                int expected = secondChunkEnd;
-
-                nint actual = data.GetLastNonZeroIndex();
-
-                Assert.True(expected == actual, $"Expected: {expected}\nActual: {actual}\nInput matrix: {data}");
-            }
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            seed,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
-    }
-
-    [Fact]
-    public void TransposeInplace()
-    {
-        static void RunTest()
-        {
-            short[] expected = Create8x8ShortData();
-            ReferenceImplementations.Transpose8x8(expected);
-
-            Block8x8 block8x8 = Block8x8.Load(Create8x8ShortData());
-
-            block8x8.TransposeInPlace();
-
-            short[] actual = new short[64];
-            block8x8.CopyTo(actual);
-
-            Assert.Equal(expected, actual);
-        }
-
-        // This method has only 1 implementation:
-        // 1. Scalar
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 }

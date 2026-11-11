@@ -591,7 +591,7 @@ internal static partial class PorterDuffFunctions
             Vector128.Create(coverage),
             backdropPremultiplied.AsVector128()).AsVector4();
 
-        Numerics.UnPremultiply(ref result);
+        result = Numerics.UnPremultiply(result.AsVector128()).AsVector4();
         return result;
     }
 
@@ -812,7 +812,7 @@ internal static partial class PorterDuffFunctions
         Vector4 color = (destination * dstW) + (source * srcW) + (blend * blendW);
 
         // unpremultiply
-        Numerics.UnPremultiply(ref color, alpha);
+        color = Numerics.UnPremultiply(color.AsVector128(), alpha.AsVector128()).AsVector4();
         return color;
     }
 
@@ -900,7 +900,7 @@ internal static partial class PorterDuffFunctions
         Vector4 color = (destination * dstW) + (blend * blendW);
 
         // unpremultiply
-        Numerics.UnPremultiply(ref color, alpha);
+        color = Numerics.UnPremultiply(color.AsVector128(), alpha.AsVector128()).AsVector4();
         return color;
     }
 
@@ -968,7 +968,7 @@ internal static partial class PorterDuffFunctions
         Vector4 alpha = dW * sW;
 
         Vector4 color = source * alpha;            // premultiply
-        Numerics.UnPremultiply(ref color, alpha);  // unpremultiply
+        color = Numerics.UnPremultiply(color.AsVector128(), alpha.AsVector128()).AsVector4();  // unpremultiply
         return color;
     }
 
@@ -1024,7 +1024,7 @@ internal static partial class PorterDuffFunctions
         Vector4 alpha = (Vector4.One - dW) * sW;
 
         Vector4 color = source * alpha;            // premultiply
-        Numerics.UnPremultiply(ref color, alpha);  // unpremultiply
+        color = Numerics.UnPremultiply(color.AsVector128(), alpha.AsVector128()).AsVector4();  // unpremultiply
         return color;
     }
 
@@ -1085,7 +1085,7 @@ internal static partial class PorterDuffFunctions
         Vector4 color = (sW * source * srcW) + (dW * destination * dstW);
 
         // unpremultiply
-        Numerics.UnPremultiply(ref color, alpha);
+        color = Numerics.UnPremultiply(color.AsVector128(), alpha.AsVector128()).AsVector4();
         return color;
     }
 
@@ -1158,7 +1158,7 @@ internal static partial class PorterDuffFunctions
         Vector4 alpha = Vector4.Min(Vector4.One, sourceAlpha + destinationAlpha);
         color = Vector4.Min(Vector4.One, color);
 
-        Numerics.UnPremultiply(ref color, alpha);
+        color = Numerics.UnPremultiply(color.AsVector128(), alpha.AsVector128()).AsVector4();
         return color;
     }
 

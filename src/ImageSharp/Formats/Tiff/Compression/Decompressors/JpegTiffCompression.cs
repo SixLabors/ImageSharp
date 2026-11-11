@@ -81,7 +81,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
                 if (this.jpegTables is not null)
                 {
-                    HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
+                    HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, configuration.MemoryAllocator, cancellationToken);
                     jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
                 }
 
@@ -107,7 +107,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
                 if (this.jpegTables is not null)
                 {
-                    HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
+                    HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, configuration.MemoryAllocator, cancellationToken);
                     jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                 }
 

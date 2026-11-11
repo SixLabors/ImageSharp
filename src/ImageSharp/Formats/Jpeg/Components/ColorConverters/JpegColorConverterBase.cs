@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 
@@ -76,10 +77,17 @@ internal abstract partial class JpegColorConverterBase
         ?? throw new InvalidImageContentException($"Could not find any converter for JpegColorSpace {colorSpace}!");
 
     /// <summary>
-    /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place.
+    /// Converts planar JPEG component values to 8-bit RGB planes.
     /// </summary>
-    /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct</param>
-    public abstract void ConvertToRgb(in ComponentValues values);
+    /// <remarks>
+    /// The method converts the first <c>red.Length</c> samples of each component. It does not change the components.
+    /// Each byte is the normalized RGB value scaled to [0, 255], rounded to nearest with midpoint values away from zero, and saturated.
+    /// </remarks>
+    /// <param name="values">The source component planes. Each plane holds at least <c>red.Length</c> samples.</param>
+    /// <param name="red">The destination red plane.</param>
+    /// <param name="green">The destination green plane, with the length of <paramref name="red"/>.</param>
+    /// <param name="blue">The destination blue plane, with the length of <paramref name="red"/>.</param>
+    public abstract void ConvertToRgb(in ComponentValues values, Span<byte> red, Span<byte> green, Span<byte> blue);
 
     /// <summary>
     /// Converts RGB lanes to jpeg component values.
@@ -94,19 +102,24 @@ internal abstract partial class JpegColorConverterBase
     /// Converts JPEG codes to straight sRGB through the source ICC profile without changing the source planes.
     /// </summary>
     /// <param name="source">The source JPEG component planes.</param>
-    /// <param name="destination">The straight sRGB output.</param>
+    /// <param name="destination">
+    /// The output, with one scaled straight sRGB vector for each sample, and W equal to one.
+    /// The span is also the input storage for the profile.
+    /// </param>
     /// <param name="profileConverter">The transform from the source profile to sRGB.</param>
-    /// <param name="scratch">Caller-owned storage for one to four normalized components per sample.</param>
-    public abstract void ConvertToRgb(in ComponentValues source, Span<Rgb> destination, ColorProfileConverter profileConverter, Span<float> scratch);
+    public abstract void ConvertToRgb(in ComponentValues source, Span<Vector4> destination, ColorProfileConverter profileConverter);
 
     /// <summary>
-    /// Converts straight sRGB to JPEG codes through the destination ICC profile without changing the source colors.
+    /// Converts straight sRGB to JPEG codes through the destination ICC profile.
     /// </summary>
-    /// <param name="source">The straight sRGB input, including any right-edge padding.</param>
+    /// <param name="source">
+    /// The straight, scaled sRGB vectors, including any right-edge padding. W is not color data.
+    /// The method uses this storage for the profile components. Thus, the input values are not kept.
+    /// </param>
     /// <param name="destination">The destination JPEG component planes.</param>
     /// <param name="profileConverter">The transform from sRGB to the destination profile.</param>
-    /// <param name="scratch">Caller-owned storage for one to four normalized components per sample.</param>
-    public abstract void ConvertFromRgb(ReadOnlySpan<Rgb> source, in ComponentValues destination, ColorProfileConverter profileConverter, Span<float> scratch);
+    /// <param name="scratch">Caller-owned storage for one <see cref="Rgb"/> for each vector in <paramref name="source"/>.</param>
+    public abstract void ConvertFromRgb(Span<Vector4> source, in ComponentValues destination, ColorProfileConverter profileConverter, Span<Rgb> scratch);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for all supported color spaces and precisions.

@@ -139,19 +139,29 @@ internal static class Vector512_
         const float Numerator = 1.725879990F;
         const float Denominator = 0.3520887068F;
         const uint SmallestNormalBits = 0x00800000;
+        const uint InfinityBits = 0x7F800000;
         const float SubnormalScale = 1 << 24;
 
-        // Zero uses a safe logarithm input and is restored after exponentiation. Keep this rule in
-        // the shared helper so finite gamma stages do not need the general power dispatcher.
+        // A positive, normal, finite base has a bit pattern in [SmallestNormalBits, InfinityBits).
+        // A subtraction of the lower bound moves that range to [0, InfinityBits - SmallestNormalBits) as unsigned integers.
+        // Subnormal, infinite, NaN and negative bases are outside this range. Zero is also outside it.
+        // Black pixels make zero frequent. Thus, the fast path also puts back zero lanes, with the same selection as the special path.
+        // One test for each block finds the blocks where no other special handling changes a lane.
+        // Ordinary lanes use the same arithmetic on the two paths.
         Vector512<float> zero = Vector512.Equals(value, Vector512<float>.Zero);
-        Vector512<float> positive = Vector512.ConditionalSelect(zero, Vector512<float>.One, value);
-        Vector512<uint> small = Vector512.LessThan(positive.AsUInt32(), Vector512.Create(SmallestNormalBits));
-        bool hasSmall = small != Vector512<uint>.Zero;
+        Vector512<uint> ordinary = Vector512.LessThan(
+            value.AsUInt32() - Vector512.Create(SmallestNormalBits),
+            Vector512.Create(InfinityBits - SmallestNormalBits));
+        bool special = (ordinary | zero.AsUInt32()) != Vector512<uint>.AllBitsSet;
 
-        // Multiplication by 2^24 makes positive subnormal inputs normal. Subtract 24 from their logarithms below.
-        Vector512<float> normalized = positive;
-        if (hasSmall)
+        Vector512<uint> small = default;
+        Vector512<float> normalized = value;
+        if (special)
         {
+            // In this path, zero uses a safe logarithm input. The selection after the exponentiation puts back its result.
+            // A multiplication by 2^24 makes positive subnormal inputs normal. The code below subtracts 24 from their logarithms.
+            Vector512<float> positive = Vector512.ConditionalSelect(zero, Vector512<float>.One, value);
+            small = Vector512.LessThan(positive.AsUInt32(), Vector512.Create(SmallestNormalBits));
             normalized = Vector512.ConditionalSelect(small.AsSingle(), positive * Vector512.Create(SubnormalScale), positive);
         }
 
@@ -162,7 +172,7 @@ internal static class Vector512_
         Vector512<float> logarithm = (Vector512.ConvertToSingle(bits) * Vector512.Create(ExponentScale)) - Vector512.Create(Offset);
         logarithm -= Vector512.Create(Linear) * mantissa;
         logarithm -= Vector512.Create(Numerator) / (Vector512.Create(Denominator) + mantissa);
-        if (hasSmall)
+        if (special)
         {
             logarithm -= Vector512.ConditionalSelect(small.AsSingle(), Vector512.Create(24F), Vector512<float>.Zero);
         }
@@ -170,18 +180,22 @@ internal static class Vector512_
         Vector512<float> result = Exp2(logarithm * Vector512.Create(exponent));
 
         // Exponent zero is handled before this helper. Other powers of zero give zero or positive infinity.
+        // On the fast path, the logarithm input of a zero lane has no meaning.
+        // This selection replaces the result of a zero lane on the two paths.
         float zeroResult = exponent < 0F ? float.PositiveInfinity : 0F;
         result = Vector512.ConditionalSelect(zero, Vector512.Create(zeroResult), result);
 
-        if (Vector512.EqualsAny(value, Vector512.Create(float.PositiveInfinity)))
+        if (special)
         {
             float infinityResult = exponent < 0F ? 0F : float.PositiveInfinity;
             result = Vector512.ConditionalSelect(Vector512.Equals(value, Vector512.Create(float.PositiveInfinity)), Vector512.Create(infinityResult), result);
+
+            // These selections also prevent a change to the calculation of an ordinary lane by a special lane next to it.
+            result = Vector512.ConditionalSelect(Vector512.Equals(value, value), result, value);
         }
 
-        // These selections also keep an exceptional neighbor from changing an ordinary lane's calculation.
-        result = Vector512.ConditionalSelect(Vector512.Equals(value, Vector512<float>.One), value, result);
-        return Vector512.ConditionalSelect(Vector512.Equals(value, value), result, value);
+        // The logarithm approximation is not exactly zero at one. Thus, the code keeps an exact result for one on the two paths.
+        return Vector512.ConditionalSelect(Vector512.Equals(value, Vector512<float>.One), value, result);
     }
 
     /// <summary>
@@ -251,6 +265,40 @@ internal static class Vector512_
         return Vector512.Create(
             Vector256_.PackSignedSaturate(left.GetLower(), right.GetLower()),
             Vector256_.PackSignedSaturate(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Narrows four vectors of signed 32-bit integers to one vector of bytes, in source order, with unsigned saturation.
+    /// </summary>
+    /// <remarks>
+    /// A negative value becomes 0, and a value above 255 becomes 255. Byte k holds element k % 16 of vector k / 16.
+    /// </remarks>
+    /// <param name="v0">The values for bytes 0 to 15.</param>
+    /// <param name="v1">The values for bytes 16 to 31.</param>
+    /// <param name="v2">The values for bytes 32 to 47.</param>
+    /// <param name="v3">The values for bytes 48 to 63.</param>
+    /// <returns>The <see cref="Vector512{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> NarrowToByteWithSaturation(Vector512<int> v0, Vector512<int> v1, Vector512<int> v2, Vector512<int> v3)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            // The packs work in each 128-bit lane L. After the two steps, dword 4L + j of the result holds the four
+            // narrowed bytes of elements 4L to 4L + 3 of vj. The permute moves these dwords back to source order.
+            Vector512<short> low = Avx512BW.PackSignedSaturate(v0, v1);
+            Vector512<short> high = Avx512BW.PackSignedSaturate(v2, v3);
+            Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(low, high);
+            Vector512<int> order = Vector512.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15);
+            return Vector512.ShuffleNative(packed.AsInt32(), order).AsByte();
+        }
+
+        // The portable narrowing keeps the source order. The signed step saturates to the 16-bit range. The maximum with
+        // zero then makes each value non-negative, so the unsigned step saturates it to [0, 255].
+        Vector512<short> lower = Vector512.NarrowWithSaturation(v0, v1);
+        Vector512<short> upper = Vector512.NarrowWithSaturation(v2, v3);
+        return Vector512.NarrowWithSaturation(
+            Vector512.Max(lower, Vector512<short>.Zero).AsUInt16(),
+            Vector512.Max(upper, Vector512<short>.Zero).AsUInt16());
     }
 
     /// <summary>
@@ -427,6 +475,34 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Adds adjacent pairs of single-precision values in <paramref name="left"/>, then in <paramref name="right"/>.
+    /// </summary>
+    /// <param name="left">The values whose pair sums fill the lower half of the result.</param>
+    /// <param name="right">The values whose pair sums fill the upper half of the result.</param>
+    /// <returns>
+    /// The vector (l0 + l1, l2 + l3, ..., l14 + l15, r0 + r1, ..., r14 + r15).
+    /// </returns>
+    /// <remarks>
+    /// Two two-source permutes gather the even values and the odd values of both sources in order. Indices 0 to 15
+    /// select from left and 16 to 31 from right. One addition then adds each pair. The portable form calls the
+    /// 256-bit operation once for each source, with the lower and upper halves of that source as the two operands.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> AddPairwise(Vector512<float> left, Vector512<float> right)
+    {
+        if (Avx512F.IsSupported)
+        {
+            Vector512<int> even = Vector512.Create(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30);
+            Vector512<int> odd = Vector512.Create(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
+            return Avx512F.PermuteVar16x32x2(left, even, right) + Avx512F.PermuteVar16x32x2(left, odd, right);
+        }
+
+        return Vector512.Create(
+            Vector256_.AddPairwise(left.GetLower(), left.GetUpper()),
+            Vector256_.AddPairwise(right.GetLower(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Selects each 64-bit element from one of two vectors by index.
     /// </summary>
     /// <param name="lower">The vector that supplies indices 0 through 7.</param>
@@ -444,6 +520,28 @@ internal static class Vector512_
         // All masked indices are valid, so the native shuffles do not need out-of-range zeroing.
         Vector512<long> within = indices & Vector512.Create(7L);
         Vector512<long> selector = Vector512.Equals(indices & Vector512.Create(8L), Vector512.Create(8L));
+        return Vector512.ConditionalSelect(selector, Vector512.ShuffleNative(upper, within), Vector512.ShuffleNative(lower, within));
+    }
+
+    /// <summary>
+    /// Selects each 16-bit element from one of two vectors by index.
+    /// </summary>
+    /// <param name="lower">The vector that supplies indices 0 through 31.</param>
+    /// <param name="indices">The source index of each destination element.</param>
+    /// <param name="upper">The vector that supplies indices 32 through 63.</param>
+    /// <returns>The <see cref="Vector512{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<short> PermuteVar32x16x2(Vector512<short> lower, Vector512<short> indices, Vector512<short> upper)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.PermuteVar32x16x2(lower, indices, upper);
+        }
+
+        // The low five bits select an element. Bit 5 selects the source vector.
+        // All masked indices are valid, so the native shuffles do not need out-of-range zeroing.
+        Vector512<short> within = indices & Vector512.Create((short)31);
+        Vector512<short> selector = Vector512.Equals(indices & Vector512.Create((short)32), Vector512.Create((short)32));
         return Vector512.ConditionalSelect(selector, Vector512.ShuffleNative(upper, within), Vector512.ShuffleNative(lower, within));
     }
 

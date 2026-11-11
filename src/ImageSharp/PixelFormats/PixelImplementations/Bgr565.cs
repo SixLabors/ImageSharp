@@ -123,16 +123,16 @@ public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
     public static Bgr565 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc />
-    public static Bgr565 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgr565 FromAbgr32P(Abgr32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Bgr565 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgr565 FromArgb32P(Argb32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Bgr565 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgr565 FromBgra32P(Bgra32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Bgr565 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgr565 FromRgba32P(Rgba32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());

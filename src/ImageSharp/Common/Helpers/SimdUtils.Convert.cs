@@ -120,6 +120,22 @@ internal static partial class SimdUtils
     /// <param name="source">The source component codes.</param>
     /// <param name="destination">The equally sized destination components.</param>
     public static void UInt16ToNormalizedFloat(ReadOnlySpan<ushort> source, Span<float> destination)
+        => UInt16ToNormalizedFloat<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
+
+    /// <summary>
+    /// Converts unsigned sixteen-bit RGBA samples to floats in [0, 1] with scalar-equivalent division, and applies
+    /// <typeparamref name="TAlpha"/> to each pixel in the same pass. The spans hold whole RGBA pixels, unless
+    /// <typeparamref name="TAlpha"/> is <see cref="PixelFormats.PixelOperations.NoAlphaOperator"/>.
+    /// </summary>
+    /// <remarks>
+    /// Each float vector holds whole RGBA groups, because the vector widths are multiples of 4 floats and each step starts at
+    /// a multiple of the vector width.
+    /// </remarks>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+    /// <param name="source">The source component codes.</param>
+    /// <param name="destination">The equally sized destination components.</param>
+    public static void UInt16ToNormalizedFloat<TAlpha>(ReadOnlySpan<ushort> source, Span<float> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         ref ushort input = ref MemoryMarshal.GetReference(source);
         ref float output = ref MemoryMarshal.GetReference(destination);
@@ -136,7 +152,7 @@ internal static partial class SimdUtils
             {
                 Vector256<ushort> codes = Vector256.LoadUnsafe(ref input, (uint)i);
                 Vector512<uint> widened = Vector512.WidenLower(codes.ToVector512());
-                (Vector512.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
+                TAlpha.Apply(Vector512.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
             }
         }
 
@@ -150,7 +166,7 @@ internal static partial class SimdUtils
             {
                 Vector128<ushort> codes = Vector128.LoadUnsafe(ref input, (uint)i);
                 Vector256<uint> widened = Vector256.WidenLower(codes.ToVector256());
-                (Vector256.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
+                TAlpha.Apply(Vector256.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
             }
         }
 
@@ -164,15 +180,18 @@ internal static partial class SimdUtils
             {
                 Vector64<ushort> codes = Vector64.LoadUnsafe(ref input, (uint)i);
                 Vector128<uint> widened = Vector128.WidenLower(codes.ToVector128());
-                (Vector128.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
+                TAlpha.Apply(Vector128.ConvertToSingle(widened.AsInt32()) / maximum).StoreUnsafe(ref output, (uint)i);
             }
         }
 
         // Division matches the single-pixel API exactly; multiplying by a rounded reciprocal can change the final float bit.
+        int remainder = i;
         for (; i < source.Length; i++)
         {
             Unsafe.Add(ref output, (uint)i) = Unsafe.Add(ref input, (uint)i) / (float)ushort.MaxValue;
         }
+
+        ApplyAlphaToRemainder<TAlpha>(destination[remainder..source.Length]);
     }
 
     /// <summary>
@@ -184,14 +203,27 @@ internal static partial class SimdUtils
     /// <param name="destination">The destination span of floats</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> destination)
+        => ByteToNormalizedFloat<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
+
+    /// <summary>
+    /// Converts RGBA bytes to floats normalized into [0..1], and applies <typeparamref name="TAlpha"/> to each pixel in the
+    /// same pass. The spans hold whole RGBA pixels, unless <typeparamref name="TAlpha"/> is <see cref="PixelFormats.PixelOperations.NoAlphaOperator"/>.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+    /// <param name="source">The source span of bytes.</param>
+    /// <param name="destination">The destination span of floats.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal static void ByteToNormalizedFloat<TAlpha>(ReadOnlySpan<byte> source, Span<float> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-        HwIntrinsics.ByteToNormalizedFloatReduce(ref source, ref destination);
+        HwIntrinsics.ByteToNormalizedFloatReduce<TAlpha>(ref source, ref destination);
 
         if (source.Length > 0)
         {
             ConvertByteToNormalizedFloatRemainder(source, destination);
+            ApplyAlphaToRemainder<TAlpha>(destination);
         }
     }
 
@@ -205,14 +237,27 @@ internal static partial class SimdUtils
     /// <param name="destination">The destination span of bytes</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
+        => NormalizedFloatToByteSaturate<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
+
+    /// <summary>
+    /// Applies <typeparamref name="TAlpha"/> to each RGBA pixel of normalized floats, and converts the floats to bytes in the
+    /// same pass. The values are scaled up into [0-255] and rounded, overflows are clamped. The spans hold whole RGBA pixels,
+    /// unless <typeparamref name="TAlpha"/> is <see cref="PixelFormats.PixelOperations.NoAlphaOperator"/>.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+    /// <param name="source">The source span of floats.</param>
+    /// <param name="destination">The destination span of bytes.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal static void NormalizedFloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-        HwIntrinsics.FloatToByteSaturateReduce(ref source, ref destination, byte.MaxValue);
+        HwIntrinsics.FloatToByteSaturateReduce<TAlpha>(ref source, ref destination, byte.MaxValue);
 
         if (source.Length > 0)
         {
-            ConvertFloatToByteRemainder(source, destination, byte.MaxValue);
+            ConvertFloatToByteRemainder<TAlpha>(source, destination, byte.MaxValue);
         }
     }
 
@@ -223,14 +268,27 @@ internal static partial class SimdUtils
     /// <param name="destination">The destination bytes.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal static void FloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
+        => FloatToByteSaturate<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
+
+    /// <summary>
+    /// Applies <typeparamref name="TAlpha"/> to each RGBA pixel, and converts the resulting byte magnitudes to bytes in the same
+    /// pass, with saturating round-to-nearest and midpoint values away from zero. The spans hold whole RGBA pixels, unless
+    /// <typeparamref name="TAlpha"/> is <see cref="PixelFormats.PixelOperations.NoAlphaOperator"/>.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each pixel. Its result is in byte magnitudes.</typeparam>
+    /// <param name="source">The source components.</param>
+    /// <param name="destination">The destination bytes.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal static void FloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-        HwIntrinsics.FloatToByteSaturateReduce(ref source, ref destination, 1F);
+        HwIntrinsics.FloatToByteSaturateReduce<TAlpha>(ref source, ref destination, 1F);
 
         if (source.Length > 0)
         {
-            ConvertFloatToByteRemainder(source, destination, 1F);
+            ConvertFloatToByteRemainder<TAlpha>(source, destination, 1F);
         }
     }
 
@@ -244,6 +302,58 @@ internal static partial class SimdUtils
         {
             // Match the SIMD conversion so one span cannot contain different float representations of the same byte value.
             Unsafe.Add(ref dBase, (uint)i) = Unsafe.Add(ref sBase, (uint)i) / (float)byte.MaxValue;
+        }
+    }
+
+    /// <summary>
+    /// Applies <typeparamref name="TAlpha"/> to each RGBA pixel of the remainder of a conversion to floats.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+    /// <param name="destination">The converted floats. The length is a multiple of 4 for an alpha step other than straight.</param>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ApplyAlphaToRemainder<TAlpha>(Span<float> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
+    {
+        // NoAlphaOperator leaves the values unchanged, so the JIT removes this method body for it.
+        if (typeof(TAlpha) == typeof(PixelFormats.PixelOperations.NoAlphaOperator))
+        {
+            return;
+        }
+
+        ref float dBase = ref MemoryMarshal.GetReference(destination);
+        for (nuint i = 0; i < (uint)destination.Length; i += 4)
+        {
+            TAlpha.Apply(Vector128.LoadUnsafe(ref dBase, i)).StoreUnsafe(ref dBase, i);
+        }
+    }
+
+    /// <summary>
+    /// Applies <typeparamref name="TAlpha"/> to each RGBA pixel of the remainder of a conversion to bytes, and converts it.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+    /// <param name="source">The floats. The length is a multiple of 4 for an alpha step other than straight.</param>
+    /// <param name="destination">The bytes.</param>
+    /// <param name="scale">The factor applied before conversion.</param>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ConvertFloatToByteRemainder<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination, float scale)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
+    {
+        if (typeof(TAlpha) == typeof(PixelFormats.PixelOperations.NoAlphaOperator))
+        {
+            ConvertFloatToByteRemainder(source, destination, scale);
+            return;
+        }
+
+        ref float sBase = ref MemoryMarshal.GetReference(source);
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
+        for (nuint i = 0; i < (uint)source.Length; i += 4)
+        {
+            // The alpha step runs on one pixel in a register. The source span stays unchanged.
+            Vector128<float> pixel = TAlpha.Apply(Vector128.LoadUnsafe(ref sBase, i));
+            Unsafe.Add(ref dBase, i) = ConvertToByte(pixel.GetElement(0), scale);
+            Unsafe.Add(ref dBase, i + 1) = ConvertToByte(pixel.GetElement(1), scale);
+            Unsafe.Add(ref dBase, i + 2) = ConvertToByte(pixel.GetElement(2), scale);
+            Unsafe.Add(ref dBase, i + 3) = ConvertToByte(pixel.GetElement(3), scale);
         }
     }
 

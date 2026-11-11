@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp;
@@ -437,11 +438,11 @@ public readonly partial struct Color : IEquatable<Color>
 
         if (this.isAssociated)
         {
-            Numerics.Premultiply(ref vector);
+            vector = Numerics.Premultiply(vector.AsVector128()).AsVector4();
         }
         else
         {
-            Numerics.UnPremultiply(ref vector);
+            vector = Numerics.UnPremultiply(vector.AsVector128()).AsVector4();
         }
 
         return vector;
@@ -469,11 +470,11 @@ public readonly partial struct Color : IEquatable<Color>
 
         if (targetIsAssociated)
         {
-            Numerics.Premultiply(ref vector);
+            vector = Numerics.Premultiply(vector.AsVector128()).AsVector4();
         }
         else
         {
-            Numerics.UnPremultiply(ref vector);
+            vector = Numerics.UnPremultiply(vector.AsVector128()).AsVector4();
         }
 
         return vector;

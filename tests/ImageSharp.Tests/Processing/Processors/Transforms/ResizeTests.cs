@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
@@ -120,7 +121,8 @@ public class ResizeTests
             default,
             destSize.Height,
             image0.Height,
-            Configuration.Default.MemoryAllocator);
+            Configuration.Default.MemoryAllocator,
+            false);
         int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
         verticalKernelMap.Dispose();
 
@@ -266,15 +268,15 @@ public class ResizeTests
 
         if (premultiplyAlpha)
         {
-            Numerics.Premultiply(ref expectedVector);
-            Numerics.Premultiply(ref second);
+            expectedVector = Numerics.Premultiply(expectedVector.AsVector128()).AsVector4();
+            second = Numerics.Premultiply(second.AsVector128()).AsVector4();
         }
 
         expectedVector = (expectedVector + second) / 2F;
 
         if (premultiplyAlpha)
         {
-            Numerics.UnPremultiply(ref expectedVector);
+            expectedVector = Numerics.UnPremultiply(expectedVector.AsVector128()).AsVector4();
         }
 
         if (compand)

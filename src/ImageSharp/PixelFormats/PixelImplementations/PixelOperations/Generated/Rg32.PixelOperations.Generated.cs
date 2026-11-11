@@ -45,6 +45,18 @@ public partial struct Rg32
 
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rg32> source, Span<Vector4> destination)
+            => this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(configuration, source, destination);
+
+        /// <summary>
+        /// Expands the two stored words of each pixel to normalized RGBA vectors, and applies <typeparamref name="TAlpha"/> to each
+        /// vector before the store.
+        /// </summary>
+        /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="source">The source pixels.</param>
+        /// <param name="destination">The destination vectors.</param>
+        private void Unpack<TAlpha>(Configuration configuration, ReadOnlySpan<Rg32> source, Span<Vector4> destination)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -71,7 +83,7 @@ public partial struct Rg32
                     Vector512<float> second = Vector512.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
 
                     // RG has neither blue nor alpha. Each output vector is [R, G, 0, 1], matching the single-pixel defaults.
-                    SimdUtils.Interleave4(first, second, Vector512<float>.Zero, Vector512.Create(1F), ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                    SimdUtils.Interleave4<TAlpha>(first, second, Vector512<float>.Zero, Vector512.Create(1F), ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
                 }
             }
 
@@ -91,7 +103,7 @@ public partial struct Rg32
                     Vector256<float> second = Vector256.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
 
                     // RG has neither blue nor alpha. Each output vector is [R, G, 0, 1], matching the single-pixel defaults.
-                    SimdUtils.Interleave4(first, second, Vector256<float>.Zero, Vector256.Create(1F), ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                    SimdUtils.Interleave4<TAlpha>(first, second, Vector256<float>.Zero, Vector256.Create(1F), ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
                 }
             }
 
@@ -111,7 +123,7 @@ public partial struct Rg32
                     Vector128<float> second = Vector128.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
 
                     // RG has neither blue nor alpha. Each output vector is [R, G, 0, 1], matching the single-pixel defaults.
-                    SimdUtils.Interleave4(first, second, Vector128<float>.Zero, Vector128.Create(1F), ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                    SimdUtils.Interleave4<TAlpha>(first, second, Vector128<float>.Zero, Vector128.Create(1F), ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
                 }
             }
 
@@ -119,7 +131,7 @@ public partial struct Rg32
             // Call the single-pixel API so channel defaults and normalization retain exactly the same arithmetic.
             for (; i < source.Length; i++)
             {
-                destination[i] = source[i].ToUnassociatedVector4();
+                destination[i] = TAlpha.Apply(source[i].ToUnassociatedVector4().AsVector128()).AsVector4();
             }
         }
     }

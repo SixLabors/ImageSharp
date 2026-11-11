@@ -54,12 +54,7 @@ public partial struct La32
 
         /// <inheritdoc />
         public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
-        {
-            this.ToUnassociatedVector4(configuration, source, destination);
-
-            // Normalize before association, matching the single-pixel API's floating-point rounding.
-            Numerics.Premultiply(destination[..source.Length]);
-        }
+            => this.Unpack<PixelFormats.PixelOperations.AssociateOperator>(configuration, source, destination);
 
         /// <inheritdoc />
         public override void ToAssociatedScaledVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
@@ -67,6 +62,18 @@ public partial struct La32
 
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+            => this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(configuration, source, destination);
+
+        /// <summary>
+        /// Expands the two stored words of each pixel to normalized RGBA vectors, and applies <typeparamref name="TAlpha"/> to each
+        /// vector before the store.
+        /// </summary>
+        /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="source">The source pixels.</param>
+        /// <param name="destination">The destination vectors.</param>
+        private void Unpack<TAlpha>(Configuration configuration, ReadOnlySpan<La32> source, Span<Vector4> destination)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -93,7 +100,7 @@ public partial struct La32
                     Vector512<float> second = Vector512.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
 
                     // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
-                    SimdUtils.Interleave4(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                    SimdUtils.Interleave4<TAlpha>(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
                 }
             }
 
@@ -113,7 +120,7 @@ public partial struct La32
                     Vector256<float> second = Vector256.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
 
                     // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
-                    SimdUtils.Interleave4(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                    SimdUtils.Interleave4<TAlpha>(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
                 }
             }
 
@@ -133,7 +140,7 @@ public partial struct La32
                     Vector128<float> second = Vector128.ConvertToSingle((packed >>> 16).AsInt32()) / maximum;
 
                     // Replicate luminance into RGB and retain the pixel's independent alpha. Each output vector is [L, L, L, A].
-                    SimdUtils.Interleave4(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
+                    SimdUtils.Interleave4<TAlpha>(first, first, first, second, ref Unsafe.Add(ref output, (nuint)(uint)i * 4));
                 }
             }
 
@@ -141,7 +148,7 @@ public partial struct La32
             // Call the single-pixel API so channel defaults and normalization retain exactly the same arithmetic.
             for (; i < source.Length; i++)
             {
-                destination[i] = source[i].ToUnassociatedVector4();
+                destination[i] = TAlpha.Apply(source[i].ToUnassociatedVector4().AsVector128()).AsVector4();
             }
         }
 

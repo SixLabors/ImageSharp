@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -307,29 +308,28 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
         // This test checks row-processing order and alpha handling. Use the scalar companding API with the same
         // requested precision and range. Separate formula tests check accuracy; table and direct results can pack differently.
         PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
-        int componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
 
         for (int i = 0; i < pixels.Length; i++)
         {
             Vector4 expected = scaled ? pixels[i].ToUnassociatedScaledVector4() : pixels[i].ToUnassociatedVector4();
             expected = scaled
-                ? SRgbCompanding.Expand(expected, componentBitDepth, pixelInfo.ColorRange)
+                ? SRgbCompanding.Expand(expected, pixelInfo.ColorRange)
                 : SRgbCompanding.Expand(expected);
 
             if (associated)
             {
-                Numerics.Premultiply(ref expected);
+                expected = Numerics.Premultiply(expected.AsVector128()).AsVector4();
             }
 
             expected.X *= .5F;
 
             if (associated)
             {
-                Numerics.UnPremultiply(ref expected);
+                expected = Numerics.UnPremultiply(expected.AsVector128()).AsVector4();
             }
 
             expected = scaled
-                ? SRgbCompanding.Compress(expected, componentBitDepth, pixelInfo.ColorRange)
+                ? SRgbCompanding.Compress(expected, pixelInfo.ColorRange)
                 : SRgbCompanding.Compress(expected);
 
             TPixel expectedPixel = scaled

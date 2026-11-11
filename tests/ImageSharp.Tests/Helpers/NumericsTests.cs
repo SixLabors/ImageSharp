@@ -181,7 +181,7 @@ public class NumericsTests
         [
             .. source.Select(v =>
             {
-                Numerics.Premultiply(ref v);
+                v = Numerics.Premultiply(v.AsVector128()).AsVector4();
                 return v;
             })
         ];
@@ -219,7 +219,7 @@ public class NumericsTests
         [
             .. source.Select(v =>
             {
-                Numerics.UnPremultiply(ref v);
+                v = Numerics.UnPremultiply(v.AsVector128()).AsVector4();
                 return v;
             })
         ];

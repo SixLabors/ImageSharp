@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
@@ -91,6 +93,8 @@ internal abstract class SpectralConverter
     /// </summary>
     /// <remarks>
     /// Does not apply scaling if <paramref name="targetSize"/> is null.
+    /// The method fits the image into <paramref name="targetSize"/> with <see cref="ResizeMode.Max"/>, as the decoder resize does.
+    /// Then it selects the smallest block scale that covers that fitted size.
     /// </remarks>
     /// <param name="size">Size of the image.</param>
     /// <param name="targetSize">Target size of the image.</param>
@@ -103,7 +107,13 @@ internal abstract class SpectralConverter
         blockPixelSize = blockNativePixelSize;
         if (targetSize != null)
         {
-            Size tSize = targetSize.Value;
+            // TargetSize uses ResizeMode.Max, as ImageDecoder.ScaleToTargetSize does. The final image fits into the target,
+            // so one dimension is usually smaller than the target. The scaled image is compared with that fitted size.
+            // The resize after the scaled decode uses DecoderOptions.Sampler, which is Lanczos3 by default. Lanczos3
+            // gives a good result even when the scaled size is only a little larger than the fitted size.
+            // Thus, the smallest scale that covers the fitted size is sufficient, and it does the least work.
+            ResizeOptions fitOptions = new() { Size = targetSize.Value, Mode = ResizeMode.Max };
+            Size tSize = ResizeHelper.CalculateTargetLocationAndBounds(size, fitOptions).Size;
 
             int fullBlocksWidth = (int)((uint)size.Width / blockNativePixelSize);
             int fullBlocksHeight = (int)((uint)size.Height / blockNativePixelSize);

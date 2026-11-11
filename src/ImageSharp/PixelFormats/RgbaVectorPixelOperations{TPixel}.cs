@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Shares bulk conversion for pixels stored as consecutive RGBA single-precision components.
 /// </summary>
 /// <remarks>
-/// Native conversions retain storage values. Normalized color conversions apply finite bounds and alpha conversion in final storage.
-/// Alpha representation comes from the pixel metadata and is selected before SIMD traversal.
+/// Conversions that keep the alpha representation copy storage values. Conversions that change it associate or
+/// unassociate in one pass that writes final storage. Alpha representation comes from the pixel metadata.
 /// </remarks>
 /// <typeparam name="TPixel">The four-component floating-point pixel format.</typeparam>
 internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPixel>
@@ -22,13 +22,16 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
+        ReadOnlySpan<Vector4> vectors = MemoryMarshal.Cast<TPixel, Vector4>(source);
         Span<Vector4> output = destination[..source.Length];
-        MemoryMarshal.Cast<TPixel, Vector4>(source).CopyTo(output);
 
-        // Convert the copy so outward alpha conversion cannot mutate pixel storage. Native components retain IEEE values.
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            Numerics.UnPremultiply(output);
+            PixelFormats.PixelOperations.Apply<PixelFormats.PixelOperations.UnassociateOperator>(vectors, output);
+        }
+        else
+        {
+            vectors.CopyTo(output);
         }
     }
 
@@ -37,32 +40,34 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
+        ReadOnlySpan<Vector4> vectors = MemoryMarshal.Cast<TPixel, Vector4>(source);
         Span<Vector4> output = destination[..source.Length];
-        MemoryMarshal.Cast<TPixel, Vector4>(source).CopyTo(output);
 
-        // Convert the copy so outward alpha conversion cannot mutate pixel storage. Native components retain IEEE values.
-        if (TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.Associated)
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            Numerics.Premultiply(output);
+            vectors.CopyTo(output);
+        }
+        else
+        {
+            PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(vectors, output);
         }
     }
 
     /// <inheritdoc />
     public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-        // Write directly to final storage. Association and finite bounds share the selected SIMD traversal.
-        ReadOnlySpan<Vector4> vectors = MemoryMarshal.Cast<TPixel, Vector4>(source);
-        Span<Vector4> output = destination[..source.Length];
-
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            PixelFormats.PixelOperations.UnPremultiply(vectors, output);
+            // The single-pixel conversion bounds the associated scaled vector first, then unassociates it.
+            // The fused unpack does the same two steps in one pass, so both paths give the same result.
+            this.ToAssociatedScaledVector4<PixelFormats.PixelOperations.UnassociateOperator>(configuration, source, destination);
         }
         else
         {
-            PixelFormats.PixelOperations.ClampToPixelRange(vectors, output);
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Write directly to final storage. The finite bounds use the selected SIMD traversal.
+            PixelFormats.PixelOperations.ClampToPixelRange(MemoryMarshal.Cast<TPixel, Vector4>(source), destination[..source.Length]);
         }
     }
 
@@ -81,7 +86,23 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
         }
         else
         {
-            PixelFormats.PixelOperations.Associate(vectors, output);
+            PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(vectors, output);
+        }
+    }
+
+    /// <inheritdoc />
+    internal override void ToAssociatedScaledVector4<TAlpha>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+    {
+        // Associated storage is bounded to give associated scaled vectors. The alpha step runs on the bounded vectors.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            PixelFormats.PixelOperations.ClampToPixelRange<TAlpha>(MemoryMarshal.Cast<TPixel, Vector4>(source), destination[..source.Length]);
+        }
+        else
+        {
+            base.ToAssociatedScaledVector4<TAlpha>(configuration, source, destination);
         }
     }
 
@@ -90,13 +111,16 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // This API permits source mutation. Apply native alpha arithmetic before copying to destination storage.
+        Span<Vector4> output = MemoryMarshal.Cast<TPixel, Vector4>(destination[..source.Length]);
+
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            Numerics.Premultiply(source);
+            PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(source, output);
         }
-
-        source.CopyTo(MemoryMarshal.Cast<TPixel, Vector4>(destination[..source.Length]));
+        else
+        {
+            source.CopyTo(output);
+        }
     }
 
     /// <inheritdoc />
@@ -104,13 +128,16 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // This API permits source mutation. Apply native alpha arithmetic before copying to destination storage.
-        if (TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.Associated)
-        {
-            Numerics.UnPremultiply(source);
-        }
+        Span<Vector4> output = MemoryMarshal.Cast<TPixel, Vector4>(destination[..source.Length]);
 
-        source.CopyTo(MemoryMarshal.Cast<TPixel, Vector4>(destination[..source.Length]));
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            source.CopyTo(output);
+        }
+        else
+        {
+            PixelFormats.PixelOperations.Apply<PixelFormats.PixelOperations.UnassociateOperator>(source, output);
+        }
     }
 
     /// <inheritdoc />
@@ -124,7 +151,7 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
 
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            PixelFormats.PixelOperations.Associate(vectors, output);
+            PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(vectors, output);
         }
         else
         {
@@ -147,7 +174,7 @@ internal abstract class RgbaVectorPixelOperations<TPixel> : PixelOperations<TPix
         }
         else
         {
-            PixelFormats.PixelOperations.UnPremultiply(vectors, output);
+            PixelFormats.PixelOperations.Apply<PixelFormats.PixelOperations.UnassociateOperator>(vectors, output);
         }
     }
 }

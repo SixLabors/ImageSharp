@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -92,7 +93,15 @@ public partial class ResizeKernelMapTests
     [MemberData(nameof(KernelMapData))]
     public void KernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
         where TResampler : struct, IResampler
-        => this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize);
+        => this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize, false);
+
+    // The horizontal pass uses maps with aligned kernel starts. Such a map must give the same weight at each source
+    // position as the reference, with each kernel start at a multiple of 4.
+    [Theory]
+    [MemberData(nameof(KernelMapData))]
+    public void AlignedKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
+        where TResampler : struct, IResampler
+        => this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize, true);
 
     // Comprehensive but expensive tests, for ResizeKernelMap.
     // Enabling them can kill you, but sometimes you have to wear the burden!
@@ -102,15 +111,15 @@ public partial class ResizeKernelMapTests
     [MemberData(nameof(GeneratedImageResizeData))]
     public void KernelMapContentIsCorrect_ExtendedGeneratedValues(string resamplerName, int srcSize, int destSize)
     {
-        this.VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
+        this.VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize, false);
     }
 #endif
 
-    private void VerifyKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
+    private void VerifyKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize, bool alignKernelStarts)
         where TResampler : struct, IResampler
     {
         ReferenceKernelMap referenceMap = ReferenceKernelMap.Calculate(in resampler, destSize, srcSize);
-        ResizeKernelMap kernelMap = ResizeKernelMap.Calculate(in resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
+        using ResizeKernelMap kernelMap = ResizeKernelMap.Calculate(in resampler, destSize, srcSize, Configuration.Default.MemoryAllocator, alignKernelStarts);
 
 #if DEBUG
         this.Output.WriteLine(kernelMap.Info);
@@ -125,44 +134,77 @@ public partial class ResizeKernelMapTests
 
             ReferenceKernel referenceKernel = referenceMap.GetKernel(i);
 
-            Assert.True(
-                referenceKernel.Length == kernel.Length,
-                $"referenceKernel.Length != kernel.Length: {referenceKernel.Length} != {kernel.Length}");
-            Assert.True(
-                referenceKernel.Left == kernel.StartIndex,
-                $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.StartIndex}");
-            float[] expectedValues = referenceKernel.Values;
-            Span<float> actualValues;
-
-            if (ResizeKernel.IsHardwareAccelerated)
+            // Without aligned starts, every kernel of a map has the same length, and the vertical convolution reads all
+            // of it. With aligned starts, a kernel starts at a multiple of 4 and covers 0 to 3 more samples in front.
+            // In both cases the kernel must stay in the source, and the positions outside the reference kernel must
+            // have the weight zero.
+            if (alignKernelStarts)
             {
-                Assert.Equal(expectedValues.Length, kernel.Values.Length / 4);
-
-                actualValues = new float[expectedValues.Length];
-
-                for (int j = 0; j < expectedValues.Length; j++)
-                {
-                    actualValues[j] = kernel.Values[j * 4];
-                }
+                Assert.True(
+                    kernel.StartIndex % 4 == 0,
+                    $"kernel.StartIndex is not a multiple of 4: {kernel.StartIndex} @ Row:{i}");
+                Assert.True(
+                    kernel.Length >= kernelMap.MaxDiameter && kernel.Length <= kernelMap.MaxDiameter + 3,
+                    $"kernel.Length is outside [MaxDiameter, MaxDiameter + 3]: {kernel.Length}, {kernelMap.MaxDiameter} @ Row:{i}");
             }
             else
             {
-                actualValues = kernel.Values;
+                Assert.True(
+                    kernel.Length == kernelMap.MaxDiameter,
+                    $"kernel.Length != kernelMap.MaxDiameter: {kernel.Length} != {kernelMap.MaxDiameter} @ Row:{i}");
             }
 
-            Assert.Equal(expectedValues.Length, actualValues.Length);
+            Assert.True(
+                kernel.StartIndex >= 0 && kernel.StartIndex + kernel.Length <= srcSize,
+                $"The kernel [{kernel.StartIndex}, {kernel.StartIndex + kernel.Length}) is outside the source of size {srcSize} @ Row:{i}");
 
-            for (int x = 0; x < expectedValues.Length; x++)
+            // The horizontal operators convolve PaddedLength taps, in steps of 4. The taps after the kernel length must
+            // have the weight zero, so that the pixels after the kernel do not change the result.
+            Assert.True(
+                kernelMap.PaddedLength % 4 == 0 && kernelMap.PaddedLength >= kernel.Length,
+                $"PaddedLength is not a multiple of 4 that holds the kernel: {kernelMap.PaddedLength}, {kernel.Length} @ Row:{i}");
+            ref float paddedWeights = ref Unsafe.Add(ref kernelMap.GetWeightsReference(), kernel.WeightsOffset);
+            for (int j = kernel.Length * 4; j < kernelMap.PaddedLength * 4; j++)
             {
                 Assert.True(
-                    comparer.Equals(expectedValues[x], actualValues[x]),
-                    $"{expectedValues[x]} != {actualValues[x]} @ (Row:{i}, Col:{x})");
+                    Unsafe.Add(ref paddedWeights, j) == 0,
+                    $"The padded weight {j / 4} is not zero @ Row:{i}");
+            }
+
+            // The map stores each weight 4 times, once for each channel of a pixel.
+            float[] actualValues = ToWeights(kernelMap, kernel);
+
+            // Compare the weight of each source position that one of the two kernels covers.
+            int first = Math.Min(referenceKernel.Left, kernel.StartIndex);
+            int last = Math.Max(referenceKernel.Left + referenceKernel.Length, kernel.StartIndex + kernel.Length);
+            for (int x = first; x < last; x++)
+            {
+                float expected = GetWeight(referenceKernel.Values, x - referenceKernel.Left);
+                float actual = GetWeight(actualValues, x - kernel.StartIndex);
+                Assert.True(
+                    comparer.Equals(expected, actual),
+                    $"{expected} != {actual} @ (Row:{i}, Source:{x})");
             }
         }
     }
 
+    private static float[] ToWeights(ResizeKernelMap kernelMap, in ResizeKernel kernel)
+    {
+        Span<float> expanded = kernelMap.GetValues(kernel);
+        float[] weights = new float[kernel.Length];
+        for (int j = 0; j < weights.Length; j++)
+        {
+            weights[j] = expanded[j * 4];
+        }
+
+        return weights;
+    }
+
+    private static float GetWeight(float[] values, int index)
+        => (uint)index < (uint)values.Length ? values[index] : 0F;
+
     private static string PrintKernelMap(ResizeKernelMap kernelMap)
-        => PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel((uint)i));
+        => PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => new ReferenceKernel(km.GetKernel((uint)i).StartIndex, ToWeights(km, km.GetKernel((uint)i))));
 
     private static string PrintKernelMap(ReferenceKernelMap kernelMap)
         => PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));

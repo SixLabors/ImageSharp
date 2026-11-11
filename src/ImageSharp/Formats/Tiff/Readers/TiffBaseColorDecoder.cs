@@ -148,8 +148,8 @@ internal abstract class TiffBaseColorDecoder : IDisposable
                     configuration, vectors, MemoryMarshal.Cast<Vector4, RgbaVector>(vectors));
             }
 
-            // Both rows belong to this reader and are reused by later strips and tiles. Alpha stays in the vector row.
-            this.colorConverter.Convert(vectors, this.GetRgbBuffer(configuration.MemoryAllocator, destination.Length));
+            // This reader owns the vector row and uses it again for later strips and tiles. Alpha stays in the vector row.
+            this.colorConverter.Convert(vectors);
             PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, vectors, destination);
         }
     }

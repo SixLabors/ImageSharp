@@ -47,7 +47,11 @@ public partial class ReferenceImplementationsTests
 
             Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
 
-            source.AddInPlace(128f);
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                source[i] += 128f;
+            }
+
             Block8x8 temp = source.RoundAsInt16Block();
             Block8x8 actual8 = ReferenceImplementations.StandardIntegerDCT.Subtract128_TransformFDCT_Upscale8(ref temp);
             Block8x8F actual = actual8.AsFloatBlock();

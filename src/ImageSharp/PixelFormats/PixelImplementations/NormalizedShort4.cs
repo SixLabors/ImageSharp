@@ -80,16 +80,16 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
     public static bool operator !=(NormalizedShort4 left, NormalizedShort4 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static NormalizedShort4 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static NormalizedShort4 FromAbgr32P(Abgr32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static NormalizedShort4 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static NormalizedShort4 FromArgb32P(Argb32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static NormalizedShort4 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static NormalizedShort4 FromBgra32P(Bgra32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static NormalizedShort4 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static NormalizedShort4 FromRgba32P(Rgba32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
@@ -144,12 +144,7 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4()
-    {
-        Vector4 vector = this.ToScaledVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToAssociatedScaledVector4() => PixelOperations.ToAssociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

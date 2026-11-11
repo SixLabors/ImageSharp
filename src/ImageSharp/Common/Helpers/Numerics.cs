@@ -218,6 +218,52 @@ internal static class Numerics
     }
 
     /// <summary>
+    /// Premultiplies the X, Y, and Z components of one RGBA vector by its W component while preserving W.
+    /// </summary>
+    /// <param name="source">One RGBA vector.</param>
+    /// <returns>The associated vector.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Premultiply(Vector128<float> source)
+    {
+        Vector128<float> alpha = Vector128_.ShuffleNative(source, ShuffleAlphaControl);
+
+        // Multiplication also squares W, so select the original W lane to preserve alpha bit-for-bit.
+        return Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), source, source * alpha);
+    }
+
+    /// <summary>
+    /// Premultiplies the X, Y, and Z components of two RGBA vectors by their W components while preserving W.
+    /// </summary>
+    /// <param name="source">Two RGBA vectors.</param>
+    /// <returns>The associated vectors.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Premultiply(Vector256<float> source)
+    {
+        // The shuffle replicates W inside each 128-bit lane, so each pixel uses its own alpha.
+        Vector256<float> alpha = Vector256_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+
+        // Multiplication also squares W, so select the original W lanes to preserve alpha bit-for-bit.
+        return Vector256.ConditionalSelect(alphaMask, source, source * alpha);
+    }
+
+    /// <summary>
+    /// Premultiplies the X, Y, and Z components of four RGBA vectors by their W components while preserving W.
+    /// </summary>
+    /// <param name="source">Four RGBA vectors.</param>
+    /// <returns>The associated vectors.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Premultiply(Vector512<float> source)
+    {
+        // The shuffle replicates W inside each 128-bit lane, so each pixel uses its own alpha.
+        Vector512<float> alpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+
+        // Multiplication also squares W, so select the original W lanes to preserve alpha bit-for-bit.
+        return Vector512.ConditionalSelect(alphaMask, source, source * alpha);
+    }
+
+    /// <summary>
     /// Premultiplies the X, Y, and Z components of each vector by its W component while preserving W.
     /// </summary>
     /// <param name="vectors">The vectors to premultiply.</param>
@@ -229,17 +275,10 @@ internal static class Numerics
             int vectorsPerVector = Vector512<float>.Count / Vector128<float>.Count;
             ref Vector512<float> vectorsBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(vectors));
             ref Vector512<float> vectorsEnd = ref Unsafe.Add(ref vectorsBase, (uint)(vectors.Length / vectorsPerVector));
-            Vector128<float> alphaMask128 = Vector128.Create(0, 0, 0, -1).AsSingle();
-            Vector256<float> alphaMask256 = Vector256.Create(alphaMask128, alphaMask128);
-            Vector512<float> alphaMask = Vector512.Create(alphaMask256, alphaMask256);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
             {
-                Vector512<float> source = vectorsBase;
-                Vector512<float> alpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
-
-                // Multiplication also squares W, so select the original W lanes to preserve alpha bit-for-bit.
-                vectorsBase = Vector512.ConditionalSelect(alphaMask, source, source * alpha);
+                vectorsBase = Premultiply(vectorsBase);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -251,16 +290,10 @@ internal static class Numerics
             int vectorsPerVector = Vector256<float>.Count / Vector128<float>.Count;
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
             ref Vector256<float> vectorsEnd = ref Unsafe.Add(ref vectorsBase, (uint)(vectors.Length / vectorsPerVector));
-            Vector128<float> alphaMask128 = Vector128.Create(0, 0, 0, -1).AsSingle();
-            Vector256<float> alphaMask = Vector256.Create(alphaMask128, alphaMask128);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
             {
-                Vector256<float> source = vectorsBase;
-                Vector256<float> alpha = Vector256_.ShuffleNative(source, ShuffleAlphaControl);
-
-                // Multiplication also squares W, so select the original W lanes to preserve alpha bit-for-bit.
-                vectorsBase = Vector256.ConditionalSelect(alphaMask, source, source * alpha);
+                vectorsBase = Premultiply(vectorsBase);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -271,15 +304,10 @@ internal static class Numerics
         {
             ref Vector128<float> vectorsBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
             ref Vector128<float> vectorsEnd = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length);
-            Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
             {
-                Vector128<float> source = vectorsBase;
-                Vector128<float> alpha = Vector128_.ShuffleNative(source, ShuffleAlphaControl);
-
-                // Multiplication also squares W, so select the original W lane to preserve alpha bit-for-bit.
-                vectorsBase = Vector128.ConditionalSelect(alphaMask, source, source * alpha);
+                vectorsBase = Premultiply(vectorsBase);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -301,10 +329,7 @@ internal static class Numerics
     /// <param name="source">The <see cref="Vector4"/> to unpremultiply.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnPremultiply(ref Vector4 source)
-    {
-        Vector4 alpha = PermuteW(source);
-        UnPremultiply(ref source, alpha);
-    }
+        => source = UnPremultiply(source.AsVector128()).AsVector4();
 
     /// <summary>
     /// Unpremultiplies the X, Y, and Z components of a vector by the supplied alpha while preserving W.
@@ -314,16 +339,7 @@ internal static class Numerics
     /// <param name="alpha">The source alpha replicated to every component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnPremultiply(ref Vector4 source, Vector4 alpha)
-    {
-        // Zero alpha has no mathematical inverse, so preserve stored additive or hidden RGB data unchanged.
-        if (alpha == Vector4.Zero)
-        {
-            return;
-        }
-
-        // Division would replace W with one, so restore the original alpha component exactly.
-        source = WithW(source / alpha, alpha);
-    }
+        => source = UnPremultiply(source.AsVector128(), alpha.AsVector128()).AsVector4();
 
     /// <summary>
     /// Unpremultiplies the X, Y, and Z components of each vector by its W component while preserving W.
@@ -341,9 +357,7 @@ internal static class Numerics
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
             {
-                Vector512<float> source = vectorsBase;
-                Vector512<float> alpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
-                vectorsBase = UnPremultiply(source, alpha);
+                vectorsBase = UnPremultiply(vectorsBase);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -358,9 +372,7 @@ internal static class Numerics
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
             {
-                Vector256<float> source = vectorsBase;
-                Vector256<float> alpha = Vector256_.ShuffleNative(source, ShuffleAlphaControl);
-                vectorsBase = UnPremultiply(source, alpha);
+                vectorsBase = UnPremultiply(vectorsBase);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -374,9 +386,7 @@ internal static class Numerics
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
             {
-                Vector128<float> source = vectorsBase;
-                Vector128<float> alpha = Vector128_.ShuffleNative(source, ShuffleAlphaControl);
-                vectorsBase = UnPremultiply(source, alpha);
+                vectorsBase = UnPremultiply(vectorsBase);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -392,6 +402,36 @@ internal static class Numerics
     }
 
     /// <summary>
+    /// Unpremultiplies the RGB lanes of one RGBA vector by its alpha lane while preserving the alpha lane.
+    /// When alpha is zero, the RGB lanes remain unchanged because no unassociated value can be recovered.
+    /// </summary>
+    /// <param name="source">The associated vector.</param>
+    /// <returns>The unassociated vector.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> UnPremultiply(Vector128<float> source)
+        => UnPremultiply(source, Vector128_.ShuffleNative(source, ShuffleAlphaControl), 1F);
+
+    /// <summary>
+    /// Unpremultiplies the RGB lanes of two RGBA vectors by their alpha lanes while preserving the alpha lanes.
+    /// When alpha is zero, the RGB lanes remain unchanged because no unassociated value can be recovered.
+    /// </summary>
+    /// <param name="source">The associated vectors.</param>
+    /// <returns>The unassociated vectors.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> UnPremultiply(Vector256<float> source)
+        => UnPremultiply(source, Vector256_.ShuffleNative(source, ShuffleAlphaControl), 1F);
+
+    /// <summary>
+    /// Unpremultiplies the RGB lanes of four RGBA vectors by their alpha lanes while preserving the alpha lanes.
+    /// When alpha is zero, the RGB lanes remain unchanged because no unassociated value can be recovered.
+    /// </summary>
+    /// <param name="source">The associated vectors.</param>
+    /// <returns>The unassociated vectors.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> UnPremultiply(Vector512<float> source)
+        => UnPremultiply(source, Vector512_.ShuffleNative(source, ShuffleAlphaControl), 1F);
+
+    /// <summary>
     /// Unpremultiplies the RGB lanes of a vector while preserving its alpha lane.
     /// When alpha is zero, the RGB lanes remain unchanged because no unassociated value can be recovered.
     /// </summary>
@@ -401,13 +441,9 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<float> UnPremultiply(Vector128<float> source, Vector128<float> alpha)
     {
-        // Zero alpha has no mathematical inverse, so select the source lanes to preserve stored additive or hidden RGB data.
-        Vector128<float> zeroMask = Vector128.Equals(alpha, Vector128<float>.Zero);
-        Vector128<float> result = Vector128.ConditionalSelect(zeroMask, source, source / alpha);
-
-        // Division would replace W with one, so restore the original alpha lane exactly.
+        // The result keeps the supplied alpha. Write it to the alpha lane first, as the shared rule requires.
         Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-        return Vector128.ConditionalSelect(alphaMask, alpha, result);
+        return UnPremultiply(Vector128.ConditionalSelect(alphaMask, alpha, source), alpha, 1F);
     }
 
     /// <summary>
@@ -420,12 +456,9 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> UnPremultiply(Vector256<float> source, Vector256<float> alpha)
     {
-        // Zero alpha has no mathematical inverse, so select the source lanes to preserve stored additive or hidden RGB data.
-        Vector256<float> zeroMask = Avx.CompareEqual(alpha, Vector256<float>.Zero);
-        Vector256<float> result = Avx.BlendVariable(Avx.Divide(source, alpha), source, zeroMask);
-
-        // Division would replace W with one, so restore both original alpha lanes exactly.
-        return Avx.Blend(result, alpha, BlendAlphaControl);
+        // The result keeps the supplied alpha. Write it to the alpha lanes first, as the shared rule requires.
+        Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+        return UnPremultiply(Vector256.ConditionalSelect(alphaMask, alpha, source), alpha, 1F);
     }
 
     /// <summary>
@@ -438,13 +471,110 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<float> UnPremultiply(Vector512<float> source, Vector512<float> alpha)
     {
-        // Zero alpha has no mathematical inverse, so select the source lanes to preserve stored additive or hidden RGB data.
-        Vector512<float> zeroMask = Vector512.Equals(alpha, Vector512<float>.Zero);
-        Vector512<float> result = Vector512.ConditionalSelect(zeroMask, source, source / alpha);
-
-        // Division would replace W with one, so restore all four original alpha lanes exactly.
+        // The result keeps the supplied alpha. Write it to the alpha lanes first, as the shared rule requires.
         Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-        return Vector512.ConditionalSelect(alphaMask, alpha, result);
+        return UnPremultiply(Vector512.ConditionalSelect(alphaMask, alpha, source), alpha, 1F);
+    }
+
+    /// <summary>
+    /// Unpremultiplies the RGB lanes of one RGBA vector by its alpha lane, and divides the result to normalized units.
+    /// </summary>
+    /// <remarks>
+    /// The rule is the rule of <see cref="UnPremultiply(Vector128{float})"/> applied to <paramref name="source"/> divided by
+    /// <paramref name="maximum"/>. Both divisions are one division, so each lane rounds once:
+    /// RGB divided by alpha is already normalized, and alpha, and RGB at zero alpha, are divided by <paramref name="maximum"/>.
+    /// This keeps exact integer results away from rounding midpoints.
+    /// </remarks>
+    /// <param name="source">The associated vector, with alpha in [0, <paramref name="maximum"/>].</param>
+    /// <param name="maximum">The alpha of full opacity.</param>
+    /// <returns>The unassociated vector in normalized units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> UnPremultiply(Vector128<float> source, float maximum)
+        => UnPremultiply(source, Vector128_.ShuffleNative(source, ShuffleAlphaControl), maximum);
+
+    /// <summary>
+    /// Unpremultiplies the RGB lanes of two RGBA vectors by their alpha lanes, and divides the results to normalized units.
+    /// </summary>
+    /// <remarks>
+    /// The rule is the rule of <see cref="UnPremultiply(Vector128{float}, float)"/>.
+    /// </remarks>
+    /// <param name="source">The associated vectors, with alpha in [0, <paramref name="maximum"/>].</param>
+    /// <param name="maximum">The alpha of full opacity.</param>
+    /// <returns>The unassociated vectors in normalized units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> UnPremultiply(Vector256<float> source, float maximum)
+        => UnPremultiply(source, Vector256_.ShuffleNative(source, ShuffleAlphaControl), maximum);
+
+    /// <summary>
+    /// Unpremultiplies the RGB lanes of four RGBA vectors by their alpha lanes, and divides the results to normalized units.
+    /// </summary>
+    /// <remarks>
+    /// The rule is the rule of <see cref="UnPremultiply(Vector128{float}, float)"/>.
+    /// </remarks>
+    /// <param name="source">The associated vectors, with alpha in [0, <paramref name="maximum"/>].</param>
+    /// <param name="maximum">The alpha of full opacity.</param>
+    /// <returns>The unassociated vectors in normalized units.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> UnPremultiply(Vector512<float> source, float maximum)
+        => UnPremultiply(source, Vector512_.ShuffleNative(source, ShuffleAlphaControl), maximum);
+
+    /// <summary>
+    /// Divides RGB by alpha and divides alpha by the maximum. Every unpremultiply form of one RGBA vector uses this rule.
+    /// </summary>
+    /// <remarks>
+    /// The alpha lane of <paramref name="source"/> must equal <paramref name="alpha"/>. The public forms set this lane.
+    /// A maximum of one keeps alpha, and RGB at zero alpha, unchanged, because a division by one is exact.
+    /// </remarks>
+    /// <param name="source">The associated vector, with the alpha lane equal to <paramref name="alpha"/>.</param>
+    /// <param name="alpha">The source alpha replicated to every lane.</param>
+    /// <param name="maximum">The alpha of full opacity.</param>
+    /// <returns>The unassociated vector.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<float> UnPremultiply(Vector128<float> source, Vector128<float> alpha, float maximum)
+    {
+        // Zero alpha has no mathematical inverse. Its RGB lanes use the maximum as divisor, so the stored RGB is kept.
+        // The all-ones lane 3 also selects the maximum, so alpha itself is only normalized.
+        Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
+        Vector128<float> maximumMask = Vector128.Equals(alpha, Vector128<float>.Zero) | alphaMask;
+        return source / Vector128.ConditionalSelect(maximumMask, Vector128.Create(maximum), alpha);
+    }
+
+    /// <summary>
+    /// Divides RGB by alpha and divides alpha by the maximum for two RGBA vectors.
+    /// </summary>
+    /// <remarks>
+    /// The contract is the contract of <see cref="UnPremultiply(Vector128{float}, Vector128{float}, float)"/>.
+    /// </remarks>
+    /// <param name="source">The associated vectors, with the alpha lanes equal to <paramref name="alpha"/>.</param>
+    /// <param name="alpha">Each source alpha replicated across its four lanes.</param>
+    /// <param name="maximum">The alpha of full opacity.</param>
+    /// <returns>The unassociated vectors.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<float> UnPremultiply(Vector256<float> source, Vector256<float> alpha, float maximum)
+    {
+        // Each four-lane RGBA group uses its own alpha. The all-ones lanes 3 and 7 select the maximum for alpha itself.
+        Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+        Vector256<float> maximumMask = Vector256.Equals(alpha, Vector256<float>.Zero) | alphaMask;
+        return source / Vector256.ConditionalSelect(maximumMask, Vector256.Create(maximum), alpha);
+    }
+
+    /// <summary>
+    /// Divides RGB by alpha and divides alpha by the maximum for four RGBA vectors.
+    /// </summary>
+    /// <remarks>
+    /// The contract is the contract of <see cref="UnPremultiply(Vector128{float}, Vector128{float}, float)"/>.
+    /// </remarks>
+    /// <param name="source">The associated vectors, with the alpha lanes equal to <paramref name="alpha"/>.</param>
+    /// <param name="alpha">Each source alpha replicated across its four lanes.</param>
+    /// <param name="maximum">The alpha of full opacity.</param>
+    /// <returns>The unassociated vectors.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<float> UnPremultiply(Vector512<float> source, Vector512<float> alpha, float maximum)
+    {
+        // Each four-lane RGBA group uses its own alpha. The all-ones lanes 3, 7, 11 and 15 select the maximum for alpha itself.
+        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+        Vector512<float> maximumMask = Vector512.Equals(alpha, Vector512<float>.Zero) | alphaMask;
+        return source / Vector512.ConditionalSelect(maximumMask, Vector512.Create(maximum), alpha);
     }
 
     /// <summary>

@@ -43,36 +43,6 @@ public partial struct NormalizedByte4P
         }
 
         /// <summary>
-        /// Converts the stored associated components to an unassociated scaled vector.
-        /// </summary>
-        /// <param name="source">The associated pixel.</param>
-        /// <returns>The unassociated scaled vector.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 ToUnassociatedScaledVector4(NormalizedByte4P source)
-        {
-            // Offset signed integers to nonnegative magnitudes before division. This retains exact component midpoints during byte conversion.
-            Vector4 vector = new(
-                (sbyte)(source.PackedValue >> 0),
-                (sbyte)(source.PackedValue >> 8),
-                (sbyte)(source.PackedValue >> 16),
-                (sbyte)(source.PackedValue >> 24));
-
-            // Both -128 and -127 encode the SNORM minimum. Use -127, then add 127 to obtain associated magnitudes [0,254].
-            vector = Vector4.Max(vector, Minimum) + Half;
-
-            if (vector.W == 0F)
-            {
-                // Zero alpha preserves hidden RGB. Divide these magnitudes by 254 to express them in normalized component units.
-                return vector / ScaledMagnitude;
-            }
-
-            Numerics.UnPremultiply(ref vector);
-            vector.W /= ScaledMagnitude;
-
-            return vector;
-        }
-
-        /// <summary>
         /// Reassociates a scaled vector with the alpha value the destination stores.
         /// </summary>
         /// <param name="source">The associated scaled vector.</param>
@@ -397,11 +367,7 @@ public partial struct NormalizedByte4P
             // Clamp the duplicate SNORM minimum encoding before converting it to the nonnegative associated domain.
             source = Vector512.Max(source, Vector512.Create(-MaxPos));
             source += Vector512.Create(MaxPos);
-            Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-            Vector512<float> normalizeMask = Vector512.Equals(alpha, Vector512<float>.Zero) | alphaMask;
-            Vector512<float> divisor = Vector512.ConditionalSelect(normalizeMask, Vector512.Create(ScaledMagnitude), alpha);
-            Vector512<float> result = source / divisor;
+            Vector512<float> result = Numerics.UnPremultiply(source, ScaledMagnitude);
 
             // Unassociation is performed in scaled space; map the result back only after alpha has served as a true opacity value.
             return scaled ? result : (result * Vector512.Create(2F)) - Vector512<float>.One;
@@ -419,11 +385,7 @@ public partial struct NormalizedByte4P
             // Clamp the duplicate SNORM minimum encoding before converting it to the nonnegative associated domain.
             source = Vector256.Max(source, Vector256.Create(-MaxPos));
             source += Vector256.Create(MaxPos);
-            Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-            Vector256<float> normalizeMask = Vector256.Equals(alpha, Vector256<float>.Zero) | alphaMask;
-            Vector256<float> divisor = Vector256.ConditionalSelect(normalizeMask, Vector256.Create(ScaledMagnitude), alpha);
-            Vector256<float> result = source / divisor;
+            Vector256<float> result = Numerics.UnPremultiply(source, ScaledMagnitude);
 
             // Unassociation is performed in scaled space; map the result back only after alpha has served as a true opacity value.
             return scaled ? result : (result * Vector256.Create(2F)) - Vector256<float>.One;
@@ -441,11 +403,7 @@ public partial struct NormalizedByte4P
             // Clamp the duplicate SNORM minimum encoding before converting it to the nonnegative associated domain.
             source = Vector128.Max(source, Vector128.Create(-MaxPos));
             source += Vector128.Create(MaxPos);
-            Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-            Vector128<float> normalizeMask = Vector128.Equals(alpha, Vector128<float>.Zero) | alphaMask;
-            Vector128<float> divisor = Vector128.ConditionalSelect(normalizeMask, Vector128.Create(ScaledMagnitude), alpha);
-            Vector128<float> result = source / divisor;
+            Vector128<float> result = Numerics.UnPremultiply(source, ScaledMagnitude);
 
             // Unassociation is performed in scaled space; map the result back only after alpha has served as a true opacity value.
             return scaled ? result : (result * Vector128.Create(2F)) - Vector128<float>.One;

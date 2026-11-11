@@ -19,14 +19,6 @@ namespace SixLabors.ImageSharp.PixelFormats;
 internal static partial class PixelOperations
 {
     /// <summary>
-    /// Associates normalized floating-point components after bounding RGB and alpha for pixel conversion.
-    /// </summary>
-    /// <param name="source">The straight RGBA components.</param>
-    /// <returns>The associated components with finite RGB in [-65504,65504] and alpha in [0,1].</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4 Associate(Vector4 source) => Associate(source.AsVector128()).AsVector4();
-
-    /// <summary>
     /// Bounds one normalized floating-point RGBA color for pixel conversion.
     /// </summary>
     /// <param name="value">The normalized color.</param>
@@ -72,6 +64,38 @@ internal static partial class PixelOperations
 
         return ColorNumerics.ClampToFinite(value, Vector512.Create(lower, lower), Vector512.Create(upper, upper));
     }
+
+    /// <summary>
+    /// Bounds one normalized floating-point RGBA color for pixel conversion, then premultiplies RGB by alpha.
+    /// </summary>
+    /// <param name="source">The straight RGBA components.</param>
+    /// <returns>The associated components with finite RGB in [-65504,65504] and alpha in [0,1].</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Associate(Vector4 source) => Associate(source.AsVector128()).AsVector4();
+
+    /// <summary>
+    /// Bounds one normalized RGBA pixel for pixel conversion, then premultiplies RGB by alpha.
+    /// </summary>
+    /// <param name="source">The straight RGBA components.</param>
+    /// <returns>The associated components with finite RGB in [-65504,65504] and alpha in [0,1].</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> Associate(Vector128<float> source) => Numerics.Premultiply(ClampToPixelRange(source));
+
+    /// <summary>
+    /// Bounds two normalized RGBA pixels for pixel conversion, then premultiplies RGB by alpha.
+    /// </summary>
+    /// <param name="source">The straight RGBA components.</param>
+    /// <returns>The associated components with finite RGB in [-65504,65504] and alpha in [0,1].</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Associate(Vector256<float> source) => Numerics.Premultiply(ClampToPixelRange(source));
+
+    /// <summary>
+    /// Bounds four normalized RGBA pixels for pixel conversion, then premultiplies RGB by alpha.
+    /// </summary>
+    /// <param name="source">The straight RGBA components.</param>
+    /// <returns>The associated components with finite RGB in [-65504,65504] and alpha in [0,1].</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Associate(Vector512<float> source) => Numerics.Premultiply(ClampToPixelRange(source));
 
     /// <summary>
     /// Restores straight RGB for one normalized RGBA color and bounds the result for pixel conversion.
@@ -139,57 +163,6 @@ internal static partial class PixelOperations
         alpha = ColorNumerics.ClampToFinite(alpha, Vector512<float>.Zero, Vector512.Create(float.MaxValue));
 
         return Numerics.UnPremultiply(source, alpha);
-    }
-
-    /// <summary>
-    /// Bounds one normalized RGBA pixel and multiplies RGB by alpha.
-    /// </summary>
-    /// <param name="source">The straight RGBA components.</param>
-    /// <returns>Associated RGB with the bounded alpha unchanged.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<float> Associate(Vector128<float> source)
-    {
-        // Alpha stays in [0,1], so multiplication cannot increase the magnitude of bounded RGB.
-        source = ClampToPixelRange(source);
-        Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-        Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-
-        // Restore every fourth lane. Multiplication applies only to RGB, not to alpha itself.
-        return Vector128.ConditionalSelect(alphaMask, alpha, source * alpha);
-    }
-
-    /// <summary>
-    /// Bounds two normalized RGBA pixels and multiplies RGB by alpha.
-    /// </summary>
-    /// <param name="source">The straight RGBA components.</param>
-    /// <returns>Associated RGB with the bounded alpha unchanged.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> Associate(Vector256<float> source)
-    {
-        // Alpha stays in [0,1], so multiplication cannot increase the magnitude of bounded RGB.
-        source = ClampToPixelRange(source);
-        Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-        Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-
-        // Restore every fourth lane. Multiplication applies only to RGB, not to alpha itself.
-        return Vector256.ConditionalSelect(alphaMask, alpha, source * alpha);
-    }
-
-    /// <summary>
-    /// Bounds four normalized RGBA pixels and multiplies RGB by alpha.
-    /// </summary>
-    /// <param name="source">The straight RGBA components.</param>
-    /// <returns>Associated RGB with the bounded alpha unchanged.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<float> Associate(Vector512<float> source)
-    {
-        // Alpha stays in [0,1], so multiplication cannot increase the magnitude of bounded RGB.
-        source = ClampToPixelRange(source);
-        Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-
-        // Restore every fourth lane. Multiplication applies only to RGB, not to alpha itself.
-        return Vector512.ConditionalSelect(alphaMask, alpha, source * alpha);
     }
 
     /// <summary>

@@ -44,13 +44,20 @@ internal abstract class Rgba64CompatiblePixelOperations<TPixel> : PixelOperation
     /// <inheritdoc />
     public override void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
     {
-        this.ToUnassociatedVector4(configuration, source, destination);
-
-        // Apply stored straight alpha. Formats without alpha already supply opaque output.
-        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
+        // Formats without alpha supply opaque output, so the associated vectors are the straight vectors.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.Unassociated)
         {
-            Numerics.Premultiply(destination[..source.Length]);
+            this.ToUnassociatedVector4(configuration, source, destination);
+            return;
         }
+
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // RGBA words already have vector component order. The conversion normalizes and premultiplies each pixel in one pass.
+        SimdUtils.UInt16ToNormalizedFloat<PixelFormats.PixelOperations.PremultiplyOperator>(
+            MemoryMarshal.Cast<TPixel, ushort>(source),
+            MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
     }
 
     /// <inheritdoc />

@@ -39,7 +39,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
             return;
         }
 
-        this.Unpack(configuration, source, destination, associated);
+        this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(configuration, source, destination, associated);
     }
 
     /// <inheritdoc />
@@ -47,7 +47,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
     {
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            this.Unpack(configuration, source, destination, false);
+            this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(configuration, source, destination, false);
         }
         else if (source.Length < Vector4ConversionThreshold)
         {
@@ -55,8 +55,8 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
         }
         else
         {
-            this.ToUnassociatedVector4(configuration, source, destination);
-            Numerics.Premultiply(destination[..source.Length]);
+            // The unpack normalizes and premultiplies each pixel in one pass.
+            this.Unpack<PixelFormats.PixelOperations.PremultiplyOperator>(configuration, source, destination, false);
         }
     }
 
@@ -86,7 +86,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
             AssociateToByte(source);
         }
 
-        this.Pack(configuration, source, destination[..source.Length]);
+        this.Pack<PixelFormats.PixelOperations.NoAlphaOperator>(configuration, source, destination[..source.Length]);
     }
 
     /// <inheritdoc />
@@ -104,13 +104,13 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
             ReassociateToByte(source);
+            this.Pack<PixelFormats.PixelOperations.NoAlphaOperator>(configuration, source, destination[..source.Length]);
         }
         else
         {
-            PixelFormats.PixelOperations.UnPremultiplyForPacking(source);
+            // The pack unpremultiplies and converts each pixel in one pass.
+            this.Pack<PixelFormats.PixelOperations.UnPremultiplyOperator>(configuration, source, destination[..source.Length]);
         }
-
-        this.Pack(configuration, source, destination[..source.Length]);
     }
 
     /// <inheritdoc />
@@ -122,13 +122,17 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
         => this.FromAssociatedVector4Destructive(configuration, source, destination);
 
     /// <summary>
-    /// Expands canonical RGBA bytes staged in the output storage.
+    /// Expands canonical RGBA bytes staged in the output storage, and applies <typeparamref name="TAlpha"/> in the same pass.
     /// </summary>
+    /// <typeparam name="TAlpha">
+    /// The alpha step for straight source bytes. <see cref="PixelFormats.PixelOperations.PremultiplyOperator"/> gives associated vectors.
+    /// </typeparam>
     /// <param name="configuration">The conversion configuration.</param>
     /// <param name="source">The packed source pixels.</param>
     /// <param name="destination">The output vectors.</param>
     /// <param name="unassociate">Whether to divide associated bytes by their alpha.</param>
-    private void Unpack(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination, bool unassociate)
+    private void Unpack<TAlpha>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination, bool unassociate)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -161,10 +165,12 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
         }
         else
         {
-            SimdUtils.ByteToNormalizedFloat(staging, MemoryMarshal.Cast<Vector4, float>(destination[..last]));
+            SimdUtils.ByteToNormalizedFloat<TAlpha>(staging, MemoryMarshal.Cast<Vector4, float>(destination[..last]));
         }
 
-        destination[last] = associated && !unassociate ? source[last].ToAssociatedVector4() : source[last].ToUnassociatedVector4();
+        // The last pixel overlaps the staged bytes, so the scalar conversion of the pixel type gives it.
+        bool associatedResult = (associated && !unassociate) || typeof(TAlpha) == typeof(PixelFormats.PixelOperations.PremultiplyOperator);
+        destination[last] = associatedResult ? source[last].ToAssociatedVector4() : source[last].ToUnassociatedVector4();
     }
 
     /// <summary>
@@ -173,7 +179,11 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
     /// <param name="configuration">The conversion configuration.</param>
     /// <param name="source">The components in normalized units, or associated byte magnitudes.</param>
     /// <param name="destination">The output pixels, restricted to the input count.</param>
-    private void Pack(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
+    /// <typeparam name="TAlpha">
+    /// The alpha step before straight packing. <see cref="PixelFormats.PixelOperations.UnPremultiplyOperator"/> packs associated vectors.
+    /// </typeparam>
+    private void Pack<TAlpha>(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         if (TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount == 4)
         {
@@ -187,7 +197,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
             }
             else
             {
-                SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Vector4, float>(source), bytes);
+                SimdUtils.NormalizedFloatToByteSaturate<TAlpha>(MemoryMarshal.Cast<Vector4, float>(source), bytes);
                 this.FromRgba32(configuration, MemoryMarshal.Cast<byte, Rgba32>(bytes), destination);
             }
         }
@@ -199,7 +209,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
             // Each later store ends before the next source vector that the method did not read.
             // The scalar remainder reads float i before it writes byte i. Thus, the RGBA bytes never overwrite floats that the method did not read.
             Span<Rgba32> packed = MemoryMarshal.Cast<Vector4, Rgba32>(source)[..source.Length];
-            SimdUtils.NormalizedFloatToByteSaturate(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.AsBytes(packed));
+            SimdUtils.NormalizedFloatToByteSaturate<TAlpha>(MemoryMarshal.Cast<Vector4, float>(source), MemoryMarshal.AsBytes(packed));
             this.FromRgba32(configuration, packed, destination);
         }
     }
@@ -239,13 +249,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
     /// <returns>The unassociated scaled vector.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 UnassociateBytes(byte red, byte green, byte blue, byte alpha)
-    {
-        // RGB / alphaByte restores straight RGB directly in normalized units. Alpha itself uses alphaByte / 255.
-        // Divide the byte magnitudes directly. Normalizing first can move an exact byte result across its rounding midpoint.
-        Vector4 vector = new(red, green, blue, alpha);
-        float colorDivisor = alpha == 0 ? byte.MaxValue : alpha;
-        return vector / new Vector4(colorDivisor, colorDivisor, colorDivisor, byte.MaxValue);
-    }
+        => Numerics.UnPremultiply(Vector128.Create(red, green, blue, (float)alpha), byte.MaxValue).AsVector4();
 
     /// <summary>
     /// Converts packed RGBA byte magnitudes to unassociated scaled vectors.
@@ -276,7 +280,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
                 Vector256<uint> upperIntegers = Vector256.Create(Vector128.WidenLower(upperShorts), Vector128.WidenUpper(upperShorts));
                 Vector512<int> integers = Vector512.Create(lowerIntegers, upperIntegers).AsInt32();
                 Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) =
-                    UnassociateBytes(Vector512.ConvertToSingle(integers));
+                    Numerics.UnPremultiply(Vector512.ConvertToSingle(integers), byte.MaxValue);
             }
         }
 
@@ -290,7 +294,7 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
                 Vector128<ushort> shorts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
                 Vector256<int> integers = Vector256.Create(Vector128.WidenLower(shorts), Vector128.WidenUpper(shorts)).AsInt32();
                 Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) =
-                    UnassociateBytes(Vector256.ConvertToSingle(integers));
+                    Numerics.UnPremultiply(Vector256.ConvertToSingle(integers), byte.MaxValue);
             }
         }
 
@@ -306,10 +310,14 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
                 (Vector128<uint> integers0, Vector128<uint> integers1) = Vector128.Widen(shorts0);
                 (Vector128<uint> integers2, Vector128<uint> integers3) = Vector128.Widen(shorts1);
 
-                Unsafe.Add(ref destinationBase, (uint)i) = UnassociateBytes(Vector128.ConvertToSingle(integers0.AsInt32())).AsVector4();
-                Unsafe.Add(ref destinationBase, (uint)i + 1u) = UnassociateBytes(Vector128.ConvertToSingle(integers1.AsInt32())).AsVector4();
-                Unsafe.Add(ref destinationBase, (uint)i + 2u) = UnassociateBytes(Vector128.ConvertToSingle(integers2.AsInt32())).AsVector4();
-                Unsafe.Add(ref destinationBase, (uint)i + 3u) = UnassociateBytes(Vector128.ConvertToSingle(integers3.AsInt32())).AsVector4();
+                Unsafe.Add(ref destinationBase, (uint)i) =
+                    Numerics.UnPremultiply(Vector128.ConvertToSingle(integers0.AsInt32()), byte.MaxValue).AsVector4();
+                Unsafe.Add(ref destinationBase, (uint)i + 1u) =
+                    Numerics.UnPremultiply(Vector128.ConvertToSingle(integers1.AsInt32()), byte.MaxValue).AsVector4();
+                Unsafe.Add(ref destinationBase, (uint)i + 2u) =
+                    Numerics.UnPremultiply(Vector128.ConvertToSingle(integers2.AsInt32()), byte.MaxValue).AsVector4();
+                Unsafe.Add(ref destinationBase, (uint)i + 3u) =
+                    Numerics.UnPremultiply(Vector128.ConvertToSingle(integers3.AsInt32()), byte.MaxValue).AsVector4();
             }
         }
 
@@ -324,66 +332,6 @@ internal abstract class RgbaCompatiblePixelOperations<TPixel> : PixelOperations<
                 Unsafe.Add(ref sourceBase, (uint)offset + 2u),
                 Unsafe.Add(ref sourceBase, (uint)offset + 3u));
         }
-    }
-
-    /// <summary>
-    /// Converts four associated RGBA byte-magnitude vectors to unassociated scaled vectors.
-    /// </summary>
-    /// <param name="source">The associated byte-magnitude vectors.</param>
-    /// <returns>The unassociated scaled vectors.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<float> UnassociateBytes(Vector512<float> source)
-    {
-        Vector512<float> zero = Vector512<float>.Zero;
-        Vector512<float> byteMax = Vector512.Create((float)byte.MaxValue);
-        Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-
-        // RGB uses its pixel's alpha byte as divisor. At zero alpha, use 255 to retain hidden RGB in normalized units.
-        // The all-ones lanes 3, 7, 11 and 15 select 255 for alpha itself, independent of the RGB divisor.
-        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-        Vector512<float> normalizeMask = Vector512.Equals(alpha, zero) | alphaMask;
-        Vector512<float> divisor = Vector512.ConditionalSelect(normalizeMask, byteMax, alpha);
-        return source / divisor;
-    }
-
-    /// <summary>
-    /// Converts two associated RGBA byte-magnitude vectors to unassociated scaled vectors.
-    /// </summary>
-    /// <param name="source">The associated byte-magnitude vectors.</param>
-    /// <returns>The unassociated scaled vectors.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<float> UnassociateBytes(Vector256<float> source)
-    {
-        Vector256<float> zero = Vector256<float>.Zero;
-        Vector256<float> byteMax = Vector256.Create((float)byte.MaxValue);
-        Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-
-        // RGB uses its pixel's alpha byte as divisor. At zero alpha, use 255 to retain hidden RGB in normalized units.
-        // The all-ones lanes 3 and 7 select 255 for alpha itself, independent of the RGB divisor.
-        Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-        Vector256<float> normalizeMask = Vector256.Equals(alpha, zero) | alphaMask;
-        Vector256<float> divisor = Vector256.ConditionalSelect(normalizeMask, byteMax, alpha);
-        return source / divisor;
-    }
-
-    /// <summary>
-    /// Converts an associated RGBA byte-magnitude vector to an unassociated scaled vector.
-    /// </summary>
-    /// <param name="source">The associated byte-magnitude vector.</param>
-    /// <returns>The unassociated scaled vector.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<float> UnassociateBytes(Vector128<float> source)
-    {
-        Vector128<float> zero = Vector128<float>.Zero;
-        Vector128<float> byteMax = Vector128.Create((float)byte.MaxValue);
-        Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-
-        // RGB uses the alpha byte as divisor. At zero alpha, use 255 to retain hidden RGB in normalized units.
-        // The all-ones fourth lane selects 255 for alpha itself, independent of the RGB divisor.
-        Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-        Vector128<float> normalizeMask = Vector128.Equals(alpha, zero) | alphaMask;
-        Vector128<float> divisor = Vector128.ConditionalSelect(normalizeMask, byteMax, alpha);
-        return source / divisor;
     }
 
     /// <summary>

@@ -77,6 +77,97 @@ public partial class PixelOperations<TPixel>
 
         return TPixel.FromUnassociatedScaledVector4(source);
     }
+
+    /// <summary>
+    /// Converts a pixel that stores straight RGB to associated scaled components.
+    /// </summary>
+    /// <param name="pixel">The pixel.</param>
+    /// <returns>The scaled components, bounded for pixel conversion, with RGB multiplied by alpha.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ToAssociatedScaledVector4(TPixel pixel)
+        => PixelFormats.PixelOperations.Associate(pixel.ToUnassociatedScaledVector4());
+
+    /// <summary>
+    /// Converts a pixel that stores straight RGB in opacity units to associated native components.
+    /// </summary>
+    /// <param name="pixel">The pixel.</param>
+    /// <returns>The native components with RGB multiplied by alpha. IEEE special values are retained.</returns>
+    /// <remarks>
+    /// The native alpha must be an opacity in [0, 1], as in the floating-point formats.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ToAssociatedVector4(TPixel pixel)
+    {
+        Vector4 vector = pixel.ToUnassociatedVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
+
+    /// <summary>
+    /// Converts associated native components to a pixel that stores straight RGB in opacity units.
+    /// </summary>
+    /// <param name="source">The associated native components.</param>
+    /// <returns>The pixel.</returns>
+    /// <remarks>
+    /// The native alpha must be an opacity in [0, 1], as in the floating-point formats.
+    /// The alpha follows the rules of <see cref="Numerics.UnPremultiply(ref Vector4)"/>.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TPixel FromAssociatedVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return TPixel.FromUnassociatedVector4(source);
+    }
+
+    /// <summary>
+    /// Converts a pixel that stores associated RGB in opacity units to straight scaled components.
+    /// </summary>
+    /// <param name="pixel">The pixel.</param>
+    /// <returns>Straight RGB bounded to [-65504,65504] and alpha bounded to [0,1].</returns>
+    /// <remarks>
+    /// The division uses the native associated components, so the bounds apply once, after the division.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ToUnassociatedScaledVector4(TPixel pixel)
+    {
+        Vector4 vector = pixel.ToAssociatedVector4();
+        UnPremultiply(ref vector);
+        return vector;
+    }
+
+    /// <summary>
+    /// Converts a pixel that stores associated RGB in opacity units to straight native components.
+    /// </summary>
+    /// <param name="pixel">The pixel.</param>
+    /// <returns>The native components with RGB divided by alpha. The result is not bounded.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ToUnassociatedVector4(TPixel pixel)
+    {
+        Vector4 vector = pixel.ToAssociatedVector4();
+        Numerics.UnPremultiply(ref vector);
+        return vector;
+    }
+
+    /// <summary>
+    /// Converts straight scaled components to a pixel that stores associated RGB in opacity units.
+    /// </summary>
+    /// <param name="source">The straight scaled components.</param>
+    /// <returns>The pixel, from the components bounded for pixel conversion, with RGB multiplied by alpha.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TPixel FromUnassociatedScaledVector4(Vector4 source)
+        => TPixel.FromAssociatedVector4(PixelFormats.PixelOperations.Associate(source));
+
+    /// <summary>
+    /// Converts straight native components to a pixel that stores associated RGB in opacity units.
+    /// </summary>
+    /// <param name="source">The straight native components.</param>
+    /// <returns>The pixel, with RGB multiplied by alpha. IEEE special values are retained.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TPixel FromUnassociatedVector4(Vector4 source)
+    {
+        Numerics.Premultiply(ref source);
+        return TPixel.FromAssociatedVector4(source);
+    }
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
     /// <summary>

@@ -138,11 +138,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfSingle FromAssociatedVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static HalfSingle FromAssociatedVector4(Vector4 source) => PixelOperations.FromAssociatedVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -645,6 +645,18 @@ internal static partial class SimdUtils
         internal static void ByteToNormalizedFloatReduce(
             ref ReadOnlySpan<byte> source,
             ref Span<float> destination)
+            => ByteToNormalizedFloatReduce<PixelFormats.PixelOperations.NoAlphaOperator>(ref source, ref destination);
+
+        /// <summary>
+        /// <see cref="ByteToNormalizedFloat{TAlpha}"/> as many elements as possible, slicing them down (keeping the remainder).
+        /// </summary>
+        /// <typeparam name="TAlpha">The alpha step that the conversion applies before each store.</typeparam>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        internal static void ByteToNormalizedFloatReduce<TAlpha>(
+            ref ReadOnlySpan<byte> source,
+            ref Span<float> destination)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
@@ -668,7 +680,7 @@ internal static partial class SimdUtils
 
                 if (adjustedCount > 0)
                 {
-                    ByteToNormalizedFloat(source[..adjustedCount], destination[..adjustedCount]);
+                    ByteToNormalizedFloat<TAlpha>(source[..adjustedCount], destination[..adjustedCount]);
 
                     source = source[adjustedCount..];
                     destination = destination[adjustedCount..];
@@ -688,6 +700,22 @@ internal static partial class SimdUtils
         internal static void ByteToNormalizedFloat(
             ReadOnlySpan<byte> source,
             Span<float> destination)
+            => ByteToNormalizedFloat<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
+
+        /// <summary>
+        /// Converts bytes to floats in [0, 1], and applies <typeparamref name="TAlpha"/> to the floats before each store.
+        /// </summary>
+        /// <remarks>
+        /// Each float vector holds whole RGBA groups, because the vector widths are multiples of 4 floats and each step starts at
+        /// a multiple of 64, 32, or 16 bytes. Thus, an alpha step that reads RGBA groups is valid for RGBA pixel data.
+        /// </remarks>
+        /// <typeparam name="TAlpha">The alpha step that the conversion applies before each store.</typeparam>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        internal static void ByteToNormalizedFloat<TAlpha>(
+            ReadOnlySpan<byte> source,
+            Span<float> destination)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             const double reciprocal = 1D / byte.MaxValue;
             const float reciprocalHigh = (float)reciprocal;
@@ -727,10 +755,11 @@ internal static partial class SimdUtils
 
                     ref Vector512<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    d = f0;
-                    Unsafe.Add(ref d, 1) = f1;
-                    Unsafe.Add(ref d, 2) = f2;
-                    Unsafe.Add(ref d, 3) = f3;
+                    // The alpha step runs in registers, so an associated conversion needs no second pass.
+                    d = TAlpha.Apply(f0);
+                    Unsafe.Add(ref d, 1) = TAlpha.Apply(f1);
+                    Unsafe.Add(ref d, 2) = TAlpha.Apply(f2);
+                    Unsafe.Add(ref d, 3) = TAlpha.Apply(f3);
                 }
             }
             else if (Vector256.IsHardwareAccelerated)
@@ -766,10 +795,11 @@ internal static partial class SimdUtils
 
                     ref Vector256<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    d = f0;
-                    Unsafe.Add(ref d, 1) = f1;
-                    Unsafe.Add(ref d, 2) = f2;
-                    Unsafe.Add(ref d, 3) = f3;
+                    // The alpha step runs in registers, so an associated conversion needs no second pass.
+                    d = TAlpha.Apply(f0);
+                    Unsafe.Add(ref d, 1) = TAlpha.Apply(f1);
+                    Unsafe.Add(ref d, 2) = TAlpha.Apply(f2);
+                    Unsafe.Add(ref d, 3) = TAlpha.Apply(f3);
                 }
             }
             else if (Vector128.IsHardwareAccelerated)
@@ -808,10 +838,11 @@ internal static partial class SimdUtils
 
                     ref Vector128<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    d = f0;
-                    Unsafe.Add(ref d, 1) = f1;
-                    Unsafe.Add(ref d, 2) = f2;
-                    Unsafe.Add(ref d, 3) = f3;
+                    // The alpha step runs in registers, so an associated conversion needs no second pass.
+                    d = TAlpha.Apply(f0);
+                    Unsafe.Add(ref d, 1) = TAlpha.Apply(f1);
+                    Unsafe.Add(ref d, 2) = TAlpha.Apply(f2);
+                    Unsafe.Add(ref d, 3) = TAlpha.Apply(f3);
                 }
             }
         }
@@ -838,6 +869,21 @@ internal static partial class SimdUtils
             ref ReadOnlySpan<float> source,
             ref Span<byte> destination,
             float scaleFactor)
+            => FloatToByteSaturateReduce<PixelFormats.PixelOperations.NoAlphaOperator>(ref source, ref destination, scaleFactor);
+
+        /// <summary>
+        /// Converts as many scaled floating-point values as possible to bytes with <see cref="FloatToByteSaturate{TAlpha}"/>,
+        /// and retains the unconverted remainder.
+        /// </summary>
+        /// <typeparam name="TAlpha">The alpha step that the conversion applies before the scale.</typeparam>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
+        /// <param name="scaleFactor">The factor applied before conversion.</param>
+        internal static void FloatToByteSaturateReduce<TAlpha>(
+            ref ReadOnlySpan<float> source,
+            ref Span<byte> destination,
+            float scaleFactor)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
@@ -862,7 +908,7 @@ internal static partial class SimdUtils
 
                 if (adjustedCount > 0)
                 {
-                    FloatToByteSaturate(
+                    FloatToByteSaturate<TAlpha>(
                         source[..adjustedCount],
                         destination[..adjustedCount],
                         scaleFactor);
@@ -900,6 +946,27 @@ internal static partial class SimdUtils
             ReadOnlySpan<float> source,
             Span<byte> destination,
             float scaleFactor)
+            => FloatToByteSaturate<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination, scaleFactor);
+
+        /// <summary>
+        /// Converts scaled floating-point values to bytes, and applies <typeparamref name="TAlpha"/> to the floats before the
+        /// scale. Each byte is the scaled value plus one half, truncated toward zero and saturated to [0, 255].
+        /// </summary>
+        /// <remarks>
+        /// Each float vector holds whole RGBA groups, because the vector widths are multiples of 4 floats and each step starts at
+        /// a multiple of 64, 32, or 16 floats. Thus, an alpha step that reads RGBA groups is valid for RGBA pixel data.
+        /// </remarks>
+        /// <typeparam name="TAlpha">The alpha step that the conversion applies before the scale.</typeparam>
+        /// <param name="source">
+        /// The source buffer. Its length is a multiple of the byte vector length of the widest accelerated width.
+        /// </param>
+        /// <param name="destination">The destination buffer.</param>
+        /// <param name="scaleFactor">The factor applied before conversion.</param>
+        internal static void FloatToByteSaturate<TAlpha>(
+            ReadOnlySpan<float> source,
+            Span<byte> destination,
+            float scaleFactor)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             // The source can hold infinity, NaN, or values outside the int range. The clamp maps NaN to 0 and the
             // other values into [0, 255 / scaleFactor]. Then all values are finite. The vector conversion requires finite values.
@@ -920,10 +987,10 @@ internal static partial class SimdUtils
                     // Four float vectors give the 64 bytes of one destination vector.
                     ref Vector512<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
                     Unsafe.Add(ref destinationBase, i) = FloatToByteSaturate(
-                        ColorNumerics.ClampToFinite(s, Vector512<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 1), Vector512<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 2), Vector512<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 3), Vector512<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(s), Vector512<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 1)), Vector512<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 2)), Vector512<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 3)), Vector512<float>.Zero, upperBound),
                         scale);
                 }
             }
@@ -944,10 +1011,10 @@ internal static partial class SimdUtils
                     // Four float vectors give the 32 bytes of one destination vector.
                     ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
                     Unsafe.Add(ref destinationBase, i) = FloatToByteSaturate(
-                        ColorNumerics.ClampToFinite(s, Vector256<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 1), Vector256<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 2), Vector256<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 3), Vector256<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(s), Vector256<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 1)), Vector256<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 2)), Vector256<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 3)), Vector256<float>.Zero, upperBound),
                         scale);
                 }
             }
@@ -968,10 +1035,10 @@ internal static partial class SimdUtils
                     // Four float vectors give the 16 bytes of one destination vector.
                     ref Vector128<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
                     Unsafe.Add(ref destinationBase, i) = FloatToByteSaturate(
-                        ColorNumerics.ClampToFinite(s, Vector128<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 1), Vector128<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 2), Vector128<float>.Zero, upperBound),
-                        ColorNumerics.ClampToFinite(Unsafe.Add(ref s, 3), Vector128<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(s), Vector128<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 1)), Vector128<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 2)), Vector128<float>.Zero, upperBound),
+                        ColorNumerics.ClampToFinite(TAlpha.Apply(Unsafe.Add(ref s, 3)), Vector128<float>.Zero, upperBound),
                         scale);
                 }
             }

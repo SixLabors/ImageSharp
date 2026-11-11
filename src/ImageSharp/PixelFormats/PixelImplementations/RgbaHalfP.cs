@@ -140,13 +140,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4()
-    {
-        Vector4 source = this.ToVector4();
-        PixelOperations.UnPremultiply(ref source);
-
-        return source;
-    }
+    public readonly Vector4 ToUnassociatedScaledVector4() => PixelOperations.ToUnassociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,12 +152,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedVector4()
-    {
-        Vector4 vector = this.ToVector4();
-        Numerics.UnPremultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToUnassociatedVector4() => PixelOperations.ToUnassociatedVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -197,9 +186,8 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
         // Half storage rounds opacity before RGB multiplication. Keep this precision rule in the pixel packer.
         source.W = (float)(Half)source.W;
-        Numerics.Premultiply(ref source);
 
-        return FromAssociatedVector4(source);
+        return PixelOperations.FromUnassociatedScaledVector4(source);
     }
 
     /// <inheritdoc />
@@ -219,8 +207,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
         // Associate with the alpha actually stored as half-precision so a later native unassociation
         // observes the same straight color when alpha rounds during packing.
         source.W = (float)(Half)source.W;
-        Numerics.Premultiply(ref source);
-        return new RgbaHalfP(source.X, source.Y, source.Z, source.W);
+        return PixelOperations.FromUnassociatedVector4(source);
     }
 
     /// <inheritdoc />

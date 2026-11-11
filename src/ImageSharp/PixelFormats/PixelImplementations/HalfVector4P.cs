@@ -93,13 +93,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4()
-    {
-        Vector4 source = this.ToVector4();
-        PixelOperations.UnPremultiply(ref source);
-
-        return source;
-    }
+    public readonly Vector4 ToUnassociatedScaledVector4() => PixelOperations.ToUnassociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,12 +112,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedVector4()
-    {
-        Vector4 vector = this.ToVector4();
-        Numerics.UnPremultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToUnassociatedVector4() => PixelOperations.ToUnassociatedVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -153,8 +142,7 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
         // Association uses the alpha that half-precision stores so the color components
         // retain their straight values when the supplied alpha rounds on packing.
         source.W = (float)(Half)source.W;
-        Numerics.Premultiply(ref source);
-        return new HalfVector4P(source);
+        return PixelOperations.FromUnassociatedVector4(source);
     }
 
     /// <inheritdoc />
@@ -171,9 +159,8 @@ public partial struct HalfVector4P : IPixel<HalfVector4P>, IPackedVector<ulong>
 
         // Half storage rounds opacity before RGB multiplication. Keep this precision rule in the pixel packer.
         source.W = (float)(Half)source.W;
-        Numerics.Premultiply(ref source);
 
-        return FromAssociatedVector4(source);
+        return PixelOperations.FromUnassociatedScaledVector4(source);
     }
 
     /// <inheritdoc />

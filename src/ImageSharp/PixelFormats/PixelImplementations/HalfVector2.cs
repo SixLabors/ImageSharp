@@ -144,11 +144,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HalfVector2 FromAssociatedVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static HalfVector2 FromAssociatedVector4(Vector4 source) => PixelOperations.FromAssociatedVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

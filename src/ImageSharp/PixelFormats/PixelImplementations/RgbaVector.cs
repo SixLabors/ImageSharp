@@ -129,10 +129,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4()
-    {
-        return PixelFormats.PixelOperations.Associate(this.ToVector4());
-    }
+    public readonly Vector4 ToAssociatedScaledVector4() => PixelOperations.ToAssociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -140,12 +137,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedVector4()
-    {
-        Vector4 vector = this.ToVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToAssociatedVector4() => PixelOperations.ToAssociatedVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -163,11 +155,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static RgbaVector FromAssociatedVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return FromVector4(source);
-    }
+    public static RgbaVector FromAssociatedVector4(Vector4 source) => PixelOperations.FromAssociatedVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

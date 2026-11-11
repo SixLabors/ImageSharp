@@ -506,7 +506,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
             // Color conversion bounds the quotient after division. Native conversion retains IEEE arithmetic.
             return normalized
                 ? PixelFormats.PixelOperations.UnPremultiply(value)
-                : Numerics.UnPremultiply(value, Vector128_.ShuffleNative(value, 0b_11_11_11_11));
+                : Numerics.UnPremultiply(value);
         }
 
         if (normalized)
@@ -514,18 +514,14 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
             value = PixelFormats.PixelOperations.ClampToPixelRange(value);
         }
 
-        // Each RGBA group repeats its own alpha. Restore W after multiplication so alpha is not squared.
-        Vector128<float> alpha = Vector128_.ShuffleNative(value, 0b_11_11_11_11);
-
-        // Round opacity here, where the destination's half storage precision is known.
+        // Round opacity here, where the destination's half storage precision is known. The alpha lanes take the
+        // rounded opacity, so the premultiply uses the stored alpha.
         if (roundAlpha)
         {
-            alpha = HalfTypeHelper.RoundToHalf(alpha);
+            value = Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), HalfTypeHelper.RoundToHalf(value), value);
         }
 
-        Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-
-        return Vector128.ConditionalSelect(alphaMask, alpha, value * alpha);
+        return Numerics.Premultiply(value);
     }
 
     /// <summary>
@@ -556,7 +552,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
             // Color conversion bounds the quotient after division. Native conversion retains IEEE arithmetic.
             return normalized
                 ? PixelFormats.PixelOperations.UnPremultiply(value)
-                : Numerics.UnPremultiply(value, Vector256_.ShuffleNative(value, 0b_11_11_11_11));
+                : Numerics.UnPremultiply(value);
         }
 
         if (normalized)
@@ -564,18 +560,14 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
             value = PixelFormats.PixelOperations.ClampToPixelRange(value);
         }
 
-        // Each RGBA group repeats its own alpha. Restore W after multiplication so alpha is not squared.
-        Vector256<float> alpha = Vector256_.ShuffleNative(value, 0b_11_11_11_11);
-
-        // Round opacity here, where the destination's half storage precision is known.
+        // Round opacity here, where the destination's half storage precision is known. The alpha lanes take the
+        // rounded opacity, so the premultiply uses the stored alpha.
         if (roundAlpha)
         {
-            alpha = HalfTypeHelper.RoundToHalf(alpha);
+            value = Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), HalfTypeHelper.RoundToHalf(value), value);
         }
 
-        Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-
-        return Vector256.ConditionalSelect(alphaMask, alpha, value * alpha);
+        return Numerics.Premultiply(value);
     }
 
     /// <summary>
@@ -606,7 +598,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
             // Color conversion bounds the quotient after division. Native conversion retains IEEE arithmetic.
             return normalized
                 ? PixelFormats.PixelOperations.UnPremultiply(value)
-                : Numerics.UnPremultiply(value, Vector512_.ShuffleNative(value, 0b_11_11_11_11));
+                : Numerics.UnPremultiply(value);
         }
 
         if (normalized)
@@ -614,17 +606,14 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
             value = PixelFormats.PixelOperations.ClampToPixelRange(value);
         }
 
-        // Each RGBA group repeats its own alpha. Restore W after multiplication so alpha is not squared.
-        Vector512<float> alpha = Vector512_.ShuffleNative(value, 0b_11_11_11_11);
-
-        // Round opacity here, where the destination's half storage precision is known.
+        // Round opacity here, where the destination's half storage precision is known. The alpha lanes take the
+        // rounded opacity, so the premultiply uses the stored alpha.
         if (roundAlpha)
         {
-            alpha = HalfTypeHelper.RoundToHalf(alpha);
+            Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+            value = Vector512.ConditionalSelect(alphaMask, HalfTypeHelper.RoundToHalf(value), value);
         }
 
-        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-
-        return Vector512.ConditionalSelect(alphaMask, alpha, value * alpha);
+        return Numerics.Premultiply(value);
     }
 }

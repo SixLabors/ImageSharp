@@ -121,12 +121,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToAssociatedScaledVector4()
-    {
-        Vector4 vector = this.ToScaledVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToAssociatedScaledVector4() => PixelOperations.ToAssociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

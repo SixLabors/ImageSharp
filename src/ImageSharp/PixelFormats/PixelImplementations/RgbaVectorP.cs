@@ -104,21 +104,10 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
 
     /// <inheritdoc />
-    public readonly Vector4 ToUnassociatedScaledVector4()
-    {
-        Vector4 source = this.ToVector4();
-        PixelOperations.UnPremultiply(ref source);
-
-        return source;
-    }
+    public readonly Vector4 ToUnassociatedScaledVector4() => PixelOperations.ToUnassociatedScaledVector4(this);
 
     /// <inheritdoc />
-    public readonly Vector4 ToUnassociatedVector4()
-    {
-        Vector4 vector = this.ToVector4();
-        Numerics.UnPremultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToUnassociatedVector4() => PixelOperations.ToUnassociatedVector4(this);
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -150,20 +139,10 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static RgbaVectorP FromAssociatedVector4(Vector4 source) => new(source.X, source.Y, source.Z, source.W);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
-    {
-        // Bound RGB and opacity before multiplication so association cannot overflow finite RGB.
-        source = PixelFormats.PixelOperations.Associate(source);
-
-        return FromAssociatedVector4(source);
-    }
+    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source) => PixelOperations.FromUnassociatedScaledVector4(source);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromUnassociatedVector4(Vector4 source)
-    {
-        Numerics.Premultiply(ref source);
-        return FromAssociatedVector4(source);
-    }
+    public static RgbaVectorP FromUnassociatedVector4(Vector4 source) => PixelOperations.FromUnassociatedVector4(source);
 
     /// <inheritdoc />
     public static RgbaVectorP FromAbgr32(Abgr32 source) => FromUnassociatedScaledVector4(source.ToScaledVector4());

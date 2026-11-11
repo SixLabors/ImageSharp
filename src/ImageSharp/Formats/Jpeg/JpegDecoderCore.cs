@@ -201,7 +201,13 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        using SpectralConverter<TPixel> spectralConverter = new(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
+        // Combined mode resizes the scaled decode to the target. Keep a factor of two for that resize.
+        // IdctOnly mode outputs the scaled decode, so it uses the smallest scale that covers the fitted target.
+        using SpectralConverter<TPixel> spectralConverter = new(
+            this.configuration,
+            this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize,
+            this.resizeMode == JpegDecoderResizeMode.Combined ? 2 : 1);
+
         this.ParseStream(stream, spectralConverter, cancellationToken);
 
         if (!this.hasSOSMarker)

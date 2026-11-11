@@ -29,18 +29,7 @@ public partial struct NormalizedByte4P
         /// <returns>The associated scaled vector.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Associate(Vector4 source)
-        {
-            source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
-
-            // Map opacity [0,1] to signed units [-1,1], then round to the stored integer range [-127,127].
-            // Map that rounded integer back to opacity before multiplication so RGB uses the stored alpha.
-            float nativeAlpha = ColorNumerics.ClampToFinite((source.W * 2F) - 1F, -1F, 1F);
-            float storedAlpha = MathF.Round(nativeAlpha * MaxPos);
-            source.W = (storedAlpha + MaxPos) / ScaledMagnitude;
-            Numerics.Premultiply(ref source);
-
-            return source;
-        }
+            => StorageAssociateOperator.Apply(source.AsVector128()).AsVector4();
 
         /// <summary>
         /// Reassociates a scaled vector with the alpha value the destination stores.
@@ -49,26 +38,7 @@ public partial struct NormalizedByte4P
         /// <returns>The reassociated scaled vector.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Reassociate(Vector4 source)
-        {
-            // Keep the divisor finite without limiting positive finite input alpha to the stored opacity range.
-            float alpha = ColorNumerics.ClampToFinite(source.W, 0F, float.MaxValue);
-
-            if (alpha <= 0)
-            {
-                return Vector4.Zero;
-            }
-
-            float nativeAlpha = ColorNumerics.ClampToFinite((alpha * 2F) - 1F, -1F, 1F);
-            float storedAlpha = (MathF.Round(nativeAlpha * MaxPos) + MaxPos) / ScaledMagnitude;
-
-            // Scale associated RGB by storedAlpha / alpha to retain the straight color when alpha is rounded.
-            // Applying the ratio once also preserves exact component midpoints when alpha is unchanged.
-            source *= storedAlpha / alpha;
-            source.W = storedAlpha;
-            Numerics.ClampRgbToAlpha(ref source);
-
-            return source;
-        }
+            => StorageReassociateOperator.Apply(source.AsVector128()).AsVector4();
 
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<NormalizedByte4P> source, Span<Vector4> destination)
@@ -85,7 +55,7 @@ public partial struct NormalizedByte4P
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ToVector4(source, destination[..source.Length], false);
+            ToVector4<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination[..source.Length], false);
         }
 
         /// <inheritdoc />
@@ -94,9 +64,7 @@ public partial struct NormalizedByte4P
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            Associate(source, false);
-            Pack(source, destination, true);
+            Pack<StorageAssociateOperator>(source, destination[..source.Length], false);
         }
 
         /// <inheritdoc />
@@ -105,9 +73,7 @@ public partial struct NormalizedByte4P
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            Reassociate(source, false);
-            Pack(source, destination, true);
+            Pack<StorageReassociateOperator>(source, destination[..source.Length], false);
         }
 
         /// <inheritdoc />
@@ -125,7 +91,19 @@ public partial struct NormalizedByte4P
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ToVector4(source, destination[..source.Length], true);
+            ToVector4<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination[..source.Length], true);
+        }
+
+        /// <inheritdoc />
+        internal override void ToAssociatedScaledVector4<TAlpha>(
+            Configuration configuration,
+            ReadOnlySpan<NormalizedByte4P> source,
+            Span<Vector4> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ToVector4<TAlpha>(source, destination[..source.Length], true);
         }
 
         /// <inheritdoc />
@@ -137,9 +115,7 @@ public partial struct NormalizedByte4P
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            Associate(source, true);
-            Pack(source, destination, true);
+            Pack<StorageAssociateOperator>(source, destination[..source.Length], true);
         }
 
         /// <inheritdoc />
@@ -151,40 +127,46 @@ public partial struct NormalizedByte4P
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            Reassociate(source, true);
-            Pack(source, destination, true);
+            Pack<StorageReassociateOperator>(source, destination[..source.Length], true);
         }
 
         /// <summary>
-        /// Unpacks signed-normalized storage to native or scaled vectors without changing alpha representation.
+        /// Unpacks signed-normalized storage to native or scaled vectors, and applies <typeparamref name="TAlpha"/> in the same pass.
         /// </summary>
+        /// <remarks>
+        /// The alpha step uses scaled vectors. With an alpha step, the components are unpacked to the scaled range, the step is
+        /// applied, and native output is mapped back with native = (scaled * 2) - 1.
+        /// </remarks>
+        /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
         /// <param name="source">The source pixels.</param>
         /// <param name="destination">The destination vectors.</param>
         /// <param name="scaled">Whether to produce scaled vectors.</param>
-        public static void ToVector4(ReadOnlySpan<NormalizedByte4P> source, Span<Vector4> destination, bool scaled)
+        public static void ToVector4<TAlpha>(ReadOnlySpan<NormalizedByte4P> source, Span<Vector4> destination, bool scaled)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             ref byte sourceBase = ref Unsafe.As<NormalizedByte4P, byte>(ref MemoryMarshal.GetReference(source));
             ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
+            bool alphaStep = typeof(TAlpha) != typeof(PixelFormats.PixelOperations.NoAlphaOperator);
+            bool decodeScaled = scaled || alphaStep;
+            bool mapToNative = alphaStep && !scaled;
 
-            // Each packed component occupies one byte, so the destination Vector4 lane count also defines the source byte stride.
-            int componentsPerPixel = Vector128<float>.Count;
             int i = 0;
 
-            // Portable widening advances one integer width at a time, so assemble the wider vectors from ordered 128-bit halves.
             if (Vector512.IsHardwareAccelerated)
             {
                 int pixelsPerVector = Vector512<float>.Count / Vector128<float>.Count;
 
                 for (; i <= source.Length - pixelsPerVector; i += pixelsPerVector)
                 {
-                    Vector128<sbyte> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(i * componentsPerPixel)).AsSByte();
-                    Vector128<short> lowerShorts = Vector128.WidenLower(packed);
-                    Vector128<short> upperShorts = Vector128.WidenUpper(packed);
-                    Vector256<int> lowerIntegers = Vector256.Create(Vector128.WidenLower(lowerShorts), Vector128.WidenUpper(lowerShorts));
-                    Vector256<int> upperIntegers = Vector256.Create(Vector128.WidenLower(upperShorts), Vector128.WidenUpper(upperShorts));
-                    Vector512<int> integers = Vector512.Create(lowerIntegers, upperIntegers);
-                    Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) = ToVector4(Vector512.ConvertToSingle(integers), scaled);
+                    LoadCodes(ref sourceBase, i, out Vector512<float> codes);
+                    Vector512<float> vector = TAlpha.Apply(ToVector4(codes, decodeScaled));
+
+                    if (mapToNative)
+                    {
+                        vector = Vector512.MultiplyAddEstimate(vector, Vector512.Create(2F), -Vector512<float>.One);
+                    }
+
+                    Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) = vector;
                 }
             }
 
@@ -194,10 +176,15 @@ public partial struct NormalizedByte4P
 
                 for (; i <= source.Length - pixelsPerVector; i += pixelsPerVector)
                 {
-                    ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref sourceBase, (uint)(i * componentsPerPixel)));
-                    Vector128<short> shorts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsSByte());
-                    Vector256<int> integers = Vector256.Create(Vector128.WidenLower(shorts), Vector128.WidenUpper(shorts));
-                    Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) = ToVector4(Vector256.ConvertToSingle(integers), scaled);
+                    LoadCodes(ref sourceBase, i, out Vector256<float> codes);
+                    Vector256<float> vector = TAlpha.Apply(ToVector4(codes, decodeScaled));
+
+                    if (mapToNative)
+                    {
+                        vector = Vector256.MultiplyAddEstimate(vector, Vector256.Create(2F), -Vector256<float>.One);
+                    }
+
+                    Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) = vector;
                 }
             }
 
@@ -205,10 +192,15 @@ public partial struct NormalizedByte4P
             {
                 for (; i < source.Length; i++)
                 {
-                    uint packed = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref sourceBase, (uint)(i * componentsPerPixel)));
-                    Vector128<short> shorts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsSByte());
-                    Vector128<int> integers = Vector128.WidenLower(shorts);
-                    Unsafe.Add(ref destinationBase, (uint)i) = ToVector4(Vector128.ConvertToSingle(integers), scaled).AsVector4();
+                    LoadCodes(ref sourceBase, i, out Vector128<float> codes);
+                    Vector128<float> vector = TAlpha.Apply(ToVector4(codes, decodeScaled));
+
+                    if (mapToNative)
+                    {
+                        vector = Vector128.MultiplyAddEstimate(vector, Vector128.Create(2F), -Vector128<float>.One);
+                    }
+
+                    Unsafe.Add(ref destinationBase, (uint)i) = vector.AsVector4();
                 }
 
                 return;
@@ -219,8 +211,59 @@ public partial struct NormalizedByte4P
             for (; i < source.Length; i++)
             {
                 NormalizedByte4P pixel = Unsafe.Add(ref pixelBase, (uint)i);
-                Unsafe.Add(ref destinationBase, (uint)i) = scaled ? pixel.ToScaledVector4() : pixel.ToVector4();
+                Vector4 vector = decodeScaled ? pixel.ToScaledVector4() : pixel.ToVector4();
+                vector = TAlpha.Apply(vector.AsVector128()).AsVector4();
+
+                if (mapToNative)
+                {
+                    vector = Vector4.MultiplyAddEstimate(vector, new Vector4(2F), -Vector4.One);
+                }
+
+                Unsafe.Add(ref destinationBase, (uint)i) = vector;
             }
+        }
+
+        /// <summary>
+        /// Loads four packed pixels and converts their signed codes to floats.
+        /// </summary>
+        /// <param name="source">The first byte of the packed pixels.</param>
+        /// <param name="pixel">The index of the first pixel to load.</param>
+        /// <param name="codes">The sixteen signed codes, in RGBA order for each pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LoadCodes(ref byte source, int pixel, out Vector512<float> codes)
+        {
+            // Each pixel is four bytes. One 16-byte load supplies four pixels, and sign extension keeps negative codes.
+            Vector128<sbyte> packed = Vector128.LoadUnsafe(ref source, (nuint)(pixel * 4)).AsSByte();
+            codes = Vector512.ConvertToSingle(Vector512_.Widen(packed));
+        }
+
+        /// <summary>
+        /// Loads two packed pixels and converts their signed codes to floats.
+        /// </summary>
+        /// <param name="source">The first byte of the packed pixels.</param>
+        /// <param name="pixel">The index of the first pixel to load.</param>
+        /// <param name="codes">The eight signed codes, in RGBA order for each pixel.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LoadCodes(ref byte source, int pixel, out Vector256<float> codes)
+        {
+            // An 8-byte load reads exactly two pixels, so the last pair of a row reads no padding.
+            Vector64<sbyte> packed = Vector64.LoadUnsafe(ref source, (nuint)(pixel * 4)).AsSByte();
+            codes = Vector256.ConvertToSingle(Vector256_.Widen(packed));
+        }
+
+        /// <summary>
+        /// Loads one packed pixel and converts its signed codes to floats.
+        /// </summary>
+        /// <param name="source">The first byte of the packed pixels.</param>
+        /// <param name="pixel">The index of the pixel to load.</param>
+        /// <param name="codes">The four signed codes, in RGBA order.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void LoadCodes(ref byte source, int pixel, out Vector128<float> codes)
+        {
+            // A 4-byte load reads exactly one pixel, so the last pixel of a row reads no padding.
+            uint packed = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref source, (uint)(pixel * 4)));
+            Vector128<short> shorts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsSByte());
+            codes = Vector128.ConvertToSingle(Vector128.WidenLower(shorts));
         }
 
         /// <summary>
@@ -297,25 +340,17 @@ public partial struct NormalizedByte4P
             ref byte sourceBase = ref Unsafe.As<NormalizedByte4P, byte>(ref MemoryMarshal.GetReference(source));
             ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-            // Each packed component occupies one byte, so the destination Vector4 lane count also defines the source byte stride.
-            int componentsPerPixel = Vector128<float>.Count;
             int i = 0;
 
-            // Portable widening advances one integer width at a time, so assemble the wider vectors from ordered 128-bit halves.
             if (Vector512.IsHardwareAccelerated)
             {
                 int pixelsPerVector = Vector512<float>.Count / Vector128<float>.Count;
 
                 for (; i <= source.Length - pixelsPerVector; i += pixelsPerVector)
                 {
-                    Vector128<sbyte> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(i * componentsPerPixel)).AsSByte();
-                    Vector128<short> lowerShorts = Vector128.WidenLower(packed);
-                    Vector128<short> upperShorts = Vector128.WidenUpper(packed);
-                    Vector256<int> lowerIntegers = Vector256.Create(Vector128.WidenLower(lowerShorts), Vector128.WidenUpper(lowerShorts));
-                    Vector256<int> upperIntegers = Vector256.Create(Vector128.WidenLower(upperShorts), Vector128.WidenUpper(upperShorts));
-                    Vector512<int> integers = Vector512.Create(lowerIntegers, upperIntegers);
+                    LoadCodes(ref sourceBase, i, out Vector512<float> codes);
                     Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) =
-                        ToUnassociatedVector4(Vector512.ConvertToSingle(integers), scaled);
+                        ToUnassociatedVector4(codes, scaled);
                 }
             }
 
@@ -325,11 +360,9 @@ public partial struct NormalizedByte4P
 
                 for (; i <= source.Length - pixelsPerVector; i += pixelsPerVector)
                 {
-                    ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref sourceBase, (uint)(i * componentsPerPixel)));
-                    Vector128<short> shorts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsSByte());
-                    Vector256<int> integers = Vector256.Create(Vector128.WidenLower(shorts), Vector128.WidenUpper(shorts));
+                    LoadCodes(ref sourceBase, i, out Vector256<float> codes);
                     Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)i)) =
-                        ToUnassociatedVector4(Vector256.ConvertToSingle(integers), scaled);
+                        ToUnassociatedVector4(codes, scaled);
                 }
             }
 
@@ -337,10 +370,8 @@ public partial struct NormalizedByte4P
             {
                 for (; i < source.Length; i++)
                 {
-                    uint packed = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref sourceBase, (uint)(i * componentsPerPixel)));
-                    Vector128<short> shorts = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsSByte());
-                    Vector128<int> integers = Vector128.WidenLower(shorts);
-                    Unsafe.Add(ref destinationBase, (uint)i) = ToUnassociatedVector4(Vector128.ConvertToSingle(integers), scaled).AsVector4();
+                    LoadCodes(ref sourceBase, i, out Vector128<float> codes);
+                    Unsafe.Add(ref destinationBase, (uint)i) = ToUnassociatedVector4(codes, scaled).AsVector4();
                 }
 
                 return;
@@ -410,354 +441,25 @@ public partial struct NormalizedByte4P
         }
 
         /// <summary>
-        /// Converts unassociated native or scaled vectors to the destination's associated scaled representation.
-        /// </summary>
-        /// <param name="source">The vectors to convert in place.</param>
-        /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        private static void Associate(Span<Vector4> source, bool scaled)
-        {
-            // Quantize alpha through signed-normalized destination storage before associating RGB. The kernels replace W separately
-            // so alpha is stored unchanged instead of being multiplied by itself.
-            if (Vector512.IsHardwareAccelerated)
-            {
-                int pixelsPerVector = Vector512<float>.Count / Vector128<float>.Count;
-                ref Vector512<float> sourceBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(source));
-                ref Vector512<float> sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)source.Length / (uint)pixelsPerVector);
-
-                while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
-                {
-                    sourceBase = Associate(sourceBase, scaled);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                }
-
-                // SIMD widths are powers of two, so masking finds the start of the unprocessed remainder without division.
-                source = source[(source.Length & ~(pixelsPerVector - 1))..];
-            }
-
-            if (Vector256.IsHardwareAccelerated)
-            {
-                int pixelsPerVector = Vector256<float>.Count / Vector128<float>.Count;
-                ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
-                ref Vector256<float> sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)source.Length / (uint)pixelsPerVector);
-
-                while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
-                {
-                    sourceBase = Associate(sourceBase, scaled);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                }
-
-                // SIMD widths are powers of two, so masking finds the start of the unprocessed remainder without division.
-                source = source[(source.Length & ~(pixelsPerVector - 1))..];
-            }
-
-            if (Vector128.IsHardwareAccelerated)
-            {
-                ref Vector128<float> sourceBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(source));
-                ref Vector128<float> sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)source.Length);
-
-                while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
-                {
-                    sourceBase = Associate(sourceBase, scaled);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                }
-
-                return;
-            }
-
-            ref Vector4 tailBase = ref MemoryMarshal.GetReference(source);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Vector4 vector = Unsafe.Add(ref tailBase, i);
-
-                if (!scaled)
-                {
-                    // Signed-native W is an affine encoding rather than opacity, so association must happen after mapping to scaled space.
-                    vector += Vector4.One;
-                    vector /= 2F;
-                }
-
-                // The scalar overload applies the same storage-alpha rounding as the SIMD helpers.
-                Unsafe.Add(ref tailBase, i) = Associate(vector);
-            }
-        }
-
-        /// <summary>
-        /// Converts four unassociated native or scaled vectors to the destination's associated scaled representation.
-        /// </summary>
-        /// <param name="source">The unassociated vectors.</param>
-        /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        /// <returns>The associated vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector512<float> Associate(Vector512<float> source, bool scaled)
-        {
-            Vector512<float> zero = Vector512<float>.Zero;
-            Vector512<float> one = Vector512<float>.One;
-
-            if (!scaled)
-            {
-                // Signed-native W is an affine encoding rather than opacity, so association must happen after mapping to scaled space.
-                source = (source + one) / Vector512.Create(2F);
-            }
-
-            source = ColorNumerics.ClampToFinite(source, zero, one);
-            Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector512<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector512.Create(2F)) - one, -one, one);
-            Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
-            storedAlpha += Vector512.Create(MaxPos);
-            storedAlpha /= Vector512.Create(ScaledMagnitude);
-            Vector512<float> result = source * storedAlpha;
-            Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-
-            return Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-        }
-
-        /// <summary>
-        /// Converts two unassociated native or scaled vectors to the destination's associated scaled representation.
-        /// </summary>
-        /// <param name="source">The unassociated vectors.</param>
-        /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        /// <returns>The associated vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<float> Associate(Vector256<float> source, bool scaled)
-        {
-            Vector256<float> zero = Vector256<float>.Zero;
-            Vector256<float> one = Vector256<float>.One;
-
-            if (!scaled)
-            {
-                // Signed-native W is an affine encoding rather than opacity, so association must happen after mapping to scaled space.
-                source = (source + one) / Vector256.Create(2F);
-            }
-
-            source = ColorNumerics.ClampToFinite(source, zero, one);
-            Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector256<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector256.Create(2F)) - one, -one, one);
-            Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
-            storedAlpha += Vector256.Create(MaxPos);
-            storedAlpha /= Vector256.Create(ScaledMagnitude);
-            Vector256<float> result = source * storedAlpha;
-            Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-
-            return Vector256.ConditionalSelect(alphaMask, storedAlpha, result);
-        }
-
-        /// <summary>
-        /// Converts an unassociated native or scaled vector to the destination's associated scaled representation.
-        /// </summary>
-        /// <param name="source">The unassociated vector.</param>
-        /// <param name="scaled">Whether the source contains a scaled vector.</param>
-        /// <returns>The associated vector.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<float> Associate(Vector128<float> source, bool scaled)
-        {
-            Vector128<float> zero = Vector128<float>.Zero;
-            Vector128<float> one = Vector128<float>.One;
-
-            if (!scaled)
-            {
-                // Signed-native W is an affine encoding rather than opacity, so association must happen after mapping to scaled space.
-                source = (source + one) / Vector128.Create(2F);
-            }
-
-            source = ColorNumerics.ClampToFinite(source, zero, one);
-            Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            Vector128<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector128.Create(2F)) - one, -one, one);
-            Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
-            storedAlpha += Vector128.Create(MaxPos);
-            storedAlpha /= Vector128.Create(ScaledMagnitude);
-            Vector128<float> result = source * storedAlpha;
-            Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-
-            return Vector128.ConditionalSelect(alphaMask, storedAlpha, result);
-        }
-
-        /// <summary>
-        /// Reassociates native or scaled vectors with the scaled alpha values the destination stores.
-        /// </summary>
-        /// <param name="source">The vectors to convert in place.</param>
-        /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        private static void Reassociate(Span<Vector4> source, bool scaled)
-        {
-            // Preserve straight color across destination-alpha quantization by scaling RGB by storedAlpha / inputAlpha. The kernels
-            // replace W, clamp RGB to stored alpha, and clear zero-alpha vectors so the stored result remains valid associated color.
-            if (Vector512.IsHardwareAccelerated)
-            {
-                int pixelsPerVector = Vector512<float>.Count / Vector128<float>.Count;
-                ref Vector512<float> sourceBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(source));
-                ref Vector512<float> sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)source.Length / (uint)pixelsPerVector);
-
-                while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
-                {
-                    sourceBase = Reassociate(sourceBase, scaled);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                }
-
-                // SIMD widths are powers of two, so masking finds the start of the unprocessed remainder without division.
-                source = source[(source.Length & ~(pixelsPerVector - 1))..];
-            }
-
-            if (Vector256.IsHardwareAccelerated)
-            {
-                int pixelsPerVector = Vector256<float>.Count / Vector128<float>.Count;
-                ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
-                ref Vector256<float> sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)source.Length / (uint)pixelsPerVector);
-
-                while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
-                {
-                    sourceBase = Reassociate(sourceBase, scaled);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                }
-
-                // SIMD widths are powers of two, so masking finds the start of the unprocessed remainder without division.
-                source = source[(source.Length & ~(pixelsPerVector - 1))..];
-            }
-
-            if (Vector128.IsHardwareAccelerated)
-            {
-                ref Vector128<float> sourceBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(source));
-                ref Vector128<float> sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)source.Length);
-
-                while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
-                {
-                    sourceBase = Reassociate(sourceBase, scaled);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                }
-
-                return;
-            }
-
-            ref Vector4 tailBase = ref MemoryMarshal.GetReference(source);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Vector4 vector = Unsafe.Add(ref tailBase, i);
-
-                if (!scaled)
-                {
-                    // Convert native components together so RGB and alpha enter reassociation in the same scaled coordinate system.
-                    vector += Vector4.One;
-                    vector /= 2F;
-                }
-
-                // The scalar overload applies the same stored-alpha adjustment as the SIMD helpers.
-                Unsafe.Add(ref tailBase, i) = Reassociate(vector);
-            }
-        }
-
-        /// <summary>
-        /// Reassociates four native or scaled vectors with the scaled alpha values the destination stores.
-        /// </summary>
-        /// <param name="source">The associated vectors.</param>
-        /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        /// <returns>The reassociated vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector512<float> Reassociate(Vector512<float> source, bool scaled)
-        {
-            Vector512<float> zero = Vector512<float>.Zero;
-            Vector512<float> one = Vector512<float>.One;
-
-            if (!scaled)
-            {
-                // Convert native components together so RGB and alpha enter reassociation in the same scaled coordinate system.
-                source = (source + one) / Vector512.Create(2F);
-            }
-
-            // Each RGBA group uses one replicated finite divisor. Preserve finite alpha above one until RGB is recovered.
-            Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
-            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector512.Create(float.MaxValue));
-            Vector512<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector512.Create(2F)) - one, -one, one);
-            Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
-            storedAlpha += Vector512.Create(MaxPos);
-            storedAlpha /= Vector512.Create(ScaledMagnitude);
-            Vector512<float> result = source * (storedAlpha / alpha);
-            Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-            result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
-
-            return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(alpha, zero), zero, result);
-        }
-
-        /// <summary>
-        /// Reassociates two native or scaled vectors with the scaled alpha values the destination stores.
-        /// </summary>
-        /// <param name="source">The associated vectors.</param>
-        /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        /// <returns>The reassociated vectors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<float> Reassociate(Vector256<float> source, bool scaled)
-        {
-            Vector256<float> zero = Vector256<float>.Zero;
-            Vector256<float> one = Vector256<float>.One;
-
-            if (!scaled)
-            {
-                // Convert native components together so RGB and alpha enter reassociation in the same scaled coordinate system.
-                source = (source + one) / Vector256.Create(2F);
-            }
-
-            // Each RGBA group uses one replicated finite divisor. Preserve finite alpha above one until RGB is recovered.
-            Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
-            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector256.Create(float.MaxValue));
-            Vector256<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector256.Create(2F)) - one, -one, one);
-            Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
-            storedAlpha += Vector256.Create(MaxPos);
-            storedAlpha /= Vector256.Create(ScaledMagnitude);
-            Vector256<float> result = source * (storedAlpha / alpha);
-            Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
-            result = Vector256.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
-
-            return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(alpha, zero), zero, result);
-        }
-
-        /// <summary>
-        /// Reassociates a native or scaled vector with the scaled alpha value the destination stores.
-        /// </summary>
-        /// <param name="source">The associated vector.</param>
-        /// <param name="scaled">Whether the source contains a scaled vector.</param>
-        /// <returns>The reassociated vector.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<float> Reassociate(Vector128<float> source, bool scaled)
-        {
-            Vector128<float> zero = Vector128<float>.Zero;
-            Vector128<float> one = Vector128<float>.One;
-
-            if (!scaled)
-            {
-                // Convert native components together so RGB and alpha enter reassociation in the same scaled coordinate system.
-                source = (source + one) / Vector128.Create(2F);
-            }
-
-            // Each RGBA group uses one replicated finite divisor. Preserve finite alpha above one until RGB is recovered.
-            Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
-            alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector128.Create(float.MaxValue));
-            Vector128<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector128.Create(2F)) - one, -one, one);
-            Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
-            storedAlpha += Vector128.Create(MaxPos);
-            storedAlpha /= Vector128.Create(ScaledMagnitude);
-            Vector128<float> result = source * (storedAlpha / alpha);
-            Vector128<float> alphaMask = Vector128.Create(0, 0, 0, -1).AsSingle();
-            result = Vector128.ConditionalSelect(alphaMask, storedAlpha, result);
-            result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
-
-            return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(alpha, zero), zero, result);
-        }
-
-        /// <summary>
-        /// Packs native or scaled vectors into signed-normalized storage.
+        /// Applies <typeparamref name="TAlpha"/> to native or scaled vectors, and packs them into signed-normalized storage in
+        /// the same pass.
         /// </summary>
         /// <remarks>
-        /// The caller supplies the required alpha representation. This method only bounds, rounds, and packs components.
+        /// The alpha step uses scaled vectors. With an alpha step, native input is mapped first with scaled = (native + 1) / 2.
         /// The destination must contain space for every source vector.
         /// </remarks>
+        /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
         /// <param name="source">The source vectors.</param>
         /// <param name="destination">The destination pixels.</param>
         /// <param name="scaled">Whether the source contains scaled vectors.</param>
-        public static void Pack(Span<Vector4> source, Span<NormalizedByte4P> destination, bool scaled)
+        public static void Pack<TAlpha>(Span<Vector4> source, Span<NormalizedByte4P> destination, bool scaled)
+            where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
         {
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(source);
             ref NormalizedByte4P destinationBase = ref MemoryMarshal.GetReference(destination);
+            bool alphaStep = typeof(TAlpha) != typeof(PixelFormats.PixelOperations.NoAlphaOperator);
+            bool mapToScaled = alphaStep && !scaled;
+            bool encodeScaled = scaled || alphaStep;
             int i = 0;
 
             if (Vector512.IsHardwareAccelerated)
@@ -767,7 +469,13 @@ public partial struct NormalizedByte4P
                 for (; i <= source.Length - pixelsPerVector; i += pixelsPerVector)
                 {
                     Vector512<float> vector = Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref sourceBase, (uint)i));
-                    Vector512<int> integers = ConvertToPackedInt32(vector, scaled);
+
+                    if (mapToScaled)
+                    {
+                        vector = (vector + Vector512<float>.One) / Vector512.Create(2F);
+                    }
+
+                    Vector512<int> integers = ConvertToPackedInt32(TAlpha.Apply(vector), encodeScaled);
                     Vector256<short> shorts = Vector256_.PackSignedSaturate(integers.GetLower(), integers.GetUpper());
                     Vector128<sbyte> packed = Vector128.NarrowWithSaturation(shorts.GetLower(), shorts.GetUpper());
 
@@ -788,7 +496,13 @@ public partial struct NormalizedByte4P
                 for (; i <= source.Length - pixelsPerVector; i += pixelsPerVector)
                 {
                     Vector256<float> vector = Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref sourceBase, (uint)i));
-                    Vector256<int> integers = ConvertToPackedInt32(vector, scaled);
+
+                    if (mapToScaled)
+                    {
+                        vector = (vector + Vector256<float>.One) / Vector256.Create(2F);
+                    }
+
+                    Vector256<int> integers = ConvertToPackedInt32(TAlpha.Apply(vector), encodeScaled);
                     Vector128<short> shorts = Vector128.NarrowWithSaturation(integers.GetLower(), integers.GetUpper());
                     Vector128<sbyte> packed = Vector128.NarrowWithSaturation(shorts, shorts);
                     Unsafe.As<NormalizedByte4P, ulong>(ref Unsafe.Add(ref destinationBase, (uint)i)) = packed.AsUInt64().GetElement(0);
@@ -800,7 +514,13 @@ public partial struct NormalizedByte4P
                 for (; i < source.Length; i++)
                 {
                     Vector128<float> vector = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.Add(ref sourceBase, (uint)i));
-                    Vector128<int> integers = ConvertToPackedInt32(vector, scaled);
+
+                    if (mapToScaled)
+                    {
+                        vector = (vector + Vector128<float>.One) / Vector128.Create(2F);
+                    }
+
+                    Vector128<int> integers = ConvertToPackedInt32(TAlpha.Apply(vector), encodeScaled);
                     Vector128<short> shorts = Vector128.NarrowWithSaturation(integers, integers);
                     Vector128<sbyte> packed = Vector128.NarrowWithSaturation(shorts, shorts);
                     Unsafe.Add(ref destinationBase, (uint)i).PackedValue = packed.AsUInt32().GetElement(0);
@@ -813,8 +533,14 @@ public partial struct NormalizedByte4P
             {
                 Vector4 vector = Unsafe.Add(ref sourceBase, (uint)i);
 
-                // Both signed-byte formats use this packer. The caller owns alpha conversion; pack only the supplied components.
-                Unsafe.Add(ref destinationBase, (uint)i) = scaled
+                if (mapToScaled)
+                {
+                    vector = (vector + Vector4.One) / 2F;
+                }
+
+                // Both signed-byte formats use this packer. The alpha step selects the alpha representation that is stored.
+                vector = TAlpha.Apply(vector.AsVector128()).AsVector4();
+                Unsafe.Add(ref destinationBase, (uint)i) = encodeScaled
                     ? PackAssociatedScaledVector4(vector)
                     : new NormalizedByte4P { PackedValue = NormalizedByte4P.Pack(vector) };
             }
@@ -884,6 +610,142 @@ public partial struct NormalizedByte4P
             source = ColorNumerics.ClampToFinite(source, -one, one) * Vector128.Create(MaxPos);
 
             return Vector128_.ConvertToInt32RoundToEven(source);
+        }
+
+        /// <summary>
+        /// Converts unassociated scaled RGBA pixels to the associated scaled representation, with the alpha that the
+        /// destination stores.
+        /// </summary>
+        /// <remarks>
+        /// The components are bounded to [0, 1] first. NaN becomes zero. Alpha is mapped to signed units [-1, 1], rounded to
+        /// the stored integer range [-127, 127] with ties to even, and mapped back to opacity. RGB is multiplied by that
+        /// stored alpha.
+        /// </remarks>
+        private readonly struct StorageAssociateOperator : PixelFormats.PixelOperations.IAlphaOperator
+        {
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Vector128<float> Apply(Vector128<float> source)
+            {
+                Vector128<float> one = Vector128<float>.One;
+
+                source = ColorNumerics.ClampToFinite(source, Vector128<float>.Zero, one);
+                Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
+                Vector128<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector128.Create(2F)) - one, -one, one);
+                Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
+                storedAlpha = (storedAlpha + Vector128.Create(MaxPos)) / Vector128.Create(ScaledMagnitude);
+
+                // RGB is associated with the stored alpha. The alpha lane takes that alpha.
+                return Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), storedAlpha, source * storedAlpha);
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Vector256<float> Apply(Vector256<float> source)
+            {
+                Vector256<float> one = Vector256<float>.One;
+
+                // Each four-lane group uses its own alpha, with the same rules as the 128-bit form.
+                source = ColorNumerics.ClampToFinite(source, Vector256<float>.Zero, one);
+                Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
+                Vector256<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector256.Create(2F)) - one, -one, one);
+                Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
+                storedAlpha = (storedAlpha + Vector256.Create(MaxPos)) / Vector256.Create(ScaledMagnitude);
+
+                Vector256<float> alphaMask = Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+                return Vector256.ConditionalSelect(alphaMask, storedAlpha, source * storedAlpha);
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Vector512<float> Apply(Vector512<float> source)
+            {
+                Vector512<float> one = Vector512<float>.One;
+
+                // Each four-lane group uses its own alpha, with the same rules as the 128-bit form.
+                source = ColorNumerics.ClampToFinite(source, Vector512<float>.Zero, one);
+                Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
+                Vector512<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector512.Create(2F)) - one, -one, one);
+                Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
+                storedAlpha = (storedAlpha + Vector512.Create(MaxPos)) / Vector512.Create(ScaledMagnitude);
+
+                Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+                return Vector512.ConditionalSelect(alphaMask, storedAlpha, source * storedAlpha);
+            }
+        }
+
+        /// <summary>
+        /// Reassociates associated scaled RGBA pixels with the alpha that the destination stores.
+        /// </summary>
+        /// <remarks>
+        /// Alpha is made finite and nonnegative. Positive finite alpha above one is kept until RGB is recovered.
+        /// Zero alpha gives zero for all components. RGB is multiplied by stored alpha / alpha in one step, so RGB values
+        /// on exact midpoints stay exact when alpha does not change. Then RGB is bounded to [0, stored alpha].
+        /// </remarks>
+        private readonly struct StorageReassociateOperator : PixelFormats.PixelOperations.IAlphaOperator
+        {
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Vector128<float> Apply(Vector128<float> source)
+            {
+                Vector128<float> zero = Vector128<float>.Zero;
+                Vector128<float> one = Vector128<float>.One;
+
+                Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
+                alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector128.Create(float.MaxValue));
+                Vector128<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector128.Create(2F)) - one, -one, one);
+                Vector128<float> storedAlpha = Vector128.Round(nativeAlpha * Vector128.Create(MaxPos));
+                storedAlpha = (storedAlpha + Vector128.Create(MaxPos)) / Vector128.Create(ScaledMagnitude);
+
+                Vector128<float> result = source * (storedAlpha / alpha);
+                result = Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), storedAlpha, result);
+                result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
+
+                return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(alpha, zero), zero, result);
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Vector256<float> Apply(Vector256<float> source)
+            {
+                Vector256<float> zero = Vector256<float>.Zero;
+                Vector256<float> one = Vector256<float>.One;
+
+                // Each four-lane group uses its own alpha, with the same rules as the 128-bit form.
+                Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
+                alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector256.Create(float.MaxValue));
+                Vector256<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector256.Create(2F)) - one, -one, one);
+                Vector256<float> storedAlpha = Vector256.Round(nativeAlpha * Vector256.Create(MaxPos));
+                storedAlpha = (storedAlpha + Vector256.Create(MaxPos)) / Vector256.Create(ScaledMagnitude);
+
+                Vector256<float> result = source * (storedAlpha / alpha);
+                result = Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), storedAlpha, result);
+                result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
+
+                return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(alpha, zero), zero, result);
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static Vector512<float> Apply(Vector512<float> source)
+            {
+                Vector512<float> zero = Vector512<float>.Zero;
+                Vector512<float> one = Vector512<float>.One;
+
+                // Each four-lane group uses its own alpha, with the same rules as the 128-bit form.
+                Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
+                alpha = ColorNumerics.ClampToFinite(alpha, zero, Vector512.Create(float.MaxValue));
+                Vector512<float> nativeAlpha = ColorNumerics.ClampToFinite((alpha * Vector512.Create(2F)) - one, -one, one);
+                Vector512<float> storedAlpha = Vector512.Round(nativeAlpha * Vector512.Create(MaxPos));
+                storedAlpha = (storedAlpha + Vector512.Create(MaxPos)) / Vector512.Create(ScaledMagnitude);
+
+                Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+                Vector512<float> result = source * (storedAlpha / alpha);
+                result = Vector512.ConditionalSelect(alphaMask, storedAlpha, result);
+                result = ColorNumerics.ClampToFinite(result, zero, storedAlpha);
+
+                return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(alpha, zero), zero, result);
+            }
         }
     }
 }

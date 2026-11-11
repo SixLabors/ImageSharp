@@ -74,16 +74,16 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     public static bool operator !=(Bgra5551 left, Bgra5551 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static Bgra5551 FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgra5551 FromAbgr32P(Abgr32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Bgra5551 FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgra5551 FromArgb32P(Argb32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Bgra5551 FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgra5551 FromBgra32P(Bgra32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static Bgra5551 FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static Bgra5551 FromRgba32P(Rgba32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());

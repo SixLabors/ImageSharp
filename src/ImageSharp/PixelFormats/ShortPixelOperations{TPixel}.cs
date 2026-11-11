@@ -54,7 +54,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Unpack(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], this.normalized, false);
+        this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], false);
     }
 
     /// <inheritdoc />
@@ -63,19 +63,14 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        destination = destination[..source.Length];
-
-        // Signed formats map their stored RGB and alpha ranges to [0,1] for association.
-        // SNORM stores these components in [-1,1]. Signed integer storage uses [-32768,32767], including for alpha.
-        // Multiply RGB by that opacity, then undo the range map for each stored component, including alpha.
-        bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated;
-        Unpack(MemoryMarshal.Cast<TPixel, short>(source), destination, this.normalized, hasAlpha);
-
         // RG pixels have implicit alpha one. Keep their native components unchanged instead of normalizing and restoring them.
-        if (hasAlpha)
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
         {
-            Numerics.Premultiply(destination);
-            PixelFormats.PixelOperations.MultiplyThenAdd(destination, this.nativeMagnitude, -this.nativeOffset);
+            this.Unpack<PixelFormats.PixelOperations.AssociateOperator>(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], false);
+        }
+        else
+        {
+            this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], false);
         }
     }
 
@@ -85,7 +80,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Unpack(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], this.normalized, true);
+        this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], true);
     }
 
     /// <inheritdoc />
@@ -94,12 +89,13 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        destination = destination[..source.Length];
-        Unpack(MemoryMarshal.Cast<TPixel, short>(source), destination, this.normalized, true);
-
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated)
         {
-            Numerics.Premultiply(destination);
+            this.Unpack<PixelFormats.PixelOperations.AssociateOperator>(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], true);
+        }
+        else
+        {
+            this.Unpack<PixelFormats.PixelOperations.NoAlphaOperator>(MemoryMarshal.Cast<TPixel, short>(source), destination[..source.Length], true);
         }
     }
 
@@ -109,8 +105,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        destination = destination[..source.Length];
-        Pack(source, MemoryMarshal.Cast<TPixel, short>(destination), this.normalized, false);
+        this.Pack<PixelFormats.PixelOperations.NoAlphaOperator>(source, MemoryMarshal.Cast<TPixel, short>(destination[..source.Length]), false);
     }
 
     /// <inheritdoc />
@@ -119,9 +114,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        // Map the stored signed components before unassociation. Two-component formats leave their implicit B and alpha unchanged.
-        PixelFormats.PixelOperations.AddThenDivide(source, this.nativeOffset, this.nativeMagnitude);
-        this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
+        this.Pack<PixelFormats.PixelOperations.UnassociateOperator>(source, MemoryMarshal.Cast<TPixel, short>(destination[..source.Length]), false);
     }
 
     /// <inheritdoc />
@@ -130,8 +123,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        destination = destination[..source.Length];
-        Pack(source, MemoryMarshal.Cast<TPixel, short>(destination), this.normalized, true);
+        this.Pack<PixelFormats.PixelOperations.NoAlphaOperator>(source, MemoryMarshal.Cast<TPixel, short>(destination[..source.Length]), true);
     }
 
     /// <inheritdoc />
@@ -140,29 +132,42 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        destination = destination[..source.Length];
-        PixelFormats.PixelOperations.UnPremultiplyForPacking(source);
-        Pack(source, MemoryMarshal.Cast<TPixel, short>(destination), this.normalized, true);
+        this.Pack<PixelFormats.PixelOperations.UnassociateOperator>(source, MemoryMarshal.Cast<TPixel, short>(destination[..source.Length]), true);
     }
 
     /// <summary>
-    /// Expands signed 16-bit components to native or scaled vectors.
+    /// Expands signed 16-bit components to native or scaled vectors, and applies <typeparamref name="TAlpha"/> in the same pass.
     /// </summary>
+    /// <remarks>
+    /// The alpha step uses scaled vectors. With an alpha step, the components are expanded to the scaled range, the step is
+    /// applied, and native output is mapped back to the native range.
+    /// </remarks>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
     /// <param name="source">The stored RG or RGBA components.</param>
     /// <param name="destination">The destination vectors.</param>
-    /// <param name="normalized">Whether native components use signed-normalized values rather than integer values.</param>
-    /// <param name="scaled">Whether to map native components to the scaled range.</param>
-    private static void Unpack(ReadOnlySpan<short> source, Span<Vector4> destination, bool normalized, bool scaled)
+    /// <param name="scaled">Whether to produce scaled vectors.</param>
+    private void Unpack<TAlpha>(ReadOnlySpan<short> source, Span<Vector4> destination, bool scaled)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         ref short sourceBase = ref MemoryMarshal.GetReference(source);
         ref ushort sourceBits = ref Unsafe.As<short, ushort>(ref sourceBase);
         ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
         int componentCount = TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount;
+        bool normalized = this.normalized;
+
+        // An alpha step needs scaled input. Native output then maps each scaled component back with native = scaled * magnitude - offset.
+        bool alphaStep = typeof(TAlpha) != typeof(PixelFormats.PixelOperations.NoAlphaOperator);
+        bool decodeScaled = scaled || alphaStep;
+        bool mapToNative = alphaStep && !scaled;
+        Vector128<float> magnitude = this.nativeMagnitude.AsVector128();
+        Vector128<float> offset = (-this.nativeOffset).AsVector128();
         int index = 0;
 
         if (Vector512.IsHardwareAccelerated)
         {
             int pixelsPerVector = Vector512<float>.Count / Vector128<float>.Count;
+            Vector512<float> magnitude512 = Vector512.Create(Vector256.Create(magnitude, magnitude), Vector256.Create(magnitude, magnitude));
+            Vector512<float> offset512 = Vector512.Create(Vector256.Create(offset, offset), Vector256.Create(offset, offset));
 
             for (; index <= destination.Length - pixelsPerVector; index += pixelsPerVector)
             {
@@ -174,9 +179,15 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
                 // Sixteen shorts become sixteen ints, then sixteen floats: four consecutive RGBA groups.
                 Vector256<short> packed = bits.AsInt16();
                 Vector512<int> integers = Vector512.Create(Vector256.WidenLower(packed), Vector256.WidenUpper(packed));
-                Vector512<float> converted = ConvertToVector4(Vector512.ConvertToSingle(integers), normalized, scaled);
-                Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) =
-                    PixelFormats.PixelOperations.RestoreImplicitComponents(converted, componentCount);
+                Vector512<float> converted = ConvertToVector4(Vector512.ConvertToSingle(integers), normalized, decodeScaled);
+                converted = TAlpha.Apply(PixelFormats.PixelOperations.RestoreImplicitComponents(converted, componentCount));
+
+                if (mapToNative)
+                {
+                    converted = Vector512.MultiplyAddEstimate(converted, magnitude512, offset512);
+                }
+
+                Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) = converted;
             }
         }
 
@@ -184,15 +195,23 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         if (Vector256.IsHardwareAccelerated)
         {
             int pixelsPerVector = Vector256<float>.Count / Vector128<float>.Count;
+            Vector256<float> magnitude256 = Vector256.Create(magnitude, magnitude);
+            Vector256<float> offset256 = Vector256.Create(offset, offset);
 
             for (; index <= destination.Length - pixelsPerVector; index += pixelsPerVector)
             {
                 PixelFormats.PixelOperations.Load16BitComponents(ref sourceBits, (nuint)(index * componentCount), componentCount, out Vector128<ushort> bits);
                 Vector128<short> packed = bits.AsInt16();
                 Vector256<int> integers = Vector256.Create(Vector128.WidenLower(packed), Vector128.WidenUpper(packed));
-                Vector256<float> converted = ConvertToVector4(Vector256.ConvertToSingle(integers), normalized, scaled);
-                Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) =
-                    PixelFormats.PixelOperations.RestoreImplicitComponents(converted, componentCount);
+                Vector256<float> converted = ConvertToVector4(Vector256.ConvertToSingle(integers), normalized, decodeScaled);
+                converted = TAlpha.Apply(PixelFormats.PixelOperations.RestoreImplicitComponents(converted, componentCount));
+
+                if (mapToNative)
+                {
+                    converted = Vector256.MultiplyAddEstimate(converted, magnitude256, offset256);
+                }
+
+                Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref destinationBase, (uint)index)) = converted;
             }
         }
 
@@ -206,8 +225,15 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
                 ref byte start = ref Unsafe.Add(ref sourceBytes, (uint)(index * Unsafe.SizeOf<TPixel>()));
                 ulong packed = componentCount == 4 ? Unsafe.ReadUnaligned<ulong>(ref start) : Unsafe.ReadUnaligned<uint>(ref start);
                 Vector128<int> integers = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsInt16());
-                Vector128<float> converted = ConvertToVector4(Vector128.ConvertToSingle(integers), normalized, scaled);
-                Unsafe.Add(ref destinationBase, (uint)index) = PixelFormats.PixelOperations.RestoreImplicitComponents(converted, componentCount).AsVector4();
+                Vector128<float> converted = ConvertToVector4(Vector128.ConvertToSingle(integers), normalized, decodeScaled);
+                converted = TAlpha.Apply(PixelFormats.PixelOperations.RestoreImplicitComponents(converted, componentCount));
+
+                if (mapToNative)
+                {
+                    converted = Vector128.MultiplyAddEstimate(converted, magnitude, offset);
+                }
+
+                Unsafe.Add(ref destinationBase, (uint)index) = converted.AsVector4();
             }
 
             return;
@@ -228,7 +254,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
                 // Both minimum two's-complement SNORM encodings represent -1.
                 vector = Vector4.Max(vector, new Vector4(-ShortMaximum));
 
-                if (scaled)
+                if (decodeScaled)
                 {
                     // Offset exact integer components before division to avoid cancellation near the signed-normalized lower bound.
                     vector += new Vector4(ShortMaximum);
@@ -239,42 +265,70 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
                     vector /= ShortMaximum;
                 }
             }
-            else if (scaled)
+            else if (decodeScaled)
             {
                 // SINT uses every two's-complement code, unlike SNORM where both minimum encodings represent -1.
                 vector -= new Vector4(SignedIntegerMinimum);
                 vector /= SignedIntegerRange;
             }
 
-            Unsafe.Add(ref destinationBase, (uint)index) = componentCount == 4 ? vector : new Vector4(vector.X, vector.Y, 0F, 1F);
+            vector = componentCount == 4 ? vector : new Vector4(vector.X, vector.Y, 0F, 1F);
+            vector = TAlpha.Apply(vector.AsVector128()).AsVector4();
+
+            if (mapToNative)
+            {
+                vector = Vector4.MultiplyAddEstimate(vector, magnitude.AsVector4(), offset.AsVector4());
+            }
+
+            Unsafe.Add(ref destinationBase, (uint)index) = vector;
         }
     }
 
     /// <summary>
-    /// Packs native or scaled vectors into signed 16-bit components.
+    /// Applies <typeparamref name="TAlpha"/> to native or scaled vectors, and packs them into signed 16-bit components in the
+    /// same pass.
     /// </summary>
+    /// <remarks>
+    /// The alpha step uses scaled vectors. With an alpha step, native input is mapped to the scaled range first.
+    /// </remarks>
+    /// <typeparam name="TAlpha">The alpha step for each pixel.</typeparam>
     /// <param name="source">The source vectors.</param>
     /// <param name="destination">The destination RG or RGBA components.</param>
-    /// <param name="normalized">Whether native components use signed-normalized values rather than integer values.</param>
     /// <param name="scaled">Whether the source vectors use the scaled range.</param>
-    private static void Pack(Span<Vector4> source, Span<short> destination, bool normalized, bool scaled)
+    private void Pack<TAlpha>(Span<Vector4> source, Span<short> destination, bool scaled)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         ref Vector4 sourceBase = ref MemoryMarshal.GetReference(source);
         ref short destinationBase = ref MemoryMarshal.GetReference(destination);
         ref ushort destinationBits = ref Unsafe.As<short, ushort>(ref destinationBase);
         int componentCount = TPixel.GetPixelTypeInfo().ComponentInfo!.Value.ComponentCount;
+        bool normalized = this.normalized;
+
+        // An alpha step needs scaled input. Native input maps to scaled with scaled = (native + offset) / magnitude.
+        bool alphaStep = typeof(TAlpha) != typeof(PixelFormats.PixelOperations.NoAlphaOperator);
+        bool mapToScaled = alphaStep && !scaled;
+        bool encodeScaled = scaled || alphaStep;
+        Vector128<float> magnitude = this.nativeMagnitude.AsVector128();
+        Vector128<float> offset = this.nativeOffset.AsVector128();
         int index = 0;
 
         if (Vector512.IsHardwareAccelerated)
         {
             int pixelsPerVector = Vector512<float>.Count / Vector128<float>.Count;
+            Vector512<float> magnitude512 = Vector512.Create(Vector256.Create(magnitude, magnitude), Vector256.Create(magnitude, magnitude));
+            Vector512<float> offset512 = Vector512.Create(Vector256.Create(offset, offset), Vector256.Create(offset, offset));
 
             for (; index <= source.Length - pixelsPerVector; index += pixelsPerVector)
             {
                 Vector512<float> vectors = Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref sourceBase, (uint)index));
 
+                if (mapToScaled)
+                {
+                    vectors = (vectors + offset512) / magnitude512;
+                }
+
                 // Convert and round all four components before compacting RG storage. Missing components need no output words.
-                Vector512<int> integers = ConvertToInt32(vectors, normalized, scaled);
+                Vector512<int> integers = ConvertToInt32(TAlpha.Apply(vectors), normalized, encodeScaled);
 
                 // AVX2 packing operates independently in each 128-bit lane, producing pixels 0, 2, 1, 3. Restore the
                 // source order with a native lane permutation; the portable PackSignedSaturate fallback is already ordered.
@@ -292,11 +346,19 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         if (Vector256.IsHardwareAccelerated)
         {
             int pixelsPerVector = Vector256<float>.Count / Vector128<float>.Count;
+            Vector256<float> magnitude256 = Vector256.Create(magnitude, magnitude);
+            Vector256<float> offset256 = Vector256.Create(offset, offset);
 
             for (; index <= source.Length - pixelsPerVector; index += pixelsPerVector)
             {
                 Vector256<float> vectors = Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref sourceBase, (uint)index));
-                Vector256<int> integers = ConvertToInt32(vectors, normalized, scaled);
+
+                if (mapToScaled)
+                {
+                    vectors = (vectors + offset256) / magnitude256;
+                }
+
+                Vector256<int> integers = ConvertToInt32(TAlpha.Apply(vectors), normalized, encodeScaled);
                 Vector128<short> packed = Vector128.NarrowWithSaturation(integers.GetLower(), integers.GetUpper());
                 PixelFormats.PixelOperations.Store16BitComponents(packed.AsUInt16(), ref destinationBits, (nuint)(index * componentCount), componentCount);
             }
@@ -309,7 +371,13 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
             for (; index < source.Length; index++)
             {
                 Vector128<float> vector = Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.Add(ref sourceBase, (uint)index));
-                Vector128<int> integers = ConvertToInt32(vector, normalized, scaled);
+
+                if (mapToScaled)
+                {
+                    vector = (vector + offset) / magnitude;
+                }
+
+                Vector128<int> integers = ConvertToInt32(TAlpha.Apply(vector), normalized, encodeScaled);
                 Vector128<short> packed = Vector128.NarrowWithSaturation(integers, integers);
 
                 // This iteration owns one pixel. Store only its R/G words for RG storage.
@@ -332,9 +400,16 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
         {
             Vector4 vector = Unsafe.Add(ref sourceBase, (uint)index);
 
+            if (mapToScaled)
+            {
+                vector = (vector + offset.AsVector4()) / magnitude.AsVector4();
+            }
+
+            vector = TAlpha.Apply(vector.AsVector128()).AsVector4();
+
             if (normalized)
             {
-                if (scaled)
+                if (encodeScaled)
                 {
                     vector *= 2F;
                     vector -= Vector4.One;
@@ -345,7 +420,7 @@ internal abstract class ShortPixelOperations<TPixel> : PixelOperations<TPixel>
             }
             else
             {
-                if (scaled)
+                if (encodeScaled)
                 {
                     vector *= SignedIntegerRange;
                     vector += new Vector4(SignedIntegerMinimum);

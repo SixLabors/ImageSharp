@@ -74,20 +74,18 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
     /// <inheritdoc />
     public override void ToUnassociatedScaledVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
     {
-        Guard.NotNull(configuration, nameof(configuration));
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
         // Select stored alpha once. Literal arguments let the inlined kernel remove unused conversion branches.
         if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            Unpack(
-                MemoryMarshal.Cast<TPixel, ushort>(source),
-                destination[..source.Length],
-                PixelAlphaRepresentation.Associated,
-                PixelAlphaRepresentation.Unassociated);
+            // The single-pixel conversion bounds the associated scaled vector first, then unassociates it.
+            // The fused unpack does the same two steps in one pass, so both paths give the same result.
+            this.ToAssociatedScaledVector4<PixelFormats.PixelOperations.UnassociateOperator>(configuration, source, destination);
         }
         else
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
             Unpack(
                 MemoryMarshal.Cast<TPixel, ushort>(source),
                 destination[..source.Length],
@@ -118,6 +116,28 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
                 destination[..source.Length],
                 PixelAlphaRepresentation.Unassociated,
                 PixelAlphaRepresentation.Associated);
+        }
+    }
+
+    /// <inheritdoc />
+    internal override void ToAssociatedScaledVector4<TAlpha>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+    {
+        // Associated storage is bounded to give associated scaled vectors. The alpha step runs on the bounded vectors.
+        if (TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            UnpackRgba<TAlpha>(
+                MemoryMarshal.Cast<TPixel, ushort>(source),
+                MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]),
+                PixelAlphaRepresentation.Associated,
+                PixelAlphaRepresentation.Associated,
+                true);
+        }
+        else
+        {
+            base.ToAssociatedScaledVector4<TAlpha>(configuration, source, destination);
         }
     }
 
@@ -234,7 +254,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
         Span<float> destination,
         PixelAlphaRepresentation sourceAlpha,
         PixelAlphaRepresentation destinationAlpha)
-        => UnpackRgba(source, destination, sourceAlpha, destinationAlpha, false);
+        => UnpackRgba<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination, sourceAlpha, destinationAlpha, false);
 
     /// <summary>
     /// Expands stored half-precision components to normalized pixel vectors with the requested alpha representation.
@@ -249,23 +269,31 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
         Span<Vector4> destination,
         PixelAlphaRepresentation sourceAlpha,
         PixelAlphaRepresentation destinationAlpha)
-        => UnpackRgba(source, MemoryMarshal.Cast<Vector4, float>(destination), sourceAlpha, destinationAlpha, true);
+        => UnpackRgba<PixelFormats.PixelOperations.NoAlphaOperator>(
+            source,
+            MemoryMarshal.Cast<Vector4, float>(destination),
+            sourceAlpha,
+            destinationAlpha,
+            true);
 
     /// <summary>
-    /// Expands stored half-precision pixels to pixel vectors in one pass with no intermediate row.
+    /// Expands stored half-precision pixels to pixel vectors in one pass with no intermediate row, and applies
+    /// <typeparamref name="TAlpha"/> to each converted vector before the store.
     /// </summary>
+    /// <typeparam name="TAlpha">The step that follows the alpha representation change.</typeparam>
     /// <param name="source">The stored R, RG, or RGBA components.</param>
     /// <param name="destination">Four output components per source pixel.</param>
     /// <param name="sourceAlpha">The source alpha representation.</param>
     /// <param name="destinationAlpha">The destination alpha representation.</param>
     /// <param name="normalized">Whether the pixel color API requires finite RGB and opacity bounds.</param>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static void UnpackRgba(
+    private static void UnpackRgba<TAlpha>(
         ReadOnlySpan<ushort> source,
         Span<float> destination,
         PixelAlphaRepresentation sourceAlpha,
         PixelAlphaRepresentation destinationAlpha,
         bool normalized)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref float destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -295,8 +323,8 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
                 // Restore missing channels before alpha arithmetic. R and RG supply B = 0 and opaque alpha.
                 lower = PixelFormats.PixelOperations.RestoreImplicitComponents(lower, componentCount);
                 upper = PixelFormats.PixelOperations.RestoreImplicitComponents(upper, componentCount);
-                Vector512.StoreUnsafe(ConvertAlpha(lower, sourceAlpha, destinationAlpha, normalized, false), ref destinationBase, (nuint)i);
-                upper = ConvertAlpha(upper, sourceAlpha, destinationAlpha, normalized, false);
+                Vector512.StoreUnsafe(TAlpha.Apply(ConvertAlpha(lower, sourceAlpha, destinationAlpha, normalized, false)), ref destinationBase, (nuint)i);
+                upper = TAlpha.Apply(ConvertAlpha(upper, sourceAlpha, destinationAlpha, normalized, false));
                 Vector512.StoreUnsafe(upper, ref destinationBase, (nuint)(i + Vector512<float>.Count));
             }
         }
@@ -313,8 +341,8 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
                 (Vector256<float> lower, Vector256<float> upper) = HalfTypeHelper.Unpack(packed);
                 lower = PixelFormats.PixelOperations.RestoreImplicitComponents(lower, componentCount);
                 upper = PixelFormats.PixelOperations.RestoreImplicitComponents(upper, componentCount);
-                Vector256.StoreUnsafe(ConvertAlpha(lower, sourceAlpha, destinationAlpha, normalized, false), ref destinationBase, (nuint)i);
-                upper = ConvertAlpha(upper, sourceAlpha, destinationAlpha, normalized, false);
+                Vector256.StoreUnsafe(TAlpha.Apply(ConvertAlpha(lower, sourceAlpha, destinationAlpha, normalized, false)), ref destinationBase, (nuint)i);
+                upper = TAlpha.Apply(ConvertAlpha(upper, sourceAlpha, destinationAlpha, normalized, false));
                 Vector256.StoreUnsafe(upper, ref destinationBase, (nuint)(i + Vector256<float>.Count));
             }
         }
@@ -330,8 +358,8 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
                 (Vector128<float> lower, Vector128<float> upper) = HalfTypeHelper.Unpack(packed);
                 lower = PixelFormats.PixelOperations.RestoreImplicitComponents(lower, componentCount);
                 upper = PixelFormats.PixelOperations.RestoreImplicitComponents(upper, componentCount);
-                Vector128.StoreUnsafe(ConvertAlpha(lower, sourceAlpha, destinationAlpha, normalized, false), ref destinationBase, (nuint)i);
-                upper = ConvertAlpha(upper, sourceAlpha, destinationAlpha, normalized, false);
+                Vector128.StoreUnsafe(TAlpha.Apply(ConvertAlpha(lower, sourceAlpha, destinationAlpha, normalized, false)), ref destinationBase, (nuint)i);
+                upper = TAlpha.Apply(ConvertAlpha(upper, sourceAlpha, destinationAlpha, normalized, false));
                 Vector128.StoreUnsafe(upper, ref destinationBase, (nuint)(i + Vector128<float>.Count));
             }
         }
@@ -346,7 +374,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
                 componentCount == 4 ? HalfTypeHelper.Unpack(source[sourceIndex + 2]) : 0F,
                 componentCount == 4 ? HalfTypeHelper.Unpack(source[sourceIndex + 3]) : 1F);
 
-            value = ConvertAlpha(value.AsVector128(), sourceAlpha, destinationAlpha, normalized, false).AsVector4();
+            value = TAlpha.Apply(ConvertAlpha(value.AsVector128(), sourceAlpha, destinationAlpha, normalized, false)).AsVector4();
 
             destination[i + 0] = value.X;
             destination[i + 1] = value.Y;
@@ -484,7 +512,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
     /// <param name="value">The complete RGBA groups.</param>
     /// <param name="sourceAlpha">The source alpha representation.</param>
     /// <param name="destinationAlpha">The destination alpha representation.</param>
-    /// <param name="normalized">Whether the pixel color API requires finite component bounds.</param>
+    /// <param name="normalized">Whether to bound the components when the alpha representation does not change.</param>
     /// <param name="roundAlpha">Whether association must use the alpha retained by half storage.</param>
     /// <returns>The converted RGBA components.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
@@ -503,25 +531,17 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
 
         if (sourceAlpha == PixelAlphaRepresentation.Associated)
         {
-            // Color conversion bounds the quotient after division. Native conversion retains IEEE arithmetic.
-            return normalized
-                ? PixelFormats.PixelOperations.UnPremultiply(value)
-                : Numerics.UnPremultiply(value);
-        }
-
-        if (normalized)
-        {
-            value = PixelFormats.PixelOperations.ClampToPixelRange(value);
+            return PixelFormats.PixelOperations.UnassociateOperator.Apply(value);
         }
 
         // Round opacity here, where the destination's half storage precision is known. The alpha lanes take the
-        // rounded opacity, so the premultiply uses the stored alpha.
+        // rounded opacity, so the association uses the stored alpha.
         if (roundAlpha)
         {
             value = Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), HalfTypeHelper.RoundToHalf(value), value);
         }
 
-        return Numerics.Premultiply(value);
+        return PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(value);
     }
 
     /// <summary>
@@ -530,7 +550,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
     /// <param name="value">The complete RGBA groups.</param>
     /// <param name="sourceAlpha">The source alpha representation.</param>
     /// <param name="destinationAlpha">The destination alpha representation.</param>
-    /// <param name="normalized">Whether the pixel color API requires finite component bounds.</param>
+    /// <param name="normalized">Whether to bound the components when the alpha representation does not change.</param>
     /// <param name="roundAlpha">Whether association must use the alpha retained by half storage.</param>
     /// <returns>The converted RGBA components.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
@@ -549,25 +569,17 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
 
         if (sourceAlpha == PixelAlphaRepresentation.Associated)
         {
-            // Color conversion bounds the quotient after division. Native conversion retains IEEE arithmetic.
-            return normalized
-                ? PixelFormats.PixelOperations.UnPremultiply(value)
-                : Numerics.UnPremultiply(value);
-        }
-
-        if (normalized)
-        {
-            value = PixelFormats.PixelOperations.ClampToPixelRange(value);
+            return PixelFormats.PixelOperations.UnassociateOperator.Apply(value);
         }
 
         // Round opacity here, where the destination's half storage precision is known. The alpha lanes take the
-        // rounded opacity, so the premultiply uses the stored alpha.
+        // rounded opacity, so the association uses the stored alpha.
         if (roundAlpha)
         {
             value = Vector256.ConditionalSelect(Vector256.Create(0, 0, 0, -1, 0, 0, 0, -1).AsSingle(), HalfTypeHelper.RoundToHalf(value), value);
         }
 
-        return Numerics.Premultiply(value);
+        return PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(value);
     }
 
     /// <summary>
@@ -576,7 +588,7 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
     /// <param name="value">The complete RGBA groups.</param>
     /// <param name="sourceAlpha">The source alpha representation.</param>
     /// <param name="destinationAlpha">The destination alpha representation.</param>
-    /// <param name="normalized">Whether the pixel color API requires finite component bounds.</param>
+    /// <param name="normalized">Whether to bound the components when the alpha representation does not change.</param>
     /// <param name="roundAlpha">Whether association must use the alpha retained by half storage.</param>
     /// <returns>The converted RGBA components.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
@@ -595,25 +607,17 @@ internal abstract class HalfPixelOperations<TPixel> : PixelOperations<TPixel>
 
         if (sourceAlpha == PixelAlphaRepresentation.Associated)
         {
-            // Color conversion bounds the quotient after division. Native conversion retains IEEE arithmetic.
-            return normalized
-                ? PixelFormats.PixelOperations.UnPremultiply(value)
-                : Numerics.UnPremultiply(value);
-        }
-
-        if (normalized)
-        {
-            value = PixelFormats.PixelOperations.ClampToPixelRange(value);
+            return PixelFormats.PixelOperations.UnassociateOperator.Apply(value);
         }
 
         // Round opacity here, where the destination's half storage precision is known. The alpha lanes take the
-        // rounded opacity, so the premultiply uses the stored alpha.
+        // rounded opacity, so the association uses the stored alpha.
         if (roundAlpha)
         {
             Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
             value = Vector512.ConditionalSelect(alphaMask, HalfTypeHelper.RoundToHalf(value), value);
         }
 
-        return Numerics.Premultiply(value);
+        return PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(value);
     }
 }

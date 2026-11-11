@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -131,7 +132,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
     public readonly Vector4 ToAssociatedScaledVector4()
     {
         Vector4 vector = this.ToScaledVector4();
-        Numerics.Premultiply(ref vector);
+        vector = Numerics.Premultiply(vector.AsVector128()).AsVector4();
         return vector;
     }
 

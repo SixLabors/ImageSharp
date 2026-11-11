@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -84,16 +85,16 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     public static bool operator !=(RgbaVector left, RgbaVector right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static RgbaVector FromAbgr32P(Abgr32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static RgbaVector FromAbgr32P(Abgr32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static RgbaVector FromArgb32P(Argb32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static RgbaVector FromArgb32P(Argb32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static RgbaVector FromBgra32P(Bgra32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static RgbaVector FromBgra32P(Bgra32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
-    public static RgbaVector FromRgba32P(Rgba32P source) => FromAssociatedScaledVector4(source.ToAssociatedScaledVector4());
+    public static RgbaVector FromRgba32P(Rgba32P source) => FromUnassociatedScaledVector4(source.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Rgba32P ToRgba32P() => Rgba32P.FromUnassociatedScaledVector4(this.ToUnassociatedScaledVector4());
@@ -105,7 +106,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
-        => PixelOperations.ClampToPixelRange(this.ToVector4());
+        => PixelFormats.PixelOperations.ClampToPixelRange(this.ToVector4().AsVector128()).AsVector4();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -125,7 +126,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToUnassociatedScaledVector4()
-        => PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4());
+        => PixelFormats.PixelOperations.ClampToPixelRange(this.ToUnassociatedVector4().AsVector128()).AsVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,12 +143,12 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaVector FromUnassociatedScaledVector4(Vector4 source)
-        => FromUnassociatedVector4(PixelOperations.ClampToPixelRange(source));
+        => FromUnassociatedVector4(PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RgbaVector FromAssociatedScaledVector4(Vector4 source)
-        => PixelOperations.FromAssociatedScaledVector4(source);
+        => FromUnassociatedVector4(PixelFormats.PixelOperations.UnassociateOperator.Apply(source.AsVector128()).AsVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

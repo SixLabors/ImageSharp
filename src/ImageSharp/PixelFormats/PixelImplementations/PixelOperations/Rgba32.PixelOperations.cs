@@ -30,8 +30,8 @@ public partial struct Rgba32
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // Canonical RGBA needs no staging threshold. The conversion normalizes and premultiplies each pixel in one pass.
-            SimdUtils.ByteToNormalizedFloat<PixelFormats.PixelOperations.PremultiplyOperator>(
+            // Canonical RGBA needs no staging threshold. The conversion normalizes and associates each pixel in one pass.
+            SimdUtils.ByteToNormalizedFloat<PixelFormats.PixelOperations.AssociateOperator>(
                 MemoryMarshal.AsBytes(source),
                 MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
         }

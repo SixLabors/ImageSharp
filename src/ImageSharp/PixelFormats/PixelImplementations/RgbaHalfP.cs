@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -147,7 +148,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public readonly Vector4 ToAssociatedScaledVector4()
     {
         // Storage already contains associated RGB. Color output only applies normalized component bounds.
-        return PixelOperations.ClampToPixelRange(this.ToVector4());
+        return PixelFormats.PixelOperations.ClampToPixelRange(this.ToVector4().AsVector128()).AsVector4();
     }
 
     /// <inheritdoc />
@@ -182,12 +183,13 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public static RgbaHalfP FromUnassociatedScaledVector4(Vector4 source)
     {
         // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
-        source = PixelOperations.ClampToPixelRange(source);
+        source = PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
 
         // Half storage rounds opacity before RGB multiplication. Keep this precision rule in the pixel packer.
+        // A rounded opacity in [0, 1] stays in [0, 1], so the associated result is bounded and is stored directly.
         source.W = (float)(Half)source.W;
 
-        return PixelOperations.FromUnassociatedScaledVector4(source);
+        return FromAssociatedVector4(PixelFormats.PixelOperations.AssociateOperator.Apply(source.AsVector128()).AsVector4());
     }
 
     /// <inheritdoc />
@@ -195,7 +197,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public static RgbaHalfP FromAssociatedScaledVector4(Vector4 source)
     {
         // RGB is already associated. Bound the supplied components; native packing rounds them independently.
-        source = PixelOperations.ClampToPixelRange(source);
+        source = PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
 
         return FromAssociatedVector4(source);
     }

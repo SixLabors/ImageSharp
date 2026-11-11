@@ -79,7 +79,7 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
             // Color matrices transform logical color components, so associated storage must be unassociated before applying the matrix.
             pixelOperations.ToUnassociatedScaledVector4(this.configuration, rowSpan, span);
 
-            ColorNumerics.Transform(span, ref Unsafe.AsRef(in this.matrix));
+            ColorNumerics.Transform(span, this.matrix);
 
             pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, span, rowSpan);
         }

@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats;
@@ -39,25 +38,8 @@ public partial class PixelOperations<TPixel>
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
 #pragma warning disable CA1000 // Scalar conversions share the public generic owner with bulk conversions.
-    /// <summary>
-    /// Bounds normalized floating-point RGB to [-65504,65504] and alpha to [0,1] before pixel storage.
-    /// </summary>
-    /// <param name="source">The color in normalized component units.</param>
-    /// <returns>The bounded color. NaN maps to the lower bound; infinities map to the corresponding bounds.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4 ClampToPixelRange(Vector4 source) => PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
-
-    /// <summary>
-    /// Restores straight RGB and bounds normalized color components before destination packing.
-    /// </summary>
-    /// <param name="source">The associated color in normalized component units.</param>
-    /// <remarks>
-    /// NaN and negative alpha become zero; positive infinity becomes <see cref="float.MaxValue"/>.
-    /// The divisor retains positive finite alpha, including values above one. Zero alpha retains stored RGB.
-    /// After division, RGB is bounded to [-65504,65504] and alpha to [0,1]. This also bounds overflow from tiny positive alpha.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UnPremultiply(ref Vector4 source) => source = PixelFormats.PixelOperations.UnPremultiply(source.AsVector128()).AsVector4();
+    // These helpers use TPixel. The arithmetic that does not use TPixel is in the non-generic PixelOperations class.
+    // Each helper bounds its input one time. AssociateOperator needs bounded input. UnassociateOperator bounds its own result.
 
     /// <summary>
     /// Converts associated normalized input through the destination's straight-color pixel conversion.
@@ -70,104 +52,61 @@ public partial class PixelOperations<TPixel>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel FromAssociatedScaledVector4(Vector4 source)
-    {
-        // Destination packing applies its own bounds after division. Clamping to floating-point bounds here
-        // would add work before SDR packing and could change grayscale calculations before luminance is known.
-        source = PixelFormats.PixelOperations.UnPremultiplyForPacking(source.AsVector128()).AsVector4();
-
-        return TPixel.FromUnassociatedScaledVector4(source);
-    }
+        => TPixel.FromUnassociatedScaledVector4(PixelOperations.UnassociateOperator.Apply(source.AsVector128()).AsVector4());
 
     /// <summary>
     /// Converts a pixel that stores straight RGB to associated scaled components.
     /// </summary>
     /// <param name="pixel">The pixel.</param>
-    /// <returns>The scaled components, bounded for pixel conversion, with RGB multiplied by alpha.</returns>
+    /// <returns>The associated scaled components, bounded for pixel conversion.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 ToAssociatedScaledVector4(TPixel pixel)
-        => PixelFormats.PixelOperations.Associate(pixel.ToUnassociatedScaledVector4());
+        => PixelOperations.AssociateOperator.Apply(pixel.ToUnassociatedScaledVector4().AsVector128()).AsVector4();
 
     /// <summary>
-    /// Converts a pixel that stores straight RGB in opacity units to associated native components.
+    /// Converts a pixel that stores straight RGB in opacity units to associated components.
     /// </summary>
     /// <param name="pixel">The pixel.</param>
-    /// <returns>The native components with RGB multiplied by alpha. IEEE special values are retained.</returns>
-    /// <remarks>
-    /// The native alpha must be an opacity in [0, 1], as in the floating-point formats.
-    /// </remarks>
+    /// <returns>The associated components, bounded for pixel conversion.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 ToAssociatedVector4(TPixel pixel)
-    {
-        Vector4 vector = pixel.ToUnassociatedVector4();
-        Numerics.Premultiply(ref vector);
-        return vector;
-    }
+        => PixelOperations.ClampToPixelRange<PixelOperations.AssociateOperator>(pixel.ToUnassociatedVector4().AsVector128()).AsVector4();
 
     /// <summary>
-    /// Converts associated native components to a pixel that stores straight RGB in opacity units.
+    /// Converts associated components to a pixel that stores straight RGB in opacity units.
     /// </summary>
-    /// <param name="source">The associated native components.</param>
+    /// <param name="source">The associated components.</param>
     /// <returns>The pixel.</returns>
-    /// <remarks>
-    /// The native alpha must be an opacity in [0, 1], as in the floating-point formats.
-    /// The alpha follows the rules of <see cref="Numerics.UnPremultiply(ref Vector4)"/>.
-    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel FromAssociatedVector4(Vector4 source)
-    {
-        Numerics.UnPremultiply(ref source);
-        return TPixel.FromUnassociatedVector4(source);
-    }
+        => TPixel.FromUnassociatedVector4(PixelOperations.UnassociateOperator.Apply(source.AsVector128()).AsVector4());
 
     /// <summary>
-    /// Converts a pixel that stores associated RGB in opacity units to straight scaled components.
+    /// Converts a pixel that stores associated RGB to straight scaled components.
     /// </summary>
     /// <param name="pixel">The pixel.</param>
-    /// <returns>Straight RGB bounded to [-65504,65504] and alpha bounded to [0,1].</returns>
-    /// <remarks>
-    /// The division uses the native associated components, so the bounds apply once, after the division.
-    /// </remarks>
+    /// <returns>The straight scaled components, bounded for pixel conversion.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 ToUnassociatedScaledVector4(TPixel pixel)
-    {
-        Vector4 vector = pixel.ToAssociatedVector4();
-        UnPremultiply(ref vector);
-        return vector;
-    }
+        => PixelOperations.UnassociateOperator.Apply(pixel.ToAssociatedScaledVector4().AsVector128()).AsVector4();
 
     /// <summary>
-    /// Converts a pixel that stores associated RGB in opacity units to straight native components.
+    /// Converts a pixel that stores associated RGB in opacity units to straight components.
     /// </summary>
     /// <param name="pixel">The pixel.</param>
-    /// <returns>The native components with RGB divided by alpha. The result is not bounded.</returns>
+    /// <returns>The straight components, bounded for pixel conversion.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 ToUnassociatedVector4(TPixel pixel)
-    {
-        Vector4 vector = pixel.ToAssociatedVector4();
-        Numerics.UnPremultiply(ref vector);
-        return vector;
-    }
+        => PixelOperations.UnassociateOperator.Apply(pixel.ToAssociatedVector4().AsVector128()).AsVector4();
 
     /// <summary>
-    /// Converts straight scaled components to a pixel that stores associated RGB in opacity units.
+    /// Converts straight components to a pixel that stores associated RGB in opacity units.
     /// </summary>
-    /// <param name="source">The straight scaled components.</param>
-    /// <returns>The pixel, from the components bounded for pixel conversion, with RGB multiplied by alpha.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TPixel FromUnassociatedScaledVector4(Vector4 source)
-        => TPixel.FromAssociatedVector4(PixelFormats.PixelOperations.Associate(source));
-
-    /// <summary>
-    /// Converts straight native components to a pixel that stores associated RGB in opacity units.
-    /// </summary>
-    /// <param name="source">The straight native components.</param>
-    /// <returns>The pixel, with RGB multiplied by alpha. IEEE special values are retained.</returns>
+    /// <param name="source">The straight components.</param>
+    /// <returns>The pixel.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel FromUnassociatedVector4(Vector4 source)
-    {
-        Numerics.Premultiply(ref source);
-        return TPixel.FromAssociatedVector4(source);
-    }
+        => TPixel.FromAssociatedVector4(PixelOperations.ClampToPixelRange<PixelOperations.AssociateOperator>(source.AsVector128()).AsVector4());
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
     /// <summary>
@@ -260,6 +199,37 @@ public partial class PixelOperations<TPixel>
         while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
         {
             destinationBase = sourceStart.ToAssociatedScaledVector4();
+
+            sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+            destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+        }
+    }
+
+    /// <summary>
+    /// Converts pixels to scaled vectors with associated alpha, and applies <typeparamref name="TAlpha"/> to each vector in the
+    /// same pass.
+    /// </summary>
+    /// <remarks>
+    /// The result for each pixel is the alpha step applied to <see cref="IPixel.ToAssociatedScaledVector4"/>.
+    /// Storage families override this method with their SIMD unpack kernels.
+    /// </remarks>
+    /// <typeparam name="TAlpha">The alpha step for each scaled pixel.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination vectors.</param>
+    internal virtual void ToAssociatedScaledVector4<TAlpha>(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+        ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+        ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
+        {
+            destinationBase = TAlpha.Apply(sourceStart.ToAssociatedScaledVector4().AsVector128()).AsVector4();
 
             sourceStart = ref Unsafe.Add(ref sourceStart, 1);
             destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -469,20 +439,20 @@ public partial class PixelOperations<TPixel>
         Guard.IsTrue(component3.IsEmpty || component3.Length == component0.Length, nameof(component3), "Components must be of same size!");
         Guard.DestinationShouldNotBeTooShort(component0, destination, nameof(destination));
 
-        const int BlockSize = 64;
+        const int blockSize = 64;
         InlineArray64<Vector4> buffer = default;
         Span<Vector4> vectors = buffer;
 
         // Use the same bounded block as associated packing. Interleave straight samples once, then let the destination pixel operation apply its alpha rules.
-        for (int offset = 0; offset < component0.Length; offset += BlockSize)
+        for (int offset = 0; offset < component0.Length; offset += blockSize)
         {
-            int count = Math.Min(BlockSize, component0.Length - offset);
+            int count = Math.Min(blockSize, component0.Length - offset);
             Span<Vector4> block = vectors[..count];
             SimdUtils.InterleaveFloatPlanes(
                 component0.Slice(offset, count),
                 component1.Slice(offset, count),
                 component2.Slice(offset, count),
-                component3.IsEmpty ? ReadOnlySpan<float>.Empty : component3.Slice(offset, count),
+                component3.IsEmpty ? [] : component3.Slice(offset, count),
                 block);
 
             this.FromUnassociatedScaledVector4Destructive(configuration, block, destination.Slice(offset, count));
@@ -513,21 +483,21 @@ public partial class PixelOperations<TPixel>
         Guard.IsTrue(component3.IsEmpty || component3.Length == component0.Length, nameof(component3), "Components must be of same size!");
         Guard.DestinationShouldNotBeTooShort(component0, destination, nameof(destination));
 
-        const int BlockSize = 64;
+        const int blockSize = 64;
         InlineArray64<Vector4> buffer = default;
         Span<Vector4> vectors = buffer;
 
         // The transposer and pixel converter share one bounded scratch block. Each pixel is
         // converted once, and the final short block follows the same numeric-domain path.
-        for (int offset = 0; offset < component0.Length; offset += BlockSize)
+        for (int offset = 0; offset < component0.Length; offset += blockSize)
         {
-            int count = Math.Min(BlockSize, component0.Length - offset);
+            int count = Math.Min(blockSize, component0.Length - offset);
             Span<Vector4> block = vectors[..count];
             SimdUtils.InterleaveFloatPlanes(
                 component0.Slice(offset, count),
                 component1.Slice(offset, count),
                 component2.Slice(offset, count),
-                component3.IsEmpty ? ReadOnlySpan<float>.Empty : component3.Slice(offset, count),
+                component3.IsEmpty ? [] : component3.Slice(offset, count),
                 block);
 
             this.FromAssociatedScaledVector4Destructive(configuration, block, destination.Slice(offset, count));
@@ -557,12 +527,12 @@ public partial class PixelOperations<TPixel>
         Guard.DestinationShouldNotBeTooShort(source, component2, nameof(component2));
         Guard.DestinationShouldNotBeTooShort(source, component3, nameof(component3));
 
-        const int BlockSize = 64;
-        Span<Vector4> vectors = stackalloc Vector4[BlockSize];
+        const int blockSize = 64;
+        Span<Vector4> vectors = stackalloc Vector4[blockSize];
 
-        for (int offset = 0; offset < source.Length; offset += BlockSize)
+        for (int offset = 0; offset < source.Length; offset += blockSize)
         {
-            int count = Math.Min(BlockSize, source.Length - offset);
+            int count = Math.Min(blockSize, source.Length - offset);
             Span<Vector4> block = vectors[..count];
             this.ToAssociatedScaledVector4(configuration, source.Slice(offset, count), block);
             SimdUtils.DeinterleaveFloatPlanes(
@@ -844,10 +814,9 @@ public partial class PixelOperations<TPixel>
         /// <summary>
         /// Initializes static members of the <see cref="InstanceHolder"/> class.
         /// </summary>
-        static InstanceHolder()
-        {
+        static InstanceHolder() =>
+
             // Keep this as a direct call. A delegate from the static abstract method uses Mono's faulty delegate-construction path.
             Value = TPixel.CreatePixelOperations();
-        }
     }
 }

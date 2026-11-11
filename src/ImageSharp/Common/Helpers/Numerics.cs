@@ -194,27 +194,18 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
-    /// </summary>
-    /// <param name="source">The <see cref="Vector4"/> to premultiply.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Premultiply(ref Vector4 source)
-    {
-        // Load into a local variable to prevent accessing the source from memory multiple times.
-        Vector4 src = source;
-        Vector4 alpha = PermuteW(src);
-        source = WithW(src * alpha, alpha);
-    }
-
-    /// <summary>
-    /// Clamps associated color components to the alpha component while preserving alpha.
+    /// Clamps the associated RGB lanes of one RGBA vector to [0, alpha] while preserving the alpha lane.
     /// </summary>
     /// <param name="source">The associated vector to clamp.</param>
+    /// <returns>The clamped vector. NaN RGB maps to zero.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ClampRgbToAlpha(ref Vector4 source)
+    public static Vector128<float> ClampRgbToAlpha(Vector128<float> source)
     {
-        Vector4 alpha = PermuteW(source);
-        source = WithW(ColorNumerics.ClampToFinite(source, Vector4.Zero, alpha), alpha);
+        Vector128<float> alpha = Vector128_.ShuffleNative(source, ShuffleAlphaControl);
+
+        // The clamp also bounds W by itself, so select the original W lane to preserve alpha bit-for-bit.
+        Vector128<float> clamped = ColorNumerics.ClampToFinite(source, Vector128<float>.Zero, alpha);
+        return Vector128.ConditionalSelect(Vector128.Create(0, 0, 0, -1).AsSingle(), source, clamped);
     }
 
     /// <summary>
@@ -300,46 +291,17 @@ internal static class Numerics
             vectors = vectors[(vectors.Length - (vectors.Length % vectorsPerVector))..];
         }
 
-        if (Vector128.IsHardwareAccelerated)
+        // The 128-bit form holds one vector. It serves the final vectors and the path without hardware acceleration,
+        // so each vector uses the same arithmetic at every width.
+        ref Vector128<float> remainderBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
+        ref Vector128<float> remainderEnd = ref Unsafe.Add(ref remainderBase, (uint)vectors.Length);
+
+        while (Unsafe.IsAddressLessThan(ref remainderBase, ref remainderEnd))
         {
-            ref Vector128<float> vectorsBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector128<float> vectorsEnd = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length);
-
-            while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
-            {
-                vectorsBase = Premultiply(vectorsBase);
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
-            }
-
-            return;
-        }
-
-        ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-
-        for (nuint i = 0; i < (uint)vectors.Length; i++)
-        {
-            Premultiply(ref Unsafe.Add(ref vectorsStart, i));
+            remainderBase = Premultiply(remainderBase);
+            remainderBase = ref Unsafe.Add(ref remainderBase, 1);
         }
     }
-
-    /// <summary>
-    /// Reverses the result of premultiplying a vector via <see cref="Premultiply(ref Vector4)"/>.
-    /// When alpha is zero, the RGB components remain unchanged because no unassociated value can be recovered.
-    /// </summary>
-    /// <param name="source">The <see cref="Vector4"/> to unpremultiply.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UnPremultiply(ref Vector4 source)
-        => source = UnPremultiply(source.AsVector128()).AsVector4();
-
-    /// <summary>
-    /// Unpremultiplies the X, Y, and Z components of a vector by the supplied alpha while preserving W.
-    /// When alpha is zero, the RGB components remain unchanged because no unassociated value can be recovered.
-    /// </summary>
-    /// <param name="source">The vector to unpremultiply.</param>
-    /// <param name="alpha">The source alpha replicated to every component.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UnPremultiply(ref Vector4 source, Vector4 alpha)
-        => source = UnPremultiply(source.AsVector128(), alpha.AsVector128()).AsVector4();
 
     /// <summary>
     /// Unpremultiplies the X, Y, and Z components of each vector by its W component while preserving W.
@@ -379,25 +341,15 @@ internal static class Numerics
             vectors = vectors[(vectors.Length - (vectors.Length % vectorsPerVector))..];
         }
 
-        if (Vector128.IsHardwareAccelerated)
+        // The 128-bit form holds one vector. It serves the final vectors and the path without hardware acceleration,
+        // so each vector uses the same arithmetic at every width.
+        ref Vector128<float> remainderBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
+        ref Vector128<float> remainderEnd = ref Unsafe.Add(ref remainderBase, (uint)vectors.Length);
+
+        while (Unsafe.IsAddressLessThan(ref remainderBase, ref remainderEnd))
         {
-            ref Vector128<float> vectorsBase = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector128<float> vectorsEnd = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length);
-
-            while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsEnd))
-            {
-                vectorsBase = UnPremultiply(vectorsBase);
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
-            }
-
-            return;
-        }
-
-        ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-
-        for (nuint i = 0; i < (uint)vectors.Length; i++)
-        {
-            UnPremultiply(ref Unsafe.Add(ref vectorsStart, i));
+            remainderBase = UnPremultiply(remainderBase);
+            remainderBase = ref Unsafe.Add(ref remainderBase, 1);
         }
     }
 

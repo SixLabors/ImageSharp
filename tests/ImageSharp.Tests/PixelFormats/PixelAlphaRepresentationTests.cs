@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -317,14 +318,14 @@ public abstract class PixelAlphaRepresentationTests<TPixel>
 
             if (associated)
             {
-                Numerics.Premultiply(ref expected);
+                expected = Numerics.Premultiply(expected.AsVector128()).AsVector4();
             }
 
             expected.X *= .5F;
 
             if (associated)
             {
-                Numerics.UnPremultiply(ref expected);
+                expected = Numerics.UnPremultiply(expected.AsVector128()).AsVector4();
             }
 
             expected = scaled

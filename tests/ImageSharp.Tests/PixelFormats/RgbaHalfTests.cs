@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -198,7 +199,7 @@ public class RgbaHalfTests
 
                     if (associated)
                     {
-                        Numerics.Premultiply(ref sourceVectors[i]);
+                        sourceVectors[i] = Numerics.Premultiply(sourceVectors[i].AsVector128()).AsVector4();
                     }
 
                     expectedPixels[i] = FromScalarVector<TPixel>(sourceVectors[i], associated, scaled);

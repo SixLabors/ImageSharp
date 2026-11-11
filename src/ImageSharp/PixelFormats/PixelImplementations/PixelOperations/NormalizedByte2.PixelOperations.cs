@@ -15,9 +15,6 @@ public partial struct NormalizedByte2
     /// </summary>
     internal class PixelOperations : PixelOperations<NormalizedByte2>
     {
-        private static readonly Vector4 NativeOffset = new(1F, 1F, 0F, 0F);
-        private static readonly Vector4 NativeDivisor = new(2F, 2F, 1F, 1F);
-
         // Alpha is implicitly one, so both outward representations already contain associated color components.
 
         /// <inheritdoc />
@@ -36,17 +33,6 @@ public partial struct NormalizedByte2
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             this.ToUnassociatedScaledVector4(configuration, source, destination);
-        }
-
-        /// <inheritdoc />
-        public override void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<NormalizedByte2> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            // Only X and Y use affine native coordinates. Preserve W as normalized alpha for the scaled unassociation step.
-            PixelFormats.PixelOperations.AddThenDivide(source, NativeOffset, NativeDivisor);
-            this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
         }
     }
 }

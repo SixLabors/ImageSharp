@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -97,7 +98,7 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public readonly Vector4 ToAssociatedScaledVector4()
     {
         // Storage already contains associated RGB. Color output only applies normalized component bounds.
-        return PixelOperations.ClampToPixelRange(this.ToVector4());
+        return PixelFormats.PixelOperations.ClampToPixelRange(this.ToVector4().AsVector128()).AsVector4();
     }
 
     /// <inheritdoc />
@@ -130,7 +131,7 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static RgbaVectorP FromAssociatedScaledVector4(Vector4 source)
     {
         // RGB is already associated. Bound the supplied components; native packing rounds them independently.
-        source = PixelOperations.ClampToPixelRange(source);
+        source = PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
 
         return FromAssociatedVector4(source);
     }
@@ -139,7 +140,13 @@ public partial struct RgbaVectorP : IPixel<RgbaVectorP>
     public static RgbaVectorP FromAssociatedVector4(Vector4 source) => new(source.X, source.Y, source.Z, source.W);
 
     /// <inheritdoc />
-    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source) => PixelOperations.FromUnassociatedScaledVector4(source);
+    public static RgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
+    {
+        // Bound the straight components one time. The associated result of bounded components is also bounded.
+        Vector128<float> associated = PixelFormats.PixelOperations.ClampToPixelRange<PixelFormats.PixelOperations.AssociateOperator>(source.AsVector128());
+
+        return FromAssociatedVector4(associated.AsVector4());
+    }
 
     /// <inheritdoc />
     public static RgbaVectorP FromUnassociatedVector4(Vector4 source) => PixelOperations.FromUnassociatedVector4(source);

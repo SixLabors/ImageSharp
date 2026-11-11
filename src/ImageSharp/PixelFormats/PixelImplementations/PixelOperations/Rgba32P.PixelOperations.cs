@@ -25,6 +25,15 @@ public partial struct Rgba32P
         }
 
         /// <inheritdoc />
+        internal override void ToAssociatedScaledVector4<TAlpha>(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination)
+        {
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            // Canonical associated RGBA needs no staging. The conversion normalizes each pixel and applies the alpha step in one pass.
+            SimdUtils.ByteToNormalizedFloat<TAlpha>(MemoryMarshal.AsBytes(source), MemoryMarshal.Cast<Vector4, float>(destination[..source.Length]));
+        }
+
+        /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<Rgba32P> source, Span<Vector4> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));

@@ -16,7 +16,8 @@ public partial struct NormalizedByte4
     /// </summary>
     internal class PixelOperations : PixelOperations<NormalizedByte4>
     {
-        private static readonly Vector4 NativeScale = new(2F);
+        // The packed P and non-P layouts contain the same signed byte codes, so both formats share the signed-byte kernels.
+        // The kernels associate and unassociate scaled vectors, and map native vectors to and from the scaled range.
 
         /// <inheritdoc />
         public override void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<NormalizedByte4> source, Span<Vector4> destination)
@@ -24,8 +25,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // The layouts contain the same signed byte codes. This overload only unpacks storage; it does not apply alpha conversion.
-            NormalizedByte4P.PixelOperations.ToVector4(MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source), destination[..source.Length], false);
+            NormalizedByte4P.PixelOperations.ToVector4<PixelFormats.PixelOperations.NoAlphaOperator>(
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source),
+                destination[..source.Length],
+                false);
         }
 
         /// <inheritdoc />
@@ -34,13 +37,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-
-            // The packed P and non-P layouts are identical, so the shared SIMD unpacker supplies normalized values. Association
-            // happens in [0, 1] before the result is mapped back to the signed-native [-1, 1] coordinate system.
-            NormalizedByte4P.PixelOperations.ToVector4(MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source), destination, true);
-            Numerics.Premultiply(destination);
-            PixelFormats.PixelOperations.MultiplyThenAdd(destination, NativeScale, -Vector4.One);
+            NormalizedByte4P.PixelOperations.ToVector4<PixelFormats.PixelOperations.AssociateOperator>(
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source),
+                destination[..source.Length],
+                false);
         }
 
         /// <inheritdoc />
@@ -49,7 +49,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            NormalizedByte4P.PixelOperations.ToVector4(MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source), destination[..source.Length], true);
+            NormalizedByte4P.PixelOperations.ToVector4<PixelFormats.PixelOperations.NoAlphaOperator>(
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source),
+                destination[..source.Length],
+                true);
         }
 
         /// <inheritdoc />
@@ -58,9 +61,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            NormalizedByte4P.PixelOperations.ToVector4(MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source), destination, true);
-            Numerics.Premultiply(destination);
+            NormalizedByte4P.PixelOperations.ToVector4<PixelFormats.PixelOperations.AssociateOperator>(
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(source),
+                destination[..source.Length],
+                true);
         }
 
         /// <inheritdoc />
@@ -69,10 +73,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-
-            // Share the signed-byte packer because association is already resolved by this entry point.
-            NormalizedByte4P.PixelOperations.Pack(source, MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination), false);
+            NormalizedByte4P.PixelOperations.Pack<PixelFormats.PixelOperations.NoAlphaOperator>(
+                source,
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination[..source.Length]),
+                false);
         }
 
         /// <inheritdoc />
@@ -81,9 +85,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            // Native RGB and alpha use the same affine encoding. Decode them before the shared alpha conversion.
-            PixelFormats.PixelOperations.AddThenDivide(source, Vector4.One, NativeScale);
-            this.FromAssociatedScaledVector4Destructive(configuration, source, destination);
+            NormalizedByte4P.PixelOperations.Pack<PixelFormats.PixelOperations.UnassociateOperator>(
+                source,
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination[..source.Length]),
+                false);
         }
 
         /// <inheritdoc />
@@ -95,8 +100,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            NormalizedByte4P.PixelOperations.Pack(source, MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination), true);
+            NormalizedByte4P.PixelOperations.Pack<PixelFormats.PixelOperations.NoAlphaOperator>(
+                source,
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination[..source.Length]),
+                true);
         }
 
         /// <inheritdoc />
@@ -105,9 +112,10 @@ public partial struct NormalizedByte4
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            destination = destination[..source.Length];
-            PixelFormats.PixelOperations.UnPremultiplyForPacking(source);
-            NormalizedByte4P.PixelOperations.Pack(source, MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination), true);
+            NormalizedByte4P.PixelOperations.Pack<PixelFormats.PixelOperations.UnassociateOperator>(
+                source,
+                MemoryMarshal.Cast<NormalizedByte4, NormalizedByte4P>(destination[..source.Length]),
+                true);
         }
     }
 }

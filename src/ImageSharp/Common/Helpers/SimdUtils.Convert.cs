@@ -268,14 +268,27 @@ internal static partial class SimdUtils
     /// <param name="destination">The destination bytes.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal static void FloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
+        => FloatToByteSaturate<PixelFormats.PixelOperations.NoAlphaOperator>(source, destination);
+
+    /// <summary>
+    /// Applies <typeparamref name="TAlpha"/> to each RGBA pixel, and converts the resulting byte magnitudes to bytes in the same
+    /// pass, with saturating round-to-nearest and midpoint values away from zero. The spans hold whole RGBA pixels, unless
+    /// <typeparamref name="TAlpha"/> is <see cref="PixelFormats.PixelOperations.NoAlphaOperator"/>.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each pixel. Its result is in byte magnitudes.</typeparam>
+    /// <param name="source">The source components.</param>
+    /// <param name="destination">The destination bytes.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal static void FloatToByteSaturate<TAlpha>(ReadOnlySpan<float> source, Span<byte> destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-        HwIntrinsics.FloatToByteSaturateReduce(ref source, ref destination, 1F);
+        HwIntrinsics.FloatToByteSaturateReduce<TAlpha>(ref source, ref destination, 1F);
 
         if (source.Length > 0)
         {
-            ConvertFloatToByteRemainder(source, destination, 1F);
+            ConvertFloatToByteRemainder<TAlpha>(source, destination, 1F);
         }
     }
 

@@ -1,22 +1,23 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
-// A bulk conversion to associated vectors used to unpack a row to straight vectors, then premultiply the row in a
-// second pass. A bulk conversion from associated vectors used to unpremultiply the row, then pack it in a second pass.
 // The alpha operators let each unpack and pack kernel apply the alpha step in registers, between the conversion and
-// the store. The kernels are generic over the operator, so the JIT compiles one loop for each alpha step, and the
-// identity operator adds no instructions.
+// the store, so no conversion needs a second pass over the row. The kernels are generic over the operator, so the JIT
+// compiles one loop for each alpha step, and the identity operator adds no instructions.
 //
-// The operators read RGBA groups: lanes 4n to 4n + 3 of a vector are one pixel, with alpha in lane 4n + 3.
-// The arithmetic is the arithmetic of the span methods, so the fused and the two-pass forms give the same bits.
+// The operators read scaled RGBA groups: lanes 4n to 4n + 3 of a vector are one pixel, with alpha in lane 4n + 3.
+// A Vector4 is one 128-bit pixel. The scalar pixel conversions call the 128-bit operator with AsVector128, so the
+// scalar and the bulk conversions run the same operator.
 
 /// <content>
-/// Contains the alpha operators of the bulk pixel conversions.
+/// Contains the alpha operators of the pixel conversions.
 /// </content>
 internal static partial class PixelOperations
 {
@@ -66,9 +67,14 @@ internal static partial class PixelOperations
     }
 
     /// <summary>
-    /// Multiplies RGB by alpha and keeps alpha, as <see cref="Numerics.Premultiply(Span{System.Numerics.Vector4})"/> does.
+    /// Multiplies RGB by alpha for straight normalized RGBA pixels.
     /// </summary>
-    public readonly struct PremultiplyOperator : IAlphaOperator
+    /// <remarks>
+    /// The input must be bounded for pixel conversion. Callers with input that can be out of range use
+    /// <see cref="ClampToPixelRange{TAlpha}(Vector128{float})"/> or
+    /// <see cref="ClampToPixelRange{TAlpha}(ReadOnlySpan{Vector4}, Span{Vector4})"/>. The product of bounded components is also bounded.
+    /// </remarks>
+    public readonly struct AssociateOperator : IAlphaOperator
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,20 +90,47 @@ internal static partial class PixelOperations
     }
 
     /// <summary>
-    /// Restores straight RGB before packing, as <see cref="UnPremultiplyForPacking(Span{System.Numerics.Vector4})"/> does.
+    /// Divides RGB by alpha for associated normalized RGBA pixels, then bounds the result for pixel conversion.
     /// </summary>
-    public readonly struct UnPremultiplyOperator : IAlphaOperator
+    /// <remarks>
+    /// NaN and negative alpha become zero, so RGB is not divided. Positive infinity becomes <see cref="float.MaxValue"/>.
+    /// Positive finite alpha, including alpha above one, is kept for the division.
+    /// The result has finite RGB in [-65504,65504] and alpha in [0,1].
+    /// </remarks>
+    public readonly struct UnassociateOperator : IAlphaOperator
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<float> Apply(Vector128<float> source) => UnPremultiplyForPacking(source);
+        public static Vector128<float> Apply(Vector128<float> source)
+        {
+            // Processing can leave alpha outside [0, 1], for example negative alpha from resampler ringing.
+            // Make it a valid divisor first. Reducing alpha above one before the division would change the straight RGB.
+            Vector128<float> alpha = Vector128_.ShuffleNative(source, 0b_11_11_11_11);
+            alpha = ColorNumerics.ClampToFinite(alpha, Vector128<float>.Zero, Vector128.Create(float.MaxValue));
+
+            return ClampToPixelRange(Numerics.UnPremultiply(source, alpha));
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<float> Apply(Vector256<float> source) => UnPremultiplyForPacking(source);
+        public static Vector256<float> Apply(Vector256<float> source)
+        {
+            // Each four-lane group uses its own alpha, with the same divisor rule as the 128-bit form.
+            Vector256<float> alpha = Vector256_.ShuffleNative(source, 0b_11_11_11_11);
+            alpha = ColorNumerics.ClampToFinite(alpha, Vector256<float>.Zero, Vector256.Create(float.MaxValue));
+
+            return ClampToPixelRange(Numerics.UnPremultiply(source, alpha));
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<float> Apply(Vector512<float> source) => UnPremultiplyForPacking(source);
+        public static Vector512<float> Apply(Vector512<float> source)
+        {
+            // Each four-lane group uses its own alpha, with the same divisor rule as the 128-bit form.
+            Vector512<float> alpha = Vector512_.ShuffleNative(source, 0b_11_11_11_11);
+            alpha = ColorNumerics.ClampToFinite(alpha, Vector512<float>.Zero, Vector512.Create(float.MaxValue));
+
+            return ClampToPixelRange(Numerics.UnPremultiply(source, alpha));
+        }
     }
 }

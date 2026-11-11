@@ -17,8 +17,7 @@ public class ColorMatrixTransforms
         ColorMatrix matrix = KnownFilterMatrices.CreateHueFilter(45F);
         for (int i = 0; i < Vectors.Length; i++)
         {
-            ref Vector4 input = ref Vectors[i];
-            ColorNumerics.Transform(ref input, ref matrix);
+            Vectors[i] = ColorNumerics.Transform(Vectors[i], matrix);
         }
     }
 
@@ -26,6 +25,6 @@ public class ColorMatrixTransforms
     public void Transform_Span()
     {
         ColorMatrix matrix = KnownFilterMatrices.CreateHueFilter(45F);
-        ColorNumerics.Transform(Vectors.AsSpan(), ref matrix);
+        ColorNumerics.Transform(Vectors.AsSpan(), matrix);
     }
 }

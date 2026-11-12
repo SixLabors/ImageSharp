@@ -586,19 +586,14 @@ internal sealed class JxlModularTree : IDisposable
 
         while (!node.IsLeaf)
         {
-            // Byte property IDs always address the fixed 256-entry inline array. Their bound is
-            // independent of the compiled node indices and needs no further property-range validation.
-            int parentLow = properties[node.Property] <= node.Value ? 1 : 0;
-            int greaterLow = properties[node.GreaterProperty] <= node.GreaterValue ? 1 : 0;
-            int lesserLow = properties[node.LesserProperty] <= node.LesserValue ? 1 : 0;
+            // Each compiled split stores four descendants. The parent selects the pair,
+            // then the chosen child selects one descendant within that pair.
+            int offset = properties[node.Property] <= node.Value
+                ? (properties[node.LesserProperty] <= node.LesserValue ? 3 : 2)
+                : (properties[node.GreaterProperty] <= node.GreaterValue ? 1 : 0);
 
-            // PrepareFlatTree writes all four children through bounds-checked span indexing before publication.
-            // FirstChild + 3 is therefore inside the completed span, and these comparisons select offsets 0..3.
-            // Children also follow their parent, so traversal advances to a leaf through valid managed references.
-            // Each comparison is zero or one. The parent bit selects pair 0..1 or pair 2..3; AND masks retain
-            // only that pair's low bit. This forms the same child offset without a data-dependent branch.
-            int low = (greaterLow & (parentLow ^ 1)) | (lesserLow & parentLow);
-            int child = node.FirstChild + ((parentLow << 1) | low);
+            // PrepareFlatTree validates that all four descendants are within the retained storage.
+            int child = node.FirstChild + offset;
             node = ref Unsafe.Add(ref first, child);
         }
 

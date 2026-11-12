@@ -53,7 +53,7 @@ public class SpectralJpegTests
 
         // internal scan decoder which we substitute to assert spectral correctness
         DebugSpectralConverter<TPixel> debugConverter = new();
-        HuffmanScanDecoder scanDecoder = new(bufferedStream, debugConverter, cancellationToken: default);
+        using HuffmanScanDecoder scanDecoder = new(bufferedStream, debugConverter, Configuration.Default.MemoryAllocator, cancellationToken: default);
 
         // This would parse entire image
         decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);

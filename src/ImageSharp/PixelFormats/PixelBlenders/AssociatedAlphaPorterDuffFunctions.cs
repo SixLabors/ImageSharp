@@ -295,8 +295,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.ColorDodge(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -337,8 +337,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.ColorBurn(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -379,8 +379,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.SoftLight(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -421,8 +421,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.Difference(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -463,8 +463,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.Exclusion(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -505,8 +505,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.Hue(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -547,8 +547,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.Saturation(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -589,8 +589,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.Color(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 
@@ -631,8 +631,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         Vector4 unassociatedSource = source;
 
         // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
-        Numerics.UnPremultiply(ref unassociatedBackdrop);
-        Numerics.UnPremultiply(ref unassociatedSource);
+        unassociatedBackdrop = Numerics.UnPremultiply(unassociatedBackdrop.AsVector128()).AsVector4();
+        unassociatedSource = Numerics.UnPremultiply(unassociatedSource.AsVector128()).AsVector4();
         return PorterDuffFunctions.Luminosity(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
     }
 

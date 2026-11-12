@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -40,7 +41,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     public readonly Rgba32 ToRgba32()
     {
         Vector4 unassociated = this.scaled;
-        Numerics.UnPremultiply(ref unassociated);
+        unassociated = Numerics.UnPremultiply(unassociated.AsVector128()).AsVector4();
         return Rgba32.FromScaledVector4(unassociated);
     }
 
@@ -55,7 +56,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     public readonly Vector4 ToUnassociatedScaledVector4()
     {
         Vector4 vector = this.scaled;
-        Numerics.UnPremultiply(ref vector);
+        vector = Numerics.UnPremultiply(vector.AsVector128()).AsVector4();
         return vector;
     }
 
@@ -97,9 +98,9 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     public static ScaledRgbaVectorP FromAssociatedScaledVector4(Vector4 source)
     {
         // Clamp logical color before restoring association so out-of-range alpha cannot permanently darken it.
-        Numerics.UnPremultiply(ref source);
+        source = Numerics.UnPremultiply(source.AsVector128()).AsVector4();
         source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
-        Numerics.Premultiply(ref source);
+        source = Numerics.Premultiply(source.AsVector128()).AsVector4();
         return new ScaledRgbaVectorP(source);
     }
 
@@ -158,7 +159,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
     public static ScaledRgbaVectorP FromUnassociatedScaledVector4(Vector4 source)
     {
         source = ColorNumerics.ClampToFinite(source, Vector4.Zero, Vector4.One);
-        Numerics.Premultiply(ref source);
+        source = Numerics.Premultiply(source.AsVector128()).AsVector4();
         return new ScaledRgbaVectorP(source);
     }
 

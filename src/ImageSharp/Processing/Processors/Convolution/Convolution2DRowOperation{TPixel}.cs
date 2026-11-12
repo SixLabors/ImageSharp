@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -191,7 +192,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             target = Vector4.SquareRoot((vectorX * vectorX) + (vectorY * vectorY));
 
             // Independent color and alpha gradients can produce RGB greater than alpha. Restore the associated-vector invariant before either storage representation receives the result.
-            Numerics.ClampRgbToAlpha(ref target);
+            target = Numerics.ClampRgbToAlpha(target.AsVector128()).AsVector4();
         }
 
         Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);

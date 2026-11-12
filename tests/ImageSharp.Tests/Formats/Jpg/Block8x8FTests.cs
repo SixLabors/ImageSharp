@@ -160,68 +160,6 @@ public partial class Block8x8FTests : JpegFixture
     }
 
     [Fact]
-    public void NormalizeColors()
-    {
-        float[] input = Create8x8ColorCropTestData();
-        Block8x8F block = Block8x8F.Load(input);
-        this.Output.WriteLine("Input:");
-        this.PrintLinearData(input);
-
-        Block8x8F dest = block;
-        dest.NormalizeColorsInPlace(255);
-
-        float[] array = new float[64];
-        dest.ScaledCopyTo(array);
-        this.Output.WriteLine("Result:");
-        this.PrintLinearData(array);
-        foreach (float val in array)
-        {
-            Assert.InRange(val, 0, 255);
-        }
-    }
-
-    [Theory]
-    [InlineData(1, 2)]
-    [InlineData(2, 1)]
-    public void Quantize(int srcSeed, int qtSeed)
-    {
-        static void RunTest(string srcSeedSerialized, string qtSeedSerialized)
-        {
-            int srcSeed = FeatureTestRunner.Deserialize<int>(srcSeedSerialized);
-            int qtSeed = FeatureTestRunner.Deserialize<int>(qtSeedSerialized);
-
-            Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
-
-            // Quantization code is used only in jpeg where it's guaranteed that
-            // quantization values are greater than 1
-            // Quantize method supports negative numbers by very small numbers can cause troubles
-            Block8x8F quant = CreateRandomFloatBlock(1, 2000, qtSeed);
-
-            // Reference implementation quantizes given block via division
-            Block8x8 expected = default;
-            ReferenceImplementations.Quantize(ref source, ref expected, ref quant, ZigZag.TransposingOrder);
-
-            // Actual current implementation quantizes given block via multiplication
-            // With quantization table reciprocal
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                quant[i] = 1f / quant[i];
-            }
-
-            Block8x8 actual = default;
-            Block8x8F.Quantize(ref source, ref actual, ref quant);
-
-            Assert.True(CompareBlocks(expected, actual, 1, out int diff), $"Blocks are not equal, diff={diff}");
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            srcSeed,
-            qtSeed,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-    }
-
-    [Fact]
     public void RoundInto()
     {
         float[] data = Create8x8RandomFloatData(-1000, 1000);
@@ -239,50 +177,6 @@ public partial class Block8x8FTests : JpegFixture
 
             Assert.Equal(expectedShort, actualShort);
         }
-    }
-
-    [Fact]
-    public void MultiplyInPlace_ByOtherBlock()
-    {
-        static void RunTest()
-        {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500, 42);
-            Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
-
-            Block8x8F actual = original;
-
-            actual.MultiplyInPlace(ref m);
-
-            for (int i = 0; i < Block8x8F.Size; i++)
-            {
-                Assert.Equal(original[i] * m[i], actual[i]);
-            }
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
-    }
-
-    [Fact]
-    public void AddToAllInPlace()
-    {
-        static void RunTest()
-        {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500);
-
-            Block8x8F actual = original;
-            actual.AddInPlace(42f);
-
-            for (int i = 0; i < 64; i++)
-            {
-                Assert.Equal(original[i] + 42f, actual[i]);
-            }
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
     }
 
     [Fact]
@@ -307,66 +201,27 @@ public partial class Block8x8FTests : JpegFixture
     }
 
     [Fact]
-    public void LoadFromUInt16Scalar()
+    public void LoadFrom_ConvertsEachValue()
     {
-        if (this.SkipOnNonVector256Runner())
+        // Each 16-bit value converts exactly to float, on every SIMD width.
+        static void RunTest()
         {
-            return;
+            short[] data = Create8x8ShortData();
+
+            Block8x8 source = Block8x8.Load(data);
+
+            Block8x8F dest = default;
+            dest.LoadFrom(ref source);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal(data[i], dest[i]);
+            }
         }
 
-        short[] data = Create8x8ShortData();
-
-        Block8x8 source = Block8x8.Load(data);
-
-        Block8x8F dest = default;
-        dest.LoadFromInt16Scalar(ref source);
-
-        for (int i = 0; i < Block8x8F.Size; i++)
-        {
-            Assert.Equal(data[i], dest[i]);
-        }
-    }
-
-    [Fact]
-    public void LoadFromUInt16ExtendedVector128()
-    {
-        if (this.SkipOnNonVector128Runner())
-        {
-            return;
-        }
-
-        short[] data = Create8x8ShortData();
-
-        Block8x8 source = Block8x8.Load(data);
-
-        Block8x8F dest = default;
-        dest.LoadFromInt16ExtendedVector128(ref source);
-
-        for (int i = 0; i < Block8x8F.Size; i++)
-        {
-            Assert.Equal(data[i], dest[i]);
-        }
-    }
-
-    [Fact]
-    public void LoadFromUInt16ExtendedAvx2()
-    {
-        if (this.SkipOnNonVector256Runner())
-        {
-            return;
-        }
-
-        short[] data = Create8x8ShortData();
-
-        Block8x8 source = Block8x8.Load(data);
-
-        Block8x8F dest = default;
-        dest.LoadFromInt16ExtendedVector256(ref source);
-
-        for (int i = 0; i < Block8x8F.Size; i++)
-        {
-            Assert.Equal(data[i], dest[i]);
-        }
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Fact]

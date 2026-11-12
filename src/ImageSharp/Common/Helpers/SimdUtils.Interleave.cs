@@ -999,13 +999,28 @@ internal static partial class SimdUtils
     /// <param name="destination">The first of sixteen destination float words.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Interleave4(Vector128<float> x, Vector128<float> y, Vector128<float> z, Vector128<float> w, ref float destination)
+        => Interleave4<PixelFormats.PixelOperations.NoAlphaOperator>(x, y, z, w, ref destination);
+
+    /// <summary>
+    /// Interleaves four values from each of four component registers into consecutive RGBA colors, and applies
+    /// <typeparamref name="TAlpha"/> to each color before the store.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each color.</typeparam>
+    /// <param name="x">The four red components.</param>
+    /// <param name="y">The four green components.</param>
+    /// <param name="z">The four blue components.</param>
+    /// <param name="w">The four alpha components.</param>
+    /// <param name="destination">The first of sixteen destination float words.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave4<TAlpha>(Vector128<float> x, Vector128<float> y, Vector128<float> z, Vector128<float> w, ref float destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         // Each transposed column is one complete color. Four unaligned stores write exactly the four-color block.
         Transpose4(x, y, z, w, out Vector128<float> pixel0, out Vector128<float> pixel1, out Vector128<float> pixel2, out Vector128<float> pixel3);
-        pixel0.StoreUnsafe(ref destination);
-        pixel1.StoreUnsafe(ref destination, 4);
-        pixel2.StoreUnsafe(ref destination, 8);
-        pixel3.StoreUnsafe(ref destination, 12);
+        TAlpha.Apply(pixel0).StoreUnsafe(ref destination);
+        TAlpha.Apply(pixel1).StoreUnsafe(ref destination, 4);
+        TAlpha.Apply(pixel2).StoreUnsafe(ref destination, 8);
+        TAlpha.Apply(pixel3).StoreUnsafe(ref destination, 12);
     }
 
     /// <summary>
@@ -1018,6 +1033,21 @@ internal static partial class SimdUtils
     /// <param name="destination">The first of thirty-two destination float words.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Interleave4(Vector256<float> x, Vector256<float> y, Vector256<float> z, Vector256<float> w, ref float destination)
+        => Interleave4<PixelFormats.PixelOperations.NoAlphaOperator>(x, y, z, w, ref destination);
+
+    /// <summary>
+    /// Interleaves eight values from four component registers into consecutive RGBA colors, and applies
+    /// <typeparamref name="TAlpha"/> to each color before the store.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each color.</typeparam>
+    /// <param name="x">The eight red components.</param>
+    /// <param name="y">The eight green components.</param>
+    /// <param name="z">The eight blue components.</param>
+    /// <param name="w">The eight alpha components.</param>
+    /// <param name="destination">The first of thirty-two destination float words.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave4<TAlpha>(Vector256<float> x, Vector256<float> y, Vector256<float> z, Vector256<float> w, ref float destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         // Group the component lanes for independent four-by-four transposes in each 128-bit group.
         // This reverses Deinterleave4's final permutation; the transpose then produces consecutive complete colors.
@@ -1030,10 +1060,11 @@ internal static partial class SimdUtils
         Transpose4(x, y, z, w, out Vector256<float> row0, out Vector256<float> row1, out Vector256<float> row2, out Vector256<float> row3);
 
         // Four stores cover exactly 32 float words. No padding is read or written at the end of a row.
-        row0.StoreUnsafe(ref destination);
-        row1.StoreUnsafe(ref destination, 8U);
-        row2.StoreUnsafe(ref destination, 16U);
-        row3.StoreUnsafe(ref destination, 24U);
+        // Each row holds two complete colors, so the alpha step applies to the rows in registers.
+        TAlpha.Apply(row0).StoreUnsafe(ref destination);
+        TAlpha.Apply(row1).StoreUnsafe(ref destination, 8U);
+        TAlpha.Apply(row2).StoreUnsafe(ref destination, 16U);
+        TAlpha.Apply(row3).StoreUnsafe(ref destination, 24U);
     }
 
     /// <summary>
@@ -1046,6 +1077,21 @@ internal static partial class SimdUtils
     /// <param name="destination">The first of sixty-four destination float words.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Interleave4(Vector512<float> x, Vector512<float> y, Vector512<float> z, Vector512<float> w, ref float destination)
+        => Interleave4<PixelFormats.PixelOperations.NoAlphaOperator>(x, y, z, w, ref destination);
+
+    /// <summary>
+    /// Interleaves sixteen values from four component registers into consecutive RGBA colors, and applies
+    /// <typeparamref name="TAlpha"/> to each color before the store.
+    /// </summary>
+    /// <typeparam name="TAlpha">The alpha step for each color.</typeparam>
+    /// <param name="x">The sixteen red components.</param>
+    /// <param name="y">The sixteen green components.</param>
+    /// <param name="z">The sixteen blue components.</param>
+    /// <param name="w">The sixteen alpha components.</param>
+    /// <param name="destination">The first of sixty-four destination float words.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Interleave4<TAlpha>(Vector512<float> x, Vector512<float> y, Vector512<float> z, Vector512<float> w, ref float destination)
+        where TAlpha : struct, PixelFormats.PixelOperations.IAlphaOperator
     {
         // Group the component lanes for independent four-by-four transposes in each 128-bit group.
         // This reverses Deinterleave4's final permutation; the transpose then produces consecutive complete colors.
@@ -1058,10 +1104,11 @@ internal static partial class SimdUtils
         Transpose4(x, y, z, w, out Vector512<float> row0, out Vector512<float> row1, out Vector512<float> row2, out Vector512<float> row3);
 
         // Four stores cover exactly 64 float words. No padding is read or written at the end of a row.
-        row0.StoreUnsafe(ref destination);
-        row1.StoreUnsafe(ref destination, 16U);
-        row2.StoreUnsafe(ref destination, 32U);
-        row3.StoreUnsafe(ref destination, 48U);
+        // Each row holds four complete colors, so the alpha step applies to the rows in registers.
+        TAlpha.Apply(row0).StoreUnsafe(ref destination);
+        TAlpha.Apply(row1).StoreUnsafe(ref destination, 16U);
+        TAlpha.Apply(row2).StoreUnsafe(ref destination, 32U);
+        TAlpha.Apply(row3).StoreUnsafe(ref destination, 48U);
     }
 
     /// <summary>

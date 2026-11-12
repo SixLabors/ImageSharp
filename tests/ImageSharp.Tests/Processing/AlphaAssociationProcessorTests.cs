@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Extensions.Convolution;
@@ -252,7 +253,7 @@ public class AlphaAssociationProcessorTests
             for (int x = 0; x < source.Width; x++)
             {
                 Vector4 vector = source[x, y].ToScaledVector4();
-                Numerics.Premultiply(ref vector);
+                vector = Numerics.Premultiply(vector.AsVector128()).AsVector4();
                 image[x, y] = ScaledRgbaVectorP.FromScaledVector4(vector);
             }
         }

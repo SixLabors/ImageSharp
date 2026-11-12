@@ -121,6 +121,10 @@ public static partial class PqCompanding
         float denominator = float.MultiplyAddEstimate(-C3, offset, RationalOffset);
         float ratio = numerator / denominator;
 
+        // Beyond the pole, the denominator is negative and the fractional power is undefined.
+        // Pass NaN to the power operator so the caller applies its usual bounds for an undefined result.
+        ratio = ratio < 0F ? float.NaN : ratio;
+
         // Split 1/N into its exact integer part and its float fractional remainder. This keeps the shared power approximation
         // from amplifying its logarithm error by the full inverse exponent. Integer powers use the same ordered products in every width.
         float square = ratio * ratio;
@@ -152,6 +156,9 @@ public static partial class PqCompanding
         Vector128<float> denominator = Vector128.MultiplyAddEstimate(Vector128.Create(-C3), offset, Vector128.Create(RationalOffset));
         Vector128<float> ratio = Vector128.Divide(numerator, denominator);
 
+        // Each lane keeps the scalar domain rule before the nonnegative power operation.
+        ratio = Vector128.ConditionalSelect(Vector128.LessThan(ratio, Vector128<float>.Zero), Vector128.Create(float.NaN), ratio);
+
         Vector128<float> square = Vector128.Multiply(ratio, ratio);
         Vector128<float> cube = Vector128.Multiply(square, ratio);
         return Vector128.Multiply(Vector128.Multiply(cube, cube), InverseInnerPower.Invoke(ratio));
@@ -181,6 +188,9 @@ public static partial class PqCompanding
         Vector256<float> denominator = Vector256.MultiplyAddEstimate(Vector256.Create(-C3), offset, Vector256.Create(RationalOffset));
         Vector256<float> ratio = Vector256.Divide(numerator, denominator);
 
+        // Each lane keeps the scalar domain rule before the nonnegative power operation.
+        ratio = Vector256.ConditionalSelect(Vector256.LessThan(ratio, Vector256<float>.Zero), Vector256.Create(float.NaN), ratio);
+
         Vector256<float> square = Vector256.Multiply(ratio, ratio);
         Vector256<float> cube = Vector256.Multiply(square, ratio);
         return Vector256.Multiply(Vector256.Multiply(cube, cube), InverseInnerPower.Invoke(ratio));
@@ -209,6 +219,9 @@ public static partial class PqCompanding
         Vector512<float> numerator = Vector512.Max(Vector512.Add(Vector512.Create(RationalOffset), offset), Vector512<float>.Zero);
         Vector512<float> denominator = Vector512.MultiplyAddEstimate(Vector512.Create(-C3), offset, Vector512.Create(RationalOffset));
         Vector512<float> ratio = Vector512.Divide(numerator, denominator);
+
+        // Each lane keeps the scalar domain rule before the nonnegative power operation.
+        ratio = Vector512.ConditionalSelect(Vector512.LessThan(ratio, Vector512<float>.Zero), Vector512.Create(float.NaN), ratio);
 
         Vector512<float> square = Vector512.Multiply(ratio, ratio);
         Vector512<float> cube = Vector512.Multiply(square, ratio);

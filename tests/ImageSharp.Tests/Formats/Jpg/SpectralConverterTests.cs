@@ -64,6 +64,9 @@ public class SpectralConverterTests
     [InlineData(800, 400, 999, 600, 800, 400, 8)]
     [InlineData(800, 400, 390, 150, 400, 200, 4)]
     [InlineData(804, 1198, 500, 800, 804, 1198, 8)]
+
+    // TargetSize uses ResizeMode.Max: 1280x853 fits into 150x150 as 150x100, so 1/8 scale (160x107) is sufficient.
+    [InlineData(1280, 853, 150, 150, 160, 107, 1)]
     public void CalculateResultingImageSize_Inexact_Target_Size(int inW, int inH, int tW, int tH, int exW, int exH, int expectedBlockSize)
     {
         Size inputSize = new(inW, inH);

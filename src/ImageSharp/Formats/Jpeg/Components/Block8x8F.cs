@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -21,6 +22,11 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// A number of scalar coefficients in a <see cref="Block8x8F"/>
     /// </summary>
     public const int Size = 64;
+
+    /// <summary>
+    /// The number of rows in a <see cref="Block8x8F"/>. Each row has 8 coefficients.
+    /// </summary>
+    public const int RowCount = 8;
 
     [FieldOffset(0)]
     public Vector4 V0L;
@@ -61,6 +67,25 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     public Vector4 V7L;
     [FieldOffset(240)]
     public Vector4 V7R;
+
+#pragma warning disable SA1310 // Field names should not contain underscore
+    [FieldOffset(0)]
+    public Vector256<float> V256_0;
+    [FieldOffset(32)]
+    public Vector256<float> V256_1;
+    [FieldOffset(64)]
+    public Vector256<float> V256_2;
+    [FieldOffset(96)]
+    public Vector256<float> V256_3;
+    [FieldOffset(128)]
+    public Vector256<float> V256_4;
+    [FieldOffset(160)]
+    public Vector256<float> V256_5;
+    [FieldOffset(192)]
+    public Vector256<float> V256_6;
+    [FieldOffset(224)]
+    public Vector256<float> V256_7;
+#pragma warning restore SA1310 // Field names should not contain underscore
 
     /// <summary>
     /// Get/Set scalar elements at a given index
@@ -151,152 +176,19 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// Multiply all elements of the block.
     /// </summary>
     /// <param name="value">The value to multiply by.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
     public void MultiplyInPlace(float value)
     {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<float> valueVec = Vector256.Create(value);
-            this.V256_0 *= valueVec;
-            this.V256_1 *= valueVec;
-            this.V256_2 *= valueVec;
-            this.V256_3 *= valueVec;
-            this.V256_4 *= valueVec;
-            this.V256_5 *= valueVec;
-            this.V256_6 *= valueVec;
-            this.V256_7 *= valueVec;
-        }
-        else
-        {
-            Vector4 valueVec = new(value);
-            this.V0L *= valueVec;
-            this.V0R *= valueVec;
-            this.V1L *= valueVec;
-            this.V1R *= valueVec;
-            this.V2L *= valueVec;
-            this.V2R *= valueVec;
-            this.V3L *= valueVec;
-            this.V3R *= valueVec;
-            this.V4L *= valueVec;
-            this.V4R *= valueVec;
-            this.V5L *= valueVec;
-            this.V5R *= valueVec;
-            this.V6L *= valueVec;
-            this.V6R *= valueVec;
-            this.V7L *= valueVec;
-            this.V7R *= valueVec;
-        }
+        Span<float> values = MemoryMarshal.CreateSpan(ref Unsafe.As<Block8x8F, float>(ref this), Size);
+        TensorPrimitives.Multiply(values, value, values);
     }
 
     /// <summary>
-    /// Multiply all elements of the block by the corresponding elements of 'other'.
+    /// Sets all elements of the block to a value.
     /// </summary>
-    /// <param name="other">The other block.</param>
+    /// <param name="value">The value.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void MultiplyInPlace(ref Block8x8F other)
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            this.V256_0 *= other.V256_0;
-            this.V256_1 *= other.V256_1;
-            this.V256_2 *= other.V256_2;
-            this.V256_3 *= other.V256_3;
-            this.V256_4 *= other.V256_4;
-            this.V256_5 *= other.V256_5;
-            this.V256_6 *= other.V256_6;
-            this.V256_7 *= other.V256_7;
-        }
-        else
-        {
-            this.V0L *= other.V0L;
-            this.V0R *= other.V0R;
-            this.V1L *= other.V1L;
-            this.V1R *= other.V1R;
-            this.V2L *= other.V2L;
-            this.V2R *= other.V2R;
-            this.V3L *= other.V3L;
-            this.V3R *= other.V3R;
-            this.V4L *= other.V4L;
-            this.V4R *= other.V4R;
-            this.V5L *= other.V5L;
-            this.V5R *= other.V5R;
-            this.V6L *= other.V6L;
-            this.V6R *= other.V6R;
-            this.V7L *= other.V7L;
-            this.V7R *= other.V7R;
-        }
-    }
-
-    /// <summary>
-    /// Adds a vector to all elements of the block.
-    /// </summary>
-    /// <param name="value">The added vector.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void AddInPlace(float value)
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<float> valueVec = Vector256.Create(value);
-            this.V256_0 += valueVec;
-            this.V256_1 += valueVec;
-            this.V256_2 += valueVec;
-            this.V256_3 += valueVec;
-            this.V256_4 += valueVec;
-            this.V256_5 += valueVec;
-            this.V256_6 += valueVec;
-            this.V256_7 += valueVec;
-        }
-        else
-        {
-            Vector4 valueVec = new(value);
-            this.V0L += valueVec;
-            this.V0R += valueVec;
-            this.V1L += valueVec;
-            this.V1R += valueVec;
-            this.V2L += valueVec;
-            this.V2R += valueVec;
-            this.V3L += valueVec;
-            this.V3R += valueVec;
-            this.V4L += valueVec;
-            this.V4R += valueVec;
-            this.V5L += valueVec;
-            this.V5R += valueVec;
-            this.V6L += valueVec;
-            this.V6R += valueVec;
-            this.V7L += valueVec;
-            this.V7R += valueVec;
-        }
-    }
-
-    /// <summary>
-    /// Quantize input block, transpose, apply zig-zag ordering and store as <see cref="Block8x8"/>.
-    /// </summary>
-    /// <param name="block">Source block.</param>
-    /// <param name="dest">Destination block.</param>
-    /// <param name="qt">The quantization table.</param>
-    public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            MultiplyIntoInt16Vector256(ref block, ref qt, ref dest);
-            ZigZag.ApplyTransposingZigZagOrderingAvx2(ref dest);
-        }
-        else if (Vector128.IsHardwareAccelerated)
-        {
-            MultiplyIntoInt16Vector128(ref block, ref qt, ref dest);
-            ZigZag.ApplyTransposingZigZagOrderingVector128(ref dest);
-        }
-        else
-        {
-            for (int i = 0; i < Size; i++)
-            {
-                int idx = ZigZag.TransposingOrder[i];
-                float quantizedVal = block[idx] * qt[idx];
-                quantizedVal += quantizedVal < 0 ? -0.5f : 0.5f;
-                dest[i] = (short)quantizedVal;
-            }
-        }
-    }
+    public void Fill(float value)
+        => MemoryMarshal.CreateSpan(ref Unsafe.As<Block8x8F, float>(ref this), Size).Fill(value);
 
     public void RoundInto(ref Block8x8 dest)
     {
@@ -324,142 +216,48 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <summary>
-    /// Level shift by +maximum/2, clip to [0, maximum]
+    /// Fills the block from <paramref name="source"/>.
     /// </summary>
-    /// <param name="maximum">The maximum value to normalize to.</param>
-    public void NormalizeColorsInPlace(float maximum)
+    /// <param name="source">The source block.</param>
+    public void LoadFrom(ref Block8x8 source)
     {
-        if (Vector256.IsHardwareAccelerated)
+        // Each 16-bit value widens to 32 bits and converts exactly to float.
+        // The block has 64 values. Thus, every width processes complete registers and has no remainder.
+        ref short sourceBase = ref Unsafe.As<Block8x8, short>(ref source);
+        ref float destinationBase = ref Unsafe.As<Block8x8F, float>(ref this);
+
+        if (Vector512.IsHardwareAccelerated)
         {
-            this.NormalizeColorsInPlaceVector256(maximum);
-            return;
+            for (nuint i = 0; i < Size; i += 16)
+            {
+                Vector512<int> values = Vector512.WidenLower(Vector256.LoadUnsafe(ref sourceBase, i).ToVector512Unsafe());
+                Vector512.ConvertToSingle(values).StoreUnsafe(ref destinationBase, i);
+            }
+        }
+        else if (Vector256.IsHardwareAccelerated)
+        {
+            for (nuint i = 0; i < Size; i += 8)
+            {
+                Vector256<int> values = Vector256_.Widen(Vector128.LoadUnsafe(ref sourceBase, i));
+                Vector256.ConvertToSingle(values).StoreUnsafe(ref destinationBase, i);
+            }
         }
         else if (Vector128.IsHardwareAccelerated)
         {
-            this.NormalizeColorsInPlaceVector128(maximum);
-            return;
+            for (nuint i = 0; i < Size; i += 8)
+            {
+                Vector128<short> values = Vector128.LoadUnsafe(ref sourceBase, i);
+                Vector128.ConvertToSingle(Vector128.WidenLower(values)).StoreUnsafe(ref destinationBase, i);
+                Vector128.ConvertToSingle(Vector128.WidenUpper(values)).StoreUnsafe(ref destinationBase, i + 4);
+            }
         }
         else
         {
-            Vector4 min = Vector4.Zero;
-            Vector4 max = new(maximum);
-            Vector4 off = new(MathF.Ceiling(maximum * 0.5F));
-
-            this.V0L = Vector4.Clamp(this.V0L + off, min, max);
-            this.V0R = Vector4.Clamp(this.V0R + off, min, max);
-            this.V1L = Vector4.Clamp(this.V1L + off, min, max);
-            this.V1R = Vector4.Clamp(this.V1R + off, min, max);
-            this.V2L = Vector4.Clamp(this.V2L + off, min, max);
-            this.V2R = Vector4.Clamp(this.V2R + off, min, max);
-            this.V3L = Vector4.Clamp(this.V3L + off, min, max);
-            this.V3R = Vector4.Clamp(this.V3R + off, min, max);
-            this.V4L = Vector4.Clamp(this.V4L + off, min, max);
-            this.V4R = Vector4.Clamp(this.V4R + off, min, max);
-            this.V5L = Vector4.Clamp(this.V5L + off, min, max);
-            this.V5R = Vector4.Clamp(this.V5R + off, min, max);
-            this.V6L = Vector4.Clamp(this.V6L + off, min, max);
-            this.V6R = Vector4.Clamp(this.V6R + off, min, max);
-            this.V7L = Vector4.Clamp(this.V7L + off, min, max);
-            this.V7R = Vector4.Clamp(this.V7R + off, min, max);
+            for (nuint i = 0; i < Size; i++)
+            {
+                Unsafe.Add(ref destinationBase, i) = Unsafe.Add(ref sourceBase, i);
+            }
         }
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void LoadFrom(ref Block8x8 source)
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            this.LoadFromInt16ExtendedVector256(ref source);
-            return;
-        }
-        else if (Vector128.IsHardwareAccelerated)
-        {
-            this.LoadFromInt16ExtendedVector128(ref source);
-            return;
-        }
-
-        this.LoadFromInt16Scalar(ref source);
-    }
-
-    /// <summary>
-    /// Fill the block from <paramref name="source"/> doing short -&gt; float conversion.
-    /// </summary>
-    /// <param name="source">The source block</param>
-    public void LoadFromInt16Scalar(ref Block8x8 source)
-    {
-        ref short selfRef = ref Unsafe.As<Block8x8, short>(ref source);
-
-        this.V0L.X = Unsafe.Add(ref selfRef, 0);
-        this.V0L.Y = Unsafe.Add(ref selfRef, 1);
-        this.V0L.Z = Unsafe.Add(ref selfRef, 2);
-        this.V0L.W = Unsafe.Add(ref selfRef, 3);
-        this.V0R.X = Unsafe.Add(ref selfRef, 4);
-        this.V0R.Y = Unsafe.Add(ref selfRef, 5);
-        this.V0R.Z = Unsafe.Add(ref selfRef, 6);
-        this.V0R.W = Unsafe.Add(ref selfRef, 7);
-
-        this.V1L.X = Unsafe.Add(ref selfRef, 8);
-        this.V1L.Y = Unsafe.Add(ref selfRef, 9);
-        this.V1L.Z = Unsafe.Add(ref selfRef, 10);
-        this.V1L.W = Unsafe.Add(ref selfRef, 11);
-        this.V1R.X = Unsafe.Add(ref selfRef, 12);
-        this.V1R.Y = Unsafe.Add(ref selfRef, 13);
-        this.V1R.Z = Unsafe.Add(ref selfRef, 14);
-        this.V1R.W = Unsafe.Add(ref selfRef, 15);
-
-        this.V2L.X = Unsafe.Add(ref selfRef, 16);
-        this.V2L.Y = Unsafe.Add(ref selfRef, 17);
-        this.V2L.Z = Unsafe.Add(ref selfRef, 18);
-        this.V2L.W = Unsafe.Add(ref selfRef, 19);
-        this.V2R.X = Unsafe.Add(ref selfRef, 20);
-        this.V2R.Y = Unsafe.Add(ref selfRef, 21);
-        this.V2R.Z = Unsafe.Add(ref selfRef, 22);
-        this.V2R.W = Unsafe.Add(ref selfRef, 23);
-
-        this.V3L.X = Unsafe.Add(ref selfRef, 24);
-        this.V3L.Y = Unsafe.Add(ref selfRef, 25);
-        this.V3L.Z = Unsafe.Add(ref selfRef, 26);
-        this.V3L.W = Unsafe.Add(ref selfRef, 27);
-        this.V3R.X = Unsafe.Add(ref selfRef, 28);
-        this.V3R.Y = Unsafe.Add(ref selfRef, 29);
-        this.V3R.Z = Unsafe.Add(ref selfRef, 30);
-        this.V3R.W = Unsafe.Add(ref selfRef, 31);
-
-        this.V4L.X = Unsafe.Add(ref selfRef, 32);
-        this.V4L.Y = Unsafe.Add(ref selfRef, 33);
-        this.V4L.Z = Unsafe.Add(ref selfRef, 34);
-        this.V4L.W = Unsafe.Add(ref selfRef, 35);
-        this.V4R.X = Unsafe.Add(ref selfRef, 36);
-        this.V4R.Y = Unsafe.Add(ref selfRef, 37);
-        this.V4R.Z = Unsafe.Add(ref selfRef, 38);
-        this.V4R.W = Unsafe.Add(ref selfRef, 39);
-
-        this.V5L.X = Unsafe.Add(ref selfRef, 40);
-        this.V5L.Y = Unsafe.Add(ref selfRef, 41);
-        this.V5L.Z = Unsafe.Add(ref selfRef, 42);
-        this.V5L.W = Unsafe.Add(ref selfRef, 43);
-        this.V5R.X = Unsafe.Add(ref selfRef, 44);
-        this.V5R.Y = Unsafe.Add(ref selfRef, 45);
-        this.V5R.Z = Unsafe.Add(ref selfRef, 46);
-        this.V5R.W = Unsafe.Add(ref selfRef, 47);
-
-        this.V6L.X = Unsafe.Add(ref selfRef, 48);
-        this.V6L.Y = Unsafe.Add(ref selfRef, 49);
-        this.V6L.Z = Unsafe.Add(ref selfRef, 50);
-        this.V6L.W = Unsafe.Add(ref selfRef, 51);
-        this.V6R.X = Unsafe.Add(ref selfRef, 52);
-        this.V6R.Y = Unsafe.Add(ref selfRef, 53);
-        this.V6R.Z = Unsafe.Add(ref selfRef, 54);
-        this.V6R.W = Unsafe.Add(ref selfRef, 55);
-
-        this.V7L.X = Unsafe.Add(ref selfRef, 56);
-        this.V7L.Y = Unsafe.Add(ref selfRef, 57);
-        this.V7L.Z = Unsafe.Add(ref selfRef, 58);
-        this.V7L.W = Unsafe.Add(ref selfRef, 59);
-        this.V7R.X = Unsafe.Add(ref selfRef, 60);
-        this.V7R.Y = Unsafe.Add(ref selfRef, 61);
-        this.V7R.Z = Unsafe.Add(ref selfRef, 62);
-        this.V7R.W = Unsafe.Add(ref selfRef, 63);
     }
 
     /// <summary>
@@ -579,67 +377,5 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// Transpose the block in-place.
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void TransposeInPlace()
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            this.TransposeInPlaceVector256();
-        }
-        else
-        {
-            // TODO: Can we provide a Vector128 implementation for this?
-            this.TransposeInPlace_Scalar();
-        }
-    }
-
-    /// <summary>
-    /// Scalar in-place transpose implementation for <see cref="TransposeInPlace"/>
-    /// </summary>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void TransposeInPlace_Scalar()
-    {
-        ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref this);
-
-        // row #0
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
-
-        // row #1
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
-
-        // row #2
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
-
-        // row #3
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
-
-        // row #4
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
-
-        // row #5
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
-
-        // row #6
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
-    }
+    public void TransposeInPlace() => Apply<TransposeOperator>(ref this);
 }

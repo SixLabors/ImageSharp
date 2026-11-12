@@ -43,28 +43,6 @@ public static partial class SRgbCompanding
     /// </summary>
     private const float LinearThreshold = NonlinearThreshold / LinearSlope;
 
-    private static Func<double, double, double> CompressFunction
-        => (d, _) =>
-        {
-            if (d <= (0.04045 / 12.92))
-            {
-                return d * 12.92;
-            }
-
-            return (1.055 * Math.Pow(d, 1.0 / 2.4)) - 0.055;
-        };
-
-    private static Func<double, double, double> ExpandFunction
-        => (d, _) =>
-        {
-            if (d <= 0.04045)
-            {
-                return d / 12.92;
-            }
-
-            return Math.Pow((d + 0.055) / 1.055, 2.4);
-        };
-
     /// <summary>
     /// Compresses linear RGB within the extended color range and retains alpha.
     /// </summary>
@@ -80,23 +58,13 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vectors, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), PixelColorRange.Extended);
 
     /// <summary>
-    /// Compresses linear RGB at the requested component precision and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
-    public static void Compress(Span<Vector4> vectors, int bitDepth, PixelColorRange colorRange)
+    public static void Compress(Span<Vector4> vectors, PixelColorRange colorRange)
     {
-        // Measured table interpolation error is below 0.031 of a sixteen-bit channel level for this curve.
-        // Extended ranges and precision above sixteen bits use analytic conversion.
-        if (bitDepth <= 16 && colorRange == PixelColorRange.Sdr)
-        {
-            CompandingUtilities.Compand(vectors, CompandingUtilities.GetCompressLookupTable<SRgbCompandingKey>(CompressFunction));
-        }
-        else
-        {
-            CompressCore(vectors, colorRange);
-        }
+        CompressCore(vectors, colorRange);
     }
 
     /// <summary>
@@ -114,23 +82,13 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vectors, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), PixelColorRange.Extended);
 
     /// <summary>
-    /// Expands nonlinear RGB at the requested component precision and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
-    public static void Expand(Span<Vector4> vectors, int bitDepth, PixelColorRange colorRange)
+    public static void Expand(Span<Vector4> vectors, PixelColorRange colorRange)
     {
-        // Measured table interpolation error is below 0.031 of a sixteen-bit channel level for this curve.
-        // Extended ranges and precision above sixteen bits use analytic conversion.
-        if (bitDepth <= 16 && colorRange == PixelColorRange.Sdr)
-        {
-            CompandingUtilities.Compand(vectors, GetExpandLookupTable());
-        }
-        else
-        {
-            ExpandCore(vectors, colorRange);
-        }
+        ExpandCore(vectors, colorRange);
     }
 
     /// <summary>
@@ -142,21 +100,13 @@ public static partial class SRgbCompanding
         => CompressCore(vector, PixelColorRange.Extended);
 
     /// <summary>
-    /// Compresses linear RGB at the requested component precision and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Compress(Vector4 vector, int bitDepth, PixelColorRange colorRange)
+    public static Vector4 Compress(Vector4 vector, PixelColorRange colorRange)
     {
-        // Measured table interpolation error is below 0.031 of a sixteen-bit channel level for this curve.
-        // Extended ranges and precision above sixteen bits use analytic conversion.
-        if (bitDepth <= 16 && colorRange == PixelColorRange.Sdr)
-        {
-            return CompandingUtilities.Compand(vector, CompandingUtilities.GetCompressLookupTable<SRgbCompandingKey>(CompressFunction));
-        }
-
         return CompressCore(vector, colorRange);
     }
 
@@ -169,26 +119,18 @@ public static partial class SRgbCompanding
         => ExpandCore(vector, PixelColorRange.Extended);
 
     /// <summary>
-    /// Expands nonlinear RGB at the requested component precision and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
-    /// <param name="bitDepth">The required precision per color component.</param>
     /// <param name="colorRange">The expected normalized RGB input range and the result limits: [0,1] for SDR or [-65504,65504] for extended RGB.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
-    public static Vector4 Expand(Vector4 vector, int bitDepth, PixelColorRange colorRange)
+    public static Vector4 Expand(Vector4 vector, PixelColorRange colorRange)
     {
-        // Measured table interpolation error is below 0.031 of a sixteen-bit channel level for this curve.
-        // Extended ranges and precision above sixteen bits use analytic conversion.
-        if (bitDepth <= 16 && colorRange == PixelColorRange.Sdr)
-        {
-            return CompandingUtilities.Compand(vector, GetExpandLookupTable());
-        }
-
         return ExpandCore(vector, colorRange);
     }
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
@@ -196,7 +138,7 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vectors, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), colorRange);
 
     /// <summary>
-    /// Expands nonlinear RGB within the requested color range and retains alpha.
+    /// Expands nonlinear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized nonlinear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
@@ -205,7 +147,7 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vector, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
@@ -213,20 +155,11 @@ public static partial class SRgbCompanding
         => CompandingUtilities.Compand(vectors, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), colorRange);
 
     /// <summary>
-    /// Compresses linear RGB within the requested color range and retains alpha.
+    /// Compresses linear RGB in the requested color range. Alpha does not change.
     /// </summary>
     /// <param name="vector">The normalized linear RGB color. X, Y, Z contain RGB; W contains unchanged alpha.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     private static Vector4 CompressCore(Vector4 vector, PixelColorRange colorRange)
         => CompandingUtilities.Compand(vector, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), colorRange);
-
-    /// <summary>
-    /// Gets the shared sRGB expansion table without allocating a table for each caller.
-    /// </summary>
-    /// <returns>The cached table used by the sRGB expansion methods.</returns>
-    internal static float[] GetExpandLookupTable()
-        => CompandingUtilities.GetExpandLookupTable<SRgbCompandingKey>(ExpandFunction);
-
-    private class SRgbCompandingKey;
 }

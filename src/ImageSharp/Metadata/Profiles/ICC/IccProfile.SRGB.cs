@@ -263,6 +263,17 @@ public sealed partial class IccProfile
     /// </summary>
     private readonly struct Trc : IEquatable<Trc>
     {
+        /// <summary>
+        /// The IEC sRGB expansion curve at 65,537 inputs with equal spacing. One padding sample follows the input 1.
+        /// </summary>
+        /// <remarks>
+        /// The sRGB recognition compares profile curves with sRGB to one sixteen-bit level.
+        /// The shared SIMD power approximation is not sufficiently accurate for that.
+        /// Thus, the method samples the reference one time in double precision.
+        /// Linear interpolation between these samples has a maximum error of 0.031 of a sixteen-bit level.
+        /// </remarks>
+        private static readonly Lazy<float[]> SRgbExpansion = new(CreateSRgbExpansion);
+
         private readonly float[]? samples;
         private readonly byte kind; // 0 = none, 1 = parametric, 2 = sampled
         private readonly float g; // parametric payload or downsampled hash
@@ -380,6 +391,25 @@ public sealed partial class IccProfile
         }
 
         /// <summary>
+        /// Samples the IEC sRGB expansion curve in double precision for <see cref="SRgbExpansion"/>.
+        /// </summary>
+        /// <returns>The samples, in the range [0,1].</returns>
+        private static float[] CreateSRgbExpansion()
+        {
+            const int scale = ushort.MaxValue;
+            float[] table = new float[scale + 2];
+
+            for (int i = 0; i < table.Length; i++)
+            {
+                double value = (double)i / scale;
+                double linear = value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
+                table[i] = ColorNumerics.ClampToFinite((float)linear, 0F, 1F);
+            }
+
+            return table;
+        }
+
+        /// <summary>
         /// Checks the sRGB transfer function before its profile can be removed without conversion.
         /// </summary>
         /// <returns>Whether the curve encodes sRGB within its ICC storage precision.</returns>
@@ -410,7 +440,7 @@ public sealed partial class IccProfile
             // Midpoints are interpolated values, not stored codes: retain their continuous one-level error bound.
             const float sampleScale = ushort.MaxValue;
             const float sampleTolerance = 1F / sampleScale;
-            float[] table = SRgbCompanding.GetExpandLookupTable();
+            float[] table = SRgbExpansion.Value;
             LutOperator lookup = new(table, false, table.Length - 1);
             ReadOnlySpan<float> samples = this.samples;
             ref float first = ref MemoryMarshal.GetReference(samples);

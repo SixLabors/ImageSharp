@@ -1,28 +1,30 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Processing;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
 /// <summary>
-/// Provides enumeration for resize modes taken during decoding.
-/// Applicable only when <see cref="DecoderOptions.TargetSize"/> has a value.
+/// Specifies how the JPEG decoder makes an image of <see cref="DecoderOptions.TargetSize"/>.
+/// The decoder uses this value only when <see cref="DecoderOptions.TargetSize"/> has a value.
 /// </summary>
 public enum JpegDecoderResizeMode
 {
     /// <summary>
-    /// Both <see cref="IdctOnly"/> and <see cref="ScaleOnly"/>.
+    /// The decoder decodes at the smallest scale (1/8, 1/4, 1/2 or full size) that covers the target size.
+    /// If that result is larger than the target size, the decoder resizes it with <see cref="DecoderOptions.Sampler"/>.
+    /// This mode is the fastest mode that gives the target size.
     /// </summary>
     Combined,
 
     /// <summary>
-    /// IDCT-only to nearest block scale. Similar in output to <see cref="KnownResamplers.Box"/>.
+    /// The decoder decodes at the smallest scale (1/8, 1/4, 1/2 or full size) that covers the target size.
+    /// The decoder does not resize the result, so the result can be larger than the target size.
     /// </summary>
     IdctOnly,
 
     /// <summary>
-    /// Opt-out the IDCT part and only Resize. Can be useful in case of quality concerns.
+    /// The decoder decodes at full size. Then it resizes the result to the target size with <see cref="DecoderOptions.Sampler"/>.
+    /// This mode does the most work, and it gives the highest quality.
     /// </summary>
     ScaleOnly
 }

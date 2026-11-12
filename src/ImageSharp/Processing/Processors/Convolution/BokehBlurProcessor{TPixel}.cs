@@ -33,11 +33,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     private readonly PixelColorRange colorRange;
 
     /// <summary>
-    /// The source component precision used to select the shared gamma conversion.
-    /// </summary>
-    private readonly int componentBitDepth;
-
-    /// <summary>
     /// The size of each complex convolution kernel.
     /// </summary>
     private readonly int kernelSize;
@@ -66,7 +61,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         this.kernelSize = (definition.Radius * 2) + 1;
 
         PixelTypeInfo pixelInfo = TPixel.GetPixelTypeInfo();
-        this.componentBitDepth = pixelInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 32;
         this.colorRange = pixelInfo.ColorRange;
 
         // Get the bokeh blur data
@@ -109,7 +103,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             outputValues,
             this.Configuration,
             this.gamma,
-            this.componentBitDepth,
             this.colorRange);
 
         ParallelRowIterator.IterateRows(this.Configuration, sourceRectangle, in exposure);
@@ -121,7 +114,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             outputValues,
             this.Configuration,
             this.gamma,
-            this.componentBitDepth,
             this.colorRange);
 
         ParallelRowIterator.IterateRows(this.Configuration, sourceRectangle, in inverse);
@@ -207,7 +199,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Buffer2DRegion<Vector4> outputValues;
         private readonly Configuration configuration;
         private readonly float gamma;
-        private readonly int componentBitDepth;
         private readonly PixelColorRange colorRange;
 
         /// <summary>
@@ -219,7 +210,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         /// <param name="outputValues">The separate output plane to clear before accumulating convolution results.</param>
         /// <param name="configuration">The pixel conversion configuration.</param>
         /// <param name="gamma">The expansion exponent.</param>
-        /// <param name="componentBitDepth">The source component precision.</param>
         /// <param name="colorRange">The source and result color range.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyGammaExposureRowOperation(
@@ -229,7 +219,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Buffer2DRegion<Vector4> outputValues,
             Configuration configuration,
             float gamma,
-            int componentBitDepth,
             PixelColorRange colorRange)
         {
             this.bounds = bounds;
@@ -238,7 +227,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.outputValues = outputValues;
             this.configuration = configuration;
             this.gamma = gamma;
-            this.componentBitDepth = componentBitDepth;
             this.colorRange = colorRange;
         }
 
@@ -252,7 +240,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             // Associate before gamma, then retain the float result for every kernel component.
             // The shared compander selects the curve path and bounds RGB while retaining alpha.
             PixelOperations<TPixel>.Instance.ToAssociatedScaledVector4(this.configuration, sourceRow, targetRow);
-            GammaCompanding.Expand(targetRow, this.gamma, this.componentBitDepth, this.colorRange);
+            GammaCompanding.Expand(targetRow, this.gamma, this.colorRange);
 
             // Clear only output pixels that the vertical passes will accumulate. The input plane remains untouched.
             this.outputValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width).Clear();
@@ -269,7 +257,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Buffer2DRegion<Vector4> sourceValues;
         private readonly Configuration configuration;
         private readonly float gamma;
-        private readonly int componentBitDepth;
         private readonly PixelColorRange colorRange;
 
         /// <summary>
@@ -280,7 +267,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         /// <param name="sourceValues">The accumulated float output plane.</param>
         /// <param name="configuration">The pixel conversion configuration.</param>
         /// <param name="gamma">The gamma value whose inverse compresses the samples.</param>
-        /// <param name="componentBitDepth">The source component precision.</param>
         /// <param name="colorRange">The source and result color range.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyInverseGammaExposureRowOperation(
@@ -289,7 +275,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Buffer2DRegion<Vector4> sourceValues,
             Configuration configuration,
             float gamma,
-            int componentBitDepth,
             PixelColorRange colorRange)
         {
             this.bounds = bounds;
@@ -297,7 +282,6 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.sourceValues = sourceValues;
             this.configuration = configuration;
             this.gamma = gamma;
-            this.componentBitDepth = componentBitDepth;
             this.colorRange = colorRange;
         }
 
@@ -308,7 +292,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
             Span<Vector4> sourceRow = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-            GammaCompanding.Compress(sourceRow, this.gamma, this.componentBitDepth, this.colorRange);
+            GammaCompanding.Compress(sourceRow, this.gamma, this.colorRange);
             PixelOperations<TPixel>.Instance.FromAssociatedScaledVector4Destructive(this.configuration, sourceRow, targetRow);
         }
     }

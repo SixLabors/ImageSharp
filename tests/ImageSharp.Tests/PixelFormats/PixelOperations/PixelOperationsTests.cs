@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Common;
@@ -294,17 +295,23 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         };
 
     /// <summary>
-    /// Checks that the associated packed conversions follow the existing associated-vector contract.
+    /// Checks that the associated packed conversions follow the alpha representation of the destination.
+    /// A straight destination receives the straight vector of the source. The source divides its stored byte magnitudes
+    /// by its alpha byte one time, so each component rounds one time.
+    /// An associated destination receives the associated vector of the source.
     /// </summary>
     [Fact]
     public void AssociatedPackedSingleConversionsMatchVectorContract()
     {
         // Include zero, partial and opaque alpha. Distinct RGB values expose an incorrect channel order.
         ReadOnlySpan<Rgba32P> samples = [new(0, 0, 0, 0), new(1, 2, 3, 4), new(37, 73, 109, 151), new(211, 89, 173, 255)];
+        bool associatedDestination = TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Associated;
 
         foreach (Rgba32P sample in samples)
         {
-            TPixel expected = TPixel.FromAssociatedScaledVector4(sample.ToAssociatedScaledVector4());
+            TPixel expected = associatedDestination
+                ? TPixel.FromAssociatedScaledVector4(sample.ToAssociatedScaledVector4())
+                : TPixel.FromUnassociatedScaledVector4(sample.ToUnassociatedScaledVector4());
             Assert.Equal(expected, TPixel.FromAbgr32P(new Abgr32P(sample.R, sample.G, sample.B, sample.A)));
             Assert.Equal(expected, TPixel.FromArgb32P(new Argb32P(sample.R, sample.G, sample.B, sample.A)));
             Assert.Equal(expected, TPixel.FromBgra32P(new Bgra32P(sample.R, sample.G, sample.B, sample.A)));
@@ -612,13 +619,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromPremultipliedScaledVector4(int count)
     {
         // The named API always receives associated vectors; straight destination formats unassociate them while packing.
-        void SourceAction(ref Vector4 v) => Numerics.Premultiply(ref v);
+        void SourceAction(ref Vector4 v) => v = Numerics.Premultiply(v.AsVector128()).AsVector4();
 
         void ExpectedAction(ref Vector4 v)
         {
             if (!this.HasAssociatedAlpha)
             {
-                Numerics.UnPremultiply(ref v);
+                v = Numerics.UnPremultiply(v.AsVector128()).AsVector4();
             }
         }
 
@@ -769,7 +776,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             if (!this.HasAssociatedAlpha)
             {
-                Numerics.Premultiply(ref v);
+                v = Numerics.Premultiply(v.AsVector128()).AsVector4();
             }
         }
 

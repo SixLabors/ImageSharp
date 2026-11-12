@@ -95,8 +95,5 @@ public partial class ResizeKernelMapTests
         public float[] Values { get; }
 
         public int Length => this.Values.Length;
-
-        public static implicit operator ReferenceKernel(ResizeKernel orig)
-            => new(orig.StartIndex, [.. orig.Values]);
     }
 }

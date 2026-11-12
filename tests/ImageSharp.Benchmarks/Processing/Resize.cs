@@ -240,3 +240,23 @@ public class Resize_Bicubic_Compare_Rgba32_Rgb24
     [Benchmark]
     public void Rgb24() => this.rgb24.ImageSharp_P1();
 }
+
+/// <summary>
+/// Measures the creation of a blank 1280x853 image and its bicubic resize to a 150x99 thumbnail with the default
+/// configuration. The other resize benchmarks clone a loaded image and use one thread, so they do not measure this case.
+/// </summary>
+[Config(typeof(Config.StandardInProcess))]
+public class Resize_Bicubic_Rgba32_Thumbnail
+{
+    /// <summary>
+    /// Creates the image and resizes it with the default parallelism.
+    /// </summary>
+    /// <returns>The width of the resized image.</returns>
+    [Benchmark]
+    public int ImageSharpResize()
+    {
+        using Image<Rgba32> image = new(1280, 853);
+        image.Mutate(x => x.Resize(150, 99, KnownResamplers.Bicubic));
+        return image.Width;
+    }
+}

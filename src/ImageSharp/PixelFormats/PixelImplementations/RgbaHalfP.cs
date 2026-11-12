@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -140,30 +141,19 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4()
-    {
-        Vector4 source = this.ToVector4();
-        PixelOperations.UnPremultiply(ref source);
-
-        return source;
-    }
+    public readonly Vector4 ToUnassociatedScaledVector4() => PixelOperations.ToUnassociatedScaledVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToAssociatedScaledVector4()
     {
         // Storage already contains associated RGB. Color output only applies normalized component bounds.
-        return PixelOperations.ClampToPixelRange(this.ToVector4());
+        return PixelFormats.PixelOperations.ClampToPixelRange(this.ToVector4().AsVector128()).AsVector4();
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedVector4()
-    {
-        Vector4 vector = this.ToVector4();
-        Numerics.UnPremultiply(ref vector);
-        return vector;
-    }
+    public readonly Vector4 ToUnassociatedVector4() => PixelOperations.ToUnassociatedVector4(this);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -193,13 +183,13 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public static RgbaHalfP FromUnassociatedScaledVector4(Vector4 source)
     {
         // Bound RGB and opacity before association. Half-precision uses the alpha that storage can represent.
-        source = PixelOperations.ClampToPixelRange(source);
+        source = PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
 
         // Half storage rounds opacity before RGB multiplication. Keep this precision rule in the pixel packer.
+        // A rounded opacity in [0, 1] stays in [0, 1], so the associated result is bounded and is stored directly.
         source.W = (float)(Half)source.W;
-        Numerics.Premultiply(ref source);
 
-        return FromAssociatedVector4(source);
+        return FromAssociatedVector4(PixelFormats.PixelOperations.AssociateOperator.Apply(source.AsVector128()).AsVector4());
     }
 
     /// <inheritdoc />
@@ -207,7 +197,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
     public static RgbaHalfP FromAssociatedScaledVector4(Vector4 source)
     {
         // RGB is already associated. Bound the supplied components; native packing rounds them independently.
-        source = PixelOperations.ClampToPixelRange(source);
+        source = PixelFormats.PixelOperations.ClampToPixelRange(source.AsVector128()).AsVector4();
 
         return FromAssociatedVector4(source);
     }
@@ -219,8 +209,7 @@ public partial struct RgbaHalfP : IPixel<RgbaHalfP>, IPackedVector<ulong>
         // Associate with the alpha actually stored as half-precision so a later native unassociation
         // observes the same straight color when alpha rounds during packing.
         source.W = (float)(Half)source.W;
-        Numerics.Premultiply(ref source);
-        return new RgbaHalfP(source.X, source.Y, source.Z, source.W);
+        return PixelOperations.FromUnassociatedVector4(source);
     }
 
     /// <inheritdoc />

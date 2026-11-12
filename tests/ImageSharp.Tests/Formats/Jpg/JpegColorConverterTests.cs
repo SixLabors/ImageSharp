@@ -21,9 +21,6 @@ public partial class JpegColorConverterTests
     private const float ToRgbTolerance = 0.0001F;
     private const float FromRgbTolerance = 0.01F;
 
-    // Independent model checks compare normalized colors at one tenth of a byte-domain sample.
-    private static readonly ApproximateColorProfileComparer ColorSpaceComparer = new(epsilon: ColorProfileTolerance);
-
     /// <summary>
     /// Verifies that unsupported color spaces are rejected by the converter factory.
     /// </summary>
@@ -110,14 +107,16 @@ public partial class JpegColorConverterTests
     {
         const int length = 128;
         JpegColorConverterBase.ComponentValues source = CreateRandomValues(length, componentCount, 8);
-        JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, 8);
         JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, 8);
+        byte[] r = new byte[length];
+        byte[] g = new byte[length];
+        byte[] b = new byte[length];
 
-        converter.ConvertToRgb(actual);
+        converter.ConvertToRgb(source, r, g, b);
 
         for (int i = 0; i < length; i++)
         {
-            AssertColorModelDefinition(colorSpace, source, actual, i);
+            AssertColorModelDefinition(colorSpace, source, r[i], g[i], b[i], i);
         }
     }
 
@@ -219,11 +218,9 @@ public partial class JpegColorConverterTests
         };
 
         // The converter under test gets its own instance, so the reference below uses independently built transforms.
-        float[] scratch = new float[length * 4];
-        Span<Rgb> actualRgb = MemoryMarshal.Cast<float, Rgb>(scratch.AsSpan())[..length];
-
-        // The decoder reuses packed profile storage for RGB. Cover overlap, including expanding one-channel grayscale.
-        converter.ConvertToRgb(actual, actualRgb, new ColorProfileConverter(options), scratch);
+        // The decoder converts each row in place, with one vector for each sample. The test covers all source models in that storage.
+        Vector4[] actualRgb = new Vector4[length];
+        converter.ConvertToRgb(actual, actualRgb, new ColorProfileConverter(options));
         ColorProfileConverter profileConverter = new(options);
         ColorProfileConverter modelConverter = new();
         float maximumValue = MathF.Pow(2, precision) - 1;
@@ -298,9 +295,12 @@ public partial class JpegColorConverterTests
             }
 
             // Direct model conversion applies only the coding matrix; it must not add a working-space round trip.
-            Assert.Equal(expected.R, actualRgb[i].R, ToRgbTolerance);
-            Assert.Equal(expected.G, actualRgb[i].G, ToRgbTolerance);
-            Assert.Equal(expected.B, actualRgb[i].B, ToRgbTolerance);
+            Assert.Equal(expected.R, actualRgb[i].X, ToRgbTolerance);
+            Assert.Equal(expected.G, actualRgb[i].Y, ToRgbTolerance);
+            Assert.Equal(expected.B, actualRgb[i].Z, ToRgbTolerance);
+
+            // JPEG pixels are opaque. The decoder packs W as alpha for pixel formats that store it.
+            Assert.Equal(1F, actualRgb[i].W);
         }
     }
 
@@ -402,9 +402,12 @@ public partial class JpegColorConverterTests
                 }
 
                 JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, precision);
-                float[] scratch = new float[length * 4];
+                Rgb[] scratch = new Rgb[length];
 
-                jpegConverter.ConvertFromRgb(source, actual, actualConverter, scratch);
+                // The converter takes straight sRGB vectors and uses their storage for its output.
+                Vector4[] vectors = new Vector4[length];
+                Rgb.ToScaledVector4(source, vectors);
+                jpegConverter.ConvertFromRgb(vectors, actual, actualConverter, scratch);
 
                 bool inverted = space is JpegColorSpace.Cmyk or JpegColorSpace.Ycck;
 
@@ -538,9 +541,10 @@ public partial class JpegColorConverterTests
         where TOperator : struct, JpegColorConverterBase.IJpegColorConverterOperator
     {
         JpegColorConverterBase converter = new JpegColorConverterBase.JpegColorConverter<TOperator>(precision);
-        int[] lengths = [1, 3, 4, 7, 8, 15, 16, 31, 32, 40, 64, 128];
+        int[] lengths = [1, 3, 4, 7, 8, 15, 16, 31, 32, 40, 63, 64, 127, 128];
 
-        // Adjacent values around 4/8/16 lanes verify every prefix, mixed-width tail, and scalar remainder.
+        // The lengths are next to the float vector counts (4, 8, 16) and the byte vector counts (16, 32, 64).
+        // Thus, the test covers each full width, each mixed-width tail, and the scalar remainder. The lengths 63 and 127 use all widths that are smaller than the row in one call.
         foreach (int length in lengths)
         {
             ValidateConversionToRgb<TOperator>(converter, length, componentCount, precision);
@@ -560,7 +564,7 @@ public partial class JpegColorConverterTests
         where TOperator : struct, JpegColorConverterBase.IJpegColorConverterOperator
     {
         JpegColorConverterBase.ComponentValues expected = CreateRandomValues(length, componentCount, precision);
-        JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, precision);
+        JpegColorConverterBase.ComponentValues source = CreateRandomValues(length, componentCount, precision);
         float maximumValue = MathF.Pow(2, precision) - 1;
         float halfValue = MathF.Ceiling(maximumValue * 0.5F);
         float scale = 1F / maximumValue;
@@ -575,15 +579,15 @@ public partial class JpegColorConverterTests
             TOperator.ConvertToRgb(ref c0, ref c1, ref c2, c3, maximumValue, halfValue, scale);
         }
 
-        converter.ConvertToRgb(actual);
+        byte[] r = new byte[length];
+        byte[] g = new byte[length];
+        byte[] b = new byte[length];
+        converter.ConvertToRgb(source, r, g, b);
 
-        // YCbCr conversion rounds in the integer sample domain before normalization. Fused SIMD arithmetic can
-        // cross a half-way boundary differently from the scalar expression, so allow one source-sample quantum
-        // in addition to the ordinary floating-point tolerance at both supported sample precisions.
-        float tolerance = scale + ToRgbTolerance;
-        CompareSequence(expected.Component0, actual.Component0, tolerance);
-        CompareSequence(expected.Component1, actual.Component1, tolerance);
-        CompareSequence(expected.Component2, actual.Component2, tolerance);
+        // The scalar and vector operator forms use the same operations, so the converted bytes must be exact.
+        CompareBytes(expected.Component0, r);
+        CompareBytes(expected.Component1, g);
+        CompareBytes(expected.Component2, b);
     }
 
     /// <summary>
@@ -719,12 +723,16 @@ public partial class JpegColorConverterTests
     /// </summary>
     /// <param name="colorSpace">The JPEG color space.</param>
     /// <param name="source">The unmodified source component planes.</param>
-    /// <param name="actual">The converted RGB planes.</param>
+    /// <param name="r">The converted red byte.</param>
+    /// <param name="g">The converted green byte.</param>
+    /// <param name="b">The converted blue byte.</param>
     /// <param name="index">The sample index.</param>
     private static void AssertColorModelDefinition(
         JpegColorSpace colorSpace,
         in JpegColorConverterBase.ComponentValues source,
-        in JpegColorConverterBase.ComponentValues actual,
+        byte r,
+        byte g,
+        byte b,
         int index)
     {
         float c0 = source.Component0[index];
@@ -776,12 +784,42 @@ public partial class JpegColorConverterTests
                 return;
         }
 
-        // Color-space comparison intentionally clamps both sides because JPEG reconstruction can overshoot
-        // the normalized RGB gamut and saturation belongs to the eventual pixel conversion.
+        // JPEG reconstruction can give values outside the normalized RGB gamut. The byte conversion saturates these values.
+        // Each byte is the rounded value of the scaled color. Thus, the byte is within half a byte step of the definition,
+        // plus the model tolerance.
         Rgb clampedExpected = Rgb.Clamp(expected);
-        Rgb clampedActual = Rgb.Clamp(new Rgb(actual.Component0[index], actual.Component1[index], actual.Component2[index]));
+        const float byteTolerance = 0.5F + (ColorProfileTolerance * MaxColorChannelValue);
 
-        Assert.True(ColorSpaceComparer.Equals(clampedExpected, clampedActual), $"Colors {clampedExpected} and {clampedActual} are not equal at index {index}.");
+        Assert.True(
+            MathF.Abs((clampedExpected.R * MaxColorChannelValue) - r) <= byteTolerance,
+            $"Red {clampedExpected.R} and {r} are not equal at index {index}.");
+        Assert.True(
+            MathF.Abs((clampedExpected.G * MaxColorChannelValue) - g) <= byteTolerance,
+            $"Green {clampedExpected.G} and {g} are not equal at index {index}.");
+        Assert.True(
+            MathF.Abs((clampedExpected.B * MaxColorChannelValue) - b) <= byteTolerance,
+            $"Blue {clampedExpected.B} and {b} are not equal at index {index}.");
+    }
+
+    /// <summary>
+    /// Compares the bytes of normalized colors with the converted bytes.
+    /// </summary>
+    /// <remarks>
+    /// The expected byte is the normalized color times 255, plus one half, truncated and saturated to [0, 255].
+    /// This is the documented rule of the byte conversion.
+    /// </remarks>
+    /// <param name="expected">The expected normalized colors.</param>
+    /// <param name="actual">The converted bytes.</param>
+    private static void CompareBytes(Span<float> expected, byte[] actual)
+    {
+        Assert.Equal(expected.Length, actual.Length);
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            float scaled = (expected[i] * MaxColorChannelValue) + 0.5F;
+            int expectedByte = scaled <= 0 ? 0 : scaled >= byte.MaxValue ? byte.MaxValue : (int)scaled;
+            Assert.Equal(expectedByte, actual[i]);
+        }
     }
 
     /// <summary>

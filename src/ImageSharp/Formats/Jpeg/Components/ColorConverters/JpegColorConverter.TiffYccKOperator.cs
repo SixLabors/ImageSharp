@@ -206,9 +206,10 @@ internal abstract partial class JpegColorConverterBase
 
             // TIFF YccK is non-inverted: decode normalized YCbCr without integer rounding, then let the
             // remaining light after K modulate all three channels.
-            c0 = (y + (YCbCrOperator.RCrMult * cr)) * k;
-            c1 = (y - (YCbCrOperator.GCbMult * cb) - (YCbCrOperator.GCrMult * cr)) * k;
-            c2 = (y + (YCbCrOperator.BCbMult * cb)) * k;
+            // The multiply-add estimates are the same operations as in the vector forms.
+            c0 = float.MultiplyAddEstimate(cr, YCbCrOperator.RCrMult, y) * k;
+            c1 = float.MultiplyAddEstimate(cr, -YCbCrOperator.GCrMult, float.MultiplyAddEstimate(cb, -YCbCrOperator.GCbMult, y)) * k;
+            c2 = float.MultiplyAddEstimate(cb, YCbCrOperator.BCbMult, y) * k;
         }
 
         /// <inheritdoc/>

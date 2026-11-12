@@ -43,7 +43,7 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
     public Vector4 Convert(Vector4 value) => this.colorOperator.Convert(value);
 
     /// <inheritdoc/>
-    public void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination)
+    public void Convert(ReadOnlySpan<Vector4> source, Span<Vector4> destination, bool convertW)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         ref float target = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Vector4, float>(destination));
@@ -51,15 +51,52 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
 
         // Each operator sees one component per register and one independent color per lane.
         // Read a whole block before writing it, so the source and destination can share storage.
+        // When W is not color data, the method saves W before the operator runs. Then it stores the saved value.
+        // convertW does not change in the span. Thus, its branches do not change in a loop.
         if (Vector512.IsHardwareAccelerated)
         {
             nuint count = (source.Length - i).Vector512Count<float>();
+            nuint block = 0;
 
-            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            // The profile stages make one long dependency chain for each block: curves, matrix, then curves again.
+            // Each iteration has two independent blocks. Thus, the processor can run the second chain while the first chain waits.
+            for (; block + 1 < count; block += 2, i += 2 * Vector512<float>.Count)
+            {
+                SimdUtils.Deinterleave4(source, i, out Vector512<float> x0, out Vector512<float> y0, out Vector512<float> z0, out Vector512<float> w0);
+                SimdUtils.Deinterleave4(
+                    source,
+                    i + Vector512<float>.Count,
+                    out Vector512<float> x1,
+                    out Vector512<float> y1,
+                    out Vector512<float> z1,
+                    out Vector512<float> w1);
+                Vector512<float> sourceW0 = w0;
+                Vector512<float> sourceW1 = w1;
+
+                if (!convertW)
+                {
+                    w0 = Vector512<float>.One;
+                    w1 = Vector512<float>.One;
+                }
+
+                this.colorOperator.Convert(ref x0, ref y0, ref z0, ref w0);
+                this.colorOperator.Convert(ref x1, ref y1, ref z1, ref w1);
+                SimdUtils.Interleave4(x0, y0, z0, convertW ? w0 : sourceW0, ref Unsafe.Add(ref target, (uint)i * 4));
+                SimdUtils.Interleave4(x1, y1, z1, convertW ? w1 : sourceW1, ref Unsafe.Add(ref target, (uint)(i + Vector512<float>.Count) * 4));
+            }
+
+            for (; block < count; block++, i += Vector512<float>.Count)
             {
                 SimdUtils.Deinterleave4(source, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z, out Vector512<float> w);
+                Vector512<float> sourceW = w;
+
+                if (!convertW)
+                {
+                    w = Vector512<float>.One;
+                }
+
                 this.colorOperator.Convert(ref x, ref y, ref z, ref w);
-                SimdUtils.Interleave4(x, y, z, w, ref Unsafe.Add(ref target, (uint)i * 4));
+                SimdUtils.Interleave4(x, y, z, convertW ? w : sourceW, ref Unsafe.Add(ref target, (uint)i * 4));
             }
         }
 
@@ -70,8 +107,15 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
                 SimdUtils.Deinterleave4(source, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z, out Vector256<float> w);
+                Vector256<float> sourceW = w;
+
+                if (!convertW)
+                {
+                    w = Vector256<float>.One;
+                }
+
                 this.colorOperator.Convert(ref x, ref y, ref z, ref w);
-                SimdUtils.Interleave4(x, y, z, w, ref Unsafe.Add(ref target, (uint)i * 4));
+                SimdUtils.Interleave4(x, y, z, convertW ? w : sourceW, ref Unsafe.Add(ref target, (uint)i * 4));
             }
         }
 
@@ -92,6 +136,13 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
                     out Vector128<float> z,
                     out Vector128<float> w);
 
+                Vector128<float> sourceW = w;
+
+                if (!convertW)
+                {
+                    w = Vector128<float>.One;
+                }
+
                 this.colorOperator.Convert(ref x, ref y, ref z, ref w);
 
                 // Transpose back to four [X Y Z W] colors. Stores cover exactly four destination colors.
@@ -99,7 +150,7 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
                     x,
                     y,
                     z,
-                    w,
+                    convertW ? w : sourceW,
                     out Vector128<float> pixel0,
                     out Vector128<float> pixel1,
                     out Vector128<float> pixel2,
@@ -116,7 +167,22 @@ internal sealed class IccColorConverter<TOperator> : IIccColorConverter
         // This also processes the complete input when SIMD is unavailable.
         for (; i < source.Length; i++)
         {
-            destination[i] = this.colorOperator.Convert(source[i]);
+            Vector4 value = source[i];
+            float sourceW = value.W;
+
+            if (!convertW)
+            {
+                value.W = 1F;
+            }
+
+            value = this.colorOperator.Convert(value);
+
+            if (!convertW)
+            {
+                value.W = sourceW;
+            }
+
+            destination[i] = value;
         }
     }
 }

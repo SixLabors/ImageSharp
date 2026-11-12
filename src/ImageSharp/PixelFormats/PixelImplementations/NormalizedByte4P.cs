@@ -90,7 +90,7 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
     public readonly Rgba32P ToRgba32P() => Rgba32P.FromAssociatedScaledVector4(this.ToAssociatedScaledVector4());
 
     /// <inheritdoc />
-    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(PixelOperations.ToUnassociatedScaledVector4(this));
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToUnassociatedScaledVector4());
 
     /// <inheritdoc />
     public readonly Vector4 ToScaledVector4()
@@ -108,7 +108,20 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToUnassociatedScaledVector4() => PixelOperations.ToUnassociatedScaledVector4(this);
+    public readonly Vector4 ToUnassociatedScaledVector4()
+    {
+        // Offset signed integers to nonnegative magnitudes before division. This retains exact component midpoints during byte conversion.
+        Vector4 vector = new(
+            (sbyte)(this.PackedValue >> 0),
+            (sbyte)(this.PackedValue >> 8),
+            (sbyte)(this.PackedValue >> 16),
+            (sbyte)(this.PackedValue >> 24));
+
+        // Both -128 and -127 encode the SNORM minimum. Use -127, then add 127 to obtain associated magnitudes [0,254].
+        vector = Vector4.Max(vector, Minimum) + Half;
+
+        return Numerics.UnPremultiply(vector.AsVector128(), ScaledMagnitude).AsVector4();
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

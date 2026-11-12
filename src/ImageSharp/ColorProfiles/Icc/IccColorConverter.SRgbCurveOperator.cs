@@ -104,7 +104,7 @@ internal static partial class IccColorConverter
             input = Vector128.ConditionalSelect(Vector128.LessThan(input, zero), zero, input);
 
             // Use the classified power for exact square/cube arithmetic and the general finite kernel.
-            // This matches the general ICC curve, including signed zero and nonfinite inputs.
+            // The clamp above gives the power operator the bases that it requires: zero or more.
             Vector128<float> power = this.power.Invoke(input);
 
             Vector128<float> nonlinear = Vector128.Add(power, Vector128.Create(this.e));
@@ -132,7 +132,7 @@ internal static partial class IccColorConverter
             input = Vector256.ConditionalSelect(Vector256.LessThan(input, zero), zero, input);
 
             // Use the classified power for exact square/cube arithmetic and the general finite kernel.
-            // This matches the general ICC curve, including signed zero and nonfinite inputs.
+            // The clamp above gives the power operator the bases that it requires: zero or more.
             Vector256<float> power = this.power.Invoke(input);
 
             Vector256<float> nonlinear = Vector256.Add(power, Vector256.Create(this.e));
@@ -160,7 +160,7 @@ internal static partial class IccColorConverter
             input = Vector512.ConditionalSelect(Vector512.LessThan(input, zero), zero, input);
 
             // Use the classified power for exact square/cube arithmetic and the general finite kernel.
-            // This matches the general ICC curve, including signed zero and nonfinite inputs.
+            // The clamp above gives the power operator the bases that it requires: zero or more.
             Vector512<float> power = this.power.Invoke(input);
 
             Vector512<float> nonlinear = Vector512.Add(power, Vector512.Create(this.e));

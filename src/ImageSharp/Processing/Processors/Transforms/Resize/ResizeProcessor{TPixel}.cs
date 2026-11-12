@@ -125,18 +125,23 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
 
         // Since all image frame dimensions have to be the same we can calculate
         // the kernel maps and reuse for all frames.
+        // The horizontal kernels start at multiples of 4 pixels, so that the 4-pixel loads of the horizontal operators
+        // start on a cache line. The vertical operators convolve MaxDiameter rows from each kernel start, so the vertical
+        // kernels keep their exact starts.
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using ResizeKernelMap horizontalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Width,
             sourceRectangle.Width,
-            allocator);
+            allocator,
+            true);
 
         using ResizeKernelMap verticalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Height,
             sourceRectangle.Height,
-            allocator);
+            allocator,
+            false);
 
         for (int i = 0; i < source.Frames.Count; i++)
         {

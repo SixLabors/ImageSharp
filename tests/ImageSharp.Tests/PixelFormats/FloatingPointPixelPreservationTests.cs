@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -131,7 +132,7 @@ public class FloatingPointPixelPreservationTests
         {
             source[i] = inputs[i % inputs.Length];
             Vector4 result = source[i];
-            PixelOperations<RgbaVector>.UnPremultiply(ref result);
+            result = global::SixLabors.ImageSharp.PixelFormats.PixelOperations.UnassociateOperator.Apply(result.AsVector128()).AsVector4();
             Assert.Equal(expected[i % expected.Length], result);
             Assert.Equal(BitConverter.SingleToInt32Bits(-0F), BitConverter.SingleToInt32Bits(result.Z));
         }

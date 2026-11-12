@@ -27,6 +27,6 @@ public class RgbColorConversion : ColorConversionBenchmark
     {
         JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        this.converter.ConvertToRgb(values);
+        this.converter.ConvertToRgb(values, this.Red, this.Green, this.Blue);
     }
 }

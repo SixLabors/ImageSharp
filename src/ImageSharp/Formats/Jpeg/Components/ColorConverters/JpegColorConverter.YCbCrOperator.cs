@@ -275,9 +275,11 @@ internal abstract partial class JpegColorConverterBase
             ConvertToRgb(ref c0, ref c1, ref c2, halfValue);
 
             // Ordinary JPEG conversion rounds in the sample domain before normalizing.
-            c0 = MathF.Round(c0, MidpointRounding.AwayFromZero) * scale;
-            c1 = MathF.Round(c1, MidpointRounding.AwayFromZero) * scale;
-            c2 = MathF.Round(c2, MidpointRounding.AwayFromZero) * scale;
+            // Ties round to even, as Vector128.Round, Vector256.Round, and Vector512.Round do in the vector forms.
+            // Thus, all forms give the same values.
+            c0 = MathF.Round(c0) * scale;
+            c1 = MathF.Round(c1) * scale;
+            c2 = MathF.Round(c2) * scale;
         }
 
         /// <summary>
@@ -294,11 +296,12 @@ internal abstract partial class JpegColorConverterBase
             float cb = c1 - halfValue;
             float cr = c2 - halfValue;
 
-            // Each lane is an independent sample. ICC needs the fractional device values, while
-            // the ordinary JPEG wrapper above applies its existing integer rounding afterward.
-            c0 = y + (RCrMult * cr);
-            c1 = y - (GCbMult * cb) - (GCrMult * cr);
-            c2 = y + (BCbMult * cb);
+            // ICC needs the fractional device values, while the ordinary JPEG wrapper above applies its integer
+            // rounding afterward. The multiply-add estimates are the same operations as in the vector forms,
+            // so the scalar form gives the same values.
+            c0 = float.MultiplyAddEstimate(cr, RCrMult, y);
+            c1 = float.MultiplyAddEstimate(cr, -GCrMult, float.MultiplyAddEstimate(cb, -GCbMult, y));
+            c2 = float.MultiplyAddEstimate(cb, BCbMult, y);
         }
 
         /// <inheritdoc/>

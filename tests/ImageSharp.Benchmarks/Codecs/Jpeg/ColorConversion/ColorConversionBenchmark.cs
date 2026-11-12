@@ -17,6 +17,21 @@ public abstract class ColorConversionBenchmark
 
     protected Buffer2D<float>[] Input { get; private set; }
 
+    /// <summary>
+    /// Gets the destination red plane.
+    /// </summary>
+    protected byte[] Red { get; } = new byte[Count];
+
+    /// <summary>
+    /// Gets the destination green plane.
+    /// </summary>
+    protected byte[] Green { get; } = new byte[Count];
+
+    /// <summary>
+    /// Gets the destination blue plane.
+    /// </summary>
+    protected byte[] Blue { get; } = new byte[Count];
+
     [GlobalSetup]
     public void Setup()
     {

@@ -10,13 +10,13 @@ using SixLabors.ImageSharp.Tests;
 namespace SixLabors.ImageSharp.Benchmarks;
 
 /// <summary>
-/// Compares the current sRGB table with direct SIMD math, using identical curve coefficients.
+/// Measures direct SIMD sRGB companding and compares it with the scalar curve formulas.
 /// </summary>
 [Config(typeof(Config.Short))]
 public abstract class CompandingComparison
 {
     // Match the direct-formula accuracy bound documented and checked by CompandingTests.
-    // Table interpolation and scalar/SIMD agreement have separate, tighter checks in that test suite.
+    // That test suite has a separate, tighter test of the agreement between scalar and SIMD.
     private const float DirectApproximationTolerance = 5E-4F;
 
     private Vector4[] source;
@@ -60,10 +60,8 @@ public abstract class CompandingComparison
             }
         }
 
-        // Table construction is setup work. Both measured methods include the same input copy,
+        // Measured methods include the same input copy,
         // because repeated in-place companding would otherwise change the input distribution.
-        SRgbCompanding.Compress(this.destination, 8, PixelColorRange.Sdr);
-        SRgbCompanding.Expand(this.destination, 8, PixelColorRange.Sdr);
         this.Simd();
 
         for (int i = 0; i < this.source.Length; i++)
@@ -131,61 +129,40 @@ public abstract class CompandingComparison
         return MathF.CopySign(result, value);
     }
 
-    // Measured 2026-10-15.
-    // | Method | Count | Compress | Mean         | Error       | StdDev      | Ratio | RatioSD | Allocated | Alloc Ratio |
-    // |------- |------ |--------- |-------------:|------------:|------------:|------:|--------:|----------:|------------:|
-    // | Simd   | 256   | False    |     868.9 ns |    30.81 ns |     8.00 ns |  1.31 |    0.01 |         - |          NA |
-    // | Table  | 256   | False    |     664.6 ns |    21.76 ns |     5.65 ns |  1.00 |    0.01 |         - |          NA |
-    // |        |       |          |              |             |             |       |         |           |             |
-    // | Simd   | 256   | True     |     798.0 ns |    23.29 ns |     6.05 ns |  1.13 |    0.01 |         - |          NA |
-    // | Table  | 256   | True     |     706.3 ns |    10.87 ns |     2.82 ns |  1.00 |    0.01 |         - |          NA |
-    // |        |       |          |              |             |             |       |         |           |             |
-    // | Simd   | 65536 | False    | 226,537.8 ns | 7,980.83 ns | 1,235.04 ns |  1.28 |    0.01 |         - |          NA |
-    // | Table  | 65536 | False    | 177,612.6 ns | 8,492.46 ns | 1,314.22 ns |  1.00 |    0.01 |         - |          NA |
-    // |        |       |          |              |             |             |       |         |           |             |
-    // | Simd   | 65536 | True     | 209,825.4 ns | 9,590.05 ns | 2,490.51 ns |  1.17 |    0.02 |         - |          NA |
-    // | Table  | 65536 | True     | 179,227.6 ns | 8,560.71 ns | 2,223.19 ns |  1.00 |    0.02 |         - |          NA |
-
     /// <summary>
-    /// Compares the existing table implementation with direct SIMD on normalized input.
+    /// Measures direct SIMD on normalized input.
     /// </summary>
     public class Sdr : CompandingComparison
     {
         /// <inheritdoc/>
         protected override bool HasHdrValues => false;
-
-        /// <summary>
-        /// Applies the existing public companding table.
-        /// </summary>
-        [Benchmark(Baseline = true)]
-        public void Table()
-        {
-            this.CopySource();
-            if (this.Compress)
-            {
-                SRgbCompanding.Compress(this.destination, 8, PixelColorRange.Sdr);
-            }
-            else
-            {
-                SRgbCompanding.Expand(this.destination, 8, PixelColorRange.Sdr);
-            }
-        }
     }
 
-    // Measured 2026-10-15.
-    // | Method | Count | Compress | Mean         | Error       | StdDev     | Ratio | RatioSD | Allocated | Alloc Ratio |
-    // |------- |------ |--------- |-------------:|------------:|-----------:|------:|--------:|----------:|------------:|
-    // | Simd   | 256   | False    |     1.335 us |   0.0239 us |  0.0062 us |  0.30 |    0.00 |         - |          NA |
-    // | Scalar | 256   | False    |     4.410 us |   0.2177 us |  0.0565 us |  1.00 |    0.02 |         - |          NA |
-    // |        |       |          |              |             |            |       |         |           |             |
-    // | Simd   | 256   | True     |     2.123 us |   0.0187 us |  0.0049 us |  0.50 |    0.01 |         - |          NA |
-    // | Scalar | 256   | True     |     4.243 us |   0.4756 us |  0.1235 us |  1.00 |    0.04 |         - |          NA |
-    // |        |       |          |              |             |            |       |         |           |             |
-    // | Simd   | 65536 | False    |   223.890 us |  33.2439 us |  8.6333 us |  0.18 |    0.01 |         - |          NA |
-    // | Scalar | 65536 | False    | 1,261.450 us | 335.0455 us | 51.8487 us |  1.00 |    0.05 |         - |          NA |
-    // |        |       |          |              |             |            |       |         |           |             |
-    // | Simd   | 65536 | True     |   240.204 us |  87.9851 us | 22.8495 us |  0.21 |    0.02 |         - |          NA |
-    // | Scalar | 65536 | True     | 1,127.392 us | 158.7023 us | 41.2145 us |  1.00 |    0.05 |         - |          NA |
+    // Measured 10.11.2026. AMD RYZEN AI MAX+ 395, .NET 10.0.14, X64 RyuJIT x86-64-v4.
+    // Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1  WarmupCount=3
+    //
+    // Sdr
+    // | Method | Count | Compress | Mean         | Error        | StdDev      | Allocated |
+    // |------- |------ |--------- |-------------:|-------------:|------------:|----------:|
+    // | Simd   | 256   | False    |     416.6 ns |     11.53 ns |     0.63 ns |         - |
+    // | Simd   | 256   | True     |     395.3 ns |     30.18 ns |     1.65 ns |         - |
+    // | Simd   | 65536 | False    | 117,395.4 ns | 42,704.13 ns | 2,340.76 ns |         - |
+    // | Simd   | 65536 | True     | 114,195.8 ns | 22,651.89 ns | 1,241.63 ns |         - |
+    //
+    // Hdr
+    // | Method | Count | Compress | Mean           | Error         | StdDev       | Ratio | Allocated | Alloc Ratio |
+    // |------- |------ |--------- |---------------:|--------------:|-------------:|------:|----------:|------------:|
+    // | Simd   | 256   | False    |       438.5 ns |     322.80 ns |     17.69 ns |  0.10 |         - |          NA |
+    // | Scalar | 256   | False    |     4,417.1 ns |     750.46 ns |     41.14 ns |  1.00 |         - |          NA |
+    // |        |       |          |                |               |              |       |           |             |
+    // | Simd   | 256   | True     |       395.4 ns |      15.45 ns |      0.85 ns |  0.10 |         - |          NA |
+    // | Scalar | 256   | True     |     4,079.1 ns |     856.95 ns |     46.97 ns |  1.00 |         - |          NA |
+    // |        |       |          |                |               |              |       |           |             |
+    // | Simd   | 65536 | False    |   113,980.1 ns |  15,382.86 ns |    843.19 ns |  0.10 |         - |          NA |
+    // | Scalar | 65536 | False    | 1,199,745.6 ns | 191,714.60 ns | 10,508.52 ns |  1.00 |         - |          NA |
+    // |        |       |          |                |               |              |       |           |             |
+    // | Simd   | 65536 | True     |   109,456.0 ns |   7,383.75 ns |    404.73 ns |  0.10 |         - |          NA |
+    // | Scalar | 65536 | True     | 1,087,719.8 ns |  41,850.90 ns |  2,293.99 ns |  1.00 |         - |          NA |
 
     /// <summary>
     /// Compares scalar and SIMD companding on signed HDR input.

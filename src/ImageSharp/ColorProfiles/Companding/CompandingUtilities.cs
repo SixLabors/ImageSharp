@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -19,63 +18,8 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// The supplied transfer curve determines whether input components are linear or nonlinear.
 /// Vector3 APIs transform RGB in X, Y and Z. Vector4 APIs also retain alpha in W. Component APIs transform every SIMD lane.
 /// </remarks>
-public static class CompandingUtilities
+internal static class CompandingUtilities
 {
-    private const int Length = Scale + 2; // 256kb @ 16bit precision.
-    private const int Scale = (1 << 16) - 1;
-    private static readonly ConcurrentDictionary<(Type, double), float[]> CompressLookupTables = new();
-    private static readonly ConcurrentDictionary<(Type, double), float[]> ExpandLookupTables = new();
-
-    /// <summary>
-    /// Lazily creates and stores a companding compression lookup table using the given function and modifier.
-    /// </summary>
-    /// <typeparam name="T">The type of companding function.</typeparam>
-    /// <param name="compandingFunction">The companding function.</param>
-    /// <param name="modifier">A modifier to pass to the function.</param>
-    /// <returns>The <see cref="float"/> array.</returns>
-    public static float[] GetCompressLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
-    {
-        // The static factory receives the function only on a cache miss, avoiding a closure for each lookup hit.
-        return CompressLookupTables.GetOrAdd((typeof(T), modifier), static (args, function) => CreateLookupTableImpl(function, args.Item2), compandingFunction);
-    }
-
-    /// <summary>
-    /// Lazily creates and stores a companding expanding lookup table using the given function and modifier.
-    /// </summary>
-    /// <typeparam name="T">The type of companding function.</typeparam>
-    /// <param name="compandingFunction">The companding function.</param>
-    /// <param name="modifier">A modifier to pass to the function.</param>
-    /// <returns>The <see cref="float"/> array.</returns>
-    public static float[] GetExpandLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
-    {
-        // The static factory receives the function only on a cache miss, avoiding a closure for each lookup hit.
-        return ExpandLookupTables.GetOrAdd((typeof(T), modifier), static (args, function) => CreateLookupTableImpl(function, args.Item2), compandingFunction);
-    }
-
-    /// <summary>
-    /// Creates a companding lookup table using the given function.
-    /// </summary>
-    /// <param name="compandingFunction">The companding function.</param>
-    /// <param name="modifier">A modifier to pass to the function.</param>
-    /// <returns>The <see cref="float"/> array.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float[] CreateLookupTableImpl(Func<double, double, double> compandingFunction, double modifier = 0)
-    {
-        float[] result = new float[Length];
-
-        for (int i = 0; i < result.Length; i++)
-        {
-            double d = (double)i / Scale;
-            d = compandingFunction(d, modifier);
-
-            // These tables serve SDR colors. Bound each sample before interpolation so invalid samples
-            // cannot create NaNs between table entries, including at an exact endpoint.
-            result[i] = Compand((float)d, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Sdr);
-        }
-
-        return result;
-    }
-
     /// <summary>
     /// Transforms every component of packed RGB colors in place with the shared result bounds.
     /// </summary>
@@ -270,33 +214,6 @@ public static class CompandingUtilities
     internal static Vector512<float> Compand<TOperator>(Vector512<float> value, TOperator operation, PixelColorRange colorRange)
         where TOperator : struct, TensorPrimitives_.IUnaryOperator
         => new BoundedOperator<TOperator>(operation, colorRange).Invoke(value);
-
-    /// <summary>
-    /// Performs the companding operation on the given vectors using the given table.
-    /// </summary>
-    /// <param name="vectors">The normalized SDR colors with RGB in [0,1]. Alpha remains unchanged.</param>
-    /// <param name="table">The lookup table.</param>
-    public static void Compand(Span<Vector4> vectors, float[] table)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(table.Length, Length, nameof(table));
-
-        // Exclude the padding sample from the input coordinate range. Shared traversal retains alpha at every SIMD width.
-        Compand(vectors, new LutOperator(table, false, Scale + 1), PixelColorRange.Sdr);
-    }
-
-    /// <summary>
-    /// Performs the companding operation on the given vector using the given table.
-    /// </summary>
-    /// <param name="vector">The normalized SDR color with RGB in [0,1]. Alpha remains unchanged.</param>
-    /// <param name="table">The lookup table.</param>
-    /// <returns>The <see cref="Vector4"/></returns>
-    public static Vector4 Compand(Vector4 vector, float[] table)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(table.Length, Length, nameof(table));
-
-        // Match the span's logical table range and retain alpha through the same companding operation.
-        return Compand(vector, new LutOperator(table, false, Scale + 1), PixelColorRange.Sdr);
-    }
 
     /// <summary>
     /// Applies a positive-domain transfer curve to the input magnitude and restores its sign.

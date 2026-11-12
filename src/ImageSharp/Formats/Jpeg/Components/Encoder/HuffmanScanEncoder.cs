@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -20,29 +22,23 @@ internal class HuffmanScanEncoder
     /// cosine tranform with value range: [-1024..1023]. Block stores
     /// 8x8 = 64 values thus multiplication by 64. Then divided by 8 to get
     /// the number of bytes. This value is then multiplied by
-    /// <see cref="MaxBytesPerBlockMultiplier"/> for performance reasons.
+    /// <see cref="MaxBytesPerBlockMultiplier"/> as a safety margin.
     /// </remarks>
     private const int MaxBytesPerBlock = (16 + 10) * 64 / 8 * MaxBytesPerBlockMultiplier;
 
     /// <summary>
-    /// Multiplier used within cache buffers size calculation.
+    /// Safety margin for <see cref="MaxBytesPerBlock"/>. The DC difference can have 11 value bits.
+    /// </summary>
+    private const int MaxBytesPerBlockMultiplier = 2;
+
+    /// <summary>
+    /// The number of emitted bytes after which the encoder writes the emit buffer to the output stream.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Theoretically, <see cref="MaxBytesPerBlock"/> bytes buffer can fit
-    /// exactly one minimal coding unit. In reality, coding blocks occupy much
-    /// less space than the theoretical maximum - this can be exploited.
-    /// If temporal buffer size is multiplied by at least 2, second half of
-    /// the resulting buffer will be used as an overflow 'guard' if next
-    /// block would occupy maximum number of bytes. While first half may fit
-    /// many blocks before needing to flush.
-    /// </para>
-    /// <para>
-    /// This is subject to change. This can be equal to 1 but recomended
-    /// value is 2 or even greater - futher benchmarking needed.
-    /// </para>
+    /// A large value makes stream writes and flush calls rare. The emit buffer holds this number of bytes,
+    /// plus space for one more coding unit, plus the 8 bytes that each code store writes.
     /// </remarks>
-    private const int MaxBytesPerBlockMultiplier = 2;
+    private const int FlushThreshold = 16 * 1024;
 
     /// <summary>
     /// <see cref="streamWriteBuffer"/> size multiplier.
@@ -66,18 +62,17 @@ internal class HuffmanScanEncoder
     private readonly HuffmanLut[] acHuffmanTables = new HuffmanLut[4];
 
     /// <summary>
-    /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
+    /// The pending bits that do not make a complete byte yet, left-aligned at bit 63.
     /// </summary>
-    private uint accumulatedBits;
+    private ulong accumulatedBits;
 
     /// <summary>
-    /// Buffer for temporal storage of huffman rle encoding bit data.
+    /// The emitted bytes in stream order, without stuff bytes.
     /// </summary>
     /// <remarks>
-    /// Encoding bits are assembled to 4 byte unsigned integers and then copied to this buffer.
-    /// This process does NOT include inserting stuff bytes.
+    /// Each code store writes 8 bytes at <see cref="emitIndex"/>. Only the complete bytes advance the index.
     /// </remarks>
-    private readonly uint[] emitBuffer;
+    private readonly byte[] emitBuffer;
 
     /// <summary>
     /// Buffer for temporal storage which is then written to the output stream.
@@ -90,11 +85,14 @@ internal class HuffmanScanEncoder
     private readonly int restartInterval;
 
     /// <summary>
-    /// Number of jagged bits stored in <see cref="accumulatedBits"/>
+    /// The number of pending bits in <see cref="accumulatedBits"/>: 0 to 7.
     /// </summary>
     private int bitCount;
 
-    private int emitWriteIndex;
+    /// <summary>
+    /// The number of complete bytes in <see cref="emitBuffer"/>.
+    /// </summary>
+    private int emitIndex;
 
     /// <summary>
     /// The output stream. All attempted writes after the first error become no-ops.
@@ -109,13 +107,14 @@ internal class HuffmanScanEncoder
     /// <param name="outputStream">Output stream for saving encoded data.</param>
     public HuffmanScanEncoder(int blocksPerCodingUnit, int restartInterval, Stream outputStream)
     {
-        int emitBufferByteLength = MaxBytesPerBlock * blocksPerCodingUnit;
-        this.emitBuffer = new uint[emitBufferByteLength / sizeof(uint)];
-        this.emitWriteIndex = this.emitBuffer.Length;
+        // The encoder flushes after a coding unit when emitIndex reaches the threshold.
+        // Thus, the buffer holds the threshold, one more coding unit, and the 8 bytes of the last code store.
+        this.emitBuffer = new byte[FlushThreshold + (MaxBytesPerBlock * blocksPerCodingUnit) + sizeof(ulong)];
 
         this.restartInterval = restartInterval;
 
-        this.streamWriteBuffer = new byte[emitBufferByteLength * OutputBufferLengthMultiplier];
+        // The stuffing loop stores full vectors. The extra vector of space keeps the last store inside the buffer.
+        this.streamWriteBuffer = new byte[(this.emitBuffer.Length * OutputBufferLengthMultiplier) + Vector512<byte>.Count];
 
         this.target = outputStream;
     }
@@ -128,7 +127,7 @@ internal class HuffmanScanEncoder
     private bool IsStreamFlushNeeded
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => this.emitWriteIndex < (int)((uint)this.emitBuffer.Length / 2);
+        get => this.emitIndex >= FlushThreshold;
     }
 
     public void BuildHuffmanTable(JpegHuffmanTableConfig tableConfig)
@@ -392,7 +391,6 @@ internal class HuffmanScanEncoder
     private void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int mcu = 0;
         int mcusPerColumn = frame.McusPerColumn;
         int mcusPerLine = frame.McusPerLine;
 
@@ -419,8 +417,7 @@ internal class HuffmanScanEncoder
                     }
                 }
 
-                // Scan an interleaved mcu... process components in order
-                int mcuCol = mcu % mcusPerLine;
+                // This loop encodes one interleaved MCU. It reads the components in scan order. The MCU column is i.
                 for (int k = 0; k < frame.Components.Length; k++)
                 {
                     Component component = frame.Components[k];
@@ -431,7 +428,7 @@ internal class HuffmanScanEncoder
                     int h = component.HorizontalSamplingFactor;
                     int v = component.VerticalSamplingFactor;
 
-                    nuint blockColBase = (uint)(mcuCol * h);
+                    nuint blockColBase = (uint)(i * h);
 
                     // Scan out an mcu's worth of this component; that's just determined
                     // by the basic H and V specified for the component
@@ -454,7 +451,6 @@ internal class HuffmanScanEncoder
                 }
 
                 // After all interleaved components, that's an interleaved MCU
-                mcu++;
                 if (this.IsStreamFlushNeeded)
                 {
                     this.FlushToStream();
@@ -550,9 +546,11 @@ internal class HuffmanScanEncoder
         ref HuffmanLut dcTable)
     {
         // Emit the DC delta.
+        BitWriter writer = new(this);
         int dc = block[0];
-        this.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
+        writer.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
         component.DcPredictor = dc;
+        writer.Store(this);
     }
 
     private void WriteAcBlock(
@@ -561,39 +559,9 @@ internal class HuffmanScanEncoder
         nint end,
         ref HuffmanLut acTable)
     {
-        // Emit the AC components.
-        int[] acHuffTable = acTable.Values;
-
-        int runLength = 0;
-        ref short blockRef = ref Unsafe.As<Block8x8, short>(ref block);
-        for (nint zig = start; zig < end; zig++)
-        {
-            const int zeroRun1 = 1 << 4;
-            const int zeroRun16 = 16 << 4;
-
-            int ac = Unsafe.Add(ref blockRef, zig);
-            if (ac == 0)
-            {
-                runLength += zeroRun1;
-            }
-            else
-            {
-                while (runLength >= zeroRun16)
-                {
-                    this.EmitHuff(acHuffTable, 0xf0);
-                    runLength -= zeroRun16;
-                }
-
-                this.EmitHuffRLE(acHuffTable, runLength, ac);
-                runLength = 0;
-            }
-        }
-
-        // if mcu block contains trailing zeros - we must write end of block (EOB) value indicating that current block is over
-        if (runLength > 0)
-        {
-            this.EmitHuff(acHuffTable, 0x00);
-        }
+        BitWriter writer = new(this);
+        WriteAc(ref writer, ref block, start, end, acTable.Values);
+        writer.Store(this);
     }
 
     private void WriteBlock(
@@ -602,118 +570,61 @@ internal class HuffmanScanEncoder
         ref HuffmanLut dcTable,
         ref HuffmanLut acTable)
     {
-        this.WriteDc(component, ref block, ref dcTable);
-        this.WriteAcBlock(ref block, 1, 64, ref acTable);
+        // One writer covers the full block, so the bit state stays in registers for all of its codes.
+        BitWriter writer = new(this);
+        int dc = block[0];
+        writer.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
+        component.DcPredictor = dc;
+        WriteAc(ref writer, ref block, 1, 64, acTable.Values);
+        writer.Store(this);
+    }
+
+    /// <summary>
+    /// Emits the AC coefficients <paramref name="start"/> to <paramref name="end"/> - 1 of a block in zig-zag order.
+    /// </summary>
+    /// <param name="writer">The bit writer.</param>
+    /// <param name="block">The quantized coefficients in zig-zag order.</param>
+    /// <param name="start">The first coefficient: 1 to 63.</param>
+    /// <param name="end">One more than the last coefficient: <paramref name="start"/> + 1 to 64.</param>
+    /// <param name="acHuffTable">The AC Huffman table.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void WriteAc(ref BitWriter writer, ref Block8x8 block, nint start, nint end, int[] acHuffTable)
+    {
+        // Bit k of the mask is 1 when coefficient k is not zero. The two shifts keep only start to end - 1.
+        // The loop visits only the non-zero coefficients. A loop over all 63 coefficients has a branch
+        // for each zero test, and that branch changes with the image data.
+        ulong mask = block.GetNonZeroMask() & (ulong.MaxValue << (int)start) & (ulong.MaxValue >> (int)(64 - end));
+        ref short coefficients = ref Unsafe.As<Block8x8, short>(ref block);
+
+        nint last = start - 1;
+        while (mask != 0)
+        {
+            nint k = BitOperations.TrailingZeroCount(mask);
+
+            // The run is the number of zero coefficients before coefficient k. Each 16 zeros give one ZRL code (0xF0).
+            nint run = k - last - 1;
+            while (run >= 16)
+            {
+                writer.EmitHuff(acHuffTable, 0xf0);
+                run -= 16;
+            }
+
+            writer.EmitHuffRLE(acHuffTable, (int)run << 4, Unsafe.Add(ref coefficients, k));
+            last = k;
+
+            // This clears the lowest set bit.
+            mask &= mask - 1;
+        }
+
+        // Zero coefficients after the last non-zero coefficient end with the end-of-block code (EOB, 0x00).
+        if (last < end - 1)
+        {
+            writer.EmitHuff(acHuffTable, 0x00);
+        }
     }
 
     private void WriteRestart(int restart) =>
         this.target.Write([0xff, (byte)(JpegConstants.Markers.RST0 + restart)], 0, 2);
-
-    /// <summary>
-    /// Emits the most significant count of bits to the buffer.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Supports up to 32 count of bits but, generally speaking, jpeg
-    /// standard assures that there won't be more than 16 bits per single
-    /// value.
-    /// </para>
-    /// <para>
-    /// Emitting algorithm uses 3 intermediate buffers for caching before
-    /// writing to the stream:
-    /// <list type="number">
-    /// <item>
-    /// <term>uint32</term>
-    /// <description>
-    /// Bit buffer. Encoded spectral values can occupy up to 16 bits, bits
-    /// are assembled to whole bytes via this intermediate buffer.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>uint32[]</term>
-    /// <description>
-    /// Assembled bytes from uint32 buffer are saved into this buffer.
-    /// uint32 buffer values are saved using indices from the last to the first.
-    /// As bytes are saved to the memory as 4-byte packages endianness matters:
-    /// Jpeg stream is big-endian, indexing buffer bytes from the last index to the
-    /// first eliminates all operations to extract separate bytes. This only works for
-    /// little-endian machines (there are no known examples of big-endian users atm).
-    /// For big-endians this approach is slower due to the separate byte extraction.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>byte[]</term>
-    /// <description>
-    /// Byte buffer used only during <see cref="FlushToStream(int)"/> method.
-    /// </description>
-    /// </item>
-    /// </list>
-    /// </para>
-    /// </remarks>
-    /// <param name="bits">Bits to emit, must be shifted to the left.</param>
-    /// <param name="count">Bits count stored in the bits parameter.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Emit(uint bits, int count)
-    {
-        this.accumulatedBits |= bits >> this.bitCount;
-
-        count += this.bitCount;
-
-        if (count >= 32)
-        {
-            this.emitBuffer[--this.emitWriteIndex] = this.accumulatedBits;
-            this.accumulatedBits = bits << (32 - this.bitCount);
-
-            count -= 32;
-        }
-
-        this.bitCount = count;
-    }
-
-    /// <summary>
-    /// Emits the given value with the given Huffman table.
-    /// </summary>
-    /// <param name="table">Huffman table.</param>
-    /// <param name="value">Value to encode.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void EmitHuff(int[] table, int value)
-    {
-        int x = table[value];
-        this.Emit((uint)x & 0xffff_ff00u, x & 0xff);
-    }
-
-    /// <summary>
-    /// Emits given value via huffman rle encoding.
-    /// </summary>
-    /// <param name="table">Huffman table.</param>
-    /// <param name="runLength">The number of preceding zeroes, preshifted by 4 to the left.</param>
-    /// <param name="value">Value to encode.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void EmitHuffRLE(int[] table, int runLength, int value)
-    {
-        DebugGuard.IsTrue((runLength & 0xf) == 0, $"{nameof(runLength)} parameter must be shifted to the left by 4 bits");
-
-        int a = value;
-        int b = value;
-        if (a < 0)
-        {
-            a = -value;
-            b = value - 1;
-        }
-
-        int valueLen = GetHuffmanEncodingLength((uint)a);
-
-        // Huffman prefix code
-        int huffPackage = table[runLength | valueLen];
-        int prefixLen = huffPackage & 0xff;
-        uint prefix = (uint)huffPackage & 0xffff_0000u;
-
-        // Actual encoded value
-        uint encodedValue = (uint)b << (32 - valueLen);
-
-        // Doing two binary shifts to get rid of leading 1's in negative value case
-        this.Emit(prefix | (encodedValue >> prefixLen), prefixLen + valueLen);
-    }
 
     /// <summary>
     /// Calculates how many minimum bits needed to store given value for Huffman jpeg encoding.
@@ -738,86 +649,17 @@ internal class HuffmanScanEncoder
     }
 
     /// <summary>
-    /// General method for flushing cached spectral data bytes to
-    /// the ouput stream respecting stuff bytes.
+    /// Writes the complete emitted bytes to the output stream, with a stuff byte after each 0xFF byte.
     /// </summary>
     /// <remarks>
-    /// Bytes cached via <see cref="Emit"/> are stored in 4-bytes blocks
-    /// which makes this method endianness dependent.
+    /// The pending bits stay in <see cref="accumulatedBits"/>. The next code store writes them again at the start of the buffer.
     /// </remarks>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void FlushToStream(int endIndex)
+    private void FlushToStream()
     {
-        Span<byte> emitBytes = MemoryMarshal.AsBytes(this.emitBuffer.AsSpan());
-
-        int writeIdx = 0;
-        int startIndex = emitBytes.Length - 1;
-
-        // Some platforms may fail to eliminate this if-else branching
-        // Even if it happens - buffer is flushed in big packs,
-        // branching overhead shouldn't be noticeable
-        if (BitConverter.IsLittleEndian)
-        {
-            // For little endian case bytes are ordered and can be
-            // safely written to the stream with stuff bytes
-            // First byte is cached on the most significant index
-            // so we are going from the end of the array to its beginning:
-            // ... [  double word #1   ] [  double word #0   ]
-            // ... [idx3|idx2|idx1|idx0] [idx3|idx2|idx1|idx0]
-            for (int i = startIndex; i >= endIndex; i--)
-            {
-                byte value = emitBytes[i];
-                this.streamWriteBuffer[writeIdx++] = value;
-
-                // Inserting stuff byte
-                if (value == 0xff)
-                {
-                    this.streamWriteBuffer[writeIdx++] = 0x00;
-                }
-            }
-        }
-        else
-        {
-            // For big endian case bytes are ordered in 4-byte packs
-            // which are ordered like bytes in the little endian case by in 4-byte packs:
-            // ... [  double word #1   ] [  double word #0   ]
-            // ... [idx0|idx1|idx2|idx3] [idx0|idx1|idx2|idx3]
-            // So we must write each 4-bytes in 'natural order'
-            for (int i = startIndex; i >= endIndex; i -= 4)
-            {
-                // This loop is caused by the nature of underlying byte buffer
-                // implementation and indeed causes performace by somewhat 5%
-                // compared to little endian scenario
-                // Even with this performance drop this cached buffer implementation
-                // is faster than individually writing bytes using binary shifts and binary and(s)
-                for (int j = i - 3; j <= i; j++)
-                {
-                    byte value = emitBytes[j];
-                    this.streamWriteBuffer[writeIdx++] = value;
-
-                    // Inserting stuff byte
-                    if (value == 0xff)
-                    {
-                        this.streamWriteBuffer[writeIdx++] = 0x00;
-                    }
-                }
-            }
-        }
-
-        this.target.Write(this.streamWriteBuffer, 0, writeIdx);
-        this.emitWriteIndex = this.emitBuffer.Length;
+        int written = StuffBytes(this.emitBuffer.AsSpan(0, this.emitIndex), this.streamWriteBuffer);
+        this.target.Write(this.streamWriteBuffer, 0, written);
+        this.emitIndex = 0;
     }
-
-    /// <summary>
-    /// Flushes spectral data bytes after encoding all channel blocks
-    /// in a single jpeg macroblock using <see cref="WriteBlock(Component, ref Block8x8, ref HuffmanLut, ref HuffmanLut)"/>.
-    /// </summary>
-    /// <remarks>
-    /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true
-    /// only during the macroblocks encoding routine.
-    /// </remarks>
-    private void FlushToStream() =>
-        this.FlushToStream(this.emitWriteIndex * 4);
 
     /// <summary>
     /// Flushes final cached bits to the stream padding 1's to
@@ -827,22 +669,229 @@ internal class HuffmanScanEncoder
     /// This must be called only once at the end of the encoding routine.
     /// <see cref="IsStreamFlushNeeded"/> check is not needed.
     /// </remarks>
-    [MethodImpl(InliningOptions.ShortMethod)]
     private void FlushRemainingBytes()
     {
-        // Padding all 4 bytes with 1's while not corrupting initial bits stored in accumulatedBits
-        // And writing only valuable count of bytes count we want to write to the output stream
-        int valuableBytesCount = (int)Numerics.DivideCeil((uint)this.bitCount, 8);
-        uint packedBytes = this.accumulatedBits | (uint.MaxValue >> this.bitCount);
-        this.emitBuffer[this.emitWriteIndex - 1] = packedBytes;
+        // The writer pads the last byte with 1 bits (ITU T.81, F.1.2.3). Then it is complete, and the flush writes it.
+        if (this.bitCount > 0)
+        {
+            BitWriter writer = new(this);
+            int padding = 8 - this.bitCount;
+            writer.Emit(uint.MaxValue << (32 - padding), padding);
+            writer.Store(this);
+        }
 
-        // Flush cached bytes to the output stream with padding bits
-        int lastByteIndex = (this.emitWriteIndex * 4) - valuableBytesCount;
-        this.FlushToStream(lastByteIndex);
+        this.FlushToStream();
 
         // Clear huffman register
         // This is needed for for images with multiples scans
         this.bitCount = 0;
         this.accumulatedBits = 0;
+    }
+
+    /// <summary>
+    /// Copies entropy-coded bytes and puts a 0x00 stuff byte after each 0xFF byte (ITU T.81, B.1.1.5).
+    /// </summary>
+    /// <param name="source">The emitted bytes.</param>
+    /// <param name="destination">
+    /// The destination. It has space for at least two times the source length, plus one <see cref="Vector512{T}"/> of bytes.
+    /// </param>
+    /// <returns>The number of bytes written to <paramref name="destination"/>.</returns>
+    private static int StuffBytes(ReadOnlySpan<byte> source, Span<byte> destination)
+    {
+        ref byte src = ref MemoryMarshal.GetReference(source);
+        ref byte dst = ref MemoryMarshal.GetReference(destination);
+        nint length = source.Length;
+        nint i = 0;
+        nint w = 0;
+
+        // Each step stores the full vector, then finds the first 0xFF byte. If the vector has no 0xFF byte, the step is complete.
+        // Otherwise, the step keeps the bytes up to and including the 0xFF byte. Then it adds the stuff byte.
+        // The next step starts after the 0xFF byte and writes the other bytes again.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<byte> marker = Vector512.Create((byte)0xff);
+            while (i <= length - Vector512<byte>.Count)
+            {
+                Vector512<byte> bytes = Vector512.LoadUnsafe(ref src, (nuint)i);
+                bytes.StoreUnsafe(ref dst, (nuint)w);
+                ulong hits = Vector512.Equals(bytes, marker).ExtractMostSignificantBits();
+                if (hits == 0)
+                {
+                    i += Vector512<byte>.Count;
+                    w += Vector512<byte>.Count;
+                    continue;
+                }
+
+                nint kept = BitOperations.TrailingZeroCount(hits) + 1;
+                i += kept;
+                w += kept;
+                Unsafe.Add(ref dst, w++) = 0x00;
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<byte> marker = Vector256.Create((byte)0xff);
+            while (i <= length - Vector256<byte>.Count)
+            {
+                Vector256<byte> bytes = Vector256.LoadUnsafe(ref src, (nuint)i);
+                bytes.StoreUnsafe(ref dst, (nuint)w);
+                uint hits = Vector256.Equals(bytes, marker).ExtractMostSignificantBits();
+                if (hits == 0)
+                {
+                    i += Vector256<byte>.Count;
+                    w += Vector256<byte>.Count;
+                    continue;
+                }
+
+                nint kept = BitOperations.TrailingZeroCount(hits) + 1;
+                i += kept;
+                w += kept;
+                Unsafe.Add(ref dst, w++) = 0x00;
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<byte> marker = Vector128.Create((byte)0xff);
+            while (i <= length - Vector128<byte>.Count)
+            {
+                Vector128<byte> bytes = Vector128.LoadUnsafe(ref src, (nuint)i);
+                bytes.StoreUnsafe(ref dst, (nuint)w);
+                uint hits = Vector128.Equals(bytes, marker).ExtractMostSignificantBits();
+                if (hits == 0)
+                {
+                    i += Vector128<byte>.Count;
+                    w += Vector128<byte>.Count;
+                    continue;
+                }
+
+                nint kept = BitOperations.TrailingZeroCount(hits) + 1;
+                i += kept;
+                w += kept;
+                Unsafe.Add(ref dst, w++) = 0x00;
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            byte value = Unsafe.Add(ref src, i);
+            Unsafe.Add(ref dst, w++) = value;
+            if (value == 0xff)
+            {
+                Unsafe.Add(ref dst, w++) = 0x00;
+            }
+        }
+
+        return (int)w;
+    }
+
+    /// <summary>
+    /// Writes Huffman codes to the emit buffer of the encoder.
+    /// </summary>
+    /// <remarks>
+    /// Each write method copies the bit state of the encoder to this struct. At the end, it writes the state back.
+    /// Thus, the state stays in registers for all codes of the block, not in fields of the encoder object.
+    /// </remarks>
+    private ref struct BitWriter
+    {
+        private readonly ref byte buffer;
+        private nint position;
+        private ulong bits;
+        private int count;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BitWriter"/> struct with the bit state of the encoder.
+        /// </summary>
+        /// <param name="encoder">The encoder.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BitWriter(HuffmanScanEncoder encoder)
+        {
+            this.buffer = ref MemoryMarshal.GetArrayDataReference(encoder.emitBuffer);
+            this.position = encoder.emitIndex;
+            this.bits = encoder.accumulatedBits;
+            this.count = encoder.bitCount;
+        }
+
+        /// <summary>
+        /// Writes the bit state back to the encoder.
+        /// </summary>
+        /// <param name="encoder">The encoder.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void Store(HuffmanScanEncoder encoder)
+        {
+            encoder.emitIndex = (int)this.position;
+            encoder.accumulatedBits = this.bits;
+            encoder.bitCount = this.count;
+        }
+
+        /// <summary>
+        /// Emits the most significant <paramref name="length"/> bits of <paramref name="code"/>.
+        /// </summary>
+        /// <param name="code">The bits, left-aligned at bit 31.</param>
+        /// <param name="length">The number of bits: 1 to 32.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Emit(uint code, int length)
+        {
+            // Fewer than 8 bits are pending, left-aligned at bit 63. The code goes directly below them.
+            // At most 7 + 32 bits are then pending, so they fit in 64 bits.
+            this.bits |= ((ulong)code << 32) >> this.count;
+            this.count += length;
+
+            // The writer stores all 8 bytes in stream order. The complete bytes are final. The next store writes the bytes
+            // after them again, and the emit buffer has space for them. Thus, the store has no branch on the byte count.
+            ulong value = BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(this.bits) : this.bits;
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref this.buffer, this.position), value);
+
+            // The writer removes the complete bytes. There are at most 4, so the shift is at most 32.
+            int bytes = this.count >> 3;
+            this.position += bytes;
+            this.bits <<= bytes << 3;
+            this.count &= 7;
+        }
+
+        /// <summary>
+        /// Emits the given value with the given Huffman table.
+        /// </summary>
+        /// <param name="table">Huffman table.</param>
+        /// <param name="value">Value to encode.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitHuff(int[] table, int value)
+        {
+            int x = table[value];
+            this.Emit((uint)x & 0xffff_ff00u, x & 0xff);
+        }
+
+        /// <summary>
+        /// Emits given value via huffman rle encoding.
+        /// </summary>
+        /// <param name="table">Huffman table.</param>
+        /// <param name="runLength">The number of preceding zeroes, preshifted by 4 to the left.</param>
+        /// <param name="value">Value to encode.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitHuffRLE(int[] table, int runLength, int value)
+        {
+            DebugGuard.IsTrue((runLength & 0xf) == 0, $"{nameof(runLength)} parameter must be shifted to the left by 4 bits");
+
+            // The sign of a coefficient changes with the image data, so a branch on it is often mispredicted.
+            // sign is 0 for zero or a positive value, and -1 for a negative value. Then a is the magnitude, and b is the
+            // value bits: the value for a positive value and value - 1 (the one's complement of the magnitude) otherwise.
+            int sign = value >> 31;
+            int a = (value ^ sign) - sign;
+            int b = value + sign;
+
+            int valueLen = GetHuffmanEncodingLength((uint)a);
+
+            // Huffman prefix code
+            int huffPackage = table[runLength | valueLen];
+            int prefixLen = huffPackage & 0xff;
+            uint prefix = (uint)huffPackage & 0xffff_0000u;
+
+            // Actual encoded value
+            uint encodedValue = (uint)b << (32 - valueLen);
+
+            // Doing two binary shifts to get rid of leading 1's in negative value case
+            this.Emit(prefix | (encodedValue >> prefixLen), prefixLen + valueLen);
+        }
     }
 }

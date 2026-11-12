@@ -202,12 +202,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
                     EncodingUtilities.ReplaceTransparentPixels(vectors[..sourceRow.Length]);
                 }
 
-                Rgb.FromScaledVector4(vectors[..sourceRow.Length], rgb[..sourceRow.Length]);
-
                 // Pad in the same source color space before ICC. Vertical padding reuses the last source row.
-                rgb[paddingStartIndex..].Fill(rgb[paddingStartIndex - 1]);
+                vectors[paddingStartIndex..].Fill(vectors[paddingStartIndex - 1]);
                 JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, yy - start);
-                this.colorConverter.ConvertFromRgb(rgb, values, converter, MemoryMarshal.Cast<Vector4, float>(vectors));
+                this.colorConverter.ConvertFromRgb(vectors, values, converter, rgb);
             }
         }
 

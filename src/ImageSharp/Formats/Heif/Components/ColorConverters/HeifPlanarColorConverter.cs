@@ -544,10 +544,10 @@ internal static class HeifPlanarColorConverter
                     componentLength += (this.chromaWidth * 2) + (this.reconstructCompleteRow ? this.bufferWidth : 0);
                 }
 
-                // ICC rows hold one pixel vector per pixel and the packed RGB that the profile converts. Opaque eight-bit
-                // rows pack bytes into one float of storage per pixel. Other rows use one pixel vector per pixel for
-                // reoriented output.
-                int packedRowCount = this.profileConverter is not null ? 7 : this.UsesBytePacking && this.alpha is null ? 1 : 4;
+                // An ICC row holds one pixel vector for each pixel. The profile converts these vectors in place.
+                // An opaque eight-bit row packs the bytes of each pixel into one float.
+                // All other rows hold one pixel vector for each pixel, for the reoriented output.
+                int packedRowCount = this.profileConverter is not null || !this.UsesBytePacking || this.alpha is not null ? 4 : 1;
                 return componentLength + (this.width * packedRowCount);
             }
         }
@@ -676,8 +676,7 @@ internal static class HeifPlanarColorConverter
             {
                 // The converted RGBA row stays in floating point until TPixel performs its final conversion.
                 Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(packedStorage)[..width];
-                Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packedStorage[(width * 4)..])[..width];
-                this.colorConverter.ConvertToRgb(red, green, blue, alpha, this.premultiplied, this.profileConverter, vectors, rgb);
+                this.colorConverter.ConvertToRgb(red, green, blue, alpha, this.premultiplied, this.profileConverter, vectors);
                 if (step.Width == 1)
                 {
                     // ICC returns straight RGB even when the stored source samples were associated.

@@ -27,7 +27,6 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="premultiplied">Whether the color components are associated with <paramref name="alpha"/>.</param>
     /// <param name="profileConverter">The converter from the embedded ICC profile to sRGB.</param>
     /// <param name="vectors">The destination pixel vectors.</param>
-    /// <param name="rgbSpan">RGB storage of the same length as <paramref name="vectors"/> for the profile transform.</param>
     public abstract void ConvertToRgb(
         Span<float> component0,
         Span<float> component1,
@@ -35,8 +34,7 @@ internal abstract partial class HeifColorConverterBase
         ReadOnlySpan<float> alpha,
         bool premultiplied,
         ColorProfileConverter profileConverter,
-        Span<Vector4> vectors,
-        Span<Rgb> rgbSpan);
+        Span<Vector4> vectors);
 
     /// <summary>
     /// Converts working sRGB pixels through ICC and writes normalized native component rows.
@@ -76,8 +74,7 @@ internal abstract partial class HeifColorConverterBase
             ReadOnlySpan<float> alpha,
             bool premultiplied,
             ColorProfileConverter profileConverter,
-            Span<Vector4> vectors,
-            Span<Rgb> rgbSpan)
+            Span<Vector4> vectors)
         {
             // The sample loader supplies normalized native components. The RGB profile describes the RGB produced by the model,
             // so run the selected model before ICC. Monochrome conversion repeats its intensity in all three RGB planes.
@@ -91,11 +88,9 @@ internal abstract partial class HeifColorConverterBase
                 Numerics.UnPremultiply(vectors);
             }
 
-            // Reuse the caller's RGB row for the typed profile transform. Replace only the color components,
-            // so the decoder can pack the retained alpha with the destination's alpha representation.
-            Rgb.FromScaledVector4(vectors, rgbSpan);
-            profileConverter.Convert<Rgb, Rgb>(rgbSpan, rgbSpan);
-            Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(rgbSpan), vectors);
+            // The shared converter converts RGB in the vectors. It does not change alpha.
+            // The decoder then packs vectors into TPixel, including the destination's alpha representation.
+            profileConverter.Convert(vectors);
         }
 
         /// <inheritdoc />
@@ -110,11 +105,11 @@ internal abstract partial class HeifColorConverterBase
             Span<Rgb> rgbSpan)
         {
             // This shared API extracts straight RGB according to TPixel, applies ICC, and retains alpha in vectors.
-            // The vector row belongs to the writer and is reused for the next row. The separate alpha encoder reads source alpha.
-            profileConverter.Convert(configuration, source, vectors);
+            // Both spans belong to the row writer and are reused for the next row. The separate alpha encoder reads source alpha.
+            profileConverter.Convert(configuration, source, vectors, rgbSpan);
 
-            // The converted vectors retain opacity. Extract only the transformed RGB components for the color model.
-            SimdUtils.DeinterleaveFloatPlanes(vectors[..source.Length], component0, component1, component2, Span<float>.Empty);
+            // Each Rgb stores three consecutive floats. Unpack those transformed device values into the model's R, G and B planes.
+            SimdUtils.UnpackDeinterleave3(MemoryMarshal.Cast<Rgb, Vector3>(rgbSpan), component0, component1, component2);
 
             // Encoding reverses the decode order: ICC produces device RGB, then the same closed operator encodes the model.
             // The maximum value is 1 because ICC returns scaled RGB, not byte or ushort codes. This does not bound RGB to [0,1].

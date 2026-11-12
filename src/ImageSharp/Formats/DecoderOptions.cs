@@ -50,14 +50,16 @@ public sealed class DecoderOptions
 #pragma warning restore IDE0032 // Use auto property
 
     /// <summary>
-    /// Gets the target size to decode the image into. Scaling should use an operation equivalent to <see cref="ResizeMode.Max"/>.
+    /// Gets the target size of the decoded image. By default, the decoder fits the image into this size and keeps
+    /// the aspect ratio, as <see cref="ResizeMode.Max"/> does. A format-specific option can change this behavior.
     /// </summary>
     public Size? TargetSize { get; init; }
 
     /// <summary>
-    /// Gets the sampler to use when resizing during decoding.
+    /// Gets the sampler that the decoder uses to resize the image to <see cref="TargetSize"/>.
+    /// Defaults to <see cref="KnownResamplers.Lanczos3"/>.
     /// </summary>
-    public IResampler Sampler { get; init; } = KnownResamplers.Box;
+    public IResampler Sampler { get; init; } = KnownResamplers.Lanczos3;
 
     /// <summary>
     /// Gets a value indicating whether to ignore optional encoded metadata when decoding.

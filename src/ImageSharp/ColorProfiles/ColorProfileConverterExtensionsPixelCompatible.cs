@@ -48,24 +48,33 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
 
         // Process the rows in parallel chunks, the converter itself is thread safe.
         // Request straight scaled vectors on both sides of ICC. The processor uses the destination pixel's rules to restore association.
+        // The converter converts RGB in the vector row of the processor and keeps its alpha. Thus, no other row storage is necessary.
         source.Mutate(o => o.ProcessPixelRowsAsVector4(
-            row =>
-            {
-                // Sixteen RGB pixels occupy 192 bytes and supply 16 lanes per channel for Vector512<float>.
-                // Limit each call to this capacity and reuse the storage instead of renting another row buffer.
-                // Keep alpha in the processor's vector row while the typed profile conversion changes only RGB.
-                // This inline storage has no cache-line alignment guarantee; SIMD loads support unaligned addresses.
-                InlineArray16<Rgb> storage = default;
-                Span<Rgb> rgb = storage;
-
-                while (!row.IsEmpty)
-                {
-                    int length = Math.Min(row.Length, rgb.Length);
-                    converter.Convert(row[..length], rgb[..length]);
-                    row = row[length..];
-                }
-            },
+            row => converter.Convert(row),
             PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply));
+    }
+
+    /// <summary>
+    /// Converts source pixels from the converter's source profile to its target profile as straight, scaled vectors.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="source">The source pixels, which remain unchanged.</param>
+    /// <param name="destination">The destination vectors.</param>
+    /// <param name="rgb">Caller-owned storage that gets a copy of the converted RGB components.</param>
+    public static void Convert<TPixel>(
+        this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination, Span<Rgb> rgb)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // ICC consumes straight RGB. Extract associated pixels as straight vectors without changing the source pixels.
+        PixelOperations<TPixel>.Instance.ToUnassociatedScaledVector4(configuration, source, destination);
+
+        Span<Vector4> row = destination[..source.Length];
+        converter.Convert(row);
+
+        // Planar encoders read the converted RGB from this copy.
+        Rgb.FromScaledVector4(row, rgb[..source.Length]);
     }
 
     /// <summary>
@@ -109,7 +118,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         // the shared pixel arithmetic, without rounding that result back into the source pixel format.
         if (alphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            PixelOperations.Associate(destination, destination);
+            PixelOperations.ClampToPixelRange<PixelOperations.AssociateOperator>(destination, destination);
         }
     }
 
@@ -134,7 +143,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         // owns finite component bounds and zero-alpha behavior; the color transform does not redefine them.
         if (alphaRepresentation == PixelAlphaRepresentation.Associated)
         {
-            PixelOperations.UnPremultiply(source, source);
+            PixelOperations.Apply<PixelOperations.UnassociateOperator>(source, source);
         }
 
         converter.ConvertRgb(source);
@@ -145,12 +154,18 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     }
 
     /// <summary>
-    /// Converts RGB in a floating-point pixel row while retaining alpha and reusing bounded typed RGB storage.
+    /// Converts RGB in a floating-point pixel row while retaining alpha.
     /// </summary>
     /// <param name="converter">The configured color converter.</param>
     /// <param name="row">The straight components to update in place.</param>
     private static void ConvertRgb(this ColorProfileConverter converter, Span<Vector4> row)
     {
+        if (converter.ShouldUseIccProfiles())
+        {
+            converter.Convert(row);
+            return;
+        }
+
         InlineArray64<Rgb> storage = default;
         Span<Rgb> rgb = storage;
 
@@ -159,7 +174,11 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         while (!row.IsEmpty)
         {
             int count = Math.Min(row.Length, rgb.Length);
-            converter.Convert(row[..count], rgb[..count]);
+            Span<Vector4> block = row[..count];
+            Span<Rgb> colors = rgb[..count];
+            Rgb.FromScaledVector4(block, colors);
+            converter.Convert(colors, colors);
+            Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(colors), block);
             row = row[count..];
         }
     }
@@ -174,9 +193,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<Vector4> vectorBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(colors.Length);
-        using IMemoryOwner<Rgb> rgbBuffer = converter.Options.MemoryAllocator.Allocate<Rgb>(colors.Length);
-        Span<Vector4> vectors = vectorBuffer.Memory.Span[..colors.Length];
-        Span<Rgb> rgb = rgbBuffer.Memory.Span[..colors.Length];
+        Span<Vector4> vectors = vectorBuffer.Memory.Span;
 
         // Color preserves the encoded sample precision and alpha until the ICC result reaches the destination pixel format.
         for (int i = 0; i < colors.Length; i++)
@@ -184,7 +201,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
             vectors[i] = colors[i].ToScaledVector4(PixelAlphaRepresentation.Unassociated);
         }
 
-        converter.Convert(vectors, rgb);
+        converter.Convert(vectors[..colors.Length]);
 
         for (int i = 0; i < colors.Length; i++)
         {
@@ -211,20 +228,29 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
     }
 
     /// <summary>
-    /// Converts the RGB components of a pixel-vector row through typed profiles while retaining its alpha.
+    /// Converts scaled vector RGB components in place while preserving their alpha components.
     /// </summary>
     /// <remarks>
-    /// RGB values can remain outside [0,1]. The caller applies destination pixel storage bounds after this conversion.
+    /// RGB remains unclipped. Destination pixel conversion applies integer bounds; floating-point pixels retain extended values.
     /// </remarks>
-    /// <param name="converter">The converter configured with the source and target profiles or working spaces.</param>
-    /// <param name="row">The pixel vectors updated in place. Alpha remains unchanged.</param>
-    /// <param name="rgbSpan">Existing RGB storage with one entry per pixel. It must not overlap the vector row.</param>
-    private static void Convert(this ColorProfileConverter converter, Span<Vector4> row, Span<Rgb> rgbSpan)
+    /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
+    /// <param name="row">The scaled vectors whose RGB components are converted.</param>
+    public static void Convert(this ColorProfileConverter converter, Span<Vector4> row)
     {
-        // Keep alpha in the pixel row while the existing typed API transforms the separate RGB row.
-        // Replace only XYZ afterward, without applying pixel storage bounds or changing alpha bits.
-        Rgb.FromScaledVector4(row, rgbSpan);
-        converter.Convert(rgbSpan, rgbSpan);
-        Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(rgbSpan), row);
+        if (converter.Options.SourceIccProfile is null)
+        {
+            throw new InvalidOperationException("Source ICC profile is missing.");
+        }
+
+        if (converter.Options.TargetIccProfile is null)
+        {
+            throw new InvalidOperationException("Target ICC profile is missing.");
+        }
+
+        // The row holds RGB colors. Thus, W is alpha and not color data, also when a profile has four channels.
+        // The operator gets W = 1, and the row keeps its alpha.
+        // The result is the same as a conversion through Rgb storage, which has W = 1. But this method does not copy the row.
+        ColorProfileConverterExtensionsIcc.IccTransform transform = converter.GetIccTransform();
+        transform.Converter.Convert(row, row, false);
     }
 }

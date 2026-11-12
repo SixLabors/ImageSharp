@@ -271,41 +271,53 @@ internal static class ColorNumerics
     public static int GetColorCountForBitDepth(int bitDepth)
         => 1 << bitDepth;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector4 Transform(Vector4 vector, in ColorMatrix.Impl matrix)
-    {
-        Vector4 result = matrix.X * vector.X;
-
-        result += matrix.Y * vector.Y;
-        result += matrix.Z * vector.Z;
-        result += matrix.W * vector.W;
-        result += matrix.V;
-
-        return result;
-    }
-
     /// <summary>
-    /// Transforms a vector by the given color matrix.
+    /// Transforms a vector by the color matrix.
     /// </summary>
     /// <param name="vector">The source vector.</param>
     /// <param name="matrix">The transformation color matrix.</param>
+    /// <returns>The transformed vector.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Transform(ref Vector4 vector, ref ColorMatrix matrix)
-        => vector = Transform(vector, matrix.AsImpl());
+    public static Vector4 Transform(Vector4 vector, ColorMatrix matrix)
+        => Transform(vector.AsVector128(), in matrix.AsROImpl()).AsVector4();
 
     /// <summary>
-    /// Bulk variant of <see cref="Transform(ref Vector4, ref ColorMatrix)"/>.
+    /// Transforms each vector by the color matrix.
     /// </summary>
-    /// <param name="vectors">The span of vectors</param>
+    /// <param name="vectors">The vectors to transform in place.</param>
     /// <param name="matrix">The transformation color matrix.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Transform(Span<Vector4> vectors, ref ColorMatrix matrix)
+    public static void Transform(Span<Vector4> vectors, ColorMatrix matrix)
     {
+        // Get the read-only view of the rows once. The loop only reads its fields.
+        ref readonly ColorMatrix.Impl rows = ref matrix.AsROImpl();
+
         for (int i = 0; i < vectors.Length; i++)
         {
-            ref Vector4 v = ref vectors[i];
-            Transform(ref v, ref matrix);
+            vectors[i] = Transform(vectors[i].AsVector128(), in rows).AsVector4();
         }
+    }
+
+    /// <summary>
+    /// Transforms one RGBA vector by the rows of a color matrix.
+    /// </summary>
+    /// <remarks>
+    /// This follows the runtime form of <see cref="Vector4.Transform(Vector4, Matrix4x4)"/>. Each component of the vector
+    /// is broadcast and multiplied by its matrix row, and the products are added with the runtime multiply-add estimate.
+    /// The fifth row is the offset, so it is added last.
+    /// </remarks>
+    /// <param name="vector">The source vector.</param>
+    /// <param name="matrix">The rows of the color matrix. The method only reads the row fields.</param>
+    /// <returns>The transformed vector.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<float> Transform(Vector128<float> vector, in ColorMatrix.Impl matrix)
+    {
+        Vector128<float> result = matrix.X.AsVector128() * vector.GetElement(0);
+        result = Vector128.MultiplyAddEstimate(matrix.Y.AsVector128(), Vector128.Create(vector.GetElement(1)), result);
+        result = Vector128.MultiplyAddEstimate(matrix.Z.AsVector128(), Vector128.Create(vector.GetElement(2)), result);
+        result = Vector128.MultiplyAddEstimate(matrix.W.AsVector128(), Vector128.Create(vector.GetElement(3)), result);
+
+        return result + matrix.V.AsVector128();
     }
 
     /// <summary>

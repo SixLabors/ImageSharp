@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -48,7 +50,19 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private readonly SpectralConverter spectralConverter;
 
+    private readonly MemoryAllocator allocator;
+
     private JpegBitReader scanBuffer;
+
+    /// <summary>
+    /// The byte buffer of the bit reader. The decoder allocates it on first use.
+    /// </summary>
+    private IMemoryOwner<byte> entropyBuffer;
+
+    /// <summary>
+    /// Keeps <see cref="entropyBuffer"/> pinned while the decoder owns it. The bit reader holds its pointer.
+    /// </summary>
+    private MemoryHandle entropyBufferHandle;
 
     private ArithmeticDecodingTable[] dcDecodingTables;
 
@@ -187,11 +201,13 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="converter">Spectral to pixel converter.</param>
+    /// <param name="allocator">The allocator for the byte buffer of the bit reader.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    public ArithmeticScanDecoder(BufferedReadStream stream, SpectralConverter converter, CancellationToken cancellationToken)
+    public ArithmeticScanDecoder(BufferedReadStream stream, SpectralConverter converter, MemoryAllocator allocator, CancellationToken cancellationToken)
     {
         this.stream = stream;
         this.spectralConverter = converter;
+        this.allocator = allocator;
         this.cancellationToken = cancellationToken;
 
         // Inline storage is zero-initialized with the decoder; only the arithmetic probability state starts nonzero.
@@ -248,7 +264,16 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
         this.scanComponentCount = scanComponentCount;
 
-        this.scanBuffer = new JpegBitReader(this.stream);
+        if (this.entropyBuffer is null)
+        {
+            this.entropyBuffer = this.allocator.Allocate<byte>(JpegBitReader.EntropyBufferSize);
+            this.entropyBufferHandle = this.entropyBuffer.Memory.Pin();
+        }
+
+        unsafe
+        {
+            this.scanBuffer = new JpegBitReader(this.stream, (byte*)this.entropyBufferHandle.Pointer, JpegBitReader.EntropyBufferSize);
+        }
 
         this.frame.AllocateComponents();
 
@@ -261,10 +286,17 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             this.ParseBaselineData(iccProfile);
         }
 
-        if (this.scanBuffer.HasBadMarker())
-        {
-            this.stream.Position = this.scanBuffer.MarkerPosition;
-        }
+        // The bit reader reads bytes before it needs them.
+        // EndScan moves the stream to the marker that the reader found, or to the next byte that the reader did not decode.
+        this.scanBuffer.EndScan();
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        this.entropyBufferHandle.Dispose();
+        this.entropyBuffer?.Dispose();
+        this.entropyBuffer = null;
     }
 
     /// <inheritdoc/>
@@ -1143,7 +1175,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
             if (this.scanBuffer.HasBadMarker())
             {
-                this.stream.Position = this.scanBuffer.MarkerPosition;
+                this.scanBuffer.RewindToMarker();
                 this.Reset();
                 return true;
             }

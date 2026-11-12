@@ -141,6 +141,13 @@ public abstract class MultiImageBenchmarkBase
 
     public abstract class WithImagesPreloaded : MultiImageBenchmarkBase
     {
+        // Both libraries write into this stream. Each image rewinds it, so after the first call it has the capacity of
+        // the largest output, and the results measure the encoders instead of the growth of a new stream.
+        private readonly MemoryStream workStream = new();
+
+        [GlobalCleanup]
+        public void Cleanup() => this.workStream.Dispose();
+
         protected override void ReadFilesImpl()
         {
             base.ReadFilesImpl();
@@ -213,19 +220,13 @@ public abstract class MultiImageBenchmarkBase
         }
 
         protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
-        {
-            using MemoryStream workStream = new();
-            this.ForEachImageSharpImage(
+            => this.ForEachImageSharpImage(
                 img =>
                 {
-                    // ReSharper disable AccessToDisposedClosure
-                    object result = operation(img, workStream);
-                    workStream.Seek(0, SeekOrigin.Begin);
-
-                    // ReSharper restore AccessToDisposedClosure
+                    object result = operation(img, this.workStream);
+                    this.workStream.Seek(0, SeekOrigin.Begin);
                     return result;
                 });
-        }
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, object> operation)
         {
@@ -244,18 +245,12 @@ public abstract class MultiImageBenchmarkBase
         }
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, MemoryStream, object> operation)
-        {
-            using MemoryStream workStream = new();
-            this.ForEachSystemDrawingImage(
+            => this.ForEachSystemDrawingImage(
                 img =>
                 {
-                    // ReSharper disable AccessToDisposedClosure
-                    object result = operation(img, workStream);
-                    workStream.Seek(0, SeekOrigin.Begin);
-
-                    // ReSharper restore AccessToDisposedClosure
+                    object result = operation(img, this.workStream);
+                    this.workStream.Seek(0, SeekOrigin.Begin);
                     return result;
                 });
-        }
     }
 }

@@ -38,16 +38,16 @@ public class EncodeBmpMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method                               | InputCategory   | Mean      | Error     | StdDev   | Ratio | RatioSD | Gen0     | Gen1     | Gen2     | Allocated | Alloc Ratio |
-    |------------------------------------- |---------------- |----------:|----------:|---------:|------:|--------:|---------:|---------:|---------:|----------:|------------:|
-    | 'EncodeBmpMultiple - ImageSharp'     | AllImages       | 214.40 ms | 53.167 ms | 2.914 ms |  1.24 |    0.02 |        - |        - |        - |  66.06 MB |        2.10 |
-    | 'EncodeBmpMultiple - System.Drawing' | AllImages       | 172.48 ms | 21.767 ms | 1.193 ms |  1.00 |    0.01 |        - |        - |        - |  31.46 MB |        1.00 |
-    |                                      |                 |           |           |          |       |         |          |          |          |           |             |
-    | 'EncodeBmpMultiple - ImageSharp'     | SmallImagesOnly | 130.17 ms | 51.876 ms | 2.844 ms |  3.63 |    0.07 |        - |        - |        - |   4.59 MB |        0.79 |
-    | 'EncodeBmpMultiple - System.Drawing' | SmallImagesOnly |  35.83 ms |  4.061 ms | 0.223 ms |  1.00 |    0.01 |        - |        - |        - |   5.78 MB |        1.00 |
-    |                                      |                 |           |           |          |       |         |          |          |          |           |             |
-    | 'EncodeBmpMultiple - ImageSharp'     | LargeImagesOnly |  85.64 ms | 29.914 ms | 1.640 ms |  0.59 |    0.01 | 833.3333 | 833.3333 | 833.3333 |  91.89 MB |        3.20 |
-    | 'EncodeBmpMultiple - System.Drawing' | LargeImagesOnly | 145.74 ms | 37.234 ms | 2.041 ms |  1.00 |    0.02 |        - |        - |        - |  28.76 MB |        1.00 |
+    | Method                               | InputCategory   | Mean      | Error     | StdDev   | Ratio | RatioSD | Allocated | Alloc Ratio |
+    |------------------------------------- |---------------- |----------:|----------:|---------:|------:|--------:|----------:|------------:|
+    | 'EncodeBmpMultiple - ImageSharp'     | AllImages       | 225.73 ms | 37.067 ms | 2.032 ms |  1.33 |    0.01 | 789.57 KB |        2.99 |
+    | 'EncodeBmpMultiple - System.Drawing' | AllImages       | 169.86 ms |  8.830 ms | 0.484 ms |  1.00 |    0.00 | 264.47 KB |        1.00 |
+    |                                      |                 |           |           |          |       |         |           |             |
+    | 'EncodeBmpMultiple - ImageSharp'     | SmallImagesOnly | 128.19 ms |  8.559 ms | 0.469 ms |  3.63 |    0.04 |  608.8 KB |        2.81 |
+    | 'EncodeBmpMultiple - System.Drawing' | SmallImagesOnly |  35.30 ms |  7.651 ms | 0.419 ms |  1.00 |    0.01 | 216.63 KB |        1.00 |
+    |                                      |                 |           |           |          |       |         |           |             |
+    | 'EncodeBmpMultiple - ImageSharp'     | LargeImagesOnly |  78.38 ms | 32.832 ms | 1.800 ms |  0.59 |    0.01 | 282.08 KB |        6.01 |
+    | 'EncodeBmpMultiple - System.Drawing' | LargeImagesOnly | 131.90 ms | 10.038 ms | 0.550 ms |  1.00 |    0.01 |  46.94 KB |        1.00 |
 
     Allocated reports managed memory only.
     Inputs: Bmp/ and Jpg/baseline, without the files that either library cannot load.

@@ -14,12 +14,25 @@ public class DecodeBmp
 {
     private byte[] bmpBytes;
 
+    // Both libraries read from this stream. Each call rewinds it, so the results measure the decoders only.
+    private MemoryStream inputStream;
+
     private string TestImageFullPath
         => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
     [GlobalSetup]
     public void ReadImages()
-        => this.bmpBytes ??= File.ReadAllBytes(this.TestImageFullPath);
+    {
+        this.bmpBytes ??= File.ReadAllBytes(this.TestImageFullPath);
+        this.inputStream ??= new MemoryStream(this.bmpBytes, false);
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        this.inputStream.Dispose();
+        this.inputStream = null;
+    }
 
     [Params(TestImages.Bmp.Car)]
     public string TestImage { get; set; }
@@ -27,16 +40,16 @@ public class DecodeBmp
     [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
     public SDSize BmpSystemDrawing()
     {
-        using MemoryStream memoryStream = new(this.bmpBytes);
-        using SDImage image = SDImage.FromStream(memoryStream);
+        this.inputStream.Position = 0;
+        using SDImage image = SDImage.FromStream(this.inputStream);
         return image.Size;
     }
 
     [Benchmark(Description = "ImageSharp Bmp")]
     public Size BmpImageSharp()
     {
-        using MemoryStream memoryStream = new(this.bmpBytes);
-        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+        this.inputStream.Position = 0;
+        using Image<Rgba32> image = Image.Load<Rgba32>(this.inputStream);
         return new Size(image.Width, image.Height);
     }
 
@@ -50,10 +63,10 @@ public class DecodeBmp
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method               | TestImage   | Mean      | Error    | StdDev   | Ratio | Gen0   | Allocated | Alloc Ratio |
-    |--------------------- |------------ |----------:|---------:|---------:|------:|-------:|----------:|------------:|
-    | 'System.Drawing Bmp' | Bmp/Car.bmp | 255.49 us | 27.43 us | 1.504 us |  1.00 |      - |     392 B |        1.00 |
-    | 'ImageSharp Bmp'     | Bmp/Car.bmp |  37.97 us | 10.94 us | 0.600 us |  0.15 | 0.1221 |    2320 B |        5.92 |
+    | Method               | TestImage   | Mean      | Error    | StdDev   | Ratio | RatioSD | Gen0   | Gen1   | Gen2   | Allocated | Alloc Ratio |
+    |--------------------- |------------ |----------:|---------:|---------:|------:|--------:|-------:|-------:|-------:|----------:|------------:|
+    | 'System.Drawing Bmp' | Bmp/Car.bmp | 248.13 us | 87.24 us | 4.782 us |  1.00 |    0.02 |      - |      - |      - |     328 B |        1.00 |
+    | 'ImageSharp Bmp'     | Bmp/Car.bmp |  37.03 us | 14.96 us | 0.820 us |  0.15 |    0.00 | 0.1831 | 0.0610 | 0.0610 |    2257 B |        6.88 |
 
     Allocated reports managed memory only.
     */

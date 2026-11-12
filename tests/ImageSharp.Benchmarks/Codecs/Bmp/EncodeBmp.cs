@@ -16,6 +16,10 @@ public class EncodeBmp
     private SDImage bmpDrawing;
     private Image<Rgba32> bmpCore;
 
+    // Both libraries write into this stream. Each call rewinds it, so after the first call it has the full capacity,
+    // and the results measure the encoders instead of the growth of a new stream.
+    private MemoryStream outputStream;
+
     [GlobalSetup]
     public void ReadImages()
     {
@@ -25,6 +29,7 @@ public class EncodeBmp
             this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
             this.bmpStream.Position = 0;
             this.bmpDrawing = SDImage.FromStream(this.bmpStream);
+            this.outputStream = new MemoryStream();
         }
     }
 
@@ -35,20 +40,21 @@ public class EncodeBmp
         this.bmpStream = null;
         this.bmpCore.Dispose();
         this.bmpDrawing.Dispose();
+        this.outputStream.Dispose();
     }
 
     [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
     public void BmpSystemDrawing()
     {
-        using MemoryStream memoryStream = new();
-        this.bmpDrawing.Save(memoryStream, ImageFormat.Bmp);
+        this.outputStream.Position = 0;
+        this.bmpDrawing.Save(this.outputStream, ImageFormat.Bmp);
     }
 
     [Benchmark(Description = "ImageSharp Bmp")]
     public void BmpImageSharp()
     {
-        using MemoryStream memoryStream = new();
-        this.bmpCore.SaveAsBmp(memoryStream);
+        this.outputStream.Position = 0;
+        this.bmpCore.SaveAsBmp(this.outputStream);
     }
 
     /* Results 12.11.2026
@@ -61,10 +67,10 @@ public class EncodeBmp
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method               | Mean     | Error    | StdDev  | Ratio | Gen0     | Gen1     | Gen2     | Allocated  | Alloc Ratio |
-    |--------------------- |---------:|---------:|--------:|------:|---------:|---------:|---------:|-----------:|------------:|
-    | 'System.Drawing Bmp' | 823.4 us | 61.55 us | 3.37 us |  1.00 | 249.0234 | 249.0234 | 249.0234 |  794.95 KB |        1.00 |
-    | 'ImageSharp Bmp'     | 365.0 us | 62.31 us | 3.42 us |  0.44 | 499.5117 | 499.5117 | 499.5117 | 1853.51 KB |        2.33 |
+    | Method               | Mean      | Error      | StdDev    | Ratio | RatioSD | Allocated | Alloc Ratio |
+    |--------------------- |----------:|-----------:|----------:|------:|--------:|----------:|------------:|
+    | 'System.Drawing Bmp' | 472.85 us | 266.669 us | 14.617 us |  1.00 |    0.04 |    3256 B |        1.00 |
+    | 'ImageSharp Bmp'     |  22.82 us |   2.609 us |  0.143 us |  0.05 |    0.00 |     280 B |        0.09 |
 
     Allocated reports managed memory only.
     Input: Bmp/Car.bmp.

@@ -77,7 +77,12 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     /// <summary>
     /// The paired ICC transform, or null when native operators can produce sRGB directly.
     /// </summary>
-    private readonly ColorProfileConverter? profileConverter;
+    private readonly ColorProfileConverterExtensionsIcc.IccTransform? iccTransform;
+
+    /// <summary>
+    /// The device layout for the ICC input row. Ordinary color rows use the RGB layout.
+    /// </summary>
+    private readonly IccColorSpaceType profileSpace;
 
     /// <summary>
     /// The shared destination packing and alpha conversion operations.
@@ -140,7 +145,8 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         this.header = header;
         this.frame = frame;
         this.destination = destination;
-        this.profileConverter = profileConverter;
+        this.iccTransform = profileConverter?.GetIccTransform();
+        this.profileSpace = profileConverter?.Options.SourceIccProfile?.Header.DataColorSpace ?? IccColorSpaceType.Rgb;
         this.upsampledAlpha = frame.UpsampledAlpha;
         this.upsampledBlack = frame.UpsampledBlack;
         this.colorConverter = JxlColorConverterBase.Create(header, frame);
@@ -401,23 +407,34 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
         {
             // Features consume native color components before output transfer or ICC conversion.
             // Only feature-bearing rows need separate component ranges for the spot calculation.
-            this.featureConverter.ConvertComponents(in source, vectors, in sampleOperator);
+            this.featureConverter.ConvertComponents(in source, vectors, IccColorSpaceType.Rgb, in sampleOperator);
             this.ApplySpotColors(row, vectors, spotWorkspace, source.Black, source.Alpha);
         }
-        else if (this.profileConverter is null)
+        else
         {
-            this.colorConverter.ConvertComponents(in source, vectors, in sampleOperator);
+            this.colorConverter.ConvertComponents(in source, vectors, this.profileSpace, in sampleOperator);
+        }
+
+        if (this.iccTransform is null)
+        {
             this.colorConverter.ApplyOutputConversion(vectors);
         }
         else
         {
-            this.colorConverter.ConvertToRgb(in source, MemoryMarshal.Cast<Vector4, float>(vectors), this.profileConverter, in sampleOperator);
-        }
-
-        if (this.profileConverter is not null)
-        {
-            this.PackRgb(row, vectors, source.Alpha);
-            return;
+            // CMYK supplies black in W. For other input layouts ICC reads one in W and retains the row's alpha.
+            bool convertBlack = this.profileSpace == IccColorSpaceType.Cmyk;
+            this.iccTransform.Converter.Convert(vectors, vectors, convertBlack);
+            if (convertBlack)
+            {
+                if (source.Alpha.IsEmpty)
+                {
+                    Numerics.WithW(vectors, 1F);
+                }
+                else
+                {
+                    Numerics.WithW(vectors, source.Alpha);
+                }
+            }
         }
 
         // Both traversal modes use the same color operator and PixelOperations packing. Normalized alpha
@@ -434,7 +451,7 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
     }
 
     /// <summary>
-    /// Mixes native spot samples in reusable rows, then completes the existing output color conversion.
+    /// Mixes native spot samples in reusable rows and packs the components for the output conversion.
     /// </summary>
     /// <param name="row">The completed native image row.</param>
     /// <param name="vectors">The restored native colors with their separate image alpha.</param>
@@ -463,74 +480,18 @@ internal sealed class JxlPixelConverter<TPixel> : IDisposable
                 red, green, blue, new JxlColorConverterBase.XybDeviceOperator<JxlColorConverterBase.RgbOperator>(default));
         }
 
-        if (this.profileConverter is null)
+        if (this.profileSpace == IccColorSpaceType.Cmyk)
         {
-            // Rejoin the unchanged alpha row after the RGB-only feature calculation. The shared
-            // interleaver supplies opaque alpha for an empty row and retains floating-point components.
-            SimdUtils.InterleaveFloatPlanes(red, green, blue, alpha, vectors);
-            this.colorConverter.ApplyOutputConversion(vectors);
+            // Spot mixing uses remaining light. ICC reads ink amounts and takes black from W.
+            SimdUtils.PackedInvertNormalizeInterleave4(red, green, blue, black, MemoryMarshal.Cast<Vector4, float>(vectors), 1F);
+        }
+        else if (this.profileSpace == IccColorSpaceType.Gray)
+        {
+            SimdUtils.InterleaveFloatPlanes(red, red, red, alpha, vectors);
         }
         else
         {
-            Span<float> storage = MemoryMarshal.Cast<Vector4, float>(vectors);
-            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[..(3 * width)]);
-            if (this.blackChannel >= 0)
-            {
-                // Features use remaining light. Invert all four components to ink amounts before
-                // the typed CMYK transform. Its RGB output reduces four floats per pixel to three.
-                SimdUtils.PackedInvertNormalizeInterleave4(red, green, blue, black, storage, 1F);
-                this.profileConverter.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(storage), rgb);
-            }
-            else if (this.profileConverter.Options.SourceIccProfile is { Header.DataColorSpace: IccColorSpaceType.Gray })
-            {
-                this.profileConverter.Convert<Y, Rgb>(MemoryMarshal.Cast<float, Y>(red), rgb);
-            }
-            else
-            {
-                SimdUtils.PackedNormalizeInterleave3(red, green, blue, storage[..(3 * width)], 1F);
-                this.profileConverter.Convert<Rgb, Rgb>(rgb, rgb);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Packs typed RGB output and its separate image alpha through the shared bulk pixel operations.
-    /// </summary>
-    /// <param name="row">The destination image row.</param>
-    /// <param name="vectors">Four floats per pixel. Its first 3 * width floats hold the contiguous converted Rgb row.</param>
-    /// <param name="alpha">The unchanged normalized alpha row, or empty for opaque pixels.</param>
-    private void PackRgb(int row, Span<Vector4> vectors, ReadOnlySpan<float> alpha)
-    {
-        int width = vectors.Length;
-        Span<float> storage = MemoryMarshal.Cast<Vector4, float>(vectors);
-        ReadOnlySpan<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[..(3 * width)]);
-        Span<TPixel> pixels = this.destination.PixelBuffer.DangerousGetRowSpan(row);
-
-        // RGB has three floats per pixel; pixel vectors have four. Keep this one full Vector512
-        // batch separate from the packed RGB source so expansion and destructive packing cannot
-        // overwrite unread colors. The fixed inline storage uses no allocator or managed allocation.
-        InlineArray16<Vector4> blockBuffer = default;
-        Span<Vector4> blockStorage = blockBuffer;
-
-        for (int x = 0; x < width; x += blockStorage.Length)
-        {
-            int count = Math.Min(blockStorage.Length, width - x);
-            Span<Vector4> block = blockStorage[..count];
-            Rgb.ToScaledVector4(rgb.Slice(x, count), block);
-            if (!alpha.IsEmpty)
-            {
-                Numerics.WithW(block, alpha.Slice(x, count));
-            }
-
-            Span<TPixel> destination = pixels.Slice(x, count);
-            if (this.associated)
-            {
-                this.pixelOperations.FromAssociatedScaledVector4Destructive(this.configuration, block, destination);
-            }
-            else
-            {
-                this.pixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, destination);
-            }
+            SimdUtils.InterleaveFloatPlanes(red, green, blue, alpha, vectors);
         }
     }
 }

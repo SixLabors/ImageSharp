@@ -330,28 +330,13 @@ internal abstract partial class JxlColorConverterBase
     /// <typeparam name="TSample">The native integer carrier or restored float sample.</typeparam>
     /// <typeparam name="TSampleOperator">The prepared sample-representation operator.</typeparam>
     /// <param name="source">The source planes and separately normalized black and alpha rows.</param>
-    /// <param name="destination">The restored components in X, Y and Z, with image alpha in W.</param>
+    /// <param name="destination">The restored color components and the fourth component selected by <paramref name="profileSpace"/>.</param>
+    /// <param name="profileSpace">Gray repeats the first component in RGB. CMYK stores black in W. Other layouts store alpha in W.</param>
     /// <param name="sampleOperator">The prepared integer or floating sample conversion.</param>
     public abstract void ConvertComponents<TSample, TSampleOperator>(
         in ComponentValues<TSample> source,
         Span<Vector4> destination,
-        in TSampleOperator sampleOperator)
-        where TSample : unmanaged
-        where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample, float>;
-
-    /// <summary>
-    /// Restores native components and converts their typed ICC profile to working RGB in the same row storage.
-    /// </summary>
-    /// <typeparam name="TSample">The native integer carrier or restored float sample.</typeparam>
-    /// <typeparam name="TSampleOperator">The prepared sample-representation operator.</typeparam>
-    /// <param name="source">The native planes and normalized black row. Image alpha is not read.</param>
-    /// <param name="storage">Four floats per pixel. Converted Rgb values occupy its first 3 * width floats contiguously.</param>
-    /// <param name="profileConverter">The paired source-profile to sRGB transform.</param>
-    /// <param name="sampleOperator">The prepared integer or floating sample conversion.</param>
-    public abstract void ConvertToRgb<TSample, TSampleOperator>(
-        in ComponentValues<TSample> source,
-        Span<float> storage,
-        ColorProfileConverter profileConverter,
+        IccColorSpaceType profileSpace,
         in TSampleOperator sampleOperator)
         where TSample : unmanaged
         where TSampleOperator : struct, JxlSampleConverter.IConversionOperator<TSample, float>;

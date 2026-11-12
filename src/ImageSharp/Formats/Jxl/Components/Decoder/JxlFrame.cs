@@ -523,7 +523,7 @@ internal sealed class JxlFrame : IDisposable
                 Span<float> green = this.reconstructedColors[1].DangerousGetRowSpan(y);
                 Span<float> blue = this.reconstructedColors[2].DangerousGetRowSpan(y);
                 JxlColorConverterBase.ComponentValues<float> source = new(red, green, blue, [], []);
-                converter.ConvertComponents(in source, row, in sampleOperation);
+                converter.ConvertComponents(in source, row, IccColorSpaceType.Rgb, in sampleOperation);
                 converter.ApplyOutputConversion(row);
                 SimdUtils.DeinterleaveFloatPlanes(row, red, green, blue, []);
             }

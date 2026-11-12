@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Components.ColorConverters;
 
@@ -370,6 +371,7 @@ internal abstract partial class JxlColorConverterBase
         public override void ConvertComponents<TSample, TSampleOperator>(
             in ComponentValues<TSample> source,
             Span<Vector4> destination,
+            IccColorSpaceType profileSpace,
             in TSampleOperator sampleOperator)
         {
             // Copy the prepared operation once. Calling a constrained instance method on its readonly
@@ -386,12 +388,15 @@ internal abstract partial class JxlColorConverterBase
             ref float black = ref MemoryMarshal.GetReference(source.Black);
             ref float alpha = ref MemoryMarshal.GetReference(source.Alpha);
             bool hasAlpha = !source.Alpha.IsEmpty;
+            bool gray = profileSpace == IccColorSpaceType.Gray;
+            bool writeBlack = TOperator.ComponentCount == 4 && profileSpace == IccColorSpaceType.Cmyk;
             ref float target = ref Unsafe.As<Vector4, float>(ref MemoryMarshal.GetReference(destination));
             int i = 0;
 
             // Each register holds one component from consecutive pixels. Convert in registers, then interleave
             // directly into the destination row. Counts use float output lanes. Short carriers fill only the low half
             // of each input register, so the shared loads read exactly one sample per output pixel.
+            // Gray profiles read the restored luminance. CMYK profiles read black from W and keep alpha in its own row.
             if (Vector512.IsHardwareAccelerated)
             {
                 nuint vectorCount = (count - i).Vector512Count<float>();
@@ -402,8 +407,8 @@ internal abstract partial class JxlColorConverterBase
                     Vector512<float> z = sampleOperation.Invoke(JxlSampleConverter.Load512(component2, i));
                     Vector512<float> k = TOperator.ComponentCount == 4 ? Vector512.LoadUnsafe(ref black, (nuint)i) : default;
                     operation.Invoke(ref x, ref y, ref z, ref k);
-                    Vector512<float> opacity = hasAlpha ? Vector512.LoadUnsafe(ref alpha, (nuint)i) : Vector512<float>.One;
-                    SimdUtils.Interleave4(x, y, z, opacity, ref Unsafe.Add(ref target, (nuint)i * 4));
+                    Vector512<float> w = writeBlack ? k : hasAlpha ? Vector512.LoadUnsafe(ref alpha, (nuint)i) : Vector512<float>.One;
+                    SimdUtils.Interleave4(x, gray ? x : y, gray ? x : z, w, ref Unsafe.Add(ref target, (nuint)i * 4));
                 }
             }
 
@@ -417,8 +422,8 @@ internal abstract partial class JxlColorConverterBase
                     Vector256<float> z = sampleOperation.Invoke(JxlSampleConverter.Load256(component2, i));
                     Vector256<float> k = TOperator.ComponentCount == 4 ? Vector256.LoadUnsafe(ref black, (nuint)i) : default;
                     operation.Invoke(ref x, ref y, ref z, ref k);
-                    Vector256<float> opacity = hasAlpha ? Vector256.LoadUnsafe(ref alpha, (nuint)i) : Vector256<float>.One;
-                    SimdUtils.Interleave4(x, y, z, opacity, ref Unsafe.Add(ref target, (nuint)i * 4));
+                    Vector256<float> w = writeBlack ? k : hasAlpha ? Vector256.LoadUnsafe(ref alpha, (nuint)i) : Vector256<float>.One;
+                    SimdUtils.Interleave4(x, gray ? x : y, gray ? x : z, w, ref Unsafe.Add(ref target, (nuint)i * 4));
                 }
             }
 
@@ -432,8 +437,8 @@ internal abstract partial class JxlColorConverterBase
                     Vector128<float> z = sampleOperation.Invoke(JxlSampleConverter.Load128(component2, i));
                     Vector128<float> k = TOperator.ComponentCount == 4 ? Vector128.LoadUnsafe(ref black, (nuint)i) : default;
                     operation.Invoke(ref x, ref y, ref z, ref k);
-                    Vector128<float> opacity = hasAlpha ? Vector128.LoadUnsafe(ref alpha, (nuint)i) : Vector128<float>.One;
-                    SimdUtils.Interleave4(x, y, z, opacity, ref Unsafe.Add(ref target, (nuint)i * 4));
+                    Vector128<float> w = writeBlack ? k : hasAlpha ? Vector128.LoadUnsafe(ref alpha, (nuint)i) : Vector128<float>.One;
+                    SimdUtils.Interleave4(x, gray ? x : y, gray ? x : z, w, ref Unsafe.Add(ref target, (nuint)i * 4));
                 }
             }
 
@@ -445,7 +450,8 @@ internal abstract partial class JxlColorConverterBase
                 float z = sampleOperation.Invoke(component2[i]);
                 float k = TOperator.ComponentCount == 4 ? source.Black[i] : 0F;
                 operation.Invoke(ref x, ref y, ref z, ref k);
-                destination[i] = new Vector4(x, y, z, hasAlpha ? source.Alpha[i] : 1F);
+                float w = writeBlack ? k : hasAlpha ? source.Alpha[i] : 1F;
+                destination[i] = new Vector4(x, gray ? x : y, gray ? x : z, w);
             }
         }
     }

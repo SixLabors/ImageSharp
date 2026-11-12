@@ -17,6 +17,17 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc;
 public class IccProfileTests
 {
     /// <summary>
+    /// Checks that construction rejects raw data without a complete ICC header.
+    /// </summary>
+    /// <param name="length">The retained byte count, below the fixed header size.</param>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(127)]
+    public void Constructor_RejectsTruncatedHeader(int length)
+        => Assert.Throws<ArgumentException>(() => new IccProfile(new byte[length]));
+
+    /// <summary>
     /// Keeps the existing sRGB profile fast paths and recognizes a sampled sRGB profile.
     /// </summary>
     [Fact]

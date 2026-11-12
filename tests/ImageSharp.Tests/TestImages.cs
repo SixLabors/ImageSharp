@@ -1694,6 +1694,209 @@ public static class TestImages
         public const string Help = "Ani/Help.ani";
     }
 
+    /// <summary>
+    /// JPEG XL inputs and stored container-boundary cases.
+    /// </summary>
+    public static class Jxl
+    {
+        // Unmodified jxl-rs conformance inputs. Native decoding gives the same nine RGB colors;
+        // the alpha variant stores 128 for every opacity sample.
+        public const string LosslessRgb3x3 = "Jxl/3x3_srgb_lossless.jxl";
+        public const string LosslessRgba3x3 = "Jxl/3x3a_srgb_lossless.jxl";
+        public const string LosslessRgb3x3Truncated = "Jxl/3x3_srgb_lossless_truncated.jxl";
+
+        // Unmodified VarDCT input from jxl-rs with nonzero DC samples and one extra precision bit.
+        public const string LossyRgb3x3 = "Jxl/3x3_srgb_lossy.jxl";
+
+        // Unmodified modular inputs from the reference corpora cover transforms, alpha and sixteen-bit precision.
+        public const string SqueezeEdge = "Jxl/squeeze_edge.jxl";
+        public const string LowFrequencyPyramid = "Jxl/squeeze_empty_residual.jxl";
+        public const string GrayAlphaLossless = "Jxl/gray_alpha_lossless.jxl";
+        public const string DeltaPalette = "Jxl/delta_palette.jxl";
+        public const string Rgb16 = "Jxl/image_integration_rgb16.jxl";
+        public const string EmptyPalette = "Jxl/issue648_palette0.jxl";
+
+        // Native-written modular XYB prefixes preserve signed integer extremes and metadata-dependent scaling.
+        public const string ModularXyb8Owner = "Jxl/modular_xyb_8_owner.jxl";
+        public const string ModularXyb24Owner = "Jxl/modular_xyb_24_owner.jxl";
+
+        // Fixed entropy sections verified by libjxl and jxl-rs. Each follows the raw signature, without an image header.
+        public const string TerminalLzCopy = "Jxl/terminal-lz-copy.jxl";
+        public const string TerminalLzCopyAns = "Jxl/terminal-lz-copy-ans.jxl";
+        public const string TerminalLzCopyInvalidAns = "Jxl/terminal-lz-copy-ans-invalid-state.jxl";
+
+        // Native-encoded DC-global metadata with signed thresholds. Only the raw signature precedes this partial section.
+        public const string VarDctDcThresholds = "Jxl/dc-global-thresholds-partial.jxl";
+
+        // Native-encoded AC-global matrix descriptions and coefficient orders, verified by both references.
+        public const string VarDctCustomMatrices = "Jxl/ac-matrices-custom-partial.jxl";
+        public const string VarDctDefaultMatrices = "Jxl/ac-matrices-default-partial.jxl";
+        public const string VarDctRectangularMatrices = "Jxl/ac-matrices-rectangular-partial.jxl";
+        public const string VarDctRectangularOwner = "Jxl/vardct-rectangular-owner-partial.jxl";
+        public const string VarDctSubsampledQfOwner = "Jxl/subsampled-qf-owner-partial.jxl";
+        public const string VarDctWideCoefficientsOwner = "Jxl/wide-coefficients-owner-partial.jxl";
+        public const string VarDctProgressiveLzOwner = "Jxl/progressive-lz-owner-partial.jxl";
+        public const string VarDctSmoothing444 = "Jxl/smoothing-444-owner-partial.jxl";
+        public const string VarDctSmoothingSubsampled = "Jxl/smoothing-subsampled-owner-partial.jxl";
+        public const string VarDctRestorationOwner = "Jxl/restoration-numeric-owner-partial.jxl";
+        public const string VarDctRestorationSamples = "Jxl/restoration-numeric-input.bin";
+        public const string VarDctRestorationNative = "Jxl/restoration-numeric-native.bin";
+        public const string VarDctRestorationRust = "Jxl/restoration-numeric-rust.bin";
+
+        // Native metadata prefixes and independent float outputs cover phase filters, custom weights and mirrored tiny extents.
+        public const string VarDctUpsampling2Default = "Jxl/upsample2-default-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling2Custom = "Jxl/upsample2-custom-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling4Default = "Jxl/upsample4-default-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling4Custom = "Jxl/upsample4-custom-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling8Default = "Jxl/upsample8-default-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling8Custom = "Jxl/upsample8-custom-33x5-owner-partial.jxl";
+        public const string VarDctUpsampling8Tiny = "Jxl/upsample8-default-1x1-owner-partial.jxl";
+        public const string VarDctUpsampling4Tiny = "Jxl/upsample4-default-3x3-owner-partial.jxl";
+        public const string VarDctUpsamplingNative = "Jxl/upsampling-native.bin";
+        public const string VarDctUpsamplingRust = "Jxl/upsampling-rust.bin";
+        public const string AcMetadataRectangularDct = "Jxl/ac-metadata-rectangular-strategy6-partial.jxl";
+        public const string AcMetadataRectangularRaw = "Jxl/ac-metadata-rectangular-strategy8-partial.jxl";
+        public const string AcMetadataRawMatrix = "Jxl/ac-metadata-matrix-0-partial.jxl";
+        public const string AcMetadataIdentityMatrix = "Jxl/ac-metadata-matrix-1-partial.jxl";
+        public const string AcMetadataDct4Matrix = "Jxl/ac-metadata-matrix-3-partial.jxl";
+        public const string AcMetadataAfvMatrix = "Jxl/ac-metadata-matrix-14-partial.jxl";
+        public const string VarDctCustomOrders = "Jxl/ac-orders-custom-partial.jxl";
+
+        // Native-encoded AC metadata, verified through libjxl's original metadata decoder. These partial streams
+        // contain their raw signature and one modular metadata payload, without an image or frame header.
+        public const string AcMetadataSaturation = "Jxl/ac-metadata-saturation-partial.jxl";
+        public const string AcMetadataInvalidSharpness = "Jxl/ac-metadata-invalid-epf-partial.jxl";
+        public const string AcMetadataInvalidStrategy = "Jxl/ac-metadata-invalid-strategy-partial.jxl";
+        public const string AcMetadataStrategyOverflow = "Jxl/ac-metadata-overflow-strategy-partial.jxl";
+
+        // Unchanged jxl-rs fixtures at d7a831fae15b903f1b56a76668030c19ac07bb6f cover tiny mirrored edges and noise group boundaries.
+        public const string Noise8x8 = "Jxl/noise-8x8.jxl";
+        public const string Noise = "Jxl/noise.jxl";
+
+        // Original codestreams and containers come from libjxl testdata/jxl at revision 91837342b24034078780b687f57f670a7def8153.
+        // The other files rewrap those same encoded bytes to exercise container boundaries. Tests do not construct images or containers.
+        public const string Splines = "Jxl/splines.jxl";
+        public const string Square = "Jxl/square.jxl";
+        public const string SquareExtendedSizeContainer = "Jxl/square-extended-size-container.jxl";
+        public const string SquareLevel5 = "Jxl/square-level5.jxl";
+        public const string SquareInvalidLevel = "Jxl/square-invalid-level.jxl";
+        public const string SquareDuplicateLevel = "Jxl/square-duplicate-level.jxl";
+        public const string SquareLateLevel = "Jxl/square-late-level.jxl";
+        public const string SplinesFragmentedV0 = "Jxl/splines-fragmented-v0.jxl";
+        public const string SplinesFragmentedV1 = "Jxl/splines-fragmented-v1.jxl";
+        public const string SplinesSizeZero = "Jxl/splines-size-zero.jxl";
+        public const string SplinesDuplicateFragment = "Jxl/splines-duplicate-fragment.jxl";
+        public const string SplinesMissingFinalFlag = "Jxl/splines-missing-final-flag.jxl";
+        public const string SplinesOversizedBox = "Jxl/splines-oversized-box.jxl";
+        public const string ExifXmp = "Jxl/1x1_exif_xmp.jxl";
+        public const string ExifXmpAfterCodestream = "Jxl/1x1_exif_xmp_after_codestream.jxl";
+        public const string CroppedTrafficLight = "Jxl/cropped_traffic_light.jxl";
+
+        // The first 705 bytes retain three complete frames and one byte of the fourth header.
+        // Native ReadFrameHeader and ReadGroupOffsets place that header at byte 704 in the original raw codestream.
+        public const string CroppedTrafficLightTruncatedHeader = "Jxl/cropped_traffic_light_truncated_header.jxl";
+
+        // This stored variant changes only the timebase and first frame's duration. The coded pixels are unchanged.
+        public const string CroppedTrafficLightLongDuration = "Jxl/cropped_traffic_light_long_duration.jxl";
+
+        // Stored policy regressions retain the original pixel payloads. The named-frame variant comes from
+        // jxl-rs named_frame_test.jxl. The spot variant changes only two labels, retaining the following color fields.
+        public const string InvalidFrameName = "Jxl/invalid_frame_name.jxl";
+        public const string InvalidExtraChannelName = "Jxl/spot_invalid_channel_name.jxl";
+        public const string TruncatedFrameName = "Jxl/truncated_frame_name.jxl";
+
+        // These variants damage only the brob wrapper's inner type. The outer box ranges remain valid.
+        public const string ExifBrotliShortType = "Jxl/exif_brob_short_type.jxl";
+        public const string ExifBrotliForbiddenType = "Jxl/exif_brob_forbidden_type.jxl";
+
+        // Native square (XYB) and splines (RGB) payloads follow explicit ICC declarations. A complete one-symbol prefix stream
+        // predicts [1,1,1]: output length one, command length one, and no header data. The truncated variant lacks its entropy table.
+        public const string XybInvalidIccPrediction = "Jxl/xyb_invalid_icc_prediction.jxl";
+        public const string RgbInvalidIccPrediction = "Jxl/rgb_invalid_icc_prediction.jxl";
+        public const string XybTruncatedIcc = "Jxl/xyb_truncated_icc.jxl";
+
+        public const string WidthExceedsInt32 = "Jxl/width-exceeds-int32.jxl";
+
+        // Original libjxl 91837342b24034078780b687f57f670a7def8153 encoded Png/icc-profiles/issue-3216-linear.png
+        // with lossless modular coding at effort one. The four source pixels and their embedded linear RGB profile are unchanged.
+        public const string LinearRgbaWithIcc = "Jxl/linear_rgba_with_icc.jxl";
+
+        // Original jxl-rs HDR inputs use compact BT.2020 color descriptions and ten-bit native samples.
+        public const string HdrPq = "Jxl/hdr_pq_test.jxl";
+        public const string HdrHlg = "Jxl/hdr_hlg_test.jxl";
+
+        // Additional original fixtures come from jxl-rs jxl/resources/test at revision d7a831fae15b903f1b56a76668030c19ac07bb6f.
+        public const string WithIcc = "Jxl/with_icc.jxl";
+        public const string LossyWithIcc = "Jxl/lossy_with_icc.jxl";
+        public const string GrayscalePatchesWithIcc = "Jxl/small_grayscale_patches_modular_with_icc.jxl";
+        public const string GrayscalePatches = "Jxl/small_grayscale_patches_modular.jxl";
+        public const string GrayscalePatchesVarDct = "Jxl/grayscale_patches_var_dct.jxl";
+        public const string Patches = "Jxl/patches.jxl";
+        public const string PatchesMixedUpsampling = "Jxl/patches_ec_upsampling_dim_shift.jxl";
+        public const string WithPreview = "Jxl/with_preview.jxl";
+        public const string PqGradient = "Jxl/pq_gradient.jxl";
+        public const string SplineOnFirstFrame = "Jxl/spline_on_first_frame.jxl";
+        public const string PermutedSections = "Jxl/has_permutation.jxl";
+        public const string ProgressiveAc = "Jxl/progressive_ac.jxl";
+
+        // Concatenate the original progressive_ac jxlp codestream fragments, then retain its first 358745 bytes.
+        // Native ReadGroupOffsets puts pass two, group nine at byte 358744. All passes of the first group row remain complete.
+        public const string ProgressiveAcTruncatedRows = "Jxl/progressive_ac_truncated_rows.jxl";
+
+        public const string NarrowEdgeGroup = "Jxl/narrow_edge_group.jxl";
+        public const string OddSizeUpsampling = "Jxl/oddsize_ups.jxl";
+        public const string UpsamplingWithAlpha = "Jxl/upsampling.jxl";
+        public const string Dice = "Jxl/dice.jxl";
+        public const string PaletteAlphaUpsampling8 = "Jxl/ec_upsampling8_multi_group.jxl";
+
+        // This stored variant omits the final section byte. The native decoder rejects it as truncated.
+        public const string TruncatedSections = "Jxl/has_permutation_truncated.jxl";
+
+        public const string Orientation6 = "Jxl/orientation6_rotate_90_cw.jxl";
+        public const string SpotColor = "Jxl/spot.jxl";
+
+        // Native libjxl serializers write these four-pixel gray8 inputs with one opaque red spot.
+        // Only the spot precision changes. The float spot includes 1.25 coverage to retain extended RGB.
+        public const string Gray8Spot8 = "Jxl/gray8_spot8.jxl";
+        public const string Gray8Spot16 = "Jxl/gray8_spot16.jxl";
+        public const string Gray8SpotFloat = "Jxl/gray8_spot32.jxl";
+
+        public const string BlendModes = "Jxl/blendmodes.jxl";
+        public const string CroppedXybBlending = "Jxl/issue772_blendbug.jxl";
+        public const string WeightedPatchModes = "Jxl/weighted_patch_modes.jxl";
+        public const string P3XybSpotComposition = "Jxl/p3_xyb_spot_composition.jxl";
+        public const string P3IccStandalonePostSave = "Jxl/p3_icc_standalone_postsave.jxl";
+
+        public const string TruncatedIcc = "Jxl/with_icc_truncated.jxl";
+        public const string LosslessFloat = "Jxl/lossless_pfm.jxl";
+        public const string CmykLayers = "Jxl/cmyk_layers.jxl";
+
+        // Original auxiliary-box fixtures come from the same jxl-rs revision under jxl/tests/testdata.
+        public const string Exif = "Jxl/exif.jxl";
+        public const string ExifBrotli = "Jxl/exif_brob.jxl";
+        public const string ExifBrotliTrailingFinite = "Jxl/exif_brob_trailing_finite.jxl";
+        public const string ExifBrotliTrailingInfinite = "Jxl/exif_brob_trailing_infinite.jxl";
+        public const string ExifBrotliTruncated = "Jxl/exif_brob_truncated.jxl";
+
+        public const string AlphaNonPremultiplied = "Jxl/alpha_nonpremultiplied.jxl";
+        public const string AlphaPremultiplied = "Jxl/alpha_premultiplied.jxl";
+        public const string AlphaTriangles = "Jxl/alpha_triangles.jxl";
+        public const string AnimationIcos4d = "Jxl/animation_icos4d.jxl";
+        public const string AnimationNewtonsCradle = "Jxl/animation_newtons_cradle.jxl";
+        public const string AnimationSpline = "Jxl/animation_spline.jxl";
+        public const string BenchOrientedBrg = "Jxl/bench_oriented_brg.jxl";
+        public const string Bicycles = "Jxl/bicycles.jxl";
+        public const string Bike = "Jxl/bike.jxl";
+        public const string Cafe = "Jxl/cafe.jxl";
+        public const string Grayscale = "Jxl/grayscale.jxl";
+        public const string GrayscaleJpeg = "Jxl/grayscale_jpeg.jxl";
+        public const string GrayscalePublicUniversity = "Jxl/grayscale_public_university.jxl";
+        public const string Lz77Flower = "Jxl/lz77_flower.jxl";
+        public const string OpsinInverse = "Jxl/opsin_inverse.jxl";
+        public const string Progressive = "Jxl/progressive.jxl";
+        public const string SunsetLogo = "Jxl/sunset_logo.jxl";
+    }
+
     public static class Exr
     {
         public const string Benchmark = "Exr/Calliphora_benchmark.exr";
@@ -1704,6 +1907,12 @@ public static class TestImages
         public const string UncompressedUintRgb = "Exr/Calliphora_uint32_uncompressed.exr";
         public const string UintRgba = "Exr/rgba_uint_uncompressed.exr";
         public const string Zip = "Exr/Calliphora_zip.exr";
+        public const string ZipUncompressedBlock = "Exr/zip_uncompressed_block.exr";
+
+        /// <summary>
+        /// Native 2-by-2 float RGBA input whose ZIP chunk stores the uncompressed pixel bytes.
+        /// </summary>
+        public const string FloatRgbaZipFallback = "Exr/rgba_float_zip_fallback.exr";
         public const string Zips = "Exr/Calliphora_zips.exr";
         public const string Rle = "Exr/Calliphora_rle.exr";
         public const string B44 = "Exr/Calliphora_b44.exr";

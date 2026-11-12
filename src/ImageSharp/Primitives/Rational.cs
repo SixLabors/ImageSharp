@@ -10,6 +10,8 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 /// <remarks>
 /// This is a very simplified implementation of a rational number designed for use with metadata only.
+/// Floating-point conversion uses the absolute input value. Finite values greater than <see cref="uint.MaxValue"/>
+/// become <c>uint.MaxValue/1</c>. Fraction components remain within the unsigned 32-bit range.
 /// </remarks>
 public readonly struct Rational : IEquatable<Rational>
 {
@@ -67,10 +69,13 @@ public readonly struct Rational : IEquatable<Rational>
     /// Initializes a new instance of the <see cref="Rational"/> struct.
     /// </summary>
     /// <param name="value">The <see cref="double"/> to create the instance from.</param>
-    /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
+    /// <param name="bestPrecision">
+    /// Whether to retain floating-point precision where the component limits permit it.
+    /// Otherwise, the conversion accepts an absolute error of 0.000001.
+    /// </param>
     public Rational(double value, bool bestPrecision)
     {
-        LongRational rational = LongRational.FromDouble(Math.Abs(value), bestPrecision);
+        LongRational rational = LongRational.FromDouble(Math.Abs(value), bestPrecision, uint.MaxValue, uint.MaxValue);
 
         this.Numerator = (uint)rational.Numerator;
         this.Denominator = (uint)rational.Denominator;
@@ -115,7 +120,10 @@ public readonly struct Rational : IEquatable<Rational>
     /// Converts the specified <see cref="double"/> to an instance of this type.
     /// </summary>
     /// <param name="value">The <see cref="double"/> to convert to an instance of this type.</param>
-    /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
+    /// <param name="bestPrecision">
+    /// Whether to retain floating-point precision where the component limits permit it.
+    /// Otherwise, the conversion accepts an absolute error of 0.000001.
+    /// </param>
     /// <returns>
     /// The <see cref="Rational"/>.
     /// </returns>

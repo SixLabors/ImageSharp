@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.IO;
@@ -223,6 +224,66 @@ public class ChunkedMemoryStreamTests
                 Assert.Equal(bytArr[i], bytArrRet[i]);
             }
         }
+    }
+
+    /// <summary>
+    /// Checks that bounded emission excludes retained bytes after the completed payload.
+    /// </summary>
+    /// <param name="count">The completed prefix length, including chunk edges and an empty payload.</param>
+    /// <param name="minimumChunkSize">The chunk-size hint, or zero for the existing growth policy.</param>
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 0)]
+    [InlineData(DefaultSmallChunkSize - 1, 0)]
+    [InlineData(DefaultSmallChunkSize, 0)]
+    [InlineData(DefaultSmallChunkSize + 1, 0)]
+    [InlineData(DefaultSmallChunkSize * 3, 0)]
+    [InlineData(DefaultSmallChunkSize * 3, DefaultSmallChunkSize * 2)]
+    [InlineData(DefaultSmallChunkSize * 3, DefaultLargeChunkSize * 2)]
+    public void WriteToUsesCompletedPayloadLength(int count, int minimumChunkSize)
+    {
+        byte[] data = this.CreateTestBuffer(DefaultSmallChunkSize * 3);
+        using ChunkedMemoryStream source = new(this.allocator, minimumChunkSize);
+        source.Write(data);
+        using MemoryStream output = new();
+
+        source.WriteTo(output, count, CancellationToken.None);
+
+        Assert.Equal(data[..count], output.ToArray());
+        Assert.Equal(count, source.Position);
+    }
+
+    /// <summary>
+    /// Checks cancellation before emission and between retained chunks.
+    /// </summary>
+    /// <param name="cancelBeforeWrite">Whether the token is canceled before the first chunk.</param>
+    /// <param name="expectedLength">The prefix completed before the cancellation check stops emission.</param>
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, DefaultSmallChunkSize)]
+    public void WriteToStopsAtCancellation(bool cancelBeforeWrite, int expectedLength)
+    {
+        byte[] data = this.CreateTestBuffer(DefaultSmallChunkSize + 1);
+        using ChunkedMemoryStream source = new(this.allocator);
+        source.Write(data);
+        using MemoryStream output = new();
+        using PausedStream destination = new(output);
+        using CancellationTokenSource cancellation = new();
+        destination.OnWaiting(() =>
+        {
+            cancellation.Cancel();
+            destination.Release();
+        });
+
+        if (cancelBeforeWrite)
+        {
+            cancellation.Cancel();
+        }
+
+        Assert.Throws<OperationCanceledException>(() => source.WriteTo(destination, source.Length, cancellation.Token));
+        Assert.Equal(data[..expectedLength], output.ToArray());
+        Assert.Equal(expectedLength, source.Position);
+        Assert.Equal(data[expectedLength], source.ReadByte());
     }
 
     /// <summary>

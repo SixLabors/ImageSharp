@@ -52,62 +52,70 @@ internal static partial class TensorPrimitives_
     }
 
     /// <summary>
-    /// Transforms a component span in place with the widest supported SIMD width.
+    /// Transforms every component in place with the widest supported SIMD width.
     /// </summary>
-    /// <remarks>
-    /// Every supplied component is transformed, regardless of its position in the span.
-    /// </remarks>
     /// <typeparam name="TOperator">The operation configured before traversal.</typeparam>
     /// <param name="values">The independent components to transform.</param>
     /// <param name="operation">The scalar and SIMD forms of the operation.</param>
     public static void Invoke<TOperator>(Span<float> values, TOperator operation)
         where TOperator : struct, IUnaryOperator
+        => Invoke(values, values, operation);
+
+    /// <summary>
+    /// Transforms independent components into equally sized output with the widest supported SIMD width.
+    /// </summary>
+    /// <typeparam name="TOperator">The operation configured before traversal.</typeparam>
+    /// <param name="source">The independent input components.</param>
+    /// <param name="destination">The output, with capacity for every input component.</param>
+    /// <param name="operation">The scalar and SIMD forms of the operation.</param>
+    /// <remarks>Input and output are disjoint or begin at the same address. Each complete register is loaded before its output is stored.</remarks>
+    public static void Invoke<TOperator>(ReadOnlySpan<float> source, Span<float> destination, TOperator operation)
+        where TOperator : struct, IUnaryOperator
     {
-        ref float first = ref MemoryMarshal.GetReference(values);
+        ref float input = ref MemoryMarshal.GetReference(source);
+        ref float output = ref MemoryMarshal.GetReference(destination);
         int i = 0;
 
         if (Vector512.IsHardwareAccelerated)
         {
-            nuint count = (values.Length - i).Vector512Count<float>();
+            nuint count = (source.Length - i).Vector512Count<float>();
 
-            // Each lane holds one independent component. Complete registers do not overlap.
+            // Each lane owns one component. Smaller registers continue from the first unprocessed component.
             for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
             {
-                Vector512<float> input = Vector512.LoadUnsafe(ref first, (uint)i);
-                Vector512<float> output = operation.Invoke(input);
-                output.StoreUnsafe(ref first, (uint)i);
+                Vector512<float> value = Vector512.LoadUnsafe(ref input, (uint)i);
+                operation.Invoke(value).StoreUnsafe(ref output, (uint)i);
             }
         }
 
         if (Vector256.IsHardwareAccelerated)
         {
-            nuint count = (values.Length - i).Vector256Count<float>();
+            nuint count = (source.Length - i).Vector256Count<float>();
 
-            // Continue with complete smaller registers, then process the remaining components below.
+            // Each lane owns one component. Smaller registers continue from the first unprocessed component.
             for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
             {
-                Vector256<float> input = Vector256.LoadUnsafe(ref first, (uint)i);
-                Vector256<float> output = operation.Invoke(input);
-                output.StoreUnsafe(ref first, (uint)i);
+                Vector256<float> value = Vector256.LoadUnsafe(ref input, (uint)i);
+                operation.Invoke(value).StoreUnsafe(ref output, (uint)i);
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            nuint count = (values.Length - i).Vector128Count<float>();
+            nuint count = (source.Length - i).Vector128Count<float>();
 
+            // Each lane owns one component. Smaller registers continue from the first unprocessed component.
             for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
             {
-                Vector128<float> input = Vector128.LoadUnsafe(ref first, (uint)i);
-                Vector128<float> output = operation.Invoke(input);
-                output.StoreUnsafe(ref first, (uint)i);
+                Vector128<float> value = Vector128.LoadUnsafe(ref input, (uint)i);
+                operation.Invoke(value).StoreUnsafe(ref output, (uint)i);
             }
         }
 
-        // The scalar remainder applies the same operation to each component.
-        for (; i < values.Length; i++)
+        // The scalar remainder applies the same equation without reading or writing padding.
+        for (; i < source.Length; i++)
         {
-            Unsafe.Add(ref first, (uint)i) = operation.Invoke(Unsafe.Add(ref first, (uint)i));
+            Unsafe.Add(ref output, (uint)i) = operation.Invoke(Unsafe.Add(ref input, (uint)i));
         }
     }
 

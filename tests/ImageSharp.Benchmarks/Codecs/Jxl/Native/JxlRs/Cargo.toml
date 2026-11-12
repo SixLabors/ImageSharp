@@ -1,0 +1,17 @@
+[package]
+name = "imagesharp_jxl_rs_benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+jxl = { git = "https://github.com/libjxl/jxl-rs", rev = "d7a831fae15b903f1b56a76668030c19ac07bb6f", features = ["brotli"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+# The FFI boundary catches decoder panics. Abort would terminate the benchmark host.
+panic = "unwind"

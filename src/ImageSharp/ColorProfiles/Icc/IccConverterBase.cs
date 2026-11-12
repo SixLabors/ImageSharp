@@ -19,10 +19,16 @@ internal abstract partial class IccConverterBase
     /// <param name="toPcs">True if the conversion is to the profile connection space (PCS); False if the conversion is to the data space</param>
     /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
     /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-    protected IccConverterBase(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
+    protected IccConverterBase(
+        IccProfile profile,
+        bool toPcs,
+        IccRenderingIntent renderingIntent,
+        IccInterpolationMethod interpolationMethod,
+        bool symmetricCurves)
     {
         Guard.NotNull(profile, nameof(profile));
-        this.Init(profile, toPcs, renderingIntent, interpolationMethod);
+        this.Init(profile, toPcs, renderingIntent, interpolationMethod, symmetricCurves);
     }
 
     /// <summary>

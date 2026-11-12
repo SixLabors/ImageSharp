@@ -29,12 +29,26 @@ internal static partial class IccColorConverter
         private readonly float f;
         private readonly float boundary;
 
+        // Use a zero mask for sampled curves so the lookup receives the original input.
+        private readonly float signMask;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CurveOperator"/> struct.
         /// </summary>
         /// <param name="entry">The curve selected from the profile.</param>
         /// <param name="inverted">Whether to evaluate its inverse.</param>
         public CurveOperator(IccTagDataEntry entry, bool inverted)
+            : this(entry, inverted, false)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurveOperator"/> struct with the specified curve settings.
+        /// </summary>
+        /// <param name="entry">The curve selected from the profile.</param>
+        /// <param name="inverted">Whether to evaluate its inverse.</param>
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
+        public CurveOperator(IccTagDataEntry entry, bool inverted, bool symmetricCurves)
         {
             this = default;
             switch (entry)
@@ -107,6 +121,8 @@ internal static partial class IccColorConverter
                 default:
                     throw new InvalidIccProfileException("Invalid ICC curve entry.");
             }
+
+            this.signMask = symmetricCurves && this.kind != CurveKind.Sampled ? -0F : 0F;
         }
 
         /// <summary>
@@ -146,6 +162,11 @@ internal static partial class IccColorConverter
         }
 
         /// <summary>
+        /// Gets the mask for the input sign bit, or zero to keep the original input.
+        /// </summary>
+        public float SignMask => this.signMask;
+
+        /// <summary>
         /// Selects the normalized sRGB formula when its power can use the finite SIMD kernel.
         /// </summary>
         /// <param name="curve">The formula with the profile's coefficients and exponent.</param>
@@ -156,7 +177,7 @@ internal static partial class IccColorConverter
                 && float.IsFinite(this.power.Exponent) && this.power.Exponent != 1F
                 && this.power.Exponent > 0F)
             {
-                curve = new(this.a, this.b, this.c, this.d, this.e, this.power);
+                curve = new(this.a, this.b, this.c, this.d, this.e, this.power, this.signMask);
                 return true;
             }
 
@@ -181,6 +202,22 @@ internal static partial class IccColorConverter
         /// <param name="value">The input component.</param>
         /// <returns>The curve output.</returns>
         public float Convert(float value)
+        {
+            // Apply the curve to the input magnitude, then restore the negative sign.
+            // A zero mask passes the original input through the same operations.
+            int bits = BitConverter.SingleToInt32Bits(value);
+            int sign = bits & BitConverter.SingleToInt32Bits(this.signMask);
+            float result = this.ConvertCore(BitConverter.Int32BitsToSingle(bits ^ sign));
+            return BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(result) | sign);
+        }
+
+        /// <summary>
+        /// Applies the curve to the prepared input.
+        /// </summary>
+        /// <param name="value">The input after the sign mask is applied.</param>
+        /// <returns>The curve output before sign restoration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private float ConvertCore(float value)
         {
             switch (this.kind)
             {
@@ -218,6 +255,19 @@ internal static partial class IccColorConverter
         /// <returns>The curve outputs in the same lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<float> Convert(Vector128<float> value)
+        {
+            // Each lane holds one component. A zero mask keeps the input unchanged for sampled curves.
+            Vector128<float> sign = value & Vector128.Create(this.signMask);
+            return this.ConvertCore(value ^ sign) | sign;
+        }
+
+        /// <summary>
+        /// Applies the curve to one input component per lane.
+        /// </summary>
+        /// <param name="value">The inputs after the sign mask is applied.</param>
+        /// <returns>The outputs before sign restoration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Vector128<float> ConvertCore(Vector128<float> value)
         {
             switch (this.kind)
             {
@@ -324,6 +374,19 @@ internal static partial class IccColorConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector256<float> Convert(Vector256<float> value)
         {
+            // Each lane holds one component. A zero mask keeps the input unchanged for sampled curves.
+            Vector256<float> sign = value & Vector256.Create(this.signMask);
+            return this.ConvertCore(value ^ sign) | sign;
+        }
+
+        /// <summary>
+        /// Applies the curve to one input component per lane.
+        /// </summary>
+        /// <param name="value">The inputs after the sign mask is applied.</param>
+        /// <returns>The outputs before sign restoration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Vector256<float> ConvertCore(Vector256<float> value)
+        {
             switch (this.kind)
             {
                 case CurveKind.Identity:
@@ -428,6 +491,19 @@ internal static partial class IccColorConverter
         /// <returns>The curve outputs in the same lane order.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector512<float> Convert(Vector512<float> value)
+        {
+            // Each lane holds one component. A zero mask keeps the input unchanged for sampled curves.
+            Vector512<float> sign = value & Vector512.Create(this.signMask);
+            return this.ConvertCore(value ^ sign) | sign;
+        }
+
+        /// <summary>
+        /// Applies the curve to one input component per lane.
+        /// </summary>
+        /// <param name="value">The inputs after the sign mask is applied.</param>
+        /// <returns>The outputs before sign restoration.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Vector512<float> ConvertCore(Vector512<float> value)
         {
             switch (this.kind)
             {

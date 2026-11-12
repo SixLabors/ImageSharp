@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers;
+using SixLabors.ImageSharp.Compression;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 

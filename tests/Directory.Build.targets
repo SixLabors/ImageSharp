@@ -19,20 +19,20 @@
   <ItemGroup>
     <!-- Test Dependencies -->
     <PackageReference Update="Colourful" Version="3.2.0" />
-    <!--
-      Magick.NET 14.15.0 disables WebP-compressed TIFF support on Windows.
-      https://github.com/ImageMagick/tiff/commit/978181b6c999ee013f1b6df0a010d8c550d378cf
-    -->
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="14.16.0" />
+    <PackageReference Update="JxlNet" Version="0.12.0.5" />
+    <!-- ImageMagick 7.1.2-32 and 7.1.2-33 erase the TGA image-ID length and misread palettes.
+         Keep the reference backends on 7.1.2-31 until a fixed native decoder is released. -->
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="14.17.1" />
+    <PackageReference Update="Magick.NET-Q16-HDRI-AnyCPU" Version="14.17.1" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="10.0.0-beta.25563.105" />
     <PackageReference Update="Moq" Version="4.20.72" />
-    <PackageReference Update="NetVips" Version="3.0.0" />
-    <PackageReference Update="NetVips.Native" Version="8.16.0" />
-    <PackageReference Update="PhotoSauce.MagicScaler" Version="0.14.2" />
-    <PackageReference Update="Pfim" Version="0.11.3" />
+    <PackageReference Update="NetVips" Version="3.2.0" />
+    <PackageReference Update="NetVips.Native" Version="8.18.7" />
+    <PackageReference Update="PhotoSauce.MagicScaler" Version="0.15.0" />
+    <PackageReference Update="Pfim" Version="0.11.4" />
     <PackageReference Update="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="6.0.5.128" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Update="SharpZipLib" Version="1.4.2" />
-    <PackageReference Update="SkiaSharp" Version="2.88.9" />
+    <PackageReference Update="SkiaSharp" Version="3.119.4" />
     <PackageReference Update="System.Drawing.Common" Version="6.0.0" />
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
   </ItemGroup>

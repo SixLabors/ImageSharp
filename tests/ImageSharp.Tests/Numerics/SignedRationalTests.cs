@@ -9,6 +9,24 @@ namespace SixLabors.ImageSharp.Tests;
 public class SignedRationalTests
 {
     /// <summary>
+    /// Verifies that finite values outside the signed numerator range clamp without integer wrapping.
+    /// </summary>
+    /// <param name="value">The input value.</param>
+    /// <param name="numerator">The bounded numerator.</param>
+    [Theory]
+    [InlineData(2147483648D, int.MaxValue)]
+    [InlineData(-2147483649D, int.MinValue)]
+    [InlineData(double.MaxValue, int.MaxValue)]
+    [InlineData(double.MinValue, int.MinValue)]
+    public void FromDoubleClampsFiniteRange(double value, int numerator)
+    {
+        SignedRational expected = new(numerator, 1);
+
+        Assert.Equal(expected, new SignedRational(value));
+        Assert.Equal(expected, new SignedRational(value, true));
+    }
+
+    /// <summary>
     /// Tests the equality operators for equality.
     /// </summary>
     [Fact]

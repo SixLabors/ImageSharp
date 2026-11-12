@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Common;
@@ -18,6 +19,38 @@ public partial class SimdUtilsTests
             RunTest,
             count,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+    }
+
+    /// <summary>
+    /// Checks that affine translation remains after cancellation in every SIMD width.
+    /// </summary>
+    [Fact]
+    public void MatrixTransformRetainsTranslationAfterCancellation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            VerifyMatrixTranslation,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies an exact affine result that changes if translation is accumulated before the input terms.
+    /// </summary>
+    private static void VerifyMatrixTranslation()
+    {
+        Matrix4x4 matrix = Matrix4x4.Identity;
+        matrix.M11 = 1F;
+        matrix.M21 = 1F;
+        matrix.M31 = 0F;
+        matrix.M41 = 1F / 1024F;
+
+        // The two large binary-exact products cancel. The final translation must survive unchanged;
+        // adding it to 32768 first would round it away. No numerical tolerance is needed for these values.
+        SimdUtils.Transform3(in matrix, Vector128.Create(32768F), Vector128.Create(-32768F), Vector128<float>.Zero, out Vector128<float> x128, out _, out _);
+        Assert.Equal(Vector128.Create(matrix.M41), x128);
+
+        SimdUtils.Transform3(in matrix, Vector256.Create(32768F), Vector256.Create(-32768F), Vector256<float>.Zero, out Vector256<float> x256, out _, out _);
+        Assert.Equal(Vector256.Create(matrix.M41), x256);
+
+        SimdUtils.Transform3(in matrix, Vector512.Create(32768F), Vector512.Create(-32768F), Vector512<float>.Zero, out Vector512<float> x512, out _, out _);
+        Assert.Equal(Vector512.Create(matrix.M41), x512);
     }
 
     /// <summary>
@@ -68,6 +101,24 @@ public partial class SimdUtilsTests
             {
                 Assert.Equal(BitConverter.SingleToInt32Bits(components[component][i]), BitConverter.SingleToInt32Bits(output[component][i]));
             }
+        }
+
+        // A native extra channel occupies X and uses W for its selected weight. Missing Y/Z planes must supply zero
+        // without allocating dummy rows. Check packing before unpacking so inverse mistakes cannot cancel.
+        SimdUtils.InterleaveFloatPlanes(components[0], default, default, components[3], vectors);
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[0][i]), BitConverter.SingleToInt32Bits(vectors[i].X));
+            Assert.Equal(0, BitConverter.SingleToInt32Bits(vectors[i].Y));
+            Assert.Equal(0, BitConverter.SingleToInt32Bits(vectors[i].Z));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[3][i]), BitConverter.SingleToInt32Bits(vectors[i].W));
+        }
+
+        SimdUtils.DeinterleaveFloatPlanes(vectors, output[0], default, default, output[3]);
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[0][i]), BitConverter.SingleToInt32Bits(output[0][i]));
+            Assert.Equal(BitConverter.SingleToInt32Bits(components[3][i]), BitConverter.SingleToInt32Bits(output[3][i]));
         }
 
         // An absent fourth plane must supply opaque values in both full registers and tails.

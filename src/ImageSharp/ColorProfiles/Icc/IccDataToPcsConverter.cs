@@ -18,7 +18,23 @@ internal class IccDataToPcsConverter : IccConverterBase
     /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
     /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
     public IccDataToPcsConverter(IccProfile profile, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
-        : base(profile, true, renderingIntent, interpolationMethod)
+        : this(profile, renderingIntent, interpolationMethod, false)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IccDataToPcsConverter"/> class with the specified curve settings.
+    /// </summary>
+    /// <param name="profile">The profile used for conversion.</param>
+    /// <param name="renderingIntent">The rendering intent selected for the profile connection.</param>
+    /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
+    /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
+    public IccDataToPcsConverter(
+        IccProfile profile,
+        IccRenderingIntent renderingIntent,
+        IccInterpolationMethod interpolationMethod,
+        bool symmetricCurves)
+        : base(profile, true, renderingIntent, interpolationMethod, symmetricCurves)
     {
     }
 }

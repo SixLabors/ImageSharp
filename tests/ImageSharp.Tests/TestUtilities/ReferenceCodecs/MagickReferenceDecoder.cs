@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -45,6 +46,11 @@ public class MagickReferenceDecoder : ImageDecoder
     public static MagickReferenceDecoder Bmp { get; } = new(BmpFormat.Instance);
 
     public static MagickReferenceDecoder Jpeg { get; } = new(JpegFormat.Instance);
+
+    /// <summary>
+    /// Gets the JPEG XL reference decoder.
+    /// </summary>
+    public static MagickReferenceDecoder Jxl { get; } = new(JxlFormat.Instance);
 
     public static MagickReferenceDecoder Tiff { get; } = new(TiffFormat.Instance);
 
@@ -89,8 +95,16 @@ public class MagickReferenceDecoder : ImageDecoder
         int imageHeight = (int)magickImageCollection.Max(x => x.Height);
 
         List<ImageFrame<TPixel>> framesList = [];
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
         foreach (IMagickImage<float> magicFrame in magickImageCollection)
         {
+            // Some native decoders, including JXL, ignore the requested FrameCount.
+            // Enforce the caller's limit when importing their completed frames.
+            if ((uint)framesList.Count == options.MaxFrames)
+            {
+                break;
+            }
+
             uint sourceDepth = magicFrame.Depth;
 
             // In Magick.NET 14.16.0, ImportGrayQuantum ignores min_is_white for 32-bit samples.
@@ -129,6 +143,24 @@ public class MagickReferenceDecoder : ImageDecoder
                 magicFrame.ColorSpace = ColorSpace.sRGB;
             }
 
+            if (!transformed && this.imageFormat is ExrFormat)
+            {
+                // For RGB input, ImageMagick's OpenEXR Core reader copies associated linear samples but leaves its default sRGB tag.
+                // The reserved attribute sets the source tag without changing samples; the ColorSpace setter below converts them.
+                magicFrame.SetAttribute("colorspace", "RGB");
+
+                if (magicFrame.HasAlpha)
+                {
+                    // Transfer curves require straight RGB. Disassociate disables alpha after dividing RGB;
+                    // Activate restores the stored alpha channel. On would replace those samples with opaque alpha.
+                    magicFrame.Alpha(AlphaOption.Disassociate);
+                    magicFrame.Alpha(AlphaOption.Activate);
+                }
+
+                magicFrame.ColorSpace = ColorSpace.sRGB;
+                transformed = true;
+            }
+
             ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 
@@ -152,9 +184,9 @@ public class MagickReferenceDecoder : ImageDecoder
                 metadata.GetPngMetadata().BitDepth = PngBitDepth.Bit16;
             }
 
-            if (transformed)
+            if (transformed || this.imageFormat is JxlFormat)
             {
-                // Magick's Q16-HDRI samples use 65535 for full intensity and opaque alpha, but ICC output can exceed that range.
+                // Magick's Q16-HDRI samples use 65535 for full intensity and opaque alpha, but converted RGB can exceed that range.
                 // Read the float samples directly. Exporting bytes or ushorts would clip RGB and hide differences from our decoder.
                 // Dividing by Quantum.Max maps full intensity to 1 while retaining negative RGB and RGB above 1.
                 float[] data = pixels.GetValues();
@@ -162,11 +194,12 @@ public class MagickReferenceDecoder : ImageDecoder
                 ReadOnlySpan<float> samples = data;
                 int rowLength = buffer.Width * (int)magicFrame.ChannelCount;
                 using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(buffer.Width);
+                Span<Vector4> row = vectors.Memory.Span;
+                bool hasAlpha = magicFrame.HasAlpha;
 
                 for (int y = 0; y < buffer.Height; y++)
                 {
-                    Span<Vector4> row = vectors.Memory.Span;
-                    if (magicFrame.HasAlpha)
+                    if (hasAlpha)
                     {
                         MemoryMarshal.Cast<float, Vector4>(samples[..rowLength]).CopyTo(row);
                     }
@@ -176,7 +209,7 @@ public class MagickReferenceDecoder : ImageDecoder
                     }
 
                     // Magick supplies straight RGB. This packer applies TPixel's alpha representation, numeric range and precision.
-                    PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, row, buffer.DangerousGetRowSpan(y));
+                    pixelOperations.FromUnassociatedScaledVector4Destructive(configuration, row, buffer.DangerousGetRowSpan(y));
                     samples = samples[rowLength..];
                 }
             }

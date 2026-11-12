@@ -27,7 +27,17 @@ internal sealed class ChunkedMemoryStream : Stream
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     public ChunkedMemoryStream(MemoryAllocator allocator)
-        => this.memoryChunkBuffer = new MemoryChunkBuffer(allocator);
+        : this(allocator, 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class with a minimum chunk-size hint.
+    /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="minimumChunkSize">The nonnegative size hint in bytes, capped at 4 MiB and the allocator's buffer capacity.</param>
+    public ChunkedMemoryStream(MemoryAllocator allocator, int minimumChunkSize)
+        => this.memoryChunkBuffer = new MemoryChunkBuffer(allocator, minimumChunkSize);
 
     /// <inheritdoc/>
     public override bool CanRead => !this.isDisposed;
@@ -271,50 +281,46 @@ internal sealed class ChunkedMemoryStream : Stream
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The current or target stream is closed.</exception>
     public void WriteTo(Stream stream)
+        => this.WriteTo(stream, this.length, CancellationToken.None);
+
+    /// <summary>
+    /// Writes the first <paramref name="count"/> bytes directly from the retained chunks to another stream.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="count">The validated byte count, between zero and <see cref="Length"/>.</param>
+    /// <param name="cancellationToken">The token checked before each chunk is written.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="stream"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ObjectDisposedException">The current or target stream is closed.</exception>
+    public void WriteTo(Stream stream, long count, CancellationToken cancellationToken)
     {
         Guard.NotNull(stream, nameof(stream));
         this.EnsureNotDisposed();
 
         this.Position = 0;
+        long remaining = count;
 
-        long remaining = this.length - this.position;
-        if (remaining <= 0)
+        // Reused encoder storage can contain bytes after this frame's payload. Bound emission by the caller's
+        // completed length, not by retained capacity or the longest earlier frame. Borrow each chunk only for its write.
+        while (remaining > 0)
         {
-            // Already at the end of the stream, nothing to read
-            return;
-        }
-
-        int bytesToRead = (int)remaining;
-        int bytesRead = 0;
-        while (bytesToRead > 0 && this.bufferIndex != this.memoryChunkBuffer.Length)
-        {
-            bool moveToNextChunk = false;
+            cancellationToken.ThrowIfCancellationRequested();
             MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
-            int n = bytesToRead;
-            int remainingBytesInCurrentChunk = chunk.Length - this.chunkIndex;
-            if (n >= remainingBytesInCurrentChunk)
-            {
-                n = remainingBytesInCurrentChunk;
-                moveToNextChunk = true;
-            }
+            int bytesToWrite = (int)Math.Min(remaining, chunk.Length - this.chunkIndex);
 
-            // Read n bytes from the current chunk
-            stream.Write(chunk.Buffer.Memory.Span.Slice(this.chunkIndex, n));
-            bytesToRead -= n;
-            bytesRead += n;
+            // The destination consumes the borrowed span synchronously. No staging buffer or ownership transfer is needed.
+            stream.Write(chunk.Buffer.Memory.Span.Slice(this.chunkIndex, bytesToWrite));
+            remaining -= bytesToWrite;
 
-            if (moveToNextChunk)
+            // Keep the logical position and chunk cursor together so reading can resume after cancellation.
+            this.chunkIndex += bytesToWrite;
+            this.position += bytesToWrite;
+
+            if (this.chunkIndex == chunk.Length)
             {
                 this.chunkIndex = 0;
                 this.bufferIndex++;
             }
-            else
-            {
-                this.chunkIndex += n;
-            }
         }
-
-        this.position += bytesRead;
     }
 
     /// <summary>
@@ -422,15 +428,30 @@ internal sealed class ChunkedMemoryStream : Stream
 
     private sealed class MemoryChunkBuffer : IDisposable
     {
+        /// <summary>
+        /// The largest stream chunk in bytes. The allocator can impose a smaller limit.
+        /// </summary>
+        private const int MaximumChunkSize = 1 << 22;
+
         private readonly List<MemoryChunk> memoryChunks = [];
         private readonly MemoryAllocator allocator;
         private readonly int allocatorCapacity;
+        private readonly int minimumChunkSize;
         private bool isDisposed;
 
-        public MemoryChunkBuffer(MemoryAllocator allocator)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MemoryChunkBuffer"/> class with a chunk-size hint.
+        /// </summary>
+        /// <param name="allocator">The allocator that owns all chunks.</param>
+        /// <param name="minimumChunkSize">The validated nonnegative size hint in bytes.</param>
+        public MemoryChunkBuffer(MemoryAllocator allocator, int minimumChunkSize)
         {
             this.allocatorCapacity = allocator.GetBufferCapacityInBytes();
             this.allocator = allocator;
+
+            // Keep the existing 4 MiB growth limit. Large known payloads start with fewer, larger chunks,
+            // while default callers retain gradual growth. Storage is still rented only when a write needs it.
+            this.minimumChunkSize = Math.Min(minimumChunkSize, MaximumChunkSize);
         }
 
         public int ChunkCount => this.memoryChunks.Count;
@@ -439,10 +460,13 @@ internal sealed class ChunkedMemoryStream : Stream
 
         public MemoryChunk this[int index] => this.memoryChunks[index];
 
+        /// <summary>
+        /// Adds an allocator-owned chunk using normal growth and the requested minimum size.
+        /// </summary>
         public void Expand()
         {
             IMemoryOwner<byte> buffer =
-                this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, GetChunkSize(this.ChunkCount)));
+                this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, Math.Max(this.minimumChunkSize, GetChunkSize(this.ChunkCount))));
 
             MemoryChunk chunk = new(buffer)
             {
@@ -475,8 +499,7 @@ internal sealed class ChunkedMemoryStream : Stream
             // same ArrayPool bucket of the default MemoryAllocator.
             // https://github.com/SixLabors/ImageSharp/pull/2006#issuecomment-1066244720
             const int b128K = 1 << 17;
-            const int b4M = 1 << 22;
-            return i < 16 ? b128K * (1 << (int)((uint)i / 4)) : b4M;
+            return i < 16 ? b128K * (1 << (int)((uint)i / 4)) : MaximumChunkSize;
         }
     }
 

@@ -66,6 +66,7 @@ public class IccReaderTests
 
         Assert.Equal(length, reader.Read(stream, length));
         Assert.Throws<InvalidIccProfileException>(() => reader.ToProfile());
+        Assert.Throws<InvalidIccProfileException>(() => IccReader.ToProfile(data[..length]));
     }
 
     /// <summary>
@@ -88,6 +89,7 @@ public class IccReaderTests
 
         Assert.Equal(length, reader.Read(stream, length));
         Assert.Throws<InvalidIccProfileException>(() => reader.ToProfile());
+        Assert.Throws<InvalidIccProfileException>(() => IccReader.ToProfile(data[..length]));
     }
 
     [Theory]
@@ -135,6 +137,11 @@ public class IccReaderTests
 
         Assert.Equal(profileData, profile.ToByteArray());
         Assert.Equal(source.Entries.Length, profile.Entries.Length);
+
+        // The complete-buffer entry point must use the same declared boundary as segmented reads.
+        IccProfile completeProfile = IccReader.ToProfile(data);
+        Assert.Equal(profileData, completeProfile.ToByteArray());
+        Assert.Equal(source.Entries.Length, completeProfile.Entries.Length);
     }
 
     /// <summary>
@@ -164,15 +171,28 @@ public class IccReaderTests
         Assert.Equal(source.Entries.Length - 1, profile.Entries.Length);
     }
 
-    [Fact]
-    public void ReadProfile_NoEntries()
+    /// <summary>
+    /// Checks a stored profile with no tags through both validated input paths.
+    /// </summary>
+    /// <param name="completeBuffer">Whether the input arrives as one complete owned array.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadProfile_NoEntries(bool completeBuffer)
     {
         byte[] data = IccTestDataProfiles.HeaderRandomArray;
-        using MemoryStream stream = new(data);
-        IccReader reader = new();
-
-        reader.Read(stream, data.Length);
-        IccProfile output = reader.ToProfile();
+        IccProfile output;
+        if (completeBuffer)
+        {
+            output = IccReader.ToProfile(data);
+        }
+        else
+        {
+            using MemoryStream stream = new(data);
+            IccReader reader = new();
+            reader.Read(stream, data.Length);
+            output = reader.ToProfile();
+        }
 
         Assert.Equal(0, output.Entries.Length);
         Assert.NotNull(output.Header);

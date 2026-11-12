@@ -515,18 +515,16 @@ internal sealed class BmpEncoderCore
             return;
         }
 
-        // Transform a separate floating row before the final sample packing. Reuse both buffers for every scanline.
+        // Transform a separate floating row before final sample packing. Reuse the row buffer for every scanline.
         using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(width);
-        using IMemoryOwner<Rgb> rgbBuffer = this.memoryAllocator.Allocate<Rgb>(width);
         Span<Vector4> vectors = vectorBuffer.GetSpan();
-        Span<Rgb> rgb = rgbBuffer.GetSpan();
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             ReadOnlySpan<TPixelFrom> pixelSpan = pixels.DangerousGetRowSpan(y);
-            converter.Convert(configuration, pixelSpan, vectors, rgb);
+            converter.Convert(configuration, pixelSpan, vectors);
 
             // ICC returns straight RGB and retains alpha. The destination pixel format performs the final quantization.
             pixelOperations.FromUnassociatedScaledVector4Destructive(configuration, vectors, packedRow);
@@ -901,9 +899,8 @@ internal sealed class BmpEncoderCore
         {
             // Quantization uses sRGB colors. Convert only this output copy before packing the BMP RGB table.
             using IMemoryOwner<Vector4> vectors = this.memoryAllocator.Allocate<Vector4>(quantizedColorPalette.Length);
-            using IMemoryOwner<Rgb> scratch = this.memoryAllocator.Allocate<Rgb>(quantizedColorPalette.Length);
 
-            converter.Convert(configuration, quantizedColorPalette, vectors.GetSpan(), scratch.GetSpan());
+            converter.Convert(configuration, quantizedColorPalette, vectors.GetSpan());
             PixelOperations<Bgra32>.Instance.FromUnassociatedScaledVector4Destructive(configuration, vectors.GetSpan(), packedPalette);
         }
 

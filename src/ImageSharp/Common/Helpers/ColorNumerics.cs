@@ -5,6 +5,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
 namespace SixLabors.ImageSharp;
 
@@ -34,6 +36,35 @@ internal static class ColorNumerics
     /// ITU-R Recommendation BT.709.
     /// </summary>
     public static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
+
+    /// <summary>
+    /// Gets the white point and primary chromaticities defined by an H.273 color-primary code.
+    /// </summary>
+    /// <param name="colorPrimaries">The H.273 color-primary code.</param>
+    /// <param name="whitePoint">The reference white chromaticity.</param>
+    /// <param name="primaries">The red, green and blue chromaticities. Unspecified codes use BT.709 with D65 white.</param>
+    public static void GetCicpChromaticityCoordinates(
+        CicpColorPrimaries colorPrimaries,
+        out CieXyChromaticityCoordinates whitePoint,
+        out RgbPrimariesChromaticityCoordinates primaries)
+    {
+        (whitePoint, primaries) = colorPrimaries switch
+        {
+            CicpColorPrimaries.ItuRBt470_6M => (KnownIlluminants.CChromaticity, KnownRgbWorkingSpaces.NTSCRgb.ChromaticityCoordinates),
+            CicpColorPrimaries.ItuRBt601_7_625 => (KnownIlluminants.D65Chromaticity, KnownRgbWorkingSpaces.PALSECAMRgb.ChromaticityCoordinates),
+            CicpColorPrimaries.ItuRBt601_7_525 or CicpColorPrimaries.SmpteSt240
+                => (KnownIlluminants.D65Chromaticity, KnownRgbWorkingSpaces.SMPTECRgb.ChromaticityCoordinates),
+            CicpColorPrimaries.GenericFilm => (KnownIlluminants.CChromaticity, KnownRgbWorkingSpaces.GenericFilmPrimaries),
+            CicpColorPrimaries.ItuRBt2020_2 => (KnownIlluminants.D65Chromaticity, KnownRgbWorkingSpaces.Rec2020.ChromaticityCoordinates),
+            CicpColorPrimaries.SmpteSt428_1 => (KnownIlluminants.EChromaticity, KnownRgbWorkingSpaces.CieXyzPrimaries),
+            CicpColorPrimaries.SmpteRp431_2 => (KnownIlluminants.DciP3Chromaticity, KnownRgbWorkingSpaces.DisplayP3.ChromaticityCoordinates),
+            CicpColorPrimaries.SmpteEg432_1 => (KnownIlluminants.D65Chromaticity, KnownRgbWorkingSpaces.DisplayP3.ChromaticityCoordinates),
+            CicpColorPrimaries.EbuTech3213E => (KnownIlluminants.D65Chromaticity, KnownRgbWorkingSpaces.EbuTech3213EPrimaries),
+
+            // Unspecified primaries use the existing BT.709 primaries and D65 white point.
+            _ => (KnownIlluminants.D65Chromaticity, KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates)
+        };
+    }
 
     /// <summary>
     /// Gets unrounded, unsaturated luminance using ITU-R Recommendation BT.709.

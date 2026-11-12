@@ -93,11 +93,11 @@ internal sealed class GifEncoderCore
         IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
             sourceIccProfile, PixelColorType.Indexed, this.memoryAllocator, out ColorProfileConverter? colorProfileConverter);
 
-        // Each entry needs four vector components and three RGB scratch components. Reuse this storage for every table.
+        // Each entry needs four vector components. Reuse this storage for every table.
         // The normal path needs no ICC storage. GIF tables contain at most 256 entries.
         using IMemoryOwner<float>? paletteConversionOwner = colorProfileConverter is null
             ? null
-            : this.memoryAllocator.Allocate<float>(QuantizerConstants.MaxColors * (4 + 3));
+            : this.memoryAllocator.Allocate<float>(QuantizerConstants.MaxColors * 4);
 
         Memory<float> paletteConversionBuffer = paletteConversionOwner?.Memory ?? Memory<float>.Empty;
 
@@ -925,13 +925,11 @@ internal sealed class GifEncoderCore
         }
         else
         {
-            Span<float> scratch = paletteConversionBuffer.Span;
-            Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(scratch[..(palette.Length * 4)]);
-            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(scratch.Slice(palette.Length * 4, palette.Length * 3));
+            Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(paletteConversionBuffer.Span)[..palette.Length];
 
             // Quantization and frame differencing use the original sRGB palette. Transform into separate storage before final byte packing.
             // The shared converter reads straight RGB from TPixel; GIF transparency remains an index in the graphic control extension.
-            colorProfileConverter.Convert(this.configuration, palette, vectors, rgb);
+            colorProfileConverter.Convert(this.configuration, palette, vectors);
             Span<Rgb24> output = MemoryMarshal.Cast<byte, Rgb24>(colorTableSpan)[..palette.Length];
             PixelOperations<Rgb24>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectors, output);
         }

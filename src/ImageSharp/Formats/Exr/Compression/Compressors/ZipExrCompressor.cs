@@ -64,17 +64,33 @@ internal class ZipExrCompressor : ExrBaseCompressor
             predicted[i] = (byte)d;
         }
 
-        // Compressed bytes stream straight to the output in fixed segments. The block size is
-        // totaled in the callback because the final partial segment is only emitted on disposal.
+        // OpenEXR stores the smaller of the compressed block and its original bytes. Keep counting
+        // the complete zlib stream, including its final disposal segment, but write only segments
+        // that keep its total below the raw length. This prevents a rejected compressed prefix
+        // from extending beyond the original block that replaces it.
+        long blockStart = this.Output.Position;
         uint size = 0;
         using (ChunkedWriteStream segmentStream = new(this.Allocator, segment =>
         {
-            this.Output.Write(segment);
             size += (uint)segment.Length;
+            if (size < (uint)n)
+            {
+                this.Output.Write(segment);
+            }
         }))
         using (ZLibStream stream = new(segmentStream, new ZLibCompressionOptions { CompressionLevel = (int)this.compressionLevel }, true))
         {
             stream.Write(predicted);
+        }
+
+        if (size >= (uint)n)
+        {
+            // ImageEncoder supplies seekable output. The original rows remain unchanged while
+            // prediction uses the separate workspace, so they can replace the compressed prefix.
+            // That prefix is shorter than n; overwriting n bytes needs no truncation or extra buffer.
+            this.Output.Position = blockStart;
+            this.Output.Write(rows[..n]);
+            return (uint)n;
         }
 
         return size;

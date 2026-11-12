@@ -1098,7 +1098,7 @@ internal abstract partial class WebpColorConverterBase
             // Both encoding and decoding transform straight RGB. The configured profiles select the direction;
             // packing applies the destination pixel format's precision and alpha representation.
             Span<Vector4> row = vectors[..source.Length];
-            converter.Convert(configuration, source, row, rgb[..source.Length]);
+            converter.Convert(configuration, source, row);
             PackIccRgbRow(configuration, row, ReadOnlySpan<byte>.Empty, destination);
         }
 

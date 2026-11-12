@@ -25,14 +25,8 @@ internal class NoneExrCompression : ExrBaseDecompressor
     }
 
     /// <inheritdoc/>
-    public override void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
-    {
-        int bytesRead = stream.Read(buffer[..(int)uncompressedBytes]);
-        if (bytesRead != uncompressedBytes)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough pixel data from the stream!");
-        }
-    }
+    protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+        => ReadUncompressedBlock(stream, uncompressedBytes, buffer);
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)

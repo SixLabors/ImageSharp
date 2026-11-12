@@ -930,7 +930,7 @@ internal static partial class Av1IntraSuperblockEncoder
             horizontal += cellValues[y];
         }
 
-        Av1Transform2dOperations.Transpose(
+        SimdUtils.Transpose(
             ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[0]),
             ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[1]),
             ref Unsafe.As<Vector256<float>, Vector256<int>>(ref cellValues[2]),

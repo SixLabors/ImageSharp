@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
@@ -77,6 +79,85 @@ public class CieXyzAndLmsConversionTest
         for (int i = 0; i < actualSpan.Length; i++)
         {
             Assert.Equal(expected, actualSpan[i], Comparer);
+        }
+    }
+
+    /// <summary>
+    /// Checks both public matrix directions across every SIMD width and the scalar remainder.
+    /// </summary>
+    [Fact]
+    public void BulkMatrixConversionsMatchScalar()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            VerifyBulkMatrixConversions,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Compares mixed packed triples with the existing scalar PCS contract.
+    /// </summary>
+    private static void VerifyBulkMatrixConversions()
+    {
+        ReadOnlySpan<Vector3> samples =
+        [
+            new(0F, -0F, 0F),
+            new(.216938F, .150041F, .048850F),
+            new(.95047F, 1F, 1.08883F),
+            new(-.25F, 1.5F, -2F),
+            new(3F, .125F, -.75F),
+            new(float.NaN, .5F, .25F),
+            new(float.PositiveInfinity, .2F, .3F),
+            new(float.NegativeInfinity, 0F, 1F)
+        ];
+
+        ColorConversionOptions options = new();
+        CieXyz[] xyz = new CieXyz[33];
+        Lms[] lms = new Lms[xyz.Length];
+        Lms[] actualLms = new Lms[xyz.Length];
+        CieXyz[] actualXyz = new CieXyz[xyz.Length];
+        for (int i = 0; i < xyz.Length; i++)
+        {
+            Vector3 sample = samples[i % samples.Length];
+            xyz[i] = new CieXyz(sample);
+            lms[i] = new Lms(sample);
+        }
+
+        // Thirty-three distinct positions span two full 512-bit component groups and one scalar tail.
+        // Repeated nonneutral triples expose component swaps; negative and extended values must remain unbounded.
+        Lms.FromProfileConnectionSpace(options, xyz, actualLms);
+        Lms.ToProfileConnectionSpace(options, lms, actualXyz);
+        for (int i = 0; i < xyz.Length; i++)
+        {
+            Lms expectedLms = Lms.FromProfileConnectingSpace(options, in xyz[i]);
+            CieXyz expectedXyz = lms[i].ToProfileConnectingSpace(options);
+            if (float.IsFinite(expectedLms.L) && float.IsFinite(expectedLms.M) && float.IsFinite(expectedLms.S))
+            {
+                Assert.Equal(expectedLms, actualLms[i], Comparer);
+            }
+            else
+            {
+                // The existing approximate comparer is for finite values. Compare the scalar NaN/infinity
+                // classifications directly, without a new tolerance or a replacement finite-value rule.
+                Assert.Equal(expectedLms.L, actualLms[i].L);
+                Assert.Equal(expectedLms.M, actualLms[i].M);
+                Assert.Equal(expectedLms.S, actualLms[i].S);
+            }
+
+            if (float.IsFinite(expectedXyz.X) && float.IsFinite(expectedXyz.Y) && float.IsFinite(expectedXyz.Z))
+            {
+                Assert.Equal(expectedXyz, actualXyz[i], Comparer);
+            }
+            else
+            {
+                Assert.Equal(expectedXyz.X, actualXyz[i].X);
+                Assert.Equal(expectedXyz.Y, actualXyz[i].Y);
+                Assert.Equal(expectedXyz.Z, actualXyz[i].Z);
+            }
+
+            if (i % samples.Length == 0)
+            {
+                // Signed-zero input must take the same arithmetic path at every width, including the tail.
+                Assert.Equal(BitConverter.SingleToInt32Bits(expectedLms.L), BitConverter.SingleToInt32Bits(actualLms[i].L));
+                Assert.Equal(BitConverter.SingleToInt32Bits(expectedXyz.X), BitConverter.SingleToInt32Bits(actualXyz[i].X));
+            }
         }
     }
 }

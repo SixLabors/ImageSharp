@@ -324,7 +324,7 @@ public enum Heif4CharCode : uint
     Mif1 = 0x6D696631U,
 
     /// <summary>
-    /// Multi-Image Application Format brand.
+    /// MIAF structural brand.
     /// </summary>
     Miaf = 0x6D696166U,
 

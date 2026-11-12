@@ -589,8 +589,8 @@ internal sealed partial class Av1FirstPass<TSample, TOperator> : IDisposable
         statistics.LongTermCodedError /= macroblockCount;
         statistics.IntraError /= macroblockCount;
         statistics.FrameAverageWaveletEnergy /= macroblockCount;
-        statistics.LogCodedError = Av1FirstPassMath.Log1P(statistics.CodedError);
-        statistics.LogIntraError = Av1FirstPassMath.Log1P(statistics.IntraError);
+        statistics.LogCodedError = Numerics.Log1P(statistics.CodedError);
+        statistics.LogIntraError = Numerics.Log1P(statistics.IntraError);
         statistics.MotionVectorRow /= frameHeight;
         statistics.MotionVectorRowAbsolute /= frameHeight;
         statistics.MotionVectorColumn /= frameWidth;

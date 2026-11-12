@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -134,11 +135,8 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        for (int i = 0; i < source.Length; i++)
-        {
-            CieXyz xyz = source[i];
-            destination[i] = FromProfileConnectingSpace(options, in xyz);
-        }
+        Matrix4x4 matrix = options.AdaptationMatrix;
+        Transform(MemoryMarshal.Cast<CieXyz, Vector3>(source), MemoryMarshal.Cast<Lms, Vector3>(destination), in matrix);
     }
 
     /// <inheritdoc/>
@@ -150,11 +148,8 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        for (int i = 0; i < source.Length; i++)
-        {
-            Lms lms = source[i];
-            destination[i] = lms.ToProfileConnectingSpace(options);
-        }
+        Matrix4x4 matrix = options.InverseAdaptationMatrix;
+        Transform(MemoryMarshal.Cast<Lms, Vector3>(source), MemoryMarshal.Cast<CieXyz, Vector3>(destination), in matrix);
     }
 
     /// <inheritdoc/>
@@ -173,6 +168,59 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Lms other)
         => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    /// <summary>
+    /// Transforms packed triples with the same matrix and arithmetic order in both PCS directions.
+    /// </summary>
+    /// <param name="source">The source triples.</param>
+    /// <param name="destination">The transformed triples, with capacity validated by the public caller.</param>
+    /// <param name="matrix">The prepared XYZ-to-LMS matrix or its inverse.</param>
+    private static void Transform(ReadOnlySpan<Vector3> source, Span<Vector3> destination, in Matrix4x4 matrix)
+    {
+        int i = 0;
+
+        // Each register contains one component across consecutive colors. Load all three components
+        // before storing the packed result, so exact in-place conversion retains unread source values.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - i).Vector512Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector512<float>.Count)
+            {
+                SimdUtils.Deinterleave3(source, i, out Vector512<float> x, out Vector512<float> y, out Vector512<float> z);
+                SimdUtils.Transform3(in matrix, x, y, z, out Vector512<float> l, out Vector512<float> m, out Vector512<float> s);
+                SimdUtils.Interleave3(l, m, s, ref Unsafe.As<Vector3, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - i).Vector256Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector256<float>.Count)
+            {
+                SimdUtils.Deinterleave3(source, i, out Vector256<float> x, out Vector256<float> y, out Vector256<float> z);
+                SimdUtils.Transform3(in matrix, x, y, z, out Vector256<float> l, out Vector256<float> m, out Vector256<float> s);
+                SimdUtils.Interleave3(l, m, s, ref Unsafe.As<Vector3, float>(ref destination[i]));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint count = (source.Length - i).Vector128Count<float>();
+            for (nuint block = 0; block < count; block++, i += Vector128<float>.Count)
+            {
+                SimdUtils.Deinterleave3(source, i, out Vector128<float> x, out Vector128<float> y, out Vector128<float> z);
+                SimdUtils.Transform3(in matrix, x, y, z, out Vector128<float> l, out Vector128<float> m, out Vector128<float> s);
+                SimdUtils.Interleave3(l, m, s, ref Unsafe.As<Vector3, float>(ref destination[i]));
+            }
+        }
+
+        // Narrower widths start at the first unprocessed color. The tail uses the existing vector
+        // transform without bounding LMS or XYZ, which can extend outside their usual ranges.
+        for (; i < source.Length; i++)
+        {
+            destination[i] = Vector3.Transform(source[i], matrix);
+        }
+    }
 
     private Vector3 AsVector3Unsafe() => Unsafe.As<Lms, Vector3>(ref Unsafe.AsRef(in this));
 }

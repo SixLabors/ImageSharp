@@ -39,6 +39,11 @@ internal class TestMemoryAllocator : MemoryAllocator
 
     public int BufferCapacityInBytes { get; set; } = int.MaxValue;
 
+    /// <summary>
+    /// Gets or sets the allocation attempt to fail. Attempts start at one. Zero disables failure injection.
+    /// </summary>
+    public int FailAtAllocation { get; set; }
+
     public IReadOnlyList<AllocationRequest> AllocationLog
         => this.allocationLog ?? throw new InvalidOperationException("Call TestMemoryAllocator.EnableLogging() first!");
 
@@ -55,6 +60,12 @@ internal class TestMemoryAllocator : MemoryAllocator
     protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
         int allocationId = ++this.nextAllocationId;
+
+        if (allocationId == this.FailAtAllocation)
+        {
+            throw new InvalidMemoryOperationException("The requested test allocation failed.");
+        }
+
         T[] array = this.AllocateArray<T>(length, options, allocationId);
         return new BasicArrayBuffer<T>(array, length, this, allocationId);
     }

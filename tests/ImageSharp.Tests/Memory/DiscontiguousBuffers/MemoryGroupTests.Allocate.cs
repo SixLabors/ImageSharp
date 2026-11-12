@@ -93,6 +93,29 @@ public partial class MemoryGroupTests
             g.Dispose();
         }
 
+        /// <summary>
+        /// Verifies that a failed rent returns the segments already acquired for the group.
+        /// </summary>
+        /// <param name="failedSegment">The segment that fails to allocate.</param>
+        [Theory]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void Allocate_ReturnsSegmentsAfterAllocationFailure(int failedSegment)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = 16;
+            this.MemoryAllocator.FailAtAllocation = failedSegment;
+            this.MemoryAllocator.EnableNonThreadSafeLogging();
+
+            // The group needs two full segments and one short segment.
+            Assert.Throws<InvalidMemoryOperationException>(() =>
+            {
+                using MemoryGroup<byte> group = this.MemoryAllocator.AllocateGroup<byte>(40, 8);
+            });
+
+            Assert.Equal(failedSegment - 1, this.MemoryAllocator.AllocationLog.Count);
+            Assert.Equal(0, this.MemoryAllocator.LiveBufferBytes);
+        }
+
         [Theory]
         [InlineData(AllocationOptions.None)]
         [InlineData(AllocationOptions.Clean)]

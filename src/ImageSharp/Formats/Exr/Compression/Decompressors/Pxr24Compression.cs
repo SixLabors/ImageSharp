@@ -46,7 +46,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
     }
 
     /// <inheritdoc/>
-    public override void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    protected override void DecompressCore(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
     {
         uint rowCount = uncompressedBytes / this.BytesPerRow;
         uint packedBytes = this.pixelType == ExrPixelType.Float ? (uncompressedBytes / 4) * 3 : uncompressedBytes;

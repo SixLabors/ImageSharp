@@ -12,23 +12,23 @@ namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 /// </summary>
 /// <typeparam name="TPixel">The source pixel format.</typeparam>
 [Config(typeof(Config.Short))]
-[GenericTypeArguments(typeof(Argb32))]
 [GenericTypeArguments(typeof(Abgr32))]
+[GenericTypeArguments(typeof(Abgr32P))]
+[GenericTypeArguments(typeof(Argb32))]
+[GenericTypeArguments(typeof(Argb32P))]
 [GenericTypeArguments(typeof(Bgr24))]
 [GenericTypeArguments(typeof(Bgra32))]
-[GenericTypeArguments(typeof(L8))]
+[GenericTypeArguments(typeof(Bgra32P))]
+[GenericTypeArguments(typeof(Bgra5551))]
 [GenericTypeArguments(typeof(L16))]
+[GenericTypeArguments(typeof(L8))]
 [GenericTypeArguments(typeof(La16))]
 [GenericTypeArguments(typeof(La32))]
 [GenericTypeArguments(typeof(Rgb24))]
-[GenericTypeArguments(typeof(Rgba32))]
 [GenericTypeArguments(typeof(Rgb48))]
-[GenericTypeArguments(typeof(Rgba64))]
-[GenericTypeArguments(typeof(Bgra5551))]
-[GenericTypeArguments(typeof(Argb32P))]
-[GenericTypeArguments(typeof(Abgr32P))]
-[GenericTypeArguments(typeof(Bgra32P))]
+[GenericTypeArguments(typeof(Rgba32))]
 [GenericTypeArguments(typeof(Rgba32P))]
+[GenericTypeArguments(typeof(Rgba64))]
 public class ToRgbaVector<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {

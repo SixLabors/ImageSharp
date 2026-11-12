@@ -1,8 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using SixLabors.ImageSharp.Memory;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -70,18 +69,34 @@ public static class ColorProfileConverterExtensionsCieXyzCieXyz
             return;
         }
 
+        // Validate the complete destination before block traversal can write a partial result.
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         ColorConversionOptions options = converter.Options;
 
-        // Convert to input PCS.
-        using IMemoryOwner<CieXyz> pcsFromOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-        Span<CieXyz> pcsFrom = pcsFromOwner.GetSpan();
-        TFrom.ToProfileConnectionSpace(options, source, pcsFrom);
-
-        // Adapt to target white point
+        // Reuse one 3 KiB XYZ block for the complete span. Row callers need no allocator rental.
+        // Each block contains sixteen complete Vector512 component batches, or smaller SIMD batches.
+        // The source conversion writes every component before adaptation or destination conversion reads it.
+        Unsafe.SkipInit(out InlineArray256<CieXyz> storage);
+        Span<CieXyz> connection = storage;
         (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
-        VonKriesChromaticAdaptation.Transform(pcsFrom, pcsFrom, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
 
-        // Convert to output from PCS
-        TTo.FromProfileConnectionSpace(options, pcsFrom, destination);
+        while (!source.IsEmpty)
+        {
+            int count = Math.Min(source.Length, connection.Length);
+            Span<CieXyz> block = connection[..count];
+
+            // Read the complete input block into separate XYZ storage before writing destination colors.
+            // This permits in-place conversion between the three-component color models.
+            TFrom.ToProfileConnectionSpace(options, source[..count], block);
+
+            // Change the XYZ reference white before converting to the destination color model.
+            VonKriesChromaticAdaptation.Transform(block, block, whitePoints, options.AdaptationMatrix, options.InverseAdaptationMatrix);
+
+            // Each model's bulk conversion handles complete SIMD batches and any remaining colors.
+            TTo.FromProfileConnectionSpace(options, block, destination[..count]);
+
+            source = source[count..];
+            destination = destination[count..];
+        }
     }
 }

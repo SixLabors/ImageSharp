@@ -9,6 +9,10 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 /// <summary>
 /// Image decoder for generating an image out of a OpenExr stream.
 /// </summary>
+/// <remarks>
+/// Converts stored linear RGB to sRGB pixel values. The chromaticities attribute specifies the source primaries and white point.
+/// Files without that attribute use BT.709 primaries and D65 white. Alpha remains linear.
+/// </remarks>
 public class ExrDecoder : ImageDecoder
 {
     private ExrDecoder()

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Exr;
@@ -15,6 +16,8 @@ internal class ExrHeaderAttributes
     /// Initializes a new instance of the <see cref="ExrHeaderAttributes" /> class.
     /// </summary>
     /// <param name="channels">The image channels.</param>
+    /// <param name="primaries">The CIE xy coordinates of the linear RGB primaries.</param>
+    /// <param name="whitePoint">The CIE xy coordinates of the RGB white point.</param>
     /// <param name="compression">The compression used.</param>
     /// <param name="dataWindow">The data window.</param>
     /// <param name="displayWindow">The display window.</param>
@@ -27,6 +30,8 @@ internal class ExrHeaderAttributes
     /// <param name="chunkCount">The chunk count.</param>
     public ExrHeaderAttributes(
         IList<ExrChannelInfo> channels,
+        RgbPrimariesChromaticityCoordinates primaries,
+        CieXyChromaticityCoordinates whitePoint,
         ExrCompression compression,
         ExrBox2i dataWindow,
         ExrBox2i displayWindow,
@@ -39,6 +44,8 @@ internal class ExrHeaderAttributes
         int? chunkCount = null)
     {
         this.Channels = channels;
+        this.Primaries = primaries;
+        this.WhitePoint = whitePoint;
         this.Compression = compression;
         this.DataWindow = dataWindow;
         this.DisplayWindow = displayWindow;
@@ -55,6 +62,16 @@ internal class ExrHeaderAttributes
     /// Gets or sets a description of the image channels stored in the file.
     /// </summary>
     public IList<ExrChannelInfo> Channels { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CIE xy coordinates of the linear RGB primaries from the chromaticities attribute or the conventional fallback.
+    /// </summary>
+    public RgbPrimariesChromaticityCoordinates Primaries { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CIE xy coordinates of the RGB white point from the chromaticities attribute or the conventional fallback.
+    /// </summary>
+    public CieXyChromaticityCoordinates WhitePoint { get; set; }
 
     /// <summary>
     /// Gets or sets the compression method applied to the pixel data of all channels in the file.

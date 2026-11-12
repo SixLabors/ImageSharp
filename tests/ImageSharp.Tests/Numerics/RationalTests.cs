@@ -9,6 +9,80 @@ namespace SixLabors.ImageSharp.Tests;
 public class RationalTests
 {
     /// <summary>
+    /// Verifies exact fractions, component limits, and special values in both conversion modes.
+    /// </summary>
+    /// <param name="value">The input value.</param>
+    /// <param name="numerator">The expected numerator.</param>
+    /// <param name="denominator">The expected denominator.</param>
+    [Theory]
+    [InlineData(0.75, 3L, 4L)]
+    [InlineData(-0.75, -3L, 4L)]
+    [InlineData(4294967296D, 4294967296L, 1L)]
+    [InlineData(18014398509481984D, 18014398509481984L, 1L)]
+    [InlineData(-9223372036854775808D, long.MinValue, 1L)]
+    [InlineData(9223372036854775808D, long.MaxValue, 1L)]
+    [InlineData(double.MaxValue, long.MaxValue, 1L)]
+    [InlineData(double.MinValue, long.MinValue, 1L)]
+    [InlineData(double.Epsilon, 0L, 1L)]
+    [InlineData(0D, 0L, 1L)]
+    [InlineData(double.NaN, 0L, 0L)]
+    [InlineData(double.PositiveInfinity, 1L, 0L)]
+    [InlineData(double.NegativeInfinity, -1L, 0L)]
+    public void LongRationalFromDouble(double value, long numerator, long denominator)
+    {
+        LongRational expected = new(numerator, denominator);
+
+        Assert.Equal(expected, LongRational.FromDouble(value, false));
+        Assert.Equal(expected, LongRational.FromDouble(value, true));
+    }
+
+    /// <summary>
+    /// Verifies that denominator limits select a finite approximation without overflowing either component.
+    /// </summary>
+    [Fact]
+    public void FromDoubleRespectsDenominatorLimit()
+    {
+        // The nearest representable fraction to 2^-32 is 1/(2^32 - 1).
+        // Zero is farther away, and every larger numerator increases the error at this denominator limit.
+        Rational value = new(1D / 4294967296D, true);
+
+        Assert.Equal(1U, value.Numerator);
+        Assert.Equal(uint.MaxValue, value.Denominator);
+    }
+
+    /// <summary>
+    /// Verifies that exact conversion does not lose precision through rounded reciprocals near one.
+    /// </summary>
+    [Fact]
+    public void LongRationalFromDoubleRetainsAdjacentValue()
+    {
+        // The preceding double is exactly (2^53 - 1)/2^53. Both components fit in a long.
+        LongRational value = LongRational.FromDouble(double.BitDecrement(1D), true);
+
+        Assert.Equal(new LongRational(9007199254740991L, 9007199254740992L), value);
+    }
+
+    /// <summary>
+    /// Verifies that 64-bit metadata fractions simplify without overflowing signed component magnitudes.
+    /// </summary>
+    /// <param name="numerator">The original numerator.</param>
+    /// <param name="denominator">The original denominator.</param>
+    /// <param name="expectedNumerator">The reduced numerator.</param>
+    /// <param name="expectedDenominator">The reduced denominator.</param>
+    [Theory]
+    [InlineData(long.MinValue, 2L, long.MinValue / 2, 1L)]
+    [InlineData(2L, long.MinValue, 1L, long.MinValue / 2)]
+    [InlineData(0L, long.MinValue, 0L, -1L)]
+    [InlineData(long.MinValue, 0L, -1L, 0L)]
+    [InlineData(long.MinValue, long.MinValue, 1L, 1L)]
+    public void LongRationalSimplifiesSignedLimits(long numerator, long denominator, long expectedNumerator, long expectedDenominator)
+    {
+        LongRational value = new(numerator, denominator);
+
+        Assert.Equal(new LongRational(expectedNumerator, expectedDenominator), value.Simplify());
+    }
+
+    /// <summary>
     /// Tests the equality operators for equality.
     /// </summary>
     [Fact]
@@ -52,6 +126,9 @@ public class RationalTests
     [InlineData(double.NaN, 0, 0)]
     [InlineData(double.PositiveInfinity, 1, 0)]
     [InlineData(double.NegativeInfinity, 1, 0)]
+    [InlineData(4294967296D, uint.MaxValue, 1)]
+    [InlineData(-4294967296D, uint.MaxValue, 1)]
+    [InlineData(double.MaxValue, uint.MaxValue, 1)]
     public void FromDoubleOutOfRange(double value, uint numerator, uint denominator)
     {
         Rational r = Rational.FromDouble(value);

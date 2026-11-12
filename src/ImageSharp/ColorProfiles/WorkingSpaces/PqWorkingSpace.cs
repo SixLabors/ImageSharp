@@ -47,19 +47,11 @@ public sealed class PqWorkingSpace : RgbWorkingSpace
         => CompandingUtilities.Compand(vectors, this.expand, PixelColorRange.Extended);
 
     /// <inheritdoc/>
-    public override void Expand(Span<Vector3> vectors)
-        => CompandingUtilities.Compand(vectors, this.expand, PixelColorRange.Extended);
-
-    /// <inheritdoc/>
     public override Vector4 Expand(Vector4 vector)
         => CompandingUtilities.Compand(vector, this.expand, PixelColorRange.Extended);
 
     /// <inheritdoc/>
     public override void Compress(Span<Vector4> vectors)
-        => CompandingUtilities.Compand(vectors, this.compress, PixelColorRange.Extended);
-
-    /// <inheritdoc/>
-    public override void Compress(Span<Vector3> vectors)
         => CompandingUtilities.Compand(vectors, this.compress, PixelColorRange.Extended);
 
     /// <inheritdoc/>

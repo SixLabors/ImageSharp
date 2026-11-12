@@ -377,19 +377,6 @@ public class RgbWorkingSpaceTests
 
         Assert.Equal(expectedCompressed, actualCompressed, TolerantComparer);
 
-        Vector3[] packed = linear.Select(color => new Vector3(color.X, color.Y, color.Z)).ToArray();
-        workingSpace.Compress(packed.AsSpan());
-        for (int i = 0; i < packed.Length; i++)
-        {
-            Assert.Equal(expectedCompressed[i], new Vector4(packed[i], linear[i].W), TolerantComparer);
-        }
-
-        workingSpace.Expand(packed.AsSpan());
-        for (int i = 0; i < packed.Length; i++)
-        {
-            Assert.Equal(linear[i], new Vector4(packed[i], linear[i].W), RoundTripComparer);
-        }
-
         workingSpace.Expand(actualCompressed);
 
         Assert.Equal(linear, actualCompressed, RoundTripComparer);
@@ -401,26 +388,6 @@ public class RgbWorkingSpaceTests
     }
 
     /// <summary>
-    /// Checks that existing custom bulk overrides also control packed RGB conversion across multiple stack blocks.
-    /// </summary>
-    [Fact]
-    public void PackedRgbUsesCustomBulkOverrides()
-    {
-        CustomWorkingSpace custom = new();
-        RgbWorkingSpace workingSpace = custom;
-        Vector3[] colors = new Vector3[33];
-        Array.Fill(colors, new Vector3(0.25F, 0.5F, 0.75F));
-
-        workingSpace.Compress(colors.AsSpan());
-        Assert.True(custom.CompressCalls > 0);
-        Assert.All(colors, color => Assert.Equal(new Vector3(0.5F, 2F, 6F), color));
-
-        workingSpace.Expand(colors.AsSpan());
-        Assert.True(custom.ExpandCalls > 0);
-        Assert.All(colors, color => Assert.Equal(new Vector3(0.25F, 0.5F, 0.75F), color));
-    }
-
-    /// <summary>
     /// Checks HLG RGB luminance adjustment with sRGB and Rec.2020 primaries at three display peaks.
     /// </summary>
     [Fact]
@@ -429,7 +396,7 @@ public class RgbWorkingSpaceTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
-    /// Checks prepared HLG working spaces through all public color layouts with native RGB expectations.
+    /// Checks prepared HLG working spaces through scalar and bulk RGBA conversion with native RGB expectations.
     /// </summary>
     private static void CheckHlgWorkingSpace()
     {
@@ -450,12 +417,10 @@ public class RgbWorkingSpaceTests
                         : (compress ? NativeHlgRec2020CompressedRgb[peakIndex] : NativeHlgRec2020ExpandedRgb[peakIndex]);
 
                     // Thirty-three colors cover complete 512-, 256- and 128-bit groups and the final scalar color.
-                    Vector3[] packed = new Vector3[34];
                     Vector4[] rgba = new Vector4[34];
                     for (int i = 0; i < 33; i++)
                     {
                         Vector3 input = NativeHlgInputs[i % NativeHlgInputs.Length];
-                        packed[i] = input;
                         rgba[i] = new Vector4(input, HlgAlpha(i));
                         Vector4 scalar = compress ? workingSpace.Compress(rgba[i]) : workingSpace.Expand(rgba[i]);
                         AssertNativeHlgRgb(
@@ -466,16 +431,13 @@ public class RgbWorkingSpaceTests
                         Assert.Equal(BitConverter.SingleToInt32Bits(rgba[i].W), BitConverter.SingleToInt32Bits(scalar.W));
                     }
 
-                    packed[^1] = sentinel;
                     rgba[^1] = new Vector4(sentinel, -17F);
                     if (compress)
                     {
-                        workingSpace.Compress(packed.AsSpan(0, 33));
                         workingSpace.Compress(rgba.AsSpan(0, 33));
                     }
                     else
                     {
-                        workingSpace.Expand(packed.AsSpan(0, 33));
                         workingSpace.Expand(rgba.AsSpan(0, 33));
                     }
 
@@ -484,18 +446,12 @@ public class RgbWorkingSpaceTests
                         Vector3 reference = expected[i % expected.Length];
                         AssertNativeHlgRgb(
                             reference,
-                            new Vector4(packed[i], 0F),
-                            $"HLG space={space}, compress={compress}, peak={peaks[peakIndex]}, input={NativeHlgInputs[i % NativeHlgInputs.Length]}, RGB");
-
-                        AssertNativeHlgRgb(
-                            reference,
                             rgba[i],
                             $"HLG space={space}, compress={compress}, peak={peaks[peakIndex]}, input={NativeHlgInputs[i % NativeHlgInputs.Length]}, RGBA");
 
                         Assert.Equal(BitConverter.SingleToInt32Bits(HlgAlpha(i)), BitConverter.SingleToInt32Bits(rgba[i].W));
                     }
 
-                    Assert.Equal(sentinel, packed[^1]);
                     Assert.Equal(new Vector4(sentinel, -17F), rgba[^1]);
                 }
             }
@@ -533,58 +489,4 @@ public class RgbWorkingSpaceTests
             1 => .375F,
             _ => BitConverter.Int32BitsToSingle(unchecked((int)0xFFC12345))
         };
-
-    /// <summary>
-    /// Supplies an existing four-component working-space contract without packed RGB overrides.
-    /// </summary>
-    private sealed class CustomWorkingSpace : RgbWorkingSpace
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CustomWorkingSpace"/> class with sRGB primaries and white.
-        /// </summary>
-        public CustomWorkingSpace()
-            : base(KnownRgbWorkingSpaces.SRgb.WhitePoint, KnownRgbWorkingSpaces.SRgb.ChromaticityCoordinates)
-        {
-        }
-
-        /// <summary>
-        /// Gets the number of four-component compression calls.
-        /// </summary>
-        public int CompressCalls { get; private set; }
-
-        /// <summary>
-        /// Gets the number of four-component expansion calls.
-        /// </summary>
-        public int ExpandCalls { get; private set; }
-
-        /// <inheritdoc/>
-        public override void Compress(Span<Vector4> vectors)
-        {
-            this.CompressCalls++;
-
-            for (int i = 0; i < vectors.Length; i++)
-            {
-                Assert.Equal(1F, vectors[i].W);
-                vectors[i] = this.Compress(vectors[i]);
-            }
-        }
-
-        /// <inheritdoc/>
-        public override void Expand(Span<Vector4> vectors)
-        {
-            this.ExpandCalls++;
-
-            for (int i = 0; i < vectors.Length; i++)
-            {
-                Assert.Equal(1F, vectors[i].W);
-                vectors[i] = this.Expand(vectors[i]);
-            }
-        }
-
-        /// <inheritdoc/>
-        public override Vector4 Compress(Vector4 vector) => vector * new Vector4(2F, 4F, 8F, 1F);
-
-        /// <inheritdoc/>
-        public override Vector4 Expand(Vector4 vector) => vector / new Vector4(2F, 4F, 8F, 1F);
-    }
 }

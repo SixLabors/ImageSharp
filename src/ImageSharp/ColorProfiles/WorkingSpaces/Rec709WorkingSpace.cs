@@ -61,33 +61,7 @@ public sealed class Rec709WorkingSpace : RgbWorkingSpace
     }
 
     /// <inheritdoc/>
-    public override void Compress(Span<Vector3> vectors)
-    {
-        if (this.UseSymmetricCurves)
-        {
-            CompandingUtilities.Compand(vectors, SymmetricCompress, PixelColorRange.Extended);
-        }
-        else
-        {
-            Rec709Companding.Compress(vectors);
-        }
-    }
-
-    /// <inheritdoc/>
     public override void Expand(Span<Vector4> vectors)
-    {
-        if (this.UseSymmetricCurves)
-        {
-            CompandingUtilities.Compand(vectors, SymmetricExpand, PixelColorRange.Extended);
-        }
-        else
-        {
-            Rec709Companding.Expand(vectors);
-        }
-    }
-
-    /// <inheritdoc/>
-    public override void Expand(Span<Vector3> vectors)
     {
         if (this.UseSymmetricCurves)
         {

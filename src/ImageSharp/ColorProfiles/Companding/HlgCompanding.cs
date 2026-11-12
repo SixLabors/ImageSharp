@@ -27,13 +27,6 @@ public static partial class HlgCompanding
         => CompandingUtilities.Compand(vectors, default(ExpandOperator), PixelColorRange.Extended);
 
     /// <summary>
-    /// Converts nonlinear RGB to linear RGB.
-    /// </summary>
-    /// <param name="vectors">The normalized nonlinear RGB colors.</param>
-    public static void Expand(Span<Vector3> vectors)
-        => CompandingUtilities.Compand(vectors, default(ExpandOperator), PixelColorRange.Extended);
-
-    /// <summary>
     /// Converts nonlinear RGB to linear RGB and retains alpha.
     /// </summary>
     /// <param name="vector">The normalized nonlinear color with RGB in X, Y, Z and unchanged alpha in W.</param>
@@ -46,13 +39,6 @@ public static partial class HlgCompanding
     /// </summary>
     /// <param name="vectors">The normalized linear colors with RGB in X, Y, Z and unchanged alpha in W.</param>
     public static void Compress(Span<Vector4> vectors)
-        => CompandingUtilities.Compand(vectors, default(CompressOperator), PixelColorRange.Extended);
-
-    /// <summary>
-    /// Converts linear RGB to nonlinear RGB.
-    /// </summary>
-    /// <param name="vectors">The normalized linear RGB colors.</param>
-    public static void Compress(Span<Vector3> vectors)
         => CompandingUtilities.Compand(vectors, default(CompressOperator), PixelColorRange.Extended);
 
     /// <summary>

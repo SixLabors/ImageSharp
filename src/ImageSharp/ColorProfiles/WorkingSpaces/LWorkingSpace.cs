@@ -25,13 +25,7 @@ public sealed class LWorkingSpace : RgbWorkingSpace
     public override void Compress(Span<Vector4> vectors) => LCompanding.Compress(vectors);
 
     /// <inheritdoc/>
-    public override void Compress(Span<Vector3> vectors) => LCompanding.Compress(vectors);
-
-    /// <inheritdoc/>
     public override void Expand(Span<Vector4> vectors) => LCompanding.Expand(vectors);
-
-    /// <inheritdoc/>
-    public override void Expand(Span<Vector3> vectors) => LCompanding.Expand(vectors);
 
     /// <inheritdoc/>
     public override Vector4 Compress(Vector4 vector) => LCompanding.Compress(vector);

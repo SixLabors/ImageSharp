@@ -75,16 +75,10 @@ public sealed partial class HlgWorkingSpace : RgbWorkingSpace
     public override void Expand(Span<Vector4> vectors) => Compand(vectors, this.expand);
 
     /// <inheritdoc/>
-    public override void Expand(Span<Vector3> vectors) => Compand(vectors, this.expand);
-
-    /// <inheritdoc/>
     public override Vector4 Expand(Vector4 vector) => Compand(vector, this.expand);
 
     /// <inheritdoc/>
     public override void Compress(Span<Vector4> vectors) => Compand(vectors, this.compress);
-
-    /// <inheritdoc/>
-    public override void Compress(Span<Vector3> vectors) => Compand(vectors, this.compress);
 
     /// <inheritdoc/>
     public override Vector4 Compress(Vector4 vector) => Compand(vector, this.compress);
@@ -102,79 +96,6 @@ public sealed partial class HlgWorkingSpace : RgbWorkingSpace
         this.WhitePoint,
         this.ChromaticityCoordinates,
         this.PeakLuminance);
-
-    /// <summary>
-    /// Converts packed RGB triples.
-    /// </summary>
-    /// <typeparam name="TOperator">The prepared RGB operation.</typeparam>
-    /// <param name="vectors">The caller-owned colors. Conversion is in place.</param>
-    /// <param name="operation">The prepared component and luminance operation.</param>
-    private static void Compand<TOperator>(Span<Vector3> vectors, TOperator operation)
-        where TOperator : struct, IColorOperator
-    {
-        ref float target = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Vector3, float>(vectors));
-        int i = 0;
-
-        // Each component register holds consecutive pixels. Load the entire group before overwriting its packed source.
-        if (Vector512.IsHardwareAccelerated)
-        {
-            nuint count = (vectors.Length - i).Vector512Count<float>();
-
-            for (nuint group = 0; group < count; group++, i += Vector512<float>.Count)
-            {
-                SimdUtils.Deinterleave3(vectors, i, out Vector512<float> red, out Vector512<float> green, out Vector512<float> blue);
-                operation.Invoke(ref red, ref green, ref blue);
-
-                // Bound once, after both the component curve and the luminance adjustment. Alpha never enters either operation.
-                red = CompandingUtilities.Compand(red, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                green = CompandingUtilities.Compand(green, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                blue = CompandingUtilities.Compand(blue, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                SimdUtils.Interleave3(red, green, blue, ref Unsafe.Add(ref target, (nuint)i * 3));
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            nuint count = (vectors.Length - i).Vector256Count<float>();
-
-            for (nuint group = 0; group < count; group++, i += Vector256<float>.Count)
-            {
-                SimdUtils.Deinterleave3(vectors, i, out Vector256<float> red, out Vector256<float> green, out Vector256<float> blue);
-                operation.Invoke(ref red, ref green, ref blue);
-
-                // Bound once, after both the component curve and the luminance adjustment. Alpha never enters either operation.
-                red = CompandingUtilities.Compand(red, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                green = CompandingUtilities.Compand(green, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                blue = CompandingUtilities.Compand(blue, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                SimdUtils.Interleave3(red, green, blue, ref Unsafe.Add(ref target, (nuint)i * 3));
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            nuint count = (vectors.Length - i).Vector128Count<float>();
-
-            for (nuint group = 0; group < count; group++, i += Vector128<float>.Count)
-            {
-                SimdUtils.Deinterleave3(vectors, i, out Vector128<float> red, out Vector128<float> green, out Vector128<float> blue);
-                operation.Invoke(ref red, ref green, ref blue);
-
-                // Bound once, after both the component curve and the luminance adjustment. Alpha never enters either operation.
-                red = CompandingUtilities.Compand(red, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                green = CompandingUtilities.Compand(green, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                blue = CompandingUtilities.Compand(blue, default(TensorPrimitives_.IdentityOperator), PixelColorRange.Extended);
-                SimdUtils.Interleave3(red, green, blue, ref Unsafe.Add(ref target, (nuint)i * 3));
-            }
-        }
-
-        // The tail uses the same RGB operation. It touches only complete colors and retains the original alpha.
-        for (; i < vectors.Length; i++)
-        {
-            Vector3 value = vectors[i];
-            Vector4 result = Compand(new Vector4(value, 0F), operation);
-            vectors[i] = new Vector3(result.X, result.Y, result.Z);
-        }
-    }
 
     /// <summary>
     /// Converts packed RGB colors while preserving alpha.

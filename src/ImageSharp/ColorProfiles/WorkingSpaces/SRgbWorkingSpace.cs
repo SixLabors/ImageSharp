@@ -25,13 +25,7 @@ public sealed class SRgbWorkingSpace : RgbWorkingSpace
     public override void Compress(Span<Vector4> vectors) => SRgbCompanding.Compress(vectors);
 
     /// <inheritdoc/>
-    public override void Compress(Span<Vector3> vectors) => SRgbCompanding.Compress(vectors);
-
-    /// <inheritdoc/>
     public override void Expand(Span<Vector4> vectors) => SRgbCompanding.Expand(vectors);
-
-    /// <inheritdoc/>
-    public override void Expand(Span<Vector3> vectors) => SRgbCompanding.Expand(vectors);
 
     /// <inheritdoc/>
     public override Vector4 Compress(Vector4 vector) => SRgbCompanding.Compress(vector);

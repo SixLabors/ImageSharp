@@ -18,14 +18,12 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// </content>
 public partial class CompandingTests
 {
-    private static readonly string[] PrecisionCompandingCurves =
+    private static readonly string[] CompandingCurves =
     [
         nameof(SRgbCompanding), nameof(GammaCompanding), nameof(Rec709Companding), nameof(Rec2020Companding), nameof(LCompanding)
     ];
 
     // PQ and HLG expose extended component conversion, but not the precision-selected SDR table APIs above.
-    private static readonly string[] CompandingCurves = [.. PrecisionCompandingCurves, nameof(PqCompanding), nameof(HlgCompanding)];
-
     // Original libjxl v0.13.0, revision 91837342b24034078780b687f57f670a7def8153.
     // TF_PQ_Base and TF_HLG_Base supply these independent fixed component equations and samples.
     private static readonly Vector3[] NativeTransferInputs =
@@ -206,7 +204,7 @@ public partial class CompandingTests
         // SDR companding clips RGB to [0,1]. Alpha does not change.
         source[^1] = new Vector4(-1F, 2F, 0.5F, -0.25F);
 
-        foreach (string curve in PrecisionCompandingCurves)
+        foreach (string curve in CompandingCurves)
         {
             foreach (bool compress in new[] { false, true })
             {
@@ -239,62 +237,6 @@ public partial class CompandingTests
     public void ExtendedCompanding_MatchesFormulas() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
         CheckExtendedCompanding,
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-
-    /// <summary>
-    /// Checks packed RGB curves, finite result bounds and partial SIMD colors at every supported execution width.
-    /// </summary>
-    [Fact]
-    public void PackedCompanding_MatchesFormulas() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-        CheckPackedCompanding,
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-
-    /// <summary>
-    /// Uses the established transfer formulas and error bounds for packed triples, including guarded output tails.
-    /// </summary>
-    private static void CheckPackedCompanding()
-    {
-        ReadOnlySpan<int> lengths = [0, 1, 2, 3, 17];
-        ReadOnlySpan<float> samples = [-16F, -2F, -1F, -0F, 0F, 0.001F, 0.04F, 0.25F, 1F, 16F,
-            float.NaN, float.NegativeInfinity, float.PositiveInfinity];
-        Vector3 sentinel = new(-123F, 456F, -789F);
-
-        foreach (string curve in CompandingCurves)
-        {
-            foreach (bool compress in new[] { false, true })
-            {
-                foreach (int length in lengths)
-                {
-                    Vector3[] actual = new Vector3[length + 1];
-                    for (int i = 0; i < length; i++)
-                    {
-                        actual[i] = new Vector3(samples[(3 * i) % samples.Length], samples[((3 * i) + 1) % samples.Length],
-                            samples[((3 * i) + 2) % samples.Length]);
-                    }
-
-                    actual[^1] = sentinel;
-                    ApplyCompanding(curve, compress, actual.AsSpan(0, length));
-
-                    for (int i = 0; i < length; i++)
-                    {
-                        for (int component = 0; component < 3; component++)
-                        {
-                            float input = samples[((3 * i) + component) % samples.Length];
-                            float reference = ExpectedComponent(curve, compress, input);
-                            reference = float.IsNaN(reference)
-                                ? ColorNumerics.MinColorValue
-                                : Math.Clamp(reference, ColorNumerics.MinColorValue, ColorNumerics.MaxColorValue);
-
-                            float scale = MathF.Max(1F, MathF.Abs(reference));
-                            Assert.Equal(reference / scale, actual[i][component] / scale, DirectComparer);
-                        }
-                    }
-
-                    // The padded SIMD tail belongs to the compander. It must not publish padding over the next color.
-                    Assert.Equal(sentinel, actual[^1]);
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// Checks fixed power classification and scalar remainders through the shared bulk entry point.
@@ -355,7 +297,7 @@ public partial class CompandingTests
         ReadOnlySpan<int> lengths = [0, 1, 2, 3, 4, 5, 7, 31, 257];
         Random random = new(42);
 
-        foreach (string curve in PrecisionCompandingCurves)
+        foreach (string curve in CompandingCurves)
         {
             foreach (bool compress in new[] { false, true })
             {
@@ -538,61 +480,6 @@ public partial class CompandingTests
     }
 
     /// <summary>
-    /// Calls the packed RGB overload of each public compander.
-    /// </summary>
-    /// <param name="curve">The compander under test.</param>
-    /// <param name="compress">Whether to encode linear values.</param>
-    /// <param name="values">The packed colors transformed in place.</param>
-    private static void ApplyCompanding(string curve, bool compress, Span<Vector3> values)
-    {
-        switch ((curve, compress))
-        {
-            case (nameof(SRgbCompanding), false):
-                SRgbCompanding.Expand(values);
-                break;
-            case (nameof(SRgbCompanding), true):
-                SRgbCompanding.Compress(values);
-                break;
-            case (nameof(GammaCompanding), false):
-                GammaCompanding.Expand(values, 2.2);
-                break;
-            case (nameof(GammaCompanding), true):
-                GammaCompanding.Compress(values, 2.2);
-                break;
-            case (nameof(Rec709Companding), false):
-                Rec709Companding.Expand(values);
-                break;
-            case (nameof(Rec709Companding), true):
-                Rec709Companding.Compress(values);
-                break;
-            case (nameof(Rec2020Companding), false):
-                Rec2020Companding.Expand(values);
-                break;
-            case (nameof(Rec2020Companding), true):
-                Rec2020Companding.Compress(values);
-                break;
-            case (nameof(LCompanding), false):
-                LCompanding.Expand(values);
-                break;
-            case (nameof(LCompanding), true):
-                LCompanding.Compress(values);
-                break;
-            case (nameof(PqCompanding), false):
-                PqCompanding.Expand(values, 255F);
-                break;
-            case (nameof(PqCompanding), true):
-                PqCompanding.Compress(values, 255F);
-                break;
-            case (nameof(HlgCompanding), false):
-                HlgCompanding.Expand(values);
-                break;
-            case (nameof(HlgCompanding), true):
-                HlgCompanding.Compress(values);
-                break;
-        }
-    }
-
-    /// <summary>
     /// Calls the corresponding single-color API.
     /// </summary>
     /// <param name="curve">The compander under test.</param>
@@ -651,32 +538,6 @@ public partial class CompandingTests
                     ? input < beta ? input * 4.5 : (alpha * Math.Pow(input, 0.45)) - (alpha - 1)
                     : input < beta * 4.5 ? input / 4.5 : Math.Pow((input + (alpha - 1)) / alpha, 1 / 0.45);
                 return (float)result;
-            case nameof(PqCompanding):
-                // ST 2084 uses absolute light relative to 10000 cd/m². These packed cases normalize linear one to 255 cd/m².
-                const double pqM = 2523D / 32D;
-                const double pqN = 2610D / 16384D;
-                const double pqC1 = 3424D / 4096D;
-                const double pqC2 = 2413D / 128D;
-                const double pqC3 = 2392D / 128D;
-                if (magnitude == 0D)
-                {
-                    return value;
-                }
-
-                double power = Math.Pow(compress ? magnitude * (255D / 10000D) : magnitude, compress ? pqN : 1D / pqM);
-                result = compress
-                    ? Math.Pow((pqC1 + (pqC2 * power)) / (1D + (pqC3 * power)), pqM)
-                    : Math.Pow(Math.Max(power - pqC1, 0D) / (pqC2 - (pqC3 * power)), 1D / pqN) * (10000D / 255D);
-                return (float)Math.CopySign(result, input);
-            case nameof(HlgCompanding):
-                // ARIB STD-B67 is scene-linear here. Display luminance is a separate coupled working-space operation.
-                const double hlgA = 0.17883277D;
-                const double hlgB = 0.28466892D;
-                const double hlgC = 0.55991073D;
-                result = compress
-                    ? magnitude <= 1D / 12D ? Math.Sqrt(3D * magnitude) : (hlgA * Math.Log((12D * magnitude) - hlgB)) + hlgC
-                    : magnitude <= 0.5D ? (magnitude * magnitude) / 3D : (Math.Exp((magnitude - hlgC) / hlgA) + hlgB) / 12D;
-                return (float)Math.CopySign(result, input);
             default:
                 result = compress
                     ? input <= CieConstants.Epsilon ? (input * CieConstants.Kappa) / 100 : (1.16 * Math.Pow(input, 0.3333333)) - 0.16
@@ -686,7 +547,7 @@ public partial class CompandingTests
     }
 
     /// <summary>
-    /// Checks scalar colors, packed triples and complete SIMD groups with narrower and scalar tails against native component equations.
+    /// Checks scalar colors and complete SIMD groups with narrower and scalar tails against native component equations.
     /// </summary>
     [Fact]
     public void ComponentCompanding_MatchesNative() => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -716,12 +577,10 @@ public partial class CompandingTests
 
                     foreach (int length in lengths)
                     {
-                        Vector3[] packed = new Vector3[length + 1];
                         Vector4[] rgba = new Vector4[length + 1];
                         for (int i = 0; i < length; i++)
                         {
                             Vector3 input = NativeTransferInputs[i % NativeTransferInputs.Length];
-                            packed[i] = input;
                             rgba[i] = new Vector4(input, TransferAlpha(i));
                             Vector4 scalar = ApplyNativeCurve(curve, compress, rgba[i], peaks[peakIndex]);
                             AssertNativeComponents(expected[i % expected.Length], scalar,
@@ -729,23 +588,18 @@ public partial class CompandingTests
                             Assert.Equal(BitConverter.SingleToInt32Bits(rgba[i].W), BitConverter.SingleToInt32Bits(scalar.W));
                         }
 
-                        packed[^1] = sentinel;
                         rgba[^1] = new Vector4(sentinel, -17F);
-                        ApplyNativeCurve(curve, compress, packed.AsSpan(0, length), peaks[peakIndex]);
                         ApplyNativeCurve(curve, compress, rgba.AsSpan(0, length), peaks[peakIndex]);
 
                         for (int i = 0; i < length; i++)
                         {
                             Vector3 reference = expected[i % expected.Length];
                             Vector3 input = NativeTransferInputs[i % NativeTransferInputs.Length];
-                            AssertNativeComponents(reference, new Vector4(packed[i], 0F),
-                                $"curve={curve}, compress={compress}, peak={peaks[peakIndex]}, input={input}, RGB");
                             AssertNativeComponents(reference, rgba[i],
                                 $"curve={curve}, compress={compress}, peak={peaks[peakIndex]}, input={input}, RGBA");
                             Assert.Equal(BitConverter.SingleToInt32Bits(TransferAlpha(i)), BitConverter.SingleToInt32Bits(rgba[i].W));
                         }
 
-                        Assert.Equal(sentinel, packed[^1]);
                         Assert.Equal(new Vector4(sentinel, -17F), rgba[^1]);
                     }
 
@@ -757,6 +611,15 @@ public partial class CompandingTests
                 }
             }
         }
+
+        // PQ expansion above its pole has no real result. The color bounds map NaN to their lower limit.
+        Vector4 invalid = new(16F, -16F, 16F, .375F);
+        Vector4 bounded = new(new Vector3(ColorNumerics.MinColorValue), invalid.W);
+        Assert.Equal(bounded, PqCompanding.Expand(invalid, 255F));
+
+        Vector4[] invalidRow = [invalid, invalid, invalid, invalid, invalid];
+        PqCompanding.Expand(invalidRow.AsSpan(), 255F);
+        Assert.All(invalidRow, color => Assert.Equal(bounded, color));
     }
 
     /// <summary>
@@ -771,36 +634,6 @@ public partial class CompandingTests
         => curve == 0
             ? (compress ? PqCompanding.Compress(value, peak) : PqCompanding.Expand(value, peak))
             : (compress ? HlgCompanding.Compress(value) : HlgCompanding.Expand(value));
-
-    /// <summary>
-    /// Applies one public PQ or HLG component curve to packed RGB colors.
-    /// </summary>
-    /// <param name="curve">Zero selects PQ; one selects HLG.</param>
-    /// <param name="compress">Whether to encode linear input.</param>
-    /// <param name="values">The input and output colors.</param>
-    /// <param name="peak">The linear PQ normalization luminance.</param>
-    private static void ApplyNativeCurve(int curve, bool compress, Span<Vector3> values, float peak)
-    {
-        if (curve == 0)
-        {
-            if (compress)
-            {
-                PqCompanding.Compress(values, peak);
-            }
-            else
-            {
-                PqCompanding.Expand(values, peak);
-            }
-        }
-        else if (compress)
-        {
-            HlgCompanding.Compress(values);
-        }
-        else
-        {
-            HlgCompanding.Expand(values);
-        }
-    }
 
     /// <summary>
     /// Applies one public PQ or HLG component curve to RGB colors with alpha.

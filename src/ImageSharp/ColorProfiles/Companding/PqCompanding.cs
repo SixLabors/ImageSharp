@@ -37,17 +37,6 @@ public static partial class PqCompanding
     }
 
     /// <summary>
-    /// Converts nonlinear RGB to linear RGB.
-    /// </summary>
-    /// <param name="vectors">The normalized nonlinear RGB colors.</param>
-    /// <param name="peakLuminance">The luminance represented by linear one, in cd/m². It must permit finite PQ normalization.</param>
-    public static void Expand(Span<Vector3> vectors, float peakLuminance)
-    {
-        ValidatePeakLuminance(peakLuminance);
-        CompandingUtilities.Compand(vectors, new ExpandOperator(ReferenceLuminance / peakLuminance), PixelColorRange.Extended);
-    }
-
-    /// <summary>
     /// Converts nonlinear RGB to linear RGB and retains alpha.
     /// </summary>
     /// <param name="vector">The normalized nonlinear color with RGB in X, Y, Z and unchanged alpha in W.</param>
@@ -65,17 +54,6 @@ public static partial class PqCompanding
     /// <param name="vectors">The normalized linear colors with RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="peakLuminance">The luminance represented by linear one, in cd/m². It must permit finite PQ normalization.</param>
     public static void Compress(Span<Vector4> vectors, float peakLuminance)
-    {
-        ValidatePeakLuminance(peakLuminance);
-        CompandingUtilities.Compand(vectors, new CompressOperator(peakLuminance * (1F / ReferenceLuminance)), PixelColorRange.Extended);
-    }
-
-    /// <summary>
-    /// Converts linear RGB to nonlinear RGB.
-    /// </summary>
-    /// <param name="vectors">The normalized linear RGB colors.</param>
-    /// <param name="peakLuminance">The luminance represented by linear one, in cd/m². It must permit finite PQ normalization.</param>
-    public static void Compress(Span<Vector3> vectors, float peakLuminance)
     {
         ValidatePeakLuminance(peakLuminance);
         CompandingUtilities.Compand(vectors, new CompressOperator(peakLuminance * (1F / ReferenceLuminance)), PixelColorRange.Extended);

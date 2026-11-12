@@ -22,23 +22,39 @@ public class DecodeJpegParseStreamOnly
 
     private byte[] jpegBytes;
 
+    // Both methods read from this stream. Each call rewinds it, so the results measure the decoders only.
+    private MemoryStream inputStream;
+
     [GlobalSetup]
     public void Setup()
-        => this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
+    {
+        this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
+        this.inputStream = new MemoryStream(this.jpegBytes, false);
+    }
+
+    /// <summary>
+    /// Releases the shared input stream.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        this.inputStream.Dispose();
+        this.inputStream = null;
+    }
 
     [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
     public SDSize JpegSystemDrawing()
     {
-        using MemoryStream memoryStream = new(this.jpegBytes);
-        using System.Drawing.Image image = System.Drawing.Image.FromStream(memoryStream);
+        this.inputStream.Position = 0;
+        using System.Drawing.Image image = System.Drawing.Image.FromStream(this.inputStream);
         return image.Size;
     }
 
     [Benchmark(Description = "JpegDecoderCore.ParseStream")]
     public void ParseStream()
     {
-        using MemoryStream memoryStream = new(this.jpegBytes);
-        using BufferedReadStream bufferedStream = new(Configuration.Default, memoryStream);
+        this.inputStream.Position = 0;
+        using BufferedReadStream bufferedStream = new(Configuration.Default, this.inputStream);
         JpegDecoderOptions options = new(new DecoderOptions(Configuration.Default) { SkipMetadata = true });
 
         using JpegDecoderCore decoder = new(options);
@@ -66,26 +82,22 @@ public class DecodeJpegParseStreamOnly
         {
         }
     }
+
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET SDK 11.0.100-preview.7.26381.103
+      [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+      Job-RCQXAA : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
+
+    Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
+    WarmupCount=3
+
+    | Method                      | TestImage             | Mean     | Error     | StdDev    | Ratio | RatioSD | Allocated | Alloc Ratio |
+    |---------------------------- |---------------------- |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+    | 'System.Drawing FULL'       | Jpg/baseline/Lake.jpg | 2.761 ms | 0.6452 ms | 0.0354 ms |  1.00 |    0.02 |     330 B |        1.00 |
+    | JpegDecoderCore.ParseStream | Jpg/baseline/Lake.jpg | 1.146 ms | 0.0844 ms | 0.0046 ms |  0.42 |    0.00 |   17085 B |       51.77 |
+
+    Allocated reports managed memory only.
+    */
 }
-
-/*
-BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1083 (20H2/October2020Update)
-Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=6.0.100-preview.3.21202.5
-[Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
-Job-VAJCIU : .NET Core 2.1.26 (CoreCLR 4.6.29812.02, CoreFX 4.6.29812.01), X64 RyuJIT
-Job-INPXCR : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
-Job-JRCLOJ : .NET Framework 4.8 (4.8.4390.0), X64 RyuJIT
-
-IterationCount=3  LaunchCount=1  WarmupCount=3
-|                      Method |        Job |              Runtime |             TestImage |     Mean |     Error |    StdDev | Ratio |   Gen 0 | Gen 1 | Gen 2 | Allocated |
-|---------------------------- |----------- |--------------------- |---------------------- |---------:|----------:|----------:|------:|--------:|------:|------:|----------:|
-|       'System.Drawing FULL' | Job-VAJCIU |        .NET Core 2.1 | Jpg/baseline/Lake.jpg | 5.196 ms | 0.7520 ms | 0.0412 ms |  1.00 | 46.8750 |     - |     - | 210,768 B |
-| JpegDecoderCore.ParseStream | Job-VAJCIU |        .NET Core 2.1 | Jpg/baseline/Lake.jpg | 3.467 ms | 0.0784 ms | 0.0043 ms |  0.67 |       - |     - |     - |  12,416 B |
-|                             |            |                      |                       |          |           |           |       |         |       |       |           |
-|       'System.Drawing FULL' | Job-INPXCR |        .NET Core 3.1 | Jpg/baseline/Lake.jpg | 5.201 ms | 0.4105 ms | 0.0225 ms |  1.00 |       - |     - |     - |     183 B |
-| JpegDecoderCore.ParseStream | Job-INPXCR |        .NET Core 3.1 | Jpg/baseline/Lake.jpg | 3.349 ms | 0.0468 ms | 0.0026 ms |  0.64 |       - |     - |     - |  12,408 B |
-|                             |            |                      |                       |          |           |           |       |         |       |       |           |
-|       'System.Drawing FULL' | Job-JRCLOJ | .NET Framework 4.7.2 | Jpg/baseline/Lake.jpg | 5.164 ms | 0.6524 ms | 0.0358 ms |  1.00 | 46.8750 |     - |     - | 211,571 B |
-| JpegDecoderCore.ParseStream | Job-JRCLOJ | .NET Framework 4.7.2 | Jpg/baseline/Lake.jpg | 4.548 ms | 0.3357 ms | 0.0184 ms |  0.88 |       - |     - |     - |  12,480 B |
-*/

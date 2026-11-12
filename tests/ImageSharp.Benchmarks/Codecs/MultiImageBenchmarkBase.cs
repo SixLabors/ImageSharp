@@ -145,8 +145,29 @@ public abstract class MultiImageBenchmarkBase
         // the largest output, and the results measure the encoders instead of the growth of a new stream.
         private readonly MemoryStream workStream = new();
 
+        // A Bitmap reads from its source stream for its whole lifetime, so each stream stays open until the cleanup.
+        private readonly List<MemoryStream> bitmapStreams = [];
+
         [GlobalCleanup]
-        public void Cleanup() => this.workStream.Dispose();
+        public void Cleanup()
+        {
+            foreach (Image<Rgba32> image in this.FileNamesToImageSharpImages.Values)
+            {
+                image.Dispose();
+            }
+
+            foreach (Bitmap bitmap in this.FileNamesToSystemDrawingImages.Values)
+            {
+                bitmap.Dispose();
+            }
+
+            foreach (MemoryStream stream in this.bitmapStreams)
+            {
+                stream.Dispose();
+            }
+
+            this.workStream.Dispose();
+        }
 
         protected override void ReadFilesImpl()
         {
@@ -172,18 +193,21 @@ public abstract class MultiImageBenchmarkBase
                     continue;
                 }
 
+                MemoryStream bitmapStream = new(bytes);
                 Bitmap bitmap;
                 try
                 {
-                    bitmap = new Bitmap(new MemoryStream(bytes));
+                    bitmap = new Bitmap(bitmapStream);
                 }
                 catch (Exception ex)
                 {
+                    bitmapStream.Dispose();
                     image.Dispose();
                     Console.WriteLine($"Skipped {fn}: System.Drawing cannot load it ({ex.Message})");
                     continue;
                 }
 
+                this.bitmapStreams.Add(bitmapStream);
                 this.FileNamesToImageSharpImages[fn] = image;
                 this.FileNamesToSystemDrawingImages[fn] = bitmap;
             }

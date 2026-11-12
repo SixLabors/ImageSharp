@@ -23,6 +23,13 @@ public class BmpDecoderTests
 {
     public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
+    // The compression values of a BITMAPINFOHEADER.
+    private const int RgbCompression = 0;
+    private const int Rle8Compression = 1;
+    private const int Rle4Compression = 2;
+    private const int BitFieldsCompression = 3;
+    private const int AlphaBitFieldsCompression = 6;
+
     public static readonly string[] MiscBmpFiles = Miscellaneous;
 
     public static readonly string[] BitfieldsBmpFiles = BitFields;
@@ -34,6 +41,14 @@ public class BmpDecoderTests
         { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
         { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
     };
+
+    private static readonly Rgba32 Red = new(255, 0, 0, 255);
+    private static readonly Rgba32 Green = new(0, 255, 0, 255);
+    private static readonly Rgba32 Blue = new(0, 0, 255, 255);
+    private static readonly Rgba32 OpaqueBlack = new(0, 0, 0, 255);
+
+    // An RLE4 palette as B, G, R and a reserved byte: index 0 black, 1 red, 2 green, 3 blue.
+    private static readonly byte[] Rle4Palette = [0, 0, 0, 0, 0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0, 0];
 
     [Theory]
     [InlineData(SegmentIntegrityHandling.Strict, false)]
@@ -70,6 +85,171 @@ public class BmpDecoderTests
             Assert.Equal(image.Size, info.Size);
             Assert.Null(info.Metadata.IccProfile);
         }
+    }
+
+    /// <summary>
+    /// A run that continues past the last pixel cannot change the image, so the decoder discards the rest of the run.
+    /// </summary>
+    /// <param name="integrityHandling">The segment integrity handling.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_Rle8RunPastLastPixel_DecodesCompleteImage(SegmentIntegrityHandling integrityHandling)
+    {
+        // One encoded run of 6 pixels with palette index 1, for a 2 x 2 image of 4 pixels.
+        byte[] payload = CreateRle8Bitmap(2, 2, [6, 1, 0, 1]);
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+        Rgba32 red = new(255, 0, 0, 255);
+        Assert.Equal(red, image[0, 0]);
+        Assert.Equal(red, image[1, 0]);
+        Assert.Equal(red, image[0, 1]);
+        Assert.Equal(red, image[1, 1]);
+    }
+
+    /// <summary>
+    /// RLE data that ends before the last pixel is not an error, as for PNG and JPEG data that ends early. The
+    /// decoder keeps the pixels decoded before the end, for each integrity option.
+    /// </summary>
+    /// <param name="integrityHandling">The segment integrity handling.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_TruncatedRle8_KeepsDecodedPixels(SegmentIntegrityHandling integrityHandling)
+    {
+        // One encoded run of 2 pixels with palette index 1 fills the first stored row, the bottom image row.
+        // The data then ends before the second stored row.
+        byte[] payload = CreateRle8Bitmap(2, 2, [2, 1]);
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+        // The decoded row keeps its color. The row that the data does not reach keeps the cleared image buffer.
+        Rgba32 red = new(255, 0, 0, 255);
+        Assert.Equal(red, image[0, 1]);
+        Assert.Equal(red, image[1, 1]);
+        Assert.Equal(default, image[0, 0]);
+        Assert.Equal(default, image[1, 0]);
+    }
+
+    /// <summary>
+    /// An RLE4 absolute run that a row end splits after an odd pixel count continues on the low nibble of a byte.
+    /// </summary>
+    [Fact]
+    public void Decode_Rle4AbsoluteRunAcrossRowEnd_KeepsNibbleOrder()
+    {
+        // A 3 x 2 image. The absolute run has 5 indices: 1, 2, 3, 1, 2, packed two in each byte, high nibble first.
+        // The 3 bytes of run data have one pad byte. Pixels 0 to 2 fill the first stored row (the bottom image row).
+        // Pixel 3, the low nibble of the second byte, starts the second stored row. End of bitmap skips the last pixel.
+        byte[] payload = CreateBitmap(3, 2, 4, Rle4Compression, [], Rle4Palette, [0, 5, 0x12, 0x31, 0x20, 0, 0, 1]);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(payload);
+
+        Assert.Equal(Red, image[0, 1]);
+        Assert.Equal(Green, image[1, 1]);
+        Assert.Equal(Blue, image[2, 1]);
+        Assert.Equal(Red, image[0, 0]);
+        Assert.Equal(Green, image[1, 0]);
+        Assert.Equal(OpaqueBlack, image[2, 0]);
+    }
+
+    /// <summary>
+    /// An RLE4 encoded run alternates its two nibbles over the full run, also when a row end splits the run after an
+    /// odd pixel count.
+    /// </summary>
+    [Fact]
+    public void Decode_Rle4EncodedRunAcrossRowEnd_KeepsAlternation()
+    {
+        // A 3 x 2 image. The encoded run has 5 pixels of the indices 1, 2, 1, 2, 1. Pixels 0 to 2 fill the first stored
+        // row (the bottom image row). Pixel 3 (index 2) starts the second stored row. End of bitmap skips the last pixel.
+        byte[] payload = CreateBitmap(3, 2, 4, Rle4Compression, [], Rle4Palette, [5, 0x12, 0, 1]);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(payload);
+
+        Assert.Equal(Red, image[0, 1]);
+        Assert.Equal(Green, image[1, 1]);
+        Assert.Equal(Red, image[2, 1]);
+        Assert.Equal(Green, image[0, 0]);
+        Assert.Equal(Red, image[1, 0]);
+        Assert.Equal(OpaqueBlack, image[2, 0]);
+    }
+
+    /// <summary>
+    /// A 32-bit RGB bitmap with a version 3 header has alpha when any fourth byte is not 0. The fourth bytes of all
+    /// pixels are then alpha, also in rows before the first alpha that is not 0.
+    /// </summary>
+    [Fact]
+    public void Decode_Rgb32V3WithAlphaAfterFirstRow_DecodesAllRowsWithAlpha()
+    {
+        // A 1 x 2 image of B, G, R, A pixels. The first stored row (the bottom image row) is red with alpha 0. The
+        // second stored row (the top image row) is blue with alpha 128.
+        byte[] payload = CreateBitmap(1, 2, 32, RgbCompression, [], [], [0, 0, 255, 0, 255, 0, 0, 128]);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(payload);
+
+        Assert.Equal(new Rgba32(255, 0, 0, 0), image[0, 1]);
+        Assert.Equal(new Rgba32(0, 0, 255, 128), image[0, 0]);
+    }
+
+    /// <summary>
+    /// A 16-bit bitmap with an alpha mask takes its alpha from that mask. A 4-bit channel widens to 8 bits by bit
+    /// replication, so 0b1000 becomes 0b1000_1000.
+    /// </summary>
+    [Fact]
+    public void Decode_Bitfields16WithAlphaMask_UsesAlpha()
+    {
+        // A 1 x 1 image with 4-4-4-4 A, R, G, B masks. The sample 0x8F00 has red 15 and alpha 8. The row is 2 bytes
+        // with 2 bytes of padding.
+        byte[] payload = CreateBitmap(1, 1, 16, AlphaBitFieldsCompression, [0x0F00, 0x00F0, 0x000F, 0xF000], [], [0x00, 0x8F, 0, 0]);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(payload);
+
+        Assert.Equal(new Rgba32(255, 0, 0, 136), image[0, 0]);
+    }
+
+    /// <summary>
+    /// A 32-bit bitmap with channel masks of fewer than 8 bits widens each channel to 8 bits by bit replication. The
+    /// Bgra32 decode writes the same color as the Rgba32 decode.
+    /// </summary>
+    [Fact]
+    public void Decode_Bitfields32WithFiveBitMasks_WidensChannels()
+    {
+        // A 1 x 1 image with 5-5-5 masks. The sample 0x7E01 has red 31, green 16 and blue 1.
+        // Bit replication gives 31 -> 255, 16 -> 132 (0b10000_100) and 1 -> 8 (0b00001_000). No alpha mask: opaque.
+        byte[] payload = CreateBitmap(1, 1, 32, BitFieldsCompression, [0x7C00, 0x03E0, 0x001F], [], [0x01, 0x7E, 0, 0]);
+
+        using Image<Rgba32> rgba = Image.Load<Rgba32>(payload);
+        using Image<Bgra32> bgra = Image.Load<Bgra32>(payload);
+
+        Assert.Equal(new Rgba32(255, 132, 8, 255), rgba[0, 0]);
+        Assert.Equal(new Bgra32(255, 132, 8, 255), bgra[0, 0]);
+    }
+
+    /// <summary>
+    /// RGB data that ends before the last row is not an error, as for PNG, JPEG and RLE data that ends early. The
+    /// decoder keeps the rows decoded before the end, for each integrity option.
+    /// </summary>
+    /// <param name="integrityHandling">The segment integrity handling.</param>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_TruncatedRgb24_KeepsDecodedRows(SegmentIntegrityHandling integrityHandling)
+    {
+        // A 2 x 2 image with only the first stored row (the bottom image row): red, green, then 2 bytes of padding.
+        byte[] payload = CreateBitmap(2, 2, 24, RgbCompression, [], [], [0, 0, 255, 0, 255, 0, 0, 0]);
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+
+        Assert.Equal(Red, image[0, 1]);
+        Assert.Equal(Green, image[1, 1]);
+        Assert.Equal(default, image[0, 0]);
+        Assert.Equal(default, image[1, 0]);
     }
 
     [Theory]
@@ -721,37 +901,60 @@ public class BmpDecoderTests
     }
 
     /// <summary>
-    /// Rejects dimensions that require more pixel data than the file contains before requesting pixel storage.
+    /// RGB and bit-field data that ends before the last row is not an error, as for PNG, JPEG and RLE data that ends
+    /// early. The image has its declared size and keeps the rows decoded before the end, for each integrity option.
     /// </summary>
     /// <param name="path">The stored bitmap with incomplete RGB or bit-fields pixel data.</param>
+    /// <param name="width">The declared width.</param>
+    /// <param name="height">The declared height.</param>
     [Theory]
-    [InlineData(TruncatedRgb24LargeImage)]
-    [InlineData(TruncatedRgb24WideRow)]
-    [InlineData(TruncatedBitFields16)]
-    [InlineData(TruncatedBitFields32)]
-    [InlineData(TruncatedAlphaBitFields32)]
-    [InlineData(TruncatedRgb32MaximumDimensions)]
-    public void BmpDecoder_PixelDataSmallerThanDeclared_ThrowsBeforeAllocatingPixelBuffer(string path)
+    [InlineData(TruncatedRgb24LargeImage, 4000, 4000)]
+    [InlineData(TruncatedRgb24WideRow, 100000, 1)]
+    [InlineData(TruncatedBitFields16, 100000, 1)]
+    [InlineData(TruncatedBitFields32, 100000, 1)]
+    [InlineData(TruncatedAlphaBitFields32, 100000, 1)]
+    public void BmpDecoder_PixelDataSmallerThanDeclared_KeepsDecodedRows(string path, int width, int height)
     {
         byte[] data = TestFile.Create(path).Bytes;
 
         foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
         {
-            // The allocator's group limit prevents a failed maximum-dimension regression from allocating that image.
-            TestMemoryAllocator allocator = new();
-            allocator.EnableNonThreadSafeLogging();
-            Configuration configuration = Configuration.Default.Clone();
-            configuration.MemoryAllocator = allocator;
-            DecoderOptions options = new(configuration) { SegmentIntegrityHandling = integrity };
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
+
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+            // Each file has 72 bytes of pixel data, fewer than its first row needs. Thus no row decodes, and each
+            // pixel keeps the cleared image buffer.
+            Assert.Equal(new Size(width, height), image.Size);
+            image.ProcessPixelRows(accessor =>
+            {
+                for (int y = 0; y < accessor.Height; y++)
+                {
+                    Assert.Equal(-1, accessor.GetRowSpan(y).IndexOfAnyExcept(default(Rgba32)));
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Dimensions past the allocator limit fail at the image allocation, as they do for each other decoder.
+    /// </summary>
+    [Fact]
+    public void BmpDecoder_DimensionsPastAllocatorLimit_ThrowsInvalidImageContentException()
+    {
+        // The file declares 2147483647 x 2147483647 pixels.
+        byte[] data = TestFile.Create(TruncatedRgb32MaximumDimensions).Bytes;
+
+        foreach (SegmentIntegrityHandling integrity in Enum.GetValues<SegmentIntegrityHandling>())
+        {
+            DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrity };
 
             InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() =>
             {
                 using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
             });
 
-            // An allocation-limit exception is too late. No Rgba32 buffer, including a split buffer, may be requested.
-            Assert.Null(exception.InnerException);
-            Assert.DoesNotContain(allocator.AllocationLog, request => request.ElementType == typeof(Rgba32));
+            Assert.IsType<InvalidMemoryOperationException>(exception.InnerException);
         }
     }
 
@@ -769,5 +972,71 @@ public class BmpDecoderTests
         Assert.Equal(new Size(1, 2), actual.Size);
         Assert.Equal(new Rgb24(255, 0, 0), actual[0, 0]);
         Assert.Equal(new Rgb24(0, 0, 255), actual[0, 1]);
+    }
+
+    /// <summary>
+    /// Creates an 8-bit RLE bitmap with a two-color palette: index 0 is black and index 1 is red.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="data">The RLE8 data.</param>
+    /// <returns>The encoded bitmap.</returns>
+    private static byte[] CreateRle8Bitmap(int width, int height, byte[] data)
+        => CreateBitmap(width, height, 8, Rle8Compression, [], [0, 0, 0, 0, 0, 0, 255, 0], data);
+
+    /// <summary>
+    /// Creates a bitmap with a 40-byte BITMAPINFOHEADER. A positive height stores the bottom row first.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    /// <param name="height">The image height.</param>
+    /// <param name="bitsPerPixel">The bit count of one pixel.</param>
+    /// <param name="compression">The compression value of the header.</param>
+    /// <param name="masks">
+    /// The channel masks after the header: R, G, B for BI_BITFIELDS, or R, G, B, A for BI_ALPHABITFIELDS. Empty for
+    /// the other compressions.
+    /// </param>
+    /// <param name="palette">The palette entries as B, G, R and a reserved byte. Empty for no palette.</param>
+    /// <param name="data">The pixel data.</param>
+    /// <returns>The encoded bitmap.</returns>
+    private static byte[] CreateBitmap(int width, int height, short bitsPerPixel, int compression, uint[] masks, byte[] palette, byte[] data)
+    {
+        const int fileHeaderSize = 14;
+        const int infoHeaderSize = 40;
+        int pixelOffset = fileHeaderSize + infoHeaderSize + (masks.Length * 4) + palette.Length;
+
+        using MemoryStream stream = new();
+        using BinaryWriter writer = new(stream);
+
+        // File header: signature, file size, two reserved words, pixel data offset.
+        writer.Write((byte)'B');
+        writer.Write((byte)'M');
+        writer.Write(pixelOffset + data.Length);
+        writer.Write(0);
+        writer.Write(pixelOffset);
+
+        // BITMAPINFOHEADER: size, width, height, planes, bit count, compression, image size, two resolutions, the
+        // palette color count and the important color count.
+        writer.Write(infoHeaderSize);
+        writer.Write(width);
+        writer.Write(height);
+        writer.Write((short)1);
+        writer.Write(bitsPerPixel);
+        writer.Write(compression);
+        writer.Write(data.Length);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write(palette.Length / 4);
+        writer.Write(0);
+
+        foreach (uint mask in masks)
+        {
+            writer.Write(mask);
+        }
+
+        writer.Write(palette);
+        writer.Write(data);
+        writer.Flush();
+
+        return stream.ToArray();
     }
 }

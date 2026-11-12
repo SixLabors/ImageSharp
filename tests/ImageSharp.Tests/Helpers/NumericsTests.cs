@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Helpers;
 
@@ -14,6 +16,93 @@ public class NumericsTests
     /// Gets lengths that straddle the Vector4 block boundaries used by the 128-, 256-, and 512-bit kernels.
     /// </summary>
     public static TheoryData<int> AssociationSpanLengths => new() { 0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63 };
+
+    /// <summary>
+    /// Verifies that component replacement preserves every selected and retained float bit on all SIMD paths.
+    /// </summary>
+    [Fact]
+    public void BulkComponentReplacementPreservesBits()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateBulkComponentReplacement,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies that each replacement operation rejects the span that cannot cover its required component count.
+    /// </summary>
+    [Fact]
+    public void BulkComponentReplacementRequiresEnoughStorage()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Numerics.WithW(new Vector4[33], new float[32]));
+        Assert.Throws<ArgumentException>(() => Numerics.WithXYZ(new Vector3[33], new Vector4[32]));
+    }
+
+    /// <summary>
+    /// Checks direct component selection, including NaN payloads, infinities and both signs of zero.
+    /// </summary>
+    private static void ValidateBulkComponentReplacement()
+    {
+        // Every lane has an independent period. These values are data, not arithmetic operands:
+        // replacing another component must retain the exact IEEE representation, including NaN payloads.
+        ReadOnlySpan<uint> patterns = [0x00000000U, 0x80000000U, 0x7FC12345U, 0xFFC54321U, 0x7F800000U, 0xFF800000U, 0x3F400000U];
+        uint[] originalBits = new uint[33 * 4];
+        Vector3[] xyz = new Vector3[33];
+        float[] w = new float[34];
+        Vector4[] storage = new Vector4[35];
+        storage.AsSpan().Fill(new Vector4(43F));
+        Span<Vector4> destination = storage.AsSpan(1, xyz.Length);
+        for (int i = 0; i < xyz.Length; i++)
+        {
+            for (int component = 0; component < 4; component++)
+            {
+                originalBits[(i * 4) + component] = patterns[(i + (2 * component)) % patterns.Length];
+            }
+
+            xyz[i] = new(
+                BitConverter.UInt32BitsToSingle(patterns[(i + 1) % patterns.Length]),
+                BitConverter.UInt32BitsToSingle(patterns[(i + 3) % patterns.Length]),
+                BitConverter.UInt32BitsToSingle(patterns[(i + 5) % patterns.Length]));
+
+            w[i] = BitConverter.UInt32BitsToSingle(patterns[(i + 1) % patterns.Length]);
+        }
+
+        MemoryMarshal.Cast<uint, Vector4>(originalBits).CopyTo(destination);
+        uint[] expected = originalBits.AsSpan().ToArray();
+        for (int i = 0; i < xyz.Length; i++)
+        {
+            expected[(i * 4) + 3] = patterns[(i + 1) % patterns.Length];
+        }
+
+        // Surplus W input is legal. Only the destination count determines the replacement count.
+        Numerics.WithW(destination, w);
+        Assert.Equal(expected, MemoryMarshal.Cast<Vector4, uint>(destination).ToArray());
+
+        ReadOnlySpan<uint> constantBits = [0x3F800000U, 0x80000000U, 0x7FC12345U];
+        foreach (uint bits in constantBits)
+        {
+            for (int i = 0; i < xyz.Length; i++)
+            {
+                expected[(i * 4) + 3] = bits;
+            }
+
+            Numerics.WithW(destination, BitConverter.UInt32BitsToSingle(bits));
+            Assert.Equal(expected, MemoryMarshal.Cast<Vector4, uint>(destination).ToArray());
+        }
+
+        MemoryMarshal.Cast<uint, Vector4>(originalBits).CopyTo(destination);
+        expected = originalBits.AsSpan().ToArray();
+        for (int i = 0; i < xyz.Length; i++)
+        {
+            expected[i * 4] = patterns[(i + 1) % patterns.Length];
+            expected[(i * 4) + 1] = patterns[(i + 3) % patterns.Length];
+            expected[(i * 4) + 2] = patterns[(i + 5) % patterns.Length];
+        }
+
+        // Surplus destination capacity is legal for XYZ replacement. Its last vector must remain untouched.
+        Numerics.WithXYZ(xyz, storage.AsSpan(1));
+        Assert.Equal(expected, MemoryMarshal.Cast<Vector4, uint>(destination).ToArray());
+        Assert.Equal(new Vector4(43F), storage[0]);
+        Assert.Equal(new Vector4(43F), storage[^1]);
+    }
 
     [Theory]
     [InlineData(0)]

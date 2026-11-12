@@ -21,6 +21,26 @@ namespace SixLabors.ImageSharp.ColorProfiles.Companding;
 /// </remarks>
 public static partial class Rec709Companding
 {
+    /// <summary>
+    /// The scale of the published nonlinear Rec. 709 segment.
+    /// </summary>
+    internal const float NonlinearScale = 1.099F;
+
+    /// <summary>
+    /// The offset of the published nonlinear Rec. 709 segment.
+    /// </summary>
+    internal const float NonlinearOffset = 0.099F;
+
+    /// <summary>
+    /// The linear input value at the published Rec. 709 segment junction.
+    /// </summary>
+    internal const float LinearThreshold = 0.018F;
+
+    /// <summary>
+    /// The nonlinear input value at the published Rec. 709 segment junction.
+    /// </summary>
+    internal const float NonlinearThreshold = 0.081F;
+
     private const double Epsilon = 1 / 0.45;
 
     /// <summary>
@@ -101,7 +121,7 @@ public static partial class Rec709Companding
     /// <param name="vectors">The normalized nonlinear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     private static void ExpandCore(Span<Vector4> vectors, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vectors, new ExpandOperator(1.099F, 0.099F, 0.081F), colorRange);
+        => CompandingUtilities.Compand(vectors, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), colorRange);
 
     /// <summary>
     /// Expands nonlinear RGB in the requested color range. Alpha does not change.
@@ -110,7 +130,7 @@ public static partial class Rec709Companding
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     private static Vector4 ExpandCore(Vector4 vector, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vector, new ExpandOperator(1.099F, 0.099F, 0.081F), colorRange);
+        => CompandingUtilities.Compand(vector, new ExpandOperator(NonlinearScale, NonlinearOffset, NonlinearThreshold), colorRange);
 
     /// <summary>
     /// Compresses linear RGB in the requested color range. Alpha does not change.
@@ -118,7 +138,7 @@ public static partial class Rec709Companding
     /// <param name="vectors">The normalized linear RGB colors. Each vector contains RGB in X, Y, Z and unchanged alpha in W.</param>
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     private static void CompressCore(Span<Vector4> vectors, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vectors, new CompressOperator(1.099F, 0.099F, 0.018F), colorRange);
+        => CompandingUtilities.Compand(vectors, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), colorRange);
 
     /// <summary>
     /// Compresses linear RGB in the requested color range. Alpha does not change.
@@ -127,5 +147,5 @@ public static partial class Rec709Companding
     /// <param name="colorRange">The range applied to the converted RGB components.</param>
     /// <returns>The converted color with unchanged alpha.</returns>
     private static Vector4 CompressCore(Vector4 vector, PixelColorRange colorRange)
-        => CompandingUtilities.Compand(vector, new CompressOperator(1.099F, 0.099F, 0.018F), colorRange);
+        => CompandingUtilities.Compand(vector, new CompressOperator(NonlinearScale, NonlinearOffset, LinearThreshold), colorRange);
 }

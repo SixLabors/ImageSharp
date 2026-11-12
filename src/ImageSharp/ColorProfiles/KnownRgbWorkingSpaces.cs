@@ -7,10 +7,34 @@ using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
-/// Chromaticity coordinates based on: <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
+/// Provides predefined RGB working spaces.
 /// </summary>
 public static class KnownRgbWorkingSpaces
 {
+    /// <summary>
+    /// The generic film primary chromaticities defined by ITU-T H.273.
+    /// </summary>
+    public static readonly RgbPrimariesChromaticityCoordinates GenericFilmPrimaries = new(
+        new CieXyChromaticityCoordinates(0.681F, 0.319F),
+        new CieXyChromaticityCoordinates(0.243F, 0.692F),
+        new CieXyChromaticityCoordinates(0.145F, 0.049F));
+
+    /// <summary>
+    /// The CIE XYZ axis chromaticities used by SMPTE ST 428-1.
+    /// </summary>
+    public static readonly RgbPrimariesChromaticityCoordinates CieXyzPrimaries = new(
+        new CieXyChromaticityCoordinates(1F, 0F),
+        new CieXyChromaticityCoordinates(0F, 1F),
+        new CieXyChromaticityCoordinates(0F, 0F));
+
+    /// <summary>
+    /// The EBU Tech. 3213-E primary chromaticities defined by ITU-T H.273.
+    /// </summary>
+    public static readonly RgbPrimariesChromaticityCoordinates EbuTech3213EPrimaries = new(
+        new CieXyChromaticityCoordinates(0.630F, 0.340F),
+        new CieXyChromaticityCoordinates(0.295F, 0.605F),
+        new CieXyChromaticityCoordinates(0.155F, 0.077F));
+
     /// <summary>
     /// sRgb working space.
     /// </summary>
@@ -56,6 +80,16 @@ public static class KnownRgbWorkingSpaces
             new CieXyChromaticityCoordinates(0.708F, 0.292F),
             new CieXyChromaticityCoordinates(0.170F, 0.797F),
             new CieXyChromaticityCoordinates(0.131F, 0.046F)));
+
+    /// <summary>
+    /// The Display P3 working space, with P3 primaries, the D65 white point, and the sRGB transfer function.
+    /// </summary>
+    public static readonly RgbWorkingSpace DisplayP3 = new SRgbWorkingSpace(
+        KnownIlluminants.D65,
+        new RgbPrimariesChromaticityCoordinates(
+            new CieXyChromaticityCoordinates(0.680F, 0.320F),
+            new CieXyChromaticityCoordinates(0.265F, 0.690F),
+            new CieXyChromaticityCoordinates(0.150F, 0.060F)));
 
     /// <summary>
     /// ECI Rgb v2 working space.

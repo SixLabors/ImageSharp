@@ -37,7 +37,7 @@ public class IccGrayTrcOperatorTests
             ? new CieLab(connection * 100F, 0, 0).ToScaledVector4()
             : new CieXyz(KnownIlluminants.D50Icc.ToVector3() * connection).ToScaledVector4();
 
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal(expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     /// <summary>

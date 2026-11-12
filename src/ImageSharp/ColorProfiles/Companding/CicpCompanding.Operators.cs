@@ -1612,10 +1612,7 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float nonlinearPower = new TensorPrimitives_.PowOperator(1F / PqM).Invoke(MathF.Min(value, 1F));
-            float numerator = MathF.Max(nonlinearPower - PqC1, 0F);
-            float denominator = PqC2 - (PqC3 * nonlinearPower);
-            return new TensorPrimitives_.PowOperator(1F / PqN).Invoke(numerator / denominator);
+            return PqCompanding.ExpandMagnitude(MathF.Min(value, 1F));
         }
 
         /// <summary>
@@ -1625,14 +1622,12 @@ internal static partial class CicpCompanding
         /// <returns>The normalized linear signal values.</returns>
         public static Vector128<float> Expand(Vector128<float> value)
         {
-            Vector128<float> zero = Vector128.Create(0F);
+            Vector128<float> zero = Vector128<float>.Zero;
+            Vector128<float> bounded = Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F));
 
-            // PQ defines this signal over [0,1]. These bounds belong to the curve, independent of the caller's pixel storage range.
-            // Evaluate both powers per component; the numerator floor supplies the zero-light portion of the inverse curve.
-            Vector128<float> nonlinearPower = Vector128_.Pow(Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F)), 1F / PqM);
-            Vector128<float> numerator = Vector128.Max(Vector128.Subtract(nonlinearPower, Vector128.Create(PqC1)), zero);
-            Vector128<float> denominator = Vector128.Subtract(Vector128.Create(PqC2), Vector128.Multiply(Vector128.Create(PqC3), nonlinearPower));
-            Vector128<float> positive = Vector128.Min(Vector128_.Pow(Vector128.Divide(numerator, denominator), 1F / PqN), Vector128.Create(1F));
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector128<float> positive = PqCompanding.ExpandMagnitude(bounded);
+            positive = Vector128.Min(positive, Vector128.Create(1F));
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1643,14 +1638,12 @@ internal static partial class CicpCompanding
         /// <returns>The normalized linear signal values.</returns>
         public static Vector256<float> Expand(Vector256<float> value)
         {
-            Vector256<float> zero = Vector256.Create(0F);
+            Vector256<float> zero = Vector256<float>.Zero;
+            Vector256<float> bounded = Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F));
 
-            // PQ defines this signal over [0,1]. These bounds belong to the curve, independent of the caller's pixel storage range.
-            // Evaluate both powers per component; the numerator floor supplies the zero-light portion of the inverse curve.
-            Vector256<float> nonlinearPower = Vector256_.Pow(Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F)), 1F / PqM);
-            Vector256<float> numerator = Vector256.Max(Vector256.Subtract(nonlinearPower, Vector256.Create(PqC1)), zero);
-            Vector256<float> denominator = Vector256.Subtract(Vector256.Create(PqC2), Vector256.Multiply(Vector256.Create(PqC3), nonlinearPower));
-            Vector256<float> positive = Vector256.Min(Vector256_.Pow(Vector256.Divide(numerator, denominator), 1F / PqN), Vector256.Create(1F));
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector256<float> positive = PqCompanding.ExpandMagnitude(bounded);
+            positive = Vector256.Min(positive, Vector256.Create(1F));
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1661,14 +1654,12 @@ internal static partial class CicpCompanding
         /// <returns>The normalized linear signal values.</returns>
         public static Vector512<float> Expand(Vector512<float> value)
         {
-            Vector512<float> zero = Vector512.Create(0F);
+            Vector512<float> zero = Vector512<float>.Zero;
+            Vector512<float> bounded = Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F));
 
-            // PQ defines this signal over [0,1]. These bounds belong to the curve, independent of the caller's pixel storage range.
-            // Evaluate both powers per component; the numerator floor supplies the zero-light portion of the inverse curve.
-            Vector512<float> nonlinearPower = Vector512_.Pow(Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F)), 1F / PqM);
-            Vector512<float> numerator = Vector512.Max(Vector512.Subtract(nonlinearPower, Vector512.Create(PqC1)), zero);
-            Vector512<float> denominator = Vector512.Subtract(Vector512.Create(PqC2), Vector512.Multiply(Vector512.Create(PqC3), nonlinearPower));
-            Vector512<float> positive = Vector512.Min(Vector512_.Pow(Vector512.Divide(numerator, denominator), 1F / PqN), Vector512.Create(1F));
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector512<float> positive = PqCompanding.ExpandMagnitude(bounded);
+            positive = Vector512.Min(positive, Vector512.Create(1F));
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1684,8 +1675,7 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float linearPower = new TensorPrimitives_.PowOperator(PqN).Invoke(MathF.Min(value, 1F));
-            return new TensorPrimitives_.PowOperator(PqM).Invoke((PqC1 + (PqC2 * linearPower)) / (1F + (PqC3 * linearPower)));
+            return PqCompanding.CompressMagnitude(MathF.Min(value, 1F));
         }
 
         /// <summary>
@@ -1695,13 +1685,12 @@ internal static partial class CicpCompanding
         /// <returns>The nonlinear signal values.</returns>
         public static Vector128<float> Compress(Vector128<float> value)
         {
-            Vector128<float> zero = Vector128.Create(0F);
+            Vector128<float> zero = Vector128<float>.Zero;
+            Vector128<float> bounded = Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F));
 
-            // Reverse the two inverse-PQ powers around the rational term. The final mask makes nonpositive input return exact zero.
-            Vector128<float> linearPower = Vector128_.Pow(Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F)), PqN);
-            Vector128<float> numerator = Vector128.Add(Vector128.Create(PqC1), Vector128.Multiply(Vector128.Create(PqC2), linearPower));
-            Vector128<float> denominator = Vector128.Add(Vector128.Create(1F), Vector128.Multiply(Vector128.Create(PqC3), linearPower));
-            Vector128<float> positive = Vector128.Min(Vector128_.Pow(Vector128.Divide(numerator, denominator), PqM), Vector128.Create(1F));
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector128<float> positive = PqCompanding.CompressMagnitude(bounded);
+            positive = Vector128.Min(positive, Vector128.Create(1F));
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1712,13 +1701,12 @@ internal static partial class CicpCompanding
         /// <returns>The nonlinear signal values.</returns>
         public static Vector256<float> Compress(Vector256<float> value)
         {
-            Vector256<float> zero = Vector256.Create(0F);
+            Vector256<float> zero = Vector256<float>.Zero;
+            Vector256<float> bounded = Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F));
 
-            // Reverse the two inverse-PQ powers around the rational term. The final mask makes nonpositive input return exact zero.
-            Vector256<float> linearPower = Vector256_.Pow(Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F)), PqN);
-            Vector256<float> numerator = Vector256.Add(Vector256.Create(PqC1), Vector256.Multiply(Vector256.Create(PqC2), linearPower));
-            Vector256<float> denominator = Vector256.Add(Vector256.Create(1F), Vector256.Multiply(Vector256.Create(PqC3), linearPower));
-            Vector256<float> positive = Vector256.Min(Vector256_.Pow(Vector256.Divide(numerator, denominator), PqM), Vector256.Create(1F));
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector256<float> positive = PqCompanding.CompressMagnitude(bounded);
+            positive = Vector256.Min(positive, Vector256.Create(1F));
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1729,13 +1717,12 @@ internal static partial class CicpCompanding
         /// <returns>The nonlinear signal values.</returns>
         public static Vector512<float> Compress(Vector512<float> value)
         {
-            Vector512<float> zero = Vector512.Create(0F);
+            Vector512<float> zero = Vector512<float>.Zero;
+            Vector512<float> bounded = Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F));
 
-            // Reverse the two inverse-PQ powers around the rational term. The final mask makes nonpositive input return exact zero.
-            Vector512<float> linearPower = Vector512_.Pow(Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F)), PqN);
-            Vector512<float> numerator = Vector512.Add(Vector512.Create(PqC1), Vector512.Multiply(Vector512.Create(PqC2), linearPower));
-            Vector512<float> denominator = Vector512.Add(Vector512.Create(1F), Vector512.Multiply(Vector512.Create(PqC3), linearPower));
-            Vector512<float> positive = Vector512.Min(Vector512_.Pow(Vector512.Divide(numerator, denominator), PqM), Vector512.Create(1F));
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector512<float> positive = PqCompanding.CompressMagnitude(bounded);
+            positive = Vector512.Min(positive, Vector512.Create(1F));
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, zero), zero, positive);
         }
     }
@@ -1828,9 +1815,7 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            return value <= 0.5F
-                ? (value * value) / 3F
-                : (MathF.Exp((MathF.Min(value, 1F) - HlgC) / HlgA) + HlgB) / 12F;
+            return HlgCompanding.ExpandMagnitude(MathF.Min(value, 1F));
         }
 
         /// <summary>
@@ -1840,12 +1825,11 @@ internal static partial class CicpCompanding
         /// <returns>The normalized linear signal values.</returns>
         public static Vector128<float> Expand(Vector128<float> value)
         {
-            Vector128<float> zero = Vector128.Create(0F);
+            Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> bounded = Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F));
-            Vector128<float> linear = Vector128.Divide(Vector128.Multiply(bounded, bounded), Vector128.Create(3F));
-            Vector128<float> exponent = Vector128.Divide(Vector128.Subtract(bounded, Vector128.Create(HlgC)), Vector128.Create(HlgA));
-            Vector128<float> logarithmic = Vector128.Divide(Vector128.Add(Vector128.Exp(exponent), Vector128.Create(HlgB)), Vector128.Create(12F));
-            Vector128<float> positive = Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, Vector128.Create(0.5F)), linear, logarithmic);
+
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector128<float> positive = HlgCompanding.ExpandMagnitude(bounded);
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1856,12 +1840,11 @@ internal static partial class CicpCompanding
         /// <returns>The normalized linear signal values.</returns>
         public static Vector256<float> Expand(Vector256<float> value)
         {
-            Vector256<float> zero = Vector256.Create(0F);
+            Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> bounded = Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F));
-            Vector256<float> linear = Vector256.Divide(Vector256.Multiply(bounded, bounded), Vector256.Create(3F));
-            Vector256<float> exponent = Vector256.Divide(Vector256.Subtract(bounded, Vector256.Create(HlgC)), Vector256.Create(HlgA));
-            Vector256<float> logarithmic = Vector256.Divide(Vector256.Add(Vector256.Exp(exponent), Vector256.Create(HlgB)), Vector256.Create(12F));
-            Vector256<float> positive = Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, Vector256.Create(0.5F)), linear, logarithmic);
+
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector256<float> positive = HlgCompanding.ExpandMagnitude(bounded);
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1872,12 +1855,11 @@ internal static partial class CicpCompanding
         /// <returns>The normalized linear signal values.</returns>
         public static Vector512<float> Expand(Vector512<float> value)
         {
-            Vector512<float> zero = Vector512.Create(0F);
+            Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> bounded = Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F));
-            Vector512<float> linear = Vector512.Divide(Vector512.Multiply(bounded, bounded), Vector512.Create(3F));
-            Vector512<float> exponent = Vector512.Divide(Vector512.Subtract(bounded, Vector512.Create(HlgC)), Vector512.Create(HlgA));
-            Vector512<float> logarithmic = Vector512.Divide(Vector512.Add(Vector512.Exp(exponent), Vector512.Create(HlgB)), Vector512.Create(12F));
-            Vector512<float> positive = Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, Vector512.Create(0.5F)), linear, logarithmic);
+
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector512<float> positive = HlgCompanding.ExpandMagnitude(bounded);
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1893,10 +1875,7 @@ internal static partial class CicpCompanding
                 return 0F;
             }
 
-            float bounded = MathF.Min(value, 1F);
-            return bounded <= 1F / 12F
-                ? MathF.Sqrt(3F * bounded)
-                : (HlgA * MathF.Log((12F * bounded) - HlgB)) + HlgC;
+            return HlgCompanding.CompressMagnitude(MathF.Min(value, 1F));
         }
 
         /// <summary>
@@ -1906,18 +1885,11 @@ internal static partial class CicpCompanding
         /// <returns>The nonlinear signal values.</returns>
         public static Vector128<float> Compress(Vector128<float> value)
         {
-            Vector128<float> zero = Vector128.Create(0F);
+            Vector128<float> zero = Vector128<float>.Zero;
             Vector128<float> bounded = Vector128.Min(Vector128.Max(value, zero), Vector128.Create(1F));
-            Vector128<float> linear = Vector128.Sqrt(Vector128.Multiply(Vector128.Create(3F), bounded));
 
-            // Clamp the logarithm input for inactive lanes. SIMD conditional selection evaluates both branches,
-            // while the scalar definition evaluates Log only above the 1/12 transition.
-            Vector128<float> logarithmInput = Vector128.Max(
-                Vector128.Subtract(Vector128.Multiply(Vector128.Create(12F), bounded), Vector128.Create(HlgB)),
-                Vector128.Create(float.Epsilon));
-
-            Vector128<float> logarithmic = Vector128.Add(Vector128.Multiply(Vector128.Create(HlgA), Vector128.Log(logarithmInput)), Vector128.Create(HlgC));
-            Vector128<float> positive = Vector128.ConditionalSelect(Vector128.LessThanOrEqual(bounded, Vector128.Create(1F / 12F)), linear, logarithmic);
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector128<float> positive = HlgCompanding.CompressMagnitude(bounded);
             return Vector128.ConditionalSelect(Vector128.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1928,18 +1900,11 @@ internal static partial class CicpCompanding
         /// <returns>The nonlinear signal values.</returns>
         public static Vector256<float> Compress(Vector256<float> value)
         {
-            Vector256<float> zero = Vector256.Create(0F);
+            Vector256<float> zero = Vector256<float>.Zero;
             Vector256<float> bounded = Vector256.Min(Vector256.Max(value, zero), Vector256.Create(1F));
-            Vector256<float> linear = Vector256.Sqrt(Vector256.Multiply(Vector256.Create(3F), bounded));
 
-            // Clamp the logarithm input for inactive lanes. SIMD conditional selection evaluates both branches,
-            // while the scalar definition evaluates Log only above the 1/12 transition.
-            Vector256<float> logarithmInput = Vector256.Max(
-                Vector256.Subtract(Vector256.Multiply(Vector256.Create(12F), bounded), Vector256.Create(HlgB)),
-                Vector256.Create(float.Epsilon));
-
-            Vector256<float> logarithmic = Vector256.Add(Vector256.Multiply(Vector256.Create(HlgA), Vector256.Log(logarithmInput)), Vector256.Create(HlgC));
-            Vector256<float> positive = Vector256.ConditionalSelect(Vector256.LessThanOrEqual(bounded, Vector256.Create(1F / 12F)), linear, logarithmic);
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector256<float> positive = HlgCompanding.CompressMagnitude(bounded);
             return Vector256.ConditionalSelect(Vector256.LessThanOrEqual(value, zero), zero, positive);
         }
 
@@ -1950,18 +1915,11 @@ internal static partial class CicpCompanding
         /// <returns>The nonlinear signal values.</returns>
         public static Vector512<float> Compress(Vector512<float> value)
         {
-            Vector512<float> zero = Vector512.Create(0F);
+            Vector512<float> zero = Vector512<float>.Zero;
             Vector512<float> bounded = Vector512.Min(Vector512.Max(value, zero), Vector512.Create(1F));
-            Vector512<float> linear = Vector512.Sqrt(Vector512.Multiply(Vector512.Create(3F), bounded));
 
-            // Clamp the logarithm input for inactive lanes. SIMD conditional selection evaluates both branches,
-            // while the scalar definition evaluates Log only above the 1/12 transition.
-            Vector512<float> logarithmInput = Vector512.Max(
-                Vector512.Subtract(Vector512.Multiply(Vector512.Create(12F), bounded), Vector512.Create(HlgB)),
-                Vector512.Create(float.Epsilon));
-
-            Vector512<float> logarithmic = Vector512.Add(Vector512.Multiply(Vector512.Create(HlgA), Vector512.Log(logarithmInput)), Vector512.Create(HlgC));
-            Vector512<float> positive = Vector512.ConditionalSelect(Vector512.LessThanOrEqual(bounded, Vector512.Create(1F / 12F)), linear, logarithmic);
+            // CICP retains its specified unit domain. The shared owner supplies only the positive curve arithmetic.
+            Vector512<float> positive = HlgCompanding.CompressMagnitude(bounded);
             return Vector512.ConditionalSelect(Vector512.LessThanOrEqual(value, zero), zero, positive);
         }
     }

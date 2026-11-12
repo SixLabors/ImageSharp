@@ -73,7 +73,7 @@ public class PorterDuffFunctionsTests
     public void MultiplyFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.MultiplySrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -121,7 +121,7 @@ public class PorterDuffFunctionsTests
     public void AddFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.AddSrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -169,7 +169,7 @@ public class PorterDuffFunctionsTests
     public void SubtractFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.SubtractSrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -217,7 +217,7 @@ public class PorterDuffFunctionsTests
     public void ScreenFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.ScreenSrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -265,7 +265,7 @@ public class PorterDuffFunctionsTests
     public void DarkenFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.DarkenSrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -313,7 +313,7 @@ public class PorterDuffFunctionsTests
     public void LightenFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.LightenSrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -361,7 +361,7 @@ public class PorterDuffFunctionsTests
     public void OverlayFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.OverlaySrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -409,7 +409,7 @@ public class PorterDuffFunctionsTests
     public void HardLightFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
         Vector4 actual = PorterDuffFunctions.HardLightSrcOver((Vector4)back, source, amount);
-        VectorAssert.Equal(expected, actual, 5);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(5));
     }
 
     [Theory]
@@ -496,7 +496,7 @@ public class PorterDuffFunctionsTests
     public void ExtendedBlendFunction(PixelColorBlendingMode mode, TestVector4 back, TestVector4 source, TestVector4 expected)
     {
         Vector4 actual = InvokeExtendedBlend(mode, back, source, 1F);
-        VectorAssert.Equal(expected, actual, 4);
+        Assert.Equal((Vector4)expected, actual, ApproximateFloatComparer.FromPrecision(4));
     }
 
     [Theory]

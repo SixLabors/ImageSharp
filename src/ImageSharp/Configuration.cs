@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jxl;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Qoi;
@@ -220,6 +221,7 @@ public sealed class Configuration
     /// <see cref="ExrConfigurationModule"/>.
     /// <see cref="QoiConfigurationModule"/>.
     /// <see cref="HeifConfigurationModule"/>.
+    /// <see cref="JxlConfigurationModule"/>.
     /// <see cref="AniConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
@@ -235,6 +237,7 @@ public sealed class Configuration
             new ExrConfigurationModule(),
             new QoiConfigurationModule(),
             new HeifConfigurationModule(),
+            new JxlConfigurationModule(),
             new IcoConfigurationModule(),
             new CurConfigurationModule(),
             new AniConfigurationModule());

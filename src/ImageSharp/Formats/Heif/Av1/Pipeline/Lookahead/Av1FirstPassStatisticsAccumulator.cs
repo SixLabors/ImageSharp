@@ -19,8 +19,8 @@ internal static class Av1FirstPassStatisticsAccumulator
         section.Frame += frame.Frame;
         section.Weight += frame.Weight;
         section.IntraError += frame.IntraError;
-        section.LogIntraError += Av1FirstPassMath.Log1P(frame.IntraError);
-        section.LogCodedError += Av1FirstPassMath.Log1P(frame.CodedError);
+        section.LogIntraError += Numerics.Log1P(frame.IntraError);
+        section.LogCodedError += Numerics.Log1P(frame.CodedError);
         section.FrameAverageWaveletEnergy += frame.FrameAverageWaveletEnergy;
         section.CodedError += frame.CodedError;
         section.SecondReferenceCodedError += frame.SecondReferenceCodedError;

@@ -15,6 +15,8 @@ public class ColorConversionOptions
 {
     private Matrix4x4 adaptationMatrix;
     private YCbCrTransform yCbCrTransform;
+    private XybTransform? xybTransform;
+    private readonly Lazy<XybTransform> preparedXybTransform;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
@@ -23,6 +25,12 @@ public class ColorConversionOptions
     {
         this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
         this.YCbCrTransform = KnownYCbCrMatrices.BT601;
+
+        // Read the working spaces when XYB conversion first requests the transform. Object initializers
+        // finish before conversion, and Lazy<T> shares one completed transform across concurrent callers.
+        this.preparedXybTransform = new(() => this.XybTransform.Prepare(
+            this.SourceRgbWorkingSpace.RgbToCieXyzMatrix,
+            this.TargetRgbWorkingSpace.CieXyzToRgbMatrix));
     }
 
     /// <summary>
@@ -49,6 +57,27 @@ public class ColorConversionOptions
     /// Gets the destination working space used for companding in conversions from/to XYZ color space.
     /// </summary>
     public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
+
+    /// <summary>
+    /// Gets the matrices, biases and intensity used for XYB conversion.
+    /// The default is <see cref="KnownXybTransforms.Iso18181"/>, with the standard JPEG XL coefficients and an intensity target of 255 nits.
+    /// </summary>
+    /// <remarks>
+    /// The matrices must match <see cref="SourceRgbWorkingSpace"/> when converting from XYB,
+    /// or <see cref="TargetRgbWorkingSpace"/> when converting to XYB. The ISO coefficients require sRGB primaries and D65.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The value is an uninitialized transform with a zero intensity target.</exception>
+    public XybTransform XybTransform
+    {
+        get => this.xybTransform ?? KnownXybTransforms.Iso18181;
+        init
+        {
+            // A default struct bypasses the transform constructor. Reject its zero intensity before scaling matrices.
+            Guard.MustBeGreaterThan(value.IntensityTarget, 0F, nameof(value));
+
+            this.xybTransform = value;
+        }
+    }
 
     /// <summary>
     /// Gets the YCbCr matrix to used to perform conversions from/to RGB.
@@ -79,6 +108,21 @@ public class ColorConversionOptions
     public IccInterpolationMethod IccInterpolationMethod { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether gamma and parametric ICC curves use the magnitude of a negative input
+    /// and set a negative sign on the result. The default is <see langword="false"/>, which uses the signed input directly.
+    /// </summary>
+    public bool UseSymmetricIccCurves { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether ICC conversion maps the source black point to the target black point.
+    /// </summary>
+    /// <remarks>
+    /// The default is <see langword="false"/>. The adjustment applies to RGB, grayscale, and CMYK device profiles
+    /// with an RGB matrix and curve target or a grayscale curve target. Absolute colorimetric intent disables the adjustment.
+    /// </remarks>
+    public bool UseBlackPointCompensation { get; init; }
+
+    /// <summary>
     /// Gets the transformation matrix used in conversion to perform chromatic adaptation.
     /// <see cref="KnownChromaticAdaptationMatrices"/> for further information. Default is Bradford.
     /// </summary>
@@ -94,6 +138,11 @@ public class ColorConversionOptions
     }
 
     internal YCbCrTransform TransposedYCbCrTransform { get; private set; }
+
+    /// <summary>
+    /// Gets the intensity-scaled XYB-to-XYZ and XYZ-to-XYB matrices, prepared on first XYB conversion.
+    /// </summary>
+    internal XybTransform PreparedXybTransform => this.preparedXybTransform.Value;
 
     internal Matrix4x4 InverseAdaptationMatrix { get; private set; }
 }

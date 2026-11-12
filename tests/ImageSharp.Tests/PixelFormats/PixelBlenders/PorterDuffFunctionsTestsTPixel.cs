@@ -38,7 +38,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.NormalSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -47,7 +47,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.NormalSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -62,7 +62,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -84,7 +84,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.MultiplySrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -93,7 +93,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.MultiplySrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -140,7 +140,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.AddSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -149,7 +149,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.AddSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -164,7 +164,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -186,7 +186,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.SubtractSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -195,7 +195,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.SubtractSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -210,7 +210,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -232,7 +232,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.ScreenSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -241,7 +241,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.ScreenSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -256,7 +256,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -278,7 +278,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.DarkenSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -287,7 +287,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.DarkenSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -302,7 +302,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -324,7 +324,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.LightenSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -333,7 +333,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.LightenSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -348,7 +348,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -370,7 +370,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.OverlaySrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -379,7 +379,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.OverlaySrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -394,7 +394,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 
@@ -416,7 +416,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = PorterDuffFunctions.HardLightSrcOver(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -425,7 +425,7 @@ public class PorterDuffFunctionsTestsTPixel
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel actual = DefaultPixelBlenders<TPixel>.HardLightSrcOver.Blend(back.AsPixel(), source.AsPixel(), amount);
-        VectorAssert.Equal(expected.AsPixel(), actual, 2);
+        Assert.Equal(expected.AsPixel().ToVector4(), actual.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
     }
 
     [Theory]
@@ -440,7 +440,7 @@ public class PorterDuffFunctionsTestsTPixel
         TPixel expectedPixel = expected.AsPixel();
         foreach (TPixel pixel in dest)
         {
-            VectorAssert.Equal(expectedPixel, pixel, 2);
+            Assert.Equal(expectedPixel.ToVector4(), pixel.ToVector4(), ApproximateFloatComparer.FromPrecision(2));
         }
     }
 }

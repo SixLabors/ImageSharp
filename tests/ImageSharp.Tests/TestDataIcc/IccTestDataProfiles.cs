@@ -195,8 +195,6 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00
     ];
 
-    public static readonly byte[] HeaderDataTooSmallArray = new byte[127];
-
     public static readonly byte[] HeaderInvalidSizeSmallArray = CreateHeaderRandomArray(127, 0, HeaderRandomIdArray);
 
     public static readonly byte[] HeaderInvalidSizeBigArray = CreateHeaderRandomArray(50_000_000, 0, HeaderRandomIdArray);
@@ -214,7 +212,6 @@ internal static class IccTestDataProfiles
         [HeaderCorruptDataColorSpaceArray, false],
         [HeaderCorruptProfileConnectionSpaceArray, false],
         [HeaderCorruptRenderingIntentArray, false],
-        [HeaderDataTooSmallArray, false],
         [HeaderInvalidSizeSmallArray, false],
         [HeaderInvalidSizeBigArray, false],
         [HeaderSizeBiggerThanDataArray, false],

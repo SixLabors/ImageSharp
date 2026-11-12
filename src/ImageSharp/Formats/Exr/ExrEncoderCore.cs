@@ -5,6 +5,8 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
@@ -80,6 +82,7 @@ internal sealed class ExrEncoderCore
 
         ImageMetadata metadata = image.Metadata;
         ExrMetadata exrMetadata = metadata.GetExrMetadata();
+        ColorProfileConverter colorConverter = ExrColorConverter.Create(exrMetadata, true);
         this.pixelType ??= exrMetadata.PixelType;
         int width = image.Width;
         int height = image.Height;
@@ -98,6 +101,8 @@ internal sealed class ExrEncoderCore
         ];
         ExrHeaderAttributes header = new(
             channels,
+            exrMetadata.Primaries,
+            exrMetadata.WhitePoint,
             this.Compression,
             dataWindow,
             displayWindow,
@@ -122,9 +127,11 @@ internal sealed class ExrEncoderCore
         // Write EXR header.
         this.WriteHeader(stream, header);
 
-        // Next is offsets table to each pixel row, which will be written after the pixel data was written.
+        // The offset table has one entry per chunk. ZIP stores up to sixteen rows in each chunk;
+        // single-row compression stores one row. Reserve exactly that many offsets before pixel data.
+        int blockCount = ((height - 1) / (int)ExrUtils.RowsPerBlock(this.Compression)) + 1;
         ulong startOfRowOffsetData = (ulong)stream.Position;
-        stream.Position += 8 * height;
+        stream.Position += (long)sizeof(ulong) * blockCount;
 
         // Write pixel data.
         switch (this.pixelType)
@@ -132,17 +139,21 @@ internal sealed class ExrEncoderCore
             case ExrPixelType.Half:
             case ExrPixelType.Float:
             {
-                ulong[] rowOffsets = this.EncodeFloatingPointPixelData(stream, pixels, width, height, channels, this.Compression, cancellationToken);
+                ulong[] rowOffsets = this.EncodeFloatingPointPixelData(
+                    stream, pixels, width, height, channels, this.Compression, colorConverter, cancellationToken);
+
                 stream.Position = (long)startOfRowOffsetData;
-                this.WriteRowOffsets(stream, height, rowOffsets);
+                this.WriteRowOffsets(stream, rowOffsets);
                 break;
             }
 
             case ExrPixelType.UnsignedInt:
             {
-                ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(stream, pixels, width, height, channels, this.Compression, cancellationToken);
+                ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(
+                    stream, pixels, width, height, channels, this.Compression, colorConverter, cancellationToken);
+
                 stream.Position = (long)startOfRowOffsetData;
-                this.WriteRowOffsets(stream, height, rowOffsets);
+                this.WriteRowOffsets(stream, rowOffsets);
                 break;
             }
         }
@@ -158,6 +169,7 @@ internal sealed class ExrEncoderCore
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="channels">The imagechannels.</param>
     /// <param name="compression">The compression to use.</param>
+    /// <param name="colorConverter">The conversion from sRGB working pixels to linear EXR samples.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The array of pixel row offsets.</returns>
     private ulong[] EncodeFloatingPointPixelData<TPixel>(
@@ -167,6 +179,7 @@ internal sealed class ExrEncoderCore
         int height,
         List<ExrChannelInfo> channels,
         ExrCompression compression,
+        ColorProfileConverter colorConverter,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -184,6 +197,9 @@ internal sealed class ExrEncoderCore
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
+        Span<byte> rowBlocks = rowBlockBuffer.GetSpan();
+        InlineArray16<Vector4> colorStorage = default;
+        Span<Vector4> colors = colorStorage;
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
             compression,
@@ -194,10 +210,10 @@ internal sealed class ExrEncoderCore
             rowsPerBlock,
             width);
 
-        ulong[] rowOffsets = new ulong[height];
+        ulong[] rowOffsets = new ulong[((height - 1) / (int)rowsPerBlock) + 1];
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
-            rowOffsets[y] = (ulong)stream.Position;
+            rowOffsets[y / rowsPerBlock] = (ulong)stream.Position;
 
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
@@ -211,16 +227,24 @@ internal sealed class ExrEncoderCore
             for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                PixelOperations<TPixel>.Instance.UnpackToAssociatedScaledFloatPlanes(
-                    this.configuration,
-                    pixelRowSpan,
-                    redBuffer,
-                    greenBuffer,
-                    blueBuffer,
-                    alphaBuffer);
+                for (int x = 0; x < width; x += colors.Length)
+                {
+                    int count = Math.Min(colors.Length, width - x);
+                    Span<Vector4> block = colors[..count];
+                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
+
+                    // The typed source supplies its own range and alpha rules. Retain the converted
+                    // float precision until EXR's selected channel storage rounds each component.
+                    SimdUtils.DeinterleaveFloatPlanes(
+                        block,
+                        redBuffer.Slice(x, count),
+                        greenBuffer.Slice(x, count),
+                        blueBuffer.Slice(x, count),
+                        alphaBuffer.Slice(x, count));
+                }
 
                 // Write pixel data to row block buffer.
-                Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
+                Span<byte> rowBlockSpan = rowBlocks.Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
                 switch (this.pixelType)
                 {
                     case ExrPixelType.Float:
@@ -235,7 +259,7 @@ internal sealed class ExrEncoderCore
             }
 
             // Write compressed pixel row data to the stream.
-            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), (int)rowsInBlockCount);
+            uint compressedBytes = compressor.CompressRowBlock(rowBlocks, (int)rowsInBlockCount);
             long positionAfterPixelData = stream.Position;
 
             // Write pixel row data size.
@@ -260,6 +284,7 @@ internal sealed class ExrEncoderCore
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="channels">The imagechannels.</param>
     /// <param name="compression">The compression to use.</param>
+    /// <param name="colorConverter">The conversion from sRGB working pixels to linear EXR samples.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The array of pixel row offsets.</returns>
     private ulong[] EncodeUnsignedIntPixelData<TPixel>(
@@ -269,6 +294,7 @@ internal sealed class ExrEncoderCore
         int height,
         List<ExrChannelInfo> channels,
         ExrCompression compression,
+        ColorProfileConverter colorConverter,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -286,6 +312,10 @@ internal sealed class ExrEncoderCore
         Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
+        Span<byte> rowBlocks = rowBlockBuffer.GetSpan();
+        InlineArray16<Vector4> colorStorage = default;
+        Span<Vector4> colors = colorStorage;
+        PixelOperations<Rgba128> unsignedPixelOperations = PixelOperations<Rgba128>.Instance;
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(
             compression,
@@ -296,11 +326,10 @@ internal sealed class ExrEncoderCore
             rowsPerBlock,
             width);
 
-        Rgba128 rgb = default;
-        ulong[] rowOffsets = new ulong[height];
+        ulong[] rowOffsets = new ulong[((height - 1) / (int)rowsPerBlock) + 1];
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
-            rowOffsets[y] = (ulong)stream.Position;
+            rowOffsets[y / rowsPerBlock] = (ulong)stream.Position;
 
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
@@ -314,28 +343,35 @@ internal sealed class ExrEncoderCore
             for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
                 Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
-                for (int x = 0; x < width; x++)
+                for (int x = 0; x < width; x += colors.Length)
                 {
-                    // OpenEXR channels use associated alpha. Rgba128.FromVector4 expects components in [0, 1], which is the
-                    // scaled range. The native range of the source pixel format can differ, so read the scaled vector,
-                    // the same domain that the decoder writes.
-                    Vector4 vector4 = pixelRowSpan[x].ToAssociatedScaledVector4();
-                    rgb = Rgba128.FromVector4(vector4);
+                    int count = Math.Min(colors.Length, width - x);
+                    Span<Vector4> block = colors[..count];
+                    colorConverter.Convert(this.configuration, pixelRowSpan.Slice(x, count), block, PixelAlphaRepresentation.Associated);
 
-                    redBuffer[x] = rgb.R;
-                    greenBuffer[x] = rgb.G;
-                    blueBuffer[x] = rgb.B;
-                    alphaBuffer[x] = rgb.A;
+                    // The source TPixel supplied its color and alpha. This final pack rounds the
+                    // converted samples directly to EXR's selected UINT storage, without an intermediate pixel pack.
+                    Span<Rgba128> packed = MemoryMarshal.Cast<Vector4, Rgba128>(block);
+                    unsignedPixelOperations.FromUnassociatedScaledVector4Destructive(this.configuration, block, packed);
+
+                    // The deinterleaver copies component bits without float arithmetic. View the
+                    // uint storage as float lanes only for its shared SIMD shuffles and stores.
+                    SimdUtils.DeinterleaveFloatPlanes(
+                        block,
+                        MemoryMarshal.Cast<uint, float>(redBuffer.Slice(x, count)),
+                        MemoryMarshal.Cast<uint, float>(greenBuffer.Slice(x, count)),
+                        MemoryMarshal.Cast<uint, float>(blueBuffer.Slice(x, count)),
+                        MemoryMarshal.Cast<uint, float>(alphaBuffer.Slice(x, count)));
                 }
 
                 // Write row data to row block buffer.
-                Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
+                Span<byte> rowBlockSpan = rowBlocks.Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
                 WriteUnsignedIntRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
                 rowsInBlockCount++;
             }
 
             // Write pixel row data compressed to the stream.
-            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), (int)rowsInBlockCount);
+            uint compressedBytes = compressor.CompressRowBlock(rowBlocks, (int)rowsInBlockCount);
             long positionAfterPixelData = stream.Position;
 
             // Write pixel row data size.
@@ -358,6 +394,7 @@ internal sealed class ExrEncoderCore
     private void WriteHeader(Stream stream, ExrHeaderAttributes header)
     {
         this.WriteChannels(stream, header.Channels);
+        this.WriteChromaticities(stream, header);
         this.WriteCompression(stream, header.Compression);
         this.WriteDataWindow(stream, header.DataWindow);
         this.WriteDisplayWindow(stream, header.DisplayWindow);
@@ -366,6 +403,25 @@ internal sealed class ExrEncoderCore
         this.WriteScreenWindowCenter(stream, header.ScreenWindowCenter);
         this.WriteScreenWindowWidth(stream, header.ScreenWindowWidth);
         stream.WriteByte(0);
+    }
+
+    /// <summary>
+    /// Writes the RGB primaries and white point that describe the stored linear RGB samples.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="header">The header containing the EXR RGB space.</param>
+    private void WriteChromaticities(Stream stream, ExrHeaderAttributes header)
+    {
+        // The EXR chromaticities attribute contains eight little-endian floats in R, G, B, white order.
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Chromaticities, ExrConstants.AttibuteTypes.Chromaticities, 8 * sizeof(float));
+        this.WriteSingle(stream, header.Primaries.R.X);
+        this.WriteSingle(stream, header.Primaries.R.Y);
+        this.WriteSingle(stream, header.Primaries.G.X);
+        this.WriteSingle(stream, header.Primaries.G.Y);
+        this.WriteSingle(stream, header.Primaries.B.X);
+        this.WriteSingle(stream, header.Primaries.B.Y);
+        this.WriteSingle(stream, header.WhitePoint.X);
+        this.WriteSingle(stream, header.WhitePoint.Y);
     }
 
     /// <summary>
@@ -498,14 +554,13 @@ internal sealed class ExrEncoderCore
     }
 
     /// <summary>
-    /// Writes the row offsets to the stream.
+    /// Writes one offset for each scanline chunk to the stream.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="height">The height in pixels of the image.</param>
-    /// <param name="rowOffsets">The row offsets.</param>
-    private void WriteRowOffsets(Stream stream, int height, ulong[] rowOffsets)
+    /// <param name="rowOffsets">The scanline chunk offsets in increasing row order.</param>
+    private void WriteRowOffsets(Stream stream, ulong[] rowOffsets)
     {
-        for (int i = 0; i < height; i++)
+        for (int i = 0; i < rowOffsets.Length; i++)
         {
             BinaryPrimitives.WriteUInt64LittleEndian(this.buffer, rowOffsets[i]);
             stream.Write(this.buffer);

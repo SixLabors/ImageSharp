@@ -164,11 +164,9 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
         {
             // Quantization selects indices against the sRGB palette. Convert the palette colors after those indices are fixed.
             // Keep ICC results as floats until the 16-bit RGB packer runs. Neither the indices nor the quantizer's palette change.
-            using IMemoryOwner<float> owner = this.MemoryAllocator.Allocate<float>(quantizedColors.Length * 7);
-            Span<float> storage = owner.GetSpan();
-            Span<Vector4> vectors = MemoryMarshal.Cast<float, Vector4>(storage[..(quantizedColors.Length * 4)]);
-            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(storage[(quantizedColors.Length * 4)..]);
-            converter.Convert(this.Configuration, quantizedColors, vectors, rgb);
+            using IMemoryOwner<Vector4> owner = this.MemoryAllocator.Allocate<Vector4>(quantizedColors.Length);
+            Span<Vector4> vectors = owner.GetSpan();
+            converter.Convert(this.Configuration, quantizedColors, vectors);
             PixelOperations<Rgb48>.Instance.FromUnassociatedScaledVector4Destructive(this.Configuration, vectors, quantizedColorRgb48);
         }
 

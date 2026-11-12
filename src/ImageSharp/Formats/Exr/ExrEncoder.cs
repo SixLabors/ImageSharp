@@ -8,6 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 /// <summary>
 /// Image encoder for writing an image to a stream in the OpenExr Format.
 /// </summary>
+/// <remarks>
+/// Converts sRGB pixel values to linear RGB with the primaries and white point in <see cref="ExrMetadata"/>.
+/// Writes those chromaticities to the file. Stored RGB is associated with linear alpha.
+/// </remarks>
 public sealed class ExrEncoder : ImageEncoder
 {
     /// <summary>

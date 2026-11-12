@@ -1,0 +1,336 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
+using SixLabors.ImageSharp.Common.Helpers;
+
+namespace SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
+
+/// <content>
+/// Applies prepared HLG component and luminance operations to independent RGB lanes.
+/// </content>
+public sealed partial class HlgWorkingSpace
+{
+    /// <summary>
+    /// Applies a prepared RGB operation without intermediate clamping. Each SIMD lane contains one independent color.
+    /// </summary>
+    private interface IColorOperator
+    {
+        /// <summary>
+        /// Converts RGB components in place.
+        /// </summary>
+        /// <param name="red">The red components.</param>
+        /// <param name="green">The green components.</param>
+        /// <param name="blue">The blue components.</param>
+        void Invoke(ref float red, ref float green, ref float blue);
+
+        /// <summary>
+        /// Converts RGB components in place.
+        /// </summary>
+        /// <param name="red">The red components.</param>
+        /// <param name="green">The green components.</param>
+        /// <param name="blue">The blue components.</param>
+        void Invoke(ref Vector128<float> red, ref Vector128<float> green, ref Vector128<float> blue);
+
+        /// <summary>
+        /// Converts RGB components in place.
+        /// </summary>
+        /// <param name="red">The red components.</param>
+        /// <param name="green">The green components.</param>
+        /// <param name="blue">The blue components.</param>
+        void Invoke(ref Vector256<float> red, ref Vector256<float> green, ref Vector256<float> blue);
+
+        /// <summary>
+        /// Converts RGB components in place.
+        /// </summary>
+        /// <param name="red">The red components.</param>
+        /// <param name="green">The green components.</param>
+        /// <param name="blue">The blue components.</param>
+        void Invoke(ref Vector512<float> red, ref Vector512<float> green, ref Vector512<float> blue);
+    }
+
+    /// <summary>
+    /// Expands HLG scene light before applying display luminance.
+    /// </summary>
+    private readonly struct ExpandOperator : IColorOperator
+    {
+        private readonly OotfOperator ootf;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExpandOperator"/> struct.
+        /// </summary>
+        /// <param name="ootf">The prepared luminance adjustment.</param>
+        public ExpandOperator(OotfOperator ootf) => this.ootf = ootf;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref float red, ref float green, ref float blue)
+        {
+            HlgCompanding.ExpandOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+
+            this.ootf.Invoke(ref red, ref green, ref blue);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector128<float> red, ref Vector128<float> green, ref Vector128<float> blue)
+        {
+            HlgCompanding.ExpandOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+
+            this.ootf.Invoke(ref red, ref green, ref blue);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector256<float> red, ref Vector256<float> green, ref Vector256<float> blue)
+        {
+            HlgCompanding.ExpandOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+
+            this.ootf.Invoke(ref red, ref green, ref blue);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector512<float> red, ref Vector512<float> green, ref Vector512<float> blue)
+        {
+            HlgCompanding.ExpandOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+
+            this.ootf.Invoke(ref red, ref green, ref blue);
+        }
+    }
+
+    /// <summary>
+    /// Restores scene light before applying the HLG component curve.
+    /// </summary>
+    private readonly struct CompressOperator : IColorOperator
+    {
+        private readonly OotfOperator ootf;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CompressOperator"/> struct.
+        /// </summary>
+        /// <param name="ootf">The prepared luminance adjustment.</param>
+        public CompressOperator(OotfOperator ootf) => this.ootf = ootf;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref float red, ref float green, ref float blue)
+        {
+            this.ootf.Invoke(ref red, ref green, ref blue);
+
+            HlgCompanding.CompressOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector128<float> red, ref Vector128<float> green, ref Vector128<float> blue)
+        {
+            this.ootf.Invoke(ref red, ref green, ref blue);
+
+            HlgCompanding.CompressOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector256<float> red, ref Vector256<float> green, ref Vector256<float> blue)
+        {
+            this.ootf.Invoke(ref red, ref green, ref blue);
+
+            HlgCompanding.CompressOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector512<float> red, ref Vector512<float> green, ref Vector512<float> blue)
+        {
+            this.ootf.Invoke(ref red, ref green, ref blue);
+
+            HlgCompanding.CompressOperator curve = default;
+            red = curve.Invoke(red);
+            green = curve.Invoke(green);
+            blue = curve.Invoke(blue);
+        }
+    }
+
+    /// <summary>
+    /// Applies the HLG opto-optical luminance adjustment with prepared display gamma and primary weights.
+    /// </summary>
+    private readonly struct OotfOperator : IColorOperator
+    {
+        /// <summary>
+        /// The largest gamma distance from one that retains identity luminance adjustment.
+        /// </summary>
+        private const float IdentityGammaTolerance = 0.01F;
+
+        /// <summary>
+        /// The maximum RGB scale used by the luminance adjustment.
+        /// </summary>
+        private const float MaximumLuminanceRatio = 1E9F;
+
+        private readonly TensorPrimitives_.PowOperator power;
+        private readonly Vector3 luminance;
+        private readonly bool apply;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OotfOperator"/> struct.
+        /// </summary>
+        /// <param name="gamma">The display or inverse display system gamma.</param>
+        /// <param name="luminance">The Y coefficients for the working-space RGB primaries.</param>
+        public OotfOperator(float gamma, Vector3 luminance)
+        {
+            float exponent = gamma - 1F;
+            this.power = new(exponent);
+            this.luminance = luminance;
+
+            // The shared contract retains the identity tolerance and scale limit used by libjxl HlgOOTF_Base.
+            // Prepare this decision once; every RGB layout then applies the same luminance policy.
+            this.apply = MathF.Abs(exponent) > IdentityGammaTolerance;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref float red, ref float green, ref float blue)
+        {
+            if (!this.apply)
+            {
+                return;
+            }
+
+            // Accumulate B, G, R in this order. The physical luminance, not its magnitude, controls the shared RGB scale.
+            float light = this.luminance.Z * blue;
+            light = float.MultiplyAddEstimate(this.luminance.Y, green, light);
+            light = float.MultiplyAddEstimate(this.luminance.X, red, light);
+
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            float power = this.power.Invoke(MathF.Abs(light));
+
+            // A negative finite physical luminance has no real fractional power. Native original-color CMS
+            // keeps RGB unchanged when that scale is not finite. Preserve those finite colors instead
+            // of turning all three channels into NaN before the final component bounds.
+            float ratio = (light < 0F && float.IsFinite(light)) || !float.IsFinite(power) ? 1F : MathF.Min(power, MaximumLuminanceRatio);
+            red *= ratio;
+            green *= ratio;
+            blue *= ratio;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector128<float> red, ref Vector128<float> green, ref Vector128<float> blue)
+        {
+            if (!this.apply)
+            {
+                return;
+            }
+
+            // Accumulate B, G, R in this order. The physical luminance, not its magnitude, controls the shared RGB scale.
+            Vector128<float> light = Vector128.Multiply(Vector128.Create(this.luminance.Z), blue);
+            light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.Y), green, light);
+            light = Vector128.MultiplyAddEstimate(Vector128.Create(this.luminance.X), red, light);
+
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            Vector128<float> magnitude = Vector128.Abs(light);
+            Vector128<float> power = this.power.Invoke(magnitude);
+
+            // Each lane represents one RGB color. Select identity for a negative finite luminance, which has no
+            // real fractional power, and for a nonfinite scale. Do this before the three multiplies,
+            // matching the scalar path and native original-color CMS.
+            Vector128<float> negativeFinite = Vector128.LessThan(light, Vector128<float>.Zero)
+                & Vector128.LessThan(magnitude, Vector128.Create(float.PositiveInfinity));
+            Vector128<float> finite = Vector128.LessThanOrEqual(Vector128.Abs(power), Vector128.Create(float.MaxValue)) & ~negativeFinite;
+            Vector128<float> ratio = Vector128.ConditionalSelect(
+                finite, Vector128.Min(power, Vector128.Create(MaximumLuminanceRatio)), Vector128.Create(1F));
+
+            red = Vector128.Multiply(red, ratio);
+            green = Vector128.Multiply(green, ratio);
+            blue = Vector128.Multiply(blue, ratio);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector256<float> red, ref Vector256<float> green, ref Vector256<float> blue)
+        {
+            if (!this.apply)
+            {
+                return;
+            }
+
+            // Accumulate B, G, R in this order. The physical luminance, not its magnitude, controls the shared RGB scale.
+            Vector256<float> light = Vector256.Multiply(Vector256.Create(this.luminance.Z), blue);
+            light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.Y), green, light);
+            light = Vector256.MultiplyAddEstimate(Vector256.Create(this.luminance.X), red, light);
+
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            Vector256<float> magnitude = Vector256.Abs(light);
+            Vector256<float> power = this.power.Invoke(magnitude);
+
+            // Each lane represents one RGB color. Select identity for a negative finite luminance, which has no
+            // real fractional power, and for a nonfinite scale. Do this before the three multiplies,
+            // matching the scalar path and native original-color CMS.
+            Vector256<float> negativeFinite = Vector256.LessThan(light, Vector256<float>.Zero)
+                & Vector256.LessThan(magnitude, Vector256.Create(float.PositiveInfinity));
+            Vector256<float> finite = Vector256.LessThanOrEqual(Vector256.Abs(power), Vector256.Create(float.MaxValue)) & ~negativeFinite;
+            Vector256<float> ratio = Vector256.ConditionalSelect(
+                finite, Vector256.Min(power, Vector256.Create(MaximumLuminanceRatio)), Vector256.Create(1F));
+
+            red = Vector256.Multiply(red, ratio);
+            green = Vector256.Multiply(green, ratio);
+            blue = Vector256.Multiply(blue, ratio);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Invoke(ref Vector512<float> red, ref Vector512<float> green, ref Vector512<float> blue)
+        {
+            if (!this.apply)
+            {
+                return;
+            }
+
+            // Accumulate B, G, R in this order. The physical luminance, not its magnitude, controls the shared RGB scale.
+            Vector512<float> light = Vector512.Multiply(Vector512.Create(this.luminance.Z), blue);
+            light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.Y), green, light);
+            light = Vector512.MultiplyAddEstimate(Vector512.Create(this.luminance.X), red, light);
+
+            // The power operator requires bases that are zero or more. Thus, the power uses the magnitude.
+            Vector512<float> magnitude = Vector512.Abs(light);
+            Vector512<float> power = this.power.Invoke(magnitude);
+
+            // Each lane represents one RGB color. Select identity for a negative finite luminance, which has no
+            // real fractional power, and for a nonfinite scale. Do this before the three multiplies,
+            // matching the scalar path and native original-color CMS.
+            Vector512<float> negativeFinite = Vector512.LessThan(light, Vector512<float>.Zero)
+                & Vector512.LessThan(magnitude, Vector512.Create(float.PositiveInfinity));
+            Vector512<float> finite = Vector512.LessThanOrEqual(Vector512.Abs(power), Vector512.Create(float.MaxValue)) & ~negativeFinite;
+            Vector512<float> ratio = Vector512.ConditionalSelect(
+                finite, Vector512.Min(power, Vector512.Create(MaximumLuminanceRatio)), Vector512.Create(1F));
+
+            red = Vector512.Multiply(red, ratio);
+            green = Vector512.Multiply(green, ratio);
+            blue = Vector512.Multiply(blue, ratio);
+        }
+    }
+}

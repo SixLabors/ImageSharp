@@ -10,6 +10,9 @@ using static SixLabors.ImageSharp.ColorProfiles.Icc.IccColorConverter;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
+/// <summary>
+/// Converts typed color profiles through the configured source and target ICC transforms.
+/// </summary>
 internal static class ColorProfileConverterExtensionsIcc
 {
     /// <summary>
@@ -117,6 +120,114 @@ internal static class ColorProfileConverterExtensionsIcc
     }
 
     /// <summary>
+    /// Checks if the profile describes a device that supports black point detection.
+    /// </summary>
+    /// <param name="profile">The external ICC profile.</param>
+    /// <returns>Whether the profile supports black point detection.</returns>
+    private static bool SupportsBlackPointCompensation(IccProfile profile)
+        => profile.Header.DataColorSpace is IccColorSpaceType.Rgb or IccColorSpaceType.Gray or IccColorSpaceType.Cmyk
+        && profile.Header.Class is IccProfileClass.InputDevice or IccProfileClass.DisplayDevice or IccProfileClass.OutputDevice or IccProfileClass.ColorSpace;
+
+    /// <summary>
+    /// Detects the neutral black point of an ICC device in D50 XYZ units.
+    /// </summary>
+    /// <param name="profile">The device profile.</param>
+    /// <param name="intent">The rendering intent of the connection.</param>
+    /// <param name="options">The interpolation and curve settings.</param>
+    /// <param name="pcsOptions">The D50 Lab and XYZ conversion settings.</param>
+    /// <param name="existingForward">The device-to-PCS transform to reuse, or null to create one.</param>
+    /// <returns>The black point, or zero if the profile cannot provide it.</returns>
+    private static Vector3 DetectBlackPoint(
+        IccProfile profile,
+        IccRenderingIntent intent,
+        ColorConversionOptions options,
+        ColorConversionOptions pcsOptions,
+        ConversionParams? existingForward)
+    {
+        if (profile.Header.Version.Major >= 4
+            && intent is IccRenderingIntent.Perceptual or IccRenderingIntent.Saturation)
+        {
+            if (!IccConverterBase.IsMatrixShaper(profile))
+            {
+                // ICC v4 tables use the reference-medium black point for these intents.
+                return new Vector3(.00336F, .0034731F, .00287F);
+            }
+
+            // Matrix profiles use their relative colorimetric black point for these intents.
+            intent = IccRenderingIntent.MediaRelativeColorimetric;
+            existingForward = null;
+        }
+
+        bool cmykRoundTrip = intent == IccRenderingIntent.MediaRelativeColorimetric
+            && profile.Header.Class == IccProfileClass.OutputDevice && profile.Header.DataColorSpace == IccColorSpaceType.Cmyk;
+
+        CieLab lab;
+
+        if (cmykRoundTrip)
+        {
+            if (!IccConverterBase.SupportsBlackPointIntent(profile, IccRenderingIntent.Perceptual)
+                || !IccConverterBase.SupportsConversion(profile, false, IccRenderingIntent.Perceptual)
+                || (existingForward is null && !IccConverterBase.SupportsConversion(profile, true, intent)))
+            {
+                return Vector3.Zero;
+            }
+
+            // Maximum ink can exceed the profile's ink limit. Use the perceptual reverse table to get printable black.
+            // The relative forward table measures that black in the connection space.
+            ConversionParams reverse = new(
+                profile, false, IccRenderingIntent.Perceptual, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
+
+            ConversionParams forward = existingForward ?? new(
+                profile, true, intent, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
+
+            Vector4 blackPcs = reverse.PcsType == IccColorSpaceType.CieLab ? default(CieLab).ToScaledVector4() : Vector4.Zero;
+
+            if (reverse.Is16BitLutEntry && reverse.PcsType == IccColorSpaceType.CieLab)
+            {
+                // Legacy Lab tables encode L*=100 as 0xFF00.
+                blackPcs *= 65280F / 65535F;
+            }
+
+            Vector4 deviceBlack = reverse.Converter.Convert(blackPcs);
+            lab = DecodeBlackPointPcs(forward.Converter.Convert(deviceBlack), forward, pcsOptions);
+            lab = new CieLab(MathF.Min(lab.L, 50F), 0F, 0F);
+        }
+        else
+        {
+            // The transform can fall back to AToB0. Black point detection needs a table for the selected intent or matrix and curve tags.
+            if (!IccConverterBase.SupportsBlackPointIntent(profile, intent))
+            {
+                return Vector3.Zero;
+            }
+
+            ConversionParams forward = existingForward ?? new(profile, true, intent, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
+            Vector4 endpoint = profile.Header.DataColorSpace == IccColorSpaceType.Cmyk ? Vector4.One : Vector4.Zero;
+            lab = DecodeBlackPointPcs(forward.Converter.Convert(endpoint), forward, pcsOptions);
+            lab = new CieLab(lab.L is < 0F or > 50F ? 0F : lab.L, 0F, 0F);
+        }
+
+        return lab.ToProfileConnectingSpace(pcsOptions).ToVector3();
+    }
+
+    /// <summary>
+    /// Converts encoded Lab or XYZ values to Lab.
+    /// </summary>
+    /// <param name="encoded">The encoded PCS value.</param>
+    /// <param name="profile">The profile transform that supplies the PCS encoding.</param>
+    /// <param name="options">The D50 conversion settings.</param>
+    /// <returns>The output in ordinary Lab units.</returns>
+    private static CieLab DecodeBlackPointPcs(Vector4 encoded, ConversionParams profile, ColorConversionOptions options)
+    {
+        if (profile.PcsType == IccColorSpaceType.CieLab)
+        {
+            return CieLab.FromScaledVector4(profile.Is16BitLutEntry ? encoded * (65535F / 65280F) : encoded);
+        }
+
+        CieXyz xyz = CieXyz.FromScaledVector4(encoded);
+        return CieLab.FromProfileConnectingSpace(options, in xyz);
+    }
+
+    /// <summary>
     /// The immutable source-to-target ICC connection of a converter.
     /// </summary>
     internal sealed class IccTransform
@@ -133,8 +244,8 @@ internal static class ColorProfileConverterExtensionsIcc
             // Select one intent for both transform tables and PCS adjustment. A curve-only working profile
             // must not select a different table when the same table-based profile becomes the destination.
             IccRenderingIntent renderingIntent = IccConverterBase.GetRenderingIntent(sourceProfile, targetProfile);
-            ConversionParams source = new(sourceProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod);
-            ConversionParams target = new(targetProfile, toPcs: false, renderingIntent, options.IccInterpolationMethod);
+            ConversionParams source = new(sourceProfile, toPcs: true, renderingIntent, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
+            ConversionParams target = new(targetProfile, toPcs: false, renderingIntent, options.IccInterpolationMethod, options.UseSymmetricIccCurves);
             ColorConversionOptions pcsOptions = new()
             {
                 MemoryAllocator = options.MemoryAllocator,
@@ -142,7 +253,26 @@ internal static class ColorProfileConverterExtensionsIcc
                 TargetWhitePoint = KnownIlluminants.D50Icc
             };
 
-            PcsOperator pcs = new(source, target, pcsOptions);
+            bool compensateBlack = options.UseBlackPointCompensation
+                && renderingIntent != IccRenderingIntent.AbsoluteColorimetric
+                && target.Converter.IsTrc
+                && SupportsBlackPointCompensation(sourceProfile) && SupportsBlackPointCompensation(targetProfile);
+
+            Vector3 blackScale = Vector3.One;
+            Vector3 blackOffset = Vector3.Zero;
+
+            if (compensateBlack)
+            {
+                // Each XYZ scale is the target black-to-white range divided by the source range.
+                // The offset keeps D50 white fixed. The connection retains both values for pixel conversion.
+                Vector3 sourceBlack = DetectBlackPoint(sourceProfile, renderingIntent, options, pcsOptions, source);
+                Vector3 targetBlack = DetectBlackPoint(targetProfile, renderingIntent, options, pcsOptions, null);
+                Vector3 white = KnownIlluminants.D50Icc.ToVector3();
+                blackScale = (targetBlack - white) / (sourceBlack - white);
+                blackOffset = -white * (targetBlack - sourceBlack) / (sourceBlack - white);
+            }
+
+            PcsOperator pcs = new(source, target, pcsOptions, compensateBlack, blackScale, blackOffset);
             this.Converter = source.Converter.Connect(target.Converter, pcs);
 
             // ICC operators read or write W only for a four-channel device space. For every other space, W is not color data.
@@ -183,13 +313,19 @@ internal static class ColorProfileConverterExtensionsIcc
         /// <param name="toPcs">Whether this transform converts device values to the PCS.</param>
         /// <param name="renderingIntent">The rendering intent shared by both profiles.</param>
         /// <param name="interpolationMethod">The interpolation method used for color lookup tables.</param>
-        public ConversionParams(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent, IccInterpolationMethod interpolationMethod)
+        /// <param name="symmetricCurves">Whether gamma and parametric curves use the input magnitude and restore its negative sign.</param>
+        public ConversionParams(
+            IccProfile profile,
+            bool toPcs,
+            IccRenderingIntent renderingIntent,
+            IccInterpolationMethod interpolationMethod,
+            bool symmetricCurves)
         {
             this.profile = profile;
             this.Intent = renderingIntent;
             this.Converter = toPcs
-                ? new IccDataToPcsConverter(profile, renderingIntent, interpolationMethod)
-                : new IccPcsToDataConverter(profile, renderingIntent, interpolationMethod);
+                ? new IccDataToPcsConverter(profile, renderingIntent, interpolationMethod, symmetricCurves)
+                : new IccPcsToDataConverter(profile, renderingIntent, interpolationMethod, symmetricCurves);
         }
 
         /// <summary>

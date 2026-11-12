@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Compression;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
 /// <summary>

@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Buffers.Binary;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -34,65 +34,9 @@ internal readonly struct HeifBoxReader
     /// <returns>The number of payload bytes following the complete variable-length header.</returns>
     public static long ReadHeader(Stream stream, long parentEndPosition, Span<byte> headerBuffer, out Heif4CharCode boxType, bool topLevel)
     {
-        if (parentEndPosition - stream.Position < 8)
-        {
-            throw new InvalidImageContentException("Not enough data to read the box header.");
-        }
-
-        Span<byte> buffer = headerBuffer[..8];
-        ReadExactly(stream, buffer, "Not enough data to read the box header.");
-
-        ulong boxSize = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-        int headerSize = 8;
-        boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
-
-        if (boxSize == 1)
-        {
-            if (parentEndPosition - stream.Position < 8)
-            {
-                throw new InvalidImageContentException("Not enough data to read the extended box size.");
-            }
-
-            ReadExactly(stream, buffer, "Not enough data to read the extended box size.");
-            boxSize = BinaryPrimitives.ReadUInt64BigEndian(buffer);
-            headerSize += 8;
-        }
-
-        if (boxType == Heif4CharCode.Uuid)
-        {
-            if (parentEndPosition - stream.Position < 16)
-            {
-                throw new InvalidImageContentException("Not enough data to read the UUID box user type.");
-            }
-
-            // The UUID user type belongs to the variable box header even though the bounded image parser does not
-            // interpret it. Advance here so every caller receives the actual payload start and length.
-            Skip(stream, 16);
-            headerSize += 16;
-        }
-
-        if (boxSize == 0)
-        {
-            if (!topLevel)
-            {
-                throw new InvalidImageContentException("A nested box cannot extend to the end of the file.");
-            }
-
-            return parentEndPosition - stream.Position;
-        }
-
-        if (boxSize < (ulong)headerSize)
-        {
-            throw new InvalidImageContentException("Box size is smaller than its header.");
-        }
-
-        ulong contentLength = boxSize - (ulong)headerSize;
-        if (contentLength > (ulong)(parentEndPosition - stream.Position))
-        {
-            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
-        }
-
-        return (long)contentLength;
+        long length = IsoBoxReader.ReadHeader(stream, parentEndPosition, headerBuffer, out uint type, topLevel);
+        boxType = (Heif4CharCode)type;
+        return length;
     }
 
     /// <summary>
@@ -104,53 +48,9 @@ internal readonly struct HeifBoxReader
     /// <returns>The number of bytes occupied by the complete child header.</returns>
     public static int ParseHeader(ReadOnlySpan<byte> buffer, out long length, out Heif4CharCode boxType)
     {
-        if (buffer.Length < 8)
-        {
-            throw new InvalidImageContentException("Not enough data to read the box header.");
-        }
-
-        ulong boxSize = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-        int bytesRead = 8;
-        boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
-        if (boxSize == 1)
-        {
-            if (buffer.Length < 16)
-            {
-                throw new InvalidImageContentException("Not enough data to read the extended box size.");
-            }
-
-            boxSize = BinaryPrimitives.ReadUInt64BigEndian(buffer[bytesRead..]);
-            bytesRead += 8;
-        }
-
-        if (boxType == Heif4CharCode.Uuid)
-        {
-            if (buffer.Length - bytesRead < 16)
-            {
-                throw new InvalidImageContentException("Not enough data to read the UUID box user type.");
-            }
-
-            bytesRead += 16;
-        }
-
-        if (boxSize == 0)
-        {
-            throw new InvalidImageContentException("A nested box cannot extend to the end of the file.");
-        }
-
-        if (boxSize < (ulong)bytesRead)
-        {
-            throw new InvalidImageContentException("Box size is smaller than its header.");
-        }
-
-        ulong contentLength = boxSize - (ulong)bytesRead;
-        if (contentLength > (ulong)(buffer.Length - bytesRead))
-        {
-            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
-        }
-
-        length = (long)contentLength;
-        return bytesRead;
+        int headerLength = IsoBoxReader.ParseHeader(buffer, out length, out uint type);
+        boxType = (Heif4CharCode)type;
+        return headerLength;
     }
 
     /// <summary>
@@ -207,17 +107,5 @@ internal readonly struct HeifBoxReader
     /// <param name="destination">The complete destination span.</param>
     /// <param name="message">The malformed-image message used when the stream ends early.</param>
     public static void ReadExactly(Stream stream, Span<byte> destination, string message)
-    {
-        int offset = 0;
-        while (offset < destination.Length)
-        {
-            int read = stream.Read(destination[offset..]);
-            if (read == 0)
-            {
-                throw new InvalidImageContentException(message);
-            }
-
-            offset += read;
-        }
-    }
+        => IsoBoxReader.ReadExactly(stream, destination, message);
 }

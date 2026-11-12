@@ -110,6 +110,9 @@ jobs:
             codecov: false
 
     runs-on: ${{ matrix.options.os }}
+    env:
+      # JxlNet 0.12.0.5 pins this native source revision. Its packaged libraries use skcms.
+      JXL_REFERENCE_REVISION: 38ca29b72892bc7ce74fc01de47626205870063a
 
     steps:
       - name: Install libgdi+, which is required for tests running on ubuntu
@@ -118,7 +121,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
 
-      - name: Install libgdi+, which is required for tests running on macos
+      - name: Install native test libraries on macOS
         if: ${{ contains(matrix.options.os, 'macos-26') }}
         run: |
           brew update
@@ -152,6 +155,49 @@ jobs:
       - name: Git Pull LFS
         shell: bash
         run: git lfs pull
+
+      - name: Cache macOS JPEG XL reference
+        if: ${{ contains(matrix.options.os, 'macos-26') }}
+        id: jxl-native-cache
+        uses: actions/cache@v6
+        with:
+          path: artifacts/native/jxlnet
+          key: ${{ runner.os }}-${{ runner.arch }}-jxlnet-${{ env.JXL_REFERENCE_REVISION }}-skcms-v1
+
+      - name: Build macOS JPEG XL reference
+        if: ${{ contains(matrix.options.os, 'macos-26') && steps.jxl-native-cache.outputs.cache-hit != 'true' }}
+        shell: bash
+        run: |
+          # JxlNet has no macOS binaries. Build its pinned source with the same CMS instead of Homebrew's Little CMS build.
+          reference_source="$GITHUB_WORKSPACE/artifacts/native/jxlnet-source"
+          reference_prefix="$GITHUB_WORKSPACE/artifacts/native/jxlnet"
+          git init "$reference_source"
+          git -C "$reference_source" remote add origin https://github.com/Guerra24/libjxl.git
+          git -C "$reference_source" fetch --depth 1 origin "$JXL_REFERENCE_REVISION"
+          git -C "$reference_source" checkout --detach FETCH_HEAD
+          git -C "$reference_source" submodule update --init --depth 1 third_party/brotli third_party/highway third_party/skcms
+          cmake -S "$reference_source" -B "$reference_source/build" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$reference_prefix" \
+            -DCMAKE_INSTALL_RPATH='@loader_path' -DBUILD_SHARED_LIBS=ON -DJPEGXL_STATIC=OFF \
+            -DJPEGXL_ENABLE_SKCMS=ON -DBUILD_TESTING=OFF \
+            -DJPEGXL_ENABLE_TOOLS=OFF -DJPEGXL_ENABLE_DEVTOOLS=OFF \
+            -DJPEGXL_ENABLE_EXAMPLES=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF \
+            -DJPEGXL_ENABLE_DOXYGEN=OFF -DJPEGXL_ENABLE_MANPAGES=OFF \
+            -DJPEGXL_ENABLE_OPENEXR=OFF -DJPEGXL_ENABLE_SJPEG=OFF \
+            -DJPEGXL_ENABLE_PLUGINS=OFF -DJPEGXL_ENABLE_VIEWERS=OFF \
+            -DJPEGXL_ENABLE_TCMALLOC=OFF -DJPEGXL_ENABLE_JNI=OFF
+          cmake --build "$reference_source/build" --config Release --parallel "$(sysctl -n hw.ncpu)"
+          cmake --install "$reference_source/build" --config Release
+
+      - name: Use macOS JPEG XL reference
+        if: ${{ contains(matrix.options.os, 'macos-26') }}
+        shell: bash
+        run: |
+          # Load this build's decoder, encoder, CMS and Brotli libraries together, including in child processes.
+          reference_lib="$GITHUB_WORKSPACE/artifacts/native/jxlnet/lib"
+          echo "DYLD_FALLBACK_LIBRARY_PATH=$reference_lib:${DYLD_FALLBACK_LIBRARY_PATH:-/usr/local/lib:/usr/lib}" >> "$GITHUB_ENV"
+          otool -L "$reference_lib/libjxl.dylib"
+          otool -L "$reference_lib/libjxl_cms.dylib"
 
       - name: NuGet Install
         uses: NuGet/setup-nuget@v4

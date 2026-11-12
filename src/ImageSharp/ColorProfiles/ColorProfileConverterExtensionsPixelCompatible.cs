@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -74,6 +75,112 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
 
         // Planar encoders read the converted RGB from this copy.
         Rgb.FromScaledVector4(row, rgb[..source.Length]);
+    }
+
+    /// <summary>
+    /// Converts source pixels between the configured ICC profiles or RGB working spaces as straight, scaled vectors.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="converter">The converter configured with source and target profiles or working spaces.</param>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="source">The source pixels, which remain unchanged.</param>
+    /// <param name="destination">The destination vectors.</param>
+    public static void Convert<TPixel>(
+        this ColorProfileConverter converter, Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => converter.Convert(configuration, source, destination, PixelAlphaRepresentation.Unassociated);
+
+    /// <summary>
+    /// Converts source pixels between the configured profiles or working spaces with the requested output alpha representation.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="converter">The converter configured with source and target profiles or working spaces.</param>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="source">The source pixels, which remain unchanged.</param>
+    /// <param name="destination">The converted floating-point components.</param>
+    /// <param name="alphaRepresentation">The alpha representation required by the destination components.</param>
+    public static void Convert<TPixel>(
+        this ColorProfileConverter converter,
+        Configuration configuration,
+        ReadOnlySpan<TPixel> source,
+        Span<Vector4> destination,
+        PixelAlphaRepresentation alphaRepresentation)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Extract the complete pixel row through its bulk implementation before changing RGB.
+        // PixelOperations validates the destination and selects the source alpha conversion.
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+        pixelOperations.ToUnassociatedScaledVector4(configuration, source, destination);
+        destination = destination[..source.Length];
+        converter.ConvertRgb(destination);
+
+        // Transfer curves require straight color. Associate only the converted result, through
+        // the shared pixel arithmetic, without rounding that result back into the source pixel format.
+        if (alphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            PixelOperations.ClampToPixelRange<PixelOperations.AssociateOperator>(destination, destination);
+        }
+    }
+
+    /// <summary>
+    /// Converts floating-point components between the configured profiles or working spaces and packs the destination pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="converter">The converter configured with source and target profiles or working spaces.</param>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="source">The encoded components. Conversion modifies these samples in place.</param>
+    /// <param name="destination">The destination pixels.</param>
+    /// <param name="alphaRepresentation">The alpha representation of the source components.</param>
+    public static void Convert<TPixel>(
+        this ColorProfileConverter converter,
+        Configuration configuration,
+        Span<Vector4> source,
+        Span<TPixel> destination,
+        PixelAlphaRepresentation alphaRepresentation)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Restore straight RGB before applying a transfer curve or profile. The shared operation
+        // owns finite component bounds and zero-alpha behavior; the color transform does not redefine them.
+        if (alphaRepresentation == PixelAlphaRepresentation.Associated)
+        {
+            PixelOperations.Apply<PixelOperations.UnassociateOperator>(source, source);
+        }
+
+        converter.ConvertRgb(source);
+
+        // TPixel applies its range, alpha representation and rounding once, after color conversion.
+        // Packing before the transform would quantize linear samples at the destination's stored precision.
+        PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(configuration, source, destination);
+    }
+
+    /// <summary>
+    /// Converts RGB in a floating-point pixel row while retaining alpha.
+    /// </summary>
+    /// <param name="converter">The configured color converter.</param>
+    /// <param name="row">The straight components to update in place.</param>
+    private static void ConvertRgb(this ColorProfileConverter converter, Span<Vector4> row)
+    {
+        if (converter.ShouldUseIccProfiles())
+        {
+            converter.Convert(row);
+            return;
+        }
+
+        InlineArray64<Rgb> storage = default;
+        Span<Rgb> rgb = storage;
+
+        // Separate RGB staging keeps conversion from overwriting unread vector components.
+        // Reuse this fixed storage for every block; alpha remains in the vector row.
+        while (!row.IsEmpty)
+        {
+            int count = Math.Min(row.Length, rgb.Length);
+            Span<Vector4> block = row[..count];
+            Span<Rgb> colors = rgb[..count];
+            Rgb.FromScaledVector4(block, colors);
+            converter.Convert(colors, colors);
+            Numerics.WithXYZ(MemoryMarshal.Cast<Rgb, Vector3>(colors), block);
+            row = row[count..];
+        }
     }
 
     /// <summary>

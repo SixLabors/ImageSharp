@@ -166,12 +166,12 @@ internal static class Av1InverseWalshHadamardTransformer
             // Entropy decoding normalizes the column-major coefficient positions of AV1 to the row-major transform workspace. The transpose restores the
             // normative dimension order before either reversible butterfly does its signed half shift. A swap of the dimensions after those shifts breaks the
             // lossless rounding.
-            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+            SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
             Transform(ref row0, ref row1, ref row2, ref row3);
 
             // After the first pass, vector i holds intermediate row i. The second transpose puts intermediate row j into lane j, so the same lane-wise
             // butterfly does the second dimension without a workspace.
-            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+            SimdUtils.Transpose(ref row0, ref row1, ref row2, ref row3);
             Transform(ref row0, ref row1, ref row2, ref row3);
         }
 

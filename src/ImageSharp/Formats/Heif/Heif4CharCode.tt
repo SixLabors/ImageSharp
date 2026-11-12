@@ -69,6 +69,7 @@
         "ipco", "Item Property Container",
         "ipma", "Item Property Association",
         "mif1", "High Efficient File brand",
+        "miaf", "MIAF structural brand",
         "avif", "AVIF brand",
         "avis", "AVIF image sequence brand",
         "avio", "AVIF intra-only image sequence brand",

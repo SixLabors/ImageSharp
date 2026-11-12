@@ -18,6 +18,50 @@ public partial class SimdUtilsTests
 
     public SimdUtilsTests(ITestOutputHelper output) => this.Output = output;
 
+    /// <summary>
+    /// Verifies four-lane leading-zero counts and independent right shifts on each supported hardware path.
+    /// </summary>
+    [Fact]
+    public void Vector128IntegerBitOperationsMatchScalar()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateVector128IntegerBitOperations,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Checks zero, unsigned endpoints, power-of-two neighbors and every permitted lane shift count.
+    /// </summary>
+    private static void ValidateVector128IntegerBitOperations()
+    {
+        uint[] values = [0, 1, 2, 3, 31, 32, 33, 63, 64, 65, 0x7FFFFFFE, 0x7FFFFFFF, 0x80000000, 0x80000001, uint.MaxValue];
+
+        for (int start = 0; start < values.Length; start += Vector128<uint>.Count)
+        {
+            Vector128<uint> input = Vector128.Create(
+                values[start],
+                values[(start + 1) % values.Length],
+                values[(start + 2) % values.Length],
+                values[(start + 3) % values.Length]);
+
+            Vector128<uint> actual = Vector128_.LeadingZeroCount(input);
+            for (int lane = 0; lane < Vector128<uint>.Count; lane++)
+            {
+                Assert.Equal((uint)BitOperations.LeadingZeroCount(input.GetElement(lane)), actual.GetElement(lane));
+            }
+        }
+
+        // Counts differ between lanes and cover the complete 0..31 contract. High unsigned bits must shift in zeros.
+        Vector128<uint> words = Vector128.Create(uint.MaxValue, 0U, 0x80000001U, uint.MaxValue);
+        for (uint start = 0; start < 32; start += (uint)Vector128<uint>.Count)
+        {
+            Vector128<uint> counts = Vector128.Create(start, start + 1, start + 2, start + 3);
+            Vector128<uint> actual = Vector128_.ShiftRightLogicalVariable(words, counts);
+            for (int lane = 0; lane < Vector128<uint>.Count; lane++)
+            {
+                Assert.Equal(words.GetElement(lane) >> (int)counts.GetElement(lane), actual.GetElement(lane));
+            }
+        }
+    }
+
     private static int R(float f) => (int)Math.Round(f, MidpointRounding.AwayFromZero);
 
     private static int Re(float f) => (int)Math.Round(f, MidpointRounding.ToEven);

@@ -63,20 +63,20 @@ public partial class ColorProfileConverterTests(ITestOutputHelper testOutputHelp
         Assert.NotNull(converter);
         converter.Convert(expected);
 
-        // Allocate once, as an encoder does. Every row reuses its output and scratch storage.
+        // Allocate once, as an encoder does. Every row reuses its input copy and vector output.
         TPixel[] originalRow = new TPixel[actual.Width];
         Vector4[] vectors = new Vector4[actual.Width];
-        Rgb[] scratch = new Rgb[actual.Width];
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
         for (int y = 0; y < actual.Height; y++)
         {
             Span<TPixel> row = actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
             row.CopyTo(originalRow);
-            converter.Convert<TPixel>(provider.Configuration, row, vectors, scratch);
+            converter.Convert<TPixel>(provider.Configuration, row, vectors);
 
             // Verify the input before explicitly packing the result. ICC output is straight; the pixel API restores target association.
             Assert.True(row.SequenceEqual(originalRow));
-            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(provider.Configuration, vectors, row);
+            pixelOperations.FromUnassociatedScaledVector4Destructive(provider.Configuration, vectors, row);
         }
 
         ImageComparer.Exact.VerifySimilarity(expected, actual);

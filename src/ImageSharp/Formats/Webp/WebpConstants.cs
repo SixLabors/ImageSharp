@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Compression;
+
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 /// <summary>
@@ -140,7 +142,7 @@ internal static class WebpConstants
     /// </summary>
     public const int MaxDimension = 16383;
 
-    public const int MaxAllowedCodeLength = 15;
+    public const int MaxAllowedCodeLength = HuffmanTableBuilder.MaximumCodeLength;
 
     public const int DefaultCodeLength = 8;
 

@@ -20,7 +20,7 @@ internal class IccPcsToPcsConverter : IccConverterBase
 
         // The shared base constructor requires an intent. Pass the profile's header value;
         // Abstract transform selection uses CheckMethod2 and ignores rendering intent.
-        : base(profile, true, profile.Header.RenderingIntent, interpolationMethod)
+        : base(profile, true, profile.Header.RenderingIntent, interpolationMethod, false)
     {
     }
 }

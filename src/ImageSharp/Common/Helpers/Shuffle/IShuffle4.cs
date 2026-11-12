@@ -14,43 +14,6 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 internal interface IShuffle4 : IComponentShuffle
 {
-    /// <summary>
-    /// Reorders the packed pixels in a 256-bit vector.
-    /// </summary>
-    /// <param name="source">The source pixels.</param>
-    /// <returns>The reordered pixels.</returns>
-    public static abstract Vector256<byte> Invoke(Vector256<byte> source);
-
-    /// <summary>
-    /// Reorders the packed pixels in a 512-bit vector.
-    /// </summary>
-    /// <param name="source">The source pixels.</param>
-    /// <returns>The reordered pixels.</returns>
-    public static abstract Vector512<byte> Invoke(Vector512<byte> source);
-
-    /// <summary>
-    /// Expands one 128-bit lane mask into absolute indices for a 512-bit shuffle.
-    /// </summary>
-    /// <param name="laneMask">The indices, from zero through fifteen, for one 128-bit lane.</param>
-    /// <returns>The corresponding absolute indices for all four 128-bit lanes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<byte> ExpandLaneMask(Vector128<byte> laneMask)
-    {
-        // A 512-bit vector contains four 128-bit lanes, and each lane contains four packed
-        // XYZW pixels. The supplied mask addresses bytes 0..15 in the first lane. The managed
-        // Vector512.Shuffle fallback addresses the complete 64-byte vector, so the same
-        // permutation must address bytes 16..31, 32..47, and 48..63 in the remaining lanes.
-        //
-        // AVX-512BW VPSHUFB instead interprets indices independently within each 128-bit lane
-        // and uses only the low four bits to select a byte. Adding the lane offsets therefore
-        // satisfies the managed absolute-index contract without changing the native lane-local
-        // permutation.
-        Vector128<byte> lane1 = laneMask + Vector128.Create((byte)16);
-        Vector128<byte> lane2 = laneMask + Vector128.Create((byte)32);
-        Vector128<byte> lane3 = laneMask + Vector128.Create((byte)48);
-
-        return Vector512.Create(Vector256.Create(laneMask, lane1), Vector256.Create(lane2, lane3));
-    }
 }
 
 /// <summary>
@@ -74,18 +37,16 @@ internal readonly struct WXYZShuffle4 : IShuffle4
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> Invoke(Vector256<byte> source)
-    {
+
         // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
-        Vector128<byte> mask = CreateLaneMask();
-        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
-    }
+        => Vector256_.ShufflePerLane(source, CreateLaneMask());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<byte> Invoke(Vector512<byte> source)
 
-        // Expand the four-pixel lane permutation across all four 128-bit lanes.
-        => Vector512.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+        // AVX-512 byte shuffles select within 128-bit lanes, so all four lanes use the same pixel-local indices.
+        => Vector512_.ShufflePerLane(source, CreateLaneMask());
 
     /// <summary>
     /// Creates the indices that rotate each XYZW pixel to WXYZ within one 128-bit lane.
@@ -120,18 +81,16 @@ internal readonly struct WZYXShuffle4 : IShuffle4
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> Invoke(Vector256<byte> source)
-    {
+
         // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
-        Vector128<byte> mask = CreateLaneMask();
-        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
-    }
+        => Vector256_.ShufflePerLane(source, CreateLaneMask());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<byte> Invoke(Vector512<byte> source)
 
-        // Expand the four-pixel lane permutation across all four 128-bit lanes.
-        => Vector512.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+        // AVX-512 byte shuffles select within 128-bit lanes, so all four lanes use the same pixel-local indices.
+        => Vector512_.ShufflePerLane(source, CreateLaneMask());
 
     /// <summary>
     /// Creates the indices that reverse each XYZW pixel to WZYX within one 128-bit lane.
@@ -166,18 +125,16 @@ internal readonly struct YZWXShuffle4 : IShuffle4
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> Invoke(Vector256<byte> source)
-    {
+
         // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
-        Vector128<byte> mask = CreateLaneMask();
-        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
-    }
+        => Vector256_.ShufflePerLane(source, CreateLaneMask());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<byte> Invoke(Vector512<byte> source)
 
-        // Expand the four-pixel lane permutation across all four 128-bit lanes.
-        => Vector512.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+        // AVX-512 byte shuffles select within 128-bit lanes, so all four lanes use the same pixel-local indices.
+        => Vector512_.ShufflePerLane(source, CreateLaneMask());
 
     /// <summary>
     /// Creates the indices that rotate each XYZW pixel to YZWX within one 128-bit lane.
@@ -214,18 +171,16 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> Invoke(Vector256<byte> source)
-    {
+
         // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
-        Vector128<byte> mask = CreateLaneMask();
-        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
-    }
+        => Vector256_.ShufflePerLane(source, CreateLaneMask());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<byte> Invoke(Vector512<byte> source)
 
-        // Expand the four-pixel lane permutation across all four 128-bit lanes.
-        => Vector512.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+        // AVX-512 byte shuffles select within 128-bit lanes, so all four lanes use the same pixel-local indices.
+        => Vector512_.ShufflePerLane(source, CreateLaneMask());
 
     /// <summary>
     /// Creates the indices that exchange X and Z in each XYZW pixel within one 128-bit lane.
@@ -262,18 +217,16 @@ internal readonly struct XWZYShuffle4 : IShuffle4
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> Invoke(Vector256<byte> source)
-    {
+
         // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
-        Vector128<byte> mask = CreateLaneMask();
-        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
-    }
+        => Vector256_.ShufflePerLane(source, CreateLaneMask());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<byte> Invoke(Vector512<byte> source)
 
-        // Expand the four-pixel lane permutation across all four 128-bit lanes.
-        => Vector512.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+        // AVX-512 byte shuffles select within 128-bit lanes, so all four lanes use the same pixel-local indices.
+        => Vector512_.ShufflePerLane(source, CreateLaneMask());
 
     /// <summary>
     /// Creates the indices that exchange Y and W in each XYZW pixel within one 128-bit lane.

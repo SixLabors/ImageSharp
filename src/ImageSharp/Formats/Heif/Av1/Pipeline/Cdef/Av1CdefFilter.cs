@@ -984,7 +984,7 @@ internal static partial class Av1CdefFilter
     {
         // The byte pattern reverses Int16 lanes 0 to 6 of each 128-bit lane and keeps lane 7 in place, as in the 128-bit kernel.
         Vector128<byte> laneShuffle = Vector128.Create((byte)12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 14, 15);
-        partialB = Vector256_.ShufflePerLane(partialB.AsByte(), Vector256.Create(laneShuffle, laneShuffle)).AsInt16();
+        partialB = Vector256_.ShufflePerLane(partialB.AsByte(), laneShuffle).AsInt16();
         Vector256<short> originalA = partialA;
         partialA = Vector256_.UnpackLow(partialA, partialB);
         partialB = Vector256_.UnpackHigh(originalA, partialB);

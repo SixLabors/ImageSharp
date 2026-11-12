@@ -269,6 +269,23 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Creates a new vector by selecting values from each 128-bit input lane, with the same indices in both lanes.
+    /// </summary>
+    /// <param name="vector">The input vector from which values are selected.</param>
+    /// <param name="laneIndices">The per-element indices used in each 128-bit lane.</param>
+    /// <returns>The shuffled <see cref="Vector256{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> ShufflePerLane(Vector256<byte> vector, Vector128<byte> laneIndices)
+    {
+        // Vector256.Create(lane, lane) can stay a broadcast at each use inside a loop. Four 64-bit elements let the
+        // JIT fold constant lane indices into one 32-byte constant.
+        Vector128<ulong> halves = laneIndices.AsUInt64();
+        ulong lower = halves.GetElement(0);
+        ulong upper = halves.GetElement(1);
+        return ShufflePerLane(vector, Vector256.Create(lower, upper, lower, upper).AsByte());
+    }
+
+    /// <summary>
     /// Performs a conversion from a 256-bit vector of 8 single-precision floating-point values to a 256-bit vector of 8 signed 32-bit integer values.
     /// Rounding is equivalent to <see cref="MidpointRounding.ToEven"/>.
     /// </summary>

@@ -5,8 +5,10 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -128,31 +130,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         try
         {
             this.ReadImageHeaders(stream, out bool inverted, out bool isIndexed, out Color[] palette);
-            ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
 
-            // Reject impossible RGB and bit-fields dimensions before allocating the image. Ignoring image data errors
-            // does not make these dimensions safe: a tiny file could otherwise request a large pixel buffer.
-            // Match ReadBitFields, which uses 32-bit storage for every depth other than 16.
-            int storedBitsPerPixel = this.infoHeader.Compression switch
+            // The pixel decode supports these compressions only. Check before the allocation, so an unsupported file
+            // requests no pixel buffer.
+            if (this.infoHeader.Compression is not (BmpCompression.RGB or BmpCompression.RLE24 or BmpCompression.RLE8
+                or BmpCompression.RLE4 or BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS))
             {
-                BmpCompression.RGB => bitsPerPixel,
-                BmpCompression.BitFields or BmpCompression.BI_ALPHABITFIELDS => bitsPerPixel is 16 ? 16 : 32,
-                _ => 0
-            };
-
-            if (storedBitsPerPixel > 0)
-            {
-                // Stored rows start on four-byte boundaries. Retain support for missing padding after the final row.
-                // Reserve that row's pixel bytes, then count the complete strides available for the other rows.
-                // Division avoids multiplying width by height, which can overflow even long for 32-bit BMP dimensions.
-                long rowBits = (long)this.infoHeader.Width * storedBitsPerPixel;
-                long stride = (rowBits + 31) / 32 * 4;
-                long finalRowBytes = (rowBits + 7) / 8;
-                long remainingLength = stream.Length - stream.Position;
-                if (remainingLength < finalRowBytes || this.infoHeader.Height - 1 > (remainingLength - finalRowBytes) / stride)
-                {
-                    BmpThrowHelper.ThrowInvalidImageContentException("The bitmap does not contain enough pixel data for its declared dimensions.");
-                }
+                BmpThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of bitmap files.");
             }
 
             if (isIndexed)
@@ -164,74 +148,11 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-            switch (this.infoHeader.Compression)
-            {
-                case BmpCompression.RGB when bitsPerPixel is 32 && this.bmpMetadata.InfoHeaderType is BmpInfoHeaderType.WinVersion3:
-                    this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-
-                    break;
-
-                case BmpCompression.RGB when bitsPerPixel is 32:
-                    this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-
-                    break;
-
-                case BmpCompression.RGB when bitsPerPixel is 24:
-                    this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-
-                    break;
-
-                case BmpCompression.RGB when bitsPerPixel is 16:
-                    this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-
-                    break;
-
-                case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
-                    this.ReadRgbPaletteWithAlphaMask(
-                        stream,
-                        pixels,
-                        palette,
-                        this.infoHeader.Width,
-                        this.infoHeader.Height,
-                        this.infoHeader.BitsPerPixel,
-                        inverted);
-
-                    break;
-
-                case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8:
-                    this.ReadRgbPalette(
-                        stream,
-                        pixels,
-                        palette,
-                        this.infoHeader.Width,
-                        this.infoHeader.Height,
-                        this.infoHeader.BitsPerPixel,
-                        inverted);
-
-                    break;
-
-                case BmpCompression.RLE24:
-                    this.ReadRle24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-
-                    break;
-
-                case BmpCompression.RLE8:
-                case BmpCompression.RLE4:
-                    this.ReadRle(stream, this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
-
-                    break;
-
-                case BmpCompression.BitFields:
-                case BmpCompression.BI_ALPHABITFIELDS:
-                    this.ReadBitFields(stream, pixels, inverted);
-
-                    break;
-
-                default:
-                    BmpThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of bitmap files.");
-
-                    break;
-            }
+            // The pixel decode does not throw for bad pixel data. When the data ends before the image is complete, the
+            // decode stops, and the image keeps the pixels decoded before the end. This is the same for each
+            // compression, and the same as for PNG and JPEG data. The image buffer is cleared at allocation, so the
+            // pixels after the end are transparent black. The allocator limits protect against large dimensions.
+            this.ReadPixelData(stream, pixels, palette, this.bmpMetadata.InfoHeaderType, inverted);
 
             if (!isIndexed)
             {
@@ -240,15 +161,95 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             return image;
         }
-        catch (IndexOutOfRangeException e)
-        {
-            image?.Dispose();
-            throw new ImageFormatException("Bitmap does not have a valid format.", e);
-        }
         catch
         {
             image?.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Decodes the pixel data with the decoder for the compression and the bit depth of the bitmap.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="palette">The palette of an indexed bitmap.</param>
+    /// <param name="infoHeaderType">The info header type of the bitmap.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    private void ReadPixelData<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        Color[] palette,
+        BmpInfoHeaderType infoHeaderType,
+        bool inverted)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
+
+        switch (this.infoHeader.Compression)
+        {
+            case BmpCompression.RGB when bitsPerPixel is 32 && infoHeaderType is BmpInfoHeaderType.WinVersion3:
+                this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                break;
+
+            case BmpCompression.RGB when bitsPerPixel is 32:
+                this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                break;
+
+            case BmpCompression.RGB when bitsPerPixel is 24:
+                this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                break;
+
+            case BmpCompression.RGB when bitsPerPixel is 16:
+                this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, false);
+
+                break;
+
+            case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
+                this.ReadRgbPaletteWithAlphaMask(
+                    stream,
+                    pixels,
+                    palette,
+                    this.infoHeader.Width,
+                    this.infoHeader.Height,
+                    this.infoHeader.BitsPerPixel,
+                    inverted);
+
+                break;
+
+            case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8:
+                this.ReadRgbPalette(
+                    stream,
+                    pixels,
+                    palette,
+                    this.infoHeader.Width,
+                    this.infoHeader.Height,
+                    this.infoHeader.BitsPerPixel,
+                    inverted);
+
+                break;
+
+            case BmpCompression.RLE24:
+                this.ReadRle24(stream, pixels, this.infoHeader.Width, inverted);
+
+                break;
+
+            case BmpCompression.RLE8:
+            case BmpCompression.RLE4:
+                this.ReadRle(stream, this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, inverted);
+
+                break;
+
+            // Decode checks the compression before this method, so no other compression comes here.
+            case BmpCompression.BitFields:
+            case BmpCompression.BI_ALPHABITFIELDS:
+                this.ReadBitFields(stream, pixels, inverted);
+
+                break;
         }
     }
 
@@ -292,6 +293,41 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Converts the palette to <typeparamref name="TPixel"/> in a table with an entry for each index value.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An index has <paramref name="bitsPerIndex"/> bits, so it is less than 2^bitsPerIndex. The table has that many
+    /// entries. Thus each index in the pixel data selects an entry, and the pixel loops need no bounds checks.
+    /// </para>
+    /// <para>
+    /// A file palette can have fewer colors than the index range. An index past the file palette has no defined color,
+    /// so its entry is opaque black. A file palette can also have more colors than the index range, when the bit depth
+    /// of the header does not limit it. The pixel data cannot select those colors, so the table leaves them out.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="colors">The file palette.</param>
+    /// <param name="bitsPerIndex">The bit count of one index: 1, 2, 4 or 8.</param>
+    /// <returns>The table. The caller disposes it.</returns>
+    private IMemoryOwner<TPixel> CreatePaletteTable<TPixel>(Color[] colors, int bitsPerIndex)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // The callers pass the bit depth of a palette bitmap, or 8 for RLE data. The header check limits the bit
+        // depth of a palette bitmap to 1, 2, 4 or 8. Thus the table has at most 256 entries, for each file palette.
+        DebugGuard.IsTrue(bitsPerIndex is 1 or 2 or 4 or 8, "An index has 1, 2, 4 or 8 bits.");
+        int entryCount = 1 << bitsPerIndex;
+        int colorCount = Math.Min(colors.Length, entryCount);
+
+        IMemoryOwner<TPixel> table = this.memoryAllocator.Allocate<TPixel>(entryCount);
+        Span<TPixel> tableSpan = table.GetSpan();
+        Color.ToPixel(colors.AsSpan(0, colorCount), tableSpan);
+        tableSpan[colorCount..].Fill(TPixel.FromRgba32(new Rgba32(0, 0, 0, byte.MaxValue)));
+
+        return table;
+    }
+
+    /// <summary>
     /// Returns the y- value based on the given height.
     /// </summary>
     /// <param name="y">The y- value representing the current row.</param>
@@ -332,44 +368,253 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     private void ReadBitFields<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (this.infoHeader.BitsPerPixel == 16)
+        // Every depth other than 16 uses 32-bit samples. The size check in Decode uses the same rule.
+        int bitsPerPixel = this.infoHeader.BitsPerPixel is 16 ? 16 : 32;
+        uint redMask = (uint)this.infoHeader.RedMask;
+        uint greenMask = (uint)this.infoHeader.GreenMask;
+        uint blueMask = (uint)this.infoHeader.BlueMask;
+        uint alphaMask = (uint)this.infoHeader.AlphaMask;
+
+        // These masks store each pixel as the bytes B, G, R, A. That is the layout of a 32-bit RGB bitmap with alpha,
+        // so the bulk BGRA conversion reads the row with no unpack.
+        if (bitsPerPixel is 32 && redMask is 0x00FF0000 && greenMask is 0x0000FF00 && blueMask is 0x000000FF && alphaMask is 0xFF000000)
         {
-            this.ReadRgb16(
-                stream,
-                pixels,
-                this.infoHeader.Width,
-                this.infoHeader.Height,
-                inverted,
-                this.infoHeader.RedMask,
-                this.infoHeader.GreenMask,
-                this.infoHeader.BlueMask);
+            this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+            return;
+        }
+
+        // These masks are the 5-5-5 layout of a 16-bit RGB bitmap, with alpha in bit 15 when the alpha mask is set.
+        // That is the layout of Bgra5551, so the bulk Bgra5551 conversion reads the row with no unpack.
+        if (bitsPerPixel is 16
+            && redMask == DefaultRgb16RMask
+            && greenMask == DefaultRgb16GMask
+            && blueMask == DefaultRgb16BMask
+            && alphaMask is 0 or 0x8000)
+        {
+            this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, alphaMask != 0);
+            return;
+        }
+
+        this.ReadBitFields(
+            stream,
+            pixels,
+            this.infoHeader.Width,
+            this.infoHeader.Height,
+            inverted,
+            bitsPerPixel,
+            redMask,
+            greenMask,
+            blueMask,
+            alphaMask);
+    }
+
+    /// <summary>
+    /// Decodes a bitmap that stores each pixel as one 16-bit or 32-bit sample, with a bit mask for each channel.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    /// <param name="bitsPerPixel">The sample width: 16 or 32.</param>
+    /// <param name="redMask">The bitmask for the red channel.</param>
+    /// <param name="greenMask">The bitmask for the green channel.</param>
+    /// <param name="blueMask">The bitmask for the blue channel.</param>
+    /// <param name="alphaMask">The bitmask for the alpha channel, or 0 for an opaque bitmap.</param>
+    private void ReadBitFields<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        int bitsPerPixel,
+        uint redMask,
+        uint greenMask,
+        uint blueMask,
+        uint alphaMask)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        BmpBitFields fields = CreateBitFields<TPixel>(redMask, greenMask, blueMask, alphaMask);
+
+        // A channel with more than 8 bits keeps its precision through Vector4. Each other mask fits a 4-byte pixel.
+        if (bitsPerPixel is 16)
+        {
+            if (fields.IsByteRange)
+            {
+                _ = this.ReadBitFields<TPixel, BmpBitFields.Sample16Operator>(stream, pixels, width, height, inverted, fields);
+            }
+            else
+            {
+                this.ReadBitFieldsScaled<TPixel, BmpBitFields.Sample16Operator>(stream, pixels, width, height, inverted, fields);
+            }
+        }
+        else if (fields.IsByteRange)
+        {
+            _ = this.ReadBitFields<TPixel, BmpBitFields.Sample32Operator>(stream, pixels, width, height, inverted, fields);
         }
         else
         {
-            this.ReadRgb32BitFields(
-                stream,
-                pixels,
-                this.infoHeader.Width,
-                this.infoHeader.Height,
-                inverted,
-                this.infoHeader.RedMask,
-                this.infoHeader.GreenMask,
-                this.infoHeader.BlueMask,
-                this.infoHeader.AlphaMask);
+            this.ReadBitFieldsScaled<TPixel, BmpBitFields.Sample32Operator>(stream, pixels, width, height, inverted, fields);
         }
     }
 
     /// <summary>
-    /// Looks up color values and builds the image from de-compressed RLE8 or RLE4 data.
-    /// Compressed RLE4 stream is uncompressed by <see cref="UncompressRle4(BufferedReadStream, int, Span{byte}, Span{bool}, Span{bool})"/>
+    /// Creates the bit fields that decode to <typeparamref name="TPixel"/>.
     /// </summary>
+    /// <remarks>
+    /// For <see cref="Bgra32"/> the fields write B, G, R, A pixels. For each other pixel type they write R, G, B, A
+    /// pixels, the order of <see cref="Rgba32"/>. <see cref="ReadBitFields{TPixel, TSample}"/> uses the same rule to
+    /// write the image row directly for these two pixel types.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="redMask">The bitmask for the red channel.</param>
+    /// <param name="greenMask">The bitmask for the green channel.</param>
+    /// <param name="blueMask">The bitmask for the blue channel.</param>
+    /// <param name="alphaMask">The bitmask for the alpha channel, or 0 for an opaque bitmap.</param>
+    /// <returns>The bit fields.</returns>
+    private static BmpBitFields CreateBitFields<TPixel>(uint redMask, uint greenMask, uint blueMask, uint alphaMask)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => new(redMask, greenMask, blueMask, alphaMask, typeof(TPixel) == typeof(Bgra32));
+
+    /// <summary>
+    /// Decodes a bit-field bitmap whose channels each have 8 bits or fewer.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <typeparam name="TSample">The stored sample width.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    /// <param name="fields">The channel masks, from <see cref="CreateBitFields{TPixel}"/>.</param>
+    /// <param name="stopOnAlpha">
+    /// Whether to stop at the first row with a fourth byte that is not 0. Only <see cref="ReadRgb32Slow{TPixel}"/> sets
+    /// it, for 32-bit samples stored as B, G, R and a fourth byte.
+    /// </param>
+    /// <returns>
+    /// <see langword="false"/> if <paramref name="stopOnAlpha"/> stopped the decode. Else <see langword="true"/>.
+    /// </returns>
+    private bool ReadBitFields<TPixel, TSample>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        BmpBitFields fields,
+        bool stopOnAlpha = false)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TSample : struct, BmpBitFields.ISampleOperator
+    {
+        int pixelBytes = width * TSample.BytesPerSample;
+
+        // Stored rows start on four-byte boundaries.
+        int stride = (pixelBytes + 3) & ~3;
+        using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(stride);
+        Span<byte> rowSpan = row.GetSpan();
+
+        // The fields write Rgba32 pixels, or Bgra32 pixels for a Bgra32 image (see CreateBitFields). For those two
+        // pixel types, the fields write the image row, and no conversion pass follows. For each other pixel type,
+        // the fields write an Rgba32 row, and the bulk conversion writes the image row.
+        bool direct = typeof(TPixel) == typeof(Rgba32) || typeof(TPixel) == typeof(Bgra32);
+        using IMemoryOwner<Rgba32>? rgbaRow = direct ? null : this.memoryAllocator.Allocate<Rgba32>(width);
+
+        for (int y = 0; y < height; y++)
+        {
+            if (!TryReadPixelBytes(stream, rowSpan, pixelBytes))
+            {
+                return true;
+            }
+
+            if (stopOnAlpha && HasNonZeroAlpha(rowSpan[..pixelBytes]))
+            {
+                return false;
+            }
+
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
+
+            if (rgbaRow is null)
+            {
+                fields.Unpack<TSample>(rowSpan, MemoryMarshal.Cast<TPixel, uint>(pixelRow));
+            }
+            else
+            {
+                Span<Rgba32> rgbaSpan = rgbaRow.GetSpan();
+                fields.Unpack<TSample>(rowSpan, MemoryMarshal.Cast<Rgba32, uint>(rgbaSpan));
+                PixelOperations<TPixel>.Instance.FromRgba32(this.configuration, rgbaSpan, pixelRow);
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Decodes a bit-field bitmap that has a channel with more than 8 bits.
+    /// </summary>
+    /// <remarks>
+    /// The fields scale each channel to the range from 0 to 1. Thus a channel with more than 8 bits keeps its
+    /// precision for a pixel type that has more than 8 bits for each channel.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <typeparam name="TSample">The stored sample width.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    /// <param name="fields">The channel masks.</param>
+    private void ReadBitFieldsScaled<TPixel, TSample>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        BmpBitFields fields)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TSample : struct, BmpBitFields.ISampleOperator
+    {
+        int pixelBytes = width * TSample.BytesPerSample;
+        int stride = (pixelBytes + 3) & ~3;
+        using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(stride);
+        using IMemoryOwner<Vector4> vectorRow = this.memoryAllocator.Allocate<Vector4>(width);
+        Span<byte> rowSpan = row.GetSpan();
+        Span<Vector4> vectorSpan = vectorRow.GetSpan();
+
+        for (int y = 0; y < height; y++)
+        {
+            if (!TryReadPixelBytes(stream, rowSpan, pixelBytes))
+            {
+                return;
+            }
+
+            fields.UnpackScaled<TSample>(rowSpan, vectorSpan);
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
+            PixelOperations<TPixel>.Instance.FromUnassociatedScaledVector4Destructive(this.configuration, vectorSpan, pixelRow);
+        }
+    }
+
+    /// <summary>
+    /// Decodes an RLE4 or RLE8 bitmap straight into the image rows.
+    /// </summary>
+    /// <remarks>
+    /// <para>The data is a sequence of commands. Each command starts with two bytes, [a, b]:</para>
+    /// <list type="bullet">
+    /// <item><description>a &gt; 0: an encoded run of a pixels. RLE8: each pixel has index b. RLE4: the pixels
+    /// alternate between the high nibble and the low nibble of b, high nibble first.</description></item>
+    /// <item><description>a = 0, b = 0: end of line. The rest of the row is skipped.</description></item>
+    /// <item><description>a = 0, b = 1: end of bitmap. The rest of the image is skipped.</description></item>
+    /// <item><description>a = 0, b = 2: delta. Two bytes dx and dy follow. The data skips dy rows and dx
+    /// pixels.</description></item>
+    /// <item><description>a = 0, b &gt; 2: an absolute run of b indices. RLE8 stores one index in each byte. RLE4
+    /// stores two in each byte, high nibble first. The run data is padded to a two-byte boundary.</description></item>
+    /// </list>
+    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="compression">The compression type. Either RLE4 or RLE8.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="colors">The decoded pixel palette.</param>
     /// <param name="width">The width of the bitmap.</param>
-    /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
     private void ReadRle<TPixel>(
         BufferedReadStream stream,
@@ -377,494 +622,219 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         Buffer2D<TPixel> pixels,
         Color[] colors,
         int width,
-        int height,
         bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean);
-        using IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean);
-        using IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean);
-        Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
-        Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
-        Span<byte> bufferSpan = buffer.Memory.Span;
-        if (compression is BmpCompression.RLE8)
-        {
-            this.UncompressRle8(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
-        }
-        else
-        {
-            this.UncompressRle4(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
-        }
+        // The run data holds one index in each byte (RLE8) or nibble (RLE4), so a table of 256 entries covers both.
+        using IMemoryOwner<TPixel> palette = this.CreatePaletteTable<TPixel>(colors, 8);
+        Span<TPixel> paletteSpan = palette.GetSpan();
 
-        for (int y = 0; y < height; y++)
-        {
-            int newY = Invert(y, height, inverted);
-            int rowStartIdx = y * width;
-            Span<byte> bufferRow = bufferSpan.Slice(rowStartIdx, width);
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
+        // A skipped pixel has no index. The first palette color option gives it the color of index 0.
+        TPixel skipped = this.rleSkippedPixelHandling is RleSkippedPixelHandling.FirstColorOfPalette
+            ? paletteSpan[0]
+            : this.GetRleSkippedPixel<TPixel>();
 
-            bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
-            if (rowHasUndefinedPixels)
+        BmpRleWriter<TPixel> writer = new(pixels, inverted, skipped);
+        bool rle4 = compression is BmpCompression.RLE4;
+
+        // The reader parses the commands from a chunk of memory. See BmpRleReader. The data can end before the image
+        // is complete. Then the decode stops, and the image keeps the pixels written so far (see Decode).
+        BmpRleReader reader = new(stream, this.memoryAllocator);
+        try
+        {
+            while (!writer.IsComplete)
             {
-                // Slow path with undefined pixels.
-                for (int x = 0; x < width; x++)
+                if (!reader.TryRead(2, out ReadOnlySpan<byte> command))
                 {
-                    byte colorIdx = bufferRow[x];
-                    if (undefinedPixelsSpan[rowStartIdx + x])
-                    {
-                        pixelRow[x] = this.rleSkippedPixelHandling switch
-                        {
-                            RleSkippedPixelHandling.FirstColorOfPalette => colors[colorIdx].ToPixel<TPixel>(),
-                            RleSkippedPixelHandling.Transparent => TPixel.FromUnassociatedScaledVector4(Vector4.Zero),
+                    return;
+                }
 
-                            // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
-                        };
+                int length = command[0];
+                int value = command[1];
+
+                if (length > 0)
+                {
+                    if (rle4)
+                    {
+                        // Encoded RLE4 run: even pixels take the high nibble (value >> 4), odd pixels take the low
+                        // nibble (value & 0xF).
+                        writer.FillPair(paletteSpan[value >> 4], paletteSpan[value & 0xF], length);
                     }
                     else
                     {
-                        pixelRow[x] = colors[colorIdx].ToPixel<TPixel>();
+                        // Encoded RLE8 run: one color for the whole run.
+                        writer.Fill(paletteSpan[value], length);
                     }
+
+                    continue;
                 }
-            }
-            else
-            {
-                // Fast path without any undefined pixels.
-                for (int x = 0; x < width; x++)
+
+                switch (value)
                 {
-                    pixelRow[x] = colors[bufferRow[x]].ToPixel<TPixel>();
+                    case RleEndOfLine:
+                        writer.EndOfLine();
+                        break;
+
+                    case RleEndOfBitmap:
+                        writer.EndOfBitmap();
+                        break;
+
+                    case RleDelta:
+                        // The delta moves dy rows down and dx pixels right. In the pixel sequence that is
+                        // dy * width + dx pixels. The delta bytes are [dx, dy].
+                        if (!reader.TryRead(2, out ReadOnlySpan<byte> delta))
+                        {
+                            return;
+                        }
+
+                        writer.Skip(((long)delta[1] * width) + delta[0]);
+                        break;
+
+                    default:
+                        // Absolute run of 'value' indices. RLE4 stores two indices in each byte, high nibble first, so
+                        // it stores (value + 1) / 2 bytes: the last byte has one index in its high nibble when 'value' is
+                        // odd. RLE8 stores one index in each byte, so it stores 'value' bytes. Both expand from the run
+                        // data to the pixels in one pass.
+                        int byteCount = rle4 ? (value + 1) >> 1 : value;
+                        if (!reader.TryRead(byteCount, out ReadOnlySpan<byte> run))
+                        {
+                            return;
+                        }
+
+                        if (rle4)
+                        {
+                            writer.Write4(run, value, paletteSpan);
+                        }
+                        else
+                        {
+                            writer.Write(run, paletteSpan);
+                        }
+
+                        // The run data ends on a two-byte boundary: an odd byte count has one pad byte.
+                        if ((byteCount & 1) != 0)
+                        {
+                            reader.SkipPad();
+                        }
+
+                        break;
                 }
             }
+
+            reader.Finish();
+        }
+        finally
+        {
+            reader.Dispose();
         }
     }
 
     /// <summary>
-    /// Looks up color values and builds the image from de-compressed RLE24.
+    /// Decodes an RLE24 bitmap straight into the image rows.
     /// </summary>
+    /// <remarks>
+    /// The commands are the RLE8 commands of <see cref="ReadRle{TPixel}(BufferedReadStream, BmpCompression, Buffer2D{TPixel}, Color[], int, bool)"/>,
+    /// with a B, G, R color in place of an index. An encoded run is [a, B, G, R]. An absolute run of b pixels stores
+    /// 3 * b bytes, padded to a two-byte boundary.
+    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="width">The width of the bitmap.</param>
-    /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRle24<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+    private void ReadRle24<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean);
-        using IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean);
-        using IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean);
-        Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
-        Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
-        Span<byte> bufferSpan = buffer.GetSpan();
+        // RLE24 has no palette. The first palette color option gives black, the color of zero bytes.
+        TPixel skipped = this.GetRleSkippedPixel<TPixel>();
+        BmpRleWriter<TPixel> writer = new(pixels, inverted, skipped);
 
-        this.UncompressRle24(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
-        for (int y = 0; y < height; y++)
+        // The reader parses the commands from a chunk of memory. See BmpRleReader. The data can end before the image
+        // is complete. Then the decode stops, and the image keeps the pixels written so far (see Decode).
+        BmpRleReader reader = new(stream, this.memoryAllocator);
+        try
         {
-            int newY = Invert(y, height, inverted);
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-            bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
-            if (rowHasUndefinedPixels)
+            while (!writer.IsComplete)
             {
-                // Slow path with undefined pixels.
-                int yMulWidth = y * width;
-                int rowStartIdx = yMulWidth * 3;
-                for (int x = 0; x < width; x++)
+                if (!reader.TryRead(2, out ReadOnlySpan<byte> command))
                 {
-                    int idx = rowStartIdx + (x * 3);
-                    if (undefinedPixelsSpan[yMulWidth + x])
-                    {
-                        pixelRow[x] = this.rleSkippedPixelHandling switch
-                        {
-                            RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx])),
-                            RleSkippedPixelHandling.Transparent => TPixel.FromUnassociatedScaledVector4(Vector4.Zero),
-
-                            // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
-                        };
-                    }
-                    else
-                    {
-                        pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
-                    }
+                    return;
                 }
-            }
-            else
-            {
-                // Fast path without any undefined pixels.
-                int rowStartIdx = y * width * 3;
-                for (int x = 0; x < width; x++)
+
+                int length = command[0];
+                int value = command[1];
+
+                if (length > 0)
                 {
-                    int idx = rowStartIdx + (x * 3);
-                    pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Produce uncompressed bitmap data from a RLE4 stream.
-    /// </summary>
-    /// <remarks>
-    /// RLE4 is a 2-byte run-length encoding.
-    /// <br/>If first byte is 0, the second byte may have special meaning.
-    /// <br/>Otherwise, the first byte is the length of the run and second byte contains two color indexes.
-    /// </remarks>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="w">The width of the bitmap.</param>
-    /// <param name="buffer">Buffer for uncompressed data.</param>
-    /// <param name="undefinedPixels">Keeps track over skipped and therefore undefined pixels.</param>
-    /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
-    private void UncompressRle4(BufferedReadStream stream, int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
-    {
-        Span<byte> scratchBuffer = stackalloc byte[128];
-        Span<byte> cmd = stackalloc byte[2];
-        int count = 0;
-
-        while (count < buffer.Length)
-        {
-            if (stream.Read(cmd, 0, cmd.Length) != 2)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from the stream while uncompressing RLE4 bitmap.");
-            }
-
-            if (cmd[0] == RleCommand)
-            {
-                switch (cmd[1])
-                {
-                    case RleEndOfBitmap:
-                        int skipEoB = buffer.Length - count;
-                        RleSkipEndOfBitmap(count, w, skipEoB, undefinedPixels, rowsWithUndefinedPixels);
-
+                    // Encoded run: 'value' is the blue byte. The green byte and the red byte follow.
+                    if (!reader.TryRead(2, out ReadOnlySpan<byte> greenRed))
+                    {
                         return;
+                    }
 
+                    writer.Fill(TPixel.FromBgr24(new Bgr24(greenRed[1], greenRed[0], (byte)value)), length);
+                    continue;
+                }
+
+                switch (value)
+                {
                     case RleEndOfLine:
-                        count += RleSkipEndOfLine(count, w, undefinedPixels, rowsWithUndefinedPixels);
+                        writer.EndOfLine();
+                        break;
 
+                    case RleEndOfBitmap:
+                        writer.EndOfBitmap();
                         break;
 
                     case RleDelta:
-                        int dx = stream.ReadByte();
-                        int dy = stream.ReadByte();
-                        count += RleSkipDelta(count, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
-
-                        break;
-
-                    default:
-                        // If the second byte > 2, we are in 'absolute mode'.
-                        // The second byte contains the number of color indexes that follow.
-                        int max = cmd[1];
-                        int bytesToRead = (int)(((uint)max + 1) / 2);
-
-                        Span<byte> run = bytesToRead <= 128 ? scratchBuffer[..bytesToRead] : new byte[bytesToRead];
-
-                        stream.Read(run);
-
-                        int idx = 0;
-                        for (int i = 0; i < max; i++)
+                        // The delta moves dy rows down and dx pixels right: dy * width + dx pixels in the sequence.
+                        // The delta bytes are [dx, dy].
+                        if (!reader.TryRead(2, out ReadOnlySpan<byte> delta))
                         {
-                            byte twoPixels = run[idx];
-                            if (i % 2 == 0)
-                            {
-                                buffer[count++] = (byte)((twoPixels >> 4) & 0xF);
-                            }
-                            else
-                            {
-                                buffer[count++] = (byte)(twoPixels & 0xF);
-                                idx++;
-                            }
+                            return;
                         }
 
-                        // Absolute mode data is aligned to two-byte word-boundary.
-                        int padding = bytesToRead & 1;
-
-                        stream.Skip(padding);
-
-                        break;
-                }
-            }
-            else
-            {
-                int max = cmd[0];
-
-                // The second byte contains two color indexes, one in its high-order 4 bits and one in its low-order 4 bits.
-                byte twoPixels = cmd[1];
-                byte rightPixel = (byte)(twoPixels & 0xF);
-                byte leftPixel = (byte)((twoPixels >> 4) & 0xF);
-
-                for (int idx = 0; idx < max; idx++)
-                {
-                    if (idx % 2 == 0)
-                    {
-                        buffer[count] = leftPixel;
-                    }
-                    else
-                    {
-                        buffer[count] = rightPixel;
-                    }
-
-                    count++;
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Produce uncompressed bitmap data from a RLE8 stream.
-    /// </summary>
-    /// <remarks>
-    /// RLE8 is a 2-byte run-length encoding.
-    /// <br/>If first byte is 0, the second byte may have special meaning.
-    /// <br/>Otherwise, the first byte is the length of the run and second byte is the color for the run.
-    /// </remarks>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="w">The width of the bitmap.</param>
-    /// <param name="buffer">Buffer for uncompressed data.</param>
-    /// <param name="undefinedPixels">Keeps track of skipped and therefore undefined pixels.</param>
-    /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
-    private void UncompressRle8(BufferedReadStream stream, int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
-    {
-        Span<byte> scratchBuffer = stackalloc byte[128];
-        Span<byte> cmd = stackalloc byte[2];
-        int count = 0;
-
-        while (count < buffer.Length)
-        {
-            if (stream.Read(cmd, 0, cmd.Length) != 2)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from stream while uncompressing RLE8 bitmap.");
-            }
-
-            if (cmd[0] == RleCommand)
-            {
-                switch (cmd[1])
-                {
-                    case RleEndOfBitmap:
-                        int skipEoB = buffer.Length - count;
-                        RleSkipEndOfBitmap(count, w, skipEoB, undefinedPixels, rowsWithUndefinedPixels);
-
-                        return;
-
-                    case RleEndOfLine:
-                        count += RleSkipEndOfLine(count, w, undefinedPixels, rowsWithUndefinedPixels);
-
-                        break;
-
-                    case RleDelta:
-                        int dx = stream.ReadByte();
-                        int dy = stream.ReadByte();
-                        count += RleSkipDelta(count, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
-
+                        writer.Skip(((long)delta[1] * width) + delta[0]);
                         break;
 
                     default:
-                        // If the second byte > 2, we are in 'absolute mode'.
-                        // Take this number of bytes from the stream as uncompressed data.
-                        int length = cmd[1];
+                        int byteCount = value * 3;
+                        if (!reader.TryRead(byteCount, out ReadOnlySpan<byte> run))
+                        {
+                            return;
+                        }
 
-                        Span<byte> run = length <= 128 ? scratchBuffer[..length] : new byte[length];
+                        writer.WriteBgr24(this.configuration, run);
 
-                        stream.Read(run);
-
-                        run.CopyTo(buffer[count..]);
-
-                        count += length;
-
-                        // Absolute mode data is aligned to two-byte word-boundary.
-                        int padding = length & 1;
-
-                        stream.Skip(padding);
+                        // The run data ends on a two-byte boundary: an odd byte count has one pad byte.
+                        if ((byteCount & 1) != 0)
+                        {
+                            reader.SkipPad();
+                        }
 
                         break;
                 }
             }
-            else
-            {
-                int max = count + cmd[0]; // as we start at the current count in the following loop, max is count + cmd[0]
-                byte colorIdx = cmd[1]; // store the value to avoid the repeated indexer access inside the loop.
 
-                for (; count < max; count++)
-                {
-                    buffer[count] = colorIdx;
-                }
-            }
+            reader.Finish();
+        }
+        finally
+        {
+            reader.Dispose();
         }
     }
 
     /// <summary>
-    /// Produce uncompressed bitmap data from a RLE24 stream.
+    /// Gets the color of the pixels that RLE data skips, for the transparent and the black options.
     /// </summary>
-    /// <remarks>
-    /// <br/>If first byte is 0, the second byte may have special meaning.
-    /// <br/>Otherwise, the first byte is the length of the run and following three bytes are the color for the run.
-    /// </remarks>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="w">The width of the bitmap.</param>
-    /// <param name="buffer">Buffer for uncompressed data.</param>
-    /// <param name="undefinedPixels">Keeps track of skipped and therefore undefined pixels.</param>
-    /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
-    private void UncompressRle24(BufferedReadStream stream, int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
-    {
-        Span<byte> scratchBuffer = stackalloc byte[128];
-        Span<byte> cmd = stackalloc byte[2];
-        int uncompressedPixels = 0;
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <returns>Transparent black for <see cref="RleSkippedPixelHandling.Transparent"/>, otherwise opaque black.</returns>
+    private TPixel GetRleSkippedPixel<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+        => this.rleSkippedPixelHandling is RleSkippedPixelHandling.Transparent
+            ? TPixel.FromUnassociatedScaledVector4(Vector4.Zero)
 
-        while (uncompressedPixels < buffer.Length)
-        {
-            if (stream.Read(cmd, 0, cmd.Length) != 2)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from stream while uncompressing RLE24 bitmap.");
-            }
-
-            if (cmd[0] == RleCommand)
-            {
-                switch (cmd[1])
-                {
-                    case RleEndOfBitmap:
-                        int skipEoB = (buffer.Length - (uncompressedPixels * 3)) / 3;
-                        RleSkipEndOfBitmap(uncompressedPixels, w, skipEoB, undefinedPixels, rowsWithUndefinedPixels);
-
-                        return;
-
-                    case RleEndOfLine:
-                        uncompressedPixels += RleSkipEndOfLine(uncompressedPixels, w, undefinedPixels, rowsWithUndefinedPixels);
-
-                        break;
-
-                    case RleDelta:
-                        int dx = stream.ReadByte();
-                        int dy = stream.ReadByte();
-                        uncompressedPixels += RleSkipDelta(uncompressedPixels, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
-
-                        break;
-
-                    default:
-                        // If the second byte > 2, we are in 'absolute mode'.
-                        // Take this number of bytes from the stream as uncompressed data.
-                        int length = cmd[1];
-                        int length3 = length * 3;
-
-                        Span<byte> run = length3 <= 128 ? scratchBuffer[..length3] : new byte[length3];
-
-                        stream.Read(run);
-
-                        run.CopyTo(buffer[(uncompressedPixels * 3)..]);
-
-                        uncompressedPixels += length;
-
-                        // Absolute mode data is aligned to two-byte word-boundary.
-                        int padding = length3 & 1;
-
-                        stream.Skip(padding);
-
-                        break;
-                }
-            }
-            else
-            {
-                int max = uncompressedPixels + cmd[0];
-                byte blueIdx = cmd[1];
-                byte greenIdx = (byte)stream.ReadByte();
-                byte redIdx = (byte)stream.ReadByte();
-
-                int bufferIdx = uncompressedPixels * 3;
-                for (; uncompressedPixels < max; uncompressedPixels++)
-                {
-                    buffer[bufferIdx++] = blueIdx;
-                    buffer[bufferIdx++] = greenIdx;
-                    buffer[bufferIdx++] = redIdx;
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Keeps track of skipped / undefined pixels, when the EndOfBitmap command occurs.
-    /// </summary>
-    /// <param name="count">The already processed pixel count.</param>
-    /// <param name="w">The width of the image.</param>
-    /// <param name="skipPixelCount">The skipped pixel count.</param>
-    /// <param name="undefinedPixels">The undefined pixels.</param>
-    /// <param name="rowsWithUndefinedPixels">Rows with undefined pixels.</param>
-    private static void RleSkipEndOfBitmap(
-        int count,
-        int w,
-        int skipPixelCount,
-        Span<bool> undefinedPixels,
-        Span<bool> rowsWithUndefinedPixels)
-    {
-        for (int i = count; i < count + skipPixelCount; i++)
-        {
-            undefinedPixels[i] = true;
-        }
-
-        int skippedRowIdx = count / w;
-        int skippedRows = (skipPixelCount / w) - 1;
-        int lastSkippedRow = Math.Min(skippedRowIdx + skippedRows, rowsWithUndefinedPixels.Length - 1);
-        for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
-        {
-            rowsWithUndefinedPixels[i] = true;
-        }
-    }
-
-    /// <summary>
-    /// Keeps track of undefined / skipped pixels, when the EndOfLine command occurs.
-    /// </summary>
-    /// <param name="count">The already uncompressed pixel count.</param>
-    /// <param name="w">The width of image.</param>
-    /// <param name="undefinedPixels">The undefined pixels.</param>
-    /// <param name="rowsWithUndefinedPixels">The rows with undefined pixels.</param>
-    /// <returns>The number of skipped pixels.</returns>
-    private static int RleSkipEndOfLine(int count, int w, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
-    {
-        rowsWithUndefinedPixels[count / w] = true;
-        int remainingPixelsInRow = count % w;
-        if (remainingPixelsInRow > 0)
-        {
-            int skipEoL = w - remainingPixelsInRow;
-            for (int i = count; i < count + skipEoL; i++)
-            {
-                undefinedPixels[i] = true;
-            }
-
-            return skipEoL;
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Keeps track of undefined / skipped pixels, when the delta command occurs.
-    /// </summary>
-    /// <param name="count">The count.</param>
-    /// <param name="w">The width of the image.</param>
-    /// <param name="dx">Delta skip in x direction.</param>
-    /// <param name="dy">Delta skip in y direction.</param>
-    /// <param name="undefinedPixels">The undefined pixels.</param>
-    /// <param name="rowsWithUndefinedPixels">The rows with undefined pixels.</param>
-    /// <returns>The number of skipped pixels.</returns>
-    private static int RleSkipDelta(
-        int count,
-        int w,
-        int dx,
-        int dy,
-        Span<bool> undefinedPixels,
-        Span<bool> rowsWithUndefinedPixels)
-    {
-        int skipDelta = (w * dy) + dx;
-        for (int i = count; i < count + skipDelta; i++)
-        {
-            undefinedPixels[i] = true;
-        }
-
-        int skippedRowIdx = count / w;
-        int lastSkippedRow = Math.Min(skippedRowIdx + dy, rowsWithUndefinedPixels.Length - 1);
-        for (int i = skippedRowIdx; i <= lastSkippedRow; i++)
-        {
-            rowsWithUndefinedPixels[i] = true;
-        }
-
-        return skipDelta;
-    }
+            // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
+            : TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 
     /// <summary>
     /// Reads the color palette from the stream.
@@ -892,9 +862,6 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         int arrayWidth = (width + ppb - 1) / ppb;
 
-        // Bit mask
-        int mask = 0xFF >> (8 - bitsPerPixel);
-
         // Rows are aligned on 4 byte boundaries.
         int padding = arrayWidth % 4;
         if (padding != 0)
@@ -905,33 +872,43 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(arrayWidth + padding, AllocationOptions.Clean);
         Span<byte> rowSpan = row.GetSpan();
 
+        using IMemoryOwner<TPixel> palette = this.CreatePaletteTable<TPixel>(colors, bitsPerPixel);
+        Span<TPixel> paletteSpan = palette.GetSpan();
+
         for (int y = 0; y < height; y++)
         {
             int newY = Invert(y, height, inverted);
-            if (stream.Read(rowSpan) == 0)
+            if (!TryReadPixelBytes(stream, rowSpan, arrayWidth))
             {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                return;
             }
 
-            int offset = 0;
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-
-            for (int x = 0; x < arrayWidth; x++)
-            {
-                int colOffset = x * ppb;
-                for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
-                {
-                    int colorIndex = (rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask;
-
-                    pixelRow[newX] = colors[colorIndex].ToPixel<TPixel>();
-                }
-
-                offset++;
-            }
+            BmpPaletteExpander.Expand<TPixel>(rowSpan, bitsPerPixel, paletteSpan, pixels.DangerousGetRowSpan(newY));
         }
     }
 
-    /// <inheritdoc cref="ReadRgbPalette"/>
+    /// <summary>
+    /// Reads a palette bitmap that an AND mask follows, as an icon or cursor image stores it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The color rows come first, then the mask rows. The mask has 1 bit for each pixel, the first pixel in the most
+    /// significant bit. A set bit makes the pixel transparent, a clear bit makes it opaque. Both row types start on
+    /// four-byte boundaries.
+    /// </para>
+    /// <para>
+    /// The decoder reads the color row and the mask row of each stored row together. It moves the stream position
+    /// between the two areas, so it keeps no indices for the full image.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
+    /// <param name="colors">The decoded pixel palette.</param>
+    /// <param name="width">The width of the bitmap.</param>
+    /// <param name="height">The height of the bitmap.</param>
+    /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
     private void ReadRgbPaletteWithAlphaMask<TPixel>(
         BufferedReadStream stream,
         Buffer2D<TPixel> pixels,
@@ -942,179 +919,89 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Pixels per byte (bits per pixel).
-        int ppb = 8 / bitsPerPixel;
+        // A color row stores ceil(width * bitsPerPixel / 8) bytes. A mask row stores ceil(width / 8) bytes.
+        // Each row size rounds up to a multiple of 4: (n + 3) & ~3 clears the low two bits after the add.
+        int indexBytes = ((width * bitsPerPixel) + 7) / 8;
+        int indexStride = (indexBytes + 3) & ~3;
+        int maskBytes = (width + 7) / 8;
+        int maskStride = (maskBytes + 3) & ~3;
+        long indexStart = stream.Position;
+        long maskStart = indexStart + ((long)indexStride * height);
 
-        int arrayWidth = (width + ppb - 1) / ppb;
+        using IMemoryOwner<byte> indexRow = this.memoryAllocator.Allocate<byte>(indexStride, AllocationOptions.Clean);
+        using IMemoryOwner<byte> maskRow = this.memoryAllocator.Allocate<byte>(maskBytes);
+        Span<byte> indexSpan = indexRow.GetSpan();
+        Span<byte> maskSpan = maskRow.GetSpan();
 
-        // Bit mask
-        int mask = 0xFF >> (8 - bitsPerPixel);
-
-        // Rows are aligned on 4 byte boundaries.
-        int padding = arrayWidth % 4;
-        if (padding != 0)
+        // Convert each palette entry one time in two forms: opaque, and transparent. The mask bit of a pixel selects
+        // the form. The alpha is replaced on unassociated color, before the pixel type applies its alpha association.
+        // Each table has an entry for each of the 2^bitsPerPixel index values. The header check limits bitsPerPixel
+        // to 1, 2, 4 or 8, so each table has at most 256 entries. The header check also limits the file palette to
+        // 2^bitsPerPixel colors. The entries past the file palette are black, as in CreatePaletteTable.
+        DebugGuard.IsTrue(bitsPerPixel is 1 or 2 or 4 or 8, "An index has 1, 2, 4 or 8 bits.");
+        int entryCount = 1 << bitsPerPixel;
+        using IMemoryOwner<TPixel> palettes = this.memoryAllocator.Allocate<TPixel>(entryCount * 2);
+        Span<TPixel> opaque = palettes.GetSpan()[..entryCount];
+        Span<TPixel> transparent = palettes.GetSpan()[entryCount..];
+        for (int i = 0; i < entryCount; i++)
         {
-            padding = 4 - padding;
+            Vector4 color = i < colors.Length ? colors[i].ToScaledVector4(PixelAlphaRepresentation.Unassociated) : Vector4.Zero;
+            color.W = 1F;
+            opaque[i] = TPixel.FromUnassociatedScaledVector4(color);
+            color.W = 0F;
+            transparent[i] = TPixel.FromUnassociatedScaledVector4(color);
         }
 
-        // The AND mask follows all color rows, so retain only indices until each masked pixel is packed.
-        byte[,] indices = new byte[height, width];
-        using (IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(arrayWidth + padding, AllocationOptions.Clean))
+        // The mask of the low bitsPerPixel bits, for example 0b1111 for 4 bits.
+        int indexMask = entryCount - 1;
+
+        for (int y = 0; y < height; y++)
         {
-            Span<byte> rowSpan = row.GetSpan();
-
-            for (int y = 0; y < height; y++)
+            stream.Position = indexStart + ((long)y * indexStride);
+            if (!TryReadPixelBytes(stream, indexSpan, indexBytes))
             {
-                int newY = Invert(y, height, inverted);
-                if (stream.Read(rowSpan) == 0)
-                {
-                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
-                }
+                return;
+            }
 
-                int offset = 0;
+            stream.Position = maskStart + ((long)y * maskStride);
+            if (!TryReadPixelBytes(stream, maskSpan, maskBytes))
+            {
+                return;
+            }
 
-                for (int x = 0; x < arrayWidth; x++)
+            // One pass writes each pixel with its opaque color. Most icon pixels are opaque.
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(Invert(y, height, inverted));
+            BmpPaletteExpander.Expand<TPixel>(indexSpan, bitsPerPixel, opaque, pixelRow);
+
+            // Then only the transparent pixels change. A mask byte of 0 has 8 opaque pixels, so the loop skips it.
+            for (int maskIndex = 0; maskIndex < maskBytes; maskIndex++)
+            {
+                uint bits = maskSpan[maskIndex];
+                while (bits != 0)
                 {
-                    int colOffset = x * ppb;
-                    for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
+                    // Pixel 0 of a mask byte is bit 7, so the highest set bit is the first transparent pixel left.
+                    // In a 32-bit value, bit p has 31 - p leading zeros, so the pixel offset in the byte is
+                    // 7 - p = LeadingZeroCount(bits) - 24. Clear the bit, so the next turn finds the next pixel.
+                    int offset = BitOperations.LeadingZeroCount(bits) - 24;
+                    bits &= ~(0x80U >> offset);
+
+                    // The bits after the last pixel of the row are padding.
+                    int x = (maskIndex * 8) + offset;
+                    if (x >= width)
                     {
-                        int colorIndex = (rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask;
-
-                        indices[newY, newX] = (byte)colorIndex;
+                        break;
                     }
 
-                    offset++;
+                    // The index of pixel x starts at bit x * bitsPerPixel of the row, the first pixel in the most
+                    // significant bits of a byte. Shift the index down to bit 0 and keep its low bitsPerPixel bits.
+                    int bitPosition = x * bitsPerPixel;
+                    int shift = 8 - bitsPerPixel - (bitPosition & 7);
+                    int index = (indexSpan[bitPosition >> 3] >> shift) & indexMask;
+                    pixelRow[x] = transparent[index];
                 }
-            }
-        }
-
-        arrayWidth = (width + 7) / 8;
-        padding = arrayWidth % 4;
-        if (padding != 0)
-        {
-            padding = 4 - padding;
-        }
-
-        for (int y = 0; y < height; y++)
-        {
-            int newY = Invert(y, height, inverted);
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-
-            for (int i = 0; i < arrayWidth; i++)
-            {
-                int x = i * 8;
-                int maskByte = stream.ReadByte();
-
-                if (maskByte is -1)
-                {
-                    throw new EndOfStreamException();
-                }
-
-                for (int j = 0; j < 8 && x + j < width; j++)
-                {
-                    Vector4 color = colors[indices[newY, x + j]].ToScaledVector4(PixelAlphaRepresentation.Unassociated);
-
-                    // AND-mask bits run from most significant to least significant across the pixels.
-                    // A set bit makes the pixel transparent (alpha 0); a clear bit makes it opaque (alpha 1).
-                    color.W = (maskByte & (0b10000000 >> j)) != 0 ? 0f : 1f;
-
-                    // Replace alpha on straight RGB before the destination format applies its alpha association.
-                    pixelRow[x + j] = TPixel.FromUnassociatedScaledVector4(color);
-                }
-            }
-
-            stream.Skip(padding);
-        }
-    }
-
-    /// <summary>
-    /// Reads the 16 bit color palette from the stream.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
-    /// <param name="width">The width of the bitmap.</param>
-    /// <param name="height">The height of the bitmap.</param>
-    /// <param name="inverted">Whether the bitmap is inverted.</param>
-    /// <param name="redMask">The bitmask for the red channel.</param>
-    /// <param name="greenMask">The bitmask for the green channel.</param>
-    /// <param name="blueMask">The bitmask for the blue channel.</param>
-    private void ReadRgb16<TPixel>(
-        BufferedReadStream stream,
-        Buffer2D<TPixel> pixels,
-        int width,
-        int height,
-        bool inverted,
-        int redMask = DefaultRgb16RMask,
-        int greenMask = DefaultRgb16GMask,
-        int blueMask = DefaultRgb16BMask)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int padding = CalculatePadding(width, 2);
-        int stride = (width * 2) + padding;
-        int rightShiftRedMask = CalculateRightShift((uint)redMask);
-        int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
-        int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
-
-        // Each color channel contains either 5 or 6 Bits values.
-        int redMaskBits = CountBits((uint)redMask);
-        int greenMaskBits = CountBits((uint)greenMask);
-        int blueMaskBits = CountBits((uint)blueMask);
-
-        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride);
-        Span<byte> bufferSpan = buffer.GetSpan();
-
-        for (int y = 0; y < height; y++)
-        {
-            if (stream.Read(bufferSpan) == 0)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
-            }
-
-            int newY = Invert(y, height, inverted);
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-
-            int offset = 0;
-            for (int x = 0; x < width; x++)
-            {
-                short temp = BinaryPrimitives.ReadInt16LittleEndian(bufferSpan[offset..]);
-
-                // Rescale values, so the values range from 0 to 255.
-                int r = (redMaskBits == 5)
-                    ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask)
-                    : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
-
-                int g = (greenMaskBits == 5)
-                    ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask)
-                    : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
-
-                int b = (blueMaskBits == 5)
-                    ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask)
-                    : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
-
-                Rgb24 rgb = new((byte)r, (byte)g, (byte)b);
-
-                pixelRow[x] = TPixel.FromRgb24(rgb);
-                offset += 2;
             }
         }
     }
-
-    /// <summary>
-    /// Performs final shifting from a 5bit value to an 8bit one.
-    /// </summary>
-    /// <param name="value">The masked and shifted value.</param>
-    /// <returns>The <see cref="byte"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte GetBytesFrom5BitValue(int value) => (byte)((value << 3) | (value >> 2));
-
-    /// <summary>
-    /// Performs final shifting from a 6bit value to an 8bit one.
-    /// </summary>
-    /// <param name="value">The masked and shifted value.</param>
-    /// <returns>The <see cref="byte"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte GetBytesFrom6BitValue(int value) => (byte)((value << 2) | (value >> 4));
 
     /// <summary>
     /// Reads the 24 bit color palette from the stream.
@@ -1134,14 +1021,66 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) == 0)
+            if (!TryReadPixelBytes(stream, rowSpan, width * 3))
             {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                return;
             }
 
             int newY = Invert(y, height, inverted);
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
             PixelOperations<TPixel>.Instance.FromBgr24Bytes(
+                this.configuration,
+                rowSpan,
+                pixelSpan,
+                width);
+        }
+    }
+
+    /// <summary>
+    /// Reads a 16-bit bitmap with the 5-5-5 layout: blue in bits 0..4, green in bits 5..9 and red in bits 10..14.
+    /// </summary>
+    /// <remarks>
+    /// This is the <see cref="Bgra5551"/> layout, so the row goes to the bulk <see cref="Bgra5551"/> conversion, as in
+    /// the TGA decoder. When bit 15 is not alpha, the read sets it in each pixel, so that each pixel is opaque.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="width">The width of the bitmap.</param>
+    /// <param name="height">The height of the bitmap.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    /// <param name="hasAlpha">Whether bit 15 is alpha.</param>
+    private void ReadRgb555<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        bool hasAlpha)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int padding = CalculatePadding(width, 2);
+        using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, padding);
+        Span<byte> rowSpan = row.GetSpan();
+
+        // Each pixel is one little-endian 16-bit value, so the pixel bytes of the row read as one ushort per pixel.
+        Span<ushort> samples = MemoryMarshal.Cast<byte, ushort>(rowSpan[..(width * 2)]);
+
+        for (int y = 0; y < height; y++)
+        {
+            if (!TryReadPixelBytes(stream, rowSpan, width * 2))
+            {
+                return;
+            }
+
+            if (!hasAlpha)
+            {
+                TensorPrimitives.BitwiseOr(samples, (ushort)0x8000, samples);
+            }
+
+            int newY = Invert(y, height, inverted);
+            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
+            PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
                 this.configuration,
                 rowSpan,
                 pixelSpan,
@@ -1167,9 +1106,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) == 0)
+            if (!TryReadPixelBytes(stream, rowSpan, width * 4))
             {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                return;
             }
 
             int newY = Invert(y, height, inverted);
@@ -1183,9 +1122,22 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads the 32 bit color palette from the stream, checking the alpha component of each pixel.
-    /// This is a special case only used for 32bpp WinBMPv3 files, which could be in either BGR0 or BGRA format.
+    /// Reads a 32-bit RGB bitmap with a version 3 header. The fourth byte of each pixel is alpha or is not used.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A version 3 header has no alpha mask, so the header does not tell if the fourth byte is alpha. Many writers
+    /// store 0 in the unused byte. Thus a bitmap whose fourth bytes are all 0 is opaque, and a bitmap with any other
+    /// fourth byte has alpha.
+    /// </para>
+    /// <para>
+    /// The decode starts as opaque, with the bit-field operator: B, G, R masks and no alpha mask, so each pixel gets
+    /// alpha 255. It checks the fourth bytes of each row before it decodes the row. Thus an opaque bitmap decodes in
+    /// one pass. At the first row with a fourth byte that is not 0, the bitmap has alpha: the stream returns to the
+    /// first row, and the whole bitmap decodes again as B, G, R, A bytes with the bulk conversion. The rows before
+    /// that row are the only rows that decode two times.
+    /// </para>
+    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
@@ -1195,230 +1147,106 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     private void ReadRgb32Slow<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int padding = CalculatePadding(width, 4);
-        using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding);
-        using IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width);
-        Span<byte> rowSpan = row.GetSpan();
-        Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
-        long currentPosition = stream.Position;
-        bool hasAlpha = false;
+        long start = stream.Position;
+        BmpBitFields opaque = CreateBitFields<TPixel>(0x00FF0000, 0x0000FF00, 0x000000FF, 0);
 
-        // Loop though the rows checking each pixel. We start by assuming it's
-        // an BGR0 image. If we hit a non-zero alpha value, then we know it's
-        // actually a BGRA image, and change tactics accordingly.
-        for (int y = 0; y < height; y++)
+        if (!this.ReadBitFields<TPixel, BmpBitFields.Sample32Operator>(stream, pixels, width, height, inverted, opaque, true))
         {
-            if (stream.Read(rowSpan) == 0)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
-            }
-
-            PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                this.configuration,
-                rowSpan,
-                bgraRowSpan,
-                width);
-
-            // Check each pixel in the row to see if it has an alpha value.
-            for (int x = 0; x < width; x++)
-            {
-                Bgra32 bgra = bgraRowSpan[x];
-                if (bgra.A > 0)
-                {
-                    hasAlpha = true;
-                    break;
-                }
-            }
-
-            if (hasAlpha)
-            {
-                break;
-            }
-        }
-
-        // Reset our stream for a second pass.
-        stream.Position = currentPosition;
-
-        // Process the pixels in bulk taking the raw alpha component value.
-        if (hasAlpha)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                if (stream.Read(rowSpan) == 0)
-                {
-                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
-                }
-
-                int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
-
-                PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                    this.configuration,
-                    rowSpan,
-                    pixelSpan,
-                    width);
-            }
-
-            return;
-        }
-
-        // Slow path. We need to set each alpha component value to fully opaque.
-        for (int y = 0; y < height; y++)
-        {
-            if (stream.Read(rowSpan) == 0)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
-            }
-
-            PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                this.configuration,
-                rowSpan,
-                bgraRowSpan,
-                width);
-
-            int newY = Invert(y, height, inverted);
-            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
-
-            for (int x = 0; x < width; x++)
-            {
-                Bgra32 bgra = bgraRowSpan[x];
-                bgra.A = byte.MaxValue;
-                pixelSpan[x] = TPixel.FromBgra32(bgra);
-            }
+            stream.Position = start;
+            this.ReadRgb32Fast(stream, pixels, width, height, inverted);
         }
     }
 
     /// <summary>
-    /// Decode an 32 Bit Bitmap containing a bitmask for each color channel.
+    /// Gets a value indicating whether a row of B, G, R, A pixels has an alpha byte that is not 0.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <remarks>
+    /// Each pixel is one little-endian uint, with alpha in bits 24..31. The SIMD loops OR the pixels of the row into
+    /// one register, then test the alpha bits of all lanes one time. The narrower widths and the scalar loop take the
+    /// rest of the row. All forms give the same result as a test of each alpha byte.
+    /// </remarks>
+    /// <param name="row">The pixel bytes of the row, 4 for each pixel.</param>
+    /// <returns><see langword="true"/> if an alpha byte is not 0. Else <see langword="false"/>.</returns>
+    private static bool HasNonZeroAlpha(ReadOnlySpan<byte> row)
+    {
+        const uint alphaMask = 0xFF000000;
+        ReadOnlySpan<uint> pixels = MemoryMarshal.Cast<byte, uint>(row);
+        ref uint pixelBase = ref MemoryMarshal.GetReference(pixels);
+        nuint length = (uint)pixels.Length;
+        nuint x = 0;
+
+        if (Vector512.IsHardwareAccelerated && length >= (uint)Vector512<uint>.Count)
+        {
+            Vector512<uint> any = Vector512<uint>.Zero;
+            for (; x + (uint)Vector512<uint>.Count <= length; x += (uint)Vector512<uint>.Count)
+            {
+                any |= Vector512.LoadUnsafe(ref pixelBase, x);
+            }
+
+            if ((any & Vector512.Create(alphaMask)) != Vector512<uint>.Zero)
+            {
+                return true;
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated && length - x >= (uint)Vector256<uint>.Count)
+        {
+            Vector256<uint> any = Vector256<uint>.Zero;
+            for (; x + (uint)Vector256<uint>.Count <= length; x += (uint)Vector256<uint>.Count)
+            {
+                any |= Vector256.LoadUnsafe(ref pixelBase, x);
+            }
+
+            if ((any & Vector256.Create(alphaMask)) != Vector256<uint>.Zero)
+            {
+                return true;
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated && length - x >= (uint)Vector128<uint>.Count)
+        {
+            Vector128<uint> any = Vector128<uint>.Zero;
+            for (; x + (uint)Vector128<uint>.Count <= length; x += (uint)Vector128<uint>.Count)
+            {
+                any |= Vector128.LoadUnsafe(ref pixelBase, x);
+            }
+
+            if ((any & Vector128.Create(alphaMask)) != Vector128<uint>.Zero)
+            {
+                return true;
+            }
+        }
+
+        uint rest = 0;
+        for (; x < length; x++)
+        {
+            rest |= Unsafe.Add(ref pixelBase, x);
+        }
+
+        return (rest & alphaMask) != 0;
+    }
+
+    /// <summary>
+    /// Reads one stored row of pixel data.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A stored row has its pixel bytes, then padding to a four-byte boundary. Some writers leave out the padding of
+    /// the final row. Thus the read requires only the pixel bytes. It fills the rest of the buffer when the stream has
+    /// those bytes.
+    /// </para>
+    /// <para>
+    /// Data that ends before the image is complete is not an error. The caller stops and keeps the rows decoded
+    /// before the end, as the PNG and JPEG decoders do. The image buffer is cleared at allocation, so the rows after
+    /// the end are transparent black.
+    /// </para>
+    /// </remarks>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
-    /// <param name="inverted">Whether the bitmap is inverted.</param>
-    /// <param name="redMask">The bitmask for the red channel.</param>
-    /// <param name="greenMask">The bitmask for the green channel.</param>
-    /// <param name="blueMask">The bitmask for the blue channel.</param>
-    /// <param name="alphaMask">The bitmask for the alpha channel.</param>
-    private void ReadRgb32BitFields<TPixel>(
-        BufferedReadStream stream,
-        Buffer2D<TPixel> pixels,
-        int width,
-        int height,
-        bool inverted,
-        int redMask,
-        int greenMask,
-        int blueMask,
-        int alphaMask)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int padding = CalculatePadding(width, 4);
-        int stride = (width * 4) + padding;
-
-        int rightShiftRedMask = CalculateRightShift((uint)redMask);
-        int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
-        int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
-        int rightShiftAlphaMask = CalculateRightShift((uint)alphaMask);
-
-        int bitsRedMask = CountBits((uint)redMask);
-        int bitsGreenMask = CountBits((uint)greenMask);
-        int bitsBlueMask = CountBits((uint)blueMask);
-        int bitsAlphaMask = CountBits((uint)alphaMask);
-        float invMaxValueRed = 1.0f / (0xFFFFFFFF >> (32 - bitsRedMask));
-        float invMaxValueGreen = 1.0f / (0xFFFFFFFF >> (32 - bitsGreenMask));
-        float invMaxValueBlue = 1.0f / (0xFFFFFFFF >> (32 - bitsBlueMask));
-        uint maxValueAlpha = 0xFFFFFFFF >> (32 - bitsAlphaMask);
-        float invMaxValueAlpha = 1.0f / maxValueAlpha;
-
-        bool unusualBitMask = bitsRedMask > 8 || bitsGreenMask > 8 || bitsBlueMask > 8 || invMaxValueAlpha > 8;
-
-        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(stride);
-        Span<byte> bufferSpan = buffer.GetSpan();
-
-        for (int y = 0; y < height; y++)
-        {
-            if (stream.Read(bufferSpan) == 0)
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
-            }
-
-            int newY = Invert(y, height, inverted);
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-
-            int offset = 0;
-            for (int x = 0; x < width; x++)
-            {
-                uint temp = BinaryPrimitives.ReadUInt32LittleEndian(bufferSpan[offset..]);
-
-                if (unusualBitMask)
-                {
-                    uint r = (uint)(temp & redMask) >> rightShiftRedMask;
-                    uint g = (uint)(temp & greenMask) >> rightShiftGreenMask;
-                    uint b = (uint)(temp & blueMask) >> rightShiftBlueMask;
-                    float alpha = alphaMask != 0 ? invMaxValueAlpha * ((uint)(temp & alphaMask) >> rightShiftAlphaMask) : 1.0f;
-                    Vector4 vector4 = new(
-                        r * invMaxValueRed,
-                        g * invMaxValueGreen,
-                        b * invMaxValueBlue,
-                        alpha);
-                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(vector4);
-                }
-                else
-                {
-                    byte r = (byte)((temp & redMask) >> rightShiftRedMask);
-                    byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
-                    byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
-                    byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : byte.MaxValue;
-                    pixelRow[x] = TPixel.FromRgba32(new Rgba32(r, g, b, a));
-                }
-
-                offset += 4;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Calculates the necessary right shifts for a given color bitmask (the 0 bits to the right).
-    /// </summary>
-    /// <param name="n">The color bit mask.</param>
-    /// <returns>Number of bits to shift right.</returns>
-    private static int CalculateRightShift(uint n)
-    {
-        int count = 0;
-        while (n > 0)
-        {
-            if ((1 & n) == 0)
-            {
-                count++;
-            }
-            else
-            {
-                break;
-            }
-
-            n >>= 1;
-        }
-
-        return count;
-    }
-
-    /// <summary>
-    /// Counts none zero bits.
-    /// </summary>
-    /// <param name="n">A color mask.</param>
-    /// <returns>The none zero bits.</returns>
-    private static int CountBits(uint n)
-    {
-        int count = 0;
-        while (n != 0)
-        {
-            count++;
-            n &= n - 1;
-        }
-
-        return count;
-    }
+    /// <param name="buffer">The buffer, with room for the required bytes and any padding.</param>
+    /// <param name="requiredBytes">The byte count of the pixels in the row.</param>
+    /// <returns><see langword="true"/> if the stream has the pixel bytes of the row. Else <see langword="false"/>.</returns>
+    private static bool TryReadPixelBytes(BufferedReadStream stream, Span<byte> buffer, int requiredBytes)
+        => stream.ReadAtLeast(buffer, requiredBytes, false) >= requiredBytes;
 
     /// <summary>
     /// Reads the <see cref="BmpInfoHeader"/> from the stream.

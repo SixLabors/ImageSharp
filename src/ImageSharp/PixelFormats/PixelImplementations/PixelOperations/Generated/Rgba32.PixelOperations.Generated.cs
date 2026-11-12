@@ -36,7 +36,7 @@ public partial struct Rgba32
 
             source.CopyTo(destination.Slice(0, source.Length));
         }
-    
+
         /// <inheritdoc />
         public override void ToArgb32(
             Configuration configuration,
@@ -50,7 +50,7 @@ public partial struct Rgba32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Argb32, byte>(destination);
             PixelConverter.FromRgba32.ToArgb32(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromArgb32(
             Configuration configuration,
@@ -63,8 +63,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Argb32, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
             PixelConverter.FromArgb32.ToRgba32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToAbgr32(
             Configuration configuration,
@@ -78,7 +78,7 @@ public partial struct Rgba32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Abgr32, byte>(destination);
             PixelConverter.FromRgba32.ToAbgr32(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromAbgr32(
             Configuration configuration,
@@ -91,8 +91,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Abgr32, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
             PixelConverter.FromAbgr32.ToRgba32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToBgra32(
             Configuration configuration,
@@ -106,7 +106,7 @@ public partial struct Rgba32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra32, byte>(destination);
             PixelConverter.FromRgba32.ToBgra32(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromBgra32(
             Configuration configuration,
@@ -119,8 +119,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgra32, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
             PixelConverter.FromBgra32.ToRgba32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToRgb24(
             Configuration configuration,
@@ -134,7 +134,7 @@ public partial struct Rgba32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgb24, byte>(destination);
             PixelConverter.FromRgba32.ToRgb24(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromRgb24(
             Configuration configuration,
@@ -147,8 +147,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Rgb24, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
             PixelConverter.FromRgb24.ToRgba32(sourceBytes, destinationBytes);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToBgr24(
             Configuration configuration,
@@ -162,7 +162,7 @@ public partial struct Rgba32
             Span<byte> destinationBytes = MemoryMarshal.Cast<Bgr24, byte>(destination);
             PixelConverter.FromRgba32.ToBgr24(sourceBytes, destinationBytes);
         }
-        
+
         /// <inheritdoc />
         public override void FromBgr24(
             Configuration configuration,
@@ -175,7 +175,35 @@ public partial struct Rgba32
             ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgr24, byte>(source);
             Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
             PixelConverter.FromBgr24.ToRgba32(sourceBytes, destinationBytes);
-        }        
+        }
+
+        /// <inheritdoc />
+        public override void ToBgra5551(
+            Configuration configuration,
+            ReadOnlySpan<Rgba32> source,
+            Span<Bgra5551> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Rgba32, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra5551, byte>(destination);
+            PixelConverter.FromRgba32.ToBgra5551(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
+        public override void FromBgra5551(
+            Configuration configuration,
+            ReadOnlySpan<Bgra5551> source,
+            Span<Rgba32> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgra5551, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Rgba32, byte>(destination);
+            PixelConverter.FromBgra5551.ToRgba32(sourceBytes, destinationBytes);
+        }
 
         /// <inheritdoc />
         public override void ToL8(
@@ -282,24 +310,6 @@ public partial struct Rgba32
             for (nuint i = 0; i < (uint)source.Length; i++)
             {
                 Unsafe.Add(ref destinationBase, i) = Rgba64.FromRgba32(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToBgra5551(
-            Configuration configuration,
-            ReadOnlySpan<Rgba32> source,
-            Span<Bgra5551> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref Rgba32 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Bgra5551 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Bgra5551.FromRgba32(Unsafe.Add(ref sourceBase, i));
             }
         }
 

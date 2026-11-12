@@ -120,10 +120,10 @@ internal static class TiffUtilities
             {
                 Vector512<byte> bytes = Vector512.LoadUnsafe(ref sourceRef, (nuint)(i * sizeof(ushort)));
 
-                // Each adjacent byte pair is one sample. The shared shuffle expands the pair-swap mask across all four lanes.
+                // Each adjacent byte pair is one sample. The per-lane shuffle uses the same pair-swap mask in each lane.
                 if (reverse)
                 {
-                    bytes = Vector512.ShuffleNative(bytes, IShuffle4.ExpandLaneMask(Reverse16BitByteIndices));
+                    bytes = Vector512_.ShufflePerLane(bytes, Reverse16BitByteIndices);
                 }
 
                 Vector512<ushort> values = bytes.AsUInt16();
@@ -146,7 +146,7 @@ internal static class TiffUtilities
                 // A pair never crosses a 128-bit lane, so both halves use the same local byte indices.
                 if (reverse)
                 {
-                    bytes = Vector256_.ShufflePerLane(bytes, Vector256.Create(Reverse16BitByteIndices, Reverse16BitByteIndices));
+                    bytes = Vector256_.ShufflePerLane(bytes, Reverse16BitByteIndices);
                 }
 
                 Vector256<ushort> values = bytes.AsUInt16();

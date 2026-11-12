@@ -40,8 +40,8 @@ public class DecodeBmp
         return new Size(image.Width, image.Height);
     }
 
-    /* Results 28.10.2026
-    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9711)
+    /* Results 12.11.2026
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26300.9818)
     AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
     .NET SDK 11.0.100-preview.7.26381.103
       [Host]     : .NET 10.0.14 (10.0.14, 10.0.1426.52326), X64 RyuJIT x86-64-v4
@@ -50,10 +50,10 @@ public class DecodeBmp
     Arguments=/p:DebugType=portable  IterationCount=3  LaunchCount=1
     WarmupCount=3
 
-    | Method                | TestImage    |        Mean |       Error |     StdDev |   Ratio |   RatioSD |     Gen0 |     Gen1 |     Gen2 |   Allocated |   Alloc Ratio |
-    | --------------------- | ------------ | ----------: | ----------: | ---------: | ------: | --------: | -------: | -------: | -------: | ----------: | ------------: |
-    | 'System.Drawing Bmp'  | Bmp/Car.bmp  |   230.24 μs |   53.155 μs |   2.914 μs |    1.00 |      0.02 |        - |        - |        - |       392 B |          1.00 |
-    | 'ImageSharp Bmp'      | Bmp/Car.bmp  |    40.66 μs |    2.761 μs |   0.151 μs |    0.18 |      0.00 |   0.1831 |   0.0610 |   0.0610 |      2289 B |          5.84 |
+    | Method               | TestImage   | Mean      | Error    | StdDev   | Ratio | Gen0   | Allocated | Alloc Ratio |
+    |--------------------- |------------ |----------:|---------:|---------:|------:|-------:|----------:|------------:|
+    | 'System.Drawing Bmp' | Bmp/Car.bmp | 255.49 us | 27.43 us | 1.504 us |  1.00 |      - |     392 B |        1.00 |
+    | 'ImageSharp Bmp'     | Bmp/Car.bmp |  37.97 us | 10.94 us | 0.600 us |  0.15 | 0.1221 |    2320 B |        5.92 |
 
     Allocated reports managed memory only.
     */

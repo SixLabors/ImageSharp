@@ -150,12 +150,35 @@ public abstract class MultiImageBenchmarkBase
                 byte[] bytes = kv.Value;
                 string fn = kv.Key;
 
-                using (MemoryStream ms1 = new(bytes))
+                // The benchmarks compare both libraries on the same images. The input folders also hold files that one
+                // library cannot read: invalid test headers, BMP variants that GDI+ does not support, and text reports.
+                // Skip those files for both libraries, so the setup does not fail and both sides do the same work.
+                Image<Rgba32> image;
+                try
                 {
-                    this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
+                    using MemoryStream ms1 = new(bytes);
+                    image = Image.Load<Rgba32>(ms1);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Skipped {fn}: ImageSharp cannot load it ({ex.Message})");
+                    continue;
                 }
 
-                this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
+                Bitmap bitmap;
+                try
+                {
+                    bitmap = new Bitmap(new MemoryStream(bytes));
+                }
+                catch (Exception ex)
+                {
+                    image.Dispose();
+                    Console.WriteLine($"Skipped {fn}: System.Drawing cannot load it ({ex.Message})");
+                    continue;
+                }
+
+                this.FileNamesToImageSharpImages[fn] = image;
+                this.FileNamesToSystemDrawingImages[fn] = bitmap;
             }
         }
 

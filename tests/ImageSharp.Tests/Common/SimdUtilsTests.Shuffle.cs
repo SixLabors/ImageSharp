@@ -274,29 +274,6 @@ public partial class SimdUtilsTests
 
     [Theory]
     [MemberData(nameof(ArraySizesDivisibleBy4))]
-    public void BulkShuffleFloat4Channel(int count)
-    {
-        static void RunTest(string serialized)
-        {
-            // No need to test multiple shuffle controls as the
-            // pipeline is always the same.
-            int size = FeatureTestRunner.Deserialize<int>(serialized);
-            const byte control = SimdUtils.Shuffle.MMShuffle0123;
-
-            TestShuffleFloat4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, control),
-                control);
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy4))]
     public void BulkShuffleByte4Channel(int count)
     {
         static void RunTest(string serialized)
@@ -317,7 +294,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -334,7 +311,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -357,7 +334,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -381,36 +358,6 @@ public partial class SimdUtilsTests
             RunTest,
             count,
             HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
-    }
-
-    private static void TestShuffleFloat4Channel(
-        int count,
-        Action<Memory<float>, Memory<float>> convert,
-        byte control)
-    {
-        float[] source = new Random(count).GenerateRandomFloatArray(count, 0, 256);
-        float[] result = new float[count];
-
-        float[] expected = new float[count];
-
-        SimdUtils.Shuffle.InverseMMShuffle(
-            control,
-            out uint p3,
-            out uint p2,
-            out uint p1,
-            out uint p0);
-
-        for (int i = 0; i < expected.Length; i += 4)
-        {
-            expected[i] = source[p0 + i];
-            expected[i + 1] = source[p1 + i];
-            expected[i + 2] = source[p2 + i];
-            expected[i + 3] = source[p3 + i];
-        }
-
-        convert(source, result);
-
-        Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5F));
     }
 
     private static void TestShuffleByte4Channel(
@@ -472,6 +419,12 @@ public partial class SimdUtilsTests
         convert(source, result);
 
         Assert.Equal(expected, result);
+
+        // The kernel supports a destination that starts at the source address.
+        byte[] inPlace = (byte[])source.Clone();
+        convert(inPlace, inPlace);
+
+        Assert.Equal(expected, inPlace);
     }
 
     private static void TestPad3Shuffle4Channel(
@@ -559,5 +512,11 @@ public partial class SimdUtilsTests
         }
 
         Assert.Equal(expected, result);
+
+        // The kernel supports a destination that starts at the source address and covers 3/4 of it.
+        byte[] inPlace = (byte[])source.Clone();
+        convert(inPlace, inPlace.AsMemory(0, result.Length));
+
+        Assert.Equal(expected, inPlace.AsSpan(0, result.Length).ToArray());
     }
 }

@@ -178,6 +178,34 @@ public partial struct Abgr32
         }
 
         /// <inheritdoc />
+        public override void ToBgra5551(
+            Configuration configuration,
+            ReadOnlySpan<Abgr32> source,
+            Span<Bgra5551> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Abgr32, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Bgra5551, byte>(destination);
+            PixelConverter.FromAbgr32.ToBgra5551(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
+        public override void FromBgra5551(
+            Configuration configuration,
+            ReadOnlySpan<Bgra5551> source,
+            Span<Abgr32> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<Bgra5551, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Abgr32, byte>(destination);
+            PixelConverter.FromBgra5551.ToAbgr32(sourceBytes, destinationBytes);
+        }
+
+        /// <inheritdoc />
         public override void ToL8(
             Configuration configuration,
             ReadOnlySpan<Abgr32> source,
@@ -282,24 +310,6 @@ public partial struct Abgr32
             for (nuint i = 0; i < (uint)source.Length; i++)
             {
                 Unsafe.Add(ref destinationBase, i) = Rgba64.FromAbgr32(Unsafe.Add(ref sourceBase, i));
-            }
-        }
-
-        /// <inheritdoc />
-        public override void ToBgra5551(
-            Configuration configuration,
-            ReadOnlySpan<Abgr32> source,
-            Span<Bgra5551> destination)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-            ref Abgr32 sourceBase = ref MemoryMarshal.GetReference(source);
-            ref Bgra5551 destinationBase = ref MemoryMarshal.GetReference(destination);
-
-            for (nuint i = 0; i < (uint)source.Length; i++)
-            {
-                Unsafe.Add(ref destinationBase, i) = Bgra5551.FromAbgr32(Unsafe.Add(ref sourceBase, i));
             }
         }
 

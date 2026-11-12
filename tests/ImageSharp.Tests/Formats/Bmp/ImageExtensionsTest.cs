@@ -32,7 +32,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            await image.SaveAsBmpAsync(file);
+            await image.SaveAsBmpAsync(file, TestContext.Current.CancellationToken);
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -62,7 +62,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            await image.SaveAsBmpAsync(file, new BmpEncoder());
+            await image.SaveAsBmpAsync(file, new BmpEncoder(), TestContext.Current.CancellationToken);
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -92,7 +92,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            await image.SaveAsBmpAsync(memoryStream);
+            await image.SaveAsBmpAsync(memoryStream, TestContext.Current.CancellationToken);
         }
 
         memoryStream.Position = 0;
@@ -124,7 +124,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            await image.SaveAsBmpAsync(memoryStream, new BmpEncoder());
+            await image.SaveAsBmpAsync(memoryStream, new BmpEncoder(), TestContext.Current.CancellationToken);
         }
 
         memoryStream.Position = 0;

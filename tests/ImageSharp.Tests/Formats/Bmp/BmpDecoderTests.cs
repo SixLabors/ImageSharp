@@ -383,7 +383,10 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder(BmpFormat.Instance));
+
+        // The Direct3D UNORM rules give a 5-bit channel c as round(c * 255 / 31). System.Drawing widens by bit
+        // replication, which differs by 1 for some values, so the reference is the UNORM decode of the file.
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]
@@ -757,7 +760,11 @@ public class BmpDecoderTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
+
+        // The only Decode overload that takes a CancellationToken is protected. https://github.com/xunit/xunit/issues/3673
+#pragma warning disable xUnit1051
         using Image<Rgba32> image = BmpDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream);
+#pragma warning restore xUnit1051
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -843,7 +850,10 @@ public class BmpDecoderTests
 
         Assert.Throws<InvalidImageContentException>(() =>
         {
+            // The only Decode overload that takes a CancellationToken is protected. https://github.com/xunit/xunit/issues/3673
+#pragma warning disable xUnit1051
             using Image image = BmpDecoder.Instance.Decode(DecoderOptions.Default, stream);
+#pragma warning restore xUnit1051
         });
     }
 

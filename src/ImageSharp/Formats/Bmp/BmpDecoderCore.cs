@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -204,17 +205,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 break;
 
             case BmpCompression.RGB when bitsPerPixel is 16:
-                this.ReadBitFields(
-                    stream,
-                    pixels,
-                    this.infoHeader.Width,
-                    this.infoHeader.Height,
-                    inverted,
-                    16,
-                    DefaultRgb16RMask,
-                    DefaultRgb16GMask,
-                    DefaultRgb16BMask,
-                    0);
+                this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, false);
 
                 break;
 
@@ -389,6 +380,18 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         if (bitsPerPixel is 32 && redMask is 0x00FF0000 && greenMask is 0x0000FF00 && blueMask is 0x000000FF && alphaMask is 0xFF000000)
         {
             this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+            return;
+        }
+
+        // These masks are the 5-5-5 layout of a 16-bit RGB bitmap, with alpha in bit 15 when the alpha mask is set.
+        // That is the layout of Bgra5551, so the bulk Bgra5551 conversion reads the row with no unpack.
+        if (bitsPerPixel is 16
+            && redMask == DefaultRgb16RMask
+            && greenMask == DefaultRgb16GMask
+            && blueMask == DefaultRgb16BMask
+            && alphaMask is 0 or 0x8000)
+        {
+            this.ReadRgb555(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, alphaMask != 0);
             return;
         }
 
@@ -1026,6 +1029,58 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             int newY = Invert(y, height, inverted);
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
             PixelOperations<TPixel>.Instance.FromBgr24Bytes(
+                this.configuration,
+                rowSpan,
+                pixelSpan,
+                width);
+        }
+    }
+
+    /// <summary>
+    /// Reads a 16-bit bitmap with the 5-5-5 layout: blue in bits 0..4, green in bits 5..9 and red in bits 10..14.
+    /// </summary>
+    /// <remarks>
+    /// This is the <see cref="Bgra5551"/> layout, so the row goes to the bulk <see cref="Bgra5551"/> conversion, as in
+    /// the TGA decoder. When bit 15 is not alpha, the read sets it in each pixel, so that each pixel is opaque.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
+    /// <param name="width">The width of the bitmap.</param>
+    /// <param name="height">The height of the bitmap.</param>
+    /// <param name="inverted">Whether the bitmap is inverted.</param>
+    /// <param name="hasAlpha">Whether bit 15 is alpha.</param>
+    private void ReadRgb555<TPixel>(
+        BufferedReadStream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        bool inverted,
+        bool hasAlpha)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int padding = CalculatePadding(width, 2);
+        using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, padding);
+        Span<byte> rowSpan = row.GetSpan();
+
+        // Each pixel is one little-endian 16-bit value, so the pixel bytes of the row read as one ushort per pixel.
+        Span<ushort> samples = MemoryMarshal.Cast<byte, ushort>(rowSpan[..(width * 2)]);
+
+        for (int y = 0; y < height; y++)
+        {
+            if (!TryReadPixelBytes(stream, rowSpan, width * 2))
+            {
+                return;
+            }
+
+            if (!hasAlpha)
+            {
+                TensorPrimitives.BitwiseOr(samples, (ushort)0x8000, samples);
+            }
+
+            int newY = Invert(y, height, inverted);
+            Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
+            PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
                 this.configuration,
                 rowSpan,
                 pixelSpan,

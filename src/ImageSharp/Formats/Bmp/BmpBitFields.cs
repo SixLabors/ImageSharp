@@ -19,10 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// </para>
 /// <para>
 /// When each channel has 8 bits or fewer, <see cref="Unpack{TSample}"/> writes 4-byte pixels. The byte order is
-/// R, G, B, A (<see cref="Rgba32"/>) or B, G, R, A (<see cref="Bgra32"/>). Each channel widens to 8 bits by bit
-/// replication. For example, the 5-bit value <c>abcde</c> becomes <c>abcdeabc</c>. The shift, mask and widen
-/// values are the same for all pixels. Thus each SIMD lane does the same scalar operations on one sample, and all
-/// register widths give the same result as the scalar form.
+/// R, G, B, A (<see cref="Rgba32"/>) or B, G, R, A (<see cref="Bgra32"/>). Each channel widens to the nearest 8-bit
+/// value by the Direct3D UNORM rules. The shift, mask and widen values are the same for all pixels. Thus each SIMD
+/// lane does the same scalar operations on one sample, and all register widths give the same result as the scalar form.
 /// </para>
 /// <para>
 /// When a channel has more than 8 bits, a 4-byte pixel cannot hold its precision. Then
@@ -190,19 +189,27 @@ internal readonly partial struct BmpBitFields
     /// gaps, <c>v</c> is still less than <c>2^n</c>, so a value never reaches the next channel.
     /// </para>
     /// <para>
-    /// Bit replication repeats <c>v</c> until it has at least 8 bits, then keeps the top 8 bits. One multiply does
-    /// the repeat. With <c>k = ceil(8 / n)</c> copies, <c>v * (1 + 2^n + ... + 2^((k-1)n))</c> holds the copies in
-    /// <c>k * n</c> bits. A right shift by <c>k * n - 8</c> keeps the top 8 bits. The product is less than
-    /// <c>2^(k * n)</c>, so the result is less than 256 and needs no mask. For 8 bits, the multiplier is 1 and the
-    /// shift is 0. For a channel with no mask, the multiplier is 0 and the result is 0.
+    /// The Direct3D UNORM rules give the 8-bit value as <c>round(v * 255 / low)</c>. <c>low</c> is odd, because the shift
+    /// removes the trailing zero bits of the mask. Thus <c>v * 255 / low</c> is never a half, and
+    /// <c>(v * 255 + low / 2) / low</c> is the rounded value. A channel with no mask gives 0.
     /// </para>
     /// </remarks>
     private readonly struct Channel
     {
+        // The lanes divide by low with one multiply and one shift: (x * ceil(2^24 / low)) >> 24. A vector integer
+        // division does more work. On x86, the JIT checks the divisor for zero, converts the lanes to double, divides
+        // and converts back. The result equals x / low when x * low is below 2^24. The largest x * low is
+        // (255 * 255 + 127) * 255, and the largest product fits 32 bits.
+
+        /// <summary>
+        /// The shift of the division by <c>low</c>.
+        /// </summary>
+        private const int DivideShift = 24;
+
         private readonly int shift;
         private readonly uint low;
+        private readonly uint bias;
         private readonly uint multiplier;
-        private readonly int widenShift;
         private readonly int position;
         private readonly float scale;
 
@@ -235,20 +242,11 @@ internal readonly partial struct BmpBitFields
 
             if (this.Bits <= 8)
             {
-                // copies = ceil(8 / Bits) is the count of copies that fills 8 bits or more. The multiplier has one set
-                // bit at the start of each copy: bits 0, Bits, 2 * Bits and on.
-                // Example: 5 bits. copies = 2, multiplier = 0b10_0001 (1 + 2^5). For v = 0b10110 the product is
-                // 0b10110_10110, 10 bits. The shift by 10 - 8 = 2 keeps 0b1011_0101, which is v << 3 | v >> 2.
-                // Example: 3 bits. copies = 3, multiplier = 0b1_0010_0100 (1 + 2^3 + 2^6). For v = 0b101 the
-                // product is 0b101_101_101, 9 bits. The shift by 1 keeps 0b1011_0110.
-                // Example: 1 bit. copies = 8, multiplier = 0xFF, shift 0. The values 0 and 1 give 0 and 255.
-                int copies = (8 + this.Bits - 1) / this.Bits;
-                for (int i = 0; i < copies; i++)
-                {
-                    this.multiplier |= 1U << (i * this.Bits);
-                }
-
-                this.widenShift = (copies * this.Bits) - 8;
+                // The bias rounds to the nearest value. The multiplier divides by low, as the comment above DivideShift explains.
+                // Example: 5 bits. low = 31, bias = 15, multiplier = 541201. For v = 3, x = 3 * 255 + 15 = 780 and
+                // (780 * 541201) >> 24 = 25, the nearest 8-bit value to 3 * 255 / 31 = 24.68.
+                this.bias = this.low / 2;
+                this.multiplier = (uint)(((1UL << DivideShift) + this.low - 1) / this.low);
             }
         }
 
@@ -274,11 +272,11 @@ internal readonly partial struct BmpBitFields
         public uint Unpack(uint sample)
         {
             // 1. Move the channel to bit 0 and remove the other channels: v = (sample >> shift) & low.
-            // 2. Widen v to 8 bits by bit replication: (v * multiplier) >> widenShift. The result is 0 to 255.
+            // 2. Widen v to the nearest 8-bit value: (((v * 255) + bias) * multiplier) >> 24. The result is 0 to 255.
             // 3. Move the 8-bit value to its byte in the pixel uint: << position. The bytes of the four channels do
             //    not overlap, so the caller ORs them together.
             uint value = (sample >> this.shift) & this.low;
-            return ((value * this.multiplier) >> this.widenShift) << this.position;
+            return ((((value * 255) + this.bias) * this.multiplier) >> DivideShift) << this.position;
         }
 
         /// <inheritdoc cref="Unpack(uint)"/>
@@ -290,7 +288,8 @@ internal readonly partial struct BmpBitFields
         public Vector128<uint> Unpack(Vector128<uint> sample)
         {
             Vector128<uint> value = Vector128.ShiftRightLogical(sample, this.shift) & Vector128.Create(this.low);
-            return Vector128.ShiftLeft(Vector128.ShiftRightLogical(value * this.multiplier, this.widenShift), this.position);
+            value = ((value * 255) + Vector128.Create(this.bias)) * this.multiplier;
+            return Vector128.ShiftLeft(Vector128.ShiftRightLogical(value, DivideShift), this.position);
         }
 
         /// <inheritdoc cref="Unpack(Vector128{uint})"/>
@@ -298,7 +297,8 @@ internal readonly partial struct BmpBitFields
         public Vector256<uint> Unpack(Vector256<uint> sample)
         {
             Vector256<uint> value = Vector256.ShiftRightLogical(sample, this.shift) & Vector256.Create(this.low);
-            return Vector256.ShiftLeft(Vector256.ShiftRightLogical(value * this.multiplier, this.widenShift), this.position);
+            value = ((value * 255) + Vector256.Create(this.bias)) * this.multiplier;
+            return Vector256.ShiftLeft(Vector256.ShiftRightLogical(value, DivideShift), this.position);
         }
 
         /// <inheritdoc cref="Unpack(Vector128{uint})"/>
@@ -306,7 +306,8 @@ internal readonly partial struct BmpBitFields
         public Vector512<uint> Unpack(Vector512<uint> sample)
         {
             Vector512<uint> value = Vector512.ShiftRightLogical(sample, this.shift) & Vector512.Create(this.low);
-            return Vector512.ShiftLeft(Vector512.ShiftRightLogical(value * this.multiplier, this.widenShift), this.position);
+            value = ((value * 255) + Vector512.Create(this.bias)) * this.multiplier;
+            return Vector512.ShiftLeft(Vector512.ShiftRightLogical(value, DivideShift), this.position);
         }
     }
 }

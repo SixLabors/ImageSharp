@@ -407,60 +407,46 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrame<TPixel>? clonedFrame = null;
-        try
+        // The indexed paths quantize, and the quantizer applies the transparent color mode. The direct-color paths
+        // replace transparent pixels in each converted row, so the source frame stays unchanged without a copy.
+        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode);
+        Buffer2D<TPixel> pixels = frame.PixelBuffer;
+
+        switch (this.bitsPerPixel)
         {
-            // No need to clone when quantizing. The quantizer will do it for us.
-            // TODO: We should really try to avoid the clone entirely.
-            int bpp = this.bitsPerPixel != null ? (int)this.bitsPerPixel : 32;
-            if (bpp > 8 && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
-            {
-                clonedFrame = frame.Clone();
-                EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
-            }
+            case BmpBitsPerPixel.Bit32:
+                this.WriteDirectColorPixels<TPixel, Bgra32>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                break;
 
-            ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;
-            Buffer2D<TPixel> pixels = encodingFrame.PixelBuffer;
+            case BmpBitsPerPixel.Bit24:
+                this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                break;
 
-            switch (this.bitsPerPixel)
-            {
-                case BmpBitsPerPixel.Bit32:
-                    this.WriteDirectColorPixels<TPixel, Bgra32>(configuration, stream, pixels, converter, cancellationToken);
-                    break;
+            case BmpBitsPerPixel.Bit16:
+                this.WriteDirectColorPixels<TPixel, Bgra5551>(configuration, stream, pixels, converter, replaceTransparent, cancellationToken);
+                break;
 
-                case BmpBitsPerPixel.Bit24:
-                    this.WriteDirectColorPixels<TPixel, Bgr24>(configuration, stream, pixels, converter, cancellationToken);
-                    break;
+            case BmpBitsPerPixel.Bit8:
+                this.Write8BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
+                break;
 
-                case BmpBitsPerPixel.Bit16:
-                    this.WriteDirectColorPixels<TPixel, Bgra5551>(configuration, stream, pixels, converter, cancellationToken);
-                    break;
+            case BmpBitsPerPixel.Bit4:
+                this.Write4BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
+                break;
 
-                case BmpBitsPerPixel.Bit8:
-                    this.Write8BitIndexedPixels(configuration, stream, encodingFrame, converter, cancellationToken);
-                    break;
+            case BmpBitsPerPixel.Bit2:
+                this.Write2BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
+                break;
 
-                case BmpBitsPerPixel.Bit4:
-                    this.Write4BitIndexedPixels(configuration, stream, encodingFrame, converter, cancellationToken);
-                    break;
-
-                case BmpBitsPerPixel.Bit2:
-                    this.Write2BitIndexedPixels(configuration, stream, encodingFrame, converter, cancellationToken);
-                    break;
-
-                case BmpBitsPerPixel.Bit1:
-                    this.Write1BitIndexedPixels(configuration, stream, encodingFrame, converter, cancellationToken);
-                    break;
-            }
-
-            if (this.processedAlphaMask)
-            {
-                ProcessedAlphaMask(stream, encodingFrame);
-            }
+            case BmpBitsPerPixel.Bit1:
+                this.Write1BitIndexedPixels(configuration, stream, frame, converter, cancellationToken);
+                break;
         }
-        finally
+
+        // The mask stores alpha only. Replacement keeps alpha, so the source frame gives the same mask.
+        if (this.processedAlphaMask)
         {
-            clonedFrame?.Dispose();
+            ProcessedAlphaMask(stream, frame);
         }
     }
 
@@ -482,12 +468,14 @@ internal sealed class BmpEncoderCore
     /// <param name="stream">The destination stream.</param>
     /// <param name="pixels">The source pixels, which remain unchanged.</param>
     /// <param name="converter">The converter from sRGB to the output profile, or null for unchanged samples.</param>
+    /// <param name="replaceTransparent">Whether pixels with alpha 0 are written as transparent black.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     private void WriteDirectColorPixels<TPixelFrom, TPixelTo>(
         Configuration configuration,
         Stream stream,
         Buffer2D<TPixelFrom> pixels,
         ColorProfileConverter? converter,
+        bool replaceTransparent,
         CancellationToken cancellationToken)
         where TPixelFrom : unmanaged, IPixel<TPixelFrom>
         where TPixelTo : unmanaged, IPixel<TPixelTo>
@@ -498,36 +486,48 @@ internal sealed class BmpEncoderCore
         Span<byte> rowSpan = row.GetSpan();
         Span<TPixelTo> packedRow = MemoryMarshal.Cast<byte, TPixelTo>(rowSpan[..(width * bytesPerPixel)]);
         PixelOperations<TPixelTo> pixelOperations = PixelOperations<TPixelTo>.Instance;
+        PixelOperations<TPixelFrom> sourceOperations = PixelOperations<TPixelFrom>.Instance;
 
         // The destination's bulk From operation delegates to the existing BGR, BGRA or Bgra5551 source packer.
         // Keep alignment padding outside the pixel span, and allocate no ICC scratch for unchanged output.
-        if (converter is null)
+        if (converter is null && !replaceTransparent)
         {
             for (int y = pixels.Height - 1; y >= 0; y--)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                ReadOnlySpan<TPixelFrom> pixelSpan = pixels.DangerousGetRowSpan(y);
-                pixelOperations.From(configuration, pixelSpan, packedRow);
+                pixelOperations.From(configuration, pixels.DangerousGetRowSpan(y), packedRow);
                 stream.Write(rowSpan);
             }
 
             return;
         }
 
-        // Transform a separate floating row before final sample packing. Reuse the row buffer for every scanline.
+        // Change a straight floating copy of each row, so the source pixels stay unchanged. Transparent pixels are
+        // replaced before the profile conversion, then the destination pixel format performs the final quantization.
         using IMemoryOwner<Vector4> vectorBuffer = this.memoryAllocator.Allocate<Vector4>(width);
-        Span<Vector4> vectors = vectorBuffer.GetSpan();
+        Span<Vector4> vectors = vectorBuffer.GetSpan()[..width];
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            ReadOnlySpan<TPixelFrom> pixelSpan = pixels.DangerousGetRowSpan(y);
-            converter.Convert(configuration, pixelSpan, vectors);
+            sourceOperations.ToUnassociatedScaledVector4(configuration, pixels.DangerousGetRowSpan(y), vectors);
 
-            // ICC returns straight RGB and retains alpha. The destination pixel format performs the final quantization.
-            pixelOperations.FromUnassociatedScaledVector4Destructive(configuration, vectors, packedRow);
+            if (replaceTransparent)
+            {
+                EncodingUtilities.ReplaceTransparentPixels(vectors);
+            }
+
+            if (converter is null)
+            {
+                pixelOperations.FromUnassociatedScaledVector4Destructive(configuration, vectors, packedRow);
+            }
+            else
+            {
+                converter.Convert(configuration, vectors, packedRow, PixelAlphaRepresentation.Unassociated);
+            }
+
             stream.Write(rowSpan);
         }
     }

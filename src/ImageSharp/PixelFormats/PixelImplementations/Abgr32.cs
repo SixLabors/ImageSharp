@@ -261,7 +261,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Abgr32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+    public static Abgr32 FromBgra5551(Bgra5551 source) => FromRgba32(source.ToRgba32());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

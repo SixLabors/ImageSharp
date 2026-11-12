@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters;
 
@@ -89,8 +90,8 @@ internal static class PaethFilter
             Vector128<short> smallest = Sse2.Min(pc, Sse2.Min(pa, pb));
 
             // Paeth breaks ties favoring a over b over c.
-            Vector128<byte> mask = SimdUtils.HwIntrinsics.BlendVariable(c, b, Sse2.CompareEqual(smallest, pb).AsByte());
-            Vector128<byte> nearest = SimdUtils.HwIntrinsics.BlendVariable(mask, a, Sse2.CompareEqual(smallest, pa).AsByte());
+            Vector128<byte> mask = Vector128_.BlendVariable(c, b, Sse2.CompareEqual(smallest, pb).AsByte());
+            Vector128<byte> nearest = Vector128_.BlendVariable(mask, a, Sse2.CompareEqual(smallest, pa).AsByte());
 
             // Note `_epi8`: we need addition to wrap modulo 255.
             d = Sse2.Add(d, nearest);
@@ -142,8 +143,8 @@ internal static class PaethFilter
             Vector128<short> smallest = AdvSimd.Min(pc, AdvSimd.Min(pa, pb));
 
             // Paeth breaks ties favoring a over b over c.
-            Vector128<byte> mask = SimdUtils.HwIntrinsics.BlendVariable(c, b, AdvSimd.CompareEqual(smallest, pb).AsByte());
-            Vector128<byte> nearest = SimdUtils.HwIntrinsics.BlendVariable(mask, a, AdvSimd.CompareEqual(smallest, pa).AsByte());
+            Vector128<byte> mask = Vector128_.BlendVariable(c, b, AdvSimd.CompareEqual(smallest, pb).AsByte());
+            Vector128<byte> nearest = Vector128_.BlendVariable(mask, a, AdvSimd.CompareEqual(smallest, pa).AsByte());
 
             d = AdvSimd.Add(d, nearest);
 

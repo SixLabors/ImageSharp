@@ -227,6 +227,28 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Selects each byte from <paramref name="right"/> where the high bit of the matching <paramref name="mask"/> byte
+    /// is set, and from <paramref name="left"/> where it is clear.
+    /// </summary>
+    /// <param name="left">The bytes selected where the high bit of the mask byte is clear.</param>
+    /// <param name="right">The bytes selected where the high bit of the mask byte is set.</param>
+    /// <param name="mask">The selection mask. Only the high bit of each byte is used.</param>
+    /// <returns>The selected bytes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> BlendVariable(Vector128<byte> left, Vector128<byte> right, Vector128<byte> mask)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.BlendVariable(left, right, mask);
+        }
+
+        // ConditionalSelect selects bit by bit. A signed compare with zero sets all bits of each byte that has its
+        // high bit set, so the bitwise select then works on whole bytes. The compare is pcmpgtb on SSE2 and cmlt on Arm.
+        Vector128<byte> selectRight = Vector128.LessThan(mask.AsSByte(), Vector128<sbyte>.Zero).AsByte();
+        return Vector128.ConditionalSelect(selectRight, right, left);
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using the control.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>

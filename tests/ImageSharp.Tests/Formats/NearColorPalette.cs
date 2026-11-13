@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Tests.Formats;
 
 /// <summary>
-/// Provides an image and a palette for the reuse of a decoded palette. The two colors differ only in red, by 8 and 12.
+/// Provides an image and a palette for the reuse of a decoded palette. The two colors differ only in red: 8 and 12.
 /// Both fall in the same bucket of the coarse color cache, which keeps 5 bits of each channel, so coarse matching maps
 /// both colors to one entry. Only exact matching keeps each pixel's color.
 /// </summary>

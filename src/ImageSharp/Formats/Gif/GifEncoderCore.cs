@@ -125,7 +125,7 @@ internal sealed class GifEncoderCore
                 if (ti >= 0 || gifMetadata.GlobalColorTable.Value.Length < 256)
                 {
                     // We avoid dithering and match colors exactly to preserve the original colors. The first frame
-                    // quantizes with these options too, so they replace the encoder options.
+                    // quantizes with these options too, so they replace the default options.
                     options = options.DeepClone(o =>
                     {
                         o.Dither = null;

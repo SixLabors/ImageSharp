@@ -750,4 +750,21 @@ public partial class PngEncoderTests
         using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, fileStream);
         ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
     }
+
+    [Fact]
+    public void Encode_PaletteFromMetadata_KeepsExactColors()
+    {
+        using Image<Rgba32> image = NearColorPalette.CreateImage();
+        PngMetadata metadata = image.Metadata.GetPngMetadata();
+        metadata.ColorType = PngColorType.Palette;
+        metadata.BitDepth = PngBitDepth.Bit8;
+        metadata.ColorTable = NearColorPalette.Palette;
+
+        using MemoryStream stream = new();
+        image.Save(stream, new PngEncoder());
+        stream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(stream);
+
+        ImageComparer.Exact.VerifySimilarity(image, output);
+    }
 }

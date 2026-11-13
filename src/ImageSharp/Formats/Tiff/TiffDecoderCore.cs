@@ -393,8 +393,14 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         int tileWidth = (int)valueWidth.Value;
         int tileLength = (int)valueLength.Value;
-        int tilesAcross = (width + tileWidth - 1) / tileWidth;
-        int tilesDown = (height + tileLength - 1) / tileLength;
+        if (tileWidth <= 0 || tileLength <= 0)
+        {
+            TiffThrowHelper.ThrowImageFormatException("TIFF tile dimensions must be positive.");
+        }
+
+        // Widen the sums because edge tiles may extend beyond the frame.
+        int tilesAcross = (int)(((long)width + tileWidth - 1) / tileWidth);
+        int tilesDown = (int)(((long)height + tileLength - 1) / tileLength);
 
         Array tilesOffsetsArray;
         Array tilesByteCountsArray;
@@ -672,13 +678,17 @@ internal class TiffDecoderCore : ImageDecoderCore
                 stripData = stripData[..(int)this.CalculateUncompressedDataSize(width, stripHeight, -1)];
             }
 
-            decompressor.Decompress(
-                this.inputStream,
-                stripOffsets[stripIndex],
-                stripByteCounts[stripIndex],
-                stripHeight,
-                stripData,
-                cancellationToken);
+            if (!decompressor.TryDecompress(
+                    this.inputStream,
+                    stripOffsets[stripIndex],
+                    stripByteCounts[stripIndex],
+                    stripHeight,
+                    stripData,
+                    this.Options.SegmentIntegrityHandling,
+                    cancellationToken))
+            {
+                continue;
+            }
 
             colorDecoder.Decode(stripBufferSpan, pixels, 0, top, width, stripHeight);
         }
@@ -841,9 +851,9 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width = pixels.Width;
         int height = pixels.Height;
         int bitsPerPixel = this.BitsPerPixel;
-        int bytesPerTileRow = RoundUpToMultipleOfEight(tileWidth * bitsPerPixel);
+        int tileBufferSize = GetTileBufferSize(tileWidth, tileLength, bitsPerPixel, out int bytesPerTileRow);
 
-        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(bytesPerTileRow * tileLength, AllocationOptions.Clean);
+        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(tileBufferSize, AllocationOptions.Clean);
         Span<byte> tileBufferSpan = tileBuffer.GetSpan();
 
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, frame.Metadata, true, tileWidth, tileLength);
@@ -862,16 +872,21 @@ internal class TiffDecoderCore : ImageDecoderCore
                 bool isLastHorizontalTile = tileX == tilesAcross - 1;
                 int remainingPixelsInRow = width - (tileX * tileWidth);
 
-                decompressor.Decompress(
-                    this.inputStream,
-                    tileOffsets[tileIndex],
-                    tileByteCounts[tileIndex],
-                    tileLength,
-                    tileBufferSpan,
-                    cancellationToken);
+                if (!decompressor.TryDecompress(
+                        this.inputStream,
+                        tileOffsets[tileIndex],
+                        tileByteCounts[tileIndex],
+                        tileLength,
+                        tileBufferSpan,
+                        this.Options.SegmentIntegrityHandling,
+                        cancellationToken))
+                {
+                    tileIndex++;
+                    continue;
+                }
 
                 int tileBufferOffset = 0;
-                int bytesToCopy = isLastHorizontalTile ? RoundUpToMultipleOfEight(bitsPerPixel * remainingPixelsInRow) : bytesPerTileRow;
+                int bytesToCopy = isLastHorizontalTile ? (int)RoundUpToMultipleOfEight((long)bitsPerPixel * remainingPixelsInRow) : bytesPerTileRow;
                 int rowWidth = Math.Min(tileWidth, remainingPixelsInRow);
                 int left = tileX * tileWidth;
 
@@ -1063,6 +1078,33 @@ internal class TiffDecoderCore : ImageDecoderCore
             || (this.YcbcrSubSampling[0] == 1 && this.YcbcrSubSampling[1] == 1);
     }
 
+    /// <summary>
+    /// Converts a bit count to the number of bytes needed to store it.
+    /// </summary>
+    /// <param name="value">The number of bits.</param>
+    /// <returns>The number of bytes, rounded up.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int RoundUpToMultipleOfEight(int value) => (int)(((uint)value + 7) / 8);
+    private static long RoundUpToMultipleOfEight(long value) => (value + 7) / 8;
+
+    /// <summary>
+    /// Gets the byte count of a tile with byte-aligned rows and verifies it fits in a span.
+    /// </summary>
+    /// <param name="tileWidth">The encoded tile width in pixels.</param>
+    /// <param name="tileLength">The encoded tile height in rows.</param>
+    /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+    /// <param name="bytesPerTileRow">The encoded row width in bytes, including padding.</param>
+    /// <returns>The required tile buffer length in bytes.</returns>
+    private static int GetTileBufferSize(int tileWidth, int tileLength, int bitsPerPixel, out int bytesPerTileRow)
+    {
+        long rowBytes = RoundUpToMultipleOfEight((long)tileWidth * bitsPerPixel);
+
+        // Check the span limit before multiplying by the file's tile height.
+        if (rowBytes > int.MaxValue / tileLength)
+        {
+            TiffThrowHelper.ThrowNotSupported("The TIFF tile buffer exceeds Int32.MaxValue bytes.");
+        }
+
+        bytesPerTileRow = (int)rowBytes;
+        return bytesPerTileRow * tileLength;
+    }
 }

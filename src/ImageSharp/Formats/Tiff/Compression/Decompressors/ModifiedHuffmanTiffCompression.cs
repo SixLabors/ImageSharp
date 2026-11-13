@@ -39,6 +39,10 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     private TiffFillOrder FillOrder { get; }
 
     /// <inheritdoc/>
+    /// <remarks>The fax decoder clears the sample buffer before each block and checks the range of every write.</remarks>
+    protected override bool CanDiscardFailedBlock => true;
+
+    /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
         ModifiedHuffmanBitReader bitReader = new(stream, this.FillOrder, byteCount);

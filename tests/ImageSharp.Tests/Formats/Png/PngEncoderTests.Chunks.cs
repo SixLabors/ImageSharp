@@ -237,6 +237,11 @@ public partial class PngEncoderTests
         PngChunkFilter chunkFilter = (PngChunkFilter)filterObj;
         TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
+
+        // The encoder writes gAMA only for an image without an ICC profile. Remove the fixture's profile
+        // so this test still covers the gAMA chunk filter.
+        input.Metadata.IccProfile = null;
+        input.Frames.RootFrame.Metadata.IccProfile = null;
         using MemoryStream memStream = new();
         PngEncoder encoder = new() { ChunkFilter = chunkFilter, TextCompressionThreshold = 8 };
         Dictionary<PngChunkType, bool> expectedChunkTypes = new()

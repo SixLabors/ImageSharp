@@ -46,20 +46,19 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
     /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
-    {
-        if (this.jpegTables != null)
-        {
-            this.DecodeJpegData(stream, buffer, cancellationToken);
-        }
-        else
-        {
-            using Image<Rgb24> image = Image.Load<Rgb24>(this.options.GeneralOptions, stream);
-            JpegCompressionUtils.CopyImageBytesToBuffer(this.options.GeneralOptions.Configuration, buffer, image.Frames.RootFrame.PixelBuffer);
-        }
-    }
+        => this.DecodeJpegData(stream, buffer, cancellationToken);
 
+    /// <summary>
+    /// Decodes one JPEG strip or tile into the raw TIFF sample buffer.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the JPEG data.</param>
+    /// <param name="buffer">The raw sample destination.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
     {
+        // Always use the JPEG decoder. A format-detecting load could select another decoder, including TIFF,
+        // and a strip that points back at the TIFF header would then recurse until the stack overflows.
+        // Without JPEGTables, the strip holds its own tables and ParseStream creates its own scan decoder.
         using JpegDecoderCore jpegDecoder = new(this.options);
         Configuration configuration = this.options.GeneralOptions.Configuration;
         switch (this.photometricInterpretation)
@@ -68,9 +67,13 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.WhiteIsZero:
             {
                 using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
-                HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
 
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
+                if (this.jpegTables is not null)
+                {
+                    HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
+                    jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
+                }
+
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
                 using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
@@ -81,10 +84,15 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.YCbCr:
             case TiffPhotometricInterpretation.Rgb:
             {
+                // The IFD defines the strip's component convention, whether JPEG tables are shared or stored in the strip.
                 using SpectralConverter<Rgb24> spectralConverter = new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
-                HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
 
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
+                if (this.jpegTables is not null)
+                {
+                    HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
+                    jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
+                }
+
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
                 using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);

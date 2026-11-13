@@ -18,10 +18,11 @@ public class TransformsHelpersTest
 
         using (var img = new Image<A8>(xy, xy))
         {
+            // The metadata setter rejects an empty profile, so add the values before assigning it.
             var profile = new ExifProfile();
-            img.Metadata.ExifProfile = profile;
             profile.SetValue(ExifTag.PixelXDimension, xy + ushort.MaxValue);
             profile.SetValue(ExifTag.PixelYDimension, xy + ushort.MaxValue);
+            img.Metadata.ExifProfile = profile;
 
             Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelXDimension).DataType);
             Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelYDimension).DataType);

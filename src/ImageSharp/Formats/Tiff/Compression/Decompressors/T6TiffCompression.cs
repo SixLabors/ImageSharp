@@ -75,6 +75,8 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
 
     private nint WriteScanLine(Span<byte> buffer, Span<byte> scanLine, nint bitsWritten)
     {
+        BitWriterUtils.ValidateWriteRange(buffer.Length, bitsWritten, scanLine.Length);
+
         nint bitPos = Numerics.Modulo8(bitsWritten);
         nint bufferPos = bitsWritten / 8;
         ref byte scanLineRef = ref MemoryMarshal.GetReference(scanLine);

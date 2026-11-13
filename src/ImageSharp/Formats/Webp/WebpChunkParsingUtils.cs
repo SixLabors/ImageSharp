@@ -411,11 +411,13 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="metadata">The image metadata.</param>
+    /// <param name="allowTruncated">Whether to keep readable tags from an incomplete ICC profile.</param>
     /// <param name="executeAncillarySegmentAction">Executes profile parsing under the decoder's integrity policy.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
     public static void ReadIccProfile(
         BufferedReadStream stream,
         ImageMetadata metadata,
+        bool allowTruncated,
         Action<Action> executeAncillarySegmentAction,
         long containerEnd)
     {
@@ -442,12 +444,12 @@ internal static class WebpChunkParsingUtils
                     }
 
                     IccReader reader = new();
-                    if (reader.Read(stream, chunkLength) != chunkLength)
+                    if (!reader.TryReadSegment(stream, chunkLength))
                     {
                         WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the ICCP chunk.");
                     }
 
-                    metadata.IccProfile = reader.ToProfile();
+                    metadata.IccProfile = reader.ToProfile(allowTruncated);
                 }
             });
         }
@@ -472,12 +474,27 @@ internal static class WebpChunkParsingUtils
         long containerEnd)
     {
         ulong payloadSize = ReadChunkPayloadSize(stream, stackalloc byte[4], !ignoreMetadata);
-        byte[]? exifData = ReadMetadataChunk(stream, payloadSize, ignoreMetadata || metadata.ExifProfile != null, containerEnd);
-        if (exifData is not null)
+        bool skip = ignoreMetadata || metadata.ExifProfile is not null;
+        long chunkEnd = GetMetadataChunkEnd(stream, payloadSize, skip, containerEnd);
+        if (skip)
         {
-            ExifProfile exifProfile = new(exifData);
+            stream.Position = chunkEnd;
+            return;
+        }
 
-            // Set the resolution from the metadata.
+        try
+        {
+            if (!ExifReader.TryReadProfile(stream, (long)payloadSize, out ExifProfile? exifProfile))
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the EXIF packet.");
+            }
+
+            if (!metadata.TrySetExifProfile(exifProfile))
+            {
+                return;
+            }
+
+            // Set the resolution from the admitted EXIF profile.
             double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
             double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
 
@@ -487,8 +504,10 @@ internal static class WebpChunkParsingUtils
                 metadata.VerticalResolution = verticalValue;
                 metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
             }
-
-            metadata.ExifProfile = exifProfile;
+        }
+        finally
+        {
+            stream.Position = chunkEnd;
         }
     }
 
@@ -506,52 +525,50 @@ internal static class WebpChunkParsingUtils
         long containerEnd)
     {
         ulong payloadSize = ReadChunkPayloadSize(stream, stackalloc byte[4], !ignoreMetadata);
-        byte[]? xmpData = ReadMetadataChunk(stream, payloadSize, ignoreMetadata || metadata.XmpProfile != null, containerEnd);
-        if (xmpData is not null)
+        bool skip = ignoreMetadata || metadata.XmpProfile is not null;
+        long chunkEnd = GetMetadataChunkEnd(stream, payloadSize, skip, containerEnd);
+        if (skip)
         {
-            metadata.XmpProfile = new XmpProfile(xmpData);
+            stream.Position = chunkEnd;
+            return;
+        }
+
+        try
+        {
+            if (!XmpReader.TryReadProfile(stream, (long)payloadSize, out XmpProfile? profile))
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the XMP packet.");
+            }
+
+            metadata.XmpProfile = profile;
+        }
+        finally
+        {
+            stream.Position = chunkEnd;
         }
     }
 
     /// <summary>
-    /// Reads a metadata payload, leaving the stream at the next chunk or EOF on a recoverable error.
-    /// Callers execute metadata parsing under the decoder's ancillary integrity policy.
+    /// Finds the next RIFF chunk, accounting for the padding after odd-sized payloads.
     /// </summary>
-    /// <param name="stream">The input stream positioned at the chunk payload.</param>
-    /// <param name="payloadLength">The declared payload length, excluding its padding byte.</param>
-    /// <param name="ignoreMetadata">Whether to skip the payload without parsing it.</param>
+    /// <param name="stream">The input positioned at the payload.</param>
+    /// <param name="payloadLength">The declared length excluding padding.</param>
+    /// <param name="skip">Whether the payload is skipped without reading it.</param>
     /// <param name="containerEnd">The end of the RIFF payload.</param>
-    /// <returns>The payload, or null when metadata is skipped.</returns>
-    private static byte[]? ReadMetadataChunk(BufferedReadStream stream, ulong payloadLength, bool ignoreMetadata, long containerEnd)
+    /// <returns>The next chunk position, limited to the end of the RIFF container or stream.</returns>
+    private static long GetMetadataChunkEnd(BufferedReadStream stream, ulong payloadLength, bool skip, long containerEnd)
     {
-        // An odd-sized payload is followed by a padding byte that is part of the chunk but not of the payload.
-        // The next chunk starts after it, clamped to the end of a truncated stream.
         ulong paddedLength = payloadLength + (payloadLength & 1);
-        long chunkEnd = stream.Position + (long)Math.Min(paddedLength, (ulong)(Math.Min(containerEnd, stream.Length) - stream.Position));
-        if (ignoreMetadata)
+        long available = Math.Max(0, Math.Min(containerEnd, stream.Length) - stream.Position);
+        long chunkEnd = stream.Position + (long)Math.Min(paddedLength, (ulong)available);
+        if (!skip && paddedLength > (ulong)available)
         {
-            stream.Position = chunkEnd;
-            return null;
-        }
-
-        if (paddedLength > (ulong)(Math.Min(containerEnd, stream.Length) - stream.Position) || !stream.TryGetReadLength(payloadLength, out _))
-        {
-            // Ignoring an ancillary error must not make the next parser interpret
-            // this payload as another chunk header. A truncated chunk consumes EOF.
+            // Recovery must not read the partial payload as another chunk header.
             stream.Position = chunkEnd;
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the metadata chunk.");
         }
 
-        int bufferLength = (int)payloadLength;
-        byte[] data = new byte[bufferLength];
-        if (stream.Read(data) != bufferLength)
-        {
-            WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the metadata chunk.");
-        }
-
-        // Skip the padding byte, so it is neither returned as payload nor read as the next chunk header.
-        stream.Position = chunkEnd;
-        return data;
+        return chunkEnd;
     }
 
     private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)

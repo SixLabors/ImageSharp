@@ -50,9 +50,10 @@ public class FlipTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 50, 50]);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        exifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 50, 50]);
+        image.Metadata.ExifProfile = exifProfile;
 
         image.Mutate(ctx => ctx.Flip(FlipMode.Vertical));
 
@@ -79,9 +80,10 @@ public class FlipTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 50, 50]);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        exifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 50, 50]);
+        image.Metadata.ExifProfile = exifProfile;
 
         image.Mutate(ctx => ctx.Flip(FlipMode.Horizontal));
 

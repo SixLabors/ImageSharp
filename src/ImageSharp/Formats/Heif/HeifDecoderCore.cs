@@ -586,7 +586,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         // Sequence output has the same packed RGB description as a still image. ICC conversion changes the
         // primaries and transfer to sRGB. Without ICC conversion, the source primaries and transfer stay.
-        return profile is null
+        return profile is null || profile.IsUnusableForDecoding
             ? new CicpProfile(
                 (byte)sourceProfile.ColorPrimaries,
                 (byte)sourceProfile.TransferCharacteristics,
@@ -758,7 +758,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         if (trackMetadata?.XmpData is not null)
         {
-            this.ExecuteAncillarySegmentAction(() => metadata.XmpProfile = new XmpProfile(trackMetadata.XmpData));
+            this.ExecuteAncillarySegmentAction(() => metadata.XmpProfile = XmpReader.ReadProfile(trackMetadata.XmpData));
         }
     }
 
@@ -1366,7 +1366,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     try
                     {
                         // ICC affects decoded colors under SkipMetadata too. Read without a separate box buffer.
-                        iccProfile = HeifPropertyParser.ParseIccProfile(stream, itemLength - 4);
+                        iccProfile = HeifPropertyParser.ParseIccProfile(
+                            stream,
+                            itemLength - 4,
+                            this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
                     }
                     catch (Exception ex) when (ShouldIgnoreAncillarySegmentError(this.Options, ex))
                     {
@@ -2592,12 +2595,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 this.ExecuteAncillarySegmentAction(() =>
                 {
                     using IMemoryOwner<byte> itemMemory = itemDataReader(metadataItem);
-                    Span<byte> itemData = itemMemory.GetSpan();
-
-                    // XmpProfile retains its input array after the assembled item buffer is returned to its pool.
-                    byte[] ownedData = new byte[itemData.Length];
-                    itemData.CopyTo(ownedData);
-                    metadata.XmpProfile = new XmpProfile(ownedData);
+                    metadata.XmpProfile = XmpReader.ReadProfile(itemMemory.GetSpan());
                 });
             }
         }
@@ -2645,12 +2643,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new InvalidImageContentException("The HEIF Exif item has an invalid TIFF-header offset.");
         }
 
-        ReadOnlySpan<byte> tiffData = exifData[actualTiffHeaderOffset..];
-
-        // ExifProfile retains its input array after the assembled item buffers are disposed at the end of decode.
-        byte[] ownedData = new byte[tiffData.Length];
-        tiffData.CopyTo(ownedData);
-        metadata.ExifProfile = new ExifProfile(ownedData);
+        metadata.TrySetExifProfile(ExifReader.ReadProfile(exifData[actualTiffHeaderOffset..]));
     }
 
     /// <summary>

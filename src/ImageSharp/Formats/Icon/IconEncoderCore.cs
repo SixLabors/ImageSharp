@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -133,6 +134,7 @@ internal abstract class IconEncoderCore
             entries[i].Entry.ImageOffset = checked((uint)(imageStart - basePosition));
             ref EncodingFrameMetadata encodingMetadata = ref entries[i];
             Image<TPixel>? encodingImage = null;
+            ImageMetadata? copiedMetadata = null;
 
             try
             {
@@ -143,15 +145,11 @@ internal abstract class IconEncoderCore
                 {
                     // PNG accepts Image rather than ImageFrame, and ANI variants may occupy only part of their common canvas.
                     // Allocate only for those cases; full-sized BMP frames can be encoded directly from their existing storage.
-                    ImageMetadata? metadata = this.encoder.SkipMetadata || encodingMetadata.Compression is not IconFrameCompression.Png
+                    copiedMetadata = this.encoder.SkipMetadata || encodingMetadata.Compression is not IconFrameCompression.Png
                         ? null
                         : image.Metadata.DeepClone();
 
-                    encodingImage = new Image<TPixel>(image.Configuration, width, height, metadata);
-
-                    // Cropped and isolated resources still need their own profile under SkipMetadata.
-                    // The delegated PNG/BMP encoder converts the pixels and writes the selected profile.
-                    encodingImage.Frames.RootFrame.Metadata.IccProfile = frame.Metadata.IccProfile ?? image.Metadata.IccProfile;
+                    encodingImage = new Image<TPixel>(image.Configuration, width, height, copiedMetadata);
 
                     for (int y = 0; y < height; y++)
                     {
@@ -165,6 +163,20 @@ internal abstract class IconEncoderCore
                 }
 
                 ImageFrame<TPixel> sourceFrame = encodingImage?.Frames.RootFrame ?? frame;
+                IccProfile? frameProfile = frame.Metadata.IccProfile;
+                IccProfile? imageProfile = image.Metadata.IccProfile;
+                if (copiedMetadata != null)
+                {
+                    // The metadata clone already checked the source image profile. Use its copy for this resource.
+                    if (ReferenceEquals(frameProfile, imageProfile))
+                    {
+                        frameProfile = copiedMetadata.IccProfile;
+                    }
+
+                    imageProfile = copiedMetadata.IccProfile;
+                }
+
+                IccProfile? sourceProfile = IccProfile.SelectValidProfile(frameProfile, imageProfile);
 
                 // Compression and bitmap depth are per-entry, so the concrete encoder configuration must be selected per frame.
                 switch (encodingMetadata.Compression)
@@ -185,7 +197,7 @@ internal abstract class IconEncoderCore
                         };
 
                         BmpEncoderCore bmpEncoderCore = new(bmpEncoder, image.Configuration.MemoryAllocator);
-                        bmpEncoderCore.Encode(sourceFrame, image.Metadata, stream, cancellationToken);
+                        bmpEncoderCore.Encode(sourceFrame, image.Metadata, sourceProfile, stream, cancellationToken);
                         break;
                     }
 
@@ -203,7 +215,7 @@ internal abstract class IconEncoderCore
                         };
 
                         using PngEncoderCore pngEncoderCore = new(image.Configuration, pngEncoder);
-                        pngEncoderCore.Encode(encodingImage ?? image, stream, cancellationToken);
+                        pngEncoderCore.Encode(encodingImage ?? image, sourceProfile, stream, cancellationToken);
                         break;
                     }
 

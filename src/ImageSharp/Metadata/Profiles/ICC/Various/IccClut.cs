@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 /// </summary>
 internal sealed class IccClut : IEquatable<IccClut>
 {
+    /// <summary>
+    /// The number of bytes in the CLUT grid-size field, one per input channel.
+    /// </summary>
+    internal const int GridSizeFieldLength = 16;
+
     private readonly byte[] encodedValues;
     private readonly int paddingBytes;
     private readonly int valueCount;

@@ -288,8 +288,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             MemoryAllocator = this.memoryAllocator
         };
 
-        ColorProfileConverter converter = new(options);
-        converter.Convert<TPixel>(palette);
+        ColorProfileConverter? converter = ColorProfileConverter.CreateIccForDecoding(options);
+        converter?.Convert<TPixel>(palette);
     }
 
     /// <summary>
@@ -1402,12 +1402,12 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         stream.Position = profileStart;
         IccReader reader = new();
-        if (reader.Read(stream, this.infoHeader.ProfileSize) != this.infoHeader.ProfileSize)
+        if (!reader.TryReadSegment(stream, this.infoHeader.ProfileSize))
         {
             BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
         }
 
-        imageMetadata.IccProfile = reader.ToProfile();
+        imageMetadata.IccProfile = reader.ToProfile(this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
     }
 
     /// <summary>

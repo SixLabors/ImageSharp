@@ -37,8 +37,9 @@ internal static class HeifPropertyParser
     /// </summary>
     /// <param name="stream">The stream positioned at the profile payload.</param>
     /// <param name="length">The bounded payload length, excluding the color type.</param>
+    /// <param name="allowTruncated">Whether to keep readable tags from an incomplete profile.</param>
     /// <returns>The validated ICC profile.</returns>
-    public static IccProfile ParseIccProfile(Stream stream, long length)
+    public static IccProfile ParseIccProfile(Stream stream, long length, bool allowTruncated)
     {
         // Reject box lengths that would overflow the shared reader's 32-bit length parameter.
         if (length > int.MaxValue)
@@ -49,12 +50,12 @@ internal static class HeifPropertyParser
         // Item and track boxes have the same ICC payload. The shared reader bounds storage before reading
         // and validates the declared profile size and tag table before exposing the profile.
         IccReader reader = new();
-        if (reader.Read(stream, (int)length) != length)
+        if (!reader.TryReadSegment(stream, (int)length))
         {
             throw new InvalidImageContentException("The HEIF ICC color property is truncated.");
         }
 
-        return reader.ToProfile();
+        return reader.ToProfile(allowTruncated);
     }
 
     /// <summary>

@@ -162,6 +162,27 @@ internal sealed class BmpEncoderCore
     internal void Encode<TPixel>(ImageFrame<TPixel> frame, ImageMetadata metadata, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        IccProfile? profile = IccProfile.SelectValidProfile(frame.Metadata.IccProfile, metadata.IccProfile);
+        this.Encode(frame, metadata, profile, stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Encodes a frame with an ICC profile that the caller has already validated.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The source frame.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="sourceIccProfile">The validated ICC profile, or null.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    public void Encode<TPixel>(
+        ImageFrame<TPixel> frame,
+        ImageMetadata metadata,
+        IccProfile? sourceIccProfile,
+        Stream stream,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         // ICC offsets start at the DIB header, whether it follows a BMP file header or sits inside an ICO/CUR resource.
         long infoHeaderPosition = stream.Position + (this.skipFileHeader ? 0 : BmpFileHeader.Size);
 
@@ -184,8 +205,7 @@ internal sealed class BmpEncoderCore
 
         // Direct samples and palette entries store RGB. Indexed compatibility is determined by the palette, not its indices.
         PixelColorType colorType = colorPaletteSize > 0 ? PixelColorType.Indexed : PixelColorType.RGB;
-        IccProfile? sourceIccProfile = frame.Metadata.IccProfile ?? metadata.IccProfile;
-        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+        IccProfile? outputIccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile,
             colorType,
             this.memoryAllocator,

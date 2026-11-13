@@ -89,8 +89,8 @@ internal sealed class GifEncoderCore
         Guard.NotNull(stream, nameof(stream));
 
         // GIF has one profile for every frame and color table. Use the root frame's profile before the image-wide fallback.
-        IccProfile? sourceIccProfile = image.Frames.RootFrame.Metadata.IccProfile ?? image.Metadata.IccProfile;
-        IccProfile? outputIccProfile = IccProfile.GetIccProfileForEncoding(
+        IccProfile? sourceIccProfile = IccProfile.SelectValidProfile(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        IccProfile? outputIccProfile = IccProfile.GetCompatibleProfileForEncoding(
             sourceIccProfile, PixelColorType.Indexed, this.memoryAllocator, out ColorProfileConverter? colorProfileConverter);
 
         // Each entry needs four vector components. Reuse this storage for every table.
@@ -743,9 +743,10 @@ internal sealed class GifEncoderCore
         }
 
         // Application Extension: XMP Profile.
-        if (xmpProfile != null)
+        byte[]? xmpData = xmpProfile?.GetDataForEncoding();
+        if (xmpData != null)
         {
-            GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data!);
+            GifXmpApplicationExtension xmpExtension = new(xmpData);
             this.WriteExtension(xmpExtension, stream);
         }
     }

@@ -1239,11 +1239,10 @@ internal sealed partial class HeifEncoderCore
             itemCount += 1 + cellCount;
         }
 
-        if (!this.encoder.SkipMetadata)
-        {
-            itemCount += image.Metadata.ExifProfile is null ? 0 : 1;
-            itemCount += image.Metadata.XmpProfile is null ? 0 : 1;
-        }
+        // Count the same payloads that will be written. EXIF can be empty after applying Parts.
+        (byte[]? exifData, uint tiffHeaderOffset, byte[]? xmpData) = this.GetMetadataItemData(image.Metadata);
+        itemCount += exifData == null ? 0 : 1;
+        itemCount += xmpData == null ? 0 : 1;
 
         if (itemCount > ushort.MaxValue)
         {
@@ -1399,7 +1398,7 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
-        this.WriteMetadataItems(image, stream, colorGrid, items, links);
+        WriteMetadataItems(exifData, tiffHeaderOffset, xmpData, stream, colorGrid, items, links);
     }
 
     /// <summary>
@@ -1786,7 +1785,8 @@ internal sealed partial class HeifEncoderCore
             links.Add(alphaLink);
         }
 
-        this.WriteMetadataItems(image, stream, colorItem, items, links);
+        (byte[]? exifData, uint tiffHeaderOffset, byte[]? xmpData) = this.GetMetadataItemData(image.Metadata);
+        WriteMetadataItems(exifData, tiffHeaderOffset, xmpData, stream, colorItem, items, links);
     }
 
     /// <summary>
@@ -1809,29 +1809,40 @@ internal sealed partial class HeifEncoderCore
     }
 
     /// <summary>
-    /// Appends Exif and XMP payload items associated with the primary presentation item. The method writes nothing when
-    /// the encoder skips metadata.
+    /// Prepares the EXIF and XMP items once so counting and writing use the same payloads.
     /// </summary>
-    /// <typeparam name="TPixel">The source pixel format.</typeparam>
-    /// <param name="image">The source image that holds the metadata.</param>
+    /// <param name="metadata">The source image metadata.</param>
+    /// <returns>The payloads and the location of the EXIF TIFF header.</returns>
+    private (byte[]? Exif, uint TiffHeaderOffset, byte[]? Xmp) GetMetadataItemData(ImageMetadata metadata)
+    {
+        if (this.encoder.SkipMetadata)
+        {
+            return default;
+        }
+
+        byte[]? exif = GetExifData(metadata, out uint tiffHeaderOffset);
+        return (exif, tiffHeaderOffset, metadata.XmpProfile?.GetDataForEncoding());
+    }
+
+    /// <summary>
+    /// Appends the prepared EXIF and XMP payloads and links them to the primary item.
+    /// </summary>
+    /// <param name="exifData">The EXIF bytes, or null.</param>
+    /// <param name="tiffHeaderOffset">The offset of the TIFF header in the EXIF bytes.</param>
+    /// <param name="xmpData">The XMP bytes, or null.</param>
     /// <param name="stream">The shared payload, which receives the metadata payloads.</param>
     /// <param name="primaryItem">The item that the metadata describes.</param>
     /// <param name="items">The destination item declarations.</param>
     /// <param name="links">The destination item relationships.</param>
-    private void WriteMetadataItems<TPixel>(
-        Image<TPixel> image,
+    private static void WriteMetadataItems(
+        byte[]? exifData,
+        uint tiffHeaderOffset,
+        byte[]? xmpData,
         ChunkedMemoryStream stream,
         HeifItem primaryItem,
         List<HeifItem> items,
         List<HeifItemLink> links)
-        where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (this.encoder.SkipMetadata)
-        {
-            return;
-        }
-
-        byte[]? exifData = GetExifData(image.Metadata, out uint tiffHeaderOffset);
         if (exifData is not null)
         {
             long exifOffset = stream.Length;
@@ -1858,8 +1869,7 @@ internal sealed partial class HeifEncoderCore
             links.Add(exifLink);
         }
 
-        byte[]? xmpData = image.Metadata.XmpProfile?.Data;
-        if (xmpData is not null && xmpData.Length > 0)
+        if (xmpData is not null)
         {
             long xmpOffset = stream.Length;
             stream.Write(xmpData);
@@ -1892,7 +1902,7 @@ internal sealed partial class HeifEncoderCore
     /// <returns>The serialized profile, or <see langword="null"/> when the source has no Exif payload.</returns>
     private static byte[]? GetExifData(ImageMetadata metadata, out uint tiffHeaderOffset)
     {
-        byte[]? exifData = metadata.ExifProfile?.ToByteArray();
+        byte[]? exifData = metadata.ExifProfile?.GetDataForEncoding();
         if (exifData is null || exifData.Length == 0)
         {
             tiffHeaderOffset = 0;

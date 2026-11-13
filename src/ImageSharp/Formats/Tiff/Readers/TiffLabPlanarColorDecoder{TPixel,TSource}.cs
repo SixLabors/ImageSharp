@@ -47,8 +47,8 @@ internal class TiffLabPlanarColorDecoder<TPixel, TSource> : TiffBasePlanarColorD
             MemoryAllocator = allocator
         };
 
-        this.converter = new ColorProfileConverter(options);
-        this.hasProfile = hasProfile;
+        this.converter = ColorProfileConverter.CreateForDecoding(options);
+        this.hasProfile = this.converter.ShouldUseIccProfiles();
     }
 
     /// <inheritdoc />

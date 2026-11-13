@@ -97,8 +97,9 @@ public class IptcProfileTests
     {
         // arrange
         using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(TestImages.Png.TestPattern31x31).Bytes);
-        image.Metadata.IptcProfile = new IptcProfile();
-        image.Metadata.IptcProfile.SetValue(IptcTag.Caption, "ESPAÑA");
+        IptcProfile iptcProfile = new();
+        iptcProfile.SetValue(IptcTag.Caption, "ESPAÑA");
+        image.Metadata.IptcProfile = iptcProfile;
 
         // 1:90 declares UTF-8. The 2:120 Caption dataset contains the seven UTF-8 bytes for ESPAÑA.
         byte[] expectedData = [28, 1, 90, 0, 3, 27, 37, 71, 28, 2, 120, 0, 7, 69, 83, 80, 65, 195, 145, 65];
@@ -311,11 +312,12 @@ public class IptcProfileTests
     {
         // arrange
         using Image<Rgba32> image = Image.Load<Rgba32>(TestFile.Create(TestImages.Png.TestPattern31x31).Bytes);
-        image.Metadata.IptcProfile = new IptcProfile();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
-        image.Metadata.IptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
-        image.Metadata.IptcProfile.SetValue(IptcTag.Caption, expectedCaption);
+        IptcProfile iptcProfile = new();
+        iptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
+        iptcProfile.SetValue(IptcTag.Caption, expectedCaption);
+        image.Metadata.IptcProfile = iptcProfile;
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndReadJpeg(image);

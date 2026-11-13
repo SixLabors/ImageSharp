@@ -25,15 +25,15 @@ public sealed class CicpProfile : IDeepCloneable<CicpProfile>
     /// <param name="fullRange">The full range flag, or null if unknown.</param>
     public CicpProfile(byte colorPrimaries, byte transferCharacteristics, byte matrixCoefficients, bool? fullRange)
     {
-        this.ColorPrimaries = Enum.IsDefined(typeof(CicpColorPrimaries), colorPrimaries) ? (CicpColorPrimaries)colorPrimaries : CicpColorPrimaries.Unspecified;
-        this.TransferCharacteristics = Enum.IsDefined(typeof(CicpTransferCharacteristics), transferCharacteristics)
+        this.ColorPrimaries = Enum.IsDefined((CicpColorPrimaries)colorPrimaries)
+            ? (CicpColorPrimaries)colorPrimaries
+            : CicpColorPrimaries.Unspecified;
+        this.TransferCharacteristics = Enum.IsDefined((CicpTransferCharacteristics)transferCharacteristics)
             ? (CicpTransferCharacteristics)transferCharacteristics
             : CicpTransferCharacteristics.Unspecified;
-
-        this.MatrixCoefficients = Enum.IsDefined(typeof(CicpMatrixCoefficients), matrixCoefficients)
+        this.MatrixCoefficients = Enum.IsDefined((CicpMatrixCoefficients)matrixCoefficients)
             ? (CicpMatrixCoefficients)matrixCoefficients
             : CicpMatrixCoefficients.Unspecified;
-
         this.FullRange = fullRange ?? (this.MatrixCoefficients == CicpMatrixCoefficients.Identity);
     }
 
@@ -54,17 +54,17 @@ public sealed class CicpProfile : IDeepCloneable<CicpProfile>
     }
 
     /// <summary>
-    /// Gets or sets the color primaries
+    /// Gets or sets the color primaries.
     /// </summary>
     public CicpColorPrimaries ColorPrimaries { get; set; }
 
     /// <summary>
-    /// Gets or sets the transfer characteristics
+    /// Gets or sets the transfer characteristics.
     /// </summary>
     public CicpTransferCharacteristics TransferCharacteristics { get; set; }
 
     /// <summary>
-    /// Gets or sets the matrix coefficients
+    /// Gets or sets the matrix coefficients.
     /// </summary>
     public CicpMatrixCoefficients MatrixCoefficients { get; set; }
 
@@ -72,6 +72,14 @@ public sealed class CicpProfile : IDeepCloneable<CicpProfile>
     /// Gets or sets a value indicating whether the colors use the full numeric range
     /// </summary>
     public bool FullRange { get; set; }
+
+    /// <summary>
+    /// Checks the color primaries, transfer characteristics, and matrix coefficients.
+    /// </summary>
+    /// <returns>Whether all three color codes are defined.</returns>
+    internal bool Validate() => Enum.IsDefined(this.ColorPrimaries) &&
+        Enum.IsDefined(this.TransferCharacteristics) &&
+        Enum.IsDefined(this.MatrixCoefficients);
 
     /// <inheritdoc/>
     public CicpProfile DeepClone() => new(this);

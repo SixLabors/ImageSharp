@@ -54,6 +54,19 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
         if (IccProfile.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? profile))
         {
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+                MemoryAllocator = allocator
+            };
+
+            this.iccConverter = ColorProfileConverter.CreateIccForDecoding(options);
+            if (this.iccConverter is null)
+            {
+                return;
+            }
+
             IccColorSpaceType dataSpace = profile.Header.DataColorSpace;
 
             if (dataSpace is not IccColorSpaceType.Rgb and not IccColorSpaceType.YCbCr)
@@ -68,15 +81,6 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 // Set TIFF's ranges and luma matrix once for the RGB-profile source conversion, before ICC maps it to sRGB.
                 this.rgbSourceOptions = new ColorConversionOptions { YCbCrTransform = this.colorOperator.ProfileTransform, MemoryAllocator = allocator };
             }
-
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = profile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-                MemoryAllocator = allocator
-            };
-
-            this.iccConverter = new ColorProfileConverter(options);
         }
     }
 

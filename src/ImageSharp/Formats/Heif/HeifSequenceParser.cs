@@ -1140,7 +1140,10 @@ internal sealed class HeifSequenceParser
                 }
 
                 // ICC determines sample colors even when optional metadata is skipped.
-                track.IccProfile = HeifPropertyParser.ParseIccProfile(stream, boxLength - 4);
+                track.IccProfile = HeifPropertyParser.ParseIccProfile(
+                    stream,
+                    boxLength - 4,
+                    this.options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
             }
             catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {

@@ -310,7 +310,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         ImageFrameMetadata imageFrameMetaData = new();
         if (!this.skipMetadata)
         {
-            imageFrameMetaData.ExifProfile = tags;
+            imageFrameMetaData.TrySetExifProfile(tags);
         }
 
         // ICC is needed for pixel conversion even when optional EXIF metadata is skipped.
@@ -319,12 +319,9 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.ExecuteAncillarySegmentAction(
                 () =>
                 {
-                    using MemoryStream profileStream = new(iccProfileBytes.Value);
-                    IccReader reader = new();
-
-                    reader.Read(profileStream, iccProfileBytes.Value.Length);
-
-                    imageFrameMetaData.IccProfile = reader.ToProfile();
+                    // The EXIF tag retains its array. The reader copies the bounded ICC payload.
+                    imageFrameMetaData.IccProfile = IccReader.ReadProfile(
+                        iccProfileBytes.Value, this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
                 });
         }
         else if (tags.InvalidTags.Contains(ExifTag.IccProfile))

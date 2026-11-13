@@ -60,7 +60,7 @@ internal abstract partial class WebpColorConverterBase
     /// </summary>
     /// <param name="configuration">The decoding configuration.</param>
     /// <param name="profile">The embedded profile, if present.</param>
-    /// <returns>The configured converter, or null when ICC conversion is not required.</returns>
+    /// <returns>The configured converter, or null when decoding can proceed without ICC.</returns>
     public static ColorProfileConverter? CreateIccConverter(Configuration configuration, IccProfile? profile)
     {
         if (!IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
@@ -75,7 +75,7 @@ internal abstract partial class WebpColorConverterBase
             MemoryAllocator = configuration.MemoryAllocator
         };
 
-        return new ColorProfileConverter(options);
+        return ColorProfileConverter.CreateIccForDecoding(options);
     }
 
     /// <summary>

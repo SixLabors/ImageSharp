@@ -398,7 +398,7 @@ public class HeifDecoderTests
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
-    public void Identify_RejectsTruncatedIccProfileUnlessAncillaryErrorsAreIgnored<TPixel>(TestImageProvider<TPixel> provider)
+    public void Identify_TruncatedIccProfile_UsesIntegrityPolicy<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte[] data = [.. TestFile.Create(provider.SourceFileOrDescription).Bytes];
@@ -421,13 +421,15 @@ public class HeifDecoderTests
 
         Assert.Throws<InvalidIccProfileException>(() => Image.Identify(strictOptions, data));
 
-        // Ignoring the invalid ancillary profile must still reach the remaining properties and image dimensions.
+        // Recovery retains the available profile bytes and continues reading the image properties.
         DecoderOptions ignoreOptions = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreAncillary, SkipMetadata = true };
-        ImageInfo ignored = Image.Identify(ignoreOptions, data);
+        ImageInfo recovered = Image.Identify(ignoreOptions, data);
 
-        Assert.Null(ignored.Metadata.IccProfile);
-        Assert.Equal(original.Size, ignored.Size);
-        Assert.Equal(original.FrameCount, ignored.FrameCount);
+        IccProfile recoveredProfile = Assert.IsType<IccProfile>(recovered.Metadata.IccProfile);
+        BinaryPrimitives.WriteUInt32BigEndian(profile, (uint)profile.Length + 1);
+        Assert.Equal(profile, recoveredProfile.ToByteArray());
+        Assert.Equal(original.Size, recovered.Size);
+        Assert.Equal(original.FrameCount, recovered.FrameCount);
     }
 
     [Fact]

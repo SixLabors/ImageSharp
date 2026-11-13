@@ -147,7 +147,7 @@ internal static class HeifPlanarColorConverter
         HeifColorConverterBase colorConverter = HeifColorConverterBase.Create(mode, in parameters, buffer.IsMonochrome);
         ColorProfileConverter? profileConverter = profile is null
             ? null
-            : new ColorProfileConverter(new ColorConversionOptions
+            : ColorProfileConverter.CreateIccForDecoding(new ColorConversionOptions
             {
                 MemoryAllocator = configuration.MemoryAllocator,
                 SourceIccProfile = profile,

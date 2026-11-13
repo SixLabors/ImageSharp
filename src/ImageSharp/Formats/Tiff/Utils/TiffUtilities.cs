@@ -83,8 +83,8 @@ internal static class TiffUtilities
                 MemoryAllocator = memoryAllocator
             };
 
-            ColorProfileConverter converter = new(options);
-            converter.Convert<TPixel>(colors);
+            ColorProfileConverter? converter = ColorProfileConverter.CreateIccForDecoding(options);
+            converter?.Convert<TPixel>(colors);
         }
 
         return colors;

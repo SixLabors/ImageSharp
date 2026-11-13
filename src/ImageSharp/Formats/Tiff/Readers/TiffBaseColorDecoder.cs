@@ -35,7 +35,7 @@ internal abstract class TiffBaseColorDecoder : IDisposable
     {
         if (IccProfile.TryGetIccProfileForColorConversion(profile, out IccProfile? sourceProfile))
         {
-            this.colorConverter = new ColorProfileConverter(new ColorConversionOptions
+            this.colorConverter = ColorProfileConverter.CreateIccForDecoding(new ColorConversionOptions
             {
                 SourceIccProfile = sourceProfile,
                 TargetIccProfile = CompactSrgbV4Profile.Profile,

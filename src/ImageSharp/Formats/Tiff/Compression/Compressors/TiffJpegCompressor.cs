@@ -39,6 +39,11 @@ internal class TiffJpegCompressor : TiffBaseCompressor
     /// <inheritdoc/>
     public override TiffCompression Method => TiffCompression.Jpeg;
 
+    /// <summary>
+    /// Gets the ICC profile written to the JPEG strip, or null if the encoder omitted it.
+    /// </summary>
+    public IccProfile? EncodedIccProfile { get; private set; }
+
     /// <inheritdoc/>
     public override void Initialize(int rowsPerStrip)
     {
@@ -60,7 +65,7 @@ internal class TiffJpegCompressor : TiffBaseCompressor
     /// </summary>
     /// <remarks>
     /// TIFF selects the component model from its resolved photometric interpretation and supplies the compatible frame profile.
-    /// JPEG applies the color conversion itself. TIFF writes that same profile in its IccProfile directory entry.
+    /// JPEG selects the output profile and applies the color conversion. TIFF uses the profile that JPEG returns.
     /// </remarks>
     /// <typeparam name="TPixel">The source pixel format.</typeparam>
     /// <param name="configuration">The source configuration.</param>
@@ -87,7 +92,8 @@ internal class TiffJpegCompressor : TiffBaseCompressor
         // SkipMetadata omits optional JPEG metadata. The separately supplied ICC profile still controls conversion and embedding.
         JpegFrameConfig frameConfig = JpegEncoderCore.GetFrameConfig(colorSpace);
         JpegEncoderCore encoder = new(new JpegEncoder { SkipMetadata = true });
-        encoder.Encode(configuration, pixels, frameConfig, new ImageMetadata(), profile, clearTransparentPixels, this.Output, cancellationToken);
+        this.EncodedIccProfile = encoder.Encode(
+            configuration, pixels, frameConfig, new ImageMetadata(), profile, clearTransparentPixels, this.Output, cancellationToken);
     }
 
     /// <inheritdoc/>

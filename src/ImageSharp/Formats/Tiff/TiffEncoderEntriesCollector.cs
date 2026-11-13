@@ -85,11 +85,17 @@ internal class TiffEncoderEntriesCollector
 
         public void Process(Image image, bool skipMetadata)
         {
-            this.ProcessProfiles(image.Metadata, skipMetadata);
-
-            if (!skipMetadata)
+            ExifProfile exifProfile = image.Metadata.ExifProfile;
+            if (exifProfile?.Validate() != true)
             {
-                this.ProcessMetadata(image.Metadata.ExifProfile ?? new ExifProfile());
+                exifProfile = null;
+            }
+
+            this.ProcessProfiles(image.Metadata, exifProfile, skipMetadata);
+
+            if (!skipMetadata && exifProfile != null)
+            {
+                this.ProcessMetadata(exifProfile);
             }
 
             if (!this.Collector.Entries.Exists(t => t.Tag == ExifTag.Software))
@@ -103,11 +109,17 @@ internal class TiffEncoderEntriesCollector
 
         public void Process(ImageFrame frame, bool skipMetadata)
         {
-            this.ProcessProfiles(frame.Metadata, skipMetadata);
-
-            if (!skipMetadata)
+            ExifProfile exifProfile = frame.Metadata.ExifProfile;
+            if (exifProfile?.Validate() != true)
             {
-                this.ProcessMetadata(frame.Metadata.ExifProfile ?? new ExifProfile());
+                exifProfile = null;
+            }
+
+            this.ProcessProfiles(frame.Metadata, exifProfile, skipMetadata);
+
+            if (!skipMetadata && exifProfile != null)
+            {
+                this.ProcessMetadata(exifProfile);
             }
 
             if (!this.Collector.Entries.Exists(t => t.Tag == ExifTag.Software))
@@ -193,18 +205,18 @@ internal class TiffEncoderEntriesCollector
             }
         }
 
-        private void ProcessProfiles(ImageMetadata imageMetadata, bool skipMetadata)
+        private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile exifProfile, bool skipMetadata)
         {
-            this.ProcessExifProfile(skipMetadata, imageMetadata.ExifProfile);
+            this.ProcessExifProfile(skipMetadata, exifProfile);
             this.ProcessIptcProfile(skipMetadata, imageMetadata.IptcProfile);
-            this.ProcessXmpProfile(skipMetadata, imageMetadata.XmpProfile);
+            this.ProcessXmpProfile(skipMetadata, imageMetadata.XmpProfile, exifProfile);
         }
 
-        private void ProcessProfiles(ImageFrameMetadata frameMetadata, bool skipMetadata)
+        private void ProcessProfiles(ImageFrameMetadata frameMetadata, ExifProfile exifProfile, bool skipMetadata)
         {
-            this.ProcessExifProfile(skipMetadata, frameMetadata.ExifProfile);
+            this.ProcessExifProfile(skipMetadata, exifProfile);
             this.ProcessIptcProfile(skipMetadata, frameMetadata.IptcProfile);
-            this.ProcessXmpProfile(skipMetadata, frameMetadata.XmpProfile);
+            this.ProcessXmpProfile(skipMetadata, frameMetadata.XmpProfile, exifProfile);
         }
 
         /// <summary>
@@ -214,15 +226,15 @@ internal class TiffEncoderEntriesCollector
         /// <param name="exifProfile">The source EXIF profile.</param>
         private void ProcessExifProfile(bool skipMetadata, ExifProfile exifProfile)
         {
-            if (!skipMetadata && (exifProfile != null && exifProfile.Parts != ExifParts.None))
+            if (!skipMetadata && exifProfile != null && exifProfile.Parts != ExifParts.None)
             {
                 foreach (IExifValue entry in exifProfile.Values)
                 {
                     // This encoder writes strips. Source tile entries would point readers at data that the new file does not contain.
-                    // ProcessIccProfile writes the checked output profile separately. A copied EXIF entry can describe a different color space.
-                    // JPEG strips contain their own new coding tables. Retaining source JPEGTables would define conflicting tables.
+                    // The profile writers handle XMP, IPTC, and ICC separately. JPEG strips contain their own coding tables.
                     ExifTagValue tag = (ExifTagValue)(ushort)entry.Tag;
-                    if (tag is ExifTagValue.IccProfile or ExifTagValue.JPEGTables or ExifTagValue.TileWidth or ExifTagValue.TileLength
+                    if (tag is ExifTagValue.XMP or ExifTagValue.IPTC or ExifTagValue.IccProfile or ExifTagValue.JPEGTables
+                        or ExifTagValue.TileWidth or ExifTagValue.TileLength
                         or ExifTagValue.TileOffsets or ExifTagValue.TileByteCounts)
                     {
                         continue;
@@ -250,6 +262,11 @@ internal class TiffEncoderEntriesCollector
             if (!skipMetadata && iptcProfile != null)
             {
                 iptcProfile.UpdateData();
+                if (iptcProfile.Data.Length == 0)
+                {
+                    return;
+                }
+
                 ExifByteArray iptc = new(ExifTagValue.IPTC, ExifDataType.Byte)
                 {
                     Value = iptcProfile.Data
@@ -264,13 +281,23 @@ internal class TiffEncoderEntriesCollector
         /// </summary>
         /// <param name="skipMetadata">Whether optional metadata is omitted.</param>
         /// <param name="xmpProfile">The source XMP profile.</param>
-        private void ProcessXmpProfile(bool skipMetadata, XmpProfile xmpProfile)
+        /// <param name="exifProfile">The EXIF profile that may contain an XMP tag.</param>
+        private void ProcessXmpProfile(bool skipMetadata, XmpProfile xmpProfile, ExifProfile exifProfile)
         {
-            if (!skipMetadata && xmpProfile != null)
+            byte[] xmpData = skipMetadata ? null : xmpProfile?.GetDataForEncoding();
+            if (!skipMetadata && xmpData == null && exifProfile != null && exifProfile.Parts.HasFlag(ExifParts.IfdTags) &&
+                !this.Collector.Entries.Exists(t => (ExifTagValue)(ushort)t.Tag == ExifTagValue.XMP) &&
+                exifProfile.TryGetValue(ExifTag.XMP, out IExifValue<byte[]> entry))
+            {
+                // The generic EXIF loops skip tag 700. Read it here when no separate XMP profile supplies the packet.
+                xmpData = XmpReader.ReadProfile(entry.Value)?.GetDataForEncoding();
+            }
+
+            if (xmpData != null)
             {
                 ExifByteArray xmp = new(ExifTagValue.XMP, ExifDataType.Byte)
                 {
-                    Value = xmpProfile.Data
+                    Value = xmpData
                 };
 
                 this.Collector.AddOrReplace(xmp);

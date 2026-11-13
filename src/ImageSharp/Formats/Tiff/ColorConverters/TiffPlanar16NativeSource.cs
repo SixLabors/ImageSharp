@@ -115,7 +115,7 @@ internal readonly struct TiffPlanar16NativeSource : ITiffColorSource<ushort>
 
         if (this.reverseEndianness)
         {
-            Vector256<byte> mask = Vector256.Create(ReverseBytes, ReverseBytes);
+            Vector128<byte> mask = ReverseBytes;
             c0 = Vector256_.ShufflePerLane(c0.AsByte(), mask).AsUInt16();
             c1 = Vector256_.ShufflePerLane(c1.AsByte(), mask).AsUInt16();
             c2 = Vector256_.ShufflePerLane(c2.AsByte(), mask).AsUInt16();
@@ -145,13 +145,12 @@ internal readonly struct TiffPlanar16NativeSource : ITiffColorSource<ushort>
 
         if (this.reverseEndianness)
         {
-            // Native AVX-512 shuffles index each 128-bit lane; the expanded mask
-            // also preserves these lanes on the managed absolute-index fallback.
-            Vector512<byte> mask = IShuffle4.ExpandLaneMask(ReverseBytes);
-            c0 = Vector512.ShuffleNative(c0.AsByte(), mask).AsUInt16();
-            c1 = Vector512.ShuffleNative(c1.AsByte(), mask).AsUInt16();
-            c2 = Vector512.ShuffleNative(c2.AsByte(), mask).AsUInt16();
-            c3 = Vector512.ShuffleNative(c3.AsByte(), mask).AsUInt16();
+            // Swap the two bytes within every word. The per-lane shuffle uses the same 128-bit mask in each lane.
+            Vector128<byte> mask = ReverseBytes;
+            c0 = Vector512_.ShufflePerLane(c0.AsByte(), mask).AsUInt16();
+            c1 = Vector512_.ShufflePerLane(c1.AsByte(), mask).AsUInt16();
+            c2 = Vector512_.ShufflePerLane(c2.AsByte(), mask).AsUInt16();
+            c3 = Vector512_.ShufflePerLane(c3.AsByte(), mask).AsUInt16();
         }
     }
 }

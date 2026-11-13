@@ -5,9 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.SimdUtils;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -24,17 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// </remarks>
 internal static class PngCgbiProcessor
 {
-    // Per-pixel byte indices that swap CgBI's BGRA layout to Rgba32's RGBA.
-    // MMShuffle3012 expands to [2, 1, 0, 3] per 4-byte pixel; the same 64-byte
-    // sequence seeds all three shuffle masks (Vector128/256 take a leading slice).
-    private static readonly byte[] BgraToRgbaShuffleBytes = BuildShuffleBytes();
-
-    private static readonly Vector128<byte> BgraToRgbaShuffle128 = Vector128.Create(new ReadOnlySpan<byte>(BgraToRgbaShuffleBytes, 0, Vector128<byte>.Count));
-
-    private static readonly Vector256<byte> BgraToRgbaShuffle256 = Vector256.Create(new ReadOnlySpan<byte>(BgraToRgbaShuffleBytes, 0, Vector256<byte>.Count));
-
-    private static readonly Vector512<byte> BgraToRgbaShuffle512 = Vector512.Create(BgraToRgbaShuffleBytes);
-
     /// <summary>
     /// Applies the inverse of Apple's CgBI pixel mangling to a defiltered scanline in place.
     /// </summary>
@@ -100,11 +87,6 @@ internal static class PngCgbiProcessor
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = 0;
 
-        // Indices stay within their own 4-byte pixel, so the per-pixel pattern
-        // is also valid under the per-128-bit-lane vpshufb that ShuffleNative
-        // selects on AVX-512BW hosts.
-        Vector512<byte> shuffleMask = BgraToRgbaShuffle512;
-
         Vector512<int> zero = Vector512<int>.Zero;
         Vector512<int> one = Vector512<int>.One;
         Vector512<int> byteMax = Vector512.Create((int)byte.MaxValue);
@@ -113,7 +95,9 @@ internal static class PngCgbiProcessor
         {
             ref byte blockRef = ref Unsafe.Add(ref scanlineRef, i * Unsafe.SizeOf<Rgba32>());
             Vector512<byte> bgra = Unsafe.ReadUnaligned<Vector512<byte>>(ref blockRef);
-            Vector512<byte> rgba = Vector512.ShuffleNative(bgra, shuffleMask);
+
+            // ZYXWShuffle4 exchanges bytes 0 and 2 of each pixel, so CgBI BGRA becomes Rgba32 RGBA.
+            Vector512<byte> rgba = ZYXWShuffle4.Invoke(bgra);
             Vector512<int> packed = rgba.AsInt32();
             Vector512<int> alpha = Vector512.ShiftRightLogical(packed, 24);
 
@@ -172,11 +156,6 @@ internal static class PngCgbiProcessor
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = startPixel;
 
-        // vpshufb is 128-bit lane-local and uses only the low 4 bits of each
-        // index, so the same per-pixel [2,1,0,3] pattern in both lanes keeps
-        // every byte inside its own lane.
-        Vector256<byte> shuffleMask = BgraToRgbaShuffle256;
-
         Vector256<int> zero = Vector256<int>.Zero;
         Vector256<int> one = Vector256<int>.One;
         Vector256<int> byteMax = Vector256.Create((int)byte.MaxValue);
@@ -185,7 +164,9 @@ internal static class PngCgbiProcessor
         {
             ref byte blockRef = ref Unsafe.Add(ref scanlineRef, i * Unsafe.SizeOf<Rgba32>());
             Vector256<byte> bgra = Unsafe.ReadUnaligned<Vector256<byte>>(ref blockRef);
-            Vector256<byte> rgba = Vector256_.ShufflePerLane(bgra, shuffleMask);
+
+            // ZYXWShuffle4 exchanges bytes 0 and 2 of each pixel, so CgBI BGRA becomes Rgba32 RGBA.
+            Vector256<byte> rgba = ZYXWShuffle4.Invoke(bgra);
             Vector256<int> packed = rgba.AsInt32();
             Vector256<int> alpha = Vector256.ShiftRightLogical(packed, 24);
 
@@ -244,8 +225,6 @@ internal static class PngCgbiProcessor
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = startPixel;
 
-        Vector128<byte> shuffleMask = BgraToRgbaShuffle128;
-
         Vector128<int> zero = Vector128<int>.Zero;
         Vector128<int> one = Vector128<int>.One;
         Vector128<int> byteMax = Vector128.Create((int)byte.MaxValue);
@@ -254,7 +233,9 @@ internal static class PngCgbiProcessor
         {
             ref byte blockRef = ref Unsafe.Add(ref scanlineRef, i * Unsafe.SizeOf<Rgba32>());
             Vector128<byte> bgra = Unsafe.ReadUnaligned<Vector128<byte>>(ref blockRef);
-            Vector128<byte> rgba = Vector128.ShuffleNative(bgra, shuffleMask);
+
+            // ZYXWShuffle4 exchanges bytes 0 and 2 of each pixel, so CgBI BGRA becomes Rgba32 RGBA.
+            Vector128<byte> rgba = ZYXWShuffle4.Invoke(bgra);
             Vector128<int> packed = rgba.AsInt32();
             Vector128<int> alpha = Vector128.ShiftRightLogical(packed, 24);
 
@@ -306,14 +287,5 @@ internal static class PngCgbiProcessor
         }
 
         return i;
-    }
-
-    private static byte[] BuildShuffleBytes()
-    {
-        byte[] bytes = new byte[Vector512<byte>.Count];
-        Span<byte> span = bytes;
-        Shuffle.MMShuffleSpan(ref span, Shuffle.MMShuffle3012);
-
-        return bytes;
     }
 }

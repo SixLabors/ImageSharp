@@ -141,6 +141,34 @@ public abstract class MultiImageBenchmarkBase
 
     public abstract class WithImagesPreloaded : MultiImageBenchmarkBase
     {
+        // Both libraries write into this stream. Each image rewinds it, so after the first call it has the capacity of
+        // the largest output, and the results measure the encoders instead of the growth of a new stream.
+        private readonly MemoryStream workStream = new();
+
+        // A Bitmap reads from its source stream for its whole lifetime, so each stream stays open until the cleanup.
+        private readonly List<MemoryStream> bitmapStreams = [];
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            foreach (Image<Rgba32> image in this.FileNamesToImageSharpImages.Values)
+            {
+                image.Dispose();
+            }
+
+            foreach (Bitmap bitmap in this.FileNamesToSystemDrawingImages.Values)
+            {
+                bitmap.Dispose();
+            }
+
+            foreach (MemoryStream stream in this.bitmapStreams)
+            {
+                stream.Dispose();
+            }
+
+            this.workStream.Dispose();
+        }
+
         protected override void ReadFilesImpl()
         {
             base.ReadFilesImpl();
@@ -150,12 +178,38 @@ public abstract class MultiImageBenchmarkBase
                 byte[] bytes = kv.Value;
                 string fn = kv.Key;
 
-                using (MemoryStream ms1 = new(bytes))
+                // The benchmarks compare both libraries on the same images. The input folders also hold files that one
+                // library cannot read: invalid test headers, BMP variants that GDI+ does not support, and text reports.
+                // Skip those files for both libraries, so the setup does not fail and both sides do the same work.
+                Image<Rgba32> image;
+                try
                 {
-                    this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
+                    using MemoryStream ms1 = new(bytes);
+                    image = Image.Load<Rgba32>(ms1);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Skipped {fn}: ImageSharp cannot load it ({ex.Message})");
+                    continue;
                 }
 
-                this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
+                MemoryStream bitmapStream = new(bytes);
+                Bitmap bitmap;
+                try
+                {
+                    bitmap = new Bitmap(bitmapStream);
+                }
+                catch (Exception ex)
+                {
+                    bitmapStream.Dispose();
+                    image.Dispose();
+                    Console.WriteLine($"Skipped {fn}: System.Drawing cannot load it ({ex.Message})");
+                    continue;
+                }
+
+                this.bitmapStreams.Add(bitmapStream);
+                this.FileNamesToImageSharpImages[fn] = image;
+                this.FileNamesToSystemDrawingImages[fn] = bitmap;
             }
         }
 
@@ -190,19 +244,13 @@ public abstract class MultiImageBenchmarkBase
         }
 
         protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
-        {
-            using MemoryStream workStream = new();
-            this.ForEachImageSharpImage(
+            => this.ForEachImageSharpImage(
                 img =>
                 {
-                    // ReSharper disable AccessToDisposedClosure
-                    object result = operation(img, workStream);
-                    workStream.Seek(0, SeekOrigin.Begin);
-
-                    // ReSharper restore AccessToDisposedClosure
+                    object result = operation(img, this.workStream);
+                    this.workStream.Seek(0, SeekOrigin.Begin);
                     return result;
                 });
-        }
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, object> operation)
         {
@@ -221,18 +269,12 @@ public abstract class MultiImageBenchmarkBase
         }
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, MemoryStream, object> operation)
-        {
-            using MemoryStream workStream = new();
-            this.ForEachSystemDrawingImage(
+            => this.ForEachSystemDrawingImage(
                 img =>
                 {
-                    // ReSharper disable AccessToDisposedClosure
-                    object result = operation(img, workStream);
-                    workStream.Seek(0, SeekOrigin.Begin);
-
-                    // ReSharper restore AccessToDisposedClosure
+                    object result = operation(img, this.workStream);
+                    this.workStream.Seek(0, SeekOrigin.Begin);
                     return result;
                 });
-        }
     }
 }

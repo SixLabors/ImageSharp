@@ -62,6 +62,33 @@ public partial class SimdUtilsTests
         }
     }
 
+    /// <summary>
+    /// Verifies that each byte is selected by the high bit of its mask byte on each supported hardware path.
+    /// </summary>
+    [Fact]
+    public void Vector128BlendVariableSelectsByHighBit()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateVector128BlendVariable,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Uses mask bytes whose low bits differ from their high bit, and neighbors with different high bits.
+    /// </summary>
+    private static void ValidateVector128BlendVariable()
+    {
+        Vector128<byte> left = Vector128.Create((byte)0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+        Vector128<byte> right = Vector128.Create((byte)100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115);
+        Vector128<byte> mask = Vector128.Create((byte)0x80, 0x7F, 0xFF, 0x00, 0x01, 0xC0, 0x40, 0xFE, 0x81, 0x00, 0x80, 0x80, 0x7F, 0x7F, 0x3C, 0xA5);
+
+        Vector128<byte> actual = Vector128_.BlendVariable(left, right, mask);
+
+        for (int lane = 0; lane < Vector128<byte>.Count; lane++)
+        {
+            byte expected = (mask.GetElement(lane) & 0x80) != 0 ? right.GetElement(lane) : left.GetElement(lane);
+            Assert.Equal(expected, actual.GetElement(lane));
+        }
+    }
+
     private static int R(float f) => (int)Math.Round(f, MidpointRounding.AwayFromZero);
 
     private static int Re(float f) => (int)Math.Round(f, MidpointRounding.ToEven);

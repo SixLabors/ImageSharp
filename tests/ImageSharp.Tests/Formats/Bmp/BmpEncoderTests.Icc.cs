@@ -185,6 +185,4 @@ public partial class BmpEncoderTests
             Assert.Equal(bytes.Length - BmpFileHeader.Size, fileHeader.FileSize);
         }
     }
-
-
 }

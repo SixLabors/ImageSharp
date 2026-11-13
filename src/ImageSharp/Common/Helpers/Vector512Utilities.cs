@@ -728,6 +728,24 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Creates a new vector by selecting values from each 128-bit input lane, with the same indices in every lane.
+    /// </summary>
+    /// <param name="vector">The input vector from which values are selected.</param>
+    /// <param name="laneIndices">The per-element indices used in each 128-bit lane.</param>
+    /// <returns>The shuffled <see cref="Vector512{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> ShufflePerLane(Vector512<byte> vector, Vector128<byte> laneIndices)
+    {
+        // Vector512.Create(Vector128) builds the repeated indices with a broadcast and two inserts at each use, and
+        // the JIT does not move them out of a loop. Eight 64-bit elements let the JIT fold constant lane indices
+        // into one 64-byte constant.
+        Vector128<ulong> halves = laneIndices.AsUInt64();
+        ulong lower = halves.GetElement(0);
+        ulong upper = halves.GetElement(1);
+        return ShufflePerLane(vector, Vector512.Create(lower, upper, lower, upper, lower, upper, lower, upper).AsByte());
+    }
+
+    /// <summary>
     /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
     /// pack the results.

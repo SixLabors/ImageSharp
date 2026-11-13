@@ -299,7 +299,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgba32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+    public static Rgba32 FromBgra5551(Bgra5551 source) => source.ToRgba32();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

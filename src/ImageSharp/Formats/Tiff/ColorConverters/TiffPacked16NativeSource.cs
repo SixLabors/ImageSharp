@@ -116,7 +116,7 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
         if (this.reverseEndianness)
         {
             // Swap the two bytes within every word. Repeated 128-bit shuffle masks preserve component and pixel order.
-            Vector256<byte> mask = Vector256.Create(ReverseBytes, ReverseBytes);
+            Vector128<byte> mask = ReverseBytes;
             c0 = Vector256_.ShufflePerLane(c0.AsByte(), mask).AsUInt16();
             c1 = Vector256_.ShufflePerLane(c1.AsByte(), mask).AsUInt16();
             c2 = Vector256_.ShufflePerLane(c2.AsByte(), mask).AsUInt16();
@@ -150,11 +150,11 @@ internal readonly struct TiffPacked16NativeSource : ITiffColorSource<ushort>
         if (this.reverseEndianness)
         {
             // Swap the two bytes within every word. Repeated 128-bit shuffle masks preserve component and pixel order.
-            Vector512<byte> mask = IShuffle4.ExpandLaneMask(ReverseBytes);
-            c0 = Vector512.ShuffleNative(c0.AsByte(), mask).AsUInt16();
-            c1 = Vector512.ShuffleNative(c1.AsByte(), mask).AsUInt16();
-            c2 = Vector512.ShuffleNative(c2.AsByte(), mask).AsUInt16();
-            c3 = Vector512.ShuffleNative(c3.AsByte(), mask).AsUInt16();
+            Vector128<byte> mask = ReverseBytes;
+            c0 = Vector512_.ShufflePerLane(c0.AsByte(), mask).AsUInt16();
+            c1 = Vector512_.ShufflePerLane(c1.AsByte(), mask).AsUInt16();
+            c2 = Vector512_.ShufflePerLane(c2.AsByte(), mask).AsUInt16();
+            c3 = Vector512_.ShufflePerLane(c3.AsByte(), mask).AsUInt16();
         }
     }
 }

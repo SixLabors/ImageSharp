@@ -5,12 +5,12 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using static SixLabors.ImageSharp.ColorProfiles.ColorProfileConverterExtensionsIcc;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 
@@ -18,6 +18,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly ColorProfileConverter colorProfileConverter;
+    private readonly IccProfile? iccProfile;
     private readonly Configuration configuration;
     private const float Inv255 = 1f / 255f;
 
@@ -33,26 +34,8 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         this.compression = compression;
         this.configuration = configuration;
 
-        if (decoderOptions.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
-        {
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = iccProfile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-                MemoryAllocator = allocator
-            };
-
-            this.colorProfileConverter = new ColorProfileConverter(options);
-        }
-        else
-        {
-            ColorConversionOptions options = new()
-            {
-                MemoryAllocator = allocator
-            };
-
-            this.colorProfileConverter = new ColorProfileConverter(options);
-        }
+        _ = decoderOptions.TryGetIccProfileForColorConversion(metadata.IccProfile, out this.iccProfile);
+        this.colorProfileConverter = new ColorProfileConverter(new ColorConversionOptions { MemoryAllocator = allocator });
     }
 
     /// <inheritdoc/>
@@ -75,10 +58,13 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             return;
         }
 
+        MemoryAllocator allocator = this.colorProfileConverter.Options.MemoryAllocator;
+        IccTransform? transform = CreateDecodingTransform(this.iccProfile);
+
         // Allocate temporary buffers to hold the CMYK -> RGB conversion.
         // This should be the maximum width of a row.
-        using IMemoryOwner<Rgb> rgbBuffer = this.colorProfileConverter.Options.MemoryAllocator.Allocate<Rgb>(width);
-        using IMemoryOwner<Vector4> vectorBuffer = this.colorProfileConverter.Options.MemoryAllocator.Allocate<Vector4>(width);
+        using IMemoryOwner<Rgb> rgbBuffer = allocator.Allocate<Rgb>(width);
+        using IMemoryOwner<Vector4> vectorBuffer = allocator.Allocate<Vector4>(width);
 
         Span<Rgb> rgbRow = rgbBuffer.Memory.Span;
         Span<Vector4> vectorRow = vectorBuffer.Memory.Span;
@@ -97,7 +83,15 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             offset += width * 4;
 
             // Convert CMYK -> RGB -> Vector4 -> TPixel
-            this.colorProfileConverter.Convert<Cmyk, Rgb>(cmykRow, rgbRow);
+            if (transform is IccTransform iccTransform)
+            {
+                iccTransform.Convert<Cmyk, Rgb>(cmykRow, rgbRow, allocator);
+            }
+            else
+            {
+                this.colorProfileConverter.Convert<Cmyk, Rgb>(cmykRow, rgbRow);
+            }
+
             Rgb.ToScaledVector4(rgbRow, vectorRow);
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }

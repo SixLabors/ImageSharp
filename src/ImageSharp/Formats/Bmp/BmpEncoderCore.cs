@@ -180,7 +180,7 @@ internal sealed class BmpEncoderCore
 
         byte[]? iccProfileData = null;
         int iccProfileSize = 0;
-        if (!this.skipMetadata && metadata.IccProfile != null)
+        if (!this.skipMetadata && metadata.IccProfile?.Validate() == true)
         {
             this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
             iccProfileData = metadata.IccProfile.ToByteArray();

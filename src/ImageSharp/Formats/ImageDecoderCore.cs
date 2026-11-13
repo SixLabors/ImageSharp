@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -222,16 +221,7 @@ internal abstract class ImageDecoderCore
             return false;
         }
 
-        ColorConversionOptions options = new()
-        {
-            SourceIccProfile = profile,
-            TargetIccProfile = CompactSrgbV4Profile.Profile,
-            MemoryAllocator = image.Configuration.MemoryAllocator,
-        };
-
-        ColorProfileConverter converter = new(options);
-        converter.Convert(image);
-        return true;
+        return image.TryConvertToSrgb(profile);
     }
 
     /// <summary>
@@ -259,15 +249,6 @@ internal abstract class ImageDecoderCore
             return false;
         }
 
-        ColorConversionOptions options = new()
-        {
-            SourceIccProfile = profile,
-            TargetIccProfile = CompactSrgbV4Profile.Profile,
-            MemoryAllocator = frame.Configuration.MemoryAllocator,
-        };
-
-        ColorProfileConverter converter = new(options);
-
         ImageMetadata metadata = new()
         {
             IccProfile = frame.Metadata.IccProfile
@@ -282,7 +263,6 @@ internal abstract class ImageDecoderCore
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(m.ToArray());
 
         using Image<TPixel> image = new(frame.Configuration, memorySource, frame.Width, frame.Height, metadata);
-        converter.Convert(image);
-        return true;
+        return image.TryConvertToSrgb(profile);
     }
 }

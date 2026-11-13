@@ -291,7 +291,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         ImageFrameMetadata imageFrameMetaData = new();
         if (!this.skipMetadata)
         {
-            imageFrameMetaData.ExifProfile = tags;
+            imageFrameMetaData.TrySetExifProfile(tags);
 
             // We resolve the ICC profile early so that we can use it for color conversion if needed.
             if (tags.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
@@ -299,15 +299,8 @@ internal class TiffDecoderCore : ImageDecoderCore
                 this.ExecuteAncillarySegmentAction(
                     () =>
                     {
-                        IccProfile profile = new(iccProfileBytes.Value);
-                        if (profile.CheckIsValid())
-                        {
-                            imageFrameMetaData.IccProfile = profile;
-                        }
-                        else
-                        {
-                            throw new InvalidIccProfileException("Invalid TIFF ICC profile.");
-                        }
+                        imageFrameMetaData.IccProfile = IccReader.ReadProfile(
+                            iccProfileBytes.Value, this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict);
                     });
             }
         }

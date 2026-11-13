@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -22,11 +22,17 @@ internal static class CorruptedMetadataImageFactory
     {
         using Image<Rgba32> image = new(1, 1);
         image[0, 0] = new Rgba32(255, 0, 0, 255);
-        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.HeaderInvalidSizeSmallArray);
+        image.Metadata.IccProfile = CompactSrgbV4Profile.Profile;
 
         using MemoryStream stream = new();
         image.Save(stream, encoder);
 
-        return stream.ToArray();
+        // The metadata setter rejects malformed profiles. Change the size field only after encoding.
+        byte[] encoded = stream.ToArray();
+        int profileOffset = encoded.AsSpan().IndexOf(CompactSrgbV4Profile.Profile.ToByteArray());
+        Assert.True(profileOffset >= 0, "The encoder did not write the ICC profile.");
+        BinaryPrimitives.WriteUInt32BigEndian(encoded.AsSpan(profileOffset), 127);
+
+        return encoded;
     }
 }

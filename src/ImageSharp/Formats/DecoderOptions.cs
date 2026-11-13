@@ -94,7 +94,7 @@ public sealed class DecoderOptions
     {
         value = null;
 
-        if (profile is null)
+        if (profile is null || profile.IsUnusableForDecoding)
         {
             return false;
         }

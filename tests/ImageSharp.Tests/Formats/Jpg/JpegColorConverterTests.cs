@@ -210,7 +210,9 @@ public class JpegColorConverterTests
             _ => CompactSrgbV4Profile.Profile,
         };
 
-        converter.ConvertToRgbInPlaceWithIcc(Configuration.Default, actual, profile);
+        ColorProfileConverterExtensionsIcc.IccTransform? transform = ColorProfileConverterExtensionsIcc.CreateDecodingTransform(profile);
+        Assert.True(transform.HasValue);
+        converter.ConvertToRgbInPlaceWithIcc(Configuration.Default, actual, transform.GetValueOrDefault());
         ColorConversionOptions options = new()
         {
             SourceIccProfile = profile,

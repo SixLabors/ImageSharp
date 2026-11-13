@@ -129,8 +129,9 @@ public class IcoEncoderTests
     public void PngEntry_PreservesExifProfile()
     {
         using Image<Rgba32> image = new(16, 16);
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "ImageSharp");
+        image.Metadata.ExifProfile = exifProfile;
         image.Frames.RootFrame.Metadata.GetIcoMetadata().Compression = IconFrameCompression.Png;
 
         using MemoryStream stream = new();

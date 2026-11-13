@@ -6,21 +6,21 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Memory;
+using static SixLabors.ImageSharp.ColorProfiles.ColorProfileConverterExtensionsIcc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
     /// <summary>
-    /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place using the given ICC profile.
+    /// Converts planar JPEG samples in <paramref name="values"/> to RGB in place with the selected ICC transform.
     /// </summary>
     /// <param name="configuration">The configuration instance to use for the conversion.</param>
     /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct.</param>
-    /// <param name="profile">The ICC profile to use for the conversion.</param>
-    public void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+    /// <param name="transform">The ICC transform selected for the source profile.</param>
+    public void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccTransform transform)
     {
         Span<float> c0 = values.Component0;
         Span<float> c1 = values.Component1;
@@ -46,14 +46,7 @@ internal abstract partial class JpegColorConverterBase
 
             Span<Y> source = MemoryMarshal.Cast<float, Y>(c0);
             Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed);
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = profile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-            };
-
-            ColorProfileConverter converter = new(options);
-            converter.Convert<Y, Rgb>(source, destination);
+            transform.Convert<Y, Rgb>(source, destination, MemoryAllocator.Default);
             UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..length], c0, c1, c2);
             return;
         }
@@ -113,24 +106,17 @@ internal abstract partial class JpegColorConverterBase
                 break;
         }
 
-        ColorConversionOptions profileOptions = new()
-        {
-            SourceIccProfile = profile,
-            TargetIccProfile = CompactSrgbV4Profile.Profile,
-        };
-
-        ColorProfileConverter profileConverter = new(profileOptions);
         Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packed)[..length];
 
         if (profileSourceIsCmyk)
         {
             // The destination aliases the first three floats of each four-float source item. The converter
             // supports this established in-place contraction, and the source span retains its original length.
-            profileConverter.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(packed), rgb);
+            transform.Convert<Cmyk, Rgb>(MemoryMarshal.Cast<float, Cmyk>(packed), rgb, MemoryAllocator.Default);
         }
         else
         {
-            profileConverter.Convert<Rgb, Rgb>(rgb, rgb);
+            transform.Convert<Rgb, Rgb>(rgb, rgb, MemoryAllocator.Default);
         }
 
         // Only the packed RGB prefix is meaningful after four-component conversion; scatter it back to the

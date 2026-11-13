@@ -297,44 +297,7 @@ internal sealed unsafe partial class JpegEncoderCore
             return;
         }
 
-        const int maxBytesApp1 = 65533; // 64k - 2 padding bytes
-        const int maxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
-
-        byte[] data = exifProfile.ToByteArray();
-
-        if (data.Length == 0)
-        {
-            return;
-        }
-
-        // We can write up to a maximum of 64 data to the initial marker so calculate boundaries.
-        int exifMarkerLength = Components.Decoder.ProfileResolver.ExifMarker.Length;
-        int remaining = exifMarkerLength + data.Length;
-        int bytesToWrite = remaining > maxBytesApp1 ? maxBytesApp1 : remaining;
-        int app1Length = bytesToWrite + 2;
-
-        // Write the app marker, EXIF marker, and data
-        this.WriteApp1Header(app1Length, buffer);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
-        this.outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
-        remaining -= bytesToWrite;
-
-        // If the exif data exceeds 64K, write it in multiple APP1 Markers
-        for (int idx = maxBytesWithExifId; idx < data.Length; idx += maxBytesWithExifId)
-        {
-            bytesToWrite = remaining > maxBytesWithExifId ? maxBytesWithExifId : remaining;
-            app1Length = bytesToWrite + 2 + exifMarkerLength;
-
-            this.WriteApp1Header(app1Length, buffer);
-
-            // Write Exif00 marker
-            this.outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
-
-            // Write the exif data
-            this.outputStream.Write(data, idx, bytesToWrite);
-
-            remaining -= bytesToWrite;
-        }
+        this.WriteApp1Profile(Components.Decoder.ProfileResolver.ExifMarker, exifProfile.GetDataForEncoding(), buffer);
     }
 
     /// <summary>
@@ -343,11 +306,10 @@ internal sealed unsafe partial class JpegEncoderCore
     /// <param name="iptcProfile">The iptc metadata to write.</param>
     /// <param name="buffer">Temporary buffer.</param>
     /// <exception cref="ImageFormatException">
-    /// Thrown if the IPTC profile size exceeds the limit of 65533 bytes.
+    /// Thrown if the IPTC data exceeds the JPEG APP13 segment size limit.
     /// </exception>
     private void WriteIptcProfile(IptcProfile iptcProfile, Span<byte> buffer)
     {
-        const int maxBytes = 65533;
         if (iptcProfile is null || !iptcProfile.Values.Any())
         {
             return;
@@ -360,24 +322,16 @@ internal sealed unsafe partial class JpegEncoderCore
             return;
         }
 
-        if (data.Length > maxBytes)
+        int markerHeaderLength = sizeof(ushort) + IptcReader.PhotoshopHeader.Length;
+        long markerLength = markerHeaderLength + IptcWriter.GetPhotoshopResourceLength(data.Length);
+        if (markerLength > ushort.MaxValue)
         {
-            throw new ImageFormatException($"Iptc profile size exceeds limit of {maxBytes} bytes");
+            throw new ImageFormatException("The IPTC profile exceeds the JPEG APP13 segment size limit.");
         }
 
-        int app13Length = 2 + Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker.Length +
-                          Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker.Length +
-                          Components.Decoder.ProfileResolver.AdobeIptcMarker.Length +
-                          2 + 4 + data.Length;
-        this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13, buffer);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.AdobeIptcMarker);
-        this.outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
-        this.outputStream.WriteByte(0);
-        BinaryPrimitives.WriteInt32BigEndian(buffer, data.Length);
-        this.outputStream.Write(buffer, 0, 4);
-        this.outputStream.Write(data, 0, data.Length);
+        this.WriteAppHeader((int)markerLength, JpegConstants.Markers.APP13, buffer);
+        this.outputStream.Write(IptcReader.PhotoshopHeader);
+        IptcWriter.WritePhotoshopResource(this.outputStream, data);
     }
 
     /// <summary>
@@ -385,49 +339,8 @@ internal sealed unsafe partial class JpegEncoderCore
     /// </summary>
     /// <param name="xmpProfile">The XMP metadata to write.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    /// <exception cref="ImageFormatException">
-    /// Thrown if the XMP profile size exceeds the limit of 65533 bytes.
-    /// </exception>
     private void WriteXmpProfile(XmpProfile xmpProfile, Span<byte> buffer)
-    {
-        if (xmpProfile is null)
-        {
-            return;
-        }
-
-        const int xmpOverheadLength = 29;
-        const int maxBytes = 65533;
-        const int maxData = maxBytes - xmpOverheadLength;
-
-        byte[] data = xmpProfile.Data;
-
-        if (data is null || data.Length == 0)
-        {
-            return;
-        }
-
-        int dataLength = data.Length;
-        int offset = 0;
-
-        while (dataLength > 0)
-        {
-            int length = dataLength; // Number of bytes to write.
-
-            if (length > maxData)
-            {
-                length = maxData;
-            }
-
-            dataLength -= length;
-
-            int app1Length = 2 + Components.Decoder.ProfileResolver.XmpMarker.Length + length;
-            this.WriteApp1Header(app1Length, buffer);
-            this.outputStream.Write(Components.Decoder.ProfileResolver.XmpMarker);
-            this.outputStream.Write(data, offset, length);
-
-            offset += length;
-        }
-    }
+        => this.WriteApp1Profile(Components.Decoder.ProfileResolver.XmpMarker, xmpProfile?.GetDataForEncoding(), buffer);
 
     /// <summary>
     /// Writes the DRI marker
@@ -449,12 +362,24 @@ internal sealed unsafe partial class JpegEncoderCore
     }
 
     /// <summary>
-    /// Writes the App1 header.
+    /// Writes a profile across APP1 segments, repeating the profile identifier in each segment.
     /// </summary>
-    /// <param name="app1Length">The length of the data the app1 marker contains.</param>
+    /// <param name="identifier">The bytes identifying the profile type.</param>
+    /// <param name="data">The serialized profile.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private void WriteApp1Header(int app1Length, Span<byte> buffer)
-        => this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1, buffer);
+    private void WriteApp1Profile(ReadOnlySpan<byte> identifier, ReadOnlySpan<byte> data, Span<byte> buffer)
+    {
+        int overhead = sizeof(ushort) + identifier.Length;
+        int maxPayloadLength = ushort.MaxValue - overhead;
+        while (!data.IsEmpty)
+        {
+            int length = Math.Min(maxPayloadLength, data.Length);
+            this.WriteAppHeader(overhead + length, JpegConstants.Markers.APP1, buffer);
+            this.outputStream.Write(identifier);
+            this.outputStream.Write(data[..length]);
+            data = data[length..];
+        }
+    }
 
     /// <summary>
     /// Writes a AppX header.
@@ -482,7 +407,7 @@ internal sealed unsafe partial class JpegEncoderCore
     /// </exception>
     private void WriteIccProfile(IccProfile iccProfile, Span<byte> buffer)
     {
-        if (iccProfile is null)
+        if (iccProfile?.Validate() != true)
         {
             return;
         }
@@ -507,6 +432,11 @@ internal sealed unsafe partial class JpegEncoderCore
             count++;
         }
 
+        if (count > byte.MaxValue)
+        {
+            throw new ImageFormatException("The ICC profile requires too many JPEG APP2 segments.");
+        }
+
         // Per spec, counting starts at 1.
         int current = 1;
         int offset = 0;
@@ -522,29 +452,10 @@ internal sealed unsafe partial class JpegEncoderCore
 
             dataLength -= length;
 
-            buffer[0] = JpegConstants.Markers.XFF;
-            buffer[1] = JpegConstants.Markers.APP2; // Application Marker
-            int markerLength = length + 16;
-            buffer[2] = (byte)((markerLength >> 8) & 0xFF);
-            buffer[3] = (byte)(markerLength & 0xFF);
-
-            this.outputStream.Write(buffer, 0, 4);
-
-            // We write the highest index first, to have only one bound check.
-            buffer[13] = (byte)count; // The total number of profiles.
-            buffer[12] = (byte)current; // The position within the collection.
-            buffer[11] = 0x00;
-            buffer[0] = (byte)'I';
-            buffer[1] = (byte)'C';
-            buffer[2] = (byte)'C';
-            buffer[3] = (byte)'_';
-            buffer[4] = (byte)'P';
-            buffer[5] = (byte)'R';
-            buffer[6] = (byte)'O';
-            buffer[7] = (byte)'F';
-            buffer[8] = (byte)'I';
-            buffer[9] = (byte)'L';
-            buffer[10] = (byte)'E';
+            this.WriteAppHeader(length + iccOverheadLength + sizeof(ushort), JpegConstants.Markers.APP2, buffer);
+            Components.Decoder.ProfileResolver.IccMarker.CopyTo(buffer);
+            buffer[12] = (byte)current;
+            buffer[13] = (byte)count;
 
             this.outputStream.Write(buffer, 0, iccOverheadLength);
             this.outputStream.Write(data, offset, length);

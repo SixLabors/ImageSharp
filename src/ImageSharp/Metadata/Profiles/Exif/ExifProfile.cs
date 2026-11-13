@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
@@ -26,12 +27,12 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// The thumbnail offset position in the byte stream
     /// </summary>
-    private int thumbnailOffset;
+    private uint thumbnailOffset;
 
     /// <summary>
     /// The thumbnail length in the byte stream
     /// </summary>
-    private int thumbnailLength;
+    private uint thumbnailLength;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExifProfile"/> class.
@@ -157,12 +158,13 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return false;
         }
 
-        if (this.data is null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
+        if (this.data is null || this.thumbnailOffset > (uint)this.data.Length ||
+            this.thumbnailLength > (uint)this.data.Length - this.thumbnailOffset)
         {
             return false;
         }
 
-        using MemoryStream memStream = new(this.data, this.thumbnailOffset, this.thumbnailLength);
+        using MemoryStream memStream = new(this.data, (int)this.thumbnailOffset, (int)this.thumbnailLength);
         image = Image.Load<TPixel>(memStream);
         return true;
     }
@@ -219,6 +221,55 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
     public void SetValue<TValueType>(ExifTag<TValueType> tag, TValueType value)
         => this.SetValueInternal(tag, value);
+
+    /// <summary>
+    /// Checks that the profile contains values or a populated raw directory.
+    /// </summary>
+    /// <returns>Whether the profile contains EXIF data.</returns>
+    internal bool Validate()
+    {
+        if (this.values != null)
+        {
+            return this.values.Count > 0;
+        }
+
+        // A classic TIFF directory has a two-byte count, 12 bytes per entry, and a four-byte next-directory offset.
+        const int DirectoryEntryLength = 12;
+        const int DirectoryOverhead = sizeof(ushort) + sizeof(uint);
+        const int MinimumDirectoryLength = DirectoryOverhead + DirectoryEntryLength;
+        ReadOnlySpan<byte> bytes = this.data;
+        if (bytes.Length < 8 + MinimumDirectoryLength)
+        {
+            return false;
+        }
+
+        bool littleEndian = bytes.StartsWith(ExifConstants.LittleEndianByteOrderMarker);
+        if (!littleEndian && !bytes.StartsWith(ExifConstants.BigEndianByteOrderMarker))
+        {
+            return false;
+        }
+
+        // The first directory offset follows the four-byte marker. Its first two bytes are the entry count.
+        uint offset = littleEndian ? BinaryPrimitives.ReadUInt32LittleEndian(bytes[4..]) : BinaryPrimitives.ReadUInt32BigEndian(bytes[4..]);
+        if (offset < 8 || offset > (uint)(bytes.Length - MinimumDirectoryLength))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<byte> directory = bytes[(int)offset..];
+        ushort count = littleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(directory) : BinaryPrimitives.ReadUInt16BigEndian(directory);
+        return count > 0 && count <= (directory.Length - DirectoryOverhead) / DirectoryEntryLength;
+    }
+
+    /// <summary>
+    /// Serializes the selected EXIF data for an encoder.
+    /// </summary>
+    /// <returns>The encoded data, or null when there are no bytes to write.</returns>
+    internal byte[]? GetDataForEncoding()
+    {
+        byte[]? data = this.Validate() ? this.ToByteArray() : null;
+        return data?.Length > 0 ? data : null;
+    }
 
     /// <summary>
     /// Converts the sections selected by <see cref="Parts"/> to a byte array.
@@ -417,7 +468,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             ? new List<ExifTag>(reader.InvalidTags)
             : Array.Empty<ExifTag>();
 
-        this.thumbnailOffset = (int)reader.ThumbnailOffset;
-        this.thumbnailLength = (int)reader.ThumbnailLength;
+        this.thumbnailOffset = reader.ThumbnailOffset;
+        this.thumbnailLength = reader.ThumbnailLength;
     }
 }

@@ -6,6 +6,7 @@ using System.Buffers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using static SixLabors.ImageSharp.ColorProfiles.ColorProfileConverterExtensionsIcc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
@@ -147,6 +148,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         }
 
         int width = this.pixelBuffer.Width;
+        IccTransform? transform = CreateDecodingTransform(iccProfile);
 
         for (int yy = this.pixelRowCounter; yy < maxY; yy++)
         {
@@ -154,9 +156,9 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
 
-            if (iccProfile != null)
+            if (transform is IccTransform iccTransform)
             {
-                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccProfile);
+                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccTransform);
             }
             else
             {

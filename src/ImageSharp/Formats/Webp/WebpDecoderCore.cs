@@ -92,6 +92,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.maxFrames,
                         this.skipMetadata,
                         this.backgroundColorHandling,
+                        this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict,
                         this.ExecuteAncillarySegmentAction);
 
                     return animationDecoder.Decode<TPixel>(
@@ -164,6 +165,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.maxFrames,
                     this.skipMetadata,
                     this.backgroundColorHandling,
+                    this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict,
                     this.ExecuteAncillarySegmentAction);
 
                 return animationDecoder.Identify(
@@ -346,7 +348,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 // precede the image data, and we cannot safely skip it without successfully reading its size.
                 // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
                 // handler. Only errors in the contents of a complete chunk follow that recovery policy.
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction, this.riffEnd);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.Options.SegmentIntegrityHandling != SegmentIntegrityHandling.Strict, this.ExecuteAncillarySegmentAction, this.riffEnd);
                 break;
 
             case WebpChunkType.Exif:

@@ -720,9 +720,10 @@ public class ResizeTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        image.Metadata.ExifProfile = new();
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
-        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 20, 20]);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        exifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 20, 20]);
+        image.Metadata.ExifProfile = exifProfile;
 
         image.Mutate(ctx => ctx.Resize(new Size(image.Width / 2, image.Height / 2)));
 

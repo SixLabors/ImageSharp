@@ -648,9 +648,10 @@ internal sealed class GifEncoderCore
         }
 
         // Application Extension: XMP Profile.
-        if (xmpProfile != null)
+        byte[]? xmpData = xmpProfile?.GetDataForEncoding();
+        if (xmpData != null)
         {
-            GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data!);
+            GifXmpApplicationExtension xmpExtension = new(xmpData);
             this.WriteExtension(xmpExtension, stream);
         }
     }

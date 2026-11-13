@@ -1,11 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -261,7 +263,7 @@ public class PngMetadataTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -279,6 +281,29 @@ public class PngMetadataTests
 
         Assert.NotNull(actualProfile);
         Assert.Equal(expectedProfileBytes, actualProfileBytes);
+    }
+
+    [Fact]
+    public void Decode_RetainsReadableTruncatedIccProfile()
+    {
+        // The final chromatic adaptation tag is truncated. The color lookup tables are complete.
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        using Image<Rgba32> image = Image.Load<Rgba32>(testFile.Bytes);
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        Assert.Equal(60956, image.Metadata.IccProfile.ToByteArray().Length);
+    }
+
+    [Fact]
+    public void Decode_ThrowsForTruncatedIccProfileWithStrictIntegrity()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<ImageSharp.Metadata.Profiles.Icc.InvalidIccProfileException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, testFile.Bytes);
+        });
     }
 
     [Theory]
@@ -368,6 +393,59 @@ public class PngMetadataTests
             exif.GetValue(ExifTag.ImageHistory).Value);
 
         Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
+    }
+
+    [Theory]
+    [InlineData(PngConstants.ExifRawProfileKeyword, "other profile")] // The text has no exif identifier.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "ex")] // The text is shorter than the identifier.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif 8")] // There is no length line.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif\nabc\n457869660000")] // The length is not a number.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif\n100\n457869660000")] // The length is larger than the hex data.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif\n2000000000\n457869660000")] // The length is far larger than the hex data.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif\n8\n457869660000\n\nab")] // The last line has fewer bytes than the length requires.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif\n7\n457869660000gg")] // The hex data is not valid.
+    [InlineData(PngConstants.ExifRawProfileKeyword, "exif\n8\n4578696600004949")] // The hex data is valid, but 2 bytes are too short for an EXIF profile.
+    [InlineData(PngConstants.IptcRawProfileKeyword, "other profile")] // The text has no IPTC identifier.
+    [InlineData(PngConstants.IptcRawProfileKeyword, "IPTC profile\n2000000000\n1c02")] // The length is far larger than the hex data.
+    [InlineData(PngConstants.IptcRawProfileKeyword, "IPTC profile\n1\ngg")] // The hex data is not valid.
+    public void DecodeAndIdentify_InvalidLegacyProfileText_IsDiscarded(string keyword, string text)
+    {
+        using Image<Rgba32> input = new(1, 1);
+        input.Metadata.GetPngMetadata().TextData.Add(new PngTextData(keyword, text, string.Empty, string.Empty));
+
+        using MemoryStream stream = new();
+        input.SaveAsPng(stream);
+        byte[] data = stream.ToArray();
+
+        // Decode and identify both read the legacy text. An invalid profile is damaged metadata,
+        // so neither creates a profile or keeps the chunk as text.
+        using Image<Rgba32> output = Image.Load<Rgba32>(data);
+        ImageInfo info = Image.Identify(data);
+
+        Assert.Null(output.Metadata.ExifProfile);
+        Assert.Null(output.Metadata.IptcProfile);
+        Assert.Null(info.Metadata.ExifProfile);
+        Assert.Null(info.Metadata.IptcProfile);
+        Assert.DoesNotContain(output.Metadata.GetPngMetadata().TextData, item => item.Keyword == keyword);
+        Assert.DoesNotContain(info.Metadata.GetPngMetadata().TextData, item => item.Keyword == keyword);
+    }
+
+    [Theory]
+    [InlineData("ab\n\ncd", 2, true)]
+    [InlineData("abcd", 1, false)]
+    [InlineData("abcd", 3, false)]
+    public void Decode_LegacyHexText_RequiresExactByteCount(string text, int count, bool expected)
+    {
+        bool result = HexConverter.TryDecodeLines(text, count, out byte[]? data);
+        Assert.Equal(expected, result);
+        if (expected)
+        {
+            Assert.Equal(new byte[] { 0xab, 0xcd }, data);
+        }
+        else
+        {
+            Assert.Null(data);
+        }
     }
 
     [Theory]

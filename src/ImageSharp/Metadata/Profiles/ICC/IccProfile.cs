@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 /// </summary>
 public sealed partial class IccProfile : IDeepCloneable<IccProfile>
 {
+    internal const int MaxProfileSize = 50_000_000;
+
     /// <summary>
     /// The byte array to read the ICC profile from
     /// </summary>
@@ -62,6 +64,9 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
         Guard.NotNull(other, nameof(other));
 
         this.data = other.ToByteArray();
+        this.HasValidatedData = other.HasValidatedData;
+        this.WasRecovered = other.WasRecovered;
+        this.IsUnusableForDecoding = other.IsUnusableForDecoding;
     }
 
     /// <summary>
@@ -88,6 +93,35 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
             this.InitializeEntries();
             return this.entries;
         }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether ImageSharp owns bytes already checked by the reader or produced by the writer.
+    /// </summary>
+    internal bool HasValidatedData { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the reader recovered a profile with missing bytes or invalid tag ranges.
+    /// </summary>
+    internal bool WasRecovered { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the decoder could not build the transform for this recovered profile.
+    /// </summary>
+    internal bool IsUnusableForDecoding { get; set; }
+
+    /// <summary>
+    /// Copies a valid profile for metadata. The copy owns its validated bytes.
+    /// </summary>
+    /// <returns>The owned copy, or null when the source profile is invalid.</returns>
+    internal IccProfile CloneForMetadata()
+    {
+        if (!this.Validate())
+        {
+            return null;
+        }
+
+        return new IccProfile(this) { HasValidatedData = true };
     }
 
     /// <inheritdoc/>
@@ -138,28 +172,68 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
     }
 
     /// <summary>
+    /// Selects the first valid ICC profile for encoding.
+    /// </summary>
+    /// <param name="preferred">The profile to check first.</param>
+    /// <param name="fallback">The profile to check if the preferred profile is absent or invalid.</param>
+    /// <returns>The validated profile, or null if neither profile is valid.</returns>
+    internal static IccProfile SelectValidProfile(IccProfile preferred, IccProfile fallback)
+    {
+        if (preferred?.Validate() == true)
+        {
+            return preferred;
+        }
+
+        return !ReferenceEquals(preferred, fallback) && fallback?.Validate() == true ? fallback : null;
+    }
+
+    /// <summary>
+    /// Checks that the ICC color space and rendering intent codes have defined values.
+    /// </summary>
+    /// <param name="dataColorSpace">The profile color space.</param>
+    /// <param name="connectionColorSpace">The profile connection color space.</param>
+    /// <param name="renderingIntent">The rendering intent.</param>
+    /// <returns>Whether all three codes have defined values.</returns>
+    internal static bool HasValidHeaderFields(
+        IccColorSpaceType dataColorSpace,
+        IccColorSpaceType connectionColorSpace,
+        IccRenderingIntent renderingIntent)
+        => Enum.IsDefined(dataColorSpace) && Enum.IsDefined(connectionColorSpace) && Enum.IsDefined(renderingIntent);
+
+    /// <summary>
     /// Checks for signs of a corrupt profile.
     /// </summary>
     /// <remarks>This is not an absolute proof of validity but should weed out most corrupt data.</remarks>
     /// <returns>True if the profile is valid; False otherwise</returns>
     public bool CheckIsValid()
     {
-        const int minSize = 128;
-        const int maxSize = 50_000_000; // it's unlikely there is a profile bigger than 50MB
-
         bool arrayValid = true;
         if (this.data != null)
         {
-            arrayValid = this.data.Length >= minSize &&
+            arrayValid = this.data.Length >= 128 &&
                          this.data.Length >= this.Header.Size;
         }
 
-        return arrayValid &&
-               Enum.IsDefined(this.Header.DataColorSpace) &&
-               Enum.IsDefined(this.Header.ProfileConnectionSpace) &&
-               Enum.IsDefined(this.Header.RenderingIntent) &&
-               this.Header.Size is >= minSize and < maxSize;
+        return arrayValid && this.HasValidHeader();
     }
+
+    /// <summary>
+    /// Checks that the profile contains tags and that its header and tag ranges are valid.
+    /// </summary>
+    /// <returns>Whether the profile can be used as image metadata.</returns>
+    /// <remarks>Caller-owned arrays are checked each time because their contents can change.</remarks>
+    internal bool Validate()
+        => this.data == null
+            ? this.entries?.Length > 0
+            : this.HasValidatedData || IccReader.ValidateForMetadata(this.data);
+
+    /// <summary>
+    /// Checks the declared header fields independently of the available tag data.
+    /// </summary>
+    /// <returns>Whether the declared size is in range and the color spaces and rendering intent have known values.</returns>
+    internal bool HasValidHeader()
+        => this.Header.Size is >= 128 and < MaxProfileSize &&
+            HasValidHeaderFields(this.Header.DataColorSpace, this.Header.ProfileConnectionSpace, this.Header.RenderingIntent);
 
     /// <summary>
     /// Converts this instance to a byte array.

@@ -63,8 +63,9 @@ public class ExifProfileTests
         Assert.Null(image.Metadata.ExifProfile);
 
         const string expected = "Dirk Lemstra";
-        image.Metadata.ExifProfile = new ExifProfile();
-        image.Metadata.ExifProfile.SetValue(ExifTag.Copyright, expected);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Copyright, expected);
+        image.Metadata.ExifProfile = exifProfile;
 
         image = WriteAndRead(image, imageFormat);
 

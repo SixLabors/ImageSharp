@@ -428,10 +428,9 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="appLength">The application block length.</param>
     private void ReadXmpApplicationExtensionData(BufferedReadStream stream, long applicationPosition, int appLength)
     {
-        GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
-        if (extension.Data.Length > 0)
+        if (GifXmpApplicationExtension.TryReadProfile(stream, this.memoryAllocator, out XmpProfile? profile))
         {
-            this.metadata!.XmpProfile = new XmpProfile(extension.Data);
+            this.metadata!.XmpProfile = profile;
             return;
         }
 

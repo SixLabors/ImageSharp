@@ -144,45 +144,38 @@ internal static class ColorProfileConverterExtensionsIcc
 
         Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(destination));
 
-        // Resolve the connection's intent once for the entire span, before selecting either transform
-        // or deciding whether perceptual PCS adjustment is needed.
-        IccRenderingIntent renderingIntent = converter.Options.SourceIccProfile.Header.RenderingIntent;
-        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true, renderingIntent);
-        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false, renderingIntent);
+        IccTransform transform = new(converter.Options.SourceIccProfile, converter.Options.TargetIccProfile);
+        transform.Convert(source, destination, converter.Options.MemoryAllocator);
+    }
 
-        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
+    /// <summary>
+    /// Builds the transform that will convert the decoder's samples to sRGB.
+    /// </summary>
+    /// <param name="profile">The selected source profile, or null for default color conversion.</param>
+    /// <returns>The transform, or null if the decoder must use its default conversion.</returns>
+    public static IccTransform? CreateDecodingTransform(IccProfile? profile)
+    {
+        if (profile is null || profile.IsUnusableForDecoding)
         {
-            MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = KnownIlluminants.D50Icc,
-            TargetWhitePoint = KnownIlluminants.D50Icc
-        });
-
-        using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
-        Span<Vector4> pcs = pcsBuffer.GetSpan();
-
-        // Normalize the source, then convert to the PCS space.
-        TFrom.ToScaledVector4(source, pcs);
-        sourceParams.Converter.Calculate(pcs, pcs);
-
-        // If both profiles need PCS adjustment, they both share the same unadjusted PCS space
-        // cancelling out the need to make the adjustment
-        // except if using TRC transforms, which always requires perceptual handling
-        // TODO: this does not include adjustment for absolute intent, which would double existing complexity, suggest throwing exception and addressing in future update
-        bool anyProfileNeedsPerceptualAdjustment = sourceParams.HasNoPerceptualHandling || targetParams.HasNoPerceptualHandling;
-        bool oneProfileHasV2PerceptualAdjustment = sourceParams.HasV2PerceptualHandling ^ targetParams.HasV2PerceptualHandling;
-
-        if (anyProfileNeedsPerceptualAdjustment || oneProfileHasV2PerceptualAdjustment)
-        {
-            GetTargetPcsWithPerceptualAdjustment(pcs, sourceParams, targetParams, pcsConverter);
-        }
-        else
-        {
-            GetTargetPcsWithoutAdjustment(pcs, sourceParams, targetParams, pcsConverter);
+            return null;
         }
 
-        // Convert to the target space.
-        targetParams.Converter.Calculate(pcs, pcs);
-        TTo.FromScaledVector4(pcs, destination);
+        try
+        {
+            // A recovered profile can be missing the tags that define the transform.
+            // Build it before any samples are changed, so the caller can use its normal fallback.
+            if (profile.Header.ProfileConnectionSpace is not (IccColorSpaceType.CieLab or IccColorSpaceType.CieXyz))
+            {
+                throw new InvalidIccProfileException("The ICC profile connection space is not supported.");
+            }
+
+            return new IccTransform(profile, CompactSrgbV4Profile.Profile);
+        }
+        catch (Exception ex) when (profile.WasRecovered && (ex is InvalidIccProfileException or ArgumentException or NotSupportedException or NotImplementedException))
+        {
+            profile.IsUnusableForDecoding = true;
+            return null;
+        }
     }
 
     private static Vector4 GetTargetPcsWithoutAdjustment(
@@ -691,6 +684,75 @@ internal static class ColorProfileConverterExtensionsIcc
         // Reinterpreting both spans exposes all four components to one multiplication traversal;
         // the source and destination retain their original Vector4 boundaries after the operation.
         TensorPrimitives_.Multiply(MemoryMarshal.Cast<Vector4, float>(source), scale, MemoryMarshal.Cast<Vector4, float>(destination));
+    }
+
+    /// <summary>
+    /// Holds the source and target conversions for the current pixel conversion.
+    /// </summary>
+    internal readonly struct IccTransform
+    {
+        private readonly ConversionParams sourceParams;
+        private readonly ConversionParams targetParams;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IccTransform"/> struct.
+        /// Uses the source profile's rendering intent for both transforms.
+        /// </summary>
+        /// <param name="source">The source ICC profile.</param>
+        /// <param name="target">The target ICC profile.</param>
+        public IccTransform(IccProfile source, IccProfile target)
+        {
+            IccRenderingIntent renderingIntent = source.Header.RenderingIntent;
+            this.sourceParams = new ConversionParams(source, toPcs: true, renderingIntent);
+            this.targetParams = new ConversionParams(target, toPcs: false, renderingIntent);
+        }
+
+        /// <summary>
+        /// Converts samples through the source and target transforms.
+        /// </summary>
+        /// <typeparam name="TFrom">The source color type.</typeparam>
+        /// <typeparam name="TTo">The target color type.</typeparam>
+        /// <param name="source">The input samples.</param>
+        /// <param name="destination">The destination for the converted samples.</param>
+        /// <param name="allocator">The allocator for temporary storage.</param>
+        public void Convert<TFrom, TTo>(ReadOnlySpan<TFrom> source, Span<TTo> destination, MemoryAllocator allocator)
+            where TFrom : struct, IColorProfile<TFrom>
+            where TTo : struct, IColorProfile<TTo>
+        {
+            ColorProfileConverter pcsConverter = new(new ColorConversionOptions
+            {
+                MemoryAllocator = allocator,
+                SourceWhitePoint = KnownIlluminants.D50Icc,
+                TargetWhitePoint = KnownIlluminants.D50Icc
+            });
+
+            using IMemoryOwner<Vector4> pcsBuffer = allocator.Allocate<Vector4>(source.Length);
+            Span<Vector4> pcs = pcsBuffer.GetSpan();
+
+            // Normalize the source, then convert to the PCS space.
+            TFrom.ToScaledVector4(source, pcs);
+            this.sourceParams.Converter.Calculate(pcs, pcs);
+
+            // If both profiles need PCS adjustment, they both share the same unadjusted PCS space
+            // cancelling out the need to make the adjustment
+            // except if using TRC transforms, which always requires perceptual handling
+            // TODO: this does not include adjustment for absolute intent, which would double existing complexity, suggest throwing exception and addressing in future update
+            bool anyProfileNeedsPerceptualAdjustment = this.sourceParams.HasNoPerceptualHandling || this.targetParams.HasNoPerceptualHandling;
+            bool oneProfileHasV2PerceptualAdjustment = this.sourceParams.HasV2PerceptualHandling ^ this.targetParams.HasV2PerceptualHandling;
+
+            if (anyProfileNeedsPerceptualAdjustment || oneProfileHasV2PerceptualAdjustment)
+            {
+                GetTargetPcsWithPerceptualAdjustment(pcs, this.sourceParams, this.targetParams, pcsConverter);
+            }
+            else
+            {
+                GetTargetPcsWithoutAdjustment(pcs, this.sourceParams, this.targetParams, pcsConverter);
+            }
+
+            // Convert to the target space.
+            this.targetParams.Converter.Calculate(pcs, pcs);
+            TTo.FromScaledVector4(pcs, destination);
+        }
     }
 
     private class ConversionParams

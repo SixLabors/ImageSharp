@@ -1332,7 +1332,12 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             // > 108 bytes
             infoHeaderType = BmpInfoHeaderType.WinVersion5;
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
-            if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+
+            // Only PROFILE_EMBEDDED profile data is ICC data. For PROFILE_LINKED, the data is the file name of the
+            // profile, so the decoder does not read it.
+            if (this.infoHeader.CsType is BmpColorSpace.PROFILE_EMBEDDED
+                && this.infoHeader.ProfileData != 0
+                && this.infoHeader.ProfileSize != 0)
             {
                 long streamPosition = stream.Position;
                 this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));

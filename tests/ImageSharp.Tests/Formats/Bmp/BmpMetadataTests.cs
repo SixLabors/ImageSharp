@@ -185,6 +185,37 @@ public class BmpMetadataTests
     }
 
     /// <summary>
+    /// Checks that Identify and Decode do not read the profile data of a linked profile as ICC data.
+    /// </summary>
+    /// <param name="provider">The existing BMP with an embedded profile.</param>
+    [Theory]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
+    public void DecodeAndIdentify_LinkedProfile_DoesNotReadIccProfile(TestImageProvider<Rgba32> provider)
+    {
+        byte[] encoded = TestFile.Create(provider.SourceFileOrDescription).Bytes.ToArray();
+        Span<byte> infoHeaderData = encoded.AsSpan(BmpFileHeader.Size, BmpInfoHeader.SizeV5);
+        BmpInfoHeader header = BmpInfoHeader.ParseV5(infoHeaderData);
+
+        // A linked profile stores a null-terminated file name at the profile offset. Strict handling throws for any ICC
+        // data that the decoder reads, so the file name must not be read as a profile.
+        byte[] fileName = "profile.icc\0"u8.ToArray();
+        fileName.CopyTo(encoded.AsSpan(BmpFileHeader.Size + header.ProfileData));
+        header.CsType = BmpColorSpace.PROFILE_LINKED;
+        header.ProfileSize = fileName.Length;
+        header.WriteV5Header(infoHeaderData);
+
+        DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using Image<Rgba32> expected = provider.GetImage();
+        ImageInfo info = Image.Identify(options, encoded);
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, encoded);
+
+        Assert.Equal(expected.Size, info.Size);
+        Assert.Null(info.Metadata.IccProfile);
+        Assert.Equal(expected.Size, image.Size);
+        Assert.Null(image.Metadata.IccProfile);
+    }
+
+    /// <summary>
     /// Invalidates the ICC size in a copy of an existing BMP without changing its container or pixel data.
     /// </summary>
     /// <param name="provider">The existing BMP with an embedded profile.</param>

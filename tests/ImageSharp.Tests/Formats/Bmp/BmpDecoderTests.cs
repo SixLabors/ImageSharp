@@ -59,10 +59,12 @@ public class BmpDecoderTests
     [InlineData(SegmentIntegrityHandling.IgnoreImageData, true)]
     public void Decode_WithProfileLargerThanRemainingData_RespectsOptions(SegmentIntegrityHandling integrityHandling, bool skipMetadata)
     {
+        // The V5 header declares PROFILE_EMBEDDED ("MBED") at byte 70, so the profile fields apply. The profile offset
+        // points past the end of the 142-byte file.
         byte[] payload = Convert.FromHexString(
             "424D8E000000000000008A0000007C0000000100000001000000010018000000" +
             "0000000000000000000000000000000000000000000000000000000000000000" +
-            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "0000000000004445424D00000000000000000000000000000000000000000000" +
             "000000000000000000000000000000000000000000000000000000000000C800" +
             "00000000004000000000000000");
         DecoderOptions options = new(Configuration.Default) { SegmentIntegrityHandling = integrityHandling, SkipMetadata = skipMetadata };
